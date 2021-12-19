@@ -332,6 +332,10 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._alarms: Dict[str, object] = {}
 
+
+        #Used for storing the full config data set including stuff we shouldn't save
+        self._runtimeConfigData = {}
+
         with lock:
             messagebus.postMessage("/system/tags/created",
                                    self.name,
@@ -721,7 +725,7 @@ class _TagPoint(virtualresource.VirtualResource):
         # It's a getter, ignore the mypy unused thing.
         self.poll()
 
-    def contextGetNumericTagValue(self, n):
+    def contextGetNumericTagValue(self, n:str):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
         try:
             return self.sourceTags[n].value
@@ -732,7 +736,7 @@ class _TagPoint(virtualresource.VirtualResource):
             return self.sourceTags[n].value
         return 0
 
-    def contextGetStringTagValue(self, n):
+    def contextGetStringTagValue(self, n:str):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
         try:
             return self.sourceTags[n].value
@@ -780,15 +784,16 @@ class _TagPoint(virtualresource.VirtualResource):
             hasUnsavedData[0] = True
 
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
+    @typechecked
     def setAlarm(self,
                  name,
-                 condition='',
-                 priority="info",
-                 releaseCondition='',
-                 autoAck='no',
-                 tripDelay='0',
-                 isConfigured=False,
-                 _refresh=True):
+                 condition:str='',
+                 priority:str="info",
+                 releaseCondition:str='',
+                 autoAck:Union[bool, str]='no',
+                 tripDelay:Union[float,str]='0',
+                 isConfigured:bool=False,
+                 _refresh:bool=True):
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
@@ -860,7 +865,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.dynamicAlarmData.clear()
                 self.createAlarms()
 
-    def createAlarms(self, limitTo=None):
+    def createAlarms(self, limitTo:str=None):
         merged = {}
         with lock:
             # Combine the merged and configured alarms
@@ -935,7 +940,7 @@ class _TagPoint(virtualresource.VirtualResource):
         return notificationHTML
 
     @staticmethod
-    def _getAlarmContextGetters(obj, context, recalc):
+    def _getAlarmContextGetters(obj, context:dict, recalc:Callable):
         # Note that it these go to an alarm which is held if active, or another tag that could be held elsewhere
         # It cannot reference any tag directly or preserve any references, we would not want that.
 
@@ -985,7 +990,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
         return recalc2
 
-    def _alarmFromData(self, name, d):
+    @typechecked
+    def _alarmFromData(self, name:str, d:dict):
         if not d.get("condition", ''):
             return
 
@@ -1123,6 +1129,7 @@ class _TagPoint(virtualresource.VirtualResource):
             hasUnsavedData[0] = True
             # New config, new chance to see if there's a problem.
             self.alreadyPostedDeadlock = False
+            self._runtimeConfigData.update(data)
 
             if data and self.name not in configTagData:
                 configTagData[self.name] = persist.getStateFile(
@@ -1253,13 +1260,15 @@ class _TagPoint(virtualresource.VirtualResource):
             # Delete any existing configured value override claim
             if hasattr(self, 'kweb_manualOverrideClaim'):
                 toRelease = self.kweb_manualOverrideClaim
-                del self.kweb_manualOverrideClaim
             else:
                 toRelease = None
+
+
 
             # Val override last, in case it triggers an alarm
             # Convert to string for consistent handling, the config engine things anything that looks like a number, is.
             overrideValue = str(data.get('overrideValue', '')).strip()
+            tempOverrideValue = str(data.get('tempOverrideValue', '')).strip()
 
             if self.type == "binary":
                 try:
@@ -1268,19 +1277,60 @@ class _TagPoint(virtualresource.VirtualResource):
                     logging.exception("Bad hex in tag override")
                     overrideValue = b''
 
+                try:
+                    tempOverrideValue = bytes.fromhex(tempOverrideValue)
+                except Exception:
+                    logging.exception("Bad hex in tag override")
+                    overrideValue = b''
+
+
             if overrideValue:
                 if overrideValue.startswith("="):
-                    self.kweb_manualOverrideClaim = createGetterFromExpression(
+                    self.kweb_manualOverrideClaim = self.createGetterFromExpression(
                         overrideValue, self,
                         int(data.get('overridePriority', '') or 90))
                 else:
                     self.kweb_manualOverrideClaim = self.claim(
                         overrideValue, data.get('overrideName', 'config'),
                         int(data.get('overridePriority', '') or 90))
+            else:
+                self.kweb_manualOverrideClaim  = None
 
-            if toRelease:
+
+            # We already replaced it because we use the same name, don't release the one we just made.
+            # Only need to release if going to no override.
+            if toRelease and not self.kweb_manualOverrideClaim is toRelease:
                 toRelease.release()
                 toRelease = None
+
+
+            ##################### Temp stuff ##############################
+
+            # Delete any existing configured temporary value override claim
+            # I think two should really be enough, a temp and a permanent.
+            if hasattr(self, 'kweb_tempManualOverrideClaim'):
+                toRelease = self.kweb_tempManualOverrideClaim
+            else:
+                toRelease = None
+
+
+            if tempOverrideValue:
+                self.kweb_tempManualOverrideClaim = self.claim(
+                        tempOverrideValue, "kwebtempmanualoverride",
+                        int(data.get('tempOverridePriority', '') or 90),
+                        expiration=int(data.get('tempOverrideLength', '') or 90)
+                        )
+            else:
+                self.kweb_tempManualOverrideClaim = None
+
+            # We already replaced it because we use the same name, don't release the one we just made.
+            # Only need to release if going to no override.
+            if toRelease and not self.kweb_tempManualOverrideClaim is toRelease:
+                toRelease.release()
+                toRelease = None
+
+            ##############################################################
+
 
             p = data.get('permissions', ('', '', ''))
             # Set configured permissions, overriding runtime
@@ -1723,7 +1773,8 @@ class _TagPoint(virtualresource.VirtualResource):
               name=None,
               priority=None,
               timestamp=None,
-              annotation=None):
+              annotation=None,
+              expiration=0):
         """Adds a 'claim', a request to set the tag's value either to a literal
             number or to a getter function.
 
@@ -1758,7 +1809,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if claim is None:
                 priority = priority or 50
                 claim = self.claimFactory(value, name, priority, timestamp,
-                                          annotation)
+                                          annotation, expiration)
 
             else:
                 # It could have been released previously.
@@ -1882,8 +1933,8 @@ class _TagPoint(virtualresource.VirtualResource):
             self.lock.release()
 
     # Get the specific claim object for this class
-    def claimFactory(self, value, name, priority, timestamp, annotation):
-        return Claim(self, value, name, priority, timestamp, annotation)
+    def claimFactory(self, value, name:str, priority:int, timestamp, annotation, expiration:float=0):
+        return Claim(self, value, name, priority, timestamp, annotation, expiration)
 
     def getTopClaim(self):
         # Deref all weak refs
@@ -2034,8 +2085,8 @@ class _NumericTagPoint(_TagPoint):
     def filterValue(self, v: float) -> float:
         return float(v)
 
-    def claimFactory(self, value, name, priority, timestamp, annotation):
-        return NumericClaim(self, value, name, priority, timestamp, annotation)
+    def claimFactory(self, value, name, priority, timestamp, annotation, expiration=0):
+        return NumericClaim(self, value, name, priority, timestamp, annotation, expiration)
 
     @property
     def min(self) -> Union[float, int]:
@@ -2410,7 +2461,8 @@ class Claim():
                  name: str = 'default',
                  priority: Union[int, float] = 50,
                  timestamp: Union[int, float, None] = None,
-                 annotation=None):
+                 annotation=None,
+                 expiration=0):
 
         self.name = name
         self.tag = tag
@@ -2435,11 +2487,13 @@ class Claim():
         # What priority should we take on in the expired state.
         self.expiredPriority = 0
 
-        self.expiration = 0
+        # How long with no new data should we wait before declaring ourselves expired.
+        self.expiration = expiration
 
         self.poller = None
 
         self.released = False
+        self._managePolling()
 
     def __del__(self):
         if self.name != 'default':
@@ -2485,7 +2539,7 @@ class Claim():
         # Quick check and slower locked check.  If we are too old, set our effective
         # priority to the expired priority.
 
-        # Expiry for callables is based on the actual function itself.
+        # Expiry for callables is based on the function return value.
         # Expiry for  direct values is based on the timestamp of when external code set it.
         if callable(self.value):
             ts = self.cachedValue[1]
@@ -2627,6 +2681,11 @@ class Claim():
 
         self.tag.release(self.name)
 
+        # Unregister the polling.
+        if self.poller:
+            self.poller.unregister()
+            self.poller = None
+
     def setPriority(self, priority, realPriority=True):
         if self.tag.lock.acquire(timeout=60):
             try:
@@ -2661,9 +2720,10 @@ class NumericClaim(Claim):
                  name: str = 'default',
                  priority: Union[int, float] = 50,
                  timestamp: Union[int, float, None] = None,
-                 annotation=None):
+                 annotation=None,
+                 expiration:float=0):
 
-        Claim.__init__(self, tag, value, name, priority, timestamp, annotation)
+        Claim.__init__(self, tag, value, name, priority, timestamp, annotation, expiration)
 
     def setAs(self, value, unit, timestamp=None, annotation=None):
         "Convert a value in the given unit to the tag's native unit"

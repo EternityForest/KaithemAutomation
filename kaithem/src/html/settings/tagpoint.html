@@ -135,7 +135,7 @@ def combineLogs(a):
     
         
 
-    if hasattr(tag, 'kweb_manualOverrideClaim'):
+    if hasattr(tag, 'kweb_manualOverrideClaim') and tag.kweb_manualOverrideClaim:
         x  = tag.kweb_manualOverrideClaim
         orval = x.value
         orprio=x.priority
@@ -165,7 +165,7 @@ else:
 %>
 <title>${normalizednormalizedTagName|h}</title>
 <script src="/static/widget.js"></script>
-<h2><a href="/tagpoints/${extraUrlStuff}">(back)</a> Tag Point: <small>${normalizednormalizedTagName}</small></h2>
+<h2><a href="/tagpoints/${extraUrlStuff}">(back)</a><a href="/tagpoints/${normalizednormalizedTagName|u}?show_advanced=y">(Advanced View)</a> Tag Point: <small>${normalizednormalizedTagName}</small></h2>
 <div class="sectionbox">
 <p class="help">
     This page manages one tagpoint. To save configured defaults you must save the server state
@@ -181,7 +181,48 @@ else:
 <b>Tags dissapear if there are neither any references in code, nor any config vals set!</b></p>
 <form method="POST" action="/tagpoints/${normalizednormalizedTagName|u}">
 
-<h3>Override/Fixed Value</h3><p class="help">
+    <h3>Description</h3>
+    ${tag.description or "No description set"}
+    
+    
+
+<h3>Temporary Override</h3>
+<p class="help">
+   Only direct literal values are supported here.  These values will not survive a reboot.
+   Re-saving and this page will restart the timer, otherwise the claim wil go away at the end of the delay.
+</p>
+<table border="1">
+    <tr>
+        <td>Claim Value(Blank for no Override)</td>
+        <td><input name="tempOverrideValue" value="${tag._runtimeConfigData.get('tempOverrideValue','')|h}"  style="width:80em; max-width: 60vw;"></td>
+    </tr>
+    <tr>
+        <td>Claim Priority</td>
+        <td><input  name="tempOverridePriority" value="${int(tag._runtimeConfigData.get('overridePriority','90'))|h}" placeholder="90"></td>
+    </tr>
+    <tr>
+        <td>How Long?</td>
+        <td><input  name="tempOverrideLength" value="${int(tag._runtimeConfigData.get('tempOverrideLength','3600'))|h}">S</td>
+    </tr>
+    %if hasattr(tag,'kweb_tempManualOverrideClaim') and tag.kweb_tempManualOverrideClaim and tag.kweb_tempManualOverrideClaim.expiration:
+    <tr>
+        <td>Time till expiration</td>
+        <td>
+            ${ tag.kweb_tempManualOverrideClaim.expiration -(time.monotonic()-tag.kweb_tempManualOverrideClaim.timestamp)}
+        </td>
+    </tr>
+    %endif
+
+</table>
+
+    
+%if show_advanced:
+<div>
+%else:
+<div style="display: none;">
+%endif
+
+<h3>Permanent Override/Fixed Claim</h3><p class="help">
     You can use an =expression as the value to create a dynamic getter.  The expression polls at the tag's interval if there are any subscribers, just like any other getter.
     if you use tv('tagName') or stv('stringTagName') in your expression, it will also re-evaluate when any of the tags you use change.  As with alarms,
     you have access to kaithem, random, math, and numpy, plus dateutil and dateutil.parser.
@@ -230,11 +271,6 @@ else:
         <td><input name="mqtt.incomingExpiration" value="${str(configData.get('mqtt.incomingExpiration','0')).split('.')[0]|h}">S</td>
     </tr>
 </table>
-
-
-
-<h3>Description</h3>
-${tag.description or "No description set"}
 
 <h3>Info</h3>
 <table border="1">
@@ -302,43 +338,7 @@ ${tag.description or "No description set"}
     %endif
 </table>
 
-
-<h3>Value</h3>
-<p class="help">
-    The default value affects tags immediately when created, when they have never been set by anything else.
-    Changes will not take effect immediately if the tag has already been set.
-    Default values cannot be =expressions.
-</p>
-<table border="1">
-    <tr>
-        <th>Default</th>
-        <th>Current</th>
-    </tr>
-    <tr>
-
-<td><input name="value" value="${configData.get('value','')}"></td>
-
-%if tag and isinstance(tag,tagpoints._NumericTagPoint):
-    %try:
-    <td>${tag.meterWidget.render()}</td>
-    %except Exception as e:
-    ${e|h}</td>
-    %endtry
-
-%elif tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
-    <td>${tag.spanWidget.render()}</td>
-
-%else:
-    <td>No live preview</td>
-%endif
-
-%if tag==None:
-<td>DELETED</td>
-%endif
-</tr>
-</table>
-
-<h3>Basic Config</h3>
+<h3>Config</h3>
 <p class="help">If you do not configure a type, the tag will not exist until requested via code.</p>
 <table border="1">
 <tr>
@@ -414,9 +414,56 @@ ${tag.description or "No description set"}
     <td><input name="lo" value="${configData.get('lo','')}" style="width:6em"></td>
     <td><input name="displayUnits" value="${configData.get('displayUnits','')}" style="width:6em"><td></td>
 </tr>
-
-
 </table>
+
+
+<h3>onChange Function</h3>
+<p class="help">This has access to the same vars that alerts do. It creates a tag
+    subscriber.
+</p>
+<textarea name="onChange">${configData.get('onChange','')|h}</textarea>
+
+
+</div>
+
+
+
+<h3>Value</h3>
+<p class="help">
+    The default value affects tags immediately when created, when they have never been set by anything else.
+    Changes will not take effect immediately if the tag has already been set.
+    Default values cannot be =expressions.
+</p>
+<table border="1">
+    <tr>
+        <th>Default</th>
+        <th>Current</th>
+    </tr>
+    <tr>
+
+<td><input name="value" value="${configData.get('value','')}"></td>
+
+%if tag and isinstance(tag,tagpoints._NumericTagPoint):
+    %try:
+    <td>${tag.meterWidget.render()}</td>
+    %except Exception as e:
+    ${e|h}</td>
+    %endtry
+
+%elif tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
+    <td>${tag.spanWidget.render()}</td>
+
+%else:
+    <td>No live preview</td>
+%endif
+
+%if tag==None:
+<td>DELETED</td>
+%endif
+</tr>
+</table>
+
+
 
 
 <h3>WebAPI exposure</h3>
@@ -603,32 +650,15 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
 </table>
 %endif
 
-<h3>onChange Function</h3>
-<p class="help">This has access to the same vars that alerts do. It creates a tag
-    subscriber.
-</p>
-<textarea name="onChange">${configData.get('onChange','')|h}</textarea>
+
+
 <br>
+
+
 <input type="submit">
+
+
 </form>
 
-</div>
-<div class="sectionbox"></div>
-<h3>Objects Referring to this Tag</h3>
-<div class="scrollbox">
-<p class="help">Greyed entries may be less interesting and more likely the rendering of this page itself.</p>
-<dl>
-%for i in gc.get_referrers(obj):
-%if not( isinstance(i,dict) and 'UNDEFINED' in i):
-<dt><b>${id(i)}</b></dt
-    >
-<dd
->${util.saferepr(i)|h}
-</dd>
-%endif
 
-
-%endfor
-</dl>
-</div>
 <%include file="/pagefooter.html"/>

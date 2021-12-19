@@ -422,19 +422,19 @@ def webRoot():
             return pages.get_template('alerts.html').render(api=notifications.api, alertsapi=alerts.api)
 
         @cherrypy.expose
-        def tagpoints(self, *path, **data):
+        def tagpoints(self, *path, show_advanced='', **data):
             # This page could be slow because of the db stuff, so we restrict it more
             pages.require("/admin/settings.edit")
             if "new_numtag" in data:
                 pages.require("/admin/settings.edit")
-                return pages.get_template('settings/tagpoint.html').render(new_numtag=data['new_numtag'], tagname=data['new_numtag'])
+                return pages.get_template('settings/tagpoint.html').render(new_numtag=data['new_numtag'], tagname=data['new_numtag'], show_advanced=True)
             if "new_strtag" in data:
                 pages.require("/admin/settings.edit")
-                return pages.get_template('settings/tagpoint.html').render(new_strtag=data['new_strtag'], tagname=data['new_strtag'])
+                return pages.get_template('settings/tagpoint.html').render(new_strtag=data['new_strtag'], tagname=data['new_strtag'], show_advanced=True)
 
             if path:
                 pages.require("/admin/settings.edit")
-                return pages.get_template('settings/tagpoint.html').render(tagName=path[0], data=data)
+                return pages.get_template('settings/tagpoint.html').render(tagName=path[0], data=data, show_advanced=show_advanced)
             else:
                 return pages.get_template('settings/tagpoints.html').render(data=data)
 
