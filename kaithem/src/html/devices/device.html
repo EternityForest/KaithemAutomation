@@ -135,6 +135,8 @@ ${manageForm}
 </p>
 ${obj.logWindow.render()}
 
+
+%if not obj._noAllowSubclass:
 <h2>Customize Code(Only use this feature if needed! May disappear eventually!)</h2>
 <p class="help">Here you can use Python code to create a custom subclass of a device, useful for attaching handlers to callbacks.
 </p>
@@ -142,6 +144,7 @@ ${obj.logWindow.render()}
 <div>
 <textarea data-editor="python" name="subclass" style="width:80%" rows=25>${data.get("subclass",'')|h}</textarea>
 </div>
+%endif
 
 
 

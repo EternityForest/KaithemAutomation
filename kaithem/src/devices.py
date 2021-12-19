@@ -209,6 +209,8 @@ class Device(virtualresource.VirtualResource):
     readme = None
 
     defaultSubclassCode = globalDefaultSubclassCode
+    _noAllowSubclass = False
+
 
     # We are renaming data to config for clarity.
     # This is the legacy alias.
@@ -522,6 +524,11 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     # Alarms are only done via the new tags way with these
     _noSetAlarmPriority = True
+
+
+    # Disable the subclassing feature on these.
+    # Later we may disable it on all.
+    _noAllowSubclass = True
 
     def numeric_data_point(self,
                            name: str,
