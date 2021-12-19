@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import weakref
 import threading
 import time
@@ -276,6 +277,50 @@ class Device(virtualresource.VirtualResource):
                 if self.name in device_data:
                     device_data[self.name][key] = str(val)
                     unsaved_changes[self.name] = True
+
+
+    def setObject(self, key, val):
+        # Store data 
+        json.dumps(val)
+
+        "Lets a device set it's own persistent stored data"
+        with lock:
+            self.config[key] = val
+            if self.parentModule:
+                from src import modules
+                modules.modules_state.ActiveModules[self.parentModule][
+                    self.parentResource]['device'][key] = val
+                modules.unsaved_changed_obj[
+                    self.parentModule, self.parentResource] = "Device changed"
+                modules.modules_state.createRecoveryEntry(
+                    self.parentModule, self.parentResource,
+                    modules.modules_state.ActiveModules[self.parentModule][
+                        self.parentResource])
+                modules.modulesHaveChanged()
+            else:
+                #This might not be stored in the master lists, and yet it might not be connected to
+                #the parentModule, because of legacy API reasons.
+                #Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
+                if self.name in device_data:
+                    device_data[self.name][key] = val
+
+
+    def getObject(self, key, default=None):
+        "Lets a device set it's own persistent stored data"
+        with lock:
+            if self.parentModule:
+                from src import modules
+                return modules.modules_state.ActiveModules[self.parentModule][
+                    self.parentResource]['device'][key]
+            else:
+                #This might not be stored in the master lists, and yet it might not be connected to
+                #the parentModule, because of legacy API reasons.
+                #Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
+                if self.name in device_data:
+                   return device_data[self.name][key]
+        return default
+
+
 
     @staticmethod
     def makeUIMsgHandler(wr):
@@ -1016,6 +1061,7 @@ devicesByModuleAndResource = weakref.WeakValueDictionary()
 
 
 def makeDevice(name, data, module=None, resource=None):
+    err=None
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
@@ -1045,12 +1091,16 @@ def makeDevice(name, data, module=None, resource=None):
                     #Ensure we don't lose any data should the base class ever set any new keys
                     dt2.__init__(self, name, self.config, **kw)
 
-            dt = ImportedDeviceClass
+            dt = ImportedDeviceClass    
         except:
             dt = UnsupportedDevice
 
     if 'subclass' not in data:
         data['subclass'] = dt.defaultSubclassCode
+
+    new_data = copy.deepcopy(data)
+    frd = new_data.pop("framework_data",None)
+
 
     # Allow auto-subclassing to make customized v
     if 'subclass' in data and data['subclass'].strip():
@@ -1065,6 +1115,9 @@ def makeDevice(name, data, module=None, resource=None):
             "\n", '').replace("\r", '').replace("\t", '').replace(" ", '')
 
         originaldt = dt
+
+
+
         try:
             if not stripped == strippedGenericTemplate:
                 from . import kaithemobj
@@ -1074,17 +1127,19 @@ def makeDevice(name, data, module=None, resource=None):
                 }
                 exec(data['subclass'], codeEvalScope, codeEvalScope)
                 dt = codeEvalScope["CustomDeviceType"]
-            d = dt(name, data)
+            d = dt(name, new_data)
 
         except Exception:
-            d = originaldt(name, data)
+            d = originaldt(name, new_data)
             d.handleError(traceback.format_exc(chain=True))
             messagebus.postMessage(
                 '/system/notifications/error',
                 "Error with customized behavior for: " + name +
                 " using default")
     else:
-        d = dt(name, data)
+        d = dt(name, new_data)
+    if err:
+        d.handleError(err)
 
     if module:
         from src import modules
@@ -1092,8 +1147,8 @@ def makeDevice(name, data, module=None, resource=None):
         d.parentResource = resource
         devicesByModuleAndResource[module, resource] = d
 
-        #In case something changed during initializatiion before we set it
-        #flush the changes back to the modules object if applicable
+        # In case something changed during initializatiion before we set it
+        # flush the changes back to the modules object if applicable
         with lock:
             modules.modules_state.ActiveModules[d.parentModule][
                 d.parentResource] = {

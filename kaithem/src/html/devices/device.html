@@ -108,15 +108,6 @@ ${manageForm}
 %endfor
 </table>
 
-<h2>Customize Code</h2>
-<p class="help">Here you can use Python code to create a custom subclass of a device, useful for attaching handlers to callbacks.
-</p>
-<p class="help">The class must be named CustomDeviceType, and must inherit from DeviceType.  Only this instance of the device type is affected.  Clear this box and make it blank to reset to the example.</p>
-<div>
-<textarea data-editor="python" name="subclass" style="width:80%" rows=25>${data.get("subclass",'')|h}</textarea>
-</div>
-
-
 <h2>Tag Points</h2>
 <p class="help">This section lists all the tag points owned 
 </p>
@@ -137,18 +128,30 @@ ${manageForm}
 </tr>
 %endfor
 </table>
-
-
-<input type="submit" value="Save settings">
-
-</form>
-
 <h2>Messages</h2>
 <p class="help">
         These are not logged. Add a message with device.print(message). Old messages
         are deleted. Most recent is first.
 </p>
 ${obj.logWindow.render()}
+
+<h2>Customize Code(Only use this feature if needed! May disappear eventually!)</h2>
+<p class="help">Here you can use Python code to create a custom subclass of a device, useful for attaching handlers to callbacks.
+</p>
+<p class="help">The class must be named CustomDeviceType, and must inherit from DeviceType.  Only this instance of the device type is affected.  Clear this box and make it blank to reset to the example.</p>
+<div>
+<textarea data-editor="python" name="subclass" style="width:80%" rows=25>${data.get("subclass",'')|h}</textarea>
+</div>
+
+
+
+
+
+<input type="submit" value="Save settings">
+
+</form>
+
+
 
 </div>
 

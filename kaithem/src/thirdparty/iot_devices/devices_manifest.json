@@ -4,9 +4,15 @@
             "submodule":"devices.random",
             "description" : "Just a demo device that makes pseudorandom numbers on request"
             },
+
         "RTL433Client": {
                 "submodule":"devices.RTL433",
                 "description" : "Listen to messages from rtl_433 and decode them into things like weather station data"
-                }
-        }
+                },
+
+        "ConfigurableAlarm": {
+            "submodule":"devices.alarm",
+            "description" : "Triggers an alarm when one of it's data points goes True, if the framework supports the alarms."
+            }
+    }
 } 

@@ -72,6 +72,9 @@ class TagInterface():
     def BinaryTag(self, k):
         return tagpoints.BinaryTag(k)
 
+    def __iter__(self):
+        return tagpoints.allTagsAtomic
+
     TagClass = tagpoints._TagPoint
     #HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter

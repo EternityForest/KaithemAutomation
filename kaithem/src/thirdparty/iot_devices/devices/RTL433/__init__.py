@@ -209,64 +209,67 @@ class RTL433Client(devices.Device):
                 self.set_data_point("lastCommandName", (m, time.time()))
 
             def onJSON(t, m):
-                m = json.loads(m)
-                self.print(m, "Saw packet on air")
+                try:
+                    m = json.loads(m)
+                    self.print(m, "Saw packet on air")
 
-                # Going to do an ID match.
-                if 'device.id' in self.config and self.config['device.id']:
-                    if not ('id' in m
-                            and str(m['id']) == self.config['device.id']):
-                        self.print(m, "Packet filter miss")
-                        return
+                    # Going to do an ID match.
+                    if 'device.id' in self.config and self.config['device.id']:
+                        if not ('id' in m
+                                and str(m['id']) == self.config['device.id']):
+                            self.print(m, "Packet filter miss")
+                            return
 
-                if 'device.model' in self.config and self.config['device.id']:
-                    if not ('model' in m
-                            and m['model'] == self.config['device.model']):
-                        self.print(m, "Packet filter miss")
-                        return
+                    if 'device.model' in self.config and self.config['device.id']:
+                        if not ('model' in m
+                                and m['model'] == self.config['device.model']):
+                            self.print(m, "Packet filter miss")
+                            return
 
-                self.print(m, "Packet filter hit")
+                    self.print(m, "Packet filter hit")
 
-                # No real RSSI
-                self.set_data_point("rssi", -75)
-                self.lastSeen = time.monotonic()
+                    # No real RSSI
+                    self.set_data_point("rssi", -75)
+                    self.lastSeen = time.monotonic()
 
-                if 'humidity' in m:
-                    onHum(0, m['humidity'])
+                    if 'humidity' in m:
+                        onHum(0, m['humidity'])
 
-                if 'moisture' in m:
-                    onHum(0, m['moisture'])
+                    if 'moisture' in m:
+                        onMoist(0, m['moisture'])
 
-                if 'temperature_C' in m:
-                    onTemp(0, m['temperature_C'])
+                    if 'temperature_C' in m:
+                        onTemp(0, m['temperature_C'])
 
-                if 'wind_avg_km_h' in m:
-                    onWind(0, m['wind_avg_km_h'])
+                    if 'wind_avg_km_h' in m:
+                        onWind(0, m['wind_avg_km_h'])
 
-                if 'pressure_kPa' in m:
-                    onPres(0, m['pressure_kPa'] * 1000)
+                    if 'pressure_kPa' in m:
+                        onPres(0, m['pressure_kPa'] * 1000)
 
-                if 'pressure_hPa' in m:
-                    onPres(0, m['pressure_hPa'] * 100)
+                    if 'pressure_hPa' in m:
+                        onPres(0, m['pressure_hPa'] * 100)
 
-                # Keep a percent based API with randomly chosen high and low numbers
-                if 'battery_ok' in m:
-                    onBattery(0, 100 if m['battery_ok'] else 5)
+                    # Keep a percent based API with randomly chosen high and low numbers
+                    if 'battery_ok' in m:
+                        onBattery(0, 100 if m['battery_ok'] else 5)
 
-                if 'cmd' in m:
-                    onCommandCode(0, m['cmd'])
+                    if 'cmd' in m:
+                        onCommandCode(0, m['cmd'])
 
-                if 'button_id' in m:
-                    onCommandCode(0, m['button_id'])
+                    if 'button_id' in m:
+                        onCommandCode(0, m['button_id'])
 
-                if 'button_name' in m:
-                    onCommandName(0, m['button_name'])
+                    if 'button_name' in m:
+                        onCommandName(0, m['button_name'])
 
-                if 'event' in m:
-                    onCommandName(0, m['event'])
+                    if 'event' in m:
+                        onCommandName(0, m['event'])
 
-                if 'code' in m:
-                    onCommandCode(0, m['code'])
+                    if 'code' in m:
+                        onCommandCode(0, m['code'])
+                except:
+                    self.handle_exception()
 
             self.noGarbage = [onJSON]
 

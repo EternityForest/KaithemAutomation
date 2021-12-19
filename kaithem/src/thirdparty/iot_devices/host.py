@@ -72,7 +72,7 @@ def discover() -> Dict[str,Dict]:
                                 _known_device_types[dev]['description'] = ''
 
                             if not 'classname' in _known_device_types[dev]:
-                                _known_device_types[dev]['description'] = ''
+                                _known_device_types[dev]['classname'] = dev
                     except:
                         logging.exception("Error with devices manifest in: "+folder)
     return _known_device_types

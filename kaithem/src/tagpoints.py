@@ -789,7 +789,7 @@ class _TagPoint(virtualresource.VirtualResource):
                  name,
                  condition:str='',
                  priority:str="info",
-                 releaseCondition:str='',
+                 releaseCondition:Union[str,None]='',
                  autoAck:Union[bool, str]='no',
                  tripDelay:Union[float,str]='0',
                  isConfigured:bool=False,

@@ -130,7 +130,7 @@ def devStatString(d):
 
     %for i in  devices.importedDeviceTypes:
     <dt><b>${i|h} from ${devices.importedDeviceTypes[i].get('importable','unknown module')|h}</b></dt>
-    <dd>${devices.importedDeviceTypes[i].get("description","No description set")|h}</dd>
+    <dd>${devices.importedDeviceTypes[i].get("description","No description set") or "No description"|h}</dd>
     %endfor
 </dl>
 </div>
