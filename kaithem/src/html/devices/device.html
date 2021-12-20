@@ -223,6 +223,6 @@ var mytable = $('#bindings').editTable({
     }
 });
 
-mytable.loadData(${json.dumps(data.get('kaithem.input_bindings',[])) or '[]'})
+mytable.loadData(${json.dumps(data.get('kaithem.input_bindings',[])+ [['','','']])})
 </script>
 <%include file="/pagefooter.html"/>

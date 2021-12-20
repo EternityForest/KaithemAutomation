@@ -578,7 +578,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t)
+                self._kBindings[name].subscribe(t,immediate=True)
 
     def string_data_point(self,
                           name: str,
@@ -608,7 +608,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t)
+                self._kBindings[name].subscribe(t,immediate=True)
 
     def object_data_point(self,
                           name: str,
@@ -638,7 +638,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t)
+                self._kBindings[name].subscribe(t,immediate=True)
 
     def set_data_point(self, name, value):
         self.tagPoints[name].value = value
@@ -784,9 +784,9 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
     ib = kwargs.pop("temp.kaithem.inputbindings", None)
     if ib:
-        kwargs['kaithem.input_bindings'] =  json.loads(ib)
-    else:
-        kwargs['kaithem.input_bindings'] = []
+        # Delete empty. We may need empty thanks to very very annoying ui lib bugs
+        kwargs['kaithem.input_bindings'] =  [i for i in json.loads(ib) if i[0] or i[2]]
+
 
     raw_dt = getDeviceType(kwargs['type'])
     if hasattr(raw_dt,"validateData"):
@@ -794,13 +794,16 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
   
     unsaved_changes[devname] = True
-
+    old_bindings = []
     with lock:
         if devname in remote_devices:
             parentModule = remote_devices[devname].parentModule
             parentResource = remote_devices[devname].parentResource
+            old_bindings =  remote_devices[devname].config.get("kaithem.input_bindings", [])
 
             remote_devices[devname].close()
+
+
 
             #Delete and then recreate because we may be renaming to a different name
 
@@ -827,6 +830,10 @@ def updateDevice(devname, kwargs, saveChanges=True):
         time.sleep(0.01)
         gc.collect()
         d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
+
+        # allow forms that don't have the whole binding widget
+        if not 'kaithem.input_bindings' in d:
+            d['kaithem.input_bindings'] = old_bindings
 
         if parentModule:
             from src import modules
@@ -1174,17 +1181,25 @@ def makeDevice(name, data, module=None, resource=None):
     try:
         needSet=0
         for i in data.get("kaithem.input_bindings", []):
+            if not i[0].strip():
+                continue
+
             t = d.tagPoints.get(i[0],None)
             xt = tagpoints.allTagsAtomic.get(i[2], None)
             t = (t or xt)
             if not i[1].strip():
                 if t:
                     needSet=1
+                    if isinstance(t,weakref.ref):
+                        t=t()
                     i[1] = t.type
                 else:
                     raise ValueError("Can't guess type for binding to: "+i[0])
 
         for i in data.get("kaithem.input_bindings", []):
+            if not i[0].strip():
+                continue
+
             if i[1]=='numeric' or i[1]=='number':
                 t = tagpoints.Tag(i[2])
             if i[1]=='string':

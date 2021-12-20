@@ -295,8 +295,10 @@ p.help, div.help {
 	font-size: 40%;
 	text-overflow: ellipsis;
 	overflow: hidden;
-	height: 2ex;
+	height: 3em;
+	width: 3em;
 	white-space: nowrap;
+	display: inline-block;
 }
 
 p.help:hover, div.help:hover {
@@ -304,6 +306,7 @@ p.help:hover, div.help:hover {
 	font-size: 100%;
 	max-height: 100em;
 	max-width: 50em;
+	width: auto;
 	height: auto;
 	overflow: initial;
 	white-space: normal;
