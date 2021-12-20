@@ -201,7 +201,6 @@ class Device(virtualresource.VirtualResource):
 
     readme = None
 
-
     # We are renaming data to config for clarity.
     # This is the legacy alias.
     @property
@@ -270,9 +269,8 @@ class Device(virtualresource.VirtualResource):
                     device_data[self.name][key] = str(val)
                     unsaved_changes[self.name] = True
 
-
     def setObject(self, key, val):
-        # Store data 
+        # Store data
         json.dumps(val)
 
         "Lets a device set it's own persistent stored data"
@@ -296,7 +294,6 @@ class Device(virtualresource.VirtualResource):
                 if self.name in device_data:
                     device_data[self.name][key] = val
 
-
     def getObject(self, key, default=None):
         "Lets a device set it's own persistent stored data"
         with lock:
@@ -309,10 +306,8 @@ class Device(virtualresource.VirtualResource):
                 #the parentModule, because of legacy API reasons.
                 #Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
                 if self.name in device_data:
-                   return device_data[self.name][key]
+                    return device_data[self.name][key]
         return default
-
-
 
     @staticmethod
     def makeUIMsgHandler(wr):
@@ -341,7 +336,6 @@ class Device(virtualresource.VirtualResource):
         # because a connection was open. We wouldn't want that to keep this device around when it should not
         # be.
         onMessage = self.makeUIMsgHandler(weakref.ref(self))
-
 
         # Maps the local short tag namre to the tag the user bound it to in the UI
         self._kBindings = {}
@@ -461,7 +455,8 @@ class Device(virtualresource.VirtualResource):
                 try:
                     self._kBindings[i].unsubscribe(self.tagPoints[i])
                 except Exception:
-                    logging.exception("Could not unsub. Maybe was never created.")
+                    logging.exception(
+                        "Could not unsub. Maybe was never created.")
 
             # Be defensive about ref cycles.
             try:
@@ -575,10 +570,9 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             self.tagPoints[name] = t
             self.datapoints[name] = None
 
-
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t,immediate=True)
+                self._kBindings[name].subscribe(t, immediate=True)
 
     def string_data_point(self,
                           name: str,
@@ -608,7 +602,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t,immediate=True)
+                self._kBindings[name].subscribe(t, immediate=True)
 
     def object_data_point(self,
                           name: str,
@@ -635,10 +629,9 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 self.tagPoints[name] = t
                 self.datapoints[name] = None
 
-        
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t,immediate=True)
+                self._kBindings[name].subscribe(t, immediate=True)
 
     def set_data_point(self, name, value):
         self.tagPoints[name].value = value
@@ -733,7 +726,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         """
         return ''
 
-    def getManagementForm(self,**kw):
+    def getManagementForm(self, **kw):
         return self.get_management_form()
 
     @classmethod
@@ -769,7 +762,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                                     kwargs=kwargs)
 
     @staticmethod
-    def validateData(*a,**k):
+    def validateData(*a, **k):
         return True
 
     #######################################################################################
@@ -785,25 +778,24 @@ def updateDevice(devname, kwargs, saveChanges=True):
     ib = kwargs.pop("temp.kaithem.inputbindings", None)
     if ib:
         # Delete empty. We may need empty thanks to very very annoying ui lib bugs
-        kwargs['kaithem.input_bindings'] =  [i for i in json.loads(ib) if i[0] or i[2]]
-
+        kwargs['kaithem.input_bindings'] = [
+            i for i in json.loads(ib) if i[0] or i[2]
+        ]
 
     raw_dt = getDeviceType(kwargs['type'])
-    if hasattr(raw_dt,"validateData"):
+    if hasattr(raw_dt, "validateData"):
         raw_dt.validateData(kwargs)
 
-  
     unsaved_changes[devname] = True
     old_bindings = []
     with lock:
         if devname in remote_devices:
             parentModule = remote_devices[devname].parentModule
             parentResource = remote_devices[devname].parentResource
-            old_bindings =  remote_devices[devname].config.get("kaithem.input_bindings", [])
+            old_bindings = remote_devices[devname].config.get(
+                "kaithem.input_bindings", [])
 
             remote_devices[devname].close()
-
-
 
             #Delete and then recreate because we may be renaming to a different name
 
@@ -893,18 +885,14 @@ class WebDevices():
 
             if obj.parentModule:
                 from src import modules
-                merged.update(modules.modules_state.ActiveModules[self.parentModule][
-                    self.parentResource]['device'])
+                merged.update(modules.modules_state.ActiveModules[
+                    self.parentModule][self.parentResource]['device'])
 
             #I think stored data is enough, this is just defensive
             merged.update(remote_devices[name].config)
 
             return pages.get_template("devices/device.html").render(
-                data=merged,
-                obj=obj,
-                name=name,
-                args=args,
-                kwargs=kwargs)
+                data=merged, obj=obj, name=name, args=args, kwargs=kwargs)
         if not args:
             raise cherrypy.HTTPRedirect(cherrypy.url() + "/manage")
 
@@ -946,11 +934,9 @@ class WebDevices():
             d = remote_devices[devname]
             c = copy.deepcopy(d.data)
             c.update(kwargs)
-            current=c
+            current = c
         else:
             d = getDeviceType(type)
-
-
 
         #We don't have pt adapter layer with raw classes
         if hasattr(d, "discoverDevices"):
@@ -965,7 +951,7 @@ class WebDevices():
                                    intent="step")
 
         return pages.get_template("devices/discoverstep.html").render(
-            data=d, current=current,name=devname)
+            data=d, current=current, name=devname)
 
     @cherrypy.expose
     def createDevice(self, name=None, **kwargs):
@@ -1111,7 +1097,7 @@ devicesByModuleAndResource = weakref.WeakValueDictionary()
 
 
 def makeDevice(name, data, module=None, resource=None):
-    err=None
+    err = None
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
@@ -1141,15 +1127,18 @@ def makeDevice(name, data, module=None, resource=None):
                     #Ensure we don't lose any data should the base class ever set any new keys
                     dt2.__init__(self, name, self.config, **kw)
 
-            dt = ImportedDeviceClass    
+            dt = ImportedDeviceClass
         except:
             dt = UnsupportedDevice
 
     new_data = copy.deepcopy(data)
-    frd = new_data.pop("framework_data",None)
+    frd = new_data.pop("framework_data", None)
 
     # Don't pass framewith specific stuff to them.
-    new_data= {i:new_data[i] for i in new_data if not i.startswith("kaithem.")}
+    new_data = {
+        i: new_data[i]
+        for i in new_data if not i.startswith("kaithem.")
+    }
 
     d = dt(name, new_data)
     if err:
@@ -1179,53 +1168,53 @@ def makeDevice(name, data, module=None, resource=None):
             modules.modulesHaveChanged()
 
     try:
-        needSet=0
+        needSet = 0
         for i in data.get("kaithem.input_bindings", []):
             if not i[0].strip():
                 continue
 
-            t = d.tagPoints.get(i[0],None)
+            t = d.tagPoints.get(i[0], None)
             xt = tagpoints.allTagsAtomic.get(i[2], None)
             t = (t or xt)
             if not i[1].strip():
                 if t:
-                    needSet=1
-                    if isinstance(t,weakref.ref):
-                        t=t()
+                    needSet = 1
+                    if isinstance(t, weakref.ref):
+                        t = t()
                     i[1] = t.type
                 else:
-                    raise ValueError("Can't guess type for binding to: "+i[0])
+                    raise ValueError("Can't guess type for binding to: " +
+                                     i[0])
 
         for i in data.get("kaithem.input_bindings", []):
             if not i[0].strip():
                 continue
 
-            if i[1]=='numeric' or i[1]=='number':
+            if i[1] == 'numeric' or i[1] == 'number':
                 t = tagpoints.Tag(i[2])
-            if i[1]=='string':
-                t = tagpoints.StringTag(i[2])                
-            if i[1]=='object':
+            if i[1] == 'string':
+                t = tagpoints.StringTag(i[2])
+            if i[1] == 'object':
                 t = tagpoints.ObjectTag(i[2])
 
             d._kBindings[i[0]] = t
-                
+
             # Can always do this later
             if i[0] in d.tagPoints:
                 # Do the setter right away if the tag has data
                 t.subscribe(d.tagPoints[i[0]], immediate=True)
             else:
                 if not hasattr(d, "_isCrossFramework"):
-                    d.handleError("Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices.")
-    
+                    d.handleError(
+                        "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
+                    )
+
         if needSet:
             # Set the data if we auto-filled the type
-            d.setObject("kaithem.input_bindings", data.get("kaithem.input_bindings", []))
+            d.setObject("kaithem.input_bindings",
+                        data.get("kaithem.input_bindings", []))
     except Exception:
         d.handleException()
-        
-            
-
-
 
     return d
 
