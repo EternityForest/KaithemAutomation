@@ -320,7 +320,7 @@ class Device(virtualresource.VirtualResource):
         if not data[
                 'type'] == self.deviceTypeName and not self.deviceTypeName == 'unsupported':
             raise ValueError(
-                "Incorrect device type in info dict, does not match deviceTypeName"
+                "Incorrect device type in info dict," + data['type'] +" does not match deviceTypeName " + self.deviceTypeName
             )
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
@@ -633,8 +633,8 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in self._kBindings:
                 self._kBindings[name].subscribe(t, immediate=True)
 
-    def set_data_point(self, name, value):
-        self.tagPoints[name].value = value
+    def set_data_point(self, name, value,timestamp=None,annotation=None):
+        self.tagPoints[name](value,timestamp, annotation)
 
         #TODO this isn't really in spec, we should
         # use the full library to properly validate these values
@@ -1128,8 +1128,16 @@ def makeDevice(name, data, module=None, resource=None):
                     dt2.__init__(self, name, self.config, **kw)
 
             dt = ImportedDeviceClass
-        except:
+        except KeyError:
             dt = UnsupportedDevice
+        except ValueError:
+            dt = UnsupportedDevice
+        except Exception:
+            dt = UnsupportedDevice
+            logging.exception("Err creating device")
+            err=traceback.format_exc()
+
+        
 
     new_data = copy.deepcopy(data)
     frd = new_data.pop("framework_data", None)
@@ -1140,7 +1148,12 @@ def makeDevice(name, data, module=None, resource=None):
         for i in new_data if not i.startswith("kaithem.")
     }
 
-    d = dt(name, new_data)
+    try:
+        d = dt(name, new_data)
+    except Exception as e:
+        d = UnsupportedDevice(name, new_data)
+        d.handleException()
+
     if err:
         d.handleError(err)
 

@@ -204,9 +204,13 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self.alreadyPostedDeadlock: bool = False
 
-        # The very first time we push the tag value, we push even if the new val and prev val are both 0.
-        # This makes sure we don't miss anything.
-        self.isNotFirstPush: bool = False
+        # This string is just used to stash some extra info
+        self.subtype = ''
+
+
+        # If true, the tag represents an input not meant to be written to except by the owner.
+        # It can however still be overridden.  This is just a widget advisory.
+        self.is_input_only = False
 
         # How long until we expire any incoming MQTT data
         self.incomingMQTTExpiration: Union[int, float] = 0
@@ -1576,13 +1580,11 @@ class _TagPoint(virtualresource.VirtualResource):
             Also, keep setting the timestamp and annotation under that lock, to stay atomic
         """
 
-        # This is not threadsafe, but I don't think it matters.
-        # A few unnecessary updates shouldn't affect anything.
+        # This compare must stay threadsafe.
         if self.lastValue == self.lastPushedValue:
-            if self.isNotFirstPush:
+            if self.timestamp:
                 return
 
-        self.isNotFirstPush = True
 
         # Note the difference with the handler.
         # It is called synchronously, right then and there

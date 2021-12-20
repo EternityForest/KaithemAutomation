@@ -60,6 +60,14 @@ specialKeys={
 </tr>
 
 </table>
+
+%if hasattr(obj,'description'):
+<h3>Description</h3>
+<p>
+        ${str(obj.description)[:8192]|h}
+</p>
+%endif
+
 <input type="hidden" name="type" value="${data.get('type','')}">
 <h2>Help</h2>
 <ul>
@@ -75,7 +83,6 @@ specialKeys={
         all of these devices are one way. The device will be updated when the tag point changes.  For the local point, 
         use the short name.  For the external point, use the long name.
 </p>
-
 <p class="help">As per the usual tag features, the tag does not actually have to exist, and you can use an expression like
 "=tv("/some/tag/name") + 50" to create a virtual tag.
 </p>
@@ -185,7 +192,20 @@ ${obj.logWindow.render()}
 
 </div>
 
+${obj._admin_ws_channel.render("_admin_ws_channel")}
 <script>
+
+
+function send_ui_message(m)
+{
+        _admin_ws_channel.send(m)
+}
+
+function set_ui_message_handler(f)
+{
+        _admin_ws_channel.upd=f
+}
+
 var mytable = $('#bindings').editTable({
     data: [['']],           // Fill the table with a js array (this is overridden by the textarea content if not empty)
     tableClass: 'inputtable',   // Table class, for styling

@@ -13,6 +13,11 @@
         "ConfigurableAlarm": {
             "submodule":"devices.alarm",
             "description" : "Triggers an alarm when one of it's data points goes True, if the framework supports the alarms."
-            }
+            },
+
+        "Zigbee2MQTT":{
+            "submodule":"devices.Zigbee2MQTTPlugin",
+            "description": "This makes all your ZigBee devices on an MQTT server available as data points."
+        }
     }
 } 
