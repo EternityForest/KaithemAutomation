@@ -16,6 +16,8 @@
 
 #
 
+
+
 import os
 import sys
 from . import pathsetup
@@ -64,7 +66,6 @@ from . import devices
 import importlib
 from scullery import messagebus
 from . import statemachines
-from . import kaithemobj
 from . import auth
 from . import directories
 
@@ -74,12 +75,15 @@ import mako.exceptions
 import cherrypy
 import logging
 
+from . import version_info
+__version__ = version_info.__version__
+__version_info__ = version_info.__version_info__
 
+from .import tagpoints
+from . import kaithemobj
 from . import wifimanager
 
 
-__version__ = "0.67.5 Production"
-__version_info__ = (0, 67, 5, "release", 0)
 
 
 # Library that makes threading and lock operations, which we use a lot of, use native code on linux
@@ -126,11 +130,6 @@ if cfg.argcmd.initialpackagesetup:
         "Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init")
     cherrypy.engine.exit()
     sys.exit()
-
-
-kaithemobj.kaithem.states.StateMachine = statemachines.StateMachine
-kaithemobj.kaithem.misc.version = __version__
-kaithemobj.kaithem.misc.version_info = __version_info__
 
 
 plugins = {}

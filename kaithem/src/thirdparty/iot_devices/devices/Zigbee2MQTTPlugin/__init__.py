@@ -1,4 +1,3 @@
-from mako.lookup import TemplateLookup
 import os
 import time
 import logging
@@ -8,13 +7,6 @@ import colorzero
 import iot_devices.device
 
 logger = logging.Logger("plugins.zigbee2mqtt")
-
-templateGetter = TemplateLookup(os.path.dirname(__file__))
-
-defaultSubclassCode = """
-class CustomDeviceType(DeviceType):
-    pass
-"""
 
 
 def hex_to_xy(hex):
@@ -54,14 +46,15 @@ class Zigbee2MQTT(iot_devices.device.Device):
         self.nameToZBInfo = {}
         self.nameToHandler = {}
 
-        self.set_config_default("device.mqttServer",'localhost')
+        self.set_config_default("device.mqtt_server",'localhost')
+        self.set_config_default("device.friendly_name",'__all__')
 
         try:
             from scullery import mqtt
 
             #Ensure a new real connection.  This makes sure we get any retained messages.
             self.connection = mqtt.getConnection(
-                self.config['device.mqttServer'],
+                self.config['device.mqtt_server'],
                 connectionID=str(time.time()))
 
             self.connection.subscribe('zigbee2mqtt/bridge/devices',
@@ -122,9 +115,13 @@ class Zigbee2MQTT(iot_devices.device.Device):
                             isALight = True
 
                         for j in x:
-                            tn = "node/" + i['friendly_name'] + '.' + j[
-                                'property']
-
+                            if self.config['device.friendly_name'].strip() in ("*","any","__all__",''):
+                                tn = "node/" + i['friendly_name'] + '.' + j[
+                                    'property']
+                            else:
+                                if not self.config['device.friendly_name'].strip().lower() == i['friendly_name'].lower():
+                                    continue
+                                tn =  j['property']
                             zn = "zigbee2mqtt/" + i['friendly_name']
 
                             #Internally we represent all colors as the standard but kinda mediocre CSS strings,
@@ -144,7 +141,7 @@ class Zigbee2MQTT(iot_devices.device.Device):
 
                                 self.nameToTopic[tn] = zn
                                 self.nameToZBInfo[tn] = j
-                                self.nameToType['color_xy']
+                                self.nameToType[tn]='color_xy'
 
                                 try:
                                     self.connection.unsubscribe(
@@ -188,7 +185,7 @@ class Zigbee2MQTT(iot_devices.device.Device):
 
                                 self.nameToTopic[tn] = zn
                                 self.nameToZBInfo[tn] = j
-                                self.nameToType['numeric']
+                                self.nameToType[tn]='numeric'
 
                                 try:
                                     self.connection.unsubscribe(
@@ -292,7 +289,3 @@ class Zigbee2MQTT(iot_devices.device.Device):
 
         except Exception:
             self.handleException()
-
-    def getManagementForm(self):
-        return templateGetter.get_template("manageform.html").render(
-            data=self.data, obj=self)

@@ -463,7 +463,7 @@ class SOXWrapper(SoundWrapper):
             return False
 
 
-objectPoolLock = threading.Lock()
+objectPoolLock = threading.RLock()
 
 objectPool = []
 

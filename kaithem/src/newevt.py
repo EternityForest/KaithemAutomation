@@ -123,66 +123,9 @@ syslogger = logging.getLogger("system.events")
 eventsByModuleName = weakref.WeakValueDictionary()
 
 
-# def findCapitalizationIssues(src, event):
-
-
-#     src = re.sub(r"^\s*#.*$", '', src,flags=re.MULTILINE)
-
-#     #Get rid of escaped quotes so they don't mess upi the regex
-#     #But first get rid of escaped escapes that mess up that!
-#     src = src.replace(r"\\","")
-
-#     src = src.replace(r"\'","")
-#     src = src.replace(r'\"',"")
-
-#     #Get rid of comments and string literals
-#     embeddedStrs =  r'\"\"\"[\s\S]*?\"\"\"'
-#     embeddedStrs2 = r"\'\'\'[\s\S]*?\'\'\'"
-
-#     #These can't be multiline, that keeps a ' in a " " string from opening a void that eats a huge amount of code
-#     embeddedStrs3 = r"\'[\t \S]*?\'"
-#     embeddedStrs4 = r'\"[\t \S]*?\"'
-
-
-#     src = re.sub(embeddedStrs, '', src)
-#     src = re.sub(embeddedStrs2, '', src)
-#     src = re.sub(embeddedStrs3, '', src)
-#     src = re.sub(embeddedStrs4, '', src)
-
-
-#     #Someone did't put any whitespace in between!
-#     src = src.replace("="," ")
-#     src = src.replace(":"," ")
-#     src = src.replace(","," ")
-#     src = src.replace("\r"," ")
-#     src = src.replace("\n"," ")
-
-
-#     uniqueWords ={}
-
-#     uniqueLower = {}
-
-#     for i in src.split(" "):
-#         i = i.strip()
-#         if i:
-#             uniqueWords[i]=True
-
-#     problemWords = []
-
-#     for i in uniqueWords:
-
-#         #__ and _ are allowed to have dublicates with no other differences, other underscore positions are probably bad
-#         if i.startswith("__"):
-#             i+"@@"+i
-#         elif i.startswith("_"):
-#             i+"@"+i
-
-#         x = i.lower().replace("_","")
-#         if x in uniqueLower:
-#             event._handle_exception(tb="Word: "+i+ " appears in multiple different capitalizations and cases. It is highly likely someone is confused")
-
-#         uniqueLower[x] = True
-
+class EventInterface():
+    def __init__(self,ev) -> None:
+        self.__ev = ev
 
 def makePrintFunction(ev):
     """For some unknown reason, new_print is involved in a
@@ -470,25 +413,7 @@ def Event(when="False", do="pass", scope=None, continual=False, ratelimit=0, set
     if scope is None:
         scope = make_eventscope()
 
-    if trigger[0] == '!function':
-        if len(when.split(';', 1)) > 1:
-            triggeraction = when.split(';', 1)[1].strip()
-        else:
-            triggeraction = None
-
-        if 'nolock' in trigger:
-            uselock = False
-        else:
-            uselock = True
-
-        if 'async' in trigger:
-            a = False
-        else:
-            a = True
-
-        return FunctionEvent(trigger[1].split(';')[0], triggeraction, uselock, do, scope, continual, ratelimit, setup, priority, run_async=a, **kwargs)
-
-    elif trigger[0] == '!onmsg':
+    if trigger[0] == '!onmsg':
         return MessageEvent(when, do, scope, continual, ratelimit, setup, priority, **kwargs)
 
     elif trigger[0] == '!onchange':
@@ -502,10 +427,11 @@ def Event(when="False", do="pass", scope=None, continual=False, ratelimit=0, set
 
     elif trigger[0] == '!time':
         return RecurringEvent(' '.join(trigger[1:]), do, scope, continual, ratelimit, setup, priority, **kwargs)
+    else:
 
-    # Defensive programming, raise error on nonsense event type
-    raise RuntimeError(
-        "Invalid trigger expression that begins with" + str(trigger[0]))
+        # Defensive programming, raise error on nonsense event type
+        raise RuntimeError(
+            "Invalid trigger expression that begins with " + str(trigger[0]))
 
 
 # A brief rundown on how these classes work. You have the BaseEvent, which handles registering and unregistering
@@ -606,7 +532,7 @@ class BaseEvent():
         # Like registering and unregistering.
         # We use a separate lock so the event can start and stop itself, without having
         # To use an RLock for the main lock.
-        self.register_lock = threading.Lock()
+        self.register_lock = threading.RLock()
 
         # This keeps track of the last time the event was triggered  so we can rate limit
         self.lastexecuted = 0
@@ -917,161 +843,6 @@ class CompileCodeStringsMixin():
 class DirectFunctionsMixin():
     def _init_setup_and_action(self, setup, action):
         self._do_action = action
-
-
-class FunctionWrapper():
-    "A wrapper class that acts like a mutable function so that function events can handoff seamlessly"
-
-    def __init__(self, f=lambda: 0):
-        self.f = f
-        self.wait = False
-
-    def __call__(self):
-        if self.wait:
-            started = time.time()
-            while(time.time()-started < 100 and not self.wait):
-                time.sleep(0.05)
-            if self.wait:
-                raise RuntimeError(
-                    "Event being modified and is taking more than 100 seconds")
-        self.f()
-
-# Note: this class does things itself instead of using that CompileCodeStringsMixin
-# I'm not sure that was the best idea to use that actually....
-
-
-class FunctionEvent(BaseEvent):
-    def __init__(self, fname, trigaction, l, do, scope, continual=False, ratelimit=0, setup="pass", run_async=False, *args, **kwargs):
-        BaseEvent.__init__(self, when, do, scope, continual,
-                           ratelimit, setup, *args, **kwargs)
-        self.polled = False
-        self.pymodule.__dict__['kaithem'] = kaithemobj.kaithem
-        self.pymodule.__dict__['module'] = modules_state.scopes[self.module]
-        self.active = True
-        if 'dummy' in kwargs:
-            dummy = kwargs['dummy']
-        else:
-            dummy = False
-
-        self.fname = fname
-        if not dummy:
-            # The l parameter tells us if we should use a lock to call the function.
-            if l:
-                def f(*args, **kwargs):
-                    with self.lock:
-                        self._on_trigger(*args, **kwargs)
-            else:
-                f = self._on_trigger
-        else:
-            def f():
-                pass
-
-        if run_async:
-            def g(*args, **kwargs):
-                def h():
-                    f(*args, **kwargs)
-                workers.do(h)
-            self.f = FunctionWrapper(g)
-
-        else:
-            # FunctionWrappers are mutable functions that call their f property
-            self.f = FunctionWrapper(f)
-        self.xyz(do, trigaction, setup)
-
-    def handoff(self, evt):
-        """Handoff to new event. Calls to old function get routed to new function.
-        Works even of you unregister old event."""
-        self.f.f = evt.f.f
-
-    # This was the fastest way to deal with weird exec in nested function with import star buisiness.
-    def xyz(self, do, trigaction, setup):
-        # compile the body
-        body = "def kaithem_event_action(*):\n"
-        for line in do.split('\n'):
-            body += ("    "+line+'\n')
-
-        body = compile(body, "Event_"+self.module+'_'+self.resource, 'exec')
-
-        exec(body, self.pymodule.__dict__)
-
-        # this lets you do things like !function module.foo
-        # Basically we use self.fname as a target and assign the function to that
-        self.pymodule.__dict__["_kaithem_temp_event_function"] = self.f
-        x = compile(self.fname+" = _kaithem_temp_event_function",
-                    "Event_"+self.module+'_'+self.resource, 'exec')
-        exec(x, self.pymodule.__dict__)
-        del self.pymodule.__dict__["_kaithem_temp_event_function"]
-
-        # Trigger actions let us do stuff immediately with the function, like subscribe it
-        # to a weakref callback or something.
-        if trigaction:
-            trigaction = compile(
-                trigaction, "Event_"+self.module+'_'+self.resource+'trigaction', 'exec')
-            exec(trigaction, self.pymodule.__dict__)
-        # initialize the module scope with the kaithem object and the module thing.
-        initializer = compile(setup, "Event_"+self.module +
-                              '_'+self.resource+"setup", "exec")
-        exec(initializer, self.pymodule.__dict__)
-
-    def register(self):
-        with self.register_lock:
-            x = compile(self.fname+" = _kaithem_temp_event_function",
-                        "Event_"+self.module+'_'+self.resource, 'exec')
-            exec(x, self.pymodule.__dict__)
-            self.disable = False
-            self.active = True
-
-    def unregister(self):
-        logging.debug("Unregistering event "+repr(self))
-        with self.register_lock:
-            self.disable = True
-            self.active = False
-            # Use a try accept block because that function
-            # could have wound up anywhere,
-            # Including having been already deleted.
-            try:
-                x = compile("del " + self.fname, "Event_" +
-                            self.module+'_'+self.resource, 'exec')
-                exec(x, self.pymodule.__dict__)
-            except Exception:
-                logger.exception("Error unregistering event " +
-                                 self.resource+" of " + self.module)
-
-    # The only difference between this and the base class version is
-    # That this version propagates exceptions
-    def _on_trigger(self, *args, **kwargs):
-        # This function gets called
-        # when whatever the
-        # event's trigger condition is.
-        # it provides common stuff to all trigger
-        # types like logging and rate limiting
-
-        # Check the current time minus the last
-        # time against the rate limit
-        # Don't execute more often than ratelimit
-        if not self.active:
-            raise RuntimeError("Cannot run deleted FunctionEvent")
-
-        if (time.time() - self.lastexecuted > self.ratelimit):
-            # Set the varible so we know when
-            # the last time the body actually ran
-            self.lastexecuted = time.time()
-            try:
-                # Action could be any number of things,
-                # so this method must be implemented by
-                # A derived class or inherited from a mixin.
-                self._do_action(*args, **kwargs)
-                self.lastcompleted = time.time()
-                #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
-            except Exception as e:
-                logger.exception("Error in event " +
-                                 self.resource+" of " + self.module)
-                if self.active:
-                    self._handle_exception(e)
-                raise
-
-    def _do_action(self, *args, **kwargs):
-        return self.pymodule.kaithem_event_action(*args, **kwargs)
 
 
 class MessageEvent(BaseEvent, CompileCodeStringsMixin):
@@ -1542,13 +1313,9 @@ def removeModuleEvents(module):
 # Every event has it's own local scope that it uses, this creates the dict to represent it
 
 
-def make_eventscope(module=None, resource=None):
+def make_eventscope(module=None):
     if module:
-        if resource:
-
-            return {'event': modules_state.scopes[module][resource], 'module': modules_state.scopes[module], 'kaithem': kaithemobj.kaithem}
-        else:
-            return {'module': modules_state.scopes[module], 'kaithem': kaithemobj.kaithem}
+        return {'module': modules_state.scopes[module], 'kaithem': kaithemobj.kaithem}
     else:
         return {'module': None, 'kaithem': kaithemobj.kaithem}
 
@@ -1566,10 +1333,6 @@ def updateOneEvent(resource, module, o=None):
                 old = EventReferences[module, resource]
             else:
                 old = None
-            # We want to destroy the old event before making a new one but we also want seamless handoff
-            # So what we do is we tell the old one to block if anyone calls it until we are done
-            if isinstance(old, FunctionEvent):
-                EventReferences[module, resource].f.wait = True
 
             if old:
                 # Unregister first, then clean up.
@@ -1596,15 +1359,6 @@ def updateOneEvent(resource, module, o=None):
             if old:
                 x.evt_persistant_data = old.evt_persistant_data
 
-            # Special case for functionevents, we do a handoff. This means that any references to the old
-            # event now call the new one.
-
-            # If old one and new one are functionevents we can hand off, if only old, then we just unblock
-            if isinstance(old, FunctionEvent):
-                if isinstance(x, FunctionEvent):
-                    __EventReferences[module, resource].handoff(x)
-                # Unblock the old one no matter what or else it will have to block for the full timeout duration
-                __EventReferences[module, resource].f.wait = False
 
             # Here is the other lock(!)
             with _event_list_lock:  # Make sure nobody is iterating the eventlist
@@ -1806,12 +1560,14 @@ def make_event_from_resource(module, resource, subst=None):
         priority = 1
     try:
         if 'enable' in r:
+            scope = make_eventscope(module)
+
             if not r['enable']:
                 # TODO: What's going on here?
                 if not parseTrigger(r['trigger'][0]) == '!function':
                     e = Event(m=module, r=resource)
                 else:
-                    e = Event(r['trigger'], r['action'], make_eventscope(module),
+                    e = Event(r['trigger'], r['action'], scope,
                               setup=setupcode,
                               continual=continual,
                               ratelimit=ratelimit,
@@ -1820,15 +1576,20 @@ def make_event_from_resource(module, resource, subst=None):
                               r=resource, dummy=True)
 
                 e.disable = True
+                scope['event'] = EventInterface(e)
                 return e
 
-        x = Event(r['trigger'], r['action'], make_eventscope(module),
+        scope = make_eventscope(module)
+        x = Event(r['trigger'], r['action'], scope,
                   setup=setupcode,
                   continual=continual,
                   ratelimit=ratelimit,
                   priority=priority,
                   m=module,
                   r=resource)
+
+        scope['event'] = modules_state.scopes[module][resource]
+
     except Exception as e:
         if not (module, resource) in __EventReferences:
             d = makeDummyEvent(module, resource)

@@ -22,7 +22,7 @@ import threading
 import traceback
 import gc
 import mimetypes
-from .import kaithemobj, util, pages, directories, messagebus, systasks, modules_state
+from . import util, pages, directories, messagebus, systasks, modules_state
 import mako
 import cherrypy
 import sys
@@ -155,6 +155,8 @@ class CompiledPage():
         # FreeBoard.
 
         self.localAPI = CompiledPageAPIObject(self)
+        from . import kaithemobj
+        self.kaithemobj = kaithemobj
 
         def refreshFromResource():
             # For compatibility with older versions, we provide defaults
@@ -212,7 +214,7 @@ class CompiledPage():
                     footer = ""
                 templatesource = header + template + footer
 
-                self.d = {'kaithem': kaithemobj.kaithem,
+                self.d = {'kaithem': self.kaithemobj.kaithem,
                           'page': self.localAPI, 'print': self.new_print}
                 if m in modules_state.scopes:
                     self.d['module'] = modules_state.scopes[m]
@@ -420,6 +422,10 @@ def getPagesFromModules():
 class KaithemPage():
     # Class encapsulating one request to a user-defined page
     exposed = True
+    
+    def __init__(self) -> None:
+        from . import kaithemobj
+        self.kaithemobj = kaithemobj
 
     def GET(self, module, *args, **kwargs):
         # Workaround for cherrypy decoding unicode as if it is latin 1
@@ -480,7 +486,7 @@ class KaithemPage():
 
             if hasattr(page, "template"):
                 return page.template.render(
-                    kaithem=kaithemobj.kaithem,
+                    kaithem=self.kaithemobj.kaithem,
                     request=cherrypy.request,
                     module=modules_state.scopes[module],
                     path=args,
@@ -491,7 +497,7 @@ class KaithemPage():
             else:
                 return page.text.encode('utf-8')
 
-        except kaithemobj.ServeFileInsteadOfRenderingPageException as e:
+        except self.kaithemobj.ServeFileInsteadOfRenderingPageException as e:
             return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
         except Exception as e:
@@ -502,7 +508,7 @@ class KaithemPage():
 
             # The way we let users securely serve static files is to simply
             # Give them a function that raises this special exception
-            if isinstance(e, kaithemobj.ServeFileInsteadOfRenderingPageException):
+            if isinstance(e, self.kaithemobj.ServeFileInsteadOfRenderingPageException):
                 return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
             #tb = traceback.format_exc(chain=True)

@@ -8,7 +8,7 @@ import random
 import weakref
 logger = logging.getLogger("system.alerts")
 
-lock = threading.Lock()
+lock = threading.RLock()
 
 # This is a dict of all alerts that have not yet been acknowledged.
 # It is immutable and only ever atomically replaces

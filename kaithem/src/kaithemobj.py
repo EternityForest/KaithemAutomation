@@ -16,7 +16,7 @@
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
 import traceback
-from src import tagpoints
+from . import tagpoints
 import time
 import random
 import subprocess
@@ -31,9 +31,10 @@ import bz2
 import weakref
 
 import cherrypy
-from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, auth, breakpoint
+from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, auth, breakpoint,statemachines
 from . import timesync, devices, alerts, midi, gpio
 
+from . import version_info
 
 from . import astrallibwrapper as sky
 
@@ -143,6 +144,10 @@ class Kaithem():
 
 
     class misc(object):
+
+        version = version_info.__version__
+        version_info = version_info.__version_info__
+
         @staticmethod
         def lorem():
             return(random.choice(sentences))
@@ -446,7 +451,8 @@ class Kaithem():
             return registry.get(*args, **kwargs)
 
     class states(object):
-        pass
+        StateMachine = statemachines.StateMachine
+
 
     class mail(object):
         @staticmethod
@@ -474,8 +480,6 @@ class Kaithem():
         @staticmethod
         def resource(name):
             return pages.webResources[name].url
-
-        WebResource = pages.WebResource
 
         controllers = pages.nativeHandlers
 

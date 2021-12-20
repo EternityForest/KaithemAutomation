@@ -313,7 +313,7 @@ def randID():
     return base64.b64encode(os.urandom(8))[:-1].decode().replace("+",'').replace("/",'').replace("-",'')
 
 
-idlock = threading.Lock()
+idlock = threading.RLock()
 
 
 widgets_by_subsc_carryover=weakref.WeakValueDictionary()

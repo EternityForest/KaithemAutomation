@@ -59,61 +59,11 @@ if mode == 3:
 navBarPlugins = weakref.WeakValueDictionary()
 
 
-webResources = {}
-
-webResourceLock = threading.Lock()
-
-# Indexed by (time, name, url) pairs
-allWebResources = {}
-
-
 #There are cases where this may not exactly be perfect, but the point is just an extra guard against user error.
 def isHTTPAllowed(ip):
    return (ip.startswith("::1") or ip.startswith("127.") or ip=='::ffff:127.0.0.1' or ip.startswith("192.") or ip.startswith("10.") or ip.startswith("fc") or ip.startswith("fd"))
 
 
-class WebResource():
-    """
-    Represents a pointer to a URL that can be looked up by name, so that looking up 'jquery' could tell you the actual URL.
-    Creating this class registers it in the list.
-    """
-
-    def __init__(self, name, url, priority=50):
-        self.url = url
-        self.priority = 50
-        self.identifier = (time.time(), name, url)
-
-        with webResourceLock:
-            allWebResources[self.identifier] = self
-
-            if name in webResources:
-                o = webResources[name]
-                if o.priority <= self.priority:
-                    webResources[name] = self
-            else:
-                webResources[name] = self
-
-    def __del__(self):
-        with webResourceLock:
-            if self.name in webResources and webResources[self.name] == self:
-                del webResources[self.name]
-            # Deletion should be rare, and we should only have a few thousand at most.
-            # we can afford to rescan the whole list under lock.
-            for i in allWebResources:
-                if i[1] == self.name:
-                    if not self.name in webResources:
-                        webResources[self.name] = allWebResources[i]
-                    else:
-                        if i[3] >= webResources[self.name.priority]:
-                            webResources[self.name] = allWebResources[i]
-
-
-vue = WebResource("vue-2.5.16", "/static/js/vue-2.6.10.js")
-vue2 = WebResource("vue-default", "/static/js/vue-2.6.10.js")
-vue3 = WebResource("vue2-default", "/static/js/vue-2.6.10.js")
-
-
-#
 nativeHandlers = weakref.WeakValueDictionary()
 
 

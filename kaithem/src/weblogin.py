@@ -24,7 +24,7 @@ from . import pages, auth, util, messagebus
 
 logger = logging.getLogger("system.auth")
 failureRecords = collections.OrderedDict()
-recordslock = threading.Lock()
+recordslock = threading.RLock()
 
 # indexed by username, they are numbers of what time to lock out logins until
 lockouts = {}

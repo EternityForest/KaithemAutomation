@@ -254,7 +254,7 @@ predefinedcommands = {
 }
 
 
-lock = threading.Lock()
+lock = threading.RLock()
 
 
 class ScheduleTimer():

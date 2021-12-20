@@ -4,6 +4,9 @@ Change Log
 
 ### 0.67.6
 
+This release focuses on getting rid of functionality that is almost certainly used by nobody, was not well tested,
+And was causing maintainence nightmares.
+
 - Semi-breaking: Tag point alarms will not trigger if the tag point has never actually had a value set.
 - Support for searching all modules for cross-framework devices, and importing on demand.
 - Fix devices in modules bugs
@@ -12,6 +15,8 @@ Change Log
 - BREAKING: Remove onChange handlers directly set on tag points via UI
 - BREAKING: Remove the web resources lookup mechanism
 - BREAKING: Remove the Gstreamer and the Mplayer backends. Use MPV.
+- BREAKING: Remove functionevents
+- BREAKING: Remove the Chandler scene pages functionality
 
 ### 0.67.5
 - Scheduler is now just based on the normal sched module
