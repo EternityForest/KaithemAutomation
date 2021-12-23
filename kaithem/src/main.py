@@ -538,6 +538,13 @@ def webRoot():
         def license(self, *path, **data):
             return pages.get_template('help/license.html').render()
 
+        @cherrypy.expose
+        def aerolabs_blockrain(self, *path, **data):
+            # There is no reason to be particularly concerned here, I have no reason not to trust
+            # Aerolabs, this is just for the people that hate hidden games and such.
+            cherrypy.response.headers['Content-Security-Policy'] = "connect-src none"
+            return pages.get_template('blockrain.html').render()
+
     class Errors():
         @cherrypy.expose
         def permissionerror(self,):

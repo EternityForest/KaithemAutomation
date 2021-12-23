@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1639327369684811
+resource-timestamp: 1640295442081967
 resource-type: page
 template-engine: none
 
@@ -80,7 +80,7 @@ template-engine: none
                     <h4>Parameters</h4>
 
                     Run when:
-                    <combo-box v-model="selectedBinding[0]" v-bind:options="examplevents" v-on:change="$emit('input',rules);"></combo-box> occurs
+                    <combo-box v-model="selectedBinding[0]" v-bind:options="example_events" v-on:change="$emit('input',rules);"></combo-box> occurs
 
                     <h4>Delete</h4>
                     <button v-on:click="deleteBinding(selectedBinding);$emit('input',rules);">Remove binding and all actions</button>
@@ -195,7 +195,7 @@ template-engine: none
 <script>
     module.exports={
 
-    props: ['value','commands','pinnedvars', "inspector","completers","exampleevents"],
+    props: ['value','commands','pinnedvars', "inspector","completers","example_events"],
     components:{
         "combo-box": httpVueLoader("/static/vue/ComboBox.vue"),
     },
@@ -261,23 +261,7 @@ template-engine: none
 
                   return c(fullCommand)
               },
-              "cueNames":function(s, parentscene)
-                {
-                    if(s=="=SCENE")
-                    {
-                        s = parentscene;
-                    }
-                    if(this.scenes[s]==undefined)
-                    {
-                        return [];
-                    }
-                    var l=[];
-                    for (i of this.scenes[s])
-                    {
-                        l.push([i,''])
-                    }
-                    return l;
-                },
+
             swapArrayElements:function(arr, indexA, indexB) {
                 var temp = arr[indexA];
                 arr[indexA] = arr[indexB];

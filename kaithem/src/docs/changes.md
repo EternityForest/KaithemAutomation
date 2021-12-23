@@ -19,6 +19,7 @@ And was causing maintainence nightmares.
 - BREAKING: Remove the Chandler scene pages functionality
 - BREAKING: Remove textual scripting in Chandler
 - BREAKING: Remove the Smartbulb universes. They are replaced by feature-based auto detection of smart bulbs.
+- There is an Easter Egg hidden somewhere(On it's own page which does not touch any automation features).
 
 ### 0.67.5
 - Scheduler is now just based on the normal sched module

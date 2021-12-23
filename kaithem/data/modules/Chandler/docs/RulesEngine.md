@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1632007297380215
+resource-timestamp: 1640295632505493
 resource-type: page
 template-engine: markdown
 
@@ -30,6 +30,7 @@ Some blocks may return an interesting number,boolean, or text value. You may acc
 
 Scenes can also "inherit" rules from another cue. This works recursively, and loops are automatically detected and stopped.
 
+### Cue Params
 
 Any "go to cue" type command, including the normal "next cue" feature, cue may have URL style params as in "cuename?key=value".
 
@@ -66,6 +67,18 @@ There are a few predefined ones:
 ### cue.enter
 
 The value for this is always a list [cue being entered, cause]
+
+
+### now
+As soon as script loads
+
+### keydown.a
+
+Respondto keypress sent by the console when in Send Events mode
+
+### =isNight()
+
+Any expression can be an event, it polls and fires when true.
 
 ## Time Expressions
 
