@@ -114,6 +114,24 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.67.6
+
+This release focuses on getting rid of functionality that is almost certainly used by nobody, was not well tested,
+And was causing maintainence nightmares.
+
+- Semi-breaking: Tag point alarms will not trigger if the tag point has never actually had a value set.
+- Support for searching all modules for cross-framework devices, and importing on demand.
+- Fix devices in modules bugs
+- Freeboard edit controls now disabled if you don't have permissions, so you don't waste time making local changes you can't save.
+- BREAKING: Remove the ability to subclass devices via UI.
+- BREAKING: Remove onChange handlers directly set on tag points via UI
+- BREAKING: Remove the web resources lookup mechanism
+- BREAKING: Remove the Gstreamer and the Mplayer backends. Use MPV.
+- BREAKING: Remove functionevents
+- BREAKING: Remove the Chandler scene pages functionality
+- BREAKING: Remove textual scripting in Chandler
+- BREAKING: Remove the Smartbulb universes. They are replaced by feature-based auto detection of smart bulbs.
+
 ### 0.67.5
 - Scheduler is now just based on the normal sched module
 - Various performance improvments(Seems like 50% les CPU usage!)
@@ -133,52 +151,12 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Fix reused GStreamer proxy IDs that affected RasPi
 - Improve performance of JSONRpyc proxies
 
-
-
 ### 0.67.3
 - BluetoothBeacon replaced with EspruinoHub client device that does the same thing with enhanced features.
 - Now the DrayerDBPlugin has a very basic browser
 
 ### 0.67.2
 - Fix Chandler MQTT compatibility
-
-
-### 0.67.1
-- Fix very long sound loop counts
-- Fix RTMidi compatibility with new py libs
-- Faster boot time with some devices
-- SoundFuse algorithm more aggressive
-
-### 0.66.0
-
-- JackMIDIListener has been removed.  Instead, all connected ALSA midi devices automatically generate tag points for last pressed note and all CC values.
-- All connected midi devices now also report to the message bus
-- JackFluidSynth plugin now only accepts MIDI on the internal message bus.  
-- python-rtmidi is required to use these features.  This is all on account of some unreliable performance and excess complexity with jack midi.
-- Chandler can now respond directly to MIDI, no code needed
-- Chandler bugfix with smart bulb hue and saturation channels not blending the way you might expect.
-- Using a caching strategy we avoid calling ALSA sound card listing functions when not needed to stop occasional bad noises(Much lower JACK latency is possible)
-- Chandler Pavillion encrypted protocol sync removed(MQTT alternative coming soon)
-- Chandler scene notes now just uses a plain HTTP textarea
-
-- *Major breaking changes*
-
-- The ALSA sound card aliases system has been removed. We no longer support multiple devices except with JACK
-- *Audio file playback is now done with libmpv.  All other backends are deprecated.   You should have python-mpv on your system!*
-- This greatly increases audio performance and stability.
-- We no longer support a2jmidid or aliases for MIDIs.  Use ALSA midi directly, almost no use cases will need advanced routing.
-
-
-### 0.65.64
-- Now we support those cheap SainSmart relay boards with a tagpoint based interface.  Use the Relayft245r device type.
-- Freeboard default values don't clobber existing stuff if it is there, for the slider and switch widgets.
-- Broadcast Center sends snackbar text alerts to most/all devices accessing the server
-- kaithemobj.widgets.sendGlobalAlert(message, duration) to programmatically send HTML in a snackbar to all devices.
-- New tag.control: expose API gives write only control, for when you want to both claim the tag and separately see it's current real value
-- New /pages/chandler/sendevent?event=NAME&value=VALUE API
-- User pages now show telemetry on what WS connections are open from what IP addresses on what pages. Use
-- BREAKING CHANGE: the default topics used by the MQTT Tag sync no longer use a slash.
-- Correctly handle MQTT passsive connections that are created after the real connection
 
 
 
