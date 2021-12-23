@@ -105,9 +105,11 @@ BasePermissions = {
     "/users/mixer.edit": "Control the audio mixing functionality",
     "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care.",
     "/users/alerts.view": "Required to view alerts",
-    "/users/alerts.acknowlege": "Required to acknowledge alerts"
+    "/users/alerts.acknowlege": "Required to acknowledge alerts",
+    "/users/devices.read": "The default permission used to expose device points for reading, but devices can be configured to use others.",
+    "/users/devices.write": "The default permission used to expose device points for writing, but devices can be configured to use others.",
+    "__guest__": "Everyone always has this permission even when not logged in"
 }
-
 Permissions = BasePermissions
 
 """True only if auth module stuff changed since last save, used to prevent unneccesary disk writes.

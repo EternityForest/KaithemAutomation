@@ -17,6 +17,7 @@ And was causing maintainence nightmares.
 - BREAKING: Remove the Gstreamer and the Mplayer backends. Use MPV.
 - BREAKING: Remove functionevents
 - BREAKING: Remove the Chandler scene pages functionality
+- BREAKING: Remove textual scripting in Chandler
 
 ### 0.67.5
 - Scheduler is now just based on the normal sched module

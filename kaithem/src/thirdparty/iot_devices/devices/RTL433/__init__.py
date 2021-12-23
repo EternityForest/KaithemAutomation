@@ -11,38 +11,33 @@ from scullery import mqtt, messagebus
 
 all_devs = weakref.WeakValueDictionary()
 
-import asyncio
-
-eventLoop = asyncio.new_event_loop()
 
 mqttlock = threading.Lock()
 
 import iot_devices.device as devices
 
 
-@asyncio.coroutine
 def scan():
     while 1:
-        yield from asyncio.sleep(9)
+        time.sleep(10)
         with lock:
             try:
                 for i in all_devs:
                     # If the last signal was very strong, we don't need to wait as long before considering
                     # it gone, because packet loss will be less
-                    m = 3 if all_devs.datapoints['rssi'] > -65 else 7
+                    m = 3 if (all_devs[i].datapoints['rssi'] or -80) > -65 else 7
 
-                    if all_devs.lastseen < time.monotonic() - (float(
-                            all_devs.config.get('interval', 60) or 60) * m):
+                    if all_devs[i].lastseen < time.monotonic() - (float(
+                            all_devs[i].config.get('interval', 60) or 60) * m):
                         # This is how we mark it as not there
-                        all_devs.set_data_point('rssi', -180)
-            except:
+                        all_devs[i].set_data_point('rssi', -180)
+            except Exception:
                 logging.exception("RTL err")
 
 
-t = threading.Thread(target=eventLoop.run_forever, name="RTL433Task")
+t = threading.Thread(target=scan, name="RTL433Task")
 t.start()
 
-eventLoop.call_soon_threadsafe(scan)
 
 from mako.lookup import TemplateLookup
 
@@ -91,10 +86,14 @@ class RTL433Client(devices.Device):
             self.set_config_default('device.password', '')
             self.set_config_default('device.mqttTopic', 'home/rtl_433')
 
+            # Pretend we have seen it to give the checker the right interval
+            # before declaring it lost
+            self.lastseen = time.monotonic()
+
             # This connection is actually  possibly shared
             # Scullery does the deduplication for us
 
-            # Kaithem already puts an alarm on this for us.
+
             self.connection = mqtt.getConnection(
                 self.config["device.server"],
                 int(self.config["device.port"].strip() or 1883),
@@ -105,6 +104,7 @@ class RTL433Client(devices.Device):
             self.connection.subscribeToStatus(self.onConnectionChange)
             self.set_data_point("mqttStatus",
                                 1 if self.connection.isConnected else 0)
+            self.set_alarm("MQTT Lost","mqttStatus", "value < 0.5", auto_ack=True)
 
             topic = data.get("device.mqtttopic", "home/rtl_433")
 
@@ -228,8 +228,10 @@ class RTL433Client(devices.Device):
 
                     self.print(m, "Packet filter hit")
 
-                    # No real RSSI
+                    # No real RSSI, we just use -75 to mean good and -180 to mean bad.
                     self.set_data_point("rssi", -75)
+                    self.set_alarm("Signal Lost","rssi", "value < -98", auto_ack=True)
+
                     self.lastSeen = time.monotonic()
 
                     if 'humidity' in m:
@@ -276,7 +278,7 @@ class RTL433Client(devices.Device):
             self.connection.subscribe(topic, onJSON, encoding="raw")
 
             all_devs[self.name] = self
-        except Exception as e:
+        except Exception:
             self.handle_exception()
 
     def close(self):

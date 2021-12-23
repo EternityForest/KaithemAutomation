@@ -2,7 +2,7 @@
 <%
 import traceback
 import json
-from src import unitsofmeasure,tagpoints
+from src import unitsofmeasure,tagpoints, devices
 import urllib.parse
 
 def url(u):
@@ -36,7 +36,8 @@ specialKeys={
 </datalist>
 
 
-<h1>Device Inspector: ${name}</h1>
+<h1>Device Inspector: ${name} <span style="color: aquamarine;">${'(cross-framework)' if isinstance(obj, devices.CrossFrameworkDevice) else ''}</span>
+</h1>
 <div class="sectionbox">
 <a class="button" href="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">Search for auto-setup configurations</a>
 
@@ -122,6 +123,8 @@ ${manageForm}
 %endfor
 </table>
 %endif
+
+%if obj.alerts:
 <h2>Alerts</h2>
 <p class="help">This section lists all alerts supported by the device and
         allows you to change the priorities for each.
@@ -153,11 +156,14 @@ ${manageForm}
 %endfor
 </table>
 
+%endif
+
 <h2>Tag Points</h2>
-<p class="help">This section lists all the tag points owned 
+<p class="help">This section lists all the tag points owned.  Controls do not work if
+        the tag has been overriden by some high priority claim.
 </p>
 <table border="1" style="width:40em">
-<tr><td>Name</td><td>Value</td><td>Active Claim</td></tr>
+<tr><td>Name</td><td>Value</td><td>Controls.</td></tr>
 
 %for i in obj.tagPoints:
 <tr><td><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></td>
@@ -168,11 +174,23 @@ ${manageForm}
         %else:
         <td>${obj.tagPoints[i].spanWidget.render()}</td>
         %endif
+        %if obj.tagPoints[i].activeClaim().priority > 50:
+        <td>
+                Overridden: ${obj.tagPoints[i].activeClaim().name}
+        </td>
+        %else:
+        <td>
+                %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set</button>
+                %endif
+                <button type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
+        </td>
 
-        <td>${obj.tagPoints[i].activeClaim().name|h}</td>
+        %endif
 </tr>
 %endfor
 </table>
+
 <h2>Messages</h2>
 <p class="help">
         These are not logged. Add a message with device.print(message). Old messages
@@ -180,9 +198,21 @@ ${manageForm}
 </p>
 ${obj.logWindow.render()}
 
+<h2>Permissions</h2>
+<div>
+<p class="help">
+Set a default for all tag points exposed by this device.  You can further refine this in the tag points manager.
+It is preferable to do things at the device-level, as devices can be bundle into modules, and you don't have to handle
+settings individually for every tag.  Leave blank to disable.  These are used to make data points show up in the 
+</p>
 
+<p class="help">
+Currently this is only supported for the newer cross-framework devices.
+ </p>
 
-
+Read: <input name="kaithem.read_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__">
+Write:<input name="kaithem.write_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__">
+</div>
 <input type="submit" value="Save settings">
 
 </form>
@@ -192,6 +222,8 @@ ${obj.logWindow.render()}
 </div>
 
 ${obj._admin_ws_channel.render("_admin_ws_channel")}
+${obj._generic_ws_channel.render("_generic_ws_channel")}
+
 <script>
 
 

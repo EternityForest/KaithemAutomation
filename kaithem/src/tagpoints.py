@@ -183,6 +183,13 @@ class _TagPoint(virtualresource.VirtualResource):
     type = 'object'
     mqttEncoding = 'json'
 
+    def __repr__(self):
+        try:
+            return "<Tag Point: "+self.name+"="+str(self._value)[:20]+">"
+        except Exception:
+            return "<Tag Point: "+self.name+">"
+
+
     @typechecked
     def __init__(self, name: str):
         global allTagsAtomic
@@ -354,7 +361,10 @@ class _TagPoint(virtualresource.VirtualResource):
         if self.name.startswith("="):
             self.exprClaim = createGetterFromExpression(self.name, self)
         with lock:
-            self.setConfigData(configTagData.get(self.name, {}))
+            d =configTagData.get(self.name, {})
+            if hasattr(d,'data'):
+                d = d.data.copy()
+            self.setConfigData(d)
 
     # In reality value, timestamp, annotation are all stored together as a tuple
 
@@ -381,16 +391,21 @@ class _TagPoint(virtualresource.VirtualResource):
 
         """
 
-        # Handle different falsy things someone might use to try and disable this
+
+        if isinstance(r, list):
+            r = ','.join(r)
+        else:
+            r=r.strip()
+        if isinstance(w, list):
+            w = ','.join(w)
+            w=w.strip()
+
+        #Handle different falsy things someone might use to try and disable this
         if not r:
             r = ''
         if not w:
             w = '__never__'
 
-        if isinstance(r, list):
-            r = ','.join(r)
-        if isinstance(w, list):
-            w = ','.join(w)
 
         # Just don't allow numberlike permissions so we can keep
         # pretending any config item that looks like a number, is.
@@ -1231,13 +1246,13 @@ class _TagPoint(virtualresource.VirtualResource):
                     if self.timestamp == 0:
                         # Set timestamp to 0, this marks the tag as still using a default
                         # Which can be further changed
-                        self.setClaimVal("default", float(data['value']), 0,
+                        self.setClaimVal("default", str(data['value']), 0,
                                          "Configured default")
                 else:
                     if self.timestamp == 0:
                         # Set timestamp to 0, this marks the tag as still using a default
                         # Which can be further changed
-                        self.setClaimVal("default", float(self._dynDefault), 0,
+                        self.setClaimVal("default", str(self.default), 0,
                                          "Configured default")
             else:
                 if self.name in configTagData:
@@ -1655,7 +1670,7 @@ class _TagPoint(virtualresource.VirtualResource):
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
-        if (self.lastGotValue > time.time() - self.interval) and not force:
+        if (self.lastGotValue > time.monotonic() - self.interval) and not force:
             return self.lastValue
 
         activeClaim = self.activeClaim()
@@ -1665,8 +1680,7 @@ class _TagPoint(virtualresource.VirtualResource):
         if not callable(activeClaimValue):
             # We no longer are aiming to support using the processor for impure functions
 
-            # Todo why is this time.time not monotonic?
-            self.lastGotValue = time.time()
+            self.lastGotValue = time.monotonic()
             self.lastValue = self.processValue(activeClaimValue)
 
         else:
@@ -1716,7 +1730,7 @@ class _TagPoint(virtualresource.VirtualResource):
                             activeClaim.cachedValue = (x, t)
 
                             # This is just used to calculate the overall age of the tags data
-                            self.lastGotValue = time.time()
+                            self.lastGotValue = time.monotonic()
                             self.lastValue = self.processValue(x)
 
                     finally:
@@ -1727,7 +1741,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     logger.exception("Error getting tag value")
 
                     # The system logger is the one kaithem actually logs to file.
-                    if self.lastError < (time.time() - (60 * 10)):
+                    if self.lastError < (time.monotonic() - (60 * 10)):
+                        self.lastError=time.monotonic()
                         syslogger.exception(
                             "Error getting tag value. This message will only be logged every ten minutes."
                         )
@@ -1911,10 +1926,14 @@ class _TagPoint(virtualresource.VirtualResource):
             if upd:
                 self.vta = (val, timestamp, annotation)
                 if valCallable:
+                    # Mark that we have not yet ever gotten this getter
+                    # so the change becomes immediate.
+                    # Note that we have both a tag and a claim level cache time
+                    self.lastGotValue = 0
                     # No need to call the function right away, that can happen when a getter calls it
                     pass  # self._getValue()
                 else:
-                    self.lastGotValue = time.time()
+                    self.lastGotValue = time.monotonic()
                     self.lastValue = self.processValue(val)
                 # No need to push is listening
                 if (self.subscribers or self.handler):
@@ -2283,13 +2302,6 @@ class _StringTagPoint(_TagPoint):
         try:
             if self._spanWidget:
                 x = self._spanWidget
-
-                def f(v, t, a):
-                    self._debugAdminPush(v, t, a)
-
-                self.subscribe(f)
-                x.updateSubscriber = f
-
                 if x:
                     self._debugAdminPush(self.value, None, None)
                     # Put if back if the function tried to GC it.
@@ -2298,8 +2310,16 @@ class _StringTagPoint(_TagPoint):
 
             self._spanWidget = widgets.DynamicSpan()
 
+            def f(v, t, a):
+                self._debugAdminPush(v, t, a)
+
+            self.subscribe(f)
+            self._spanWidget.updateSubscriber = f
+
+            self._spanWidget.defaultLabel = self.name.split(".")[-1][:24]
+
             self._spanWidget.setPermissions(['/users/tagpoints.view'],
-                                            ['/users/tagpoints.edit'])
+                                             ['/users/tagpoints.edit'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
                 try:

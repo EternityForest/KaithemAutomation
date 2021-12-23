@@ -312,7 +312,14 @@ class Device(virtualresource.VirtualResource):
     @staticmethod
     def makeUIMsgHandler(wr):
         def f(u, v):
-            wr().on_ui_message(u, v)
+            wr().on_ui_message(u)
+
+        return f
+
+    @staticmethod
+    def makeGenericUIMsgHandler(wr):
+        def f(u, v):
+            wr().onGenericUIMessage(u, v)
 
         return f
 
@@ -328,14 +335,24 @@ class Device(virtualresource.VirtualResource):
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
+        self._tagBookKeepers = {}
+
         # The single shared broadcast data channel the spec suggests we have
         self._admin_ws_channel = widgets.APIWidget()
         self._admin_ws_channel.require("/admin/settings.edit")
+
+        # This is for extra non device specific stuff we add to all devices
+        self._generic_ws_channel = widgets.APIWidget()
+        self._generic_ws_channel.require("/admin/settings.edit")
+
 
         # Widgets could potentially stay around after this was deleted,
         # because a connection was open. We wouldn't want that to keep this device around when it should not
         # be.
         onMessage = self.makeUIMsgHandler(weakref.ref(self))
+
+        onMessage2 = self.makeGenericUIMsgHandler(weakref.ref(self))
+
 
         # Maps the local short tag namre to the tag the user bound it to in the UI
         self._kBindings = {}
@@ -344,6 +361,7 @@ class Device(virtualresource.VirtualResource):
         self._uiMsgRef = onMessage
 
         self._admin_ws_channel.attach(onMessage)
+        self._generic_ws_channel.attach(onMessage2)
 
         dbgd[name + str(time.time())] = self
 
@@ -435,6 +453,15 @@ class Device(virtualresource.VirtualResource):
             messagebus.postMessage("/system/notifications/errors",
                                    "First error in device: " + self.name)
             syslogger.error("in device: " + self.name + "\n" + s)
+
+
+    def onGenericUIMessage(self, u, v):
+        if v[0]=='set':
+            if v[2] is not None:
+                self.tagPoints[v[1]].value = v[2]
+
+        elif v[0]=='refresh':
+            self.tagPoints[v[1]].getValue(True)
 
     # delete a device, it should not be used after this
     def close(self):
@@ -532,6 +559,14 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     _isCrossFramework = True
 
+
+    def __setupTagPerms(self, t, writable=True):
+        # Devices can have a default exposure
+        readPerms = self.config.get("kaithem.read_perms",'').strip()
+        writePerms = self.config.get("kaithem.write_perms",'').strip()
+        t.expose(readPerms, writePerms if writable else [])
+
+
     def numeric_data_point(self,
                            name: str,
                            min: Optional[float] = None,
@@ -544,10 +579,15 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                                                       Any]] = None,
                            default: float = 0,
                            interval: float = 0,
+                           writable: bool = True,
                            **kwargs):
 
         with lock:
             t = tagpoints.Tag("/devices/" + self.name + "/" + name)
+            self.__setupTagPerms(t,writable)
+
+            t._dev_ui_writable = writable
+
 
             t.min = min
             t.max = max
@@ -555,9 +595,13 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.lo = lo
             t.description = description
             t.unit = unit
-            t.handler = handler
             t.default = default
             t.interval = interval
+
+            def f(v,t,a):
+                self.datapoints[name]=v
+            self._tagBookKeepers[name]=f
+            t.subscribe(f)
 
             # Be defensive
             if name in self._deviceSpecIntegrationHandlers:
@@ -581,13 +625,21 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                                                      Any]] = None,
                           default: float = 0,
                           interval: float = 0,
+                          writable:bool =True,
                           **kwargs):
         with lock:
             t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
+            self.__setupTagPerms(t,writable)
+            t._dev_ui_writable = writable
+
             t.description = description
-            t.handler = handler
             t.default = default
             t.interval = interval
+
+            def f(v,t,a):
+                self.datapoints[name]=v
+            self._tagBookKeepers[name]=f
+            t.subscribe(f)
 
             # Be defensive
             if name in self._deviceSpecIntegrationHandlers:
@@ -610,13 +662,21 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                           handler: Optional[Callable[[str, float, Any],
                                                      Any]] = None,
                           interval: float = 0,
+                          writable: bool = True,
                           **kwargs):
 
         with lock:
             t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
+            self.__setupTagPerms(t,writable)
+            t._dev_ui_writable = writable
+
             t.description = description
-            t.handler = handler
             t.interval = interval
+
+            def f(v,t,a):
+                self.datapoints[name]=v
+            self._tagBookKeepers[name]=f
+            t.subscribe(f)
 
             # Be defensive
             if name in self._deviceSpecIntegrationHandlers:
@@ -787,7 +847,10 @@ def updateDevice(devname, kwargs, saveChanges=True):
         raw_dt.validateData(kwargs)
 
     unsaved_changes[devname] = True
-    old_bindings = []
+    old_bindings = {}
+    old_read_perms = {}
+    old_write_perms = {}
+
     with lock:
         if devname in remote_devices:
             parentModule = remote_devices[devname].parentModule
@@ -795,6 +858,13 @@ def updateDevice(devname, kwargs, saveChanges=True):
             old_bindings = remote_devices[devname].config.get(
                 "kaithem.input_bindings", [])
 
+            old_read_perms = remote_devices[devname].config.get(
+                "kaithem.read_perms", [])
+                
+
+            old_write_perms = remote_devices[devname].config.get(
+                "kaithem.write_perms", [])
+                
             remote_devices[devname].close()
 
             #Delete and then recreate because we may be renaming to a different name
@@ -826,6 +896,14 @@ def updateDevice(devname, kwargs, saveChanges=True):
         # allow forms that don't have the whole binding widget
         if not 'kaithem.input_bindings' in d:
             d['kaithem.input_bindings'] = old_bindings
+
+        if not 'kaithem.read_perms' in d:
+            d['kaithem.read_perms'] = old_read_perms or '/users/devices.read'
+
+        if not 'kaithem.write_perms' in d:
+            d['kaithem.write_perms'] = old_write_perms or '/users/devices.write'
+
+
 
         if parentModule:
             from src import modules
@@ -969,6 +1047,12 @@ class WebDevices():
                 del kwargs['module']
                 del kwargs['resource']
                 d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
+
+
+                # Set these as the default
+                kwargs['kaithem.read_perms'] = "/users/devices.read"
+                kwargs['kaithem.write_perms'] = "/users/devices.write"
+
                 modules.ActiveModules[m][r] = {
                     'resource-type': 'device',
                     'device': d
@@ -1143,9 +1227,11 @@ def makeDevice(name, data, module=None, resource=None):
     frd = new_data.pop("framework_data", None)
 
     # Don't pass framewith specific stuff to them.
+    # Except a whitelist of known short string only keys that we need to easily access from
+    # within the device integration code
     new_data = {
         i: new_data[i]
-        for i in new_data if not i.startswith("kaithem.")
+        for i in new_data if not (i.startswith("kaithem.") and not i in ('kaithem.read_perms', "kaithem.write_perms"))
     }
 
     try:

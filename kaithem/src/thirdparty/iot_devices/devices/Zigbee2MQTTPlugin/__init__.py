@@ -1,3 +1,4 @@
+from inspect import isawaitable
 import os
 import time
 import logging
@@ -46,8 +47,8 @@ class Zigbee2MQTT(iot_devices.device.Device):
         self.nameToZBInfo = {}
         self.nameToHandler = {}
 
-        self.set_config_default("device.mqtt_server",'localhost')
-        self.set_config_default("device.friendly_name",'__all__')
+        self.set_config_default("device.mqtt_server", 'localhost')
+        self.set_config_default("device.friendly_name", '__all__')
 
         try:
             from scullery import mqtt
@@ -105,6 +106,8 @@ class Zigbee2MQTT(iot_devices.device.Device):
                         # Normally the inner loop is just dealing with one expose
                         x = [f]
 
+                        isWritable = (f.get("access", 2) & 2) > 0
+
                         isALight = False
                         # Sometimes there are multiple features
                         if f['type'] in ['switch', 'fan', 'climate']:
@@ -115,13 +118,16 @@ class Zigbee2MQTT(iot_devices.device.Device):
                             isALight = True
 
                         for j in x:
-                            if self.config['device.friendly_name'].strip() in ("*","any","__all__",''):
+                            if self.config['device.friendly_name'].strip() in (
+                                    "*", "any", "__all__", ''):
                                 tn = "node/" + i['friendly_name'] + '.' + j[
                                     'property']
                             else:
-                                if not self.config['device.friendly_name'].strip().lower() == i['friendly_name'].lower():
+                                if not self.config[
+                                        'device.friendly_name'].strip().lower(
+                                        ) == i['friendly_name'].lower():
                                     continue
-                                tn =  j['property']
+                                tn = j['property']
                             zn = "zigbee2mqtt/" + i['friendly_name']
 
                             #Internally we represent all colors as the standard but kinda mediocre CSS strings,
@@ -130,7 +136,8 @@ class Zigbee2MQTT(iot_devices.device.Device):
                                 self.string_data_point(
                                     "node/" + i['friendly_name'] + "." +
                                     j['property'],
-                                    subtype="color")
+                                    subtype="color",
+                                    writable=isWritable)
 
                                 def f(t, v, tn=tn, j=j):
                                     if j['property'] in v:
@@ -141,7 +148,7 @@ class Zigbee2MQTT(iot_devices.device.Device):
 
                                 self.nameToTopic[tn] = zn
                                 self.nameToZBInfo[tn] = j
-                                self.nameToType[tn]='color_xy'
+                                self.nameToType[tn] = 'color_xy'
 
                                 try:
                                     self.connection.unsubscribe(
@@ -159,7 +166,9 @@ class Zigbee2MQTT(iot_devices.device.Device):
                                     max=j.get("value_max", None),
                                     step=j.get("value_step", None),
                                     unit=j.get("unit", None).replace(
-                                        "°", 'deg').replace("lqi", "%"))
+                                        "°", 'deg').replace("lqi", "%"),
+                                    writable=isWritable)
+
                                 if 'unit' in j:
                                     # Link quality low signal alarms
                                     if j['unit'] == 'lqi':
@@ -185,7 +194,7 @@ class Zigbee2MQTT(iot_devices.device.Device):
 
                                 self.nameToTopic[tn] = zn
                                 self.nameToZBInfo[tn] = j
-                                self.nameToType[tn]='numeric'
+                                self.nameToType[tn] = 'numeric'
 
                                 try:
                                     self.connection.unsubscribe(
@@ -197,7 +206,10 @@ class Zigbee2MQTT(iot_devices.device.Device):
                                 self.nameToHandler[tn] = f
 
                             elif j['type'] == 'binary':
-                                self.numeric_data_point(tn, min=0, max=1)
+                                self.numeric_data_point(tn,
+                                                        min=0,
+                                                        max=1,
+                                                        writable=isWritable)
 
                                 if j['name'] == 'tamper':
                                     self.set_alarm(name="Tamper",
@@ -240,7 +252,9 @@ class Zigbee2MQTT(iot_devices.device.Device):
                                         #Convert back to proper true/false
                                         v = v[j['property']] == j['value_on']
                                         self.set_data_point(
-                                            tn, 1 if v else 0, annotation='ZigBee')
+                                            tn,
+                                            1 if v else 0,
+                                            annotation='ZigBee')
 
                                 self.nameToType[tn] = "bool"
                                 self.nameToTopic[tn] = zn
@@ -257,7 +271,7 @@ class Zigbee2MQTT(iot_devices.device.Device):
 
                             #Todo: Tag points need to support enums
                             elif j['type'] in ['enum', 'text']:
-                                self.string_data_point(tn)
+                                self.string_data_point(tn, writable=isWritable)
 
                                 def f(t, v, tn=tn, j=j):
                                     if j['property'] in v:

@@ -18,6 +18,11 @@
         "Zigbee2MQTT":{
             "submodule":"devices.Zigbee2MQTTPlugin",
             "description": "This makes all your ZigBee devices on an MQTT server available as data points."
+        },
+
+        "YeelightRGB":{
+            "submodule":"devices.Yeelight",
+            "description": "Requires YeeLight python module. This device represents a bulb.  You may want to disable autosave on these bulbs to save wear with complex effects."
         }
     }
 } 
