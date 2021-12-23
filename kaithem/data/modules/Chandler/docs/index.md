@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1598075486090884
+resource-timestamp: 1640227068421945
 resource-type: page
 template-engine: markdown
 
@@ -185,6 +185,13 @@ values. Each has a number starting at 1, but channels may also have names in add
 to numbers.
 
 You can use any transport you want to actually transmit them to lights.
+
+#### Supported Drivers
+
+In addition to artnet, enttec, and enttec open,
+Devices that have tag points subtyped "color" and "light_fade_duration" are autodetected.  
+*the old smart bulb universes are gone, just add the device in the main device 
+manager and it show up as a universe with one fixture by itself*
 
 ### Fixtures
 

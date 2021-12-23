@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1639228690537979
+resource-timestamp: 1640226861708743
 resource-type: event
 versions: {}
 
@@ -36,7 +36,7 @@ if __name__=='__setup__':
     class Universe():
         "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX. "
         def __init__(self, name,count=512,number=0):
-            for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>.,":
+            for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>,":
                 if i in name:
                     raise ValueError("Name cannot contain special characters except _")
             self.name = name
@@ -252,6 +252,9 @@ if __name__=='__setup__':
         data = data.tobytes()[1:513]
         #Remove the 0 position as DMX starts at 1
         return (b'\0'+data)
+    
+    
+    
     
     class EnttecUniverse(Universe):
         #Thanks to https://github.com/c0z3n/pySimpleDMX
@@ -798,100 +801,132 @@ if __name__=='__setup__':
     
     
     
-    class BulbCommand():
-        pass
+    import colorzero
     
-    class HSVSmartBulbUniverse(Universe):
-        #Thanks to https://github.com/c0z3n/pySimpleDMX
-        #I didn't actually use the code, but it was a very useful resouurce
-        #For protocol documentation.
-        def __init__(self,name,channels=128,portname="",framerate=44,number=0):
-            self.ok = False
-            self.number=number
+    colorTagDeviceUniverses =  {}
+    addedTags = {}
+    
+    discoverlock = threading.RLock()
+    
+    def onDelTag(t,m):
+        if m in addedTags:
+            with discoverlock:
+                if m in addedTags:
+                    del addedTags[m]
+                    discoverColorTagDevices()
+    
+    
+    
+    kaithem.message.subscribe("/system/tags/deleted", onDelTag)
+    
+    
+    def onAddTag(t,m):
+        if 'color' not in m  and 'fade' not in m and 'light' not in m and 'bulb' not in m and 'colour' not in m:
+            return
+        discoverColorTagDevices()
+        
+    kaithem.message.subscribe("/system/tags/created", onAddTag)
+    
+    
+    def discoverColorTagDevices():
+        global colorTagDeviceUniverses
+    
+        u = {}
+    
+        # Devices may have "subdevices" represented by tag heirarchy, like:
+        # /devices/devname/subdevice.color
+    
+        def handleSubdevice(dev,sd,c,ft):
+            if dev == sd:
+                name = dev
+            else:
+                name = dev+"."+sd
+    
+            addedTags[c.name]=True
+            if ft:
+                addedTags[ft.name]=True
+    
+            with universesLock:
+                if not name in _universes:
+                    u[name] = ColorTagUniverse(name, c, ft)
+                else:
+                    u[name]= _universes[name]
+    
+        for i in kaithem.devices:
+            d = kaithem.devices[i]
+            c = None
+            ft = None
+    
+            last_sd= None
+            for j in sorted(d.tagPoints.keys()):
+                jn = d.tagPoints[j].name
+                #everything between the last slash and the dot, because the dot marks "property of"
+                subdevice = jn.split('/')[-1].split('.')[0]
+    
+                if last_sd and c and not subdevice==last_sd:
+                    handleSubdevice(i,subdevice,c,ft)
+                    c = None
+                    ft = None
+                    
+                last_sd=subdevice
+    
+                t = d.tagPoints[j]
+    
+                if t.subtype=='color':
+                    c = t
+    
+                elif t.subtype == "light_fade_duration":
+                    ft = t
+    
+            # Found something with a color!
+            if c:
+               handleSubdevice(i,subdevice,c,ft)
+    
+        colorTagDeviceUniverses = u
+    
+    
+    
+    
+    class ColorTagUniverse(Universe):
+        """
+            Detects devices with a "color" property having the subtype color.
+        """
+        def __init__(self,name,tag, fadeTag=None):
+            self.ok = True
             self.status = "Disconnect"
             self.statusChanged = {}
-            #Limit framerate to protect flash memory, and bandwidth
-            self.framerate = min(framerate,12)
-            self.portname=portname
-            #Sender needs the values to be there for setup
-            self.values = numpy.array([0.0]*channels,dtype="f4")
-            self.lock = threading.Lock()
-    
-            Universe.__init__(self,name,channels)
-    
+            Universe.__init__(self,name,4)
             self.hidden=False
-    
-            self.lastSend = time.monotonic()
-            self.finishedSending = True
-            self.awaitingSend = False
-    
-            #This universe always has exactly one fixture on it, and we auto create that fixture.
-            self.assignDefaultFixture()
-            self.lastPostedErr=0
-            self.localFading=False
-    
-            self.lastCommand=(0,0,-1)
-            self.lastSendTime = 0
-    
-        def assignDefaultFixture(self):
-            self.f = module.Fixture(self.name,[['hue','hue'],['sat','sat'],['val','dim']])
+            self.tag = tag
+            self.f = module.Fixture(self.name+".rgb",[['R','red'],['G','green'],['B','blue']])
             self.f.assign(self.name, 1)
     
-        def getHSV(self):
-            return ((self.values[1]/255)*360), (self.values[2]/255), (self.values[3]/255)
+            self.lastColor = None
     
+            if fadeTag:
+                self.fadeTag = fadeTag
+                self.localFading= False
+            else:
+                self.fadeTag=None
+                self.localFading=True
     
         def onFrame(self):
-       
-            
-            c = BulbCommand()
-            h,s,v = self.getHSV()
-            t = max(self.fadeEndTime-module.timefunc(), self.interpolationTime,0)
-            
-            self.cmd=(h,s,v,t)
-            
-            def sendFunction():
-                while self.finishedSending==False:
-                    self.awaitingSend=True
-                    time.sleep(1/self.framerate)
-                with self.lock:
-                    self.awaitingSend=False
+            c = colorzero.Color.from_rgb(self.values[1]/255, self.values[2]/255, self.values[3]/255).html
     
-                self.finishedSending=False
-                try:
-                    try:
-                        if self.cmd==self.lastCommand:
-                            if self.lastSendTime> time.monotonic()-0.3:
-                                return
-                        self.lastSendTime=time.monotonic()
-                        self.lastCommand =self.cmd
-                        if self.portname in kaithem.devices:
-                            kaithem.devices[self.portname].setHSV(0,*self.cmd)
-                        else:
-                            self.setStatus("No device",False)
-                        self.setStatus("OK",True)
-                    except:
-                        self.setStatus("Failed to send",False)
-                        if self.lastPostedErr< time.monotonic()-(60*5):
-                            kaithem.chandler.event("board.error",self.name+"\n"+traceback.format_exc(chain=True))
-                            self.lastPostedErr=time.monotonic()
-                finally:        
-                    self.finishedSending = True
+            tm = time.monotonic()
     
-            with self.lock:
-                if not self.awaitingSend:
-                    kaithem.misc.do(sendFunction)
-            
+            # Only set the fade tag right before we are about to do something with the bulb, otherwise we would be adding a ton
+            # of useless writes
+            if not c == self.lastColor or not c == self.tag.value:
+                if self.fadeTag:
+                    t = max(self.fadeEndTime-module.timefunc(), self.interpolationTime, 0)
+                    # Round to the nearest 20th of a second so we don't accidentally set the values more often than needed if it doesn't change
+                    t= int(t*20)/20
+                    self.fadeTag(t,tm, annotation="Chandler")
     
-    class RGBSmartBulbUniverse(HSVSmartBulbUniverse):
-        def getHSV(self):
-            c=(self.values[0]/255, self.values[1]/255, self.values[2]/255)
+                self.tag(c, tm, annotation="Chandler")
     
-            return (c[0]*360,c[1],c[2])
-            
-        def assignDefaultFixture(self):
-            self.f = module.Fixture(self.name,[['red','red'],['green','green'],['blue','blue']])
-            self.f.assign(self.name, 1)
+    module.discoverColorTagDevices=discoverColorTagDevices
     
     
     module.Universe = Universe
@@ -899,8 +934,6 @@ if __name__=='__setup__':
     module.EnttecOpenUniverse = EnttecOpenUniverse
     module.TagpointUniverse = TagpointUniverse
     module.ArtNetUniverse = ArtNetUniverse
-    module.HSVSmartBulbUniverse = HSVSmartBulbUniverse
-    module.RGBSmartBulbUniverse = RGBSmartBulbUniverse
 
 def eventAction():
     pass

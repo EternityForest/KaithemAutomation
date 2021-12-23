@@ -18,6 +18,7 @@ And was causing maintainence nightmares.
 - BREAKING: Remove functionevents
 - BREAKING: Remove the Chandler scene pages functionality
 - BREAKING: Remove textual scripting in Chandler
+- BREAKING: Remove the Smartbulb universes. They are replaced by feature-based auto detection of smart bulbs.
 
 ### 0.67.5
 - Scheduler is now just based on the normal sched module

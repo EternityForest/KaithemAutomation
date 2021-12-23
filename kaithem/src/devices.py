@@ -14,6 +14,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import string
 import weakref
 import threading
 import time
@@ -580,10 +581,15 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                            default: float = 0,
                            interval: float = 0,
                            writable: bool = True,
+                           subtype: string='',
                            **kwargs):
 
         with lock:
-            t = tagpoints.Tag("/devices/" + self.name + "/" + name)
+            if "/" in name:
+                t = tagpoints.Tag("/devices/" + self.name + "/" + name)
+            else:
+                t = tagpoints.Tag("/devices/" + self.name + "." + name)
+
             self.__setupTagPerms(t,writable)
 
             t._dev_ui_writable = writable
@@ -597,6 +603,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.unit = unit
             t.default = default
             t.interval = interval
+            t.subtype = subtype
 
             def f(v,t,a):
                 self.datapoints[name]=v
@@ -626,15 +633,21 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                           default: float = 0,
                           interval: float = 0,
                           writable:bool =True,
+                        subtype: string='',
                           **kwargs):
         with lock:
-            t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
+            if "/" in name:
+                t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
+            else:
+                t = tagpoints.StringTag("/devices/" + self.name + "." + name)
+
             self.__setupTagPerms(t,writable)
             t._dev_ui_writable = writable
 
             t.description = description
             t.default = default
             t.interval = interval
+            t.subtype = subtype
 
             def f(v,t,a):
                 self.datapoints[name]=v
@@ -663,12 +676,19 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                                                      Any]] = None,
                           interval: float = 0,
                           writable: bool = True,
+                          subtype: string='',
+
                           **kwargs):
 
         with lock:
-            t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
+            if "/" in name:
+                t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
+            else:
+                t = tagpoints.ObjectTag("/devices/" + self.name + "." + name)
+
             self.__setupTagPerms(t,writable)
             t._dev_ui_writable = writable
+            t.subtype = subtype
 
             t.description = description
             t.interval = interval
@@ -866,6 +886,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
                 "kaithem.write_perms", [])
                 
             remote_devices[devname].close()
+            messagebus.postMessage("/devices/removed/", devname)
 
             #Delete and then recreate because we may be renaming to a different name
 
@@ -930,6 +951,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
                                           parentResource)
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
+        messagebus.postMessage("/devices/added/", name)
 
 
 class WebDevices():
@@ -1074,6 +1096,8 @@ class WebDevices():
             remote_devices[name] = makeDevice(name, kwargs, m, r)
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
+            messagebus.postMessage("/devices/added/", name)
+
 
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -1141,6 +1165,7 @@ class WebDevices():
             gc.collect()
 
             unsaved_changes[name] = True
+            messagebus.postMessage("/devices/removed/", name)
 
         raise cherrypy.HTTPRedirect("/devices")
 

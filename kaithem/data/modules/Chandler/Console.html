@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1639338190081212
+resource-timestamp: 1640203038684780
 resource-type: page
 template-engine: mako
 
@@ -194,18 +194,6 @@ limitedTagsListing=module.limitedTagsListing()
                 }
             }
         </style>
-        <script>
-            function findMatching(l, k, v)
-    {
-        for (i of l)
-        {
-            if (l[i][k] == v)
-            {
-                return (i)
-            }
-        }
-    }
-        </script>
 
         <script src="/static/js/vue2.js"></script>
         <script src="/static/js/http-vue-loader.js"></script>
@@ -313,14 +301,14 @@ limitedTagsListing=module.limitedTagsListing()
 
         <button v-on:click="showDMXSetup=!showDMXSetup"><img src="/zipstatic/img/icons/fugue.zip/globe-green.png"></img>Universes</button>
                     <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
-                    <button v-on:click="showhidefixtureassignments"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Fixture Assignments</button>
-                    <button v-if="showAdvancedControls" v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Events Window</button>
+                    <button v-on:click="showhidefixtureassignments"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Fixtures</button>
+                    <button v-if="showAdvancedControls" v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Events</button>
                     <button v-on:click="showimportexport=!showimportexport"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Import/Export</button>
-                    <button v-on:click="showsoundmixer=!showsoundmixer"><img src="/zipstatic/img/icons/fugue.zip/speaker.png"></img>Sound Mixer</button>
-                    <button v-on:click="showtags=!showtags"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Tag Points</button>
+                    <button v-on:click="showsoundmixer=!showsoundmixer"><img src="/zipstatic/img/icons/fugue.zip/speaker.png"></img>Sound</button>
+                    <button v-on:click="showtags=!showtags"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Tags</button>
 
                     <a class="button" href="/pages/Chandler/docs/index" target="_blank"><img src="/zipstatic/img/icons/fugue.zip/book-question.png">Help</a>
-                    <a class="button" href="/pages/Chandler/Setup">Global Settings</a>
+                    <a class="button" href="/pages/Chandler/Setup"><img src="/zipstatic/img/icons/fugue.zip/gear.png">Settings</a>
                 </div>
 
                 <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
@@ -713,7 +701,7 @@ limitedTagsListing=module.limitedTagsListing()
 
                    
                     <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
-                        <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}<img v-if="cuemeta[i[1].cue].script" src="/zipstatic/img/icons/fugue.zip/script-text.png"></img>
+                        <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
                     <img v-if="cuemeta[i[1].cue].sound" src="/zipstatic/img/icons/fugue.zip/speaker.png"></img> 
 
 
@@ -773,7 +761,6 @@ limitedTagsListing=module.limitedTagsListing()
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                         <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
-                        <button v-bind:class="{highlight:scenetab=='page'}" v-on:click="scenetab='page'"> Scene Page</button>
                         <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download Scene</a>
                     </p>
                 <hr>
@@ -865,9 +852,6 @@ limitedTagsListing=module.limitedTagsListing()
                 <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone Cue</button>
                     <button v-on:click="rmcue(currentcueid)">
                 <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></img>Delete Current</button>
-                    <button v-on:click="jumptocue(currentcueid)">
-                <img src="/zipstatic/img/icons/fugue.zip/arrow.png"></img>Goto Selected</button>
-                    <button v-on:click="gotonext(currentcueid)">Edit Next Cue</button>
             </div>
 
               <hr>
@@ -902,28 +886,6 @@ limitedTagsListing=module.limitedTagsListing()
                         <button v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
                     </div>
 
-                    <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='page'">
-                        <p class="help">Pages are an Advanced Feature requiring /admin/modules.edit, that allows you to create status pages for any scene.
-                            See the
-                            <a href="/pages/Chandler/docs/Pages">Documentation</a>
-                        </p>\
-                        <h4 title="This code is included as-is">Raw HTML</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.rawhtml" v-bind:options="htmloptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
-                        
-                        <h4 title="This code is rendered as a Vue template">Vue/HTML</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.html" v-bind:options="htmloptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
-                        
-                        <h4>Style</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.css" v-bind:options="cssoptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
-                        
-                        <h4 title="This code is included in a script tag near the bottom of the page">JS</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.js" v-bind:options="jsoptions" v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
-                        <a v-bind:href="'scenepage?sc='+scenename" target="_blank">Go to page</a>
-                        <h4>Preview</h4>
-                        <div style="width:90%;height:40em;">
-                            <iframe style="display:block" width="100%" height="100%" v-bind:src="'rawpage/?sc='+scenename"></iframe>
-                        </div>
-                    </div>
 
                     <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
                         <div>
@@ -1254,12 +1216,6 @@ limitedTagsListing=module.limitedTagsListing()
                             </div>
 
                             <div style="clear:both" v-if="showAdvancedControls">
-                                <div style="display:inline-block;">
-                                    <h5 style="flex-basis:100%">Scripting</h5>
-
-                                    <textarea rows=3 cols=40 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:change="setscript(currentcueid,$event.target.value)"
-                                        v-model="cuemeta[currentcueid].script"></textarea>
-                                </div>
 
 
                             </div>
@@ -1915,12 +1871,6 @@ limitedTagsListing=module.limitedTagsListing()
             {
 
                 api_link.send(['setNotes', sc, i])
-            },
-
-            'setScenePage': function(sc, p, st,js,raw)
-            {
-
-                api_link.send(['setPage', sc, p,st,js,raw])
             },
             'getValueRange': getValueRange,
             //Returns new value mapped into the range when user clicks to change the range of a custom val
@@ -2580,10 +2530,7 @@ limitedTagsListing=module.limitedTagsListing()
             {
                 api_link.send(['setnext', sc, cue, v]);
             },
-            'setscript': function(sc, cue, v)
-            {
-                api_link.send(['setscript', sc, cue, v]);
-            },
+
             'setprobability': function(sc, cue, v)
             {
                 api_link.send(['setprobability', sc, cue, v]);

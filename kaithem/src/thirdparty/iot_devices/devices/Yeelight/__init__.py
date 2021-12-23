@@ -138,7 +138,7 @@ class YeelightRGB(YeelightDevice):
                                 max=1,
                                 subtype='bool',
                                 interval=300, handler=swhandle)
-        self.numeric_data_point("fade", min=0, max=10)
+        self.numeric_data_point("fade", min=0, max=10, subtype="light_fade_duration")
 
         self.huesat = -1
         self.lastVal = -1

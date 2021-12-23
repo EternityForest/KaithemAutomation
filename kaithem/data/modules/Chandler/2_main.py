@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1639338303318669
+resource-timestamp: 1640227814187127
 resource-type: event
 versions: {}
 
@@ -256,48 +256,6 @@ if __name__=='__setup__':
     module.scenes_by_name = weakref.WeakValueDictionary()
     
     
-    def parseBinding(b):
-        """
-        Parse a binding like foo: bar, baz, "baz bar" into (foo,(bar,baz,baz bar))
-        Quote marks and escapes work like unix shell.
-        """
-        b=b.replace("\t"," ")
-        trigger, binding = b.split(":",1)
-        c =''
-        x = []
-        esc = False
-        q = False
-        for i in binding:
-            if esc:
-                esc = False
-                c+=i
-            elif i=='\\':
-                esc = True
-            elif q and not i=='"':
-                c+=i
-            elif i==' ':
-                x.append(c)
-                c = ''
-            elif i=='"':
-                q = not q
-            else:
-                c+=i
-        z = [i for i in x if i]
-        return trigger.strip(), [i.strip() for i in (z+([c] if c else []))]
-    
-    
-    def parseCommandBindings(cmd):
-        l = []
-        for i in cmd.split("\n"):
-            if not i:
-                continue
-            x = parseBinding(i)
-    
-            l.append([x[0],x[1]])
-        return l
-    
-    
-    
     def gotoCommand(scene="=SCENE", cue=""):
         "Triggers a scene to go to a cue"
     
@@ -508,7 +466,7 @@ if __name__=='__setup__':
                 raise
     
     
-    fixtureschanged = {}
+    module.fixtureschanged = {}
     
     def getUniverse(u):
         "Get strong ref to universe if it exists, else get none."
@@ -577,7 +535,7 @@ if __name__=='__setup__':
             self.universe = None
             self.startAddress = 0
             self.assignment = None
-            disallow_special(name)
+            disallow_special(name,".")
     
             self.nameToOffset = {}
     
@@ -646,8 +604,7 @@ if __name__=='__setup__':
     
     
     
-                global fixtureschanged
-                fixtureschanged = {}
+                module.fixtureschanged = {}
     
                
                 universeObj.channelsChanged()
@@ -910,8 +867,6 @@ if __name__=='__setup__':
                     l[i] = module.EnttecOpenUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
                 elif u[i]['type'] == 'enttec':
                     l[i] = module.EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
-                elif u[i]['type'] == 'smartbulb':
-                    l[i] = module.HSVSmartBulbUniverse(i,channels=int(u[i].get('channels',3)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',14)))
                 elif u[i]['type'] == 'artnet':
                     l[i] = module.ArtNetUniverse(i,channels=int(u[i].get('channels',128)),address=u[i].get('interface',"255.255.255.255:6454"),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
                 elif u[i]['type']=='tagpoints':
@@ -919,6 +874,14 @@ if __name__=='__setup__':
                 else:
                     event("system.error","No universe type: "+u[i]['type'])
             self.universeObjs = l
+    
+            try:
+                module.discoverColorTagDevices()
+            except:
+                event("system.error",traceback.format_exc())
+                print(traceback.format_exc())
+    
+    
             self.pushUniverses()
     
     
@@ -1291,7 +1254,6 @@ if __name__=='__setup__':
                                 'number': cue.number/1000.0,
                                 'defaultNext': cue.scene().getAfter(cue.name),
                                 'prev': cue.scene().getParent(cue.name),
-                                'script': cue.script,
                                 'probability': cue.probability,
                                 
                                 'rules': cue.rules,
@@ -1911,11 +1873,6 @@ if __name__=='__setup__':
                     cues[msg[1]].probability=msg[2][:2048]
                     self.pushCueMeta(msg[1])
     
-    
-                if msg[0] == "setscript":
-                    cues[msg[1]].setScript(msg[2][:2048],allow_bad=False)
-                    self.pushCueMeta(msg[1])
-    
                 if msg[0] == "setblend":
                     module.scenes[msg[1]].setBlend(msg[2])
                 if msg[0] == "setblendarg":
@@ -2347,7 +2304,9 @@ if __name__=='__setup__':
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
-            self.script = script
+    
+            # Now unused
+            #self.script = script
             self.onEnter = onEnter
             self.onExit = onExit
             self.inheritRules=inheritRules or ''
@@ -2436,16 +2395,7 @@ if __name__=='__setup__':
                         del x[i]
                 return x
     
-        def setScript(self,script, allow_bad=True):
-            self.script = script
-            try:
-                self.scene().refreshRules()
-            except:
-                rl_log_exc("Error handling script")
-                print(traceback.format_exc(6))
-                if not allow_bad:
-                    raise
-                
+    
         
         def push(self):
             for i in module.boards:
@@ -2541,7 +2491,7 @@ if __name__=='__setup__':
                     self.push()
     
         def setValue(self,universe,channel,value):
-            disallow_special(universe, allow="_@")
+            disallow_special(universe, allow="_@.")
             if isinstance(channel,int):
                 pass
             elif isinstance(channel,str):
@@ -3569,9 +3519,7 @@ if __name__=='__setup__':
                 
                 if self.active:
                     self.scriptContext.setVar("CUE", (rulesFrom or self.cue).name)
-                    ##Legacy stuff
-                    if (rulesFrom or self.cue).script:
-                        self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
+                    
                     #Actually add the bindings
                     self.scriptContext.addBindings((rulesFrom or self.cue).rules)
     
