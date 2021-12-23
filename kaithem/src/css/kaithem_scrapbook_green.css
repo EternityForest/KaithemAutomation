@@ -33,8 +33,10 @@
 	border-style:solid;
 	border-width: 1px;
 	border-radius:9px;
-	border-color:grey;
+	border-color: transparent;
 	padding:2px;
+	background-color: transparent;
+
 }
 
 nav.div:hover
@@ -45,10 +47,10 @@ nav.div:hover
 
 #topbanner {
   width: 100%;
-  background: rgba(255, 255, 230, 0.25);
+  background-color: transparent;
   border-radius: 12px;
   margin:1px;
-  background-image: linear-gradient(bottom, rgb(119,232,109) 20%, rgb(222,104,210) 51%, rgb(190,255,69) 96%);
+  
 
 }
 
@@ -177,7 +179,7 @@ div.scrollbox {
 }
 
 h2,h3{
-	background-color: rgba(131, 163, 128, 0.253);
+	background-color: rgba(131, 163, 128, 0.15);
 	border: 1px rgba(98, 148, 94, 0.212) solid;
 }
 

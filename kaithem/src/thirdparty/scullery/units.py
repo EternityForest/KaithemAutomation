@@ -52,14 +52,29 @@ units ={
     
     'Pa': 1,
     'psi': 6894.76,
-    'PSI': 6894.76
+    'PSI': 6894.76,
+
+    'boolean': 1,
+    'bool': 1,
+
+
+    "KPH": 1,
+    "MPH": 1.60934,
+    "km/h": 1
 }
 
-unitTypes={
+unitTypes = {
      #Base unit of mass is grams
     "g":  "mass",
     "lb": "mass",
     "oz": "mass",
+    
+    "boolean": "boolean",
+    "boolean": "boolean",
+
+    "MPH": "speed",
+    "KPH": "speed",
+    "km/h": "speed",
 
     #Base unit of distance is meters
     "m":  "length",

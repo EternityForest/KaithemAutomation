@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1640229055329762
+resource-timestamp: 1640231505020385
 resource-type: event
 versions: {}
 
@@ -2284,7 +2284,6 @@ if __name__=='__setup__':
         "lengthRandomize": 0,
         'inheritRules':'',
         'rules':[],
-        'script':'',
         'probability': '',
         'values': {},
         'soundVolume': 1,
@@ -2296,7 +2295,7 @@ if __name__=='__setup__':
     class Cue():
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
-        'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
+        'nextCue','track','shortcut','number','inherit','sound','rel_length',
         'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
         '__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='',soundOutput='',rel_length=False, id=None,number=None,
@@ -2383,7 +2382,7 @@ if __name__=='__setup__':
     
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-                "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'probability':self.probability, 'rules':self.rules,
+                "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'probability':self.probability, 'rules':self.rules,
                 'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, "soundLoops":self.soundLoops,'namedForSound':self.namedForSound
                 }
     

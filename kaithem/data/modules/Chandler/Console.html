@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640203038684780
+resource-timestamp: 1640291403411716
 resource-type: page
 template-engine: mako
 
@@ -35,7 +35,24 @@ from src import tagpoints
     <option>__shuffle__</option>
 </datalist>
 
+<style>
 
+    .buttonbar{
+        display:flex;
+    }
+    .buttonbar>a, .buttonbar>button, .buttonbar>input, .buttonbar>label>input
+    {
+        background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
+        margin-left: 0px;
+        margin-right: 0px;
+        align-items: stretch;
+        text-align: left;
+        display: block;
+        border-radius: 0px;
+        border: 1px solid;
+        padding: 4px;
+    }
+</style>
 
 <%
 limitedTagsListing=module.limitedTagsListing()
@@ -82,8 +99,8 @@ limitedTagsListing=module.limitedTagsListing()
                 border-style: solid;
                 border-radius: 5px;
                 overflow: auto;
-                border-width: 1px;
-                border-color: grey;
+                border-width: 2px;
+                border-color: rgba(0,0,0,0.1);
                 margin: 3px;
                 float: left;
                 width: 15em;
@@ -162,10 +179,17 @@ limitedTagsListing=module.limitedTagsListing()
             
             label {
                 display: inline-block;
-                border: 1px solid grey;
+                border: 0px;
                 margin: 3px;
-                border-radius: 2px;
-                padding: 2px;
+                border-radius: 0px;
+                padding: 0px;
+                border: 0px;
+                margin:3px 8px 3px 8px
+            }
+            label>input{
+                border-radius: 0px;
+                border: 1px solid rgba(0,0,0,0.3);
+                margin: 0px;
             }
             
             .labelbox {
@@ -288,16 +312,16 @@ limitedTagsListing=module.limitedTagsListing()
             </div>
 
 
-            <div style="background-color:rgba(255,255,255,0.3); display:block;">
+            <div id="optionsblock" style="background-color:rgba(255,255,255,0.3); display:flex;flex-wrap:wrap;">
                 
-                <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>File:</b>
+                <div class="menubar buttonbar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;">
 
                             <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Scenes as the Default</a>
                             <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Setup as the Default</a>
                 </div>
 
 
-        <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px; float:left;"><b>Windows:</b>
+        <div class="menubar buttonbar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;">
 
         <button v-on:click="showDMXSetup=!showDMXSetup"><img src="/zipstatic/img/icons/fugue.zip/globe-green.png"></img>Universes</button>
                     <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
@@ -311,29 +335,13 @@ limitedTagsListing=module.limitedTagsListing()
                     <a class="button" href="/pages/Chandler/Setup"><img src="/zipstatic/img/icons/fugue.zip/gear.png">Settings</a>
                 </div>
 
-                <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
-                    <b>Keybindings:</b>
+                <div class="menubar buttonbar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;">
+                    <b>Keys:</b>
                     <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit Mode</button>
                     <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Send Events</button>
                 </div>
 
             </div>
-
-            <div style="background-color:rgba(255,255,255,0.3);clear:both;float:none; padding: 0.25em;">
-                <span style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px"
-                    v-for="v,i in universes">
-                    <b v-if="v.ok">{{i}}</b><b v-if="!v.ok" class="error">{{i}}</b>:
-                    <span v-for="w,j in v.telemetry">
-                <span v-if="j=='battery'"><img src="/zipstatic/img/icons/fugue.zip/battery.png"></img> <meter min=1 max=100 low=30 v-bind:value="v.telemetry[j]"></meter>{{w}}%</span>
-                    <span v-if="j=='rssi'"><img src="/zipstatic/img/icons/fugue.zip/network-wireless.png"></img><meter min=-98 max=0 low=-83 v-bind:value="v.telemetry[j]"></meter>{{w}}dbm</span>
-
-                    </span>
-
-                    </span>
-
-
-            </div>
-
 
 
             <datalist id="serports">
@@ -350,13 +358,13 @@ limitedTagsListing=module.limitedTagsListing()
 
             <div v-if="showimportexport" class="sectionbox">
                 <h3>Import/Export controls</h3>
-                <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;"><b>Download:</b>
+                <div class="buttonbar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;"><b>Download:</b>
                     <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Scenes</a>
                     <a class="button" href="downloadSetup" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Setup</a>
                     <a class="button" href="downloadLibrary" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Fixture Lib</a>
                 </div>
                 
-                <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;"><b>Upload:</b>
+                <div class="buttonbar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;"><b>Upload:</b>
 
                     <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Scenes</a>
                     <a class="button" href="uploadSetup" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Setup</a>
@@ -689,18 +697,19 @@ limitedTagsListing=module.limitedTagsListing()
 
                 <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
 
-                <button v-on:click="scenefilter=''">Clear Search</button>
-                <input v-model="scenefilter" placeholder="Search" list="tracks" />
+                <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''">X</button>
+                <hr>
+
                 <button v-bind:class="{highlight:showAll==false}" v-on:click="showAll=false" title="Show all active scenes">Show All Active</button>
                 <button v-bind:class="{highlight:showAll}" v-on:click="showAll=true" title="Show all scenes owned by this board">Board</button>
                 <br/>
                 <div id="scene" style="overflow: scroll; max-height:450px;">
-                    <p v-for="i in formatScenes()" v-if="i" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                    <p v-for="i in formatScenes()" v-if="i" style="position:relative" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
-                        <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"> </i>
+                        <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-size:110%"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"> </i>
 
                    
-                    <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
+                    {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span></button>
                         <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
                     <img v-if="cuemeta[i[1].cue].sound" src="/zipstatic/img/icons/fugue.zip/speaker.png"></img> 
 
@@ -711,14 +720,13 @@ limitedTagsListing=module.limitedTagsListing()
                         <br>
                         <button v-on:click="go(i[0])"><i class="icss-arrow-right" style="color:green;"></i>Go!</button>
                         <button v-on:click="nextcue(i[0])"><i class="fas fa-forward" style="color:lightgreen"></i>Next</button>
-                        <button class="stopbutton" v-on:click="stop(i[0])"><i class="fas fa-stop" style="color:darkgrey"></i> Stop</button>
-                        <button class="deletebutton" v-on:click="delscene(i[0])">
-                    </i>del</button>
+                        <button class="stopbutton" v-on:click="stop(i[0])"><i class="fas fa-stop" style="color:darkgrey"></i>Stop</button>
+                        <button class="deletebutton" v-on:click="delscene(i[0])" style="position:absolute;top:0px;right:0px; font-size: 50%;">del</button>
                         <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
                         <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
                     <br></span>
-                        <small>Priority:<b>{{i[1].priority}}</b></small>
+                        <small v-if="i[1].priority!=50">Priority:<b>{{i[1].priority}}</b></small>
                         <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
                         <small v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
 
@@ -727,9 +735,11 @@ limitedTagsListing=module.limitedTagsListing()
 
 
                 <hr>
+                <p class="buttonbar">
                 <input v-model="newscenename" placeholder="New scene name">
                 <button v-on:click="addScene()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add</button>
                 <button v-on:click="addMonitorScene()"><img src="/zipstatic/img/icons/fugue.zip/binocular--plus.png"></img>Add Monitor</button>
+                </p>
 
             </div>
 
@@ -751,7 +761,7 @@ limitedTagsListing=module.limitedTagsListing()
                     <span class="virtual" v-if="editingScene.doingHandoff">(fading out)</span>
                 </h3>
                 
-                 <p style="background-color:rgba(250,250,250,0.5)">
+                 <p style="background-color:rgba(250,250,250,0.5)" class="buttonbar">
                         <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'">Normal View</button>
                         <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'">Sound View</button>
                         <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'">Add/Remove Channels</button>
@@ -762,13 +772,17 @@ limitedTagsListing=module.limitedTagsListing()
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                         <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
                         <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download Scene</a>
-                    </p>
+
+                    <input v-model="cuefilter" placeholder="Search Cues" />
+                    <button v-on:click="cuefilter=''">X</button>
+                                        </p>
+
                 <hr>
 
 
                 <div id="cuesbox" v-if="scenetab !='blend' && scenetab !='page'">
-                    <input v-model="cuefilter" placeholder="Search Cues" />
-                    <button v-on:click="cuefilter=''">X</button>
+
+                    <hr>
                     <div style="overflow-y: scroll;max-height:12em;">
                         <table class="reflow" border="1" style="resize:both; width:100%;">
 
@@ -844,7 +858,7 @@ limitedTagsListing=module.limitedTagsListing()
                 
 
 
-
+                <p class="buttonbar">
                     <input v-model="newcuename" placeholder="New cue name">
                     <button v-on:click="addcue(scenename,newcuename)">
                 <img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Cue</button>
@@ -852,6 +866,7 @@ limitedTagsListing=module.limitedTagsListing()
                 <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone Cue</button>
                     <button v-on:click="rmcue(currentcueid)">
                 <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></img>Delete Current</button>
+            </p>
             </div>
 
               <hr>
@@ -950,8 +965,6 @@ limitedTagsListing=module.limitedTagsListing()
 
 
                         <div v-if="scenetab=='channels'">
-                            <h3>Add/Remove Channels</h3>
-
                             <h4>Add Channel by Universe and Name/Number</h4>
                             <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
                             <combo-box v-bind:options="getChannelCompletions(newcueu)" v-model="newcuevnumber"></combo-box>
@@ -990,7 +1003,6 @@ limitedTagsListing=module.limitedTagsListing()
                         </div>
 
                         <div v-if="scenetab=='sound'">
-                            <h3>Sound</h3>
                             <div>
                                 <label>Sound:
                             <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
@@ -1146,6 +1158,7 @@ limitedTagsListing=module.limitedTagsListing()
 
                         <div v-if="scenetab=='cue'">
                             <h4 title="These properties belong to the selected cue and can vary between cues">Cue Properties</h4>
+                            <div style="background-color:rgba(0,0,0,0.1)">
                             <h5>Basic</h5>
                             <div class="labelbox">
                         <label>Number:
@@ -1201,9 +1214,7 @@ limitedTagsListing=module.limitedTagsListing()
                                 <h5 style="flex-basis:100%">Cue Advance</h5>
                                 <label>Next Cue:
                             <combo-box v-model="cuemeta[currentcueid].next" v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)" :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
-
-                       
-                    </label>
+                             </label>
 
                                 <button v-on:click="gotonext(currentcueid)">
                         <img src="/zipstatic/img/icons/fugue.zip/book-open-next.png"></img>Edit Next</button>
@@ -1214,9 +1225,6 @@ limitedTagsListing=module.limitedTagsListing()
                                     <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
                                 </datalist>
                             </div>
-
-                            <div style="clear:both" v-if="showAdvancedControls">
-
 
                             </div>
                         </div>

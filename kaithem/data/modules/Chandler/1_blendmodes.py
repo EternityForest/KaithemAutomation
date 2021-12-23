@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1597045751302609
+resource-timestamp: 1640231707529073
 resource-type: event
 versions: {}
 
@@ -111,7 +111,7 @@ if __name__=='__setup__':
                     return
         
             if uobj:
-                #Mark as interpolatable for Kasa bulb purposes
+                #Mark as interpolatable for smartbulb bulb purposes
                 uobj.interpolationTime = 0.2
                     
             #Time in 60ths of a second since last frame, so we can keep a consistant frame rate
