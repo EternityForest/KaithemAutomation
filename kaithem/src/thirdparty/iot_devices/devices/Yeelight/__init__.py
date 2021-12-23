@@ -1,6 +1,6 @@
 #Plugin that manages YeeLight devices.
 
-import os, mako, time, threading, logging
+import os, mako, time, threading, logging, random, weakref, traceback
 
 from yeelight import discover_bulbs
 
@@ -71,13 +71,30 @@ def getDevice(locator, timeout=10, klass=None):
     return klass(locator)
 
 
+def makeFlusher(wr):
+    def f():
+        while 1:
+            try:
+                time.sleep(3)
+                d = wr()
+                if not d:
+                    return
+                if d.closed:
+                    return
+                d.flush()
+            except Exception as e:
+                print(traceback.format_exc())
+
+    t = threading.Thread(daemon=True, name="YeelightFlusher", target=f)
+    t.start()
+
 class YeelightDevice(iot_devices.device.Device):
     def __init__(self, name, data):
         self.lock = threading.Lock()
         iot_devices.device.Device.__init__(self, name, data)
 
         self.numeric_data_point("rssi",writable=False)
-        self.set_alarm("Low Signal", 'rssi', "value < 90")
+        self.set_alarm("Low Signal", 'rssi', "value < -90")
 
         self.rssiCacheTime = 0
         self.lastLoggedUnreachable = 0
@@ -123,9 +140,71 @@ class YeelightRGB(YeelightDevice):
         "kaithem.device.powerswitch": 1,
     }
 
+
+
+    def flush(self):
+        if not self.hasData:
+            return
+        
+        # Rate limits will prevent getting rejected
+        self.allowedOperations= min(self.allowedOperations+(time.monotonic()-self.lastRecalcedAllowed),40)
+        self.lastRecalcedAllowed=time.monotonic()
+
+
+        # Drop frames randomly. This will look a lot better with flickery type effects.
+        if (random.random()*20 + 1) > self.allowedOperations:
+            return
+
+        self.allowedOperations-=1
+        self.hasData = False
+
+
+        color = colorzero.Color(self.datapoints['color'] or 'white')
+        hsv = color.hsv
+
+        duration = self.datapoints['fade'] or 0
+
+
+        if hsv.v < 0.0001:
+            self.wasOff = True
+            self.setSwitch(0, False, duration)
+        else:
+            try:
+                self.getRawDevice().set_hsv(
+                    int(hsv.h* 359.9),
+                    int(hsv.s *100),
+                    int(hsv.v * 100),
+                    effect="smooth" if duration else 'sudden',
+                    duration=int(duration * 1000) if not self.wasOff else 0)
+            except Exception:
+                # Assume turned off.  Turn on. Retry.
+                self.setSwitch(0, True, duration)
+                self.getRawDevice().set_hsv(
+                    int(hsv.h* 359.9),
+                    int(hsv.s *100),
+                    int(hsv.v * 100),
+                    effect="smooth" if duration else 'sudden',
+                    duration=int(duration * 1000) if not self.wasOff else 0)
+
+
+            if self.wasOff:
+                self.wasOff = False
+                self.setSwitch(0, True, duration)
+
+    def close(self):
+        return super().close()
+        self.closed = True
+
     def __init__(self, name, data):
         YeelightDevice.__init__(self, name, data)
+        self.closed=False
         self.lastHueChange = time.monotonic()
+
+        self.allowedOperations = 60
+        self.lastRecalcedAllowed = time.monotonic()
+
+        # Has color data to flush
+        self.hasData=False
 
         def swhandle(v,t,a):
             try:
@@ -146,39 +225,12 @@ class YeelightRGB(YeelightDevice):
         self.oldTransitionRate = -1
 
         def colorhandle(v,t,a):
-            color = colorzero.Color(v)
-            hsv = color.hsv
-
-            duration = self.datapoints['fade'] or 0
-
-
-            if hsv.v < 0.0001:
-                self.wasOff = True
-                self.setSwitch(0, False, duration)
-            else:
-                try:
-                    self.getRawDevice().set_hsv(
-                        int(hsv.h* 359.9),
-                        int(hsv.s *100),
-                        int(hsv.v * 100),
-                        effect="smooth" if duration else 'sudden',
-                        duration=int(duration * 1000) if not self.wasOff else 0)
-                except Exception:
-                    # Assume turned off.  Turn on. Retry.
-                    self.setSwitch(0, True, duration)
-                    self.getRawDevice().set_hsv(
-                        int(hsv.h* 359.9),
-                        int(hsv.s *100),
-                        int(hsv.v * 100),
-                        effect="smooth" if duration else 'sudden',
-                        duration=int(duration * 1000) if not self.wasOff else 0)
-
-
-                if self.wasOff:
-                    self.wasOff = False
-                    self.setSwitch(0, True, duration)
+            self.hasData=True
+            self.flush()
 
         self.string_data_point("color", subtype="color", handler=colorhandle)
+
+        makeFlusher(weakref.ref(self))
 
 
 

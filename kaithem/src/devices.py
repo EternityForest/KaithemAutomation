@@ -625,6 +625,8 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in self._kBindings:
                 self._kBindings[name].subscribe(t, immediate=True)
 
+            messagebus.postMessage("/system/tags/configured", t.name)
+
     def string_data_point(self,
                           name: str,
                           description: str = "",
@@ -668,6 +670,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
                 self._kBindings[name].subscribe(t, immediate=True)
+            messagebus.postMessage("/system/tags/configured", t.name)
 
     def object_data_point(self,
                           name: str,
@@ -712,6 +715,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
                 self._kBindings[name].subscribe(t, immediate=True)
+            messagebus.postMessage("/system/tags/configured", t.name)
 
     def set_data_point(self, name, value,timestamp=None,annotation=None):
         self.tagPoints[name](value,timestamp, annotation)

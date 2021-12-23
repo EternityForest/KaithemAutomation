@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1640226861708743
+resource-timestamp: 1640229367828245
 resource-type: event
 versions: {}
 
@@ -826,6 +826,8 @@ if __name__=='__setup__':
         discoverColorTagDevices()
         
     kaithem.message.subscribe("/system/tags/created", onAddTag)
+    kaithem.message.subscribe("/system/tags/configured", onAddTag)
+    
     
     
     def discoverColorTagDevices():
@@ -850,7 +852,7 @@ if __name__=='__setup__':
                 if not name in _universes:
                     u[name] = ColorTagUniverse(name, c, ft)
                 else:
-                    u[name]= _universes[name]
+                    u[name]= _universes[name]()
     
         for i in kaithem.devices:
             d = kaithem.devices[i]

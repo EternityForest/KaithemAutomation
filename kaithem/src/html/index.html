@@ -43,13 +43,6 @@ ${alertsapi.render("alertapi")}
     }
 </style>
 <main>
-%if 'auth' in cherrypy.request.cookie:
-%if cherrypy.request.cookie['auth'].value in auth.Tokens:
-    <div class="sectionbox">
-        <p>Logged into Kaithem Automation as user: <b>${auth.whoHasToken(cherrypy.request.cookie['auth'].value)|h}</b></p>
-    </div>
-%endif
-%endif
 
     <h2>Active/Unacknowledged Alarms</h2>
 
