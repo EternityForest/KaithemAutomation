@@ -165,6 +165,11 @@ ${manageForm}
 <table border="1" style="width:40em">
 <tr><td>Name</td><td>Value</td><td>Controls.</td></tr>
 
+
+<script>
+
+        triggerCounters = {}
+</script>
 %for i in obj.tagPoints:
 <tr><td><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></td>
         %if len(obj.tagPoints)>8:
@@ -179,11 +184,28 @@ ${manageForm}
                 Overridden: ${obj.tagPoints[i].activeClaim().name}
         </td>
         %else:
-        <td>
+        <td><div style="display: flex; flex-wrap: wrap;">
                 %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
+                %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
+                %elif obj.tagPoints[i].subtype == 'trigger':
+                <button  type="button"  onclick="triggerCounters['${i|h}'] = (triggerCounters['${i|h}']||0)+1; _generic_ws_channel.send(['set', '${i|h}', triggerCounters['${i|h}']])">Trigger</button>
+                %elif obj.tagPoints[i].subtype == 'color':
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set Hex</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#000000'])">Blk</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FF0000'])">Red</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFE066'])">Yel</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#0FF00'])">Grn</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#0000FF'])">Blu</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#8F17E5'])">Prp</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
+                %else:
                 <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set</button>
                 %endif
+                %endif
                 <button type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
+        </div>
         </td>
 
         %endif
