@@ -24,8 +24,8 @@ import cherrypy,socket,base64
   <div border="" id="nav">
 
 
-  <div style="flex-grow: 0.05;">
-    %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
+    <p class="buttonbar">
+      %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
     <a id="notifications_toolbar_item" href="/" title="New Notifications">
       ${notifications.toolbarapi.render("wsapi")}
 
@@ -96,10 +96,8 @@ import cherrypy,socket,base64
     </a>
     %endif
 
-  </div>
 
 
-      
 
       <%
       nbp = []
@@ -110,69 +108,64 @@ import cherrypy,socket,base64
         nbp=sorted(nbp)
       %>
       %for i in nbp:
-      <div>${i[1]}</div>
+      ${i[1]}
       %endfor
 
 
 
-      <div ><a class="moduleslink" href="/modules/">Modules</a>
+      <a class="moduleslink" href="/modules/">
         %if modules.unsaved_changed_obj:
-        <span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
+        <span title="The modules have unsaved changes">*</span>
         %endif
-      </div>
-        <div >
+        Modules</a>
+
+        <a class="deviceslink" href="/devices">
           %if devices.unsaved_changes:
-          <span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
+          <span title="The devices have unsaved changes">*</span>
           %endif
-          <a class="deviceslink" href="/devices">Devices</a>
-        </div>
+          Devices</a>
 
 
-        <div >
+        
           <a  class="tagslink" href="/tagpoints">Tags</a>
-        </div>
 
-        <div ><span class="sound-icon"></span><a href="/settings/mixer">Mixer</a></div>
+        <a href="/settings/mixer"><span class="sound-icon"></span>Mixer</a>
 
-        <div style="flex-grow: 0.05;" ><a class="settingslink" href="/settings" >Tools</a>
+        <a class="settingslink" href="/settings" >Tools</a>
 
 
           %if auth.authchanged:
-          <span title="The users, groups, user settings, or permissions have unsaved changes"><a
-              href="/settings/save">*</a></span>
+          <span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
           %endif
 
           %if not registry.is_clean:
-          <span title="The kaithem registry has unsaved changes"><a href="/settings/save">*</a></span>
+          <span title="The kaithem registry has unsaved changes">*</span>
           %endif
 
           %if  persist.dirty:
-          <span title="The there are persistance files with unsaved changes"><a href="/settings/save">*</a></span>
+          <span title="The there are persistance files with unsaved changes">*</span>
           %endif
-        </div>
 
 
-        <div style="flex-grow: 0.05;"><a class="helplink" href="/helpmenu">Help</a></div>
+        <a class="helplink" href="/helpmenu">Help</a>
 
         %if "auth" in cherrypy.request.cookie:
 
         %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-        <div style="flex-grow: 0.05;" ><a class="loginlink" href="/login/logout">Logout(${pages.getAcessingUser()[:10]|h})</a></div>
+        <a  style="flex-grow: 0.05;"  class="loginlink" href="/login/logout">Logout(${pages.getAcessingUser()[:10]|h})</a>
 
         %else:
-        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a></div>
-        %endif
+        <a  style="flex-grow: 0.05;" class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a>
+        %endif"
 
 
         %else:
-        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a></div>
+        <a  style="flex-grow: 0.05;"  class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a>
         %endif
+      </p>
 
   
-  
-        
 
-      </div>
     </div>
     %endif
     <main>

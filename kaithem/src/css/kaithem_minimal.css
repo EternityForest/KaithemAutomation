@@ -98,12 +98,14 @@ button, a.button, label {
 
 .buttonbar{
 	display:flex;
-	align-items: center;
+	flex-wrap: wrap;
+	align-items: stretch;
+	border-radius: 12px;
 }
 
-.buttonbar a, .buttonbar button,.buttonbar input, .buttonbar a.button
+.buttonbar a, .buttonbar button,.buttonbar input, .buttonbar a.button, .buttonbar p
 {
-	background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
+	background-image: linear-gradient(175deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
 	margin-left: 0px;
 	margin-right: 0px;
 	align-items: stretch;
@@ -111,7 +113,7 @@ button, a.button, label {
 	display: block;
 	border-radius: 0px;
 	padding: 4px;
-
+	border: 1px solid rgba(0, 0, 0, 0.062);
 }
 
 .buttonbar button,.buttonbar input, .buttonbar a.button
@@ -124,7 +126,6 @@ button, a.button, label {
 	border: 1px solid rgba(136, 149, 190, 0.767);
 	margin-top: 1px;
 	margin-bottom: 1px;
-	border: none;
 }
 .buttonbar> img
 {
@@ -134,13 +135,28 @@ button, a.button, label {
 .buttonbar p
 {
 	background-color: #d0d0d048;
-	border-style: inset;
-	border-width: 3px;
 	margin-left: 0px;
 	margin-right: 0px;
 	margin-top: 0px;
 	margin-bottom: 0px;
+	vertical-align: middle;
 }
+
+
+.buttonbar > a:first-child,.buttonbar > button:first-child,.buttonbar > input:first-child,.buttonbar > p:first-child,  .buttonbar :first-child:first-child
+{ 
+	border-radius: 12px 0px 0px 12px;
+}
+
+.buttonbar > a:last-child,.buttonbar > button:last-child,.buttonbar > input:last-child,.buttonbar > p:last-child, .buttonbar :last-child:last-child{
+	border-radius: 0px 12px 12px 0px;
+}
+
+.buttonbar > a:first-child:last-child,.buttonbar > button:first-child:last-child,.buttonbar > input:first-child:last-child,.buttonbar > p:first-child:last-child
+{ 
+	border-radius: 12px 12px 12px 12px;
+}
+
 
 td input
 {
@@ -174,11 +190,7 @@ h2{
 	margin-top: 32px;
 }
 
-/*Only the very top level of organization gets centered, not the various ui boxes*/
-div * h2, div * h3, section * h2, section * h3
-{
-text-align: left;
-}
+
 hr{
 	padding-bottom: 20px;
 	background-color: transparent;
@@ -198,6 +210,14 @@ h2:first-of-type,h3:first-of-type{
 	display: inline-block;
 }
 
+#nav a{
+	flex-grow: 1;
+}
+
+#nav .buttonbar
+{
+	width: 100%;
+}
 #nav {
 	margin-top: 1px;
 	margin-bottom: 0.3em;
@@ -218,9 +238,7 @@ h2:first-of-type,h3:first-of-type{
 	border-radius: 5px;
 }
 
-#nav * a{
-	opacity: 40%;
-}
+
 #nav * a:hover{
 	opacity: 100%;
 }
@@ -239,7 +257,7 @@ h2:first-of-type,h3:first-of-type{
 p.menubar, div.menubar {
 	background-color: rgba(255, 25, 255, 0.1);
 	border-radius: 7px;
-	opacity: 70%;
+	opacity: 90%;
 }
 p.menubar:hover, div.menubar:hover {
 	background-color: rgba(255, 25, 255, 0.1);
@@ -380,10 +398,9 @@ p.help:hover, div.help:hover {
 /*A link styled to look like a button*/
 
 a.button {
-	border-color: black;
-	border-width: 2px;
+	border-color: rgba(36, 30, 30, 0.219);
 	text-decoration: none;
-	border-style: outset;
+	border: 1px solid;
 	color: #000000;
 	padding: 0em 0.2em 0em 0.2em;
 	display: inline-block;
@@ -429,7 +446,8 @@ a.button {
 
 table {
 	border-style: solid;
-	border-width: 3px;
+	border-width: 1px;
+	border-color: #00000059;
 	border-collapse: collapse;
 }
 

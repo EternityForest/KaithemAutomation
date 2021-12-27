@@ -1,4 +1,8 @@
 /*These just add icons to links*/
+
+a::before, button::before{
+	padding: auto;
+}
 .createbutton::before
 {
  content: url(/static/img/icons/silk/add.png);
