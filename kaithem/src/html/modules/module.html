@@ -165,12 +165,13 @@ continue
 %if module[i]['resource-type'] == 'event':
 	  <dt>
         <div class="buttonbar style="display:inline-flex">
-
+<a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
 	       <span class="event-icon"></span><b>\
 %if (name,i) in modules.unsaved_changed_obj:
 *\
 %endif
-<a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>\
+
+${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	       %if not module[i].get('enable',"True"):
 	       (disabled)
 	       %endif

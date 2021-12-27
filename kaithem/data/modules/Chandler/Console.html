@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640589298460812
+resource-timestamp: 1640593052593246
 resource-type: page
 template-engine: mako
 
@@ -264,7 +264,7 @@ limitedTagsListing=module.limitedTagsListing()
 
 
         <div id="app">
-            <div v-if="showevents" class="sectionbox flex-item" style="position:fixed; bottom:0px; width:78%;background-color:rgba(220,255,240,0.85)">
+            <div v-if="showevents" class="sectionbox flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
                 <h2> <button v-on:click="showevents=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Event
                     Log
                 </h2>
@@ -697,8 +697,8 @@ limitedTagsListing=module.limitedTagsListing()
 
                         <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"> </i>
 
-                    {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span></button>
-                                       <p>
+                    {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
+                                 
 
                         <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
                     <img v-if="cuemeta[i[1].cue].sound" src="/zipstatic/img/icons/fugue.zip/speaker.png"></img> 
@@ -706,7 +706,8 @@ limitedTagsListing=module.limitedTagsListing()
 
                     <img v-if="cuemeta[i[1].cue].inheritRules" src="/zipstatic/img/icons/fugue.zip/application-terminal.png" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"></img>
                     <img v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" src="/zipstatic/img/icons/fugue.zip/application-terminal.png" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"></img>
-                    </p>
+                    </button>
+
                     
                     </div>
                         <p class="buttonbar">
