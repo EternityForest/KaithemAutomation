@@ -68,6 +68,7 @@ import os
       <option v-for="i in presets" v-bind:value="i">
       <option value="default">
     </datalist>
+    <div class="buttonbar">
 
     <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
     <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
@@ -75,10 +76,10 @@ import os
     <button class="{bold: activePane=='settings'}" v-on:click="activePane='settings'">Settings</button>
 
     <button v-on:click="showAddEffect=true">Show Effects Menu</button>
-    <label>Preset:<input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
-        v-on:click="confirmSavePreset(loadedPreset)">Save</button></label>
+    <p>Preset:</p><input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
+        v-on:click="confirmSavePreset(loadedPreset)">Save</button>
 
-
+    </div>
 
     <div v-if="activePane=='settings'">
       <h3>USB Soundcard Settings</h3>
@@ -229,7 +230,7 @@ import os
         <div v-if="channel.type=='audio' || !channel.type">
           <h3>{{channelname}}({{channel.channels}}) 
           </h3>
-          <p class="menubar">
+          <p class="menubar buttonbar">
             <button v-on:click="confirmDelete(channelname)">Delete</button>
             <button v-on:click="ding(channelname)">Ding</button>
             <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
@@ -241,7 +242,7 @@ import os
               <h4 v-bind:title="effect.id">
                 {{effect.displayType}}
               </h4>
-              <p class="menubar">
+              <p class="menubar buttonbar">
                 <button v-on:click="moveEffectUp(channelname, index)">Up</button>
                 <button v-on:click="moveEffectDown(channelname, index)">Down</button>
                 <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
@@ -345,16 +346,19 @@ import os
           Analog board.</br>
         </p>
         <h3>New Channel</h3>
+        <p class="buttonbar">
         <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add
           Mono</button>
-        <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button><br>
-
+        <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
+      </p>
         <h3>Recorder ({{recordStatus}})</h3>
         <p class=help>Jack name: krecorder, channels will autoconnect. <br>Files in <a href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a></p>
-        Channels:<input v-model="recordChannels"><br>
-        Filename Prefix<input v-model="recordName"><br>
+        <div class="buttonbar">
+        <p>Channels:</p><input v-model="recordChannels" style="width: 1em;"><br>
+        <p>Filename Prefix:</p><input v-model="recordName" style="width: 3em;"><br>
         <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
         <button v-on:click="api.send(['stopRecord'])">Stop</button>
+        </div>
       </div>
     </div>
   </div>

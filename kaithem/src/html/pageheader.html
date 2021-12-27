@@ -131,7 +131,7 @@ import cherrypy,socket,base64
 
         <a href="/settings/mixer"><span class="sound-icon"></span>Mixer</a>
 
-        <a class="settingslink" href="/settings" >Tools</a>
+        <a class="settingslink" href="/settings" >
 
 
           %if auth.authchanged:
@@ -145,7 +145,7 @@ import cherrypy,socket,base64
           %if  persist.dirty:
           <span title="The there are persistance files with unsaved changes">*</span>
           %endif
-
+Tools</a>
 
         <a class="helplink" href="/helpmenu">Help</a>
 

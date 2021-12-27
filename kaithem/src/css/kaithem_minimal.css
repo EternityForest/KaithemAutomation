@@ -107,6 +107,15 @@ button, a.button, label {
 	align-items: stretch;
 	border-radius: 12px;
 }
+.buttonbar label{
+	display: flex;
+}
+
+
+.buttonbar button:active, .buttonbar a.button::active{
+	background-image: linear-gradient(40deg, rgba(255, 255, 255, 0.247), rgba(0, 0, 0, 0.151)) !important;
+	border-style: inset;
+}
 
 .buttonbar a, .buttonbar button,.buttonbar input, .buttonbar a.button, .buttonbar p
 {
@@ -148,12 +157,12 @@ button, a.button, label {
 }
 
 
-.buttonbar > a:first-child,.buttonbar > button:first-child,.buttonbar > input:first-child,.buttonbar > p:first-child,  .buttonbar :first-child:first-child
+.buttonbar > a:first-child,.buttonbar > button:first-child,.buttonbar > input:first-child,.buttonbar > p:first-child,  .buttonbar > :first-child:first-child
 { 
 	border-radius: 12px 0px 0px 12px;
 }
 
-.buttonbar > a:last-child,.buttonbar > button:last-child,.buttonbar > input:last-child,.buttonbar > p:last-child, .buttonbar :last-child:last-child{
+.buttonbar > a:last-child,.buttonbar > button:last-child,.buttonbar > input:last-child,.buttonbar > p:last-child, .buttonbar >:last-child:last-child{
 	border-radius: 0px 12px 12px 0px;
 }
 
@@ -490,9 +499,17 @@ div.sectionbox, section {
 	width: fit-content;
 	min-width: 35%;
 }
+
 div.sectionbox.flex-item, section.flex-item{
 	margin: 0.2em;
 }
+
+div.sectionbox h2, section h2,div.sectionbox h3, section h3{
+	text-align: left;
+}
+
+
+
 
 
 /* A scrollable div */

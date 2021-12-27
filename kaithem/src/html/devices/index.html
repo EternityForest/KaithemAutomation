@@ -55,7 +55,7 @@ def devStatString(d):
 %for i in sorted(deviceData.keys()):
 <tr>
     <td>
-        <a href="device/${url(i)}/manage" class="button editbutton">${i|h}</a>
+        <a href="device/${url(i)}/manage" class="button editbutton" style="width: 95%;">${i|h}</a>
     </td>
     <td>
             ${deviceData[i]().deviceTypeName}

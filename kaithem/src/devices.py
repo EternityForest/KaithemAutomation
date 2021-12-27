@@ -990,7 +990,7 @@ class WebDevices():
             if obj.parentModule:
                 from src import modules
                 merged.update(modules.modules_state.ActiveModules[
-                    self.parentModule][self.parentResource]['device'])
+                    obj.parentModule][obj.parentResource]['device'])
 
             #I think stored data is enough, this is just defensive
             merged.update(remote_devices[name].config)
