@@ -107,6 +107,7 @@ button, a.button, label {
 	align-items: stretch;
 	border-radius: 12px;
 }
+
 .buttonbar label{
 	display: flex;
 }
@@ -117,11 +118,10 @@ button, a.button, label {
 	border-style: inset;
 }
 
-.buttonbar a, .buttonbar button,.buttonbar input, .buttonbar a.button, .buttonbar p
+.buttonbar a, .buttonbar button,.buttonbar input, .buttonbar select, .buttonbar a.button, .buttonbar p
 {
 	background-image: linear-gradient(175deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
-	margin-left: 0px;
-	margin-right: 0px;
+	margin: 0px;
 	align-items: stretch;
 	text-align: left;
 	display: block;
@@ -130,39 +130,23 @@ button, a.button, label {
 	border: 1px solid rgba(0, 0, 0, 0.062);
 }
 
-.buttonbar button,.buttonbar input, .buttonbar a.button
-{
-	border: 1px solid rgba(136, 149, 190, 0.767)
-}
-
-.buttonbar a
-{
-	border: 1px solid rgba(136, 149, 190, 0.767);
-	margin-top: 1px;
-	margin-bottom: 1px;
-}
 .buttonbar> img
 {
 	height: 100%;
 }
 
-.buttonbar p
+.buttonbar p, .buttonbar label
 {
-	background-color: #d0d0d048;
-	margin-left: 0px;
-	margin-right: 0px;
-	margin-top: 0px;
-	margin-bottom: 0px;
 	vertical-align: middle;
 }
 
 
-.buttonbar > a:first-child,.buttonbar > button:first-child,.buttonbar > input:first-child,.buttonbar > p:first-child,  .buttonbar > :first-child:first-child
+.buttonbar > a:first-child,.buttonbar > button:first-child,.buttonbar > input:first-child,.buttonbar > p:first-child,  .buttonbar > :first-child > :first-child
 { 
 	border-radius: 12px 0px 0px 12px;
 }
 
-.buttonbar > a:last-child,.buttonbar > button:last-child,.buttonbar > input:last-child,.buttonbar > p:last-child, .buttonbar >:last-child:last-child{
+.buttonbar > a:last-child,.buttonbar > button:last-child,.buttonbar > input:last-child,.buttonbar > p:last-child, .buttonbar > :last-child > :last-child{
 	border-radius: 0px 12px 12px 0px;
 }
 

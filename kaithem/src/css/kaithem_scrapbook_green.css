@@ -261,8 +261,9 @@ border-color: #00000057;
 .buttonbar button,
 .buttonbar p,
 .buttonbar a.button,
-.buttonbar input {
-	border: 1px solid rgba(136, 149, 190, 0.767)
+.buttonbar input, .buttonbar select {
+	border: 1px solid rgba(136, 149, 190, 0.767);
+	box-shadow: 2px 2px 6px -1px rgba(0, 0, 0, 0.308);
 }
 
 button, a.button, input, textarea{
