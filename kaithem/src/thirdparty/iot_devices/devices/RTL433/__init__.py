@@ -28,7 +28,7 @@ def scan():
                     m = 3 if (all_devs[i].datapoints['rssi'] or -80) > -65 else 7
 
                     if all_devs[i].lastseen < time.monotonic() - (float(
-                            all_devs[i].config.get('interval', 60) or 60) * m):
+                            all_devs[i].config.get('interval', 300) or 300) * m):
                         # This is how we mark it as not there
                         all_devs[i].set_data_point('rssi', -180)
             except Exception:
@@ -78,6 +78,8 @@ class RTL433Client(devices.Device):
                 description=
                 "-75 if recetly seen, otherwise -180, we don't have real RSSI data",
                 writable=False)
+
+            self.set_alarm("No Signal", 'rssi', "value<-110")
 
             self.set_config_default('device.id', '')
             self.set_config_default('device.model', '')

@@ -50,34 +50,11 @@ WordHash: <b>${getModuleWordHash(name)}</b></br>
 
 <br>
 
-<h3 id="resources">Resources in ${"/".join([name]+path)|h}</h3>
 <div class="sectionbox">
-<div class="menubar">
-
-<a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
-<a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
-<a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
-<a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
-<a class="button createbutton" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
-<a class="button createbutton adddevicebutton" href="/modules/module/${url(name)}/addresource/device/${url('/'.join(path))}">Device</a>
 
 
 
-%for i in modules.additionalTypes:
-%if hasattr(modules.additionalTypes[i],'createButton') and modules.additionalTypes[i].createButton:
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/${i|u}/${url('/'.join(path))}">${modules.additionalTypes[i].createButton|h}</a>
-%endif
-%endfor
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
-%if external_module_locations.get(name,""):
-<a class="button savebutton" href="/modules/savemodule/${name}">Save Module</a>
-%endif
-<form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
-
-</div>
-
-
-<p class="pathnav">Path:
+<p class="pathnav buttonbar">
 <%
 temp_p = ""
 %>
@@ -91,6 +68,31 @@ temp_p+= i+'/'
 %endfor
 %endif
 </p>
+
+
+<div class="menubar">
+    <div class="buttonbar">
+    <a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
+    <a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
+    <a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
+    <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
+    <a class="button createbutton" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
+    <a class="button createbutton adddevicebutton" href="/modules/module/${url(name)}/addresource/device/${url('/'.join(path))}">Device</a>
+    
+    
+    %for i in modules.additionalTypes:
+    %if hasattr(modules.additionalTypes[i],'createButton') and modules.additionalTypes[i].createButton:
+    <a class="button createbutton" href="/modules/module/${url(name)}/addresource/${i|u}/${url('/'.join(path))}">${modules.additionalTypes[i].createButton|h}</a>
+    %endif
+    %endfor
+    %if external_module_locations.get(name,""):
+    <a class="button savebutton" href="/modules/savemodule/${name}">Save Module</a>
+    %endif
+    <form style="display:inline-flex;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
+    </div>
+    
+    </div>
+
 <p class="help">This module contains the following resources.</p>
 
 <%!
@@ -162,6 +164,8 @@ continue
 
 %if module[i]['resource-type'] == 'event':
 	  <dt>
+        <div class="buttonbar style="display:inline-flex">
+
 	       <span class="event-icon"></span><b>\
 %if (name,i) in modules.unsaved_changed_obj:
 *\
@@ -182,6 +186,7 @@ continue
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif
+        </div>
 	  </dt>
 	  <dd>
 
@@ -230,6 +235,8 @@ continue
 
 	%if module[i]['resource-type'] == 'page':
 	  <dt>
+        <div class="buttonbar style="display:inline-flex">
+
           %if (name,i) in modules.unsaved_changed_obj:
           *\
           %endif
@@ -241,10 +248,12 @@ continue
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
+
 		</b><a class="button gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a><a class="button editbutton"
         href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
 
 		Edit Page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+        </div>
     </dt>
 	  <dd>
 
@@ -260,18 +269,24 @@ continue
 
        %if module[i]['resource-type'] == 'permission':
 
-      <dt><span class="permission-icon"></span>\
+      <dt>
+        <div class="buttonbar style="display:inline-flex">
+  
+        <span class="permission-icon"></span>\
   %if (name,i) in modules.unsaved_changed_obj:
   *\
   %endif
 <a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+        </div>
 <dt>
 
 	%endif
     %if module[i]['resource-type'] == 'internal-fileref':
 
        <dt>\
+        <div class="buttonbar style="display:inline-flex">
+
     %if (name,i) in modules.unsaved_changed_obj:
     *\
     %endif
@@ -284,6 +299,8 @@ continue
     %except Exception as e:
     <span>File could not be acessed: ${e}</span>\
     %endtry
+    </div>
+
     <dt>
 
      %endif

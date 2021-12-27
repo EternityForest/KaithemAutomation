@@ -1452,7 +1452,7 @@ def fixUnsupported():
             remote_devices_atomic = wrcopy(remote_devices)
 
 
-def warnAboutMissingDevices():
+def warnAboutUnsupportedDevices():
     x = remote_devices_atomic
     for i in x:
         if x[i]().deviceTypeName() == "unsupported":

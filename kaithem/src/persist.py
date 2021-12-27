@@ -13,9 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Optional
 from . import config, util
 import stat
 import os
+import json
 from pwd import getpwuid, getpwnam
 from scullery.persist import *
 from scullery.messagebus import subscribe, postMessage
@@ -29,25 +31,11 @@ import urllib.parse
 
 dirty = weakref.WeakValueDictionary()
 stateFileLock = threading.RLock()
-allFiles = weakref.WeakValueDictionary()
-
-
-def getStateFile(fn, defaults={}, legacy={}, deleteEmptyFiles=None):
-    with stateFileLock:
-        if fn in allFiles:
-            s = allFiles[fn]
-        else:
-            s = SharedStateFile(fn)
-
-        s.setupDefaults(defaults, legacy)
-        if not (deleteEmptyFiles is None):
-            s.noFileForEmpty = deleteEmptyFiles
-    return s
 
 
 selected_user = config.config['run-as-user'] if util.getUser(
 ) == 'root' else util.getUser()
-recoveryDir = os.path.join("/dev/shm/SculleryRFRecovery", selected_user)
+recoveryDir : str = os.path.join("/dev/shm/SculleryRFRecovery", selected_user)
 if os.path.exists("/dev/shm"):
     if not os.path.exists("/dev/shm/SculleryRFRecovery"):
         os.mkdir("/dev/shm/SculleryRFRecovery")
@@ -61,9 +49,9 @@ if os.path.exists("/dev/shm"):
         if not getpwuid(os.stat(recoveryDir).st_uid).pw_name == selected_user:
             postMessage("/system/notifications/errors",
                         "Hacking Detected? "+recoveryDir+" not owned by this user")
-            recoveryDir = None
+            recoveryDir = ''
 else:
-    recoveryDir = None
+    recoveryDir = ''
 
 
 def recoveryPath(f):
@@ -88,7 +76,7 @@ class SharedStateFile():
         if os.path.exists(filename):
             try:
                 self.data = load(filename)
-            except:
+            except Exception:
                 self.data = {}
                 postMessage("/system/notifications/errors",
                             filename+"\n"+traceback.format_exc())
@@ -224,6 +212,21 @@ class SharedStateFile():
                 os.remove(self.filename)
             except:
                 logging.exception("wat")
+
+
+allFiles: weakref.WeakValueDictionary[str,SharedStateFile] = weakref.WeakValueDictionary()
+
+def getStateFile(fn, defaults={}, legacy={}, deleteEmptyFiles=None) -> SharedStateFile:
+    with stateFileLock:
+        if fn in allFiles:
+            s = allFiles[fn]
+        else:
+            s = SharedStateFile(fn)
+
+        s.setupDefaults(defaults, legacy)
+        if not (deleteEmptyFiles is None):
+            s.noFileForEmpty = deleteEmptyFiles
+    return s
 
 
 def loadAllStateFiles(f):

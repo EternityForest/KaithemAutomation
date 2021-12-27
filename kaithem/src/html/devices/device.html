@@ -62,7 +62,7 @@ specialKeys={
 
 </table>
 
-%if hasattr(obj,'description'):
+%if hasattr(obj,'description') and obj.description:
 <h3>Description</h3>
 <p>
         ${str(obj.description)[:8192]|h}
@@ -117,7 +117,12 @@ ${manageForm}
 <table>
 %for i in sorted([i for i in obj.config.keys() if not i in specialKeys and not i.startswith("kaithem.")] ):
 <tr>
-        <td>${i|h}</td>
+        %if i.startswith('device.'):
+        <td>${i[7:]|h}</td>
+        %else:
+        <td>${i[7:]|h}</td>
+        %endif
+
         <td><input name="${i|h}" value="${obj.config[i]|h}"></td>
 </tr>
 %endfor
@@ -126,8 +131,7 @@ ${manageForm}
 
 %if obj.alerts:
 <h2>Alerts</h2>
-<p class="help">This section lists all alerts supported by the device and
-        allows you to change the priorities for each.
+<p class="help">This section lists all alerts supported by the device.
 </p>
 <p class="help">For new device types, the alarms will likely be configured via the corresponding
         tag point.
@@ -184,7 +188,7 @@ ${manageForm}
                 Overridden: ${obj.tagPoints[i].activeClaim().name}
         </td>
         %else:
-        <td><div style="display: flex; flex-wrap: wrap;">
+        <td><div style="display: flex; flex-wrap: wrap;" class="buttonbar">
                 %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
                 %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
                 <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
@@ -235,6 +239,7 @@ Currently this is only supported for the newer cross-framework devices.
 Read: <input name="kaithem.read_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__">
 Write:<input name="kaithem.write_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__">
 </div>
+<hr>
 <input type="submit" value="Save settings">
 
 </form>

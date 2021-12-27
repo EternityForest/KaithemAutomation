@@ -1520,7 +1520,7 @@ def getEventsFromModules(only=None):
                 messagebus.postMessage("/system/notifications/errors", "Failed to load event resource: " +
                                        i.resource + " module: " + i.module + "\n" + str(i.error)+"\n"+"please edit and reload.")
     try:
-        devices.warnAboutMissingDevices()
+        devices.warnAboutUnsupportedDevices()
     except Exception:
         logging.info("Error checking validity of device instances")
     logging.info("Created events from modules")

@@ -18,6 +18,10 @@
   ::-moz-selection {background: rgba(0, 0, 250, 0.25);}
   
 
+  body{
+	  color: #412019;
+  }
+
 /*************************Navigation and headers************************************************************/
 
 #nav div
@@ -64,18 +68,25 @@ nav.div:hover
 
 }
 
-/*These just add icons to links*/
 #topbanner h1::before,#topbanner h1::after
 {
  background-image: url(/static/img/logo-mini.png);
- background-size: 1.5em 1.5em;
+ background-size: 1em 1em;
  background-repeat: no-repeat;
- width: 1.5em;
- height: 1.5em;
+ width: 1em;
+ height: 1em;
  content:"";
  display: inline-block;
  vertical-align:middle;
 }
+
+.nonavtopbannercontainer #topbanner h1::before,.nonavtopbannercontainer #topbanner h1::after
+{
+	background-image: none;
+}
+
+
+
 
 /************************HTML ELEMENTS***********************************/
 dl
@@ -180,8 +191,11 @@ div.scrollbox {
 
 h2,h3{
 	background-color: rgba(131, 163, 128, 0.15);
-	border: 1px rgba(98, 148, 94, 0.212) solid;
+	border-radius: 4em;
+	color: rgba(83, 26, 12,0.8);
 }
+
+
 
 
 button {background-color: #E6E6B8;border-radius:7px;}

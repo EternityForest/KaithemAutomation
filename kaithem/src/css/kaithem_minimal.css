@@ -85,16 +85,78 @@ body {
 	font-size: 16px+1.5vw;
 }
 
+
+.nonavtopbannercontainer h1{
+	font-size: 100%;
+}
+
 button, a.button, label {
 	font-family: 'B612';
 	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
 }
 
+
+.buttonbar{
+	display:flex;
+	align-items: center;
+}
+
+.buttonbar a, .buttonbar button,.buttonbar input, .buttonbar a.button
+{
+	background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
+	margin-left: 0px;
+	margin-right: 0px;
+	align-items: stretch;
+	text-align: left;
+	display: block;
+	border-radius: 0px;
+	padding: 4px;
+
+}
+
+.buttonbar button,.buttonbar input, .buttonbar a.button
+{
+	border: 1px solid rgba(136, 149, 190, 0.767)
+}
+
+.buttonbar a
+{
+	border: 1px solid rgba(136, 149, 190, 0.767);
+	margin-top: 1px;
+	margin-bottom: 1px;
+	border: none;
+}
+.buttonbar> img
+{
+	height: 100%;
+}
+
+.buttonbar p
+{
+	background-color: #d0d0d048;
+	border-style: inset;
+	border-width: 3px;
+	margin-left: 0px;
+	margin-right: 0px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+
+td input
+{
+	margin: 0px;
+	border: 1px solid;
+	border-radius: 0px;
+}
+
+td{
+	padding: 1px;
+}
 /********************Behavior****************************/
 
 body {
 	/* Disables pull-to-refresh but allows overscroll glow effects. */
-	overscroll-behavior-y: contain;
+	overscroll-behavior-y: contain;{}
 }
 
 /********************Basic Layout******************************/

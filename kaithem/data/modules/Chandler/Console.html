@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640295383322659
+resource-timestamp: 1640576307765502
 resource-type: page
 template-engine: mako
 
@@ -35,24 +35,6 @@ from src import tagpoints
     <option>__shuffle__</option>
 </datalist>
 
-<style>
-
-    .buttonbar{
-        display:flex;
-    }
-    .buttonbar>a, .buttonbar>button, .buttonbar>input, .buttonbar>label>input
-    {
-        background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
-        margin-left: 0px;
-        margin-right: 0px;
-        align-items: stretch;
-        text-align: left;
-        display: block;
-        border-radius: 0px;
-        border: 1px solid;
-        padding: 4px;
-    }
-</style>
 
 <%
 limitedTagsListing=module.limitedTagsListing()
@@ -690,47 +672,55 @@ limitedTagsListing=module.limitedTagsListing()
 
             <div v class="sectionbox" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
                 <label>
+                    <p class="buttonbar">
             <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." placeholder="Shortcut"
                 v-model="sc_code" v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
         </label>
                 <button v-on:click="shortcut()">Go!</button>
+                </p>
 
                 <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
-
+                <p class="buttonbar">
                 <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''">X</button>
+                </p>
                 <hr>
 
+                <p class="buttonbar">
                 <button v-bind:class="{highlight:showAll==false}" v-on:click="showAll=false" title="Show all active scenes">Show All Active</button>
                 <button v-bind:class="{highlight:showAll}" v-on:click="showAll=true" title="Show all scenes owned by this board">Board</button>
+                </p>
                 <br/>
                 <div id="scene" style="overflow: scroll; max-height:450px;">
-                    <p v-for="i in formatScenes()" v-if="i" style="position:relative" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;border:1px solid;" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
+                        <p class="buttonbar">
+
                         <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-size:110%"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"> </i>
 
                    
                     {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span></button>
-                        <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
+                        <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
                     <img v-if="cuemeta[i[1].cue].sound" src="/zipstatic/img/icons/fugue.zip/speaker.png"></img> 
 
 
                     <img v-if="cuemeta[i[1].cue].inheritRules" src="/zipstatic/img/icons/fugue.zip/application-terminal.png" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"></img>
                     <img v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" src="/zipstatic/img/icons/fugue.zip/application-terminal.png" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"></img>
-                    </span><br>
-                        <br>
+                    </p>
+                        <p class="buttonbar">
                         <button v-on:click="go(i[0])"><i class="icss-arrow-right" style="color:green;"></i>Go!</button>
                         <button v-on:click="nextcue(i[0])"><i class="fas fa-forward" style="color:lightgreen"></i>Next</button>
                         <button class="stopbutton" v-on:click="stop(i[0])"><i class="fas fa-stop" style="color:darkgrey"></i>Stop</button>
-                        <button class="deletebutton" v-on:click="delscene(i[0])" style="position:absolute;top:0px;right:0px; font-size: 50%;">del</button>
+                        <button class="deletebutton" v-on:click="delscene(i[0])">del</button>
+                        </p>
                         <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
                         <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
-                    <br></span>
+                 
                         <small v-if="i[1].priority!=50">Priority:<b>{{i[1].priority}}</b></small>
                         <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
                         <small v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
 
-                        </p>
+                    </div>
                 </div>
 
 
@@ -801,7 +791,7 @@ limitedTagsListing=module.limitedTagsListing()
                             </thead>
 
                             <tbody>
-                                <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
+                                <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'#82d972bf':'')}">
                                     <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
                                         <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
                                         <b>{{i[1].name}}</b>
@@ -813,7 +803,7 @@ limitedTagsListing=module.limitedTagsListing()
 
                                     <td data-label="Shortcut:">
                                         <input title="Shortcut code" style="width:6em" v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0 step=0.1 v-model="i[1].shortcut">
-                                        <button style="opacity:0.3" title="Generate a shortcut code from the cue's number" v-on:click="setshortcut(i[1].id,i[1].shortcut || '__generate__from__number__')">GEN</button>
+                                        <button style="opacity:0.3" title="Generate a shortcut code from the cue's number" v-on:click="apiCommand(i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
                                     </td>
 
                                     <td data-label="Fade In:">
@@ -1063,10 +1053,12 @@ limitedTagsListing=module.limitedTagsListing()
                         
                         <br>
                             </div>
-                            <input v-model="soundsearch" v-on:change="soundsearchresults=[]" v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
+                                <p class="buttonbar">
+                                <input v-model="soundsearch" v-on:change="soundsearchresults=[]" v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
                                 style="width:60%;">
                                 <button v-on:click="doSoundSearch(soundsearch)">Search</button>
                                 <button v-on:click="soundsearch=''">Clear Search</button>
+                                </p>
                                 <div style="max-height:25em; overflow:scroll; background-color:rgba(255,255,255,0.4);">
 
 
@@ -1117,10 +1109,13 @@ limitedTagsListing=module.limitedTagsListing()
                                     <table>
                                         <tr v-for="i of soundCards">
                                             <td>{{i}}</td>
-                                            <td> <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button></td>
-                                            <td> <button v-on:click="testSoundCard(i,0,48000)">Test(48k)</button></td>
-                                            <td> <button v-on:click="testSoundCard(i,0,96000)">Test(96k)</button></td>
-                                            <td> <button v-on:click="testSoundCard(i,0,44100)">Test(44.1k)</button></td>
+                                            <td>
+                                                <p class="buttonbar">
+                                             <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button>
+                                             <button v-on:click="testSoundCard(i,0,48000)">Test(48k)</button>
+                                             <button v-on:click="testSoundCard(i,0,96000)">Test(96k)</button>
+                                            <button v-on:click="testSoundCard(i,0,44100)">Test(44.1k)</button>
+                                                </p>
                                         </tr>
                                     </table>
                                 </div>

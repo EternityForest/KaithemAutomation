@@ -3,6 +3,16 @@
 {
  content: url(/static/img/icons/silk/add.png);
 }
+
+a.addrow::before
+{
+ content: url(/static/img/icons/silk/add.png);
+}
+
+a.delrow::before
+{
+ content: url(/static/img/icons/silk/cross.png);
+}
 .editbutton::before
 {
 content: url(/static/img/icons/silk/pencil.png);

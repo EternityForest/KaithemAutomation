@@ -32,10 +32,9 @@ exposedTags: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 # Setting tag.hi sets the runtime property, but we ignore it if the configuration takes precedence.
 configAttrs = {'hi', 'lo', 'min', 'max', 'interval', 'displayUnits'}
 softConfigAttrs = {
-    'overrideName', 'overrideValue', 'overridePriority', 'type',
-    'value', 'mqtt,server', 'mqtt.password', 'mqtt.port',
-    "mqtt.messageBusName", "mqtt.topic", 'mqtt.incomingPriority',
-    'mqtt.incomingExpiration'
+    'overrideName', 'overrideValue', 'overridePriority', 'type', 'value',
+    'mqtt,server', 'mqtt.password', 'mqtt.port', "mqtt.messageBusName",
+    "mqtt.topic", 'mqtt.incomingPriority', 'mqtt.incomingExpiration'
 }
 
 t = time.monotonic
@@ -185,10 +184,10 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def __repr__(self):
         try:
-            return "<Tag Point: "+self.name+"="+str(self._value)[:20]+">"
+            return "<Tag Point: " + self.name + "=" + str(
+                self._value)[:20] + ">"
         except Exception:
-            return "<Tag Point: "+self.name+">"
-
+            return "<Tag Point: " + self.name + ">"
 
     @typechecked
     def __init__(self, name: str):
@@ -213,7 +212,6 @@ class _TagPoint(virtualresource.VirtualResource):
 
         # This string is just used to stash some extra info
         self.subtype = ''
-
 
         # If true, the tag represents an input not meant to be written to except by the owner.
         # It can however still be overridden.  This is just a widget advisory.
@@ -249,7 +247,7 @@ class _TagPoint(virtualresource.VirtualResource):
         # The last is a function that is used as a subscriber which just causes the tag to be recalced.
         # We give that to other tags in case the alarm polling depends on other tags.
 
-        #We need it so we don't get GCed
+        # We need it so we don't get GCed
         self._alarmGCRefs: Dict[str, Tuple[Callable, object, Callable,
                                            Callable]] = {}
 
@@ -343,8 +341,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._alarms: Dict[str, object] = {}
 
-
-        #Used for storing the full config data set including stuff we shouldn't save
+        # Used for storing the full config data set including stuff we shouldn't save
         self._runtimeConfigData = {}
 
         with lock:
@@ -361,8 +358,8 @@ class _TagPoint(virtualresource.VirtualResource):
         if self.name.startswith("="):
             self.exprClaim = createGetterFromExpression(self.name, self)
         with lock:
-            d =configTagData.get(self.name, {})
-            if hasattr(d,'data'):
+            d: Any = configTagData.get(self.name, {})
+            if hasattr(d, 'data'):
                 d = d.data.copy()
             self.setConfigData(d)
 
@@ -391,21 +388,19 @@ class _TagPoint(virtualresource.VirtualResource):
 
         """
 
-
         if isinstance(r, list):
             r = ','.join(r)
         else:
-            r=r.strip()
+            r = r.strip()
         if isinstance(w, list):
             w = ','.join(w)
-            w=w.strip()
+            w = w.strip()
 
         #Handle different falsy things someone might use to try and disable this
         if not r:
             r = ''
         if not w:
             w = '__never__'
-
 
         # Just don't allow numberlike permissions so we can keep
         # pretending any config item that looks like a number, is.
@@ -426,7 +421,7 @@ class _TagPoint(virtualresource.VirtualResource):
         r = str(r)
 
         if not r or not w:
-            d = ['', '', '']
+            d = ['', '', 50]
             emptyPerms = True
         else:
             emptyPerms = False
@@ -636,6 +631,12 @@ class _TagPoint(virtualresource.VirtualResource):
         self.dataSourceAutoControl.write(v)
 
     def getEffectivePermissions(self):
+        """
+        Get the permissions that currently apply here. Configured ones override in-code ones
+
+        Returns:
+            list: [readPerms, writePerms, writePriority]. Priority determines the priority of web API claims.
+        """
         d2 = [
             self.configuredPermissions[0] or self.permissions[0],
             self.configuredPermissions[1] or self.permissions[1],
@@ -744,7 +745,7 @@ class _TagPoint(virtualresource.VirtualResource):
         # It's a getter, ignore the mypy unused thing.
         self.poll()
 
-    def contextGetNumericTagValue(self, n:str):
+    def contextGetNumericTagValue(self, n: str):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
         try:
             return self.sourceTags[n].value
@@ -755,7 +756,7 @@ class _TagPoint(virtualresource.VirtualResource):
             return self.sourceTags[n].value
         return 0
 
-    def contextGetStringTagValue(self, n:str):
+    def contextGetStringTagValue(self, n: str):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
         try:
             return self.sourceTags[n].value
@@ -806,13 +807,13 @@ class _TagPoint(virtualresource.VirtualResource):
     @typechecked
     def setAlarm(self,
                  name,
-                 condition:str='',
-                 priority:str="info",
-                 releaseCondition:Union[str,None]='',
-                 autoAck:Union[bool, str]='no',
-                 tripDelay:Union[float,str]='0',
-                 isConfigured:bool=False,
-                 _refresh:bool=True):
+                 condition: str = '',
+                 priority: str = "info",
+                 releaseCondition: Union[str, None] = '',
+                 autoAck: Union[bool, str] = 'no',
+                 tripDelay: Union[float, str] = '0',
+                 isConfigured: bool = False,
+                 _refresh: bool = True):
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
@@ -884,8 +885,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.dynamicAlarmData.clear()
                 self.createAlarms()
 
-    def createAlarms(self, limitTo:str=None):
-        merged = {}
+    def createAlarms(self, limitTo: str = None):
+        merged: Dict[str, Dict[str, Dict]] = {}
         with lock:
             # Combine the merged and configured alarms
             # at a granular per-attribute level
@@ -959,7 +960,7 @@ class _TagPoint(virtualresource.VirtualResource):
         return notificationHTML
 
     @staticmethod
-    def _getAlarmContextGetters(obj, context:dict, recalc:Callable):
+    def _getAlarmContextGetters(obj, context: dict, recalc: Callable):
         # Note that it these go to an alarm which is held if active, or another tag that could be held elsewhere
         # It cannot reference any tag directly or preserve any references, we would not want that.
 
@@ -1010,7 +1011,7 @@ class _TagPoint(virtualresource.VirtualResource):
         return recalc2
 
     @typechecked
-    def _alarmFromData(self, name:str, d:dict):
+    def _alarmFromData(self, name: str, d: dict):
         if not d.get("condition", ''):
             return
 
@@ -1267,8 +1268,6 @@ class _TagPoint(virtualresource.VirtualResource):
             else:
                 toRelease = None
 
-
-
             # Val override last, in case it triggers an alarm
             # Convert to string for consistent handling, the config engine things anything that looks like a number, is.
             overrideValue = str(data.get('overrideValue', '')).strip()
@@ -1287,7 +1286,6 @@ class _TagPoint(virtualresource.VirtualResource):
                     logging.exception("Bad hex in tag override")
                     overrideValue = b''
 
-
             if overrideValue:
                 if overrideValue.startswith("="):
                     self.kweb_manualOverrideClaim = self.createGetterFromExpression(
@@ -1298,8 +1296,7 @@ class _TagPoint(virtualresource.VirtualResource):
                         overrideValue, data.get('overrideName', 'config'),
                         int(data.get('overridePriority', '') or 90))
             else:
-                self.kweb_manualOverrideClaim  = None
-
+                self.kweb_manualOverrideClaim = None
 
             # We already replaced it because we use the same name, don't release the one we just made.
             # Only need to release if going to no override.
@@ -1307,8 +1304,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 toRelease.release()
                 toRelease = None
 
-
-            ##################### Temp stuff ##############################
+            # #################### Temp stuff ##############################
 
             # Delete any existing configured temporary value override claim
             # I think two should really be enough, a temp and a permanent.
@@ -1317,13 +1313,12 @@ class _TagPoint(virtualresource.VirtualResource):
             else:
                 toRelease = None
 
-
             if tempOverrideValue:
                 self.kweb_tempManualOverrideClaim = self.claim(
-                        tempOverrideValue, "kwebtempmanualoverride",
-                        int(data.get('tempOverridePriority', '') or 90),
-                        expiration=int(data.get('tempOverrideLength', '') or 90)
-                        )
+                    tempOverrideValue,
+                    "kwebtempmanualoverride",
+                    int(data.get('tempOverridePriority', '') or 90),
+                    expiration=int(data.get('tempOverrideLength', '') or 90))
             else:
                 self.kweb_tempManualOverrideClaim = None
 
@@ -1334,7 +1329,6 @@ class _TagPoint(virtualresource.VirtualResource):
                 toRelease = None
 
             ##############################################################
-
 
             p = data.get('permissions', ('', '', ''))
             # Set configured permissions, overriding runtime
@@ -1488,7 +1482,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.poller = None
 
     @typechecked
-    def subscribe(self, f: Callable,immediate=False):
+    def subscribe(self, f: Callable, immediate=False):
 
         timestamp = time.monotonic()
 
@@ -1600,7 +1594,6 @@ class _TagPoint(virtualresource.VirtualResource):
             if self.timestamp:
                 return
 
-
         # Note the difference with the handler.
         # It is called synchronously, right then and there
         if self.handler:
@@ -1670,7 +1663,8 @@ class _TagPoint(virtualresource.VirtualResource):
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
-        if (self.lastGotValue > time.monotonic() - self.interval) and not force:
+        if (self.lastGotValue >
+                time.monotonic() - self.interval) and not force:
             return self.lastValue
 
         activeClaim = self.activeClaim()
@@ -1742,7 +1736,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
                     # The system logger is the one kaithem actually logs to file.
                     if self.lastError < (time.monotonic() - (60 * 10)):
-                        self.lastError=time.monotonic()
+                        self.lastError = time.monotonic()
                         syslogger.exception(
                             "Error getting tag value. This message will only be logged every ten minutes."
                         )
@@ -1942,8 +1936,15 @@ class _TagPoint(virtualresource.VirtualResource):
             self.lock.release()
 
     # Get the specific claim object for this class
-    def claimFactory(self, value, name:str, priority:int, timestamp, annotation, expiration:float=0):
-        return Claim(self, value, name, priority, timestamp, annotation, expiration)
+    def claimFactory(self,
+                     value,
+                     name: str,
+                     priority: int,
+                     timestamp,
+                     annotation,
+                     expiration: float = 0):
+        return Claim(self, value, name, priority, timestamp, annotation,
+                     expiration)
 
     def getTopClaim(self):
         # Deref all weak refs
@@ -2094,8 +2095,15 @@ class _NumericTagPoint(_TagPoint):
     def filterValue(self, v: float) -> float:
         return float(v)
 
-    def claimFactory(self, value, name, priority, timestamp, annotation, expiration=0):
-        return NumericClaim(self, value, name, priority, timestamp, annotation, expiration)
+    def claimFactory(self,
+                     value,
+                     name,
+                     priority,
+                     timestamp,
+                     annotation,
+                     expiration=0):
+        return NumericClaim(self, value, name, priority, timestamp, annotation,
+                            expiration)
 
     @property
     def min(self) -> Union[float, int]:
@@ -2319,7 +2327,7 @@ class _StringTagPoint(_TagPoint):
             self._spanWidget.defaultLabel = self.name.split(".")[-1][:24]
 
             self._spanWidget.setPermissions(['/users/tagpoints.view'],
-                                             ['/users/tagpoints.edit'])
+                                            ['/users/tagpoints.edit'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
                 try:
@@ -2731,9 +2739,10 @@ class NumericClaim(Claim):
                  priority: Union[int, float] = 50,
                  timestamp: Union[int, float, None] = None,
                  annotation=None,
-                 expiration:float=0):
+                 expiration: float = 0):
 
-        Claim.__init__(self, tag, value, name, priority, timestamp, annotation, expiration)
+        Claim.__init__(self, tag, value, name, priority, timestamp, annotation,
+                       expiration)
 
     def setAs(self, value, unit, timestamp=None, annotation=None):
         "Convert a value in the given unit to the tag's native unit"
@@ -2908,7 +2917,7 @@ def createGetterFromExpression(e: str, t: _TagPoint, priority=98) -> Claim:
     return c2
 
 
-def configTagFromData(name: str, data: dict) -> _TagPoint:
+def configTagFromData(name: str, data: dict):
     name = normalizeTagName(name)
 
     t = data.get("type", '')

@@ -4,7 +4,6 @@
 from src import devices
 import os
 from src import directories
-driversLocation = os.path.join(directories.vardir,"devicedrivers")
 import urllib.parse
 
 def url(u):
@@ -44,29 +43,25 @@ def devStatString(d):
 
 <h2>Devices</h2>
 <div class="sectionbox">
-<p class="menubar">
-<a class="button" href="/settings/files/${driversLocation|u}">Manage Drivers</a>
-</p>
+
 <p class="help">
     This section provides an easy way to configure devices supported
     by Kaithem's remote device abstraction layer.
 </p>
 <table border="1">
 <tr>
-    <td>Name</td><td>Type</td>  <td>Edit</td> <td>Status</td> <td>Errors</td><td>Delete</td>
+    <td>Name</td><td>Type</td>  <td>Status</td> <td>Errors</td><td>Delete</td>
 </tr>
 %for i in sorted(deviceData.keys()):
 <tr>
     <td>
-        ${i}
+        <a href="device/${url(i)}/manage" class="button editbutton">${i|h}</a>
     </td>
     <td>
             ${deviceData[i]().deviceTypeName}
     </td>
 
-    <td>
-        <a href="device/${url(i)}/manage">Edit</a>
-    </td>
+
 
     <td>${devStatString(deviceData[i]())}</td>
     
@@ -74,10 +69,8 @@ def devStatString(d):
     <td style="color: ${'red' if len(deviceData[i]().errors) else 'black' };">
         ${len(deviceData[i]().errors)}
     </td>
-
-
     <td>
-        <a href="deleteDevice/${url(i)}">Delete</a>
+        <a href="deleteDevice/${url(i)}" class="button deletebutton">Delete</a>
     </td>
 </tr>
 %endfor
@@ -114,6 +107,7 @@ def devStatString(d):
 </form>
 
 <h2>Available Device Types</h2>
+<div class="scrollbox">
 <dl>
     %for i in devices.builtinDeviceTypes:
     <dt><b>${i|h}</b></dt>
@@ -133,6 +127,7 @@ def devStatString(d):
     <dd>${devices.importedDeviceTypes[i].get("description","No description set") or "No description"|h}</dd>
     %endfor
 </dl>
+</div>
 </div>
 
 
