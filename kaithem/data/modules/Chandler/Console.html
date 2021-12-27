@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640586042810284
+resource-timestamp: 1640589298460812
 resource-type: page
 template-engine: mako
 
@@ -264,7 +264,7 @@ limitedTagsListing=module.limitedTagsListing()
 
 
         <div id="app">
-            <div v-if="showevents" class="sectionbox" style="position:fixed; bottom:0px; width:78%;background-color:rgba(220,255,240,0.85)">
+            <div v-if="showevents" class="sectionbox flex-item" style="position:fixed; bottom:0px; width:78%;background-color:rgba(220,255,240,0.85)">
                 <h2> <button v-on:click="showevents=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Event
                     Log
                 </h2>
@@ -338,7 +338,7 @@ limitedTagsListing=module.limitedTagsListing()
                 %endfor
             </datalist>
 
-            <div v-if="showimportexport" class="sectionbox">
+            <div v-if="showimportexport" class="sectionbox flex-item">
                 <h3>Import/Export controls</h3>
                 <div class="buttonbar" style="background-color:rgba(255,255,255,0.1);padding:0.25em; border-color:grey; border-width:2px;"><b>Download:</b>
                     <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Scenes</a>
@@ -355,18 +355,18 @@ limitedTagsListing=module.limitedTagsListing()
             </div>
 
 
-            <div v-if="showsoundmixer" class="sectionbox" style="width:50%; height:30em; resize:both;float:right;">
+            <div v-if="showsoundmixer" class="sectionbox flex-item" style="width:50%; height:30em; resize:both;float:right;">
                 <iframe src="/settings/mixer?kaithem_disable_header=true"  style="width:100%; height:100%; " ></iframe>
             </div>
 
 
-            <div v-if="showtags" class="sectionbox" style="width:49%; height:30em; resize:both;float:right;">
+            <div v-if="showtags" class="sectionbox flex-item" style="width:49%; height:30em; resize:both;float:right;">
                 <iframe src="/tagpoints?kaithem_disable_header=true" style="width:100%; height:100%;"></iframe>
             </div>
 
 
 
-            <div v-if="showDMXSetup" class="sectionbox">
+            <div v-if="showDMXSetup" class="sectionbox flex-item">
                 <h3>
                     <button v-on:click="showDMXSetup=0">
                 <img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button> Universe Setup</h3>
@@ -476,7 +476,7 @@ limitedTagsListing=module.limitedTagsListing()
 
 
 
-            <div v-if="universeFullSettings" class="sectionbox">
+            <div v-if="universeFullSettings" class="sectionbox flex-item">
                 <h3><button v-on:click="universeFullSettings=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Universe
                     Setup:{{universeFullSettings}}</h3>
 
@@ -513,7 +513,7 @@ limitedTagsListing=module.limitedTagsListing()
 
 
 
-            <div v-if="showFixtureSetup" class="sectionbox">
+            <div v-if="showFixtureSetup" class="sectionbox flex-item">
                 <h3><button v-on:click="showhidefixtures()"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Fixture
                     Setup</h3>
 
@@ -595,7 +595,7 @@ limitedTagsListing=module.limitedTagsListing()
             </div>
 
 
-            <div v-if="showfixtureassg" class="sectionbox">
+            <div v-if="showfixtureassg" class="sectionbox flex-item">
 
                 <h3>
                     <button v-on:click="showfixtureassg=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>                    Fixture Assignments
@@ -670,7 +670,7 @@ limitedTagsListing=module.limitedTagsListing()
 
             </div>
 
-            <div v class="sectionbox" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
+            <div v class="sectionbox flex-item" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
                 <label>
                     <p class="buttonbar">
             <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." placeholder="Shortcut"
@@ -738,7 +738,7 @@ limitedTagsListing=module.limitedTagsListing()
             </div>
 
 
-        <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
+        <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
             <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
                 <span v-if="editingScene.blend=='monitor'">Monitor</span>
                 </span> {{editingScene.name}}</span>

@@ -90,6 +90,11 @@ body {
 	font-size: 100%;
 }
 
+.nonavtopbannercontainer div.k-laterality-reminder-left, .nonavtopbannercontainer div.k-laterality-reminder-right
+{
+	font-size: small;
+}
+
 button, a.button, label {
 	font-family: 'B612';
 	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
@@ -478,14 +483,17 @@ div.sectionbox, section {
 	padding-bottom: 0.5%;
 	padding-right: 1%;
 	padding-left: 0.5%;
-	margin: 2px;
-
 	margin-left: auto;
 	margin-right: auto;
+	margin-top: 0.2em;
+	margin-bottom: 0.2em;
 	width: fit-content;
-	min-width: 40%;
-
+	min-width: 35%;
 }
+div.sectionbox.flex-item, section.flex-item{
+	margin: 0.2em;
+}
+
 
 /* A scrollable div */
 

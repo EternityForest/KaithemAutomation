@@ -68,8 +68,7 @@
 
 #topbanner h1
 {
-	text-shadow:1px 1px 5px rgba(110,130,160,1);
-	color:rgba(80,110,80,1);
+	color:rgb(70 92 76 / 68%);
      margin-bottom: 0.2em;
     margin-top: 0.1em;
     vertical-align:middle;
