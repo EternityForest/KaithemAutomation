@@ -127,6 +127,7 @@ button, a.button, label {
 
 .buttonbar label{
 	display: flex;
+	flex-grow: 50;
 }
 
 
@@ -138,6 +139,7 @@ button, a.button, label {
 .buttonbar  *{
 	box-sizing: border-box;
 	height: 100%;
+	font-size: inherit;
 }
 .buttonbar  :is(a,a.button,select, input, meter,button)
 {
@@ -147,23 +149,27 @@ button, a.button, label {
 	border-radius: 0px;
 	flex-shrink: 1;
 	border-radius: 0px;
-}
-
-.buttonbar > :is(a,a.button,select, input, meter,button)
-{
 	padding: 4px;
 }
+.buttonbar form{
+	border: 0px !important;
+	margin: 0px !important;
+	padding:  0px !important;
+}
 
-/*Exception: the first item always growable so it can be the title*/
+.buttonbar :is(h1,h2,h3,h4,h5) *{
+border: none;
+}
 .buttonbar :is(h1,h2,h3,h4,h5,h6,label){
 	margin: 0px;
 	padding: 0px;
+	vertical-align: middle;
+	display: flex;
 }
 .buttonbar p{
 	padding: 4px;
 	margin: 0px;
 }
-
 
 /*P is not growable */
 .buttonbar a, .buttonbar meter, .buttonbar button, .buttonbar a.button
@@ -171,29 +177,8 @@ button, a.button, label {
 flex-grow: 1;
 }
 
-/*Exception: the first item always growable so it can be the title*/
-.buttonbar :is(h1,h2,h3,h4,h5,h6):first-child{
-	flex-grow: 50;
-	display: block;
-}
 
-/*Most likely to make good use of the extra space*/
-.buttonbar input, .buttonbar select
-{
-flex-grow: 2;
-}
-
-.buttonbar meter{
-	height: 100%;
-}
-
-.buttonbar> img
-{
-	height: 100%;
-}
-
-.buttonbar :is(p,h1,h2,h3,h4,h5,h6), .buttonbar label
-{
+.buttonbar :is(p,h1,h2,h3,h4,h5,h6,label){
 	vertical-align: middle;
 	display: flex;
 }
@@ -211,12 +196,29 @@ padding: 0px;
 }
 
 
-.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button):first-child :first-child
+/*Exception: the first item always growable so it can be the title*/
+.buttonbar :is(h1,h2,h3,h4,h5,h6):first-child{
+	flex-grow: 50;
+	display: block;
+}
+
+/*Most likely to make good use of the extra space*/
+.buttonbar input, .buttonbar select
+{
+flex-grow: 50;
+}
+
+.buttonbar meter{
+	height: 100%;
+}
+
+
+.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button):first-child :first-child
 { 
 	border-radius: 12px 0px 0px 12px;
 }
 
-.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child, .buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child :last-child
+.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child :last-child
 {
 	border-radius: 0px 12px 12px 0px;
 }
@@ -226,6 +228,16 @@ padding: 0px;
 	border-radius: 12px 12px 12px 12px;
 }
 
+
+.buttonbar > *
+{
+	border: 1px solid rgba(136, 149, 190, 0.767);
+	background-image: linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
+}
+/*A button link while being clicked*/
+.buttonbar button:active, .buttonbar a:active{
+	background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.247), rgba(0, 0, 0, 0.151)) !important;
+}
 
 td input
 {

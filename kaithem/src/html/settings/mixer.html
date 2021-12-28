@@ -235,9 +235,12 @@ import os
             <button v-on:click="confirmDelete(channelname)">Delete</button>
             <button v-on:click="ding(channelname)">Ding</button>
             <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
+          </div>
           
+          <div class="buttonbar">
           <p>In:</p><input v-model="channel.input" list="outports"
-            v-on:input="setInput(channelname, $event.target.value)" style="flex-shrink: 1; flex-grow: 1;"></div>
+            v-on:input="setInput(channelname, $event.target.value)">
+          </div>
           <div class="chain">
             <div v-for="effect, index in channel.effects" class="effect">
 
