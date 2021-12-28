@@ -143,7 +143,7 @@ button, a.button, label {
 	box-sizing: border-box;
 	height: 100%;
 	font-size: inherit;
-	max-height: 1.8em;
+	max-height: 28px;
 }
 .buttonbar  :is(a,a.button,select, input, meter,button)
 {

@@ -7,8 +7,8 @@
 html {
 	background:
 	linear-gradient(
-		177deg, rgba(225, 237, 239, 0.514) 0%, rgba(101, 143, 87, 0.493) 100%),
-		url("/static/img/webtreats_grunge_mint_2.webp");
+  177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%),
+  url(/static/img/webtreats_grunge_mint_2.webp);
 	background-size: cover, unset;
 	background-repeat: repeat, repeat;
 min-height: 100vh;
