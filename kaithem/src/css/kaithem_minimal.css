@@ -359,7 +359,6 @@ p.menubar, div.menubar {
 }
 p.menubar:hover, div.menubar:hover {
 	background-color: rgba(255, 25, 255, 0.1);
-	border-radius: 7px;
 	opacity: 100%;
 	max-height: initial;
 }
