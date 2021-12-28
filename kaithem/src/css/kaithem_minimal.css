@@ -187,7 +187,7 @@ flex-grow: 1;
 {
 flex-grow: 50;
 /*start small*/
-width: 1em;
+width: 3em;
 }
 
 .buttonbar meter{
@@ -221,12 +221,12 @@ padding: 0px;
 
 
 
-.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button):first-child :first-child
+.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button,form):first-child :first-child
 { 
 	border-radius: 12px 0px 0px 12px;
 }
 
-.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child :last-child
+.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button,form):last-child :last-child
 {
 	border-radius: 0px 12px 12px 0px;
 }
@@ -241,6 +241,10 @@ padding: 0px;
 {
 	border: 1px solid rgba(136, 149, 190, 0.767);
 	background-image: linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
+}
+.buttonbar > form{
+	border: none !important;
+	border-radius: 12px;
 }
 /*A button link while being clicked*/
 .buttonbar button:active, .buttonbar a:active{
