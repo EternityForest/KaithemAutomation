@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640593052593246
+resource-timestamp: 1640654205728206
 resource-type: page
 template-engine: mako
 
@@ -671,13 +671,13 @@ limitedTagsListing=module.limitedTagsListing()
             </div>
 
             <div v class="sectionbox flex-item" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
-                <label>
-                    <p class="buttonbar">
+                
+                    <div class="buttonbar"><label>
             <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." placeholder="Shortcut"
                 v-model="sc_code" v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
         </label>
                 <button v-on:click="shortcut()">Go!</button>
-                </p>
+                </div>
 
                 <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
                 <p class="buttonbar">
@@ -1082,9 +1082,9 @@ limitedTagsListing=module.limitedTagsListing()
                                         </h4>
 
                                         <ul>
-                                            <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP DIRECTORY&gt</li>
-                                            <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
-                                            <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">{{i[1] || i[0]}}</li>
+                                            <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
+                                            <li v-if="soundfilesdir"  v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')"><a>..</a></li>
+                                            <li  v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]"><a>{{i[1] || i[0]}}</a></li>
                                         </ul>
 
                                         <table border="1">

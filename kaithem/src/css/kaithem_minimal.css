@@ -172,11 +172,23 @@ border: none;
 }
 
 /*P is not growable */
-.buttonbar a, .buttonbar meter, .buttonbar button, .buttonbar a.button
+.buttonbar :is(meter, a, a.button, button)
 {
+width: fit-content;
 flex-grow: 1;
 }
 
+/*Most likely to make good use of the extra space*/
+.buttonbar input, .buttonbar select
+{
+flex-grow: 50;
+/*start small*/
+width: 1em;
+}
+
+.buttonbar meter{
+	height: 100%;
+}
 
 .buttonbar :is(p,h1,h2,h3,h4,h5,h6,label){
 	vertical-align: middle;
@@ -202,15 +214,7 @@ padding: 0px;
 	display: block;
 }
 
-/*Most likely to make good use of the extra space*/
-.buttonbar input, .buttonbar select
-{
-flex-grow: 50;
-}
 
-.buttonbar meter{
-	height: 100%;
-}
 
 
 .buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button):first-child :first-child
