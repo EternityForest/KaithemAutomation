@@ -125,7 +125,6 @@ def in_folder(r,f,n):
 <dl>
 %if path and len(util.split_escape(path[0],"/","\\"))>1:
 <dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
-<hr>
 %endif
 %for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: (module[x]['resource-type'],x)):
 %if in_folder(i,fullpath,name):
@@ -147,7 +146,6 @@ def in_folder(r,f,n):
         <dd>Deleted VirtualResource</dd>
     %endif
 
-    <hr>
 
 <%
 continue
@@ -358,7 +356,6 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 <dt>
 
 	%endif
-	<hr>
 %endif
 %endfor
 </div>

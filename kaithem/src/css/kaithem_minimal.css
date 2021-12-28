@@ -155,6 +155,10 @@ button, a.button, label {
 	border: 0px !important;
 	margin: 0px !important;
 	padding:  0px !important;
+	flex-grow: 50;
+}
+.buttonbar form :is(button,input[type=button]){
+	flex-grow: 1;
 }
 
 .buttonbar :is(h1,h2,h3,h4,h5) *{
@@ -179,7 +183,7 @@ flex-grow: 1;
 }
 
 /*Most likely to make good use of the extra space*/
-.buttonbar input, .buttonbar select
+.buttonbar input:not([type="submit"]), .buttonbar select
 {
 flex-grow: 50;
 /*start small*/
