@@ -45,10 +45,11 @@ Page:
 %for i in range(int(len(filteredTags)/500)+1):
 <a href="/tagpoints?pageNumber=${i}&searchFilter=${searchFilter|u}">${'<b>'+str(i)+'</b>' if i==pageNumber else str(i)}</a>
 %endfor
-
+<div class="buttonbar">
     <form method="GET" action="/tagpoints?pageNumber=${pageNumber}">
         <input name="searchFilter" value="${searchFilter|h}"> <input type="submit" value="Search">
     </form>
+</div>
 </div>
 <table border="1">
 <tr><th>Name</th><th>Value(not realtime)</th><th>Interval</th><th>Active Claim</th><th>Owner</th><th>Subscribers</th>
@@ -78,6 +79,8 @@ Page:
     <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
+    <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
+
 </tr>
 %endif
 
@@ -89,6 +92,8 @@ Page:
     <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
+    <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
+
 </tr>
 %endif
 
@@ -117,17 +122,14 @@ Page:
 %endfor
 </table>
 
-<p class="menubar">
-    <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
-</p>
-
-<div class="menubar">
+<div class="menubar buttonbar">
     <form method="GET" action="/tagpoints">
         <input name="new_numtag"><input type="submit" value="New Number Tag">
     </form>
     <form method="GET" action="/tagpoints">
         <input name="new_strtag"><input type="submit" value="New String Tag">
     </form>
+    <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
 </div>
 <h3>Configured but not used</h3>
 <p class="help">Empty configs go away when the server state is saved</p>

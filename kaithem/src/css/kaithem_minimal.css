@@ -100,8 +100,19 @@ button, a.button, label {
 	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
 }
 
-.multibar .buttonbar{
+
+.multibar{
+	flex-basis: content;
+	flex-grow: 5;
+	flex-direction: row;
+	display: flex;
+	height: fit-content;
+	flex-basis: max-content;
+}
+
+.buttonbar{
 	display: inline-flex;
+	flex-basis:max-content;
 }
 
 .buttonbar{
@@ -109,10 +120,14 @@ button, a.button, label {
 	flex-wrap: wrap;
 	align-items: stretch;
 	border-radius: 12px;
-	min-height: 1.8em;
+	min-height: 28px;
 	margin: 2px;
-	flex-grow: 0.05;
+	flex-grow: 1;
 	vertical-align: middle;
+	height: fit-content;
+	--buttonbar-element-border:  1px solid rgba(136, 149, 190, 0.767);
+	--buttonbar-item-bg:  linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
+	--buttonbar-active-item-bg :linear-gradient(40deg, rgba(153, 134, 134, 0.247), rgba(0, 0, 0, 0.151));
 }
 
 .buttonbar img
@@ -131,12 +146,7 @@ button, a.button, label {
 .buttonbar label{
 	display: flex;
 	flex-grow: 50;
-}
-
-
-.buttonbar button:active, .buttonbar a.button::active{
-	background-image: linear-gradient(40deg, rgba(255, 255, 255, 0.247), rgba(0, 0, 0, 0.151)) !important;
-	border-style: inset;
+	border: 0px;
 }
 
 .buttonbar  *{
@@ -160,6 +170,8 @@ button, a.button, label {
 	margin: 0px !important;
 	padding:  0px !important;
 	flex-grow: 50;
+	border: 0px !important;
+	display: flex;
 }
 .buttonbar form :is(button,input[type=button]){
 	flex-grow: 1;
@@ -223,9 +235,7 @@ padding: 0px;
 }
 
 
-
-
-.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button,form):first-child :first-child
+.buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button,form,label):first-child :first-child
 { 
 	border-radius: 12px 0px 0px 12px;
 }
@@ -243,17 +253,32 @@ padding: 0px;
 
 .buttonbar > *
 {
-	border: 1px solid rgba(136, 149, 190, 0.767);
-	background-image: linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
+	border: var(--buttonbar-element-border);
+	background: var(--buttonbar-item-bg);
 }
 .buttonbar > form{
 	border: none !important;
 	border-radius: 12px;
 }
+
+.buttonbar > *:not(input:not([type="submit"])):not(form):not(label)
+{
+	border: var(--buttonbar-element-border) !important;
+	background: var(--buttonbar-item-bg) !important;
+}
+
+.buttonbar > input:not([type="submit"])
+{
+	border: var(--buttonbar-element-border) !important;
+	background: var(--buttonbar-item-bg);
+}
 /*A button link while being clicked*/
 .buttonbar button:active, .buttonbar a:active{
-	background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.247), rgba(0, 0, 0, 0.151)) !important;
+	background-image: var(--buttonbar-active-item-bg) !important;
 }
+
+
+
 
 td input
 {
@@ -360,6 +385,7 @@ p.menubar, div.menubar {
 	background-color: rgba(255, 25, 255, 0.1);
 	border-radius: 7px;
 	opacity: 90%;
+	width: 95%;
 }
 p.menubar:hover, div.menubar:hover {
 	background-color: rgba(255, 25, 255, 0.1);

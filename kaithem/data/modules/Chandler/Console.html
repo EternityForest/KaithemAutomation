@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640654205728206
+resource-timestamp: 1640728016204561
 resource-type: page
 template-engine: mako
 
@@ -263,7 +263,7 @@ limitedTagsListing=module.limitedTagsListing()
         <link rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
 
 
-        <div id="app">
+        <div id="app" style="display:flex; flex-wrap:wrap;">
             <div v-if="showevents" class="sectionbox flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
                 <h2> <button v-on:click="showevents=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Event
                     Log
@@ -294,16 +294,16 @@ limitedTagsListing=module.limitedTagsListing()
             </div>
 
 
-            <div id="optionsblock" class="menubar" style="display:flex;flex-wrap:wrap;">
+            <div id="optionsblock" class="menubar multibar" style="flex-basis: 98%">
                 
-                <div class="menubar buttonbar" style="background-color:rgba(255,255,255,0.1); padding:0.25em; border-color:grey; border-width:2px;">
+                <div class="menubar buttonbar">
 
                             <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Scenes as the Default</a>
                             <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Setup as the Default</a>
                 </div>
 
 
-        <div class="menubar buttonbar" style="background-color:rgba(255,255,255,0.1); padding:0.25em; border-color:grey; border-width:2px;">
+        <div class="menubar buttonbar">
 
         <button v-on:click="showDMXSetup=!showDMXSetup"><img src="/zipstatic/img/icons/fugue.zip/globe-green.png"></img>Universes</button>
                     <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
@@ -317,7 +317,7 @@ limitedTagsListing=module.limitedTagsListing()
                     <a class="button" href="/pages/Chandler/Setup"><img src="/zipstatic/img/icons/fugue.zip/gear.png">Settings</a>
                 </div>
 
-                <div class="menubar buttonbar" style="background-color:rgba(255,255,255,0.1); padding:0.25em; border-color:grey; border-width:2px;">
+                <div class="menubar buttonbar">
                     <p><b>Keys:</b></p>
                     <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit Mode</button>
                     <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Send Events</button>
@@ -738,6 +738,11 @@ limitedTagsListing=module.limitedTagsListing()
 
             </div>
 
+<div class="sectionbox flex-item" v-if="!(editingScene && cuemeta[editingScene.cue])"
+     style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
+<h2>No Scene selected</h2>
+</div>
+
 
         <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
             <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
@@ -769,7 +774,6 @@ limitedTagsListing=module.limitedTagsListing()
 
                 <div id="cuesbox" v-if="scenetab !='blend' && scenetab !='page'">
 
-                    <hr>
                     <div style="overflow-y: scroll;max-height:12em;">
                         <table class="reflow" border="1" style="resize:both; width:100%;">
 
@@ -1203,10 +1207,10 @@ limitedTagsListing=module.limitedTagsListing()
                                 <label v-if="showSoundControls">Length From Sound:
                             <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                        </label><br>
+                        </label>
 
                                 <h5 style="flex-basis:100%">Cue Advance</h5>
-                                <label>Next Cue:
+                               <label> Cue:
                             <combo-box v-model="cuemeta[currentcueid].next" v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)" :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
                              </label>
 

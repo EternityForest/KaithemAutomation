@@ -2,6 +2,14 @@ Change Log
 ----------
 
 
+### 0.67.7
+This release is primarily all about theming.
+
+* New .buttonbar and .multibar CSS classes majorly reduce visual clutter
+* New default theme aims to be somewhere between material, mid 2000s forums, and early iOS
+* No more ugly default inset/outset borders, we use gradients and box shadows
+* Link underlines are gone
+
 ### 0.67.6
 
 This release focuses on getting rid of functionality that is almost certainly used by nobody, was not well tested,

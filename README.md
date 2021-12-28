@@ -10,12 +10,14 @@ It runs on python3, but it is not tested outside of Linux. Resource usage is low
 You automate things by directly writing python and HTML via a web IDE. "Events" are sections of code that run when a trigger condition happens. Trigger conditions can be polled expressions, internal message bus
 events, or time-based triggers using a custom semi-natural language parser.
 
-![Editing an event](screenshots/edit-event.jpg)
+![Editing an event](screenshots/edit-event.webp)
 
 
 Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save.
 
-![Lighting control](screenshots/basictheme_lightboard.png)
+![Lighting control](screenshots/lightboard.webp)
+![Sound Mixer](screenshots/mixer.webp)
+
 
 Kaithem also includes a module called Chandler, which is a full web-based lighting control board with a visual
 programming language for advanced interactive control.
