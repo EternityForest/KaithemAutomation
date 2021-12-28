@@ -24,6 +24,7 @@ of a valid token"""
 # Users and groups are saved in RAM and synched with the filesystem due to the goal
 # of not using the filesystem much to save any SD cards.
 
+from typing import Dict
 from . import util, directories, modules_state, registry, messagebus
 import json
 import base64
@@ -88,7 +89,7 @@ Groups = {}
 
 """These are the "built in" permissions required to control basic functions
 User code can add to these"""
-BasePermissions = {
+BasePermissions: Dict[str,str] = {
     "/admin/users.edit": "Edit users, groups, and permissions, View and change usernames and passwords. Implies full access so watch out who you give this to.",
     "/admin/mainpage.view": "View the main page of the application.",
     "/admin/modules.view":  "View and download all module contents but not make any changes.",

@@ -61,7 +61,7 @@ navBarPlugins = weakref.WeakValueDictionary()
 
 #There are cases where this may not exactly be perfect, but the point is just an extra guard against user error.
 def isHTTPAllowed(ip):
-   return (ip.startswith("::1") or ip.startswith("127.") or ip=='::ffff:127.0.0.1' or ip.startswith("192.") or ip.startswith("10.") or ip.startswith("fc") or ip.startswith("fd"))
+   return (ip.startswith("::1") or ip.startswith("127.") or ip =='::ffff:127.0.0.1' or ip.startswith("::ffff:192.") or  ip.startswith("::ffff:10.") or ip.startswith("192.") or ip.startswith("10.") or ip.startswith("fc") or ip.startswith("fd"))
 
 
 nativeHandlers = weakref.WeakValueDictionary()
