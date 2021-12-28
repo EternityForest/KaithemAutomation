@@ -25,14 +25,14 @@ ${obj.__class__|h}
 
 %if isinstance(obj, (weakref.ref)):
 <h3>Weak Reference</h3>
-<div class="sectionbox">
+<section>
 <a href="?objname=${objname}()&objpath=${objpath},c">Referrent</a>
-</div>
+</sectio>
 %endif
 
 %if hasattr(obj,'__dict__'):
 <h3>Object Attributes</h3>
-<div class="sectionbox">
+<section>
 <dl>
 %for i in sorted(obj.__dict__.keys(), key=str):
 <dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
@@ -49,7 +49,7 @@ ${obj.__class__|h}
 <dd>${util.saferepr(getattr(obj,i))|h}</dd>
 %endif
 %endfor
-</div>
+</section>
 %endif
 
 

@@ -24,7 +24,7 @@
 
 /*************************Navigation and headers************************************************************/
 
-#nav div
+.navbar div
 {
 	border-width:1px;
 	border-style: solid;
@@ -35,17 +35,17 @@
 	backdrop-filter: blur(5px);
 }
 
-#nav .buttonbar
+.navbar .buttonbar
 {
 	width: 100%;
 	backdrop-filter: blur(2px);
 	background-color:rgba(160, 64, 238, 0.1);
 }
-#nav .buttonbar a
+.navbar .buttonbar a
 {
 	text-align: center;
 }
-#nav {
+.navbar {
 	border-style:solid;
 	border-width: 1px;
 	border-radius:9px;
@@ -175,7 +175,7 @@ div.sectionbox,section{
 	padding-left:0.5%;
 }
 
-div.sectionbox, section, #nav .buttonbar
+div.sectionbox, section, .navbar .buttonbar
 {
 	box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.92)
 }
@@ -200,7 +200,9 @@ h2,h3{
 }
 
 a{
-	text-shadow: 0 0 5px rgb(255 255 255)
+    text-shadow: 0 0 1px rgb(215 237 255);
+    color: #142942;
+    text-decoration: none;
 }
 
 h1 a, h2 a{
@@ -249,21 +251,19 @@ button, a.button, label {
 	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
 }
 
-button, a.button, input, textarea, .buttonbar p
-{background-color: #d9dee079;	color: #1e0c02;
+button, a.button, input, textarea, select
+{
+background-color: #d9dee079;	color: #1e0c02;
 border: 1px solid;
-background-image: linear-gradient(175deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
+background-image: linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
 border-color: #00000057;
 }
 
 
-.buttonbar a,
-.buttonbar button,
-.buttonbar p,
-.buttonbar a.button,
-.buttonbar input, .buttonbar select {
+.buttonbar > * {
 	border: 1px solid rgba(136, 149, 190, 0.767);
 	box-shadow: 2px 2px 6px -1px rgba(0, 0, 0, 0.308);
+	background-image: linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
 }
 
 button, a.button, input, textarea{
@@ -424,3 +424,93 @@ input.horizontalslider
      width:12em;
 
 }
+
+
+/************************/
+input[type=range] {
+	margin: 5.8px 0;
+	background-color: transparent;
+	-webkit-appearance: none;
+  }
+  input[type=range]:focus {
+	outline: none;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+	background: rgba(48, 138, 101, 0.5);
+	border: 0.2px solid rgba(1, 0, 0, 0.1);
+	border-radius: 25px;
+	height: 8.4px;
+	cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+	margin-top: -6px;
+	width: 20px;
+	height: 20px;
+	background: #9fcfd8;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+	border-radius: 50px;
+	cursor: pointer;
+	-webkit-appearance: none;
+  }
+  input[type=range]:focus::-webkit-slider-runnable-track {
+	background: #7cd2af;
+  }
+  input[type=range]::-moz-range-track {
+	background: rgba(48, 138, 101, 0.5);
+	border: 0.2px solid rgba(1, 0, 0, 0.1);
+	border-radius: 25px;
+	height: 8.4px;
+	cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+	width: 20px;
+	height: 20px;
+	background: #9fcfd8;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+	border-radius: 50px;
+	cursor: pointer;
+  }
+  input[type=range]::-ms-track {
+	background: transparent;
+	border-color: transparent;
+	border-width: 7.8px 0;
+	color: transparent;
+	height: 8.4px;
+	cursor: pointer;
+  }
+  input[type=range]::-ms-fill-lower {
+	background: #0a1c15;
+	border: 0.2px solid rgba(1, 0, 0, 0.1);
+	border-radius: 50px;
+  }
+  input[type=range]::-ms-fill-upper {
+	background: rgba(48, 138, 101, 0.5);
+	border: 0.2px solid rgba(1, 0, 0, 0.1);
+	border-radius: 50px;
+  }
+  input[type=range]::-ms-thumb {
+	width: 20px;
+	height: 20px;
+	background: #9fcfd8;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+	border-radius: 50px;
+	cursor: pointer;
+	margin-top: 0px;
+	/*Needed to keep the Edge thumb centred*/
+  }
+  input[type=range]:focus::-ms-fill-lower {
+	background: rgba(48, 138, 101, 0.5);
+  }
+  input[type=range]:focus::-ms-fill-upper {
+	background: #7cd2af;
+  }
+  /*TODO: Use one of the selectors from https://stackoverflow.com/a/20541859/7077589 and figure out
+  how to remove the virtical space around the range input in IE*/
+  @supports (-ms-ime-align:auto) {
+	/* Pre-Chromium Edge only styles, selector taken from hhttps://stackoverflow.com/a/32202953/7077589 */
+	input[type=range] {
+	  margin: 0;
+	  /*Edge starts the margin from the thumb, not the track as other browsers do*/
+	}
+  }
+  

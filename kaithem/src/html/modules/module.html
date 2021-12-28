@@ -165,6 +165,7 @@ continue
 %if module[i]['resource-type'] == 'event':
 	  <dt>
         <div class="buttonbar style="display:inline-flex">
+    <h3>
 <a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
 	       <span class="event-icon"></span><b>\
 %if (name,i) in modules.unsaved_changed_obj:
@@ -181,6 +182,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
            ${e|h}
            %endtry
        </b>
+    </h3>
 
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
 <a class="button playbutton" href="/modules/module/${url(name)}/runeventdialog/${url(i)}">Run Now</a>
@@ -241,7 +243,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
           %if (name,i) in modules.unsaved_changed_obj:
           *\
           %endif
-
+<h3>
           <a href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
 	       <span class="page-icon"></span><b\
 	       %if i.startswith('__'):
@@ -251,7 +253,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
-
+</h3>
 		</b><a class="button gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
         </div>
     </dt>
@@ -271,12 +273,15 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 
       <dt>
         <div class="buttonbar style="display:inline-flex">
-  
-        <span class="permission-icon"></span>\
+  <h3>
+    
+<a href="/modules/module/${url(name)}/resource/${url(i)}">    <span class="permission-icon"></span>\
   %if (name,i) in modules.unsaved_changed_obj:
   *\
   %endif
-<a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+  ${util.split_escape(i,'/','\\')[-1]|h}</a>
+  </h3>
+  
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
         </div>
 <dt>
@@ -290,8 +295,10 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
     %if (name,i) in modules.unsaved_changed_obj:
     *\
     %endif
+    <h3>
     <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
-    <a class="button settingsbuttton" href="/modules/module/${url(name)}/resource/${url(i)}">Properties</a>
+    </h3>
+    <a class="settingsbuttton" href="/modules/module/${url(name)}/resource/${url(i)}">Properties</a>
 
     <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
     <p>
@@ -313,10 +320,13 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
   %if (name,i) in modules.unsaved_changed_obj:
   *\
   %endif
-  
+  <div class="buttonbar">
+      <h3>
   <a class="deviceslink" href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+  </h3>
   
   <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><br>
+  </div>
   <dt>
 
 %endif
@@ -333,14 +343,19 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 
      %endif
 
-     %if module[i]['resource-type'] == 'directory':
+%if module[i]['resource-type'] == 'directory':
 
       <dt>
-%if (name,i) in modules.unsaved_changed_obj or [True for j in modules.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
-*\
-%endif
-<span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
+    %if (name,i) in modules.unsaved_changed_obj or [True for j in modules.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
+    *\
+    %endif
+<div class="buttonbar">
+<h3>
+    <a href="/modules/module/${url(name)}/resource/${url(i)}#resources"><span class="directory-icon"></span><b></b>${util.split_escape(i,'/')[-1]|h}</b></a>
+</h3>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+</div>
+<dt>
 
 	%endif
 	<hr>

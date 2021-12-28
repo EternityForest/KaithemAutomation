@@ -102,12 +102,12 @@ ${alertsapi.render("alertapi")}
     <div style="align-self: flex-end;">${i.notificationHTML()}</div>
 
     %if not i.sm.state=="acknowledged":
-    <div style="float:right;">
-        <a class="button" style="height: 80%;" href=".?ackalarm=${i.id}">ACK</a>
+    <div style="align-self: center;">
+        <a class="button" style="align-self: center;" href=".?ackalarm=${i.id}">ACK</a>
     </div>
     %else:
-    <div style="float:right;">
-        <button style="height: 80%;" disabled>ACK</button>
+    <div style="align-self: center;">
+        <button  disabled>ACK</button>
     </div>
     %endif
 

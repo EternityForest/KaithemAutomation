@@ -19,9 +19,9 @@ import cherrypy,socket,base64
   <script src="/static/widget.js"></script>
 
   %if not cherrypy.request.params.get("kaithem_disable_header",0):
-  <div style="width: 100%; position:relative;">
+  <header>
     ${config['top-banner-html'].replace("HOSTNAME",socket.gethostname())}
-  <div border="" id="nav">
+  <div class="navbar">
 
 
     <p class="buttonbar">
@@ -168,4 +168,5 @@ Tools</a>
 
     </div>
     %endif
+    </header>
     <main>

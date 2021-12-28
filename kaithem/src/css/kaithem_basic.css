@@ -20,7 +20,7 @@
 
 /*************************Navigation and headers************************************************************/
 
-#nav div
+.navbar div
 {
 	border-width:1px;
 	border-style: solid;
@@ -29,7 +29,7 @@
 	border-radius: 5px;
 	background-color: rgba(220,255,200,0.3)
 }
-#nav {
+.navbar {
 	border-style:solid;
 	border-width: 1px;
 	border-radius:9px;

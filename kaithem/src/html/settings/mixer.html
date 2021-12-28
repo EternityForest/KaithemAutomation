@@ -7,31 +7,33 @@ from src import directories
 import os
 %>
 <title>Mixing Board</title>
-<div class="sectionbox" style="height: 80vh">
+<div class="sectionbox">
   <script type="text/javascript" src="/static/widget.js"></script>
   <style>
     div.channel {
       height: 95%;
-      border-style: inset;
-      border-width: 0.2em;
+      border-width: 2px;
+      border-radius: 6px;
+      border-style: solid;
       display: inline-block;
       margin: 0.2em;
       vertical-align: top;
       width: 24em;
+      padding: 0.2em;
 
     }
 
     div.chain {
-      border-style: inset;
-      border-width: 0.1em;
-      margin: 0.2em;
+      border-style: none;
+      margin: 0.4em;
       height: 30em;
-      overflow: scroll;
+      overflow: auto;
     }
 
     div.effect {
       border-style: solid;
       border-width: 1px;
+      border-radius: 8px;
       margin: 0.5em;
     }
 
@@ -48,8 +50,7 @@ import os
 
 
 
-  <div id="app"
-    style="height:95%;overflow-x: scroll; overflow-y: auto; min-width: 80%; max-width: 10000%; max-height: 99%;     white-space: nowrap;">
+  <div id="app">
     <datalist id="effectTypes">
       <option value="fader">Fader</option>
       <option value="3beq">3-Band EQ</option>
@@ -230,23 +231,24 @@ import os
         <div v-if="channel.type=='audio' || !channel.type">
           <h3>{{channelname}}({{channel.channels}}) 
           </h3>
-          <p class="menubar buttonbar">
+          <div class="menubar buttonbar">
             <button v-on:click="confirmDelete(channelname)">Delete</button>
             <button v-on:click="ding(channelname)">Ding</button>
             <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
-          </p>
-          Connect Input: <input v-model="channel.input" list="outports"
-            v-on:input="setInput(channelname, $event.target.value)">
+          
+          <p>In:</p><input v-model="channel.input" list="outports"
+            v-on:input="setInput(channelname, $event.target.value)" style="flex-shrink: 1; flex-grow: 1;"></div>
           <div class="chain">
             <div v-for="effect, index in channel.effects" class="effect">
-              <h4 v-bind:title="effect.id">
-                {{effect.displayType}}
-              </h4>
-              <p class="menubar buttonbar">
+
+              <div class="menubar buttonbar">
+                <p v-bind:title="effect.id">
+                  <b>{{effect.displayType}}</b>
+                </p>
                 <button v-on:click="moveEffectUp(channelname, index)">Up</button>
                 <button v-on:click="moveEffectDown(channelname, index)">Down</button>
                 <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
-              </p>
+              </div>
               <table style="width:98%;margin:auto;" border=1>
                 <tr v-for="param in sortedParams(effect.params)" class="param">
                   <template v-if="param.type=='float'">
@@ -310,7 +312,7 @@ import os
 
             <div class="effect" v-if="showAddEffect">
               <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
-              <input v-model="fxSearch" placeholder="Search"><button v-on:click="fxSearch=''">X</button>
+              <div class="buttonbar"><input v-model="fxSearch" placeholder="Search"><button v-on:click="fxSearch=''">X</button></div>
               <div style="height:8em;overflow: scroll;">
                 <div v-for="i in effectTypes" v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
                   <h4>{{i.displayType}}</h4>
@@ -322,18 +324,21 @@ import os
 
           </div>
           <p>{{channelname}} Level:</p>
+          <div class="buttonbar">
           <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
             orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;"
-            v-bind:title="channel.fader"><br>
-          <br>
-          <meter style="width:calc(100% - 5em);" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><span
-            style="width:5em;">{{channel.level}}db</span></br>
-          Connect output: <input v-model="channel.output" list="inports"
+            v-bind:title="channel.fader">
+          </div>
+
+        <div class="buttonbar"><meter style="flex-grow: 2;" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><p
+            style="width:5em;">{{channel.level}}db</p></div>
+          <div class="buttonbar"><p>Connect output: </p><input v-model="channel.output" list="inports"
             v-on:input="setOutput(channelname, $event.target.value)"
-            title="The output of this channel will be automatically connected to this port"><br>
-          FBX Threshold:<input style="width: 3em;" type="number" v-model="channel.soundFuse"
+            title="The output of this channel will be automatically connected to this port"></div>
+
+          <div class="buttonbar"><p>FBX Threshold:</p><input style="width: 3em;" type="number" v-model="channel.soundFuse"
             title="Steady or increasing values above this will result in the volume being automatically lowered."
-            v-on:input="setFuse(channelname, $event.target.value)">dB
+            v-on:input="setFuse(channelname, $event.target.value)"><p>dB</p></div>
         </div>
       </div>
 
@@ -355,7 +360,7 @@ import os
         <p class=help>Jack name: krecorder, channels will autoconnect. <br>Files in <a href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a></p>
         <div class="buttonbar">
         <p>Channels:</p><input v-model="recordChannels" style="width: 1em;"><br>
-        <p>Filename Prefix:</p><input v-model="recordName" style="width: 3em;"><br>
+        <p>File Prefix:</p><input v-model="recordName" style="width: 3em;"><br>
         <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
         <button v-on:click="api.send(['stopRecord'])">Stop</button>
         </div>
