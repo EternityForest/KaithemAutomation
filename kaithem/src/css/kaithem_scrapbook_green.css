@@ -3,13 +3,20 @@
 @import "kaithem_minimal.css"; /* Using a string */
 @import "kaithem_fuge_icons.css"; /* Using a string */
 
-#page {
-	background-repeat: round;
-	background-image: url("/static/img/webtreats_grunge_mint_2.webp"); 
-	background-color:rgb(150,170,100);
-  
+
+html {
+	background:
+	linear-gradient(
+		177deg, rgba(225, 237, 239, 0.514) 0%, rgba(101, 143, 87, 0.493) 100%),
+		url("/static/img/webtreats_grunge_mint_2.webp");
+	background-size: cover, unset;
+	background-repeat: repeat, repeat;
+min-height: 100vh;
+padding: 0px;
+margin: 0px;
+box-sizing: border-box;
   }
-  
+
   ::selection {
 	  background: rgba(119, 88, 206, 0.431);
 	  color:rgb(70, 45, 19);

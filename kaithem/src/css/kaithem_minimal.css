@@ -100,13 +100,16 @@ button, a.button, label {
 	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
 }
 
+.multibar .buttonbar{
+	display: inline-flex;
+}
 
 .buttonbar{
 	display:flex;
 	flex-wrap: wrap;
 	align-items: stretch;
 	border-radius: 12px;
-	height: 1.8em;
+	min-height: 1.8em;
 	margin: 2px;
 	flex-grow: 0.05;
 	vertical-align: middle;
@@ -140,6 +143,7 @@ button, a.button, label {
 	box-sizing: border-box;
 	height: 100%;
 	font-size: inherit;
+	max-height: 1.8em;
 }
 .buttonbar  :is(a,a.button,select, input, meter,button)
 {
@@ -585,6 +589,7 @@ div.sectionbox, section {
 
 div.sectionbox.flex-item, section.flex-item{
 	margin: 0.2em;
+	flex-grow: 1;
 }
 
 div.sectionbox h2, section h2,div.sectionbox h3, section h3{
