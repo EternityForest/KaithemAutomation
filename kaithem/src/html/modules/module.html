@@ -251,8 +251,9 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
+    </b>
 </h3>
-		</b><a class="button gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+		<a class="button gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
         </div>
     </dt>
 	  <dd>

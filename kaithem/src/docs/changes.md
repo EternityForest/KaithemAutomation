@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.68.1
+
+- Fix support for HTTP logins on :ffff:192. addresses that are apparently a thing now.
+
 ### 0.68.0
 This release is primarily all about theming.
 

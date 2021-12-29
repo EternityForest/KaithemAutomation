@@ -88,7 +88,7 @@ class WebInterface():
         # you can access the class instance through
         handler = cherrypy.request.ws_handler
         x = cherrypy.request.remote.ip
-        if cherrypy.request.scheme == 'https' or (x.startswith("::1") or x.startswith("127.") or x=='::ffff:127.0.0.1'):
+        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
             handler.user = pages.getAcessingUser()
             handler.cookie = cherrypy.request.cookie
         else:

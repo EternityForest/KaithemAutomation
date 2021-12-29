@@ -108,6 +108,7 @@ button, a.button, label {
 	display: flex;
 	height: fit-content;
 	flex-basis: max-content;
+	flex-wrap: wrap;
 }
 
 .buttonbar{
@@ -127,7 +128,7 @@ button, a.button, label {
 	height: fit-content;
 	--buttonbar-element-border:  1px solid rgba(136, 149, 190, 0.767);
 	--buttonbar-item-bg:  linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
-	--buttonbar-active-item-bg :linear-gradient(40deg, rgba(153, 134, 134, 0.247), rgba(0, 0, 0, 0.151));
+	--buttonbar-active-item-bg :linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
 }
 
 .buttonbar img
@@ -164,6 +165,10 @@ button, a.button, label {
 	flex-shrink: 1;
 	border-radius: 0px;
 	padding: 4px;
+	flex-basis: fit-content;
+}
+.buttonbar :only-child{
+	flex-grow: 1;
 }
 .buttonbar form{
 	border: 0px !important;
@@ -264,7 +269,7 @@ padding: 0px;
 .buttonbar > *:not(input:not([type="submit"])):not(form):not(label)
 {
 	border: var(--buttonbar-element-border) !important;
-	background: var(--buttonbar-item-bg) !important;
+	background: var(--buttonbar-item-bg);
 }
 
 .buttonbar > input:not([type="submit"])

@@ -135,7 +135,7 @@ class LoginScreen():
             # Even if the browser thinks localhost is insecure for cookie purposes, for some reason.
             # This will not be secure if someone puts it behind an insecure a proxy that allows HTTP also/s
             ip = cherrypy.request.remote.ip
-            if not (ip.startswith("::1") or ip.startswith("127.") or ip == '::ffff:127.0.0.1'):
+            if not pages.isHTTPAllowed(ip):
                 cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             # Previously, tokens are good for 90 days

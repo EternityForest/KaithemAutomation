@@ -7,12 +7,12 @@ from src import modules
 <title>Kaithem Modules</title>
 <section>
     <div class="buttonbar menubar">
-    <p>MD5:  <b>${modules.moduleshash}</b></p>
+    <p><b style="font-size: smaller;">${modules.moduleshash}</b></p>
     <a class="button createbutton" href="/modules/newmodule">Add</a>
     <a class="button deletebutton" href="/modules/deletemodule">Delete</a>
     <a class="button upload-module-button" href="/modules/upload">Upload</a>
     <a class="button modules-library-link" href="/modules/library">Library</a>
-    <form style="display:inline-flex;" action="/modules/search/__all__"><input style="width:12em" name="search" placeholder="Search all modules"/><input type=submit value="search"/></form>
+    <form style="display:inline-flex;" action="/modules/search/__all__"><input name="search" placeholder="Search all modules"/><input type=submit value="search"/></form>
     </div>
 <p class="help">
 The following modules are currently loaded and active on the server.

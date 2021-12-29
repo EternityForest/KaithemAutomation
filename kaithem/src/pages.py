@@ -101,7 +101,7 @@ def canOverrideSecurity():
     if noSecurityMode:
         if noSecurityMode == 1:
             x=cherrypy.request.remote.ip
-            if x.startswith("::1") or x.startswith("127.") or x=='::ffff:127.0.0.1':
+            if isHTTPAllowed(x):
                 return True
             else:
                 raise RuntimeError(
