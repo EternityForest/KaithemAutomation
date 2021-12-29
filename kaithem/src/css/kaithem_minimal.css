@@ -210,7 +210,7 @@ p.menubar, div.menubar {
 	background-color: rgba(255, 25, 255, 0.1);
 	border-radius: 7px;
 	opacity: 90%;
-	width: 95%;
+	width: 99%;
 }
 p.menubar:hover, div.menubar:hover {
 	background-color: rgba(255, 25, 255, 0.1);

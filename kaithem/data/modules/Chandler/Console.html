@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640728016204561
+resource-timestamp: 1640761713832131
 resource-type: page
 template-engine: mako
 
@@ -672,10 +672,9 @@ limitedTagsListing=module.limitedTagsListing()
 
             <div v class="sectionbox flex-item" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
                 
-                    <div class="buttonbar"><label>
-            <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." placeholder="Shortcut"
+                    <div class="buttonbar">
+            <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." aria-label="Shortcut code" placeholder="Shortcut"
                 v-model="sc_code" v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
-        </label>
                 <button v-on:click="shortcut()">Go!</button>
                 </div>
 
@@ -780,7 +779,7 @@ limitedTagsListing=module.limitedTagsListing()
                             <thead>
                                 <tr>
                                     <th title="Click the cue name to edit that cue">Cue Name</th>
-                                    <th>Number</th>
+                                    <th>#</th>
                                     <th>Shortcut</th>
                                     <th>Fadein</th>
                                     <th title="Length, 0 indicates until stopped">Length</th>
@@ -804,7 +803,7 @@ limitedTagsListing=module.limitedTagsListing()
 
                                     <td data-label="Shortcut:">
                                         <p class="buttonbar">
-                                        <input title="Shortcut code" style="width:6em" v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0 step=0.1 v-model="i[1].shortcut">
+                                        <input title="Shortcut code"  v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0 step=0.1 v-model="i[1].shortcut">
                                         <button style="opacity:0.3" title="Generate a shortcut code from the cue's number" v-on:click="apiCommand(i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
                                         </p>
                                     </td>

@@ -355,15 +355,15 @@ import os
         </p>
         <h3>New Channel</h3>
         <p class="buttonbar">
-        <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add
+        <input v-model="newchannelname" size="6"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add
           Mono</button>
         <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
       </p>
         <h3>Recorder ({{recordStatus}})</h3>
         <p class=help>Jack name: krecorder, channels will autoconnect. <br>Files in <a href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a></p>
         <div class="buttonbar">
-        <p>Channels:</p><input v-model="recordChannels" style="width: 1em;"><br>
-        <p>File Prefix:</p><input v-model="recordName" style="width: 3em;"><br>
+        <p>Channels:</p><input aria-label="Channels" type="number" v-model="recordChannels" style="max-width: 3em;">
+        <p>File Prefix:</p><input v-model="recordName" size=1>
         <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
         <button v-on:click="api.send(['stopRecord'])">Stop</button>
         </div>
