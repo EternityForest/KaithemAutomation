@@ -207,8 +207,6 @@ flex-grow: 1;
 .buttonbar input:not([type="submit"]), .buttonbar select
 {
 flex-grow: 50;
-/*start small*/
-width: 3em;
 }
 
 .buttonbar meter{

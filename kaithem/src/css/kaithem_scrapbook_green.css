@@ -546,11 +546,17 @@ tbody
 	border-radius: 15px;
 }
 
+td{
+	width: max-content;
+}
+th{
+	width: max-content;
+}
 table tr th,
 table tr td {
   border-right: 1px solid;
   border-bottom: 1px solid;
-  padding: 10px;
+  padding: 4px;
 }
 table tr th:first-child,
 table tr td:first-child {
