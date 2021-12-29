@@ -583,7 +583,10 @@ class Watchdog(threading.Thread):
                 if lines:
                     rpc.fastResponseFlag.set()
                     for line in lines:
-                        line = line.decode("utf-8").strip()
+                        try:
+                            line = line.decode("utf-8").strip()
+                        except:
+                            print("Bad line",line)
                         if line:
                             rpc._handle(line)
                 else:

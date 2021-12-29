@@ -28,7 +28,7 @@ class GStreamerPipeline():
         def f(*a,**k):
             try:
                 return self.rpc.call(attr,args=a,kwargs=k,block=0.001)
-            except:
+            except Exception:
                 self.worker.kill()
                 workers.do(self.worker.wait)
                 raise
@@ -54,6 +54,8 @@ class GStreamerPipeline():
 
         #Probably Just Not Important enough to raise an error for this.
         if  self.ended or not self.worker.poll() is None:
+            print("Prop set in dead process")
+            self.ended=True
             return
         for i in k:
             if isinstance(k[i],eprox):
@@ -69,13 +71,14 @@ class GStreamerPipeline():
         self.ended=True
         if not self.worker.poll() is None:
             self.rpc.stopFlag=True
+            self.ended=True
             return
         try:
-
             x=self.rpc.call("stop")
             self.rpc.stopFlag=True
+            self.worker.kill()
 
-        except:
+        except Exception:
             self.rpc.stopFlag=True
             self.worker.kill()
             workers.do(self.worker.wait)

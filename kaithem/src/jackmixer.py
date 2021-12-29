@@ -21,6 +21,7 @@ import copy
 import subprocess
 import os
 
+
 from . import widgets, messagebus, util, registry, tagpoints, persist, directories, alerts, workers, directories
 from . import jackmanager, gstwrapper, mixerfx
 
@@ -302,10 +303,22 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # Are we already doing a loudness cutoff?
         self.doingFeedbackCutoff = False
 
-        self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
-                                   port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name + "_in", connect=0, slave_method=0)
-        self.capsfilter = self.addElement(
-            "capsfilter", caps="audio/x-raw,channels=" + str(channels))
+        if not input or not input.startswith("rtplisten://"):
+
+            self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
+                                    port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name + "_in", connect=0, slave_method=0)
+            self.capsfilter = self.addElement(
+                "capsfilter", caps="audio/x-raw,channels=" + str(channels))
+        else:
+            self.src = self.addElement("udpsrc", port=int(input.split("://")[1]))
+            self.capsfilter = self.addElement(
+                "capsfilter", caps="application/x-rtp, media=(string)audio, clock-rate=(int)48000, encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00, payload=(int)96, ssrc=(uint)950073154, clock-base=(uint)639610336, seqnum-base=(uint)55488")
+            self.addElement("rtpjitterbuffer")
+            self.addElement("rtpopusdepay")
+            self.addElement("opusdec")
+            self.addElement("audioconvert")
+            self.addElement("audioresample")
+
 
         self.input = input
         self._input = None
@@ -405,6 +418,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         return c
 
     def setInput(self, input):
+        if "://" in input:
+            return
         with self.lock:
             self.input = input
             if self._input:
@@ -613,7 +628,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def onLevelMessage(self, src , rms, l):
             if self.board:
-                self.levelTag.value = max(rms, -90)
+                rms= max(rms, -90)
+                self.levelTag.value = rms
                 self.doSoundFuse(rms)
                 if l < -45 or abs(l - self.lastLevel) < 6:
                     if time.monotonic() - self.lastPushedLevel < 0.3:
@@ -621,6 +637,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 else:
                     if time.monotonic() - self.lastPushedLevel < 0.07:
                         return True
+                l=max(round(l,2), -99)
                 self.board.channels[self.name]['level'] = l
                 self.lastPushedLevel = time.monotonic()
                 self.lastLevel = l
@@ -750,6 +767,8 @@ def checkIfProcessRunning(processName):
             pass
     return False;
 
+lastAutoReload = [0]
+
 class MixingBoard():
     def __init__(self, *args, **kwargs):
         self.api = widgets.APIWidget()
@@ -763,6 +782,10 @@ class MixingBoard():
         def f(t, v):
             self.running = True
             self.reload()
+
+
+
+
         messagebus.subscribe("/system/jack/started", f)
         self.reloader = f
         self.loadedPreset = "default"
@@ -831,6 +854,8 @@ class MixingBoard():
 
     def createChannel(self, name, data={}):
         with self.lock:
+            if name in self.channelObjects:
+                self.channelObjects[name].stop()
             self._createChannel(name, data)
 
     def _createChannel(self, name, data=channelTemplate):
@@ -860,7 +885,7 @@ class MixingBoard():
             time.sleep(0.01)
 
             p = ChannelStrip(name, board=self, channels=data.get(
-                'channels', 2), soundFuse=data.get('soundFuse', 3))
+                'channels', 2), soundFuse=data.get('soundFuse', 3),input=data.get('input'))
             self.channelObjects[name] = p
             p.fader = None
             p.loadData(data)

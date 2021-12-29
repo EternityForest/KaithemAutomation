@@ -268,7 +268,17 @@ import os
                     <td>{{param.displayName}}</td>
                     <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
                         v-bind:max="param.max" :step="(param.step)"
-                        v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
+                        v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
+                    </td>
+
+                    <td>{{param.value}}</td>
+                  </template>
+
+                  <template v-if="param.type=='string.int'">
+                    <td>{{param.displayName}}</td>
+                    <td><input type="number" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                        v-bind:max="param.max" :step="(param.step)"
+                        v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
                     </td>
 
                     <td>{{param.value}}</td>
@@ -290,7 +300,7 @@ import os
                     <td>{{param.value}}</td>
                   </template>
 
-                  <template v-if="param.type=='string' || param.type=='string.int'">
+                  <template v-if="param.type=='string'">
                     <td>{{param.displayName}}</td>
                     <td><input v-model="param.value"
                         v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">

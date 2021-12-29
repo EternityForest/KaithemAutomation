@@ -175,51 +175,6 @@ effectTemplates_data = {
         ]
     },
 
-    "rtplistener": {
-        "type": "rtplistener",
-        "displayType": "RTP Reciever",
-        "help": "Recieve via RTP using the Opus codec",
-        "gstElement": "rtpjitterbuffer",
-        "params": {
-            "latency": {
-                "displayName": "Latency",
-                "type": "float",
-                "value": 100,
-                "min": 5,
-                "max": 500,
-                "step": 1,
-                "sort": 0
-            },
-            "preSupport.1.port": {
-                "displayName": "Port",
-                "type": "string.int",
-                "value": 5000,
-                "sort": 0
-            }
-
-        },
-        "gstSetup": {},
-        "sidechain": False,
-        "preSupportElements": [
-
-            # Whatever auto was in the channel before we have to just ignore, IceFlow will automatically not connect this to the next thing.
-            {"gstElement": "fakesink", "gstSetup":
-             {
-             }},
-
-            {"gstElement": "udpsrc", "gstSetup":
-             {
-                 'caps': "application/x-rtp, media=(string)audio, clock-rate=(int)48000, encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00, payload=(int)96, ssrc=(uint)950073154, clock-base=(uint)639610336, seqnum-base=(uint)55488"
-             }},
-        ],
-        "postSupportElements": [
-            {"gstElement": "rtpopusdepay", "gstSetup": {}},
-            {"gstElement": "opusdec", "gstSetup": {}},
-            {"gstElement": "audioconvert", "gstSetup": {}},
-            {"gstElement": "audioresample", "gstSetup": {}},
-
-        ]
-    },
     "rtpsender": {
         "type": "rtpsender",
         "displayType": "RTP Sender",
