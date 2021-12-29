@@ -261,6 +261,13 @@ padding: 0px;
 	border: var(--buttonbar-element-border);
 	background: var(--buttonbar-item-bg);
 }
+
+.buttonbar meter::-webkit-meter-inner-element {
+	-webkit-appearance: inherit;
+	box-sizing: inherit;
+	border: 1px solid #aaa;
+	height: 22px;
+  }
 .buttonbar > form{
 	border: none !important;
 	border-radius: 12px;
