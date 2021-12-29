@@ -236,8 +236,10 @@ settings individually for every tag.  Leave blank to disable.  These are used to
 Currently this is only supported for the newer cross-framework devices.
  </p>
 
-Read: <input name="kaithem.read_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__">
-Write:<input name="kaithem.write_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__">
+<div class="buttonbar">
+<label>Read:<input name="kaithem.read_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__"></label>
+<label>Write:<input name="kaithem.write_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__"></label>
+</div>
 </div>
 <hr>
 <input type="submit" value="Save settings">

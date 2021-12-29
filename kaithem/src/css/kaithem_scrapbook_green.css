@@ -39,7 +39,7 @@ box-sizing: border-box;
 	font-size:130%;
 	border-radius: 5px;
 	background-color: rgba(220,255,200,0.3);
-	backdrop-filter: blur(5px);
+	backdrop-filter: blur(3px);
 }
 
 .navbar .buttonbar
@@ -179,7 +179,7 @@ div.sectionbox,section{
 	background: rgba(228,233,227,0.6);
 	border-width:1px;
 	border-radius: 15px;
-	backdrop-filter: blur(3px);
+	backdrop-filter: blur(1px);
 	border-color: #00000059;
 	padding-top:0.2%;
 	padding-bottom:0.5%;
@@ -187,9 +187,9 @@ div.sectionbox,section{
 	padding-left:0.5%;
 }
 
-div.sectionbox, section, .navbar .buttonbar
+div.sectionbox, section
 {
-	box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.92)
+	box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.7)
 }
 
 /* A scrollable div */
@@ -254,7 +254,7 @@ border-radius: 30px;
 padding: 0px;
 border-width: 3px;
 border-color: #D0D0D0;
-backdrop-filter: blur(5px);
+backdrop-filter: blur(3px);
 }
 
 
@@ -282,9 +282,11 @@ border-color: #00000057;
 
 
 .buttonbar{
-	box-shadow: 2px 2px 6px -1px rgba(0, 0, 0, 0.308)
+	box-shadow: 1px 5px 12px -3px rgba(43, 39, 85, 0.329);
 }
-
+.menubar:is(.buttonbar), .navbar .buttonbar{
+	--buttonbar-convex-item-bg: linear-gradient(180deg, rgb(255 255 255 / 55%) 0%, rgba(0, 0, 0, 0.096) 96%);
+}
 
 
 
@@ -300,7 +302,7 @@ button, a.button, input, textarea{
 a.button{
 	border-width:1px;
 	text-decoration: none;
-	border-radius:5px;
+	border-radius:12px;
 	color:#000000;
 	padding:0em 0.2em 0em 0.2em;
 	display: inline-block;
@@ -388,7 +390,7 @@ div.widgetcontainer
 	display:inline-block;
 	background-color: rgba(70,90,70,0.25);
 	padding-top: 0px;
-	border-radius:5px;
+	border-radius:15px;
 	border-style:inset;
 	border-width:2px;
 	color: rgb(0,0,0);
@@ -398,6 +400,9 @@ div.widgetcontainer
 	font-family: B612;
 }
 
+div.widgetcontainer > div.scrollbox{
+	border: none;
+}
 
 /*Numeric Process Value. These spans are intended for displays of changing numbers.*/
 span.numericpv
@@ -540,6 +545,7 @@ table {
   border-spacing: 0;
 border-radius: 15px;
 border: none;
+border-color: #00000059;
 }
 tbody
 {
@@ -554,17 +560,22 @@ th{
 }
 table tr th,
 table tr td {
-  border-right: 1px solid;
-  border-bottom: 1px solid;
+  border-right: 2px solid;
+  border-bottom: 2px solid;
+  border-color: inherit;
   padding: 4px;
 }
 table tr th:first-child,
 table tr td:first-child {
-  border-left: 1px solid;
+  border-left: 2px solid;
+  border-color: inherit;
+
 }
 
 table tr th, table tr:first-child td {
-  border-top: 1px solid;
+  border-top: 2px solid;
+  border-color: inherit;
+
   text-align: left;
 }
 

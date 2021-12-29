@@ -105,11 +105,12 @@ button, a.button, label {
 
 
 
-td input
+td input, td select
 {
-	margin: 0px;
+	margin: 2px;
 	border: 1px solid;
 	border-radius: 0px;
+	box-sizing: border-box;
 }
 
 td{
@@ -195,6 +196,9 @@ body > header:first-of-type{
 	opacity: 100%;
 }
 
+input[type=checkbox]{
+	min-width: 2em;
+}
 
 .navbar {
 	border-style: solid;
@@ -210,7 +214,7 @@ p.menubar, div.menubar {
 	background-color: rgba(255, 25, 255, 0.1);
 	border-radius: 7px;
 	opacity: 90%;
-	width: 99%;
+	width: 99.9%;
 }
 p.menubar:hover, div.menubar:hover {
 	background-color: rgba(255, 25, 255, 0.1);
@@ -358,6 +362,10 @@ a.button {
 	display: inline-block;
 }
 
+.buttonbar{
+	--buttonbar-element-border: 1px solid rgba(136, 153, 190, 0.733);
+}
+
 /*****************************General***********************************************************************************/
 
 /*These can be applied to jus about anything for highlighting and emphasis*/
@@ -413,12 +421,6 @@ table tr:nth-child(even) td {
 	background-color: rgba(0, 0, 0, 0.1);
 }
 
-table td{
-	border-right: 1px rgba(0, 0, 0, 0.5) solid;
-}
-table td:last-child{
-	border-right: none;
-}
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
