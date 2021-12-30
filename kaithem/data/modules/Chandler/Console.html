@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1640761713832131
+resource-timestamp: 1640835062552009
 resource-type: page
 template-engine: mako
 
@@ -730,7 +730,7 @@ limitedTagsListing=module.limitedTagsListing()
 
                 <hr>
                 <p class="buttonbar">
-                <input v-model="newscenename" placeholder="New scene name">
+                <input v-model="newscenename" placeholder="New scene name" size="4">
                 <button v-on:click="addScene()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add</button>
                 <button v-on:click="addMonitorScene()"><img src="/zipstatic/img/icons/fugue.zip/binocular--plus.png"></img>Add Monitor</button>
                 </p>

@@ -26,6 +26,7 @@ import os
 import re
 import cherrypy
 import copy
+import asyncio
 from typing import Dict, Optional, Union, Any, Callable
 
 from . import virtualresource, pages, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
@@ -533,6 +534,9 @@ class Device(virtualresource.VirtualResource):
         # And keep stuff from GCIng for too long
         workers.do(makeBackgroundPrintFunction(t, tm, title, self))
 
+    def web_handler(self, path, kwargs):
+        return "This device does not have a custom interface page."
+
 
 class UnsupportedDevice(Device):
     description = "This device does not have support, or else the support is not loaded."
@@ -560,6 +564,12 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     _isCrossFramework = True
 
+    def webHandler(self, *path, **kwargs):
+        return asyncio.run(self.web_handler(*path, **kwargs))
+
+    def serve_file(self,fn,mime='', name=None):
+        from . import kaithemobj
+        return kaithemobj.kaithem.web.serveFile(fn,mime, name)
 
     def __setupTagPerms(self, t, writable=True):
         # Devices can have a default exposure

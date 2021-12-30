@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1640229367828245
+resource-timestamp: 1640835192882475
 resource-type: event
 versions: {}
 
@@ -902,6 +902,7 @@ if __name__=='__setup__':
             self.tag = tag
             self.f = module.Fixture(self.name+".rgb",[['R','red'],['G','green'],['B','blue']])
             self.f.assign(self.name, 1)
+            self.lock=threading.RLock()
     
             self.lastColor = None
     
@@ -913,6 +914,16 @@ if __name__=='__setup__':
                 self.localFading=True
     
         def onFrame(self):
+            def f():
+                if self.lock.acquire(timeout=1):
+                    try:
+                        self._onFrame()
+                    finally:
+                        self.lock.release()
+            kaithem.misc.do(f)
+    
+        
+        def _onFrame(self):
             c = colorzero.Color.from_rgb(self.values[1]/255, self.values[2]/255, self.values[3]/255).html
     
             tm = time.monotonic()
@@ -920,6 +931,7 @@ if __name__=='__setup__':
             # Only set the fade tag right before we are about to do something with the bulb, otherwise we would be adding a ton
             # of useless writes
             if not c == self.lastColor or not c == self.tag.value:
+                self.lastColor=c
                 if self.fadeTag:
                     t = max(self.fadeEndTime-module.timefunc(), self.interpolationTime, 0)
                     # Round to the nearest 20th of a second so we don't accidentally set the values more often than needed if it doesn't change
