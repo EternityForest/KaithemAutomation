@@ -160,7 +160,10 @@ class YeelightRGB(YeelightDevice):
 
 
         color = colorzero.Color(self.datapoints['color'] or 'white')
-        hsv = color.hsv
+        rgb = color.rgb
+
+        # Very crappy color correction done by trial and error
+        hsv = colorzero.Color.from_rgb(rgb[0], max(0, rgb[1] - rgb[0]*0.1),  max(0, rgb[2] - rgb[0]*0.1)).hsv
 
         duration = self.datapoints['fade'] or 0
 
