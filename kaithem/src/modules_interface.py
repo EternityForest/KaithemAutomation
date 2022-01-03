@@ -358,6 +358,7 @@ class WebInterface():
             if path[0] == 'obj':
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("/admin/modules.edit")
+                pages.postOnly()
 
                 if path[1] == "module":
                     obj = scopes[root]

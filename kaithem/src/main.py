@@ -1,3 +1,5 @@
+
+
 #!/usr/bin/python3
 # Copyright Daniel Dunn 2013-2015
 # This file is part of Kaithem Automation.
@@ -20,6 +22,7 @@
 
 import os
 import sys
+
 from . import pathsetup
 
 # Minimal path setup, to be able to even find the rest
@@ -425,22 +428,27 @@ def webRoot():
             # This page could be slow because of the db stuff, so we restrict it more
             pages.require("/admin/settings.edit")
             if "new_numtag" in data:
-                pages.require("/admin/settings.edit")
+                pages.postOnly()
                 return pages.get_template('settings/tagpoint.html').render(new_numtag=data['new_numtag'], tagname=data['new_numtag'], show_advanced=True)
             if "new_strtag" in data:
-                pages.require("/admin/settings.edit")
+                pages.postOnly()
                 return pages.get_template('settings/tagpoint.html').render(new_strtag=data['new_strtag'], tagname=data['new_strtag'], show_advanced=True)
+            
+            if data:
+                pages.postOnly()
 
             if path:
-                pages.require("/admin/settings.edit")
+                if not path[0] in tagpoints.allTags:
+                    raise ValueError("This tag does not exist")
                 return pages.get_template('settings/tagpoint.html').render(tagName=path[0], data=data, show_advanced=show_advanced)
-            else:
+            else:                    
                 return pages.get_template('settings/tagpoints.html').render(data=data)
 
         @cherrypy.expose
         def tagpointlog(self, *path, **data):
             # This page could be slow because of the db stuff, so we restrict it more
             pages.require("/admin/settings.edit")
+            pages.postOnly()
             if not 'exportRows' in data:
                 return pages.get_template('settings/tagpointlog.html').render(tagName=path[0], data=data)
             else:

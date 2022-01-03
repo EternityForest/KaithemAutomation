@@ -1,3 +1,5 @@
+
+
 # Copyright Daniel Dunn 2013, 2015,2017
 # This file is part of Kaithem Automation.
 
@@ -111,6 +113,11 @@ BasePermissions: Dict[str,str] = {
     "/users/devices.write": "The default permission used to expose device points for writing, but devices can be configured to use others.",
     "__guest__": "Everyone always has this permission even when not logged in"
 }
+
+crossSiteRestrictedPermissions= BasePermissions.copy()
+crossSiteRestrictedPermissions.pop("__guest__")
+
+
 Permissions = BasePermissions
 
 """True only if auth module stuff changed since last save, used to prevent unneccesary disk writes.

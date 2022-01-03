@@ -39,7 +39,9 @@ specialKeys={
 <h1>Device Inspector: ${name} <span style="color: aquamarine;">${'(cross-framework)' if isinstance(obj, devices.CrossFrameworkDevice) else ''}</span>
 </h1>
 <div class="sectionbox">
-<a class="button" href="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">Search for auto-setup configurations</a>
+<form method="post" action="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">
+        <button type="submit">Search for auto-setup configurations</button>
+</form>
 
 <form method="POST" action="/devices/updateDevice/${url(name)}">
 

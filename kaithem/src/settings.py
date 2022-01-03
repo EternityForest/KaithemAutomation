@@ -90,6 +90,7 @@ class Settings():
     def reloadcfg(self):
         """"Used to reload the config file"""
         pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
         config.reload()
         raise cherrypy.HTTPRedirect("/settings")
 
@@ -136,12 +137,13 @@ class Settings():
     def stopsounds(self, *args, **kwargs):
         """Used to stop all sounds currently being played via kaithem's sound module"""
         pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
         kaithemobj.kaithem.sound.stopAll()
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
     def gcsweep(self, *args, **kwargs):
-        """Used to stop all sounds currently being played via kaithem's sound module"""
+        """Used to do a garbage collection. I think this is safe and doesn't need xss protection"""
         pages.require("/admin/settings.edit")
         import gc
         # I don't think we can return right away anyway or people would think it was broken and not doing anything,
@@ -163,17 +165,14 @@ class Settings():
     @cherrypy.expose
     def updateytdl(self, *args, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
 
         if util.which("yt-dlp"):
             try:
                 subprocess.check_call(["yt-dlp", '-U'])
             except:
                 subprocess.check_call(["pip3", "install", "--upgrade", "yt-dlp"])
-        elif util.which("youtube-dl"):
-            try:
-                subprocess.check_call(["youtube-dl", '-U'])
-            except:
-                subprocess.check_call(["pip3", "install", "--upgrade", "youtube-dl"])
+      
 
         raise cherrypy.HTTPRedirect("/settings")
 
@@ -187,6 +186,7 @@ class Settings():
             dir = os.path.join('/', *args)
 
             if 'del' in kwargs:
+                pages.postOnly()
                 node = os.path.join(dir, kwargs['del'])
                 if os.path.isfile(node):
                     os.remove(node)
@@ -196,6 +196,7 @@ class Settings():
                     cherrypy.request.path_info.split('?')[0])
 
             if 'file' in kwargs:
+                pages.postOnly()
                 if os.path.exists(os.path.join(dir, kwargs['file'].filename)):
                     raise RuntimeError("Node with that name already exists")
                 with open(os.path.join(dir, kwargs['file'].filename), 'wb') as f:
@@ -208,6 +209,7 @@ class Settings():
             if 'zipfile' in kwargs:
                 # Unpack all zip members directly right here,
                 # Without creating a subfolder.
+                pages.postOnly()
                 with zipfile.ZipFile(kwargs['zipfile'].file) as zf:
                     for i in zf.namelist():
                         with open(os.path.join(dir, i), 'wb') as outf:
@@ -226,9 +228,11 @@ class Settings():
 
 
             if 'youtubedl' in kwargs:
+                pages.postOnly()
                 subprocess.check_call([ytdl, '--format', 'bestaudio', kwargs['youtubedl']], cwd=dir)
 
             if 'youtubedlvid' in kwargs:
+                pages.postOnly()
                 subprocess.check_call([ytdl, kwargs['youtubedlvid']], cwd=dir)
 
             if os.path.isdir(dir):
@@ -253,15 +257,11 @@ class Settings():
     @cherrypy.expose
     def snackbar(self,msg,duration):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
         return pages.get_template("settings/broadcast.html").render()
     
 
-
-    @cherrypy.expose
-    def broadcast(self, **kwargs):
-        pages.require("/admin/settings.edit")
-        return pages.get_template("settings/broadcast.html").render()
 
     @cherrypy.expose
     def console(self, **kwargs):
@@ -386,12 +386,14 @@ class Settings():
     @cherrypy.expose
     def testmail(self, *a, **k):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         mail.raw_send("testing", k['to'], 'test mail')
         raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
     def listmail(self, *a, **k):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         mail.rawlistsend(k['subj'], k['msg'], k['list'])
         raise cherrypy.HTTPRedirect("/")
 
@@ -450,6 +452,7 @@ class Settings():
     @cherrypy.expose
     def savetarget(self):
         pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
         util.SaveAllState()
         raise cherrypy.HTTPRedirect('/')
 
@@ -516,9 +519,10 @@ class Settings():
     @cherrypy.expose
     def set_time_from_web(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
         t = float(kwargs['time'])
-        subprocess.call(["date", "-s", "+%Y%m%d%H%M%S",
-                         time.strftime("%Y%m%d%H%M%S", time.gmtime(t-0.05))])
+        subprocess.call(["date", "-s", 
+                         time.strftime("%Y%m%d%H%M%S", time.gmtime(t-0.05)), "+%Y%m%d%H%M%S",])
         try:
             subprocess.call(["hwclock", "--systohc"])
         except:

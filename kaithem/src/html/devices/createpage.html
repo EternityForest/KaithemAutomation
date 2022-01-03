@@ -10,7 +10,7 @@ from src import devices
 <title>Create Device</title>
 <h1>Create Device</h1>
 <div class="sectionbox">
-    <form action="/devices/createDevice">
+    <form method="post" action="/devices/createDevice">
         %if module:
         <h2>Store in Module(Empty to store in main device list)</h2>
         <Label>Target Module:<input name="module"  value="${module or ''|h}"></Label>
@@ -24,7 +24,7 @@ from src import devices
         <Label>Name:<input name="name" value="${resource|h}" disabled></Label>
         %endif
             <Label>Type:<input name="type" disabled value="${type|h}"></Label>
-            <input type="hidden" name="type" value="${type|h}">
+            <input name="type" type="hidden" value="${type|h}"></Label>
         <h2>Device</h2>
             ${customForm}
 

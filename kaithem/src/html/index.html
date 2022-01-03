@@ -103,7 +103,7 @@ ${alertsapi.render("alertapi")}
 
     %if not i.sm.state=="acknowledged":
     <div style="align-self: center;">
-        <a class="button" style="align-self: center;" href=".?ackalarm=${i.id}">ACK</a>
+       <form action="?ackalarm=${i.id}" method="post"><button style="align-self: center;" href=".">ACK</button></form>
     </div>
     %else:
     <div style="align-self: center;">

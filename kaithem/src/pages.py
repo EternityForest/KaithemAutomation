@@ -1,3 +1,5 @@
+
+
 # Copyright Daniel Dunn 2013. 2015,2017
 # This file is part of Kaithem Automation.
 
@@ -142,6 +144,8 @@ def require(permission, noautoreturn=False):
     else:
         p = [permission]
     for permission in p:
+        if permission in auth.crossSiteRestrictedPermissions:
+            noCrossSite()
 
         # If the special __guest__ user can do it, anybody can.
         if '__guest__' in auth.Users:
@@ -198,10 +202,21 @@ if noSecurityMode:
             return True
         raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
-    def require(*args, **kwargs):
+    def require(permission, *args, **kwargs):
         if canOverrideSecurity():
             return True
         raise auth.canUserDoThis(getAcessingUser(), permission)
+
+
+
+def noCrossSite():
+    if not cherrypy.request.base.startswith(cherrypy.request.headers.get("Origin",'')):
+        raise PermissionError("Cannot make this request from a different origin")
+
+def strictNoCrossSite():
+    if not cherrypy.request.base.startswith(cherrypy.request.headers.get("Origin",'__FAIL__NO_ORIGIN_PROVIDED')):
+        raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
+
 
 
 def getAcessingUser():

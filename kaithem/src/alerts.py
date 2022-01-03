@@ -288,6 +288,7 @@ class Alert(virtualresource.VirtualResource):
 
     def API_ack(self):
         pages.require(self.ackPermissions)
+        pages.postOnly()
         self.acknowledge()
 
     @property

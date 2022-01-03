@@ -7,6 +7,7 @@ import cherrypy
 class WebUI():
     @cherrypy.expose
     def scan(self): 
+        pages.postOnly()
         pages.require("/admin/settings.edit")
         
         import bluetoothctl
@@ -27,6 +28,7 @@ class WebUI():
     @cherrypy.expose
     def pair(self,mac):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
                 
         import bluetoothctl
         bt = bluetoothctl.Bluetoothctl()
@@ -56,6 +58,7 @@ class WebUI():
     @cherrypy.expose
     def remove(self,mac):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         import bluetoothctl
         bt = bluetoothctl.Bluetoothctl()
         time.sleep(0.5)

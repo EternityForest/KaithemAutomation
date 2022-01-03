@@ -85,6 +85,7 @@ lastLoggedUserError =0
 class WebInterface():
     @cherrypy.expose
     def ws(self):
+        pages.strictNoCrossSite()
         # you can access the class instance through
         handler = cherrypy.request.ws_handler
         x = cherrypy.request.remote.ip

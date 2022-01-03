@@ -463,11 +463,25 @@ class KaithemPage():
                 cherrypy.response.headers['Access-Control-Allow-Methods'] = x
 
     def _serve(self, module, *args, **kwargs):
+
         page = lookup(module, args)
         if None == page:
             messagebus.postMessage("/system/errors/http/nonexistant",
                                    "Someone tried to access a page that did not exist in module %s with path %s" % (module, args))
             raise cherrypy.NotFound()
+
+        if 'Origin' in cherrypy.request.headers:
+            if not  (cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins):
+                raise RuntimeError("Refusing XSS from this origin: "+cherrypy.request.headers['Origin'])
+            else:
+                cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
+
+        x = ""
+        for i in page.methods:
+            x += i + ", "
+        x = x[:-2]
+        cherrypy.response.headers['Access-Control-Allow-Methods'] = x
+
         page.lastaccessed = time.time()
         # Check user permissions
         for i in page.permissions:

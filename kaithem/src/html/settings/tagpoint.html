@@ -588,7 +588,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
     %for n,i in enumerate(configData.get('loggers',[]) + [{'interval':0, 'accumulate': 'latest'}]):
 
     <tr>
-        <td><input type="number" step="0.1" value="${i['interval']}" name="logger_${n}:interval"</td>
+        <td><input type="number" step="0.1" value="${i['interval']}" name="logger_${n}:interval"></td>
     <td>
         <select name="logger_${n}:accumulate">
             <option value="latest" ${'selected' if i['accumulate']=='latest' else ''}>Latest</option>
@@ -599,7 +599,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
             %endif
         </select> 
     </td>
-    <td><input type="number" step="1800" value="${i.get('historyLength',3*30*24*3600)}" name="logger_${n}:historyLength"</td>
+    <td><input type="number" step="1800" value="${i.get('historyLength',3*30*24*3600)}" name="logger_${n}:historyLength"></td>
     <td>
         <select name="logger_${n}:target">
             <option value="ram" ${'selected' if i.get("target","disk")=='disk' else ''}>RAM</option>
@@ -612,7 +612,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
 
 
 %if hasattr(tag, 'configLoggers'):
-<h3>Recent Log Data <a href="/tagpointlog/${normalizednormalizedTagName|u}">Full Logs</a></a></h3>
+<h3>Recent Log Data </h3>
 
 <table border=1>
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
@@ -648,9 +648,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
 
 
 <input type="submit">
-
-
 </form>
-
+<form method="post" action="/tagpointlog/${normalizednormalizedTagName|u}"><button>Full Logs</button></form>
 
 <%include file="/pagefooter.html"/>

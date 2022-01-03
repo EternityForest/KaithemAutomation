@@ -131,15 +131,3 @@ class WebInterface(object):
     def archive(self):
         pages.require('/users/logs.view')
         return pages.get_template('syslog/archive.html').render(files=listlogdumps())
-
-    @cherrypy.expose
-    def flushlogs(self):
-        pages.require('/admin/logging.edit')
-        return pages.get_template('syslog/dump.html').render()
-
-    @cherrypy.expose
-    def dumpfiletarget(self):
-        pages.require('/admin/logging.edit')
-        pages.postOnly()
-        pylogginghandler.syslogger.flush()
-        return pages.get_template('syslog/index.html').render()

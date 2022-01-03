@@ -44,7 +44,7 @@ def dump(j):
     To log a topic, edit the text list at the bottom or click start logging.
     Log files will be dumped after a certain number of messages, or when the server state is explicitly saved.
     </p>
-    <p class="menubar"><a href="/logs/archive" class="button">Archives</a> | <a href="/logs/flushlogs" class="button">Flush Logs to File</a>
+    <p class="menubar">
     %if config['enable-js']:
         | Show only topics containing:<input type="text" id="filter"
         onchange="hideshow()" onkeyup="hideshow()"/>
@@ -75,13 +75,13 @@ def dump(j):
                     <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
                     (logging)
                     %if i in messagelogging.toSave:
-                        <a href="/logs/stoplogging/${url(i)}">[stop]</a>)
+                        <form method="post" action="/logs/stoplogging/${url(i)}"><button>Stop</button></form>
                     %else:
                         [logged because it is part of a subtree that is being logged]
                     %endif
                 %else:
                     <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
-                    (will not be saved to log file <a href="/logs/startlogging/${url(i)}">[start logging]</a>)
+                    will not be saved to log file <form method="post" action="/logs/startlogging/${url(i)}"><button>Start logging</button> </form>
                 %endif
 
                 <p>

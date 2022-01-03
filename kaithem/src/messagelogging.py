@@ -125,6 +125,7 @@ class WebInterface(object):
         global known_unsaved
         global loglistchanged
         pages.require('/admin/logging.edit')
+        pages.postOnly()
         # Invalidate the cache of non-logged topics
         known_unsaved = OrderedDict()
         topic = topic.encode("latin-1").decode("utf-8")
@@ -137,6 +138,7 @@ class WebInterface(object):
     def stoplogging(self, topic):
         global loglistchanged
         pages.require('/admin/logging.edit')
+        pages.postOnly()
         topic = topic.encode("latin-1").decode("utf-8")
         topic = topic[1:]
         loglistchanged = True

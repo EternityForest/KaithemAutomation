@@ -75,10 +75,12 @@ import os%>
 <dd>Web-based audio mixing board. Requires JACK and GStreamer, and only works on Linux.</dd>
 </dl>
 
-<dt><a href="/settings/bt/scan">Bluetooth Manager</a></dt>
+<dt>Bluetooth Manager</dt>
 <dd>Scan for and pair BT devices. Requires that Kaithem be root or have passwordless sudo. Currently
     only supports the "Just Works" pairing method used by things like speakers and gamepads, not suitable for keyboards
-    or things that handle sensitive data.
+    or things that handle sensitive data.<form method="post" action="/settings/bt/scan"><button>Scan now(Takes ~15s)</button></form>
+
+    </form>
 </dd>
 </dl>
 
@@ -91,10 +93,10 @@ import os%>
 <dd>Set time based on time reported by browser(Kaithem must run as root)
 </dd>
 
-<dt><a href="/settings/updateytdl">Update youtube-dl</a></dt>
-<dd>Updates or installs youtube-dl.  May require python3-pip if youtube-dl is not already installled.  Try this if file manager video
-    downloads don't work.
-</dd>
+
+<dt><form method="post" action="/settings/updateytdl"><button>Update yt-dlp</button></form></dt>
+<dd>Updates or installs yt-dlp.  May require python3-pip if youtube-dl is not already installled.  Try this if file manager video
+    downloads don't work.</dd>
 
 
 <dt><a href="/modules/module/DUMMY/obj/sysmodule/?objpath=amodules&objname=modules">Object Inspector(Explore starting from the list of modules)</a></dt>
@@ -106,7 +108,7 @@ import os%>
 </dl>
 
 
-<dt><a href="/settings/stopsounds">Stop All Sounds currently playing</a></dt>
+<dt><form method="post" action="/settings/stopsounds"><button>Stop All Sounds currently playing</button></form></dt>
 <dd>Click to stop all sounds playing on the server.</dd>
 
 </dl>

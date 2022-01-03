@@ -116,6 +116,15 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.3
+
+This update focuses on securing against some unusual but not too difficult to exploit edge cases,
+especially when using plain HTTP.
+
+- All builtin permissions are inaccessible for cross-site use
+- Patch a few things that accepted GET requests that should not have
+- The websocket widget API is no longer usable cross-site.
+
 ### 0.68.2
 
 - Remove excessively buggy RTP reciever mixer element.

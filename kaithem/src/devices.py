@@ -1,3 +1,5 @@
+
+
 # Copyright Daniel Dunn 2018
 # This file is part of Kaithem Automation.
 
@@ -463,7 +465,7 @@ class Device(virtualresource.VirtualResource):
                 self.tagPoints[v[1]].value = v[2]
 
         elif v[0]=='refresh':
-            self.tagPoints[v[1]].getValue(True)
+            self.tagPoints[v[1]].pull()
 
     # delete a device, it should not be used after this
     def close(self):
@@ -980,6 +982,9 @@ class WebDevices():
     def device(self, name, *args, **kwargs):
         #This is a customizable per-device page
         if args and args[0] == 'web':
+            if kwargs:
+                # Just don't allow gets that way
+                pages.postOnly()
             try:
                 return remote_devices[name].webHandler(*args[1:], **kwargs)
             except pages.ServeFileInsteadOfRenderingPageException as e:
@@ -1023,13 +1028,11 @@ class WebDevices():
 
         return pages.get_template("devices/devicedocs.html").render(docs=x)
 
-    def readFile(self, name, file):
-        pages.require("/admin/settings.edit")
-        return remote_devices[name].readFile(file)
 
     @cherrypy.expose
     def updateDevice(self, devname, **kwargs):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         updateDevice(devname, kwargs)
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -1040,6 +1043,7 @@ class WebDevices():
             an existing device config and ask it for refinements.
         """
         pages.require("/admin/settings.edit")
+        pages.postOnly()
 
         current = kwargs
 
@@ -1070,8 +1074,8 @@ class WebDevices():
     @cherrypy.expose
     def createDevice(self, name=None, **kwargs):
         "Actually create the new device"
-
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         name = name or kwargs.get('name', None)
         m = r = None
         with lock:
@@ -1119,6 +1123,7 @@ class WebDevices():
     def customCreateDevicePage(self, name, module='', resource='', **kwargs):
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("/admin/settings.edit")
+        pages.postOnly()
 
         tp = getDeviceType(kwargs['type'])
 
@@ -1144,6 +1149,7 @@ class WebDevices():
     @cherrypy.expose
     def deletetarget(self, **kwargs):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         name = kwargs['name']
         with lock:
             x = remote_devices[name]

@@ -7,6 +7,6 @@ import os,urllib
 <h1>Confirm Delete(Back to cancel)</h1>
 <div class="sectionbox">
 Confirm deleting ${path|h}?<br>
-<a href="/settings/files/${os.path.split(path)[0]|u}?del=${os.path.split(path)[1]|u}">Confirm(Cannot be undone)</a>
+<form action="/settings/files/${os.path.split(path)[0]|u}?del=${os.path.split(path)[1]|u}" method="post"><button>Confirm(Cannot be undone)</button></form>
 </div>
 <%include file="/pagefooter.html"/>

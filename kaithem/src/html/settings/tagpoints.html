@@ -46,7 +46,7 @@ Page:
 <a href="/tagpoints?pageNumber=${i}&searchFilter=${searchFilter|u}">${'<b>'+str(i)+'</b>' if i==pageNumber else str(i)}</a>
 %endfor
 <div class="buttonbar">
-    <form method="GET" action="/tagpoints?pageNumber=${pageNumber}">
+    <form method="post" action="/tagpoints?pageNumber=${pageNumber}">
         <input name="searchFilter" value="${searchFilter|h}" size="8"> <input type="submit" value="Search">
     </form>
 </div>
@@ -123,10 +123,10 @@ Page:
 </table>
 
 <div class="menubar buttonbar">
-    <form method="GET" action="/tagpoints">
+    <form method="POST" action="/tagpoints">
         <input name="new_numtag"><input type="submit" value="New Number Tag">
     </form>
-    <form method="GET" action="/tagpoints">
+    <form method="POST" action="/tagpoints">
         <input name="new_strtag"><input type="submit" value="New String Tag">
     </form>
     <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
