@@ -116,6 +116,11 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.4
+
+- Chandler tagpoint universes now correctly map the fader to the full range of the tagpoint, if it has a min and max set.
+- Work on getting PWM working with GPIO.
+
 ### 0.68.3
 
 This update focuses on securing against some unusual but not too difficult to exploit edge cases,
@@ -175,18 +180,6 @@ And was causing maintainence nightmares.
 - Purely experimental NVRPlugin can stream live video to a page with HLS, but recording isn't there
 
 
-### 0.67.4
-- Fix nuisance bad unit: dB error
-- Much better object pool manager for sound players, avoids occasional dropouts
-- Fix reused GStreamer proxy IDs that affected RasPi
-- Improve performance of JSONRpyc proxies
-
-### 0.67.3
-- BluetoothBeacon replaced with EspruinoHub client device that does the same thing with enhanced features.
-- Now the DrayerDBPlugin has a very basic browser
-
-### 0.67.2
-- Fix Chandler MQTT compatibility
 
 
 

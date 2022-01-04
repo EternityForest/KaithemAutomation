@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.68.4
+
+- Chandler tagpoint universes now correctly map the fader to the full range of the tagpoint, if it has a min and max set.
+- Work on getting PWM working with GPIO.
+
 ### 0.68.3
 
 This update focuses on securing against some unusual but not too difficult to exploit edge cases,
