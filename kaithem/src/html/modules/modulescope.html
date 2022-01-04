@@ -32,7 +32,7 @@ if "cmd" in kwargs:
 
 
 %for i in obj.__dict__:
-<h3><a href="?objpath=a${i|h}&objname=${i|h}">${i|h}</a></h3>
+<h3><form method="post" action="?objpath=a${i|h}&objname=${i|h}"><button>${i|h}</button></form></h3>
 <pre>${util.saferepr(obj.__dict__[i])|h}</pre>
 %endfor
 

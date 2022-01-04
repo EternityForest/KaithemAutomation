@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1640835192882475
+resource-timestamp: 1641276823517748
 resource-type: event
 versions: {}
 
@@ -463,7 +463,7 @@ if __name__=='__setup__':
             self.statusChanged = {}
             self.tagpoints=tagpoints
             self.channelCount=channels
-            
+            self.tagObjsByNum={}
             self.claims = {}
             self.hidden=False
             
@@ -492,6 +492,7 @@ if __name__=='__setup__':
                     
                     tpn = self.tagpoints[i]
                     if tpn:
+                        self.tagObjsByNum[num]=kaithem.tags[tpn]
                         self.claims[num]= kaithem.tags[tpn].claim(0,"Chandler_"+name,  50 if number < 2 else number)
                         self.channelNames[chname]=num
                         
@@ -512,6 +513,14 @@ if __name__=='__setup__':
                 try:
                     x = float(self.values[i])
                     if x>-1:
+                        if self.tagObjsByNum[i].min is not None and self.tagObjsByNum[i].min>=-10**14:
+    
+                            # Should the tag point have a range set, and should that range be smaller than some very large possible default
+                            # it could be, map the value from our 0-255 scale to whatever the tag point's scale is.
+                            if self.tagObjsByNum[i].max is not None and self.tagObjsByNum[i].max<=10**14:
+                                x = x/255
+                                x *= self.tagObjsByNum[i].max- self.tagObjsByNum[i].min
+                                x+= self.tagObjsByNum[i].min
                         self.claims[i].set(x)
                 except:
                     rl_log_exc("Error in tagpoint universe")

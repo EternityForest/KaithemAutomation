@@ -358,7 +358,6 @@ This section the most recent errors that ocurred while executing the event or tr
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
-<a href="/modules/module/${url(module)}/obj/event/${url(name)}">View the event's namespace(requires edit permission, beware shoulder surfers)</a></br>
 <input type="submit" value="Save Changes" onclick="wasChanged=false"></input>
 <label><input type="checkbox"  name="tabtospace"
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
@@ -369,6 +368,8 @@ Saving this module will case it to completely reload, including its local scope.
 <p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif
 </form>
+<form method="post" action="/modules/module/${url(module)}/obj/event/${url(name)}"><button>Go to the event's namespace(requires edit permission, beware shoulder surfers)</button></form>
+
 </section>
 
 %if not(config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco')):

@@ -122,6 +122,7 @@ class Kaithem():
     class gpio():
         DigitalInput = gpio.DigitalInput
         DigitalOutput = gpio.DigitalOutput
+        PWMOutput = gpio.PWMOutput
 
     class logging(object):
         @staticmethod

@@ -26,8 +26,8 @@ ${obj.__class__|h}
 %if isinstance(obj, (weakref.ref)):
 <h3>Weak Reference</h3>
 <section>
-<a href="?objname=${objname}()&objpath=${objpath},c">Referrent</a>
-</sectio>
+<form method="post" action="?objname=${objname}()&objpath=${objpath},c"><button>Referrent</button></form>
+</section>
 %endif
 
 %if hasattr(obj,'__dict__'):
@@ -35,7 +35,7 @@ ${obj.__class__|h}
 <section>
 <dl>
 %for i in sorted(obj.__dict__.keys(), key=str):
-<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}.${i}&objpath=${objpath},a${i}"><button>${i|h}</button></form></dt>
 <dd>${util.saferepr(obj.__dict__[i])|h}<br>
     %if hasattr(obj.__dict__[i],'__doc__'):
     <pre>${obj.__dict__[i].__doc__}</pre>
@@ -45,7 +45,7 @@ ${obj.__class__|h}
 
 %for i in['__class__','__getattr__','__setattr__', '__getattribute__',"__del__","__init__","__str__","__repr__"]:
 %if hasattr(obj,i):
-<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}.${i}&objpath=${objpath},a${i}"><button>${i|h}</button></form></dt>
 <dd>${util.saferepr(getattr(obj,i))|h}</dd>
 %endif
 %endfor
@@ -55,12 +55,12 @@ ${obj.__class__|h}
 
 <h3>Objects Referring to this Object</h3>
 <div class="sectionbox">
-<a href="?objname=${objname}&objpath=${objpath}&gcinfo=1">Get Info</a>
+<form method="post" action="?objname=${objname}&objpath=${objpath}&gcinfo=1"><button>Get Info</button></form>
 %if getGC:
 <p class="help">Greyed entries may be less interesting and more likely the rendering of this page itself.</p>
 <dl>
 %for i in gc.get_referrers(obj):
-<dt><a href="?objname=${objname}&objpath=${objpath},r${id(i)}&gcinfo=1">${id(i)}</a></dt
+<dt><form method="post" action="?objname=${objname}&objpath=${objpath},r${id(i)}&gcinfo=1"><button>${id(i)}</button></form></dt
     >
 <dd
 %if 'getGC' in util.saferepr(i) or 'objpath' in util.saferepr(i):
@@ -87,7 +87,7 @@ style="color:grey;"
 <div class="sectionbox">
 <dl>
 %for i in obj.__slots__:
-<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}.${i}&objpath=${objpath},a${i}"><button>${i|h}</button></form></dt>
 <dd>${util.saferepr(getattr(obj,i))|h}<br>
     %if hasattr(getattr(obj,i),'__doc__'):
     <pre>${getattr(obj,i).__doc__}</pre>
@@ -104,7 +104,7 @@ ${traceback.format_exc()|h}
 
 %for i in['__class__','__getattr__','__setattr__', '__getattribute__',"__del__","__init__","__str__","__repr__"]:
 %if hasattr(obj,i):
-<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}.${i}&objpath=${objpath},a${i}"><button>${i|h}</button></form></dt>
 <dd>${util.saferepr(getattr(obj,i))|h}</dd>
 %endif
 %endfor
@@ -143,7 +143,7 @@ ${getsource(obj)|h}
 <h3>List Contents (${len(obj)} items)</h3>
 <ol start=0>
 %for n, i in enumerate(obj):
-<li><a href="?objname=${objname}[${n}]&objpath=${objpath|h},i${n}">${util.saferepr(i)|h}</a></li>
+<li><form method="post" action="?objname=${objname}[${n}]&objpath=${objpath|h},i${n}"><button>${util.saferepr(i)|h}</button></form></li>
 %endfor
 </ol>
 %endif
@@ -154,13 +154,13 @@ ${getsource(obj)|h}
 <dl>
 %for i in sorted(obj.keys(),key=str):
 %if isinstance(i,str):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},s${i.replace(",","\\,")|u}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},s${i.replace(",","\\,")|u}"><button>${i|h}</button></form></dt>
 %elif isinstance(i,tuple):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},t${util.url(json.dumps(i).replace(",","\\,"))}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},t${util.url(json.dumps(i).replace(",","\\,"))}"><button>${i|h}</button></form></dt>
 %elif isinstance(i,float):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},f${i}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},f${i}"><button>${i|h}</button></form></dt>
 %elif isinstance(i,int):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},i${i}">${i|h}</a></dt>
+<dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},i${i}"><button>${i|h}</button></form></dt>
 %endif
 <dd>${util.saferepr(obj[i])|h}</dd>
 %endfor

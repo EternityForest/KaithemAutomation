@@ -207,7 +207,11 @@ ${manageForm}
                 <button   style="background-color: #8F17E5;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#8F17E5'])">Prp</button>
                 <button  type="button"  style="background-color: white;  color: darkgray;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
                 %else:
-                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set</button>
+                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
+                        %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
+                        %endif
                 %endif
                 %endif
                 <button type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>

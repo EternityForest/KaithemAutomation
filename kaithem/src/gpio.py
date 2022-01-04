@@ -106,6 +106,8 @@ alreadySentMockWarning = False
 class GPIOTag():
     def __init__(self, name, pin, comment=""):
         self.tag = tagpoints.Tag(name)
+        self.tag.max = 1
+        self.tag.min = 0
         self.pin = pin
         if pin in inUsePins:
             messagebus.postMessage("/system/notifications/warnings",
@@ -194,31 +196,24 @@ class NoRealGPIOError(RuntimeError):
 
 
 class DigitalOutput(GPIOTag):
-    requirePWM = False
+    PWM = False
 
     def __init__(self, pin, *args, comment="", mock=None, **kwargs):
         log.info("Claiming pin "+str(pin)+" as functionoutput")
 
         GPIOTag.__init__(self, "/system/gpio/"+str(pin), pin, comment=comment)
-        from gpiozero import LED
+        from gpiozero import LED, PWMLED
         self.pin = pin
         self.comment = comment
 
         def pinSwitchFunc(doMock):
             # Switch to the appropriate mock or real pin
-            self.connectToPin(LED, pin, mock=doMock, *args, **kwargs)
+            self.connectToPin(PWMLED if self.pwm else LED, pin, mock=doMock, *args, **kwargs)
         self.pinSwitchFunc = pinSwitchFunc
         self.pinSwitchFunc(mock)
 
         self.activeState = kwargs.get('active_high', True)
 
-        # try:
-        #     self.connectToPin(PWMLED, pin, mock=mock,*args,**kwargs)
-        # except gpiozero.exc.PinPWMUnsupported:
-        #     if not self.requirePWM:
-        #         self.connectToPin(LED, pin, mock=mock,*args,**kwargs)
-        #     else:
-        #         raise
         self.lastPushed = 0
 
         self.overrideAlert = alerts.Alert("Pin"+str(pin)+"override")
@@ -229,12 +224,16 @@ class DigitalOutput(GPIOTag):
         def tagHandler(val, ts, annotation):
             if self.forced:
                 return
-            self.gpio.value = val > 0.5
+
+            if self.PWM:
+                self.gpio.val = val
+            else:
+                self.gpio.value = val > 0.5
 
             t = time.time()
             # We show the actual pin value not the tag point value
             if t-self.lastPushed > .2:
-                api.send(['o', self.pin, self.gpio.value > 0.5])
+                api.send(['o', self.pin, self.gpio.value > (0.5 if not self.pwm else 0.0001)])
             self.lastPushed = time.time()
 
         self.tagHandler = tagHandler
@@ -294,7 +293,9 @@ class DigitalOutput(GPIOTag):
             self.fakeGpio.close()
         except:
             pass
-
+        
+class PWMOutput(DigitalOutput):
+    PWM=True
 
 class DigitalInput(GPIOTag):
     def __init__(self, pin, *args, comment="", mock=None, **kwargs):

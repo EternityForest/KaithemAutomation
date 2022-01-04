@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1640835205109372
+resource-timestamp: 1641276840099904
 resource-type: event
 versions: {}
 
@@ -1492,7 +1492,8 @@ if __name__=='__setup__':
                         val = cues[msg[1]].scene().blendClass.default_channel_value
                     else:
                         val = 0
-                    cues[msg[1]].setValue(msg[2],msg[3],val)
+                    # Allow number:name format, but we only want the name
+                    cues[msg[1]].setValue(msg[2],msg[3].split(":")[-1],val)
     
                 if msg[0] == "setcuevaldata":
                     

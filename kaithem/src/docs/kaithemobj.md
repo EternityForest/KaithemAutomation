@@ -159,10 +159,7 @@ native messagebus/tagpoint based API.
 
 ### kaithem.gpio.DigitalOutput(pin, mock=False, comment=False,*, active\_high=True, initial\_value=0, frequency=100, pin\_factory=None)
 
-Wrapper for PWMLED or LED if a non-PWM pin is selected.
-
 Sets a digital output to follow the state of a tag point at  /system/gpio/PIN.
-In PWM mode, the range is 0-1.
 
 #### DigitalOutput.tag
 The tag point
@@ -177,6 +174,16 @@ Turn on by setting the tag's default value to 1. May be overriden by higher clai
 
 #### DigitalOutput.off()
 Turn off by setting the tag's default value to 0. May be overriden by higher claims.
+
+
+
+### kaithem.gpio.PWMOutput(pin, mock=False, comment=False,*, active\_high=True, initial\_value=0, frequency=100, pin\_factory=None)
+
+Same as above but in PWM mode.
+
+Sets a digital output to follow the state of a tag point at  /system/gpio/PIN.
+In PWM mode, the range is 0-1.
+
 
 ### kaithem.resource
 
