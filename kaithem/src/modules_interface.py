@@ -418,6 +418,7 @@ class WebInterface():
             # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == 'reloadresource':
                 pages.require("/admin/modules.edit")
+                pages.postOnly()
                 modules.reloadOneResource(module, path[1])
                 return resourceEditPage(module, path[1], version, kwargs)
 
