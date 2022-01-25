@@ -59,6 +59,9 @@ def devStatString(d):
     </td>
     <td>
             ${deviceData[i]().deviceTypeName}
+            %if  deviceData[i]().deviceTypeName =='unsupported':
+            (${deviceData[i]().data.get('type','UndefinedType')})
+            %endif
     </td>
 
 

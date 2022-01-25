@@ -213,8 +213,10 @@ class SharedStateFile():
             except:
                 logging.exception("wat")
 
+#Py3.8 doesn't like this line.  Use the better typing once 3.9 is in all the big distros
+#allFiles: weakref.WeakValueDictionary[str,SharedStateFile] = weakref.WeakValueDictionary()
 
-allFiles: weakref.WeakValueDictionary[str,SharedStateFile] = weakref.WeakValueDictionary()
+allFiles = weakref.WeakValueDictionary()
 
 def getStateFile(fn, defaults={}, legacy={}, deleteEmptyFiles=None) -> SharedStateFile:
     with stateFileLock:
