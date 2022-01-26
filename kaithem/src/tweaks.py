@@ -51,7 +51,11 @@ class rtMidiFixer():
         pass
         
     def __del__(self):
-        self.__obj.delete()
+        try:
+            self.__obj.delete()
+        except AttributeError:
+            self.__obj.close_port()
+            print(traceback.format_exc())
         self.__obj=None
     
 try:

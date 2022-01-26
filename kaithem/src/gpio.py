@@ -208,7 +208,7 @@ class DigitalOutput(GPIOTag):
 
         def pinSwitchFunc(doMock):
             # Switch to the appropriate mock or real pin
-            self.connectToPin(PWMLED if self.pwm else LED, pin, mock=doMock, *args, **kwargs)
+            self.connectToPin(PWMLED if self.PWM else LED, pin, mock=doMock, *args, **kwargs)
         self.pinSwitchFunc = pinSwitchFunc
         self.pinSwitchFunc(mock)
 

@@ -22,8 +22,18 @@ specialKeys={
 <script type="text/javascript" src="/static/js/editTable/editTable.min.js"></script>
 <link rel="stylesheet" href="/static/js/editTable/editTable.min.css">
 
+<datalist id="k_bindtype">
+        <option>auto</option>
+        <option>numeric</option>
+        <option>string</option>
+        <option value="object">JSON-like</option>
+</datalist>
 
 <datalist id="k_tags">
+        <option value="=1+2*5">Simple expression</option>
+        <option value="=tv('/exampleNumericTag')+5">Expression with tag val</option>
+        <option value="=stv('/exampleStringTag')">Expression with string tag val</option>
+
         %for i in tagpoints.allTagsAtomic:
         <option>${i|h}</option>
         %endfor
@@ -324,9 +334,18 @@ var mytable = $('#bindings').editTable({
             setValue: function (input, value) {
                 return $('<input list="k_tlocal" value="'+value+'"style="width:25em"/>')
             }
+        },
+        'btype' : {
+            html: '<input list="k_bindtype"/>',
+            getValue: function (input) {
+                return $(input).val()
+            },
+            setValue: function (input, value) {
+                return $('<input list="k_bindtype" value="'+value+'"style="width:8em"/>')
+            }
         }
     },
-    row_template: ['local', 'text', 'tag'],
+    row_template: ['local', 'btype', 'tag'],
 
     // Validate fields
     validate_field: function (col_id, value, col_type, $element) {

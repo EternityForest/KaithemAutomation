@@ -15,5 +15,5 @@ Recommends: python3-serial,
  jackd2, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad,
  swh-plugins, tap-plugins, caps,  gstreamer1.0-plugins-ugly, python3-psutil, fluidsynth,libfluidsynth2,
  network-manager,python3-paho-mqtt,python3-dbus,python3-lxml,gstreamer1.0-pocketsphinx,x42-plugins,baresip,autotalent,libmpv-dev,python3-dev,
- libbluetooth-dev,libcap2-bin, mosquitto, rtl-433, python3-toml
+ libbluetooth-dev,libcap2-bin, mosquitto, rtl-433, python3-toml, python3-rtmidi,python3-pycryptodome
 

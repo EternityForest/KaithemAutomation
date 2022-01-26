@@ -86,11 +86,8 @@ WantedBy=multi-user.target
 ```
 
 # To download all optional dependancies
-```
-sudo apt install pulseaudio python3-pyserial python3-pytz python3-dateutil lm-sensors python3-netifaces python3-jack-client python3-gst-1.0 python3-libnacl jack-tools jackd2 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad swh-plugins sudo apt install tap-plugins caps  gstreamer1.0-plugins-ugly python3-psutil fluidsynth libfluidsynth2 network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev libbluetooth-dev libcap2-bin
 
-sudo pip3 install beacontools[scan]
-```
+See helpers/debianpackaging/CONTROL for the list
 
 ### Security
 At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at

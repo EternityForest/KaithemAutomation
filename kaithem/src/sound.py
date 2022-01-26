@@ -533,11 +533,15 @@ class RemoteMPV():
 class MPVBackend(SoundWrapper):
     @staticmethod
     def testAvailable():
+        if not util.which("mpv"):
+            return False
         try:
-            import mpv
+            import python_mpv_jsonipc
             return True
         except:
             pass
+
+            
 
     backendname = "MPV"
 
