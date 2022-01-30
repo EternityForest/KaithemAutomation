@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.68.5
+
+- Compatibility with newer Linux Mint
+- Midi last note tags fixed
+- Compatibility with yet another RTMidi variant
+
 
 ### 0.68.4
 

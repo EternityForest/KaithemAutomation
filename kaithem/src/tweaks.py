@@ -55,7 +55,6 @@ class rtMidiFixer():
             self.__obj.delete()
         except AttributeError:
             self.__obj.close_port()
-            print(traceback.format_exc())
         self.__obj=None
     
 try:
