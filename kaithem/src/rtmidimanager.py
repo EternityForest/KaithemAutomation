@@ -54,7 +54,7 @@ def onMidiMessageTuple(m,d):
 
     if code==144:
         messagebus.postMessage("/midi/"+d,('noteon', ch,a,b) )
-        setTag("/midi/"+d+"/"+str(ch)+".note", a= b)
+        setTag("/midi/"+d+"/"+str(ch)+".note",a,  a= b)
 
     elif code==128:
         messagebus.postMessage("/midi/"+d,('noteoff', ch,a,b) )

@@ -1,3 +1,4 @@
+import threading
 from src import util, alerts, scheduling, tagpoints, messagebus
 import subprocess
 import logging
@@ -43,8 +44,43 @@ if battery:
 
 
 
+diskAlerts = {}
+
+spaceCheckLock = threading.RLock()
 
 if psutil:
+    @scheduling.scheduler.everyHour
+    def doDiskSpaceCheck():
+        with spaceCheckLock:
+            import psutil
+            partitions = psutil.disk_partitions(all=True)
+            found = {}
+
+            for p in partitions:
+                if p.device.startswith("/dev") or p.device=='tmpfs':
+                    if 'rw' in p.opts.split(","):
+                        id = p.device+" at " + p.mountpoint
+                        found[id]=True
+
+                        if not id in diskAlerts:
+                            diskAlerts[id] = alerts.Alert("Low remaining space: " +id, priority="warning", description="This alert may take a while to go away once the root cause is fixed.")
+                        try:
+                            full =  psutil.disk_usage(p.mountpoint).percent
+                        except OSError:
+                            continue
+                        if full > 90:
+                            diskAlerts[id].trip()
+                        if full < 80:
+                            diskAlerts[id].release()
+
+            for i in list(diskAlerts.keys()):
+                if not i in found:
+                    diskAlerts[i].release()
+                    del diskAlerts[i]
+                    
+    doDiskSpaceCheck()
+
+
     tempTags = {}
     @scheduling.scheduler.everyMinute
     def doPsutil():

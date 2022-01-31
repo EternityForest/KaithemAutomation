@@ -10,7 +10,7 @@
     import multiprocessing
     import re
     import threading
-
+    
     import kaithem
     from scullery import workers as sworkers
     from src import unitsofmeasure
@@ -133,7 +133,31 @@
      
         return sorted(ips.items())
 
+
 lanip =get_lan_ip()
+%>
+
+<%
+try:
+    import psutil
+except:
+    psutil=None
+
+try:
+    partitions = psutil.disk_partitions(all=True)
+    disks = {}
+
+    for p in partitions:
+        if p.device.startswith("/dev") or p.device=='tmpfs':
+            if 'rw' in p.opts.split(","):
+                id = p.device+" at " + p.mountpoint
+                try:
+                    disks[p.device, p.mountpoint] =  psutil.disk_usage(p.mountpoint)
+                except OSError:
+                    pass
+except:
+    print(traceback.format_exc())
+    disks = {}
 %>
 <script src="/static/qrcode.min.js"></script>
 
@@ -161,6 +185,44 @@ lanip =get_lan_ip()
 <p>
 
 
+<h3>Disks</h3>
+<table border=1>
+<tr>
+    <th>
+        Device
+    </th>
+    <th>
+        Mounted
+    </th>    
+    <th>
+        Size
+    </th>
+    <th>
+        Full
+    </th>
+</tr>
+%for i in sorted(list(disks.keys())):
+<tr>
+    <td>${i[0]|h}</td>
+    <td>${i[1]|h}</td>
+    <td>${unitsofmeasure.siFormatNumber(disks[i].total)|h}</td>
+
+    %if disks[i].percent<75:
+
+        <td>${disks[i].percent|h}%</td>
+    %elif disks[i].percent<90:
+        <td><span class="warning">${disks[i].percent|h}%</span></td>
+
+    %else:
+        <td><span class="error">${disks[i].percent|h}%</span></td>
+    %endif
+
+</tr>
+
+%endfor
+
+
+</table>
 <h3>Time/Weather</h3>
 <table border=1>
     <tr>

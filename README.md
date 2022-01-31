@@ -113,6 +113,19 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+
+### 0.68.6
+
+- Poll every hour to find any disks that may be above 90% full and raise an alarm automatically about this.
+- Disk usage status on about page
+
+### 0.68.5
+
+- Compatibility with newer Linux Mint
+- Midi last note tags fixed
+- Compatibility with yet another RTMidi variant
+
+
 ### 0.68.4
 
 - Chandler tagpoint universes now correctly map the fader to the full range of the tagpoint, if it has a min and max set.

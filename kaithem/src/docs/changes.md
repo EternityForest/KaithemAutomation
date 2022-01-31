@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+
+### 0.68.6
+
+- Poll every hour to find any disks that may be above 90% full and raise an alarm automatically about this.
+- Disk usage status on about page
+
+
 ### 0.68.5
 
 - Compatibility with newer Linux Mint
