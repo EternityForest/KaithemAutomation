@@ -321,6 +321,18 @@ class Settings():
         pages.require("/admin/mainpage.view")
         return pages.get_template("settings/util/leaflet.html").render()
 
+
+    @cherrypy.expose
+    def refreshuserpage(self, target):
+        pages.require("/users/accountsettings.edit")
+        pages.require("/users/settings.edit")
+        pages.postOnly()
+
+        from src import widgets
+        widgets.sendTo("__FORCEREFRESH__", '', target)
+        raise cherrypy.HTTPRedirect("/settings/account")
+
+
     @cherrypy.expose
     def changeprefs(self, **kwargs):
         pages.require("/users/accountsettings.edit")

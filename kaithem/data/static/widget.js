@@ -110,10 +110,17 @@ KaithemApi = function () {
 					KaithemWidgetApiSnackbar(m[0],m[1]);
 				}
 			],
+
 			"__KEYMAP__": [
 				function (m) {
 					self.uuidToWidgetId[m[0]] = m[1];
 					self.widgetIDtoUUID[m[1]] = m[0];
+				}
+			],
+
+			"__FORCEREFRESH__": [
+				function (m) {
+					window.location.reload();
 				}
 			]
 
@@ -356,6 +363,20 @@ if (!window.onerror) {
 KWidget_subscribe = function (a, b) { kaithemapi.subscribe(a, b) }
 KWidget_setValue = function (a, b) { kaithemapi.setValue(a, b) }
 KWidget_sendValue = function (a, b) { kaithemapi.sendValue(a, b) }
-
+__kwidget_doBattery= function() {
+	try {
+		navigator.getBattery().then(function (battery) {
+			KWidget_sendValue("__BATTERY__", { 'level': battery.level, 'charging': battery.charging})
+		});
+	}
+	catch (e) {
+		console.log(e)
+	}
+}
+	
+setTimeout(__kwidget_doBattery, 60)
+setInterval(__kwidget_doBattery, 1800000)
+	
+	
 setTimeout(function () { kaithemapi.connect() }, 100)
 }

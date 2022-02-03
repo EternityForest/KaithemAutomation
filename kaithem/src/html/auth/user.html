@@ -3,6 +3,7 @@
     from src import auth
     from src import widgets
     from src import unitsofmeasure
+    import traceback
 %>
 <%include file="/pageheader.html"/>
 <h2>User <span
@@ -20,31 +21,22 @@ class="specialentry"\
 Username:<input required="required" name="username" type="text" value="${username}"></input><br>
 Password(Leave blank=don't change):<input name="password" type="password" value="" autocomplete='off'></input>
 Retype:<input name="password2" type="password" value="" autocomplete='off'></input><br>
-<label>Dissalow login from IP outside of LAN<input name="lanonly" type="checkbox"
+<label>Disallow login from IP outside of LAN<input name="lanonly" type="checkbox"
 
 %if auth.getUserSetting(username,"restrict-lan"):
     checked="yes"
 %endif
 ></lan>
+
+<label>Telemetry alerts(Usefult for kiosks)<input name="telemetryalerts" type="checkbox"
+
+    %if auth.getUserSetting(username,"telemetry-alerts"):
+        checked="yes"
+    %endif
+    ></lan>
 </div>
 
-%try:
-    <h3>Telemetry</h3>
-    <div class="sectionbox">
-    User ${username} has open WebSocket connections from these addresses:<br>
-    <dl>
-    %for i in widgets.ws_connections.values():
-    %if i.user == username:
-        <dt>${i._peer_address}</dt>
-        <dd>Browsing: ${i.pageURL}</dd>
-    %endif
-    %endfor
-    </div>
-%except Exception as e:
-${e}
-PROBABLY A RACE CONDITION OCCURED, RELOAD FOR TELEMETRY
-</div>
-%endtry
+
 
 
 <h3>Groups</h3>
@@ -61,20 +53,77 @@ User ${username} is a member of the following groups:<br>
 %endfor
 </div>
 
+<input value="Save Changes" type="submit">
+</form>
+
 
 %try:
 <h3>Login History</h3>
 <div class="sectionbox">
-%for i in reverse(auth.Users[username]['loginhistory']):
+%for i in reversed(auth.Users[username]['loginhistory']):
 <b>${unitsofmeasure.strftime(i[0])|h}: login from ${i[1]|h}</b><br>
 %endfor
 </div>
 %except:
-
+Err in login history${traceback.format_exc()}
 </div>
 
 %endtry
 
-<br><input value="Save Changes" type="submit">
-</form>
+
+
+%try:
+    <h3>Telemetry</h3>
+    <div class="sectionbox">
+    User ${username} has open WebSocket connections from these addresses:<br>
+    <dl>
+    %for i in widgets.ws_connections.values():
+    %if i.user == username:
+        <dt>${i._peer_address|h}(<a href="https://tools.keycdn.com/geo?host=${i._peer_address[0]|u}">Geolocation</a>)</dt>
+        <dd>
+            <table border="1">
+                <tr>
+                    <td>Browsing:</td> 
+                    <td>${i.pageURL|h}</td>
+                </tr>
+                <tr>
+                    <td>User Agent:</td> 
+                    <td>${i.user_agent|h}</td>
+                </tr>
+                <tr>
+                    <td>Connetion ID:</td> 
+                    <td>${i.uuid|h}</td>
+                </tr>
+
+                %if hasattr(i, 'batteryStatus'):
+                <tr>
+                    <td>Battery Status:</td> 
+                    <td>${round(i.batteryStatus['level']*100)}%<meter min="0" max="100" low="20" value="${i.batteryStatus['level']*100}"></meter>
+                        ${"Charging" if i.batteryStatus['charging'] else "Not Charging"|}
+                    </td>
+                </tr>
+                %endif
+
+                <tr>
+                    <td>Command:</td>
+                    <td><form action="/settings/refreshuserpage/${i.uuid|u}" method="post">
+                        <button title="Command the page associated with this connection to refresh itself">Refresh Page</button>
+                    </form>
+
+                    </form></td>
+                </tr>
+            </table>
+
+
+        </dd>
+    %endif
+    %endfor
+    </div>
+%except Exception as e:
+${e}
+PROBABLY A RACE CONDITION OCCURED, RELOAD FOR TELEMETRY
+</div>
+%endtry
+
+
 <%include file="/pagefooter.html"/>

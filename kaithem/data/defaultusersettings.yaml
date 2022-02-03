@@ -5,3 +5,4 @@ mailinglists: []
 usemonaco: True
 restrict-lan: False
 tabtospace: True
+telemetry-alerts: False

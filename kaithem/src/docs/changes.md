@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.68.7
+
+- Admin can see battery status of all connected devices if said device supports it
+- Admin can remotely refresh any client page
+- Enabling telemetry alerts for an account will raise an alarm when an associated kiosk device browser hs low battery(Chrome/Chromium only, FF killed the API on others)
+
 
 ### 0.68.6
 

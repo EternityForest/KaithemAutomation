@@ -12,6 +12,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+from multiprocessing.dummy import connection
 from typing import Callable
 from typeguard import typechecked
 from .unitsofmeasure import convert, unitTypes
@@ -63,13 +64,13 @@ defaultDisplayUnits = {
     "ratio": "%",
 }
 
-server_session_ID = str(time.time())+str(os.urandom(8))
+server_session_ID = str(time.time()) + str(os.urandom(8))
 
 
 def mkid():
     global n
-    n = (n+1) % 10000
-    return('id'+str(n))
+    n = (n + 1) % 10000
+    return('id' + str(n))
 
 
 class ClientInfo():
@@ -78,8 +79,7 @@ class ClientInfo():
         self.cookie = cookie
 
 
-lastLoggedUserError =0
-
+lastLoggedUserError = 0
 
 
 class WebInterface():
@@ -89,6 +89,11 @@ class WebInterface():
         # you can access the class instance through
         handler = cherrypy.request.ws_handler
         x = cherrypy.request.remote.ip
+        try:
+            handler.user_agent = cherrypy.request.headers["User-Agent"]
+        except:
+            pass
+
         if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
             handler.user = pages.getAcessingUser()
             handler.cookie = cherrypy.request.cookie
@@ -115,9 +120,9 @@ def subsc_closure(self, i, widget):
             if not widget.errored_send:
                 widget.errored_send = True
                 messagebus.postMessage(
-                    "/system/notifications/errors", "Problem in widget "+repr(widget)+", see logs")
+                    "/system/notifications/errors", "Problem in widget " + repr(widget) + ", see logs")
                 logger.exception(
-                    "Error sending data from widget "+repr(widget)+" via websocket")
+                    "Error sending data from widget " + repr(widget) + " via websocket")
             else:
                 logging.exception("Error sending data from websocket")
     return f
@@ -143,40 +148,53 @@ except:
     logging.exception("No msgpack support, using JSON fallback")
 
 
-
-#Message, start time, duration
-lastGlobalAlertMessage = ['', 0,0]
-
+# Message, start time, duration
+lastGlobalAlertMessage = ['', 0, 0]
 
 
 def sendToAll(d):
-    d=json.dumps(d)
-    x= {}
+    d = json.dumps(d)
+    x = {}
 
-    #Retry against the dict changed size during iteration thing
+    # Retry against the dict changed size during iteration thing
     for i in range(50):
         try:
             for j in ws_connections:
                 if not j in x:
                     ws_connections[j].send(d)
-                    x[j]=True
+                    x[j] = True
             break
         except:
             logging.exception("Error in global broadcast")
 
 
 def sendGlobalAlert(msg, duration=60):
-    lastGlobalAlertMessage[0]=msg
-    lastGlobalAlertMessage[1]=time.monotonic()
-    lastGlobalAlertMessage[2]=duration
+    lastGlobalAlertMessage[0] = msg
+    lastGlobalAlertMessage[1] = time.monotonic()
+    lastGlobalAlertMessage[2] = duration
 
-    sendToAll([["__SHOWSNACKBAR__",[msg, float(duration)]]])
-            
+    sendToAll([["__SHOWSNACKBAR__", [msg, float(duration)]]])
+
+
+def sendTo(topic, value, target):
+    "Send a value to one subscriber by the connection ID"
+    if usingmp:
+        d = msgpack.packb([[topic, value]])
+    else:
+        d = json.dumps([[topic, value]])
+    if (len(d) > 32 * 1024 * 1024):
+        raise ValueError("Data is too large, refusing to send")
+    ws_connections[target].send(d)
+
+
+userBatteryAlerts = {}
+
+
 class websocket(WebSocket):
     def __init__(self, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
-        self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace(
+        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace(
             "/", '').replace("-", '').replace('+', '')[:-2]
         self.widget_wslock = threading.Lock()
         self.subCount = 0
@@ -184,9 +202,27 @@ class websocket(WebSocket):
         messagebus.subscribe(
             "/system/permissions/rmfromuser", self.onPermissionRemoved)
         self.user = '__guest__'
-        self.pageURL="UNKNOWN"
+
+        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
+            self.user = pages.getAcessingUser()
+        else:
+            self.user = "__guest__"
+
+        self.pageURL = "UNKNOWN"
 
         self.usedPermissions = collections.defaultdict(lambda: 0)
+
+        if auth.getUserSetting(self.user, "telemetry-alerts"):
+            from src import alerts
+            if not self.user in userBatteryAlerts:
+                userBatteryAlerts[self.user]= alerts.Alert(
+                    "Low battery on client browser device for: " + self.user, priority="warning")
+            self.batteryAlertRef = userBatteryAlerts[self.user]
+        else:
+            try:
+                del userBatteryAlerts[self.user]
+            except KeyError:
+                pass
 
         WebSocket.__init__(self, *args, **kwargs)
 
@@ -221,13 +257,13 @@ class websocket(WebSocket):
 
             resp = []
             user = self.user
-            
 
             if 'telemetry.err' in o:
                 # Only log one user error per minute, globally.  It's not meant to catch *everything*,
                 # just to give you a decent change
-                if lastLoggedUserError < time.time()-10:
-                    logger.error("Client side err(These are globally ratelimited):\r\n"+o['telemetry.err'])
+                if lastLoggedUserError < time.time() - 10:
+                    logger.error(
+                        "Client side err(These are globally ratelimited):\r\n" + o['telemetry.err'])
                     lastLoggedUserError = time.time()
                 return
 
@@ -235,11 +271,22 @@ class websocket(WebSocket):
             for i in upd:
                 if i[0] in widgets:
                     widgets[i[0]]._onUpdate(user, i[1], self.uuid)
-                elif i[0]=='__url__':
-                    self.pageURL=i[1]
-                    
-                elif i[0]=='__geo__':
-                    self.geoLocation=i[1]
+                elif i[0] == '__url__':
+                    self.pageURL = i[1]
+
+                elif i[0] == '__geo__':
+                    self.geoLocation = i[1]
+
+                elif i[0] == '__BATTERY__':
+                    self.batteryStatus = i[1]
+                    if self.user in userBatteryAlerts:
+                        try:
+                            if i[1]['level'] < 0.2 and not i[1]['charging']:
+                                userBatteryAlerts[self.user].trip()
+                            elif i[1]['level'] > 0.4 and i[1]['charging']:
+                                userBatteryAlerts[self.user].release()
+                        except:
+                            logging.exception("Error in battery status telemetry")
 
             if 'subsc' in o:
                 for i in o['subsc']:
@@ -247,11 +294,12 @@ class websocket(WebSocket):
                         continue
                     if i == "__WIDGETERROR__":
                         continue
-                    if i == "__SHOWMESSAGE__":
+                    elif i == "__SHOWMESSAGE__":
                         continue
-                    if i == "__SHOWSNACKBAR__":
-                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1]>(time.monotonic()-lastGlobalAlertMessage[2]):
-                            self.send(json.dumps([['__SHOWSNACKBAR__', [lastGlobalAlertMessage[0],lastGlobalAlertMessage[2] -(time.monotonic() -lastGlobalAlertMessage[1]) ] ]]))
+                    elif i == "__SHOWSNACKBAR__":
+                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1] > (time.monotonic() - lastGlobalAlertMessage[2]):
+                            self.send(json.dumps([['__SHOWSNACKBAR__', [
+                                      lastGlobalAlertMessage[0], lastGlobalAlertMessage[2] - (time.monotonic() - lastGlobalAlertMessage[1])]]]))
 
                     # TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
                     if self.subCount > 1024:
@@ -263,10 +311,11 @@ class websocket(WebSocket):
                             for p in widgets[i]._read_perms:
                                 if not pages.canUserDoThis(p, user):
 
-                                    #We have to be very careful about this, because 
-                                    self.send(json.dumps([['__SHOWMESSAGE__',"You are missing permission: "+str(p)+", data may be incorrect"]]))
+                                    # We have to be very careful about this, because
+                                    self.send(json.dumps(
+                                        [['__SHOWMESSAGE__', "You are missing permission: " + str(p) + ", data may be incorrect"]]))
                                     raise RuntimeError(
-                                        user + " missing permission: "+str(p))
+                                        user + " missing permission: " + str(p))
                                 self.usedPermissions[p] += 1
 
                             widgets[i].subscriptions[self.uuid] = subsc_closure(
@@ -303,7 +352,7 @@ class websocket(WebSocket):
 
         except Exception as e:
             logging.exception(
-                'Error in widget, responding to '+str(message.data))
+                'Error in widget, responding to ' + str(message.data))
             messagebus.postMessage(
                 "system/errors/widgets/websocket", traceback.format_exc(6))
             self.send(json.dumps({'__WIDGETERROR__': repr(e)}))
@@ -311,13 +360,14 @@ class websocket(WebSocket):
 
 def randID():
     "Generate a base64 id"
-    return base64.b64encode(os.urandom(8))[:-1].decode().replace("+",'').replace("/",'').replace("-",'')
+    return base64.b64encode(os.urandom(8))[:-1].decode().replace("+", '').replace("/", '').replace("-", '')
 
 
 idlock = threading.RLock()
 
 
-widgets_by_subsc_carryover=weakref.WeakValueDictionary()
+widgets_by_subsc_carryover = weakref.WeakValueDictionary()
+
 
 class Widget():
     def __init__(self, *args, subsc_carryover=None, **kwargs):
@@ -330,7 +380,6 @@ class Widget():
         self.subscriptions = {}
         self.subscriptions_atomic = {}
         self.echo = True
-
 
         # Used for GC, we have a fake subscriber right away so we can do a grace
         # Period before trashing it.
@@ -345,7 +394,6 @@ class Widget():
 
         self._callback = f
         self._callback2 = f2
-
 
         with idlock:
             # Give the widget an ID for the client to refer to it by
@@ -362,13 +410,11 @@ class Widget():
 
             # oldWidget = widgets_by_subsc_carryover.get(self.uuid, None)
 
-
             # Insert self into the widgets list
             widgets[self.uuid] = self
 
-
-        #Unused for now
-        # # Lets you make 
+        # Unused for now
+        # # Lets you make
         # with subscriptionLock:
         #     if oldWidget:
         #         try:
@@ -381,7 +427,7 @@ class Widget():
         #     widgets_by_subsc_carryover[subsc_carryover]= self
 
     def stillActive(self):
-        if self.subscriptions or (self.lastSubscribedTo > (time.monotonic()-30)):
+        if self.subscriptions or (self.lastSubscribedTo > (time.monotonic() - 30)):
             return True
 
     def onNewSubscriber(self, user, cid, **kw):
@@ -413,7 +459,7 @@ class Widget():
         try:
             return self.onRequest(user, uuid)
         except Exception as e:
-            logger.exception("Error in widget request to "+repr(self))
+            logger.exception("Error in widget request to " + repr(self))
             if not (self.errored_getter == id(self._callback)):
                 messagebus.postMessage("/system/notifications/errors", "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
                                        % (self._callback.__name__, self._callback.__module__))
@@ -448,7 +494,7 @@ class Widget():
             self._callback(user, value)
         except Exception as e:
             eventErrorHandler(self._callback)
-            logger.exception("Error in widget callback for "+repr(self))
+            logger.exception("Error in widget callback for " + repr(self))
             if not (self.errored_function == id(self._callback)):
                 messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
                                        % (self._callback.__name__, self._callback.__module__))
@@ -458,7 +504,7 @@ class Widget():
         try:
             self._callback2(user, value, uuid)
         except Exception as e:
-            logger.exception("Error in widget callback for "+repr(self))
+            logger.exception("Error in widget callback for " + repr(self))
             eventErrorHandler(self._callback2)
             if not (self.errored_function == id(self._callback)):
                 messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
@@ -475,13 +521,13 @@ class Widget():
 
     # Set a callback if it ever changes
     @typechecked
-    def attach(self, f:Callable):
+    def attach(self, f: Callable):
         self._callback = f
 
     # Set a callback if it ever changes.
     # This version also gives you the connection ID
     @typechecked
-    def attach2(self, f:Callable):
+    def attach2(self, f: Callable):
         self._callback2 = f
 
     # meant to be overridden or used as is
@@ -504,12 +550,12 @@ class Widget():
     def send(self, value):
         "Send a value to all subscribers without invoking the local callback or setting the value"
         if usingmp:
-            d = msgpack.packb([[self.uuid, value]],use_bin_type=True)
+            d = msgpack.packb([[self.uuid, value]], use_bin_type=True)
         else:
             d = json.dumps([[self.uuid, value]])
 
-        #Very basic saniy check here
-        if (len(d) > 32*1024*1024):
+        # Very basic saniy check here
+        if (len(d) > 32 * 1024 * 1024):
             raise ValueError("Data is too large, refusing to send")
 
         # Yes, I really had a KeyError here. Somehow the dict was replaced with the new version in the middle of iteration
@@ -524,7 +570,7 @@ class Widget():
             d = msgpack.packb([[self.uuid, value]])
         else:
             d = json.dumps([[self.uuid, value]])
-        if (len(d) > 32*1024*1024):
+        if (len(d) > 32 * 1024 * 1024):
             raise ValueError("Data is too large, refusing to send")
         self.subscriptions_atomic[target](d)
 
@@ -675,7 +721,7 @@ class Meter(Widget):
                 # Throw an error if you give it a bad unit
                 self.unit = kwargs['unit']
                 # Do a KeyError if we don't support the unit
-                unitTypes[self.unit]+"_format"
+                unitTypes[self.unit] + "_format"
             except:
                 self.unit = None
                 logging.exception("Bad unit")
@@ -720,11 +766,11 @@ class Meter(Widget):
                 self.unit = unit
 
                 # Do a KeyError if we don't support the unit
-                unitTypes[self.unit]+"_format"
+                unitTypes[self.unit] + "_format"
             except:
                 logging.exception("Bad unit")
                 self.unit = None
-        Widget.write(self, self.value+[d])
+        Widget.write(self, self.value + [d])
 
     def onUpdate(self, *a, **k):
         raise RuntimeError("Only the server can edit this widget")
@@ -746,14 +792,14 @@ class Meter(Widget):
                     else:
                         units = 'dBm'
                 else:
-                    return str(round(v, 3))+unit
+                    return str(round(v, 3)) + unit
                 # Overrides are allowed, we ignorer the user specified units
                 if self.displayUnits:
                     units = self.displayUnits
                 else:
                     # Always show the base unit by default
                     if not unit in units:
-                        units += "|"+unit
+                        units += "|" + unit
             # else:
                 #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[unit.dimensionality]+"_format").split("|")
 
@@ -763,12 +809,12 @@ class Meter(Widget):
                     # Si abbreviations and symbols work with prefixes
                     if i in siUnits:
                         s += unitsofmeasure.siFormatNumber(
-                            convert(v, unit, i))+i
+                            convert(v, unit, i)) + i
                     else:
                         # If you need more than three digits,
                         # You should probably use an SI prefix.
                         # We're just hardcoding this for now
-                        s += str(round(convert(v, unit, i), 2))+i
+                        s += str(round(convert(v, unit, i), 2)) + i
 
                 return s
             else:
@@ -1050,7 +1096,7 @@ class TagPoint(Widget):
             </script>
             </div>""" % {'label': label, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.min, 'step': self.step, 'max': self.max, 'value': self.value, 'unit': unit}
 
-        return """<div class="widgetcontainer">"""+sl+"""
+        return """<div class="widgetcontainer">""" + sl + """
 
 
         <label><input %(en)s id="%(htmlid)sman" type="checkbox"
@@ -1131,7 +1177,7 @@ class ScrollingWindow(Widget):
 
     def render(self, cssclass='', style=''):
 
-        content = ''.join(["<div>"+i+"</div>" for i in self.value])
+        content = ''.join(["<div>" + i + "</div>" for i in self.value])
 
         return """<div class="widgetcontainer" style="display:block;width:90%%;">
         <div id=%(htmlid)s class ="scrollbox %(cssclass)s" style="%(style)s">
@@ -1257,14 +1303,14 @@ class APIWidget(Widget):
                     kaithemapi.subscribe("%(id)s",_upd);
                     setTimeout(%(htmlid)s.getTime,500)
             </script>
-            """ % {'htmlid': htmlid, 'id': self.uuid, 'value': json.dumps(self.value), 'loadtime': time.time()*1000}
+            """ % {'htmlid': htmlid, 'id': self.uuid, 'value': json.dumps(self.value), 'loadtime': time.time() * 1000}
 
 
 t = APIWidget(echo=False, id='_ws_timesync_channel')
 
 
 def f(s, v, id):
-    t.sendTo([v, time.time()*1000], id)
+    t.sendTo([v, time.time() * 1000], id)
 
 
 t.attach2(f)
