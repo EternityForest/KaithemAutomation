@@ -1,24 +1,29 @@
 
 
 @import "kaithem_minimal.css"; /* Using a string */
-@import "kaithem_fuge_icons.css"; /* Using a string */
 
+@font-face {
+	font-family: 'ModernDOS';
+	font-style: normal;
+	font-weight: 400;
+	src: url('/static/fonts/moderndos/ModernDOS9x16.ttf');
+	/* Chrome 26+, Opera 23+, Firefox 39+ */
+}
 
 html {
-	background:
-	linear-gradient(
-  177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%),
-  url(/static/img/webtreats_grunge_mint_2.webp);
-	background-size: cover, unset;
-	background-repeat: repeat, repeat;
-min-height: 100vh;
-padding: 0px;
-margin: 0px;
-box-sizing: border-box;
+    background-color: #161f22;
+    opacity: 0.8;
+    background-image:  linear-gradient(#865910 1.4000000000000001px, transparent 1.4000000000000001px), linear-gradient(to right, #865910 1.4000000000000001px, #161f22 1.4000000000000001px);
+    background-size: 28px 28px;
+    min-height: 100vh;
+    padding: 0px;
+    margin: 0px;
+    box-sizing: border-box;
+    font-family: 'ModernDOS';
   }
 
   ::selection {
-	  background: rgba(119, 88, 206, 0.431);
+	  background: rgba(78, 73, 63, 0.431);
 	  color:rgb(70, 45, 19);
   }
   
@@ -26,16 +31,9 @@ box-sizing: border-box;
   
 
   body{
-	  color: #412019;
+	  color: #ffb15b;
+      font-family: 'ModernDOS';
   }
-
-.error, .danger {
-	text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
-}
-
-.warning {
-	background-color: rgba(255, 255, 0, 0.2);
-}
 
 /*************************Navigation and headers************************************************************/
 
@@ -46,7 +44,6 @@ box-sizing: border-box;
 	border-color: grey;
 	font-size:130%;
 	border-radius: 5px;
-	background-color: rgba(220,255,200,0.3);
 	backdrop-filter: blur(3px);
 }
 
@@ -54,7 +51,6 @@ box-sizing: border-box;
 {
 	width: 100%;
 	backdrop-filter: blur(2px);
-	background-color:rgba(160, 64, 238, 0.1);
 }
 .navbar .buttonbar a
 {
@@ -66,15 +62,12 @@ box-sizing: border-box;
 	border-radius:9px;
 	border-color: transparent;
 	padding:2px;
-	background-color: transparent;
-
 }
 
 
 
 #topbanner {
   width: 100%;
-  background-color: transparent;
   border-radius: 12px;
   margin:1px;
   
@@ -83,7 +76,7 @@ box-sizing: border-box;
 
 #topbanner h1
 {
-	color:rgb(70 92 76 / 68%);
+	color:#ffb15b;
      margin-bottom: 0.2em;
     margin-top: 0.1em;
     vertical-align:middle;
@@ -124,7 +117,7 @@ dt
 
 li:hover, dt:hover, dt:hover+dd, a.button:hover,button:hover,input:hover, tr:hover, div.widgetcontainer:hover,span.numericpv:hover
 {
-    background-color:rgba(150, 255, 250, 0.2);
+    background-color:rgba(0,0,0,0.8);
 }
 
 
@@ -135,10 +128,10 @@ p{
 
 hr {
 	border: none;
-	border-top: 1px solid #bbb;
+	border-top: 1px solid #ffb15b;
 	height: 1px;
 }
-h1{color:#2F2418;}
+h1{color:#ffb15b}
 
 
 a
@@ -153,7 +146,7 @@ ul{line-height:128%;}
 
 table{
 	background-color: rgba(240, 248, 255, 0.116);
-	box-shadow: 5px 5px 12px -8px rgba(0,0,0,0.97);
+	box-shadow: none;
 	border-radius: 5px;
 }
 
@@ -163,7 +156,7 @@ tr.header
 }
 
 th{
-	background-color: #0000001a;
+	background-color: black;
 }
 
 td input, td select
@@ -175,7 +168,6 @@ td input, td select
 pre
 	{
 		margin: 0.2em;
-	    background-color: rgba(245,255,230,0.9);
 	}
 div.kmainpagebody
 {
@@ -184,20 +176,65 @@ div.kmainpagebody
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 div.sectionbox,section{
 	border-style:solid;
-	background: rgba(228,233,227,0.6);
-	border-width:1px;
-	border-radius: 15px;
+	border-width:3px;
 	backdrop-filter: blur(1px);
-	border-color: #00000059;
+    background-color: rgba(0, 0, 0, 0.3);
+	border-color: #ffb15b;
 	padding-top:0.2%;
 	padding-bottom:0.5%;
 	padding-right:1%;
 	padding-left:0.5%;
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAADZJREFUGFdFibENwCAAw+y1vYonOJI+wVOwBoGQmsGyFWt58/UhCOSQHQrJNRNqedL61P38kwUKHw0NfRVOLAAAAABJRU5ErkJggg==) repeat;
+
+
 }
+
+div.sectionbox,section {
+
+    filter: blur(0.4px) contrast(1.71) saturate(0.52) ;
+
+}
+
+div.sectionbox,section{
+
+      position: relative;
+
+}
+
+.error, .danger {
+	color: #ffb15b;
+    font-weight: bold;
+	background-color: black;
+	text-shadow: none;
+}
+
+.warning {
+	color: #ffb15b;
+    font-weight: bold;
+	background-color: black;
+}
+
+
+table {
+	border-style: solid;
+	border-width: 1px;
+	border-collapse: collapse;
+}
+
+/*This makes tables easier to read by coloring alternate rows differently.*/
+
+table tr:nth-child(odd) td {
+	background-color: transparent;
+}
+
+table tr:nth-child(even) td {
+	background-color: rgba(230, 215, 0, 0.082);
+}
+
 
 div.sectionbox, section
 {
-	box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.7)
+	box-shadow: none;
 }
 
 /* A scrollable div */
@@ -214,15 +251,15 @@ div.scrollbox {
 }
 
 h2,h3{
-	color: rgba(83, 26, 12,0.8);
-	text-shadow: 2px 2px 7px rgba(217,217,217,0.49);
+	color: #ffb15b;
+	text-shadow: none;
 
 }
 
 a{
-    text-shadow: 0 0 1px rgb(215 237 255);
-    color: #142942;
-    text-decoration: none;
+    text-shadow:none;
+    color: #ffb15b;
+    text-decoration: underline;
 }
 
 h1 a, h2 a{
@@ -257,47 +294,77 @@ background-color:rgba(255,255,25,0.1);
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
 p.menubar,div.menubar{
-background-color:rgba(160, 64, 238, 0.1);
-border-radius: 30px;
+background-color: transparent;
 padding: 0px;
 border-width: 3px;
-border-color: #D0D0D0;
+border-color: #ffb15b;
 backdrop-filter: blur(3px);
 }
 
 
 button, a.button, label {
-	font-family: Lora;
-	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
+	text-shadow: none;
+    font-family: 'ModernDOS';
+
 }
 
 button, a.button,input[type="submit"]
 {
-background-color: #d9dee079;	
-color: #1e0c02;
+background-color: transparent;	
+color: #ffb15b;
 border: 1px solid;
-background-image: linear-gradient(179deg,rgba(255, 255, 255, 0.247),rgba(0, 0, 0, 0.151));
-border-color: #00000057;
+border-color: #ffb15b;
+font-family: 'ModernDOS';
+
 }
 
 input:not([type="submit"]), textarea, select
 {
-background-color: #d9dee079;	color: #1e0c02;
+background-color: transparent;	color: #ffb15b;
 border: 1px solid;
-background-image: linear-gradient(179deg,rgba(0, 0, 0, 0.0.08),rgba(255, 255, 255, 0.247)) !important;
-border-color: #00000057;
+border-color: #ffb15b;
+font-family: 'ModernDOS';
 }
+
 
 
 .buttonbar{
-	box-shadow: 1px 5px 12px -3px rgba(43, 39, 85, 0.329);
+	box-shadow:none;
+        flex-basis:max-content;
+        display:flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        border-radius: 0px;
+        min-height: 28px;
+        margin: 4px;
+        flex-grow: 1;
+        vertical-align: middle;
+        height: fit-content;
+        align-items: center;
+        align-content: center;
+        backdrop-filter: blur(1px);
+        width: 100%;
+        box-sizing: border-box;
+        --buttonbar-element-border:  #ffb15b solid 1px;
+        --buttonbar-concave-item-bg: rgba(0,0,0,0.5);
+        --buttonbar-convex-item-bg:  rgba(0,0,0,0.5);
+        --buttonbar-active-item-bg :rgba(0,0,0,0.5);
+        --buttonbar-border-radius: 0px;
+    
 }
 .menubar:is(.buttonbar), .navbar .buttonbar{
-	--buttonbar-convex-item-bg: linear-gradient(180deg, rgb(255 255 255 / 55%) 0%, rgba(0, 0, 0, 0.096) 96%);
+	--buttonbar-convex-item-bg: rgba(0,0,0,0.8)
 }
 
 
+.highlight{
+    text-shadow: none;
+    font-weight: bolder;
+    color: black;
+    background-color: #ffb15b !important;
+    background: #ffb15b !important;
 
+}
 button, a.button, input, textarea{
 	border-radius:7px;
 }
@@ -310,8 +377,7 @@ button, a.button, input, textarea{
 a.button{
 	border-width:1px;
 	text-decoration: none;
-	border-radius:12px;
-	color:#000000;
+	color:#ffb15b;
 	padding:0em 0.2em 0em 0.2em;
 	display: inline-block;
 }
@@ -321,26 +387,24 @@ a.button{
 /* A span meant to look like a pre*/
 span.pre
 {
-    background-color: rgba(255,255,255,0.3);
+    background-color: transparent
 }
 
 p.pathnav
 {
-background-color:rgba(140,200,140,0.2);
-background-color:rgba(255,25,255,0.1);
+background-color:transparent;
 border-radius:5px;
 margin-bottom:5px;
 margin-top:5px;
 border-style:solid;
 border-width:1px;
-border-radius: 7px;
 padding:3px;
 cursor:help;
 }
 
 p.resource-docstring{
-color:rgb(55,55,55);
-background-color:rgba(255,255,255,0.2);
+color:#ffb15b;
+background-color:transparent;
 
 }
 
@@ -350,7 +414,8 @@ background-color:rgba(255,255,255,0.2);
 .selected-tab
 {
 font-size: 135%;
-color:black;
+font-weight: bold;
+color:#ffb15b;
 border-width: 3px;
 }
 
@@ -360,7 +425,7 @@ tab-panel tab-pane
     padding: 0.25em;
     border-style:solid;
     border-width: 1px;
-    border-color: grey;
+    border-color: #ffb15b;
 }
 
 /*The div at the top of the panel that contains the tabs you click on. We can select it like this because the only children of tab panels should be tab-pane and this
@@ -369,10 +434,9 @@ tab-panel div
     {
         border-style:solid;
         margin-bottom:  0.4em ;
-        border-radius:9px;
         list-style-type:none;
         display: table;
-        border-color:grey;
+        border-color:#ffb15b;
     }
 
 /*one of the tabs in the tab strip. No, I'm not sure what's really going on here. I copied and pasted from the code that does the navigation bar.*/
@@ -380,13 +444,13 @@ tab-panel div span
     {
         font-weight: bold;
         padding: 0.05em;
-        color: grey;
+        color: #ffb15b;
         display:inline;
         border-width:1px;
         border-style: none solid none none;
         display: table-cell;
         text-align:center;
-        border-color: grey;
+        border-color: #ffb15b;
         cursor: pointer;
     }
 
@@ -396,16 +460,14 @@ tab-panel div span
 div.widgetcontainer
 {
 	display:inline-block;
-	background-color: rgba(70,90,70,0.25);
+	background-color: transparent;
 	padding-top: 0px;
-	border-radius:15px;
 	border-style:inset;
 	border-width:2px;
-	color: rgb(0,0,0);
+	color: #ffb15b;
 	padding: 0px;
 	margin:2px;
 	vertical-align:text-top;
-	font-family: B612;
 }
 
 div.widgetcontainer > div.scrollbox{
@@ -415,10 +477,8 @@ div.widgetcontainer > div.scrollbox{
 /*Numeric Process Value. These spans are intended for displays of changing numbers.*/
 span.numericpv
 {
-	background-color: rgba(255,255,200,0.30);
+	background-color: transparent;
 	cursor:crosshair;
-	font-family: B612;
-
 }
 
 
@@ -477,7 +537,7 @@ input[type=range] {
 	margin-top: -6px;
 	width: 20px;
 	height: 20px;
-	background: #9fcfd8;
+	background: #000000;
 	border: 1px solid rgba(0, 0, 0, 0.3);
 	border-radius: 50px;
 	cursor: pointer;
@@ -487,7 +547,7 @@ input[type=range] {
 	background: #7cd2af;
   }
   input[type=range]::-moz-range-track {
-	background: rgba(48, 138, 101, 0.5);
+	background: rgba(0, 0, 0, 0.5);
 	border: 0.2px solid rgba(1, 0, 0, 0.1);
 	border-radius: 25px;
 	height: 8.4px;
@@ -496,7 +556,7 @@ input[type=range] {
   input[type=range]::-moz-range-thumb {
 	width: 20px;
 	height: 20px;
-	background: #9fcfd8;
+	background: #000000;
 	border: 1px solid rgba(0, 0, 0, 0.3);
 	border-radius: 50px;
 	cursor: pointer;
@@ -515,14 +575,14 @@ input[type=range] {
 	border-radius: 50px;
   }
   input[type=range]::-ms-fill-upper {
-	background: rgba(48, 138, 101, 0.5);
+	background: rgba(0, 0, 0, 0.5);
 	border: 0.2px solid rgba(1, 0, 0, 0.1);
 	border-radius: 50px;
   }
   input[type=range]::-ms-thumb {
 	width: 20px;
 	height: 20px;
-	background: #9fcfd8;
+	background: #000000;
 	border: 1px solid rgba(0, 0, 0, 0.3);
 	border-radius: 50px;
 	cursor: pointer;
@@ -530,10 +590,10 @@ input[type=range] {
 	/*Needed to keep the Edge thumb centred*/
   }
   input[type=range]:focus::-ms-fill-lower {
-	background: rgba(48, 138, 101, 0.5);
+	background: rgba(0, 0, 0, 0.5);
   }
   input[type=range]:focus::-ms-fill-upper {
-	background: #7cd2af;
+	background: #000000;
   }
   /*TODO: Use one of the selectors from https://stackoverflow.com/a/20541859/7077589 and figure out
   how to remove the virtical space around the range input in IE*/

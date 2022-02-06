@@ -113,13 +113,13 @@ import cherrypy,socket,base64
 
 
 
-      <a class="moduleslink" href="/modules/">
+      <a href="/modules/"><i class="icofont-briefcase"></i>
         %if modules.unsaved_changed_obj:
         <span title="The modules have unsaved changes">*</span>
         %endif
         Modules</a>
 
-        <a class="deviceslink" href="/devices">
+        <a  href="/devices"><i class="icofont-usb-drive"></i>
           %if devices.unsaved_changes:
           <span title="The devices have unsaved changes">*</span>
           %endif
@@ -127,12 +127,12 @@ import cherrypy,socket,base64
 
 
         
-          <a  class="tagslink" href="/tagpoints">Tags</a>
+          <a href="/tagpoints"><i class="icofont-molecule"></i>Tags</a>
 
-        <a href="/settings/mixer"><span class="sound-icon"></span>Mixer</a>
+        <a href="/settings/mixer"><i class="icofont-ui-volume"></i>Mixer</a>
 
-        <a class="settingslink" href="/settings" >
-
+        <a href="/settings" >
+          <i class="icofont-gears"></i>
 
           %if auth.authchanged:
           <span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
@@ -147,20 +147,20 @@ import cherrypy,socket,base64
           %endif
 Tools</a>
 
-        <a class="helplink" href="/helpmenu">Help</a>
+        <a href="/helpmenu"><i class="icofont-book"></i>Help</a>
 
         %if "auth" in cherrypy.request.cookie:
 
         %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-        <a  style="flex-grow: 0.05;"  class="loginlink" href="/login/logout">Logout(${pages.getAcessingUser()[:10]|h})</a>
+        <a  style="flex-grow: 0.05;" href="/login/logout"><i class="icofont-key"></i>Logout(${pages.getAcessingUser()[:10]|h})</a>
 
         %else:
-        <a  style="flex-grow: 0.05;" class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a>
+        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="icofont-key"></i>Login</a>
         %endif"
 
 
         %else:
-        <a  style="flex-grow: 0.05;"  class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a>
+        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="icofont-key"></i>Login</a>
         %endif
       </p>
 

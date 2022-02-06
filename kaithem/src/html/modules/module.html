@@ -72,12 +72,13 @@ temp_p+= i+'/'
 
 <div class="menubar" style="width: 100%;">
     <div class="buttonbar">
-    <a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
-    <a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
-    <a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
-    <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
-    <a class="button createbutton" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
-    <a class="button createbutton adddevicebutton" href="/modules/module/${url(name)}/addresource/device/${url('/'.join(path))}">Device</a>
+    <p><i class="icofont-ui-add"></i>Add:</p>
+    <a class="button" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
+    <a class="button" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
+    <a class="button" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
+    <a class="button" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
+    <a class="button" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
+    <a class="button" href="/modules/module/${url(name)}/addresource/device/${url('/'.join(path))}">Device</a>
     
     
     %for i in modules.additionalTypes:
@@ -88,7 +89,7 @@ temp_p+= i+'/'
     %if external_module_locations.get(name,""):
     <a class="button savebutton" href="/modules/savemodule/${name}">Save Module</a>
     %endif
-    <form style="display:inline-flex;" action="/modules/search/${url(name)}"><input size=8 name="search" placeholder="Search this module"/><input  type=submit value="search"/></form>
+    <form style="display:inline-flex;" action="/modules/search/${url(name)}"><i class="icofont-ui-search"></i><input size=8 name="search" placeholder="Search this module"/><input  type=submit value="search"/></form>
     </div>
     
     </div>
@@ -165,7 +166,7 @@ continue
         <div class="buttonbar style="display:inline-flex">
     <h3>
 <a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
-	       <span class="event-icon"></span><b>\
+    <i class="icofont-flag-alt-1"></i><b>\
 %if (name,i) in modules.unsaved_changed_obj:
 *\
 %endif
@@ -182,8 +183,8 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
        </b>
     </h3>
 
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
-<a class="button playbutton" href="/modules/module/${url(name)}/runeventdialog/${url(i)}">Run Now</a>
+<a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
+<a class="button" href="/modules/module/${url(name)}/runeventdialog/${url(i)}"><i class="icofont-ui-play"></i>Run Now</a>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif
@@ -243,7 +244,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
           %endif
 <h3>
           <a href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
-	       <span class="page-icon"></span><b\
+            <i class="icofont-page"></i><b\
 	       %if i.startswith('__'):
 	       class="specialentry page"\
 	       %endif
@@ -253,7 +254,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 		%endif
     </b>
 </h3>
-		<a class="button gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+		<a class="button" href="${usrpages.url_for_resource(name,i)}"><i class="icofont-ui-play"></i>Go to page</a><a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
         </div>
     </dt>
 	  <dd>
@@ -274,14 +275,14 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
         <div class="buttonbar style="display:inline-flex">
   <h3>
     
-<a href="/modules/module/${url(name)}/resource/${url(i)}">    <span class="permission-icon"></span>\
+<a href="/modules/module/${url(name)}/resource/${url(i)}">    <i class="icofont-key"></i>\
   %if (name,i) in modules.unsaved_changed_obj:
   *\
   %endif
   ${util.split_escape(i,'/','\\')[-1]|h}</a>
   </h3>
   
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+<a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
         </div>
 <dt>
 
@@ -299,7 +300,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
     </h3>
     <a class="settingsbuttton" href="/modules/module/${url(name)}/resource/${url(i)}">Properties</a>
 
-    <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+    <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
     <p>
     %try:
     <span>Size: ${siFormatNumber(os.path.getsize(fileResourceAbsPaths[name,i]))}</span>\
@@ -324,7 +325,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
   <a class="deviceslink" href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
   </h3>
   
-  <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><br>
+  <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a><br>
   </div>
   <dt>
 
@@ -337,7 +338,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
         %if (name,i) in modules.unsaved_changed_obj:
         *\
         %endif
-        <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+        <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
         <dt>
 
      %endif
@@ -350,9 +351,9 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
     %endif
 <div class="buttonbar">
 <h3>
-    <a href="/modules/module/${url(name)}/resource/${url(i)}#resources"><span class="directory-icon"></span><b></b>${util.split_escape(i,'/')[-1]|h}</b></a>
+    <a href="/modules/module/${url(name)}/resource/${url(i)}#resources"><i class="icofont-document-folder"></i><b></b>${util.split_escape(i,'/')[-1]|h}</b></a>
 </h3>
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+<a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
 </div>
 <dt>
 

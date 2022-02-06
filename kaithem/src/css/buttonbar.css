@@ -13,7 +13,8 @@
 	display:flex;
 	flex-wrap: wrap;
 	align-items: stretch;
-	border-radius: 12px;
+	--buttonbar-border-radius: 12px;
+	border-radius: var(--buttonbar-border-radius);
 	min-height: 28px;
 	margin: 4px;
 	flex-grow: 1;
@@ -147,17 +148,17 @@ padding: 0px;
 
 .buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button,form):first-child :first-child
 { 
-	border-radius: 12px 0px 0px 12px;
+	border-radius: var(--buttonbar-border-radius) 0px 0px var(--buttonbar-border-radius);
 }
 
 .buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):last-child, .buttonbar  :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6, input, meter,button,form):last-child :last-child
 {
-	border-radius: 0px 12px 12px 0px;
+	border-radius: 0px var(--buttonbar-border-radius) var(--buttonbar-border-radius) 0px;
 }
 
 .buttonbar > :is(a,a.button,select,p, h1,h2,h3,h4,h5,h6,label, input, meter,button):first-child:last-child
 { 
-	border-radius: 12px 12px 12px 12px;
+	border-radius: var(--buttonbar-border-radius) var(--buttonbar-border-radius) var(--buttonbar-border-radius) var(--buttonbar-border-radius);
 }
 
 
@@ -171,7 +172,7 @@ padding: 0px;
   }
 .buttonbar > form{
 	border: none !important;
-	border-radius: 12px;
+	border-radius: var(--buttonbar-border-radius);
 }
 
 /*The boder puts an ugly white line on the meter*/

@@ -83,7 +83,7 @@ ${alertsapi.render("alertapi")}
         %>
 
 %for i in l:
-<div style="padding: 4px; background-color:rgba(255,240,220,0.2);margin:8px; border-radius: 12px; border: 1px solid;display:flex;block-size:fit-content;">
+<div style="padding: 4px; ;margin:8px; border-radius: 12px; border: 1px solid;display:flex;block-size:fit-content;">
     <div style="align-self:center"><span class="${iclass.get(i.priority,'')}" style="width: 2em;"></span></div>
     <div>
         <b><span style="background-color:${pcolor.get(i.priority,'purple')};font-size:120%;">${i.name}</span></b> is: <span

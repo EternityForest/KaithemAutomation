@@ -55,7 +55,7 @@ def devStatString(d):
 %for i in sorted(deviceData.keys()):
 <tr>
     <td>
-        <a href="device/${url(i)}/manage" class="button editbutton" style="width: 95%;">${i|h}</a>
+        <a href="device/${url(i)}/manage" class="button" style="width: 95%;"><i class="icofont-pencil"></i>${i|h}</a>
     </td>
     <td>
             ${deviceData[i]().deviceTypeName}
@@ -69,11 +69,11 @@ def devStatString(d):
     <td>${devStatString(deviceData[i]())}</td>
     
 
-    <td style="color: ${'red' if len(deviceData[i]().errors) else 'black' };">
+    <td style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
         ${len(deviceData[i]().errors)}
     </td>
     <td>
-        <a href="deleteDevice/${url(i)}" class="button deletebutton">Delete</a>
+        <a href="deleteDevice/${url(i)}" class="button"><i class="icofont-ui-delete"></i>Delete</a>
     </td>
 </tr>
 %endfor
