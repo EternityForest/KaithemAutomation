@@ -52,8 +52,8 @@ Page:
 </div>
 </div>
 <table border="1">
-<tr><th>Name</th><th>Value(not realtime)</th><th>Interval</th><th>Active Claim</th><th>Owner</th><th>Subscribers</th>
-    <th>Alarms</th>
+<tr><th>Name</th><th  class="desktop-only">Value(not realtime)</th>
+    <th  class="desktop-only">Alarms</th>
 
 </tr>
 %for i in paginate(sorted(filteredTags ), pageNumber):
@@ -61,50 +61,37 @@ Page:
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a></td>
-    <td>${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit} ${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
-    <td>${tagpoints.allTagsAtomic[i]().interval}</td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
-    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
-    <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
-    <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit} ${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 </tr>
 %endif
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._StringTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
-    <td>${str(tagpoints.allTagsAtomic[i]().lastValue)[:80]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
-    <td>${tagpoints.allTagsAtomic[i]().interval}</td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
-    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
-    <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
-    <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 
 </tr>
 %endif
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._ObjectTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
-    <td>${str(tagpoints.allTagsAtomic[i]().lastValue)[:80]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
-    <td>${tagpoints.allTagsAtomic[i]().interval}</td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
-    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
-    <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
-    <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 
 </tr>
 %endif
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._BinaryTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td><span style="color: grey">Value is binary data</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${agpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
-    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
-    <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
+    <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 </tr>
 %endif
 

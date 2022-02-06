@@ -24,7 +24,7 @@ scolor={
     "cleared":'blue'
 }
 %>
-<%include file="/pageheader.html"/>
+    <%include file="/pageheader.html"/>
 <title>Kaithem Automation</title>
 
 <div class="sectionbox">
@@ -82,103 +82,101 @@ ${alertsapi.render("alertapi")}
         l = sorted(l, key=lambda i: (0 if (i.priority in ('error', 'critical')) else 1, i.sm.state=="acknowledged", i.priority, i.zone, i.name))
         %>
 
-%for i in l:
-<div style="padding: 4px; ;margin:8px; border-radius: 12px; border: 1px solid;display:flex;block-size:fit-content;">
-    <div style="align-self:center"><span class="${iclass.get(i.priority,'')}" style="width: 2em;"></span></div>
-    <div>
-        <b><span style="background-color:${pcolor.get(i.priority,'purple')};font-size:120%;">${i.name}</span></b> is: <span
-        style="background-color:${scolor.get(i.sm.state,'black')|h};font-size:120%">${i.sm.state}</span><br>
-        
-        <span class="grey">
+        %for i in l:
+        <div style="padding: 4px; ;margin:8px; border-radius: 12px; border: 1px solid;display:flex;block-size:fit-content;">
+            <div style="align-self:center"><span class="${iclass.get(i.priority,'')}" style="width: 2em;"></span></div>
+            <div>
+                <b><span style="font-size:120%;">${i.name}</span></b> is: <span style="font-size:120%">${i.sm.state}</span><br>
+
+                <span class="grey">
             Priority: ${i.priority}, Zone: ${i.zone},</span> <br><span class="grey">
             Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)}
                 ago</b>)<br>
             Trip Message:<b>${i.tripMessage}</b></span>
-    </div>
+            </div>
 
 
-    <div style="flex-grow:99"></div>
+            <div style="flex-grow:99"></div>
 
-    <div style="align-self: flex-end;">${i.notificationHTML()}</div>
+            <div style="align-self: flex-end;">${i.notificationHTML()}</div>
 
-    %if not i.sm.state=="acknowledged":
-    <div style="align-self: center;">
-       <form action="?ackalarm=${i.id}" method="post"><button style="align-self: center;" href=".">ACK</button></form>
-    </div>
-    %else:
-    <div style="align-self: center;">
-        <button  disabled>ACK</button>
-    </div>
-    %endif
+            %if not i.sm.state=="acknowledged":
+            <div style="align-self: center;">
+                <form action="?ackalarm=${i.id}" method="post"><button style="align-self: center;" href=".">ACK</button></form>
+            </div>
+            %else:
+            <div style="align-self: center;">
+                <button disabled>ACK</button>
+            </div>
+            %endif
 
-</div>
-%endfor
+        </div>
+        %endfor
 
-<%
+        <%
             try:
                 del i
                 del l
             except:
                 pass
         %>
-</div>
+            </div>
 
-<h2> System Notifications</h2>
-<div id="app">
-<div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content; max-width: 70em;" id="notifications">
-    <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
-        <b>{{formatTime(i[0])}}</b>
-        <p>{{i[2]}}</p>
-    </div>
-</div>
-</div>
-</main>
+            <h2> System Notifications</h2>
+            <div id="app">
+                <div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content; max-width: 70em;" id="notifications">
+                    <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
+                        <b>{{formatTime(i[0])}}</b>
+                        <p>{{i[2]}}</p>
+                    </div>
+                </div>
+            </div>
+            </main>
 
 
 
-<script>
-    var app = new Vue({
-        el: '#app',
-        data: {
-            notifications: [],
-            getClass: function (i) {
-                if (i[1].includes("errors")) {
-                    return 'error'
+            <script>
+                var app = new Vue({
+                    el: '#app',
+                    data: {
+                        notifications: [],
+                        getClass: function(i) {
+                            if (i[1].includes("errors")) {
+                                return 'error'
+                            }
+                            if (i[1].includes("important")) {
+                                return 'highlight'
+                            }
+                            if (i[1].includes("warnings")) {
+                                return 'warning'
+                            }
+                        },
+
+                        formatTime: function(t) {
+                            var date = new Date(t * 1000);
+                            return date.strftime("%b %m %Y  %I:%M:%S%p %Z")
+                        }
+                    }
+                });
+
+                api.upd = function(msg) {
+                    if (msg[0] == "all") {
+                        app.$data.notifications = msg[1]
+                    }
+                    if (msg[0] == 'notification') {
+                        app.$data.notifications.push(msg[1])
+                        app.$data.notifications = app.$data.notifications.slice(-100)
+                        setTimeout(() => {
+                            document.getElementById("notifications").scroll(0, 10000)
+                        }, 250);
+                    }
                 }
-                if (i[1].includes("important")) {
-                    return 'highlight'
+
+                alertapi.upd = function(msg) {
+
                 }
-                if (i[1].includes("warnings")) {
-                    return 'warning'
-                }
-            },
-
-            formatTime: function (t) {
-                var date = new Date(t * 1000);
-                return date.strftime("%b %m %Y  %I:%M:%S%p %Z")
-            }
-        }
-    });
-
-    api.upd = function (msg) {
-        if (msg[0] == "all") {
-            app.$data.notifications = msg[1]
-        }
-        if (msg[0] == 'notification') {
-            app.$data.notifications.push(msg[1])
-            app.$data.notifications = app.$data.notifications.slice(-100)
-            setTimeout(() => {
-        document.getElementById("notifications").scroll(0,10000)
-    }, 250); 
-        }
-    }
-
-    alertapi.upd = function (msg) {
-
-    }
-    setTimeout(() => {
-        document.getElementById("notifications").scroll(0,10000)
-    }, 1000); 
-
-</script>
-<%include file="/pagefooter.html"/>
+                setTimeout(() => {
+                    document.getElementById("notifications").scroll(0, 10000)
+                }, 1000);
+            </script>
+            <%include file="/pagefooter.html"/>

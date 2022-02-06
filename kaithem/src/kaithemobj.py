@@ -544,27 +544,31 @@ class Kaithem():
 
         @staticmethod
         def outputs():
-            from src import jackmanager
-            #Always 
             try:
-                x= [i.name for i in jackmanager.getPorts(is_audio=True, is_input=True)]
+                from src import jackmanager
+                #Always 
+                try:
+                    x= [i.name for i in jackmanager.getPorts(is_audio=True, is_input=True)]
+                except:
+                    print(traceback.format_exc())
+                    x=[]
+
+
+                prefixes={}
+                op=[]
+
+                for i in x:
+                    if not i.split(":")[0] in prefixes:
+                        prefixes[i.split(":")[0]]=i
+                        op.append(i.split(":")[0])
+                    op.append(i)
+                    
+
+
+                return ['']+op
             except:
                 print(traceback.format_exc())
-                x=[]
-
-
-            prefixes={}
-            op=[]
-
-            for i in x:
-                if not i.split(":")[0] in prefixes:
-                    prefixes[i.split(":")[0]]=i
-                    op.append(i.split(":")[0])
-                op.append(i)
-                
-
-
-            return ['']+op
+                return []
 
         @staticmethod
         def play(*args, **kwargs):

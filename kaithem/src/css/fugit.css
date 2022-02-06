@@ -1,671 +1,733 @@
+@import "kaithem_minimal.css";
 
+/* Using a string */
 
-@import "kaithem_minimal.css"; /* Using a string */
+[class*=" icofont-"],
+[class^=icofont-] {
+    color: #dddca7;
+    margin-left: 4px;
+    margin-right: 4px;
+}
 
+a{
+    color:#dddca7;
+    text-decoration: none;
+}
 @font-face {
-	font-family: 'ModernDOS';
-	font-style: normal;
-	font-weight: 400;
-	src: url('/static/fonts/moderndos/ModernDOS9x16.ttf');
-	/* Chrome 26+, Opera 23+, Firefox 39+ */
+    font-family: 'ModernDOS';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/moderndos/ModernDOS9x16.ttf');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
 html {
-    background-color: #161f22;
+    background-color: #000000;
     opacity: 0.8;
-    background-image:  linear-gradient(#865910 1.4000000000000001px, transparent 1.4000000000000001px), linear-gradient(to right, #865910 1.4000000000000001px, #161f22 1.4000000000000001px);
-    background-size: 28px 28px;
+    background-image: linear-gradient(#4b3700 1px, transparent 1px), linear-gradient(to right, #4b3700 1px, #000000 1px);
+    background-size: 20px 20px;
     min-height: 100vh;
     padding: 0px;
     margin: 0px;
     box-sizing: border-box;
     font-family: 'ModernDOS';
-  }
+}
 
-  ::selection {
-	  background: rgba(78, 73, 63, 0.431);
-	  color:rgb(70, 45, 19);
-  }
-  
-  ::-moz-selection {background: rgba(0, 0, 250, 0.25);}
-  
+ ::selection {
+    background: rgba(78, 73, 63, 0.431);
+    color: rgb(70, 45, 19);
+}
 
-  body{
-	  color: #ffb15b;
-      font-family: 'ModernDOS';
-  }
+ ::-moz-selection {
+    background: rgba(0, 0, 250, 0.25);
+}
+
+body {
+    color: #ffd477;
+    font-family: 'ModernDOS';
+}
+
 
 /*************************Navigation and headers************************************************************/
 
-.navbar div
-{
-	border-width:1px;
-	border-style: solid;
-	border-color: grey;
-	font-size:130%;
-	border-radius: 5px;
-	backdrop-filter: blur(3px);
+.navbar div {
+    border-width: 1px;
+    border-style: solid;
+    border-color: grey;
+    font-size: 130%;
+    backdrop-filter: blur(3px);
 }
 
-.navbar .buttonbar
-{
-	width: 100%;
-	backdrop-filter: blur(2px);
+.navbar .buttonbar {
+    width: 100%;
+    backdrop-filter: blur(2px);
 }
-.navbar .buttonbar a
-{
-	text-align: center;
+
+.navbar .buttonbar a {
+    text-align: center;
 }
+
 .navbar {
-	border-style:solid;
-	border-width: 1px;
-	border-radius:9px;
-	border-color: transparent;
-	padding:2px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: transparent;
+    padding: 2px;
 }
-
-
 
 #topbanner {
-  width: 100%;
-  border-radius: 12px;
-  margin:1px;
-  
-
+    width: auto;
+    padding: 1px;
 }
 
-#topbanner h1
-{
-	color:#ffb15b;
-     margin-bottom: 0.2em;
+#topbanner h1 {
+    margin-bottom: 0.2em;
     margin-top: 0.1em;
-    vertical-align:middle;
-
+    vertical-align: middle;
 }
 
-#topbanner h1::before,#topbanner h1::after
-{
- background-image: url(/static/img/logo-mini.png);
- background-size: 1em 1em;
- background-repeat: no-repeat;
- width: 1em;
- height: 1em;
- content:"";
- display: inline-block;
- vertical-align:middle;
+.nonavtopbannercontainer #topbanner h1::before,
+.nonavtopbannercontainer #topbanner h1::after {
+    background-image: none;
 }
-
-.nonavtopbannercontainer #topbanner h1::before,.nonavtopbannercontainer #topbanner h1::after
-{
-	background-image: none;
-}
-
-
 
 
 /************************HTML ELEMENTS***********************************/
-dl
-{
-	padding:2px;
-	margin:2px;
+
+dl {
+    padding: 2px;
+    margin: 2px;
 }
 
-dt
-{
-	margin: 0.2em;
+dt {
+    margin: 0.2em;
 }
 
-li:hover, dt:hover, dt:hover+dd, a.button:hover,button:hover,input:hover, tr:hover, div.widgetcontainer:hover,span.numericpv:hover
-{
-    background-color:rgba(0,0,0,0.8);
+li:hover,
+dt:hover,
+dt:hover+dd,
+a.button:hover,
+button:hover,
+input:hover,
+tr:hover,
+div.widgetcontainer:hover,
+span.numericpv:hover {
+    background-color: rgba(0, 0, 0, 0.8);
 }
 
-
-
-p{
-	margin:0.5%;
+p {
+    margin: 0.5%;
 }
 
 hr {
-	border: none;
-	border-top: 1px solid #ffb15b;
-	height: 1px;
-}
-h1{color:#ffb15b}
-
-
-a
-	{
-		border-radius:5px;
-		padding: 1px 3px 1px 3px;
-	}
-
-
-ul{line-height:128%;}
-
-
-table{
-	background-color: rgba(240, 248, 255, 0.116);
-	box-shadow: none;
-	border-radius: 5px;
+    border: none;
+    border-top: 1px solid #ffe6b1;
+    height: 1px;
 }
 
-tr.header
-{
-	font-weight:bold;
+h1,h2,h3,h4 {
+    color: #ffe6b1;
 }
 
-th{
-	background-color: black;
+a {
+    padding: 1px 3px 1px 3px;
 }
 
-td input, td select
-{
-	margin: 0px;
-	height: 1.8em;
-	width:  100%;
+ul {
+    line-height: 128%;
 }
-pre
-	{
-		margin: 0.2em;
-	}
-div.kmainpagebody
-{
+
+table {
+    background-color: rgba(240, 248, 255, 0.116);
+    box-shadow: none;
 }
+
+tr.header {
+    font-weight: bold;
+}
+
+th {
+    background-color: black;
+}
+
+td input,
+td select {
+    margin: 0px;
+    height: 1.8em;
+    width: 100%;
+}
+
+pre {
+    margin: 0.2em;
+}
+
+div.kmainpagebody {}
+
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
-div.sectionbox,section{
-	border-style:solid;
-	border-width:3px;
-	backdrop-filter: blur(1px);
+
+div.sectionbox,
+section {
+    border-style: solid;
+    border-width: 1px;
+    backdrop-filter: blur(1px) brightness(0.3);
     background-color: rgba(0, 0, 0, 0.3);
-	border-color: #ffb15b;
-	padding-top:0.2%;
-	padding-bottom:0.5%;
-	padding-right:1%;
-	padding-left:0.5%;
-    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAADZJREFUGFdFibENwCAAw+y1vYonOJI+wVOwBoGQmsGyFWt58/UhCOSQHQrJNRNqedL61P38kwUKHw0NfRVOLAAAAABJRU5ErkJggg==) repeat;
-
-
+    border-color: #ffd477;
+    padding-top: 0.2%;
+    padding-bottom: 0.5%;
+    padding-right: 1%;
+    padding-left: 0.5%;
+    box-shadow: #ffd477;
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAHRJREFUKFNVTzsVgEAMSwYWTKAAEahAIyrwgAJUsDCEl7TwHjfc9dJ8Wq7LqG2/SBCCQAAC8BaEWxJEY26bIFBFLNg/l6o3hFhZ8hUVUB7t0/JEtATzNOg47zbIBH1oayTbV9LKseYPNaCjflu8lMC93bcsHiEmMBAIk7iGAAAAAElFTkSuQmCC) repeat;
 }
 
-div.sectionbox,section {
-
-    filter: blur(0.4px) contrast(1.71) saturate(0.52) ;
-
+img {
+    filter: blur(0.6px) contrast(1.71) saturate(0.32) sepia(0.4);
 }
 
-div.sectionbox,section{
-
-      position: relative;
-
+div.sectionbox,
+section {
+    position: relative;
 }
 
-.error, .danger {
-	color: #ffb15b;
+.error,
+.danger {
+    background-color: #ff8077 !important;
     font-weight: bold;
-	background-color: black;
-	text-shadow: none;
+    color: black !important;
+    text-shadow: none;
 }
 
 .warning {
-	color: #ffb15b;
+    background-color: #ffbb55 !important;
     font-weight: bold;
-	background-color: black;
+    color: black !important;
 }
-
 
 table {
-	border-style: solid;
-	border-width: 1px;
-	border-collapse: collapse;
+    border-style: solid;
+    border-width: 1px;
+    border-collapse: collapse;
 }
+
 
 /*This makes tables easier to read by coloring alternate rows differently.*/
 
 table tr:nth-child(odd) td {
-	background-color: transparent;
+    background-color: transparent;
 }
 
 table tr:nth-child(even) td {
-	background-color: rgba(230, 215, 0, 0.082);
+    background-color: rgba(230, 215, 0, 0.082);
 }
 
-
-div.sectionbox, section
-{
-	box-shadow: none;
+div.sectionbox,
+section {
+    box-shadow: none;
 }
+
 
 /* A scrollable div */
+
 div.scrollbox {
-	border-style:solid;
-	border-width:2px;
-	border-radius: 15px;
-	max-height:10em;
-	overflow:auto;
-	padding-top:0.5%;
-	padding-bottom:0.5%;
-	padding-right:1%;
-	padding-left:0.5%;
-}
-
-h2,h3{
-	color: #ffb15b;
-	text-shadow: none;
-
-}
-
-a{
-    text-shadow:none;
-    color: #ffb15b;
-    text-decoration: underline;
-}
-
-h1 a, h2 a{
-	text-shadow: none;
+    border-style: solid;
+    border-width: 2px;
+    max-height: 10em;
+    overflow: auto;
+    padding-top: 0.5%;
+    padding-bottom: 0.5%;
+    padding-right: 1%;
+    padding-left: 0.5%;
 }
 
 
-button:disabled {background-color: #D0D0D0;border-radius:7px;}
+button:disabled {
+    background-color: #D0D0D0;
+}
 
-input:disabled {background-color: #D0D0D0;}
+input:disabled {
+    background-color: #D0D0D0;
+}
 
-input.modulename {width:70%}
-input.pythoncode {width:100%}
+input.modulename {
+    width: 70%
+}
+
+input.pythoncode {
+    width: 100%
+}
+
 
 /*A text area meant for describing something*/
-textarea.description {width:70%;}
-textarea.pythoncode { width:100%; overflow:"scroll";font-size:125%;}
-textarea.htmlcode {width:100%; overflow:"scroll";font-size:125%;}
+
+textarea.description {
+    width: 70%;
+}
+
+textarea.pythoncode {
+    width: 100%;
+    overflow: "scroll";
+    font-size: 125%;
+}
+
+textarea.htmlcode {
+    width: 100%;
+    overflow: "scroll";
+    font-size: 125%;
+}
+
 textarea.code {
-	background-color: #E6E6B8;
-	 width:100%;
-	 overflow:"scroll";
-	 font-size:125%;
-	 border-radius: 0px;
-	 }
-textarea:disabled {background-color: #D0D0D0}
+    background-color: #E6E6B8;
+    width: 100%;
+    overflow: "scroll";
+    font-size: 125%;
+    border-radius: 0px;
+}
+
+textarea:disabled {
+    background-color: #D0D0D0
+}
+
 
 /*This is a help paragraph usually shown at the top or a sectionbox*/
-p.help{
-background-color:rgba(255,255,25,0.1);
+
+p.help {
+    background-color: rgba(255, 255, 25, 0.1);
 }
+
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-p.menubar,div.menubar{
-background-color: transparent;
-padding: 0px;
-border-width: 3px;
-border-color: #ffb15b;
-backdrop-filter: blur(3px);
+
+p.menubar,
+div.menubar {
+    background-color: transparent;
+    padding: 0px;
+    border-width: 3px;
+    border-color: #ffd477;
+    backdrop-filter: blur(3px);
 }
 
-
-button, a.button, label {
-	text-shadow: none;
+button,
+a.button,
+label {
+    text-shadow: none;
     font-family: 'ModernDOS';
-
 }
 
-button, a.button,input[type="submit"]
-{
-background-color: transparent;	
-color: #ffb15b;
-border: 1px solid;
-border-color: #ffb15b;
-font-family: 'ModernDOS';
-
+button,
+a.button,
+input[type="submit"] {
+    background-color: transparent;
+    color: #ffd477;
+    border: 1px solid;
+    border-color: #ffd477;
+    font-family: 'ModernDOS';
 }
 
-input:not([type="submit"]), textarea, select
-{
-background-color: transparent;	color: #ffb15b;
-border: 1px solid;
-border-color: #ffb15b;
-font-family: 'ModernDOS';
+input:not([type="submit"]),
+textarea,
+select {
+    background-color: transparent;
+    color: #ffd477;
+    border: 1px solid;
+    border-color: #ffd477;
+    font-family: 'ModernDOS';
 }
 
-
-
-.buttonbar{
-	box-shadow:none;
-        flex-basis:max-content;
-        display:flex;
-        flex-wrap: wrap;
-        align-items: stretch;
-        border-radius: 0px;
-        min-height: 28px;
-        margin: 4px;
-        flex-grow: 1;
-        vertical-align: middle;
-        height: fit-content;
-        align-items: center;
-        align-content: center;
-        backdrop-filter: blur(1px);
-        width: 100%;
-        box-sizing: border-box;
-        --buttonbar-element-border:  #ffb15b solid 1px;
-        --buttonbar-concave-item-bg: rgba(0,0,0,0.5);
-        --buttonbar-convex-item-bg:  rgba(0,0,0,0.5);
-        --buttonbar-active-item-bg :rgba(0,0,0,0.5);
-        --buttonbar-border-radius: 0px;
-    
-}
-.menubar:is(.buttonbar), .navbar .buttonbar{
-	--buttonbar-convex-item-bg: rgba(0,0,0,0.8)
+.buttonbar {
+    box-shadow: none;
+    flex-basis: max-content;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    border-radius: 0px;
+    min-height: 28px;
+    margin: 4px;
+    flex-grow: 1;
+    vertical-align: middle;
+    height: fit-content;
+    align-items: center;
+    align-content: center;
+    backdrop-filter: blur(1px);
+    box-sizing: border-box;
+    --buttonbar-element-border: #ffd477 solid 1px;
+    --buttonbar-concave-item-bg: rgba(0, 0, 0, 0.5);
+    --buttonbar-convex-item-bg: rgba(0, 0, 0, 0.5);
+    --buttonbar-active-item-bg: rgba(0, 0, 0, 0.5);
+    --buttonbar-border-radius: 0px;
 }
 
+.menubar:is(.buttonbar),
+.navbar .buttonbar {
+    --buttonbar-convex-item-bg: rgba(0, 0, 0, 0.8)
+}
 
-.highlight{
+.highlight, .highlight i {
     text-shadow: none;
     font-weight: bolder;
-    color: black;
-    background-color: #ffb15b !important;
-    background: #ffb15b !important;
-
-}
-button, a.button, input, textarea{
-	border-radius:7px;
+    color: black !important;
+    background-color: #ffd477 !important;
+    background: #ffd477 !important;
 }
 
+.highlight input,
+.error input,
+.warning input {
+    text-shadow: none;
+    font-weight: bolder;
+    background-color: black;
+    color: #ffd477 !important;
+    background: #black !important;
+}
 
-
+.highlight button,
+.error button,
+.warning button {
+    text-shadow: none;
+    font-weight: bolder;
+    background-color: black;
+    color: #ffd477 !important;
+    background: #black !important;
+}
 
 
 /*A link styled to look like a button*/
-a.button{
-	border-width:1px;
-	text-decoration: none;
-	color:#ffb15b;
-	padding:0em 0.2em 0em 0.2em;
-	display: inline-block;
-}
 
+a.button {
+    border-width: 1px;
+    text-decoration: none;
+    color: #ffd477;
+    padding: 0em 0.2em 0em 0.2em;
+    display: inline-block;
+}
 
 
 /* A span meant to look like a pre*/
-span.pre
-{
+
+span.pre {
     background-color: transparent
 }
 
-p.pathnav
-{
-background-color:transparent;
-border-radius:5px;
-margin-bottom:5px;
-margin-top:5px;
-border-style:solid;
-border-width:1px;
-padding:3px;
-cursor:help;
+p.pathnav {
+    background-color: transparent;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    border-style: solid;
+    border-width: 1px;
+    padding: 3px;
+    cursor: help;
 }
 
-p.resource-docstring{
-color:#ffb15b;
-background-color:transparent;
-
+p.resource-docstring {
+    color: #ffd477;
+    background-color: transparent;
 }
+
 
 /*Tab panel stuff*/
 
+
 /*The tab that is actively selected*/
-.selected-tab
-{
-font-size: 135%;
-font-weight: bold;
-color:#ffb15b;
-border-width: 3px;
+
+.selected-tab {
+    font-size: 135%;
+    font-weight: bold;
+    color: #ffd477;
+    border-width: 3px;
 }
 
+
 /*The pane containing the content of a tab*/
-tab-panel tab-pane
-{
+
+tab-panel tab-pane {
     padding: 0.25em;
-    border-style:solid;
+    border-style: solid;
     border-width: 1px;
-    border-color: #ffb15b;
+    border-color: #ffd477;
 }
+
 
 /*The div at the top of the panel that contains the tabs you click on. We can select it like this because the only children of tab panels should be tab-pane and this
 div*/
-tab-panel div
-    {
-        border-style:solid;
-        margin-bottom:  0.4em ;
-        list-style-type:none;
-        display: table;
-        border-color:#ffb15b;
-    }
+
+tab-panel div {
+    border-style: solid;
+    margin-bottom: 0.4em;
+    list-style-type: none;
+    display: table;
+    border-color: #ffd477;
+}
+
 
 /*one of the tabs in the tab strip. No, I'm not sure what's really going on here. I copied and pasted from the code that does the navigation bar.*/
-tab-panel div span
-    {
-        font-weight: bold;
-        padding: 0.05em;
-        color: #ffb15b;
-        display:inline;
-        border-width:1px;
-        border-style: none solid none none;
-        display: table-cell;
-        text-align:center;
-        border-color: #ffb15b;
-        cursor: pointer;
-    }
+
+tab-panel div span {
+    font-weight: bold;
+    padding: 0.05em;
+    color: #ffd477;
+    display: inline;
+    border-width: 1px;
+    border-style: none solid none none;
+    display: table-cell;
+    text-align: center;
+    border-color: #ffd477;
+    cursor: pointer;
+}
+
 
 /*Widget Styles*/
 
+
 /*This div is the container for most of the built in widgets. */
-div.widgetcontainer
-{
-	display:inline-block;
-	background-color: transparent;
-	padding-top: 0px;
-	border-style:inset;
-	border-width:2px;
-	color: #ffb15b;
-	padding: 0px;
-	margin:2px;
-	vertical-align:text-top;
+
+div.widgetcontainer {
+    display: inline-block;
+    background-color: transparent;
+    padding-top: 0px;
+    border-style: inset;
+    border-width: 2px;
+    color: #ffd477;
+    padding: 0px;
+    margin: 2px;
+    vertical-align: text-top;
 }
 
-div.widgetcontainer > div.scrollbox{
-	border: none;
+div.widgetcontainer>div.scrollbox {
+    border: none;
 }
+
 
 /*Numeric Process Value. These spans are intended for displays of changing numbers.*/
-span.numericpv
-{
-	background-color: transparent;
-	cursor:crosshair;
+
+span.numericpv {
+    background-color: transparent;
+    cursor: crosshair;
 }
 
-
-
-div.sliderwidget
-{
-	min-width:3.5em;
-	text-align:center;
-	font-size:90%;
+div.sliderwidget {
+    min-width: 3.5em;
+    text-align: center;
+    font-size: 90%;
 }
 
-div.meterwidget
-{
-	text-align:center;
+div.meterwidget {
+    text-align: center;
 }
 
-button.triggerbuttonwidget
-{
-	min-height:6em;
+button.triggerbuttonwidget {
+    min-height: 6em;
 }
 
-input.verticalslider
-{
-	-webkit-appearance: slider-vertical;
-     writing-mode: bt-lr;
-     height:9.2em;
-     width:1em;
-     margin: auto 0;
+input.verticalslider {
+    -webkit-appearance: slider-vertical;
+    writing-mode: bt-lr;
+    height: 9.2em;
+    width: 1em;
+    margin: auto 0;
 }
 
-input.horizontalslider
-{
-     height:0.5em;
-     width:12em;
-
+input.horizontalslider {
+    height: 0.5em;
+    width: 12em;
 }
 
 
 /************************/
+
 input[type=range] {
-	margin: 5.8px 0;
-	background-color: transparent;
-	-webkit-appearance: none;
+    width: 80%;
+    margin: 8.3px 0;
+    background-color: transparent;
+    -webkit-appearance: none;
   }
   input[type=range]:focus {
-	outline: none;
+    outline: none;
   }
   input[type=range]::-webkit-slider-runnable-track {
-	background: rgba(48, 138, 101, 0.5);
-	border: 0.2px solid rgba(1, 0, 0, 0.1);
-	border-radius: 25px;
-	height: 8.4px;
-	cursor: pointer;
+    background: #b6ab23;
+    border: 0;
+    border-radius: 1.3px;
+    width: 100%;
+    height: 8.4px;
+    cursor: pointer;
   }
   input[type=range]::-webkit-slider-thumb {
-	margin-top: -6px;
-	width: 20px;
-	height: 20px;
-	background: #000000;
-	border: 1px solid rgba(0, 0, 0, 0.3);
-	border-radius: 50px;
-	cursor: pointer;
-	-webkit-appearance: none;
+    margin-top: -8.3px;
+    width: 20px;
+    height: 25px;
+    background: #ffdd00;
+    border: 1px solid rgba(0, 0, 0, 0);
+    cursor: pointer;
+    -webkit-appearance: none;
   }
   input[type=range]:focus::-webkit-slider-runnable-track {
-	background: #7cd2af;
+    background: #dbd045;
   }
   input[type=range]::-moz-range-track {
-	background: rgba(0, 0, 0, 0.5);
-	border: 0.2px solid rgba(1, 0, 0, 0.1);
-	border-radius: 25px;
-	height: 8.4px;
-	cursor: pointer;
+    background: #b6ab23;
+    border: 0;
+    border-radius: 1.3px;
+    width: 100%;
+    height: 8.4px;
+    cursor: pointer;
   }
   input[type=range]::-moz-range-thumb {
-	width: 20px;
-	height: 20px;
-	background: #000000;
-	border: 1px solid rgba(0, 0, 0, 0.3);
-	border-radius: 50px;
-	cursor: pointer;
+    width: 20px;
+    height: 25px;
+    background: #ffdd00;
+    border: 1px solid rgba(0, 0, 0, 0);
+    cursor: pointer;
   }
   input[type=range]::-ms-track {
-	background: transparent;
-	border-color: transparent;
-	border-width: 7.8px 0;
-	color: transparent;
-	height: 8.4px;
-	cursor: pointer;
+    background: transparent;
+    border-color: transparent;
+    border-width: 8.3px 0;
+    color: transparent;
+    width: 100%;
+    height: 8.4px;
+    cursor: pointer;
   }
   input[type=range]::-ms-fill-lower {
-	background: #0a1c15;
-	border: 0.2px solid rgba(1, 0, 0, 0.1);
-	border-radius: 50px;
+    background: #7a7317;
+    border: 0;
+    border-radius: 2.6px;
   }
   input[type=range]::-ms-fill-upper {
-	background: rgba(0, 0, 0, 0.5);
-	border: 0.2px solid rgba(1, 0, 0, 0.1);
-	border-radius: 50px;
+    background: #b6ab23;
+    border: 0;
+    border-radius: 2.6px;
   }
   input[type=range]::-ms-thumb {
-	width: 20px;
-	height: 20px;
-	background: #000000;
-	border: 1px solid rgba(0, 0, 0, 0.3);
-	border-radius: 50px;
-	cursor: pointer;
-	margin-top: 0px;
-	/*Needed to keep the Edge thumb centred*/
+    width: 20px;
+    height: 25px;
+    background: #ffdd00;
+    border: 1px solid rgba(0, 0, 0, 0);
+    cursor: pointer;
+    margin-top: 0px;
+    /*Needed to keep the Edge thumb centred*/
   }
   input[type=range]:focus::-ms-fill-lower {
-	background: rgba(0, 0, 0, 0.5);
+    background: #b6ab23;
   }
   input[type=range]:focus::-ms-fill-upper {
-	background: #000000;
+    background: #dbd045;
   }
   /*TODO: Use one of the selectors from https://stackoverflow.com/a/20541859/7077589 and figure out
   how to remove the virtical space around the range input in IE*/
   @supports (-ms-ime-align:auto) {
-	/* Pre-Chromium Edge only styles, selector taken from hhttps://stackoverflow.com/a/32202953/7077589 */
-	input[type=range] {
-	  margin: 0;
-	  /*Edge starts the margin from the thumb, not the track as other browsers do*/
-	}
+    /* Pre-Chromium Edge only styles, selector taken from hhttps://stackoverflow.com/a/32202953/7077589 */
+    input[type=range] {
+      margin: 0;
+      /*Edge starts the margin from the thumb, not the track as other browsers do*/
+    }
   }
   
 
 /******************https://codepen.io/mlms13/pen/CGgLF********************/
 
 table {
-  border-collapse: separate;
-  border-spacing: 0;
-border-radius: 15px;
-border: none;
-border-color: #00000059;
-}
-tbody
-{
-	border-radius: 15px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 15px;
+    border: none;
+    border-color: #00000059;
 }
 
-td{
-	width: max-content;
+tbody {
+    border-radius: 15px;
 }
-th{
-	width: max-content;
+
+td {
+    width: max-content;
 }
+
+th {
+    width: max-content;
+}
+
 table tr th,
 table tr td {
-  border-right: 2px solid;
-  border-bottom: 2px solid;
-  border-color: inherit;
-  padding: 4px;
+    border-right: 2px solid;
+    border-bottom: 2px solid;
+    border-color: inherit;
+    padding: 4px;
 }
+
 table tr th:first-child,
 table tr td:first-child {
-  border-left: 2px solid;
-  border-color: inherit;
-
+    border-left: 2px solid;
+    border-color: inherit;
 }
 
-table tr th, table tr:first-child td {
-  border-top: 2px solid;
-  border-color: inherit;
-
-  text-align: left;
+table tr th,
+table tr:first-child td {
+    border-top: 2px solid;
+    border-color: inherit;
+    text-align: left;
 }
+
 
 /* top-left border-radius */
- :is(table,thead:first-child,tbody:first-child):first-child > tr:first-child :first-child:is(td,th) {
-	border-top-left-radius: 15px;
-  }
-  
-  /* top-right border-radius */
-  :is(table,thead:first-child,tbody:first-child)  > tr:first-child :last-child:is(td,th) {
-	border-top-right-radius: 15px;
 
-  }
-  
-  /* bottom-left border-radius */
-  :is(table, tbody)  > tr:last-child :first-child:is(td,th) {
-	border-bottom-left-radius: 15px;
+ :is(table,
+thead:first-child,
+tbody:first-child):first-child>tr:first-child :first-child:is(td,
+th) {
+    border-top-left-radius: 15px;
+}
 
-  }
-  
-  /* bottom-right border-radius */
-  :is(table, tbody)  > tr:last-child :last-child:is(td,th) {
-	border-bottom-right-radius: 15px;
 
-  }
+/* top-right border-radius */
+
+ :is(table,
+thead:first-child,
+tbody:first-child)>tr:first-child :last-child:is(td,
+th) {
+    border-top-right-radius: 15px;
+}
+
+
+/* bottom-left border-radius */
+
+ :is(table,
+tbody)>tr:last-child :first-child:is(td,
+th) {
+    border-bottom-left-radius: 15px;
+}
+
+
+/* bottom-right border-radius */
+
+ :is(table,
+tbody)>tr:last-child :last-child:is(td,
+th) {
+    border-bottom-right-radius: 15px;
+}
+
+
+/* ===== Scrollbar CSS ===== */
+
+
+/* Firefox */
+
+* {
+    scrollbar-width: auto;
+    scrollbar-color: #ffe666 #2f3c15;
+}
+
+
+/* Chrome, Edge, and Safari */
+
+*::-webkit-scrollbar {
+    width: 12px;
+}
+
+*::-webkit-scrollbar-track {
+    background: #2f3c15;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: #ffe666;
+    border-radius: 3px;
+    border: 1px solid #000000;
+}

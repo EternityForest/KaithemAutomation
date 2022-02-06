@@ -44,7 +44,7 @@ a.settingslink::before
 
 a.helplink::before
 {
- content: url(/static/img/icons/silk/book_open.png);
+ content: "?";
 }
 
 a.loginlink::before
@@ -54,7 +54,7 @@ a.loginlink::before
 
 p.help::before,div.help::before
 {
- content: url(/zipstatic/img/icons/fugue.zip/question.png);
+ content: "?";
 }
 
 /* These spans are mostly just used to put things before*/
@@ -141,4 +141,17 @@ a.upload-module-button::before
 a.pageslink::before
 {
   content: url(/static/img/icons/silk/page_white_stack.png);
+}
+
+
+i.icofont-key{
+	color: #ffe066;
+}
+
+i.icofont-ui-play,i.icofont-ui-add{
+	color: #26c061;
+}
+
+i.icofont-ui-delete, i.icofont-trash{
+	color: #b63a3a
 }

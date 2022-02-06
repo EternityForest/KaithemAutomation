@@ -50,14 +50,18 @@ def devStatString(d):
 </p>
 <table border="1">
 <tr>
-    <th>Name</th><th>Type</th>  <th>Status</th> <th>Errors</th><th>Delete</th>
+    <th>Name</th><th  class="desktop-only">Type</th>  <th>Status</th><th>Delete</th>
 </tr>
 %for i in sorted(deviceData.keys()):
 <tr>
     <td>
         <a href="device/${url(i)}/manage" class="button" style="width: 95%;"><i class="icofont-pencil"></i>${i|h}</a>
+    
+        <span style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
+            ${(str(len(deviceData[i]().errors))+" errors") if len(deviceData[i]().errors) else '' }
+        </span>
     </td>
-    <td>
+    <td  class="desktop-only">
             ${deviceData[i]().deviceTypeName}
             %if  deviceData[i]().deviceTypeName =='unsupported':
             (${deviceData[i]().data.get('type','UndefinedType')})
@@ -69,9 +73,6 @@ def devStatString(d):
     <td>${devStatString(deviceData[i]())}</td>
     
 
-    <td style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
-        ${len(deviceData[i]().errors)}
-    </td>
     <td>
         <a href="deleteDevice/${url(i)}" class="button"><i class="icofont-ui-delete"></i>Delete</a>
     </td>

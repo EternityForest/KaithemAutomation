@@ -16,6 +16,16 @@ specialKeys={
         'type'
 }
 %>
+
+<style>
+        .inputtable {
+                width: 100%;
+        }
+
+        .tagbox{
+                text-align: center;
+        }
+</style>
 <script type="text/javascript" src="/static/widget.js"></script>
 
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
@@ -178,29 +188,27 @@ ${manageForm}
 <p class="help">This section lists all the tag points owned.  Controls do not work if
         the tag has been overriden by some high priority claim.
 </p>
-<table border="1" style="width:40em">
-<tr><td>Name</td><td>Value</td><td>Controls.</td></tr>
-
 
 <script>
 
         triggerCounters = {}
 </script>
 %for i in obj.tagPoints:
-<tr><td><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></td>
+<div class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
+<h3 style="font-size: 140%;"><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></h3>
+        <h4>Current</h4>
         %if len(obj.tagPoints)>8:
-        <td>${str(obj.tagPoints[i].value)[:48]|h}</td>
+        ${str(obj.tagPoints[i].value)[:48]|h}
         %elif hasattr(obj.tagPoints[i],'meterWidget'):
-        <td>${obj.tagPoints[i].meterWidget.render()}</td>
+        ${obj.tagPoints[i].meterWidget.render()}
         %else:
-        <td>${obj.tagPoints[i].spanWidget.render()}</td>
+        ${obj.tagPoints[i].spanWidget.render()}
         %endif
+        <h4>Controls</h4>
         %if obj.tagPoints[i].activeClaim().priority > 50:
-        <td>
                 Overridden: ${obj.tagPoints[i].activeClaim().name}
-        </td>
         %else:
-        <td><div style="display: flex; flex-wrap: wrap;" class="buttonbar">
+        <div style="display: flex; flex-wrap: wrap;" class="buttonbar">
                 %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
                 %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
                 <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
@@ -251,12 +259,10 @@ ${manageForm}
         %endif
 
 
-        </td>
 
         %endif
-</tr>
+</div>
 %endfor
-</table>
 
 <h2>Messages</h2>
 <p class="help">
@@ -311,19 +317,19 @@ var mytable = $('#bindings').editTable({
     data: [['']],           // Fill the table with a js array (this is overridden by the textarea content if not empty)
     tableClass: 'inputtable',   // Table class, for styling
     jsonData: false,        // Fill the table with json data (this will override data property)
-    headerCols: ['Device Point(dest)','Type(blank=auto)', 'External Point(source)'],      // Fix columns number and names (array of column names)
+    headerCols: ['Device Point(dest)','Type', 'External Point(source)'],      // Fix columns number and names (array of column names)
     maxRows: 999,           // Max number of rows which can be added
     first_row: true,        // First row should be highlighted?
     row_template: false,    // An array of column types set in field_templates
     field_templates: {
         'tag' : {
-            html: '<input list="k_tags" style="width:25em"/>',
+            html: '<input list="k_tags" />',
             getValue: function (input) {
                 return $(input).val();
             },
             setValue: function (input, value) {
                 //I hate ths
-                return $('<input list="k_tags" value="'+value+'"style="width:25em"/>')
+                return $('<input list="k_tags" value="'+value+'"/>')
             }
         },
         'local' : {
@@ -332,11 +338,11 @@ var mytable = $('#bindings').editTable({
                 return $(input).val()
             },
             setValue: function (input, value) {
-                return $('<input list="k_tlocal" value="'+value+'"style="width:25em"/>')
+                return $('<input list="k_tlocal" value="'+value+'"/>')
             }
         },
         'btype' : {
-            html: '<input list="k_bindtype"/>',
+            html: '<input placeholder="auto" list="k_bindtype"/>',
             getValue: function (input) {
                 return $(input).val()
             },
