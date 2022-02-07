@@ -92,7 +92,9 @@
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
+dd{
+    margin-bottom: 1.5em;
+}
 /* b612-700italic - latin */
 
 @font-face {
@@ -105,7 +107,7 @@
 
 body {
     font-family: Lora;
-    font-size: 16px+1.5vw;
+    font-size: 18px;
     margin: 0px;
 }
 
@@ -118,11 +120,7 @@ body {
     font-size: small;
 }
 
-button,
-a.button,
-label {
-    text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
-}
+
 
 td input,
 td select {
@@ -410,10 +408,6 @@ a.button {
     background-color: rgba(255, 255, 0, 0.2);
 }
 
-.specialentry {
-    color: rgba(50, 70, 100, 1);
-    text-shadow: 0px 0px 8px rgba(50, 70, 255, 1);
-}
 
 
 /*This is used for /important notifications*/
@@ -421,7 +415,6 @@ a.button {
 .highlight {
     color: rgb(0, 50, 0);
     background-color: rgba(100, 150, 50, 0.2);
-    text-shadow: rgb(120, 255, 100) 0px 0px 10px;
 }
 
 .virtual,
@@ -472,6 +465,9 @@ section {
     margin-bottom: 0.2em;
     width: fit-content;
     min-width: 35%;
+    box-sizing: border-box;
+    max-width: 96%;
+    overflow-x: auto;
 }
 
 div.sectionbox.flex-item,

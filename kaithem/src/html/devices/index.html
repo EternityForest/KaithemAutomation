@@ -48,37 +48,37 @@ def devStatString(d):
     This section provides an easy way to configure devices supported
     by Kaithem's remote device abstraction layer.
 </p>
-<table border="1">
-<tr>
-    <th>Name</th><th  class="desktop-only">Type</th>  <th>Status</th><th>Delete</th>
-</tr>
+<dl>
+
 %for i in sorted(deviceData.keys()):
-<tr>
-    <td>
-        <a href="device/${url(i)}/manage" class="button" style="width: 95%;"><i class="icofont-pencil"></i>${i|h}</a>
-    
+    <dt> <a href="device/${url(i)}/manage"><i class="icofont-pencil"></i>${i|h}</a>
         <span style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
             ${(str(len(deviceData[i]().errors))+" errors") if len(deviceData[i]().errors) else '' }
         </span>
-    </td>
-    <td  class="desktop-only">
+
+        </dt>
+    <dd>
+
+    <h4>Type</h4>
             ${deviceData[i]().deviceTypeName}
             %if  deviceData[i]().deviceTypeName =='unsupported':
             (${deviceData[i]().data.get('type','UndefinedType')})
             %endif
-    </td>
+    <h4>Action</h4>
+    <a href="deleteDevice/${url(i)}" class="button"><i class="icofont-ui-delete"></i>Delete</a>
 
+    <%
+    h=devStatString(deviceData[i]())
+    %>
+    %if h:
+    <h4>Status</h4>
+    <div>${h}</div>
+    %endif
+</dd>
 
-
-    <td>${devStatString(deviceData[i]())}</td>
-    
-
-    <td>
-        <a href="deleteDevice/${url(i)}" class="button"><i class="icofont-ui-delete"></i>Delete</a>
-    </td>
-</tr>
+  
 %endfor
-</table>
+</dl>
 
 %if devices.getZombies():
 <h2>Zombie Devices</h2>

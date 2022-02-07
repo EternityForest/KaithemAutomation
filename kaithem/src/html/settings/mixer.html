@@ -365,7 +365,7 @@ import os
         </p>
         <h3>New Channel</h3>
         <p class="buttonbar">
-        <input v-model="newchannelname" size="6"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add
+        <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add
           Mono</button>
         <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
       </p>

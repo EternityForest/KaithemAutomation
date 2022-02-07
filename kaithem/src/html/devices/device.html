@@ -71,7 +71,7 @@ specialKeys={
 <input name="module" disabled value="${obj.parentModule|h}"><input name="module" disabled value="${obj.parentResource|h}">
 %endif
 <h2>Basic</h2>
-<table border="1" style="width:40em">
+<table border="1"  style="width:100%">
 
 <tr>
         <td>Device Type</td>
@@ -136,7 +136,7 @@ ${traceback.format_exc()}
 ${manageForm}
 %else:
 
-<table>
+<table  style="width:100%">
 %for i in sorted([i for i in obj.config.keys() if not i in specialKeys and not i.startswith("kaithem.")] ):
 <tr>
         %if i.startswith('device.'):
@@ -159,7 +159,7 @@ ${manageForm}
         tag point.
 </p>
 
-<table border="1" style="width:40em">
+<table border="1" style="width:100%">
 <tr><th>Name</th><th>Priority</th><th>Status</th></tr>
 
 %for i in obj.alerts:
@@ -347,7 +347,7 @@ var mytable = $('#bindings').editTable({
                 return $(input).val()
             },
             setValue: function (input, value) {
-                return $('<input list="k_bindtype" value="'+value+'"style="width:8em"/>')
+                return $('<input list="k_bindtype" value="'+value+'"style="width:6em"/>')
             }
         }
     },
