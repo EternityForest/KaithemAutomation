@@ -23,6 +23,10 @@
         "YeelightRGB":{
             "submodule":"devices.Yeelight",
             "description": "Requires YeeLight python module. This device represents a bulb.  You may want to disable autosave on these bulbs to save wear with complex effects."
+        },
+        "NVRChannel":{
+            "submodule":"devices.NVRPlugin",
+            "description": "NVR support for live streaming, recording, and live video analytics"
         }
     }
 } 

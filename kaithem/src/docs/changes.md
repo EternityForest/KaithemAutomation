@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.68.8
+
+- New Fugit SciFi inspired theme
+- 
+
 ### 0.68.7
 
 - Admin can see battery status of all connected devices if said device supports it

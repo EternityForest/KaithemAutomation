@@ -536,8 +536,6 @@ class Device(virtualresource.VirtualResource):
         # And keep stuff from GCIng for too long
         workers.do(makeBackgroundPrintFunction(t, tm, title, self))
 
-    def web_handler(self, path, kwargs):
-        return "This device does not have a custom interface page."
 
 
 class UnsupportedDevice(Device):
@@ -567,7 +565,19 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     _isCrossFramework = True
 
     def webHandler(self, *path, **kwargs):
-        return asyncio.run(self.web_handler(*path, **kwargs))
+        """
+            A device's web page is also permissioned based on the global rules.
+        """
+        if cherrypy.request.method in ('post','put'):
+            perms = self.config.get("kaithem.write_perms",'').strip() or "/admin/settings.edit"
+
+        if cherrypy.request.method =="get":
+            perms = self.config.get("kaithem.write_perms",'').strip() or "/admin/settings.edit"
+
+        for i in perms.split(","):
+            pages.require(i)
+
+        return asyncio.run(self.web_handler(path, kwargs,cherrypy.request.method))
 
     def serve_file(self,fn,mime='', name=None):
         from . import kaithemobj
@@ -578,6 +588,19 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         readPerms = self.config.get("kaithem.read_perms",'').strip()
         writePerms = self.config.get("kaithem.write_perms",'').strip()
         t.expose(readPerms, writePerms if writable else [])
+
+
+
+
+    def handle_web_request(self,relpath,params,method,**kwargs):
+        "To be called by the framework"
+        return "No web content here"
+
+    def web_serve_file(self,path,filename=None,mime=None):
+        """
+        From within your web handler, you can return the result of this to serve that file
+        """
+        return pages.serveFile(path,mime or '', filename)
 
 
     def numeric_data_point(self,

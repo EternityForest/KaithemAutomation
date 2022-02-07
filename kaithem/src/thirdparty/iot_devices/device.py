@@ -467,3 +467,18 @@ class Device():
     @classmethod
     def get_create_form(**kwargs) -> Optional[str]:
         """must return a snippet of html used the same way as get_management_form, but for creating brand new devices"""
+
+    def handle_web_request(self,relpath,params,method,**kwargs):
+        """To be called by the framework.  Security must be handled by the framework.
+           Frameworks may implement separate read and write permissions that apply separately
+           to GET and other requests.
+
+           For this reason you should always check that the method is a POST before accepting a write operation.   
+        """
+        return "No web content here"
+
+    def web_serve_file(self,path,filename=None,mime=None):
+        """
+        From within your web handler, you can return the result of this to serve that file
+        """
+        raise NotImplementedError("This host framework does not support this feature")

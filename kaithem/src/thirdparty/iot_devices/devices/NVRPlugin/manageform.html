@@ -1,0 +1,49 @@
+<h3>Info</h3>
+<p class="help">
+    This is an NVR device providing common CCTV features for one camera 
+</p>
+
+
+<datalist id="sources" name="sources">
+    <option>test</option>
+    <option>webcam</option>
+</datalist>
+
+<table>
+    <tr>
+        <td>Primary stream source</td>
+        <td><input name="device.source" value="${data.get('device.source','test')|h}"></td>
+    </tr>
+
+   
+</table>
+
+<script src="/static/js/hls.js"></script>
+<!-- Or if you want a more recent alpha version -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/hls.js@alpha"></script> -->
+<video id="video" controls></video>
+<script>
+  var video = document.getElementById('video');
+  var videoSrc = 'web/live/playlist.m3u8';
+  if (Hls.isSupported()) {
+    config={
+  "enableWorker": false,
+  "maxBufferLength": 5,
+  "liveBackBufferLength": 2,
+  "liveSyncDuration": 0,
+  "liveMaxLatencyDuration": 5,
+  "liveDurationInfinity": true,
+  "highBufferWatchdogPeriod": 1,
+  "progressive":true
+}
+var hls = new Hls(config);
+
+    hls.loadSource(videoSrc);
+    hls.attachMedia(video);
+
+  }
+
+else{
+  alert("No HLS support here in this browser")
+}
+</script>

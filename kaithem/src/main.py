@@ -677,7 +677,7 @@ def webRoot():
              "tools.sessions.on": False,
              "tools.addheader.on": True,
              'tools.expires.on': True,
-             'tools.expires.secs': 3600  # expire in an hour
+             'tools.expires.secs': 3600+48  # expire in 48 hours
              },
 
         '/static/js':
