@@ -751,3 +751,53 @@ th) {
     border-radius: 3px;
     border: 1px solid #000000;
 }
+
+
+@keyframes loader {
+    0% {
+      transform: skewX(1deg);
+      filter: brightness(0.8);
+    }
+    50% {
+        transform: skewX(-1deg);
+        filter: brightness(0.8);
+      }
+    to {
+      transform: none;
+      filter: none;
+    }
+  }
+
+body{
+    animation: 0.4s linear 0s 1 loader;
+   
+}
+@keyframes loader2 {
+0% {
+    height: 100vh;
+    backdrop-filter: blur(3px) brightness(0.5) contrast(1.5);
+
+    border-top: 3px solid #ffd477;
+
+}
+to {
+    height: 0px;
+    backdrop-filter: none;
+
+    border-top: 3px solid #00ff1500;
+}
+}
+  
+
+  
+body::after{
+    bottom: 0px;
+    position: absolute;
+    width: 100vw;
+    content: "";    
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAGZJREFUKFNNjwEOgDAIA3v6IuP/v7AnWVMYUbaEAS3t4Lmtc2FbgKwdzoscRAokGQmrUOyUfkUawc3AyGRrUYfkLdHdAgw96inxZR2rzTS977grYNFa85v+QeVjAOO+NvYPvJ1F9AU18DARTpe5OwAAAABJRU5ErkJggg==);
+    height: 0px;
+    animation: 1.2s linear 0s 1 loader2;
+    z-index: 99999;
+}
+  
