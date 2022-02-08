@@ -471,6 +471,9 @@ class _TagPoint(virtualresource.VirtualResource):
                 else:
                     w = widgets.DataSource(id="tag:" + self.name)
 
+                    if self.unreliable:
+                        w.noOnConnectData=True
+
                     # The tag.control version is exactly the same but output-only,
                     #  so you can have a synced UI widget that
                     # can store the UI setpoint state even when the actual tag is overriden.
@@ -1519,12 +1522,11 @@ class _TagPoint(virtualresource.VirtualResource):
         # Immediate write, don't push yet, do that in a thread because TCP can block
         def pushFunction():
             # Set value immediately, for later page loads
-            self.dataSourceWidget.value = self.value
             if self.guiLock.acquire(timeout=0.3):
                 try:
                     # Use the new literal computed value, not what we were passed,
                     # Because it could have changed by the time we actually get to push
-                    self.dataSourceWidget.send(self.value)
+                    self.dataSourceWidget.send(value)
                 finally:
                     self.guiLock.release()
 

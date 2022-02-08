@@ -327,9 +327,10 @@ class websocket(WebSocket):
                             widgets[i].lastSubscribedTo = time.monotonic()
 
                             self.subscriptions.append(i)
-                            x = widgets[i]._onRequest(user, self.uuid)
-                            if not x is None:
-                                widgets[i].send(x)
+                            if not widgets[i].noOnConnectData:
+                                x = widgets[i]._onRequest(user, self.uuid)
+                                if not x is None:
+                                    widgets[i].send(x)
                             self.subCount += 1
 
             if 'unsub' in o:
@@ -380,6 +381,7 @@ class Widget():
         self.subscriptions = {}
         self.subscriptions_atomic = {}
         self.echo = True
+        self.noOnConnectData=False
 
         # Used for GC, we have a fake subscriber right away so we can do a grace
         # Period before trashing it.
