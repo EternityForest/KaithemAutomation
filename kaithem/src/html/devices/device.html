@@ -201,8 +201,10 @@ ${manageForm}
         ${str(obj.tagPoints[i].value)[:48]|h}
         %elif hasattr(obj.tagPoints[i],'meterWidget'):
         ${obj.tagPoints[i].meterWidget.render()}
-        %else:
+        %elif hasattr(obj.tagPoints[i],'spanWidget'):
         ${obj.tagPoints[i].spanWidget.render()}
+        %else:
+        Binary data tagpoint cannot be displayed
         %endif
         <h4>Controls</h4>
         %if obj.tagPoints[i].activeClaim().priority > 50:

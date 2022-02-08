@@ -241,6 +241,16 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._configuredAlarms: Dict[str, object] = {}
 
+        # In unreliable mode the tag's acts like a simple UDP connection.
+        # The only supported feature is that writing the tag notifies subscribers.
+        # It is not guaranteed to store the last value, to error check the value,
+        # To prevent multiple writes at the same time, and the claims may be ignored.
+
+        # Subscribing the tag directly to another tga uses fastPush that bypasses all claims.
+        # In unreliable mode you should only use fastPush to set values.
+
+        self.unreliable: bool = False
+
         # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscrie
         # function subscribed to us, respectively
 
@@ -262,6 +272,11 @@ class _TagPoint(virtualresource.VirtualResource):
         self.claims: Dict[str, Claim] = {}
         self.lock = threading.RLock()
         self.subscribers: List[weakref.ref] = []
+
+
+        # This is only used for fast stream mode
+        self.subscribers_atomic: List[weakref.ref] = []
+
         self.poller: Union[None, Callable] = None
 
         # Do we have anything set via the config page that would override the code-set mqtt stuff?
@@ -1481,8 +1496,51 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.poller.unregister()
                 self.poller = None
 
+
+    def fastPush(self, value,timestamp=None, annotation=None):
+        """
+            Push a value to all subscribers. Does not set the tag's value.
+            Bypasses all claims. Does not guarantee to get any locks, multiples of this call can happen at once.
+            Does not perform any checks on the value.
+
+            Meant for streaming video analysis.
+        """
+
+        timestamp=timestamp or time.monotonic()
+
+        for i in self.subscribers_atomic:
+            f = i()
+            if f:
+                f(value, timestamp, annotation)
+            
+        if not self.dataSourceWidget:
+            return
+
+        # Immediate write, don't push yet, do that in a thread because TCP can block
+        def pushFunction():
+            # Set value immediately, for later page loads
+            self.dataSourceWidget.value = self.value
+            if self.guiLock.acquire(timeout=0.3):
+                try:
+                    # Use the new literal computed value, not what we were passed,
+                    # Because it could have changed by the time we actually get to push
+                    self.dataSourceWidget.send(self.value)
+                finally:
+                    self.guiLock.release()
+
+        # Should there already be a function queued for this exact reason, we just let
+        # That one do it's job
+        if self.guiLock.acquire(timeout=0.001):
+            try:
+                workers.do(pushFunction)
+            finally:
+                self.guiLock.release()
+
     @typechecked
     def subscribe(self, f: Callable, immediate=False):
+
+        if isinstance(f, _TagPoint) and (f.unreliable or self.unreliable):
+            f = f.fastPush
 
         timestamp = time.monotonic()
 
@@ -1534,6 +1592,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 if immediate and self.timestamp:
                     f(self.value, self.timestamp, self.annotation)
                 self._managePolling()
+
+                self.subscribers_atomic = copy.copy(self.subscribers)
             finally:
                 self.lock.release()
         else:
@@ -1556,6 +1616,7 @@ class _TagPoint(virtualresource.VirtualResource):
                                        len(self.subscribers),
                                        synchronous=True)
                 self._managePolling()
+                self.subscribers_atomic = copy.copy(self.subscribers)
             finally:
                 self.lock.release()
         else:
@@ -2007,8 +2068,6 @@ class _NumericTagPoint(_TagPoint):
         self._unit: str = ""
         self.guiLock = threading.Lock()
         self._meterWidget = None
-
-        self.apiWidget = widgets.APIWidget()
 
         self._setupMeter()
         _TagPoint.__init__(self, name)

@@ -20,7 +20,9 @@ import weakref
 import traceback
 import os
 import sys
+import base64
 
+from matplotlib.pyplot import cla
 #import workers  # , ]messagebus
 
 def doNow(f):
@@ -615,6 +617,14 @@ class GStreamerPipeline():
 
         return True
 
+
+    def appsinkhandler(self,appsink, user_data):
+        sample = appsink.emit("pull-sample")
+        gst_buffer = sample.get_buffer()
+        (ret, buffer_map) = gst_buffer.map(Gst.MapFlags.READ)
+        rpc[0]("_onAppsinkData", [str(user_data), base64.b64encode(buffer_map.data).decode()])
+        return Gst.FlowReturn.OK
+
     def onMessage(self, src, name, s):
         if s.get_name() == 'level':
             rms = sum([i for i in s['rms']]) / len(s['rms'])
@@ -899,6 +909,21 @@ class GStreamerPipeline():
         appsrc = self.addElement("appsrc", caps=caps, connectToOutput=False)
         return AppSource(appsrc)
 
+
+    def pullBuffer(self,element,timeout=0.1):
+        if isinstance(element, int):
+                element = elementsByShortId[element]
+
+        sample = self.appsink.emit('try-pull-sample', timeout * 10**9)
+        if not sample:
+            return None
+
+        buf = sample.get_buffer()
+        caps = sample.get_caps()
+
+        return base64.b64encode(buf.extract_dup(0, buf.get_size()))
+
+
     def addElement(self, t, name=None, connectWhenAvailable=False, connectToOutput=None, sidechain=False, **kwargs):
 
         with self.lock:
@@ -906,6 +931,10 @@ class GStreamerPipeline():
                 raise ValueError("Element type must be string")
 
             e = Gst.ElementFactory.make(t, name)
+
+            if t=='appsink':
+                e.connect("new-sample", self.appsinkhandler, name)
+
 
             if e == None:
                 raise ValueError("Nonexistant element type: " + t)
@@ -1060,12 +1089,13 @@ class GStreamerPipeline():
             if self.pipeline.get_state(1000_000_000)[1] == Gst.State.PLAYING:
                 return True
 
+
 gstp=GStreamerPipeline()
 rpc[0] = jsonrpyc.RPC(target=gstp)
 
 
-def print(*a):
-    rpc[0]("print", str(a))
+# def print(*a):
+#     rpc[0]("print", [str(a)])
 
 while not rpc[0].threadStopped:
     time.sleep(10)

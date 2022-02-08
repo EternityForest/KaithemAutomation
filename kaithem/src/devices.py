@@ -482,12 +482,13 @@ class Device(virtualresource.VirtualResource):
                 except KeyError:
                     pass
 
-            for i in self._kBindings:
-                try:
-                    self._kBindings[i].unsubscribe(self.tagPoints[i])
-                except Exception:
-                    logging.exception(
-                        "Could not unsub. Maybe was never created.")
+            if hasattr(self,"_kBindings"):
+                for i in self._kBindings:
+                    try:
+                        self._kBindings[i].unsubscribe(self.tagPoints[i])
+                    except Exception:
+                        logging.exception(
+                            "Could not unsub. Maybe was never created.")
 
             # Be defensive about ref cycles.
             try:
@@ -740,8 +741,9 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in self._deviceSpecIntegrationHandlers:
                 t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
 
-            self._deviceSpecIntegrationHandlers[name] = handler
-            t.subscribe(handler)
+            if handler:
+                self._deviceSpecIntegrationHandlers[name] = handler
+                t.subscribe(handler)
 
             if handler:
                 self.tagPoints[name] = t
@@ -751,6 +753,51 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in self._kBindings:
                 self._kBindings[name].subscribe(t, immediate=True)
             messagebus.postMessage("/system/tags/configured", t.name)
+
+    def bytestream_data_point(self,
+                          name: str,
+                          description: str = "",
+                          handler: Optional[Callable[[str, float, Any],
+                                                     Any]] = None,
+                          interval: float = 0,
+                          writable: bool = True,
+                          subtype: string='',
+
+                          **kwargs):
+
+        with lock:
+            if "/" in name:
+                t = tagpoints.BinaryTag("/devices/" + self.name + "/" + name)
+            else:
+                t = tagpoints.BinaryTag("/devices/" + self.name + "." + name)
+            t.unreliable=True
+
+            self.__setupTagPerms(t,writable)
+            t._dev_ui_writable = writable
+            t.subtype = subtype
+
+            t.description = description
+            t.interval = interval
+
+
+            # Be defensive
+            if name in self._deviceSpecIntegrationHandlers:
+                t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
+
+            if handler:
+                self._deviceSpecIntegrationHandlers[name] = handler
+                t.subscribe(handler)
+
+            self.tagPoints[name] = t
+            self.datapoints[name] = None
+
+            # On demand subscribe to the binding for the tag we just made
+            if name in self._kBindings:
+                self._kBindings[name].subscribe(t, immediate=True)
+            messagebus.postMessage("/system/tags/configured", t.name)
+
+    def push_bytes(self, name, value,):
+        self.tagPoints[name].fastPush(value,None, None)
 
     def set_data_point(self, name, value,timestamp=None,annotation=None):
         self.tagPoints[name](value,timestamp, annotation)
@@ -1275,6 +1322,7 @@ def makeDevice(name, data, module=None, resource=None):
                 def __init__(self, name, data, **kw):
                     #We have to call ours first because we need things like the tag points list
                     # to be able to do the things theirs could call
+                    Device.__init__(self, name, data, **kw)
                     CrossFrameworkDevice.__init__(self, name, data, **kw)
                     #Ensure we don't lose any data should the base class ever set any new keys
                     dt2.__init__(self, name, self.config, **kw)

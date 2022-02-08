@@ -19,7 +19,9 @@
             "debugOptions": [
                 "RedirectOutput"
             ],
-            "justMyCode": false
+            "justMyCode": false,
+            "subProcess": true,
+
         },
         {
             "name": "Python",

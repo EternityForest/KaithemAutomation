@@ -9,6 +9,8 @@ def stopAllJackUsers():
     pass
 import os
 
+import base64
+
 #Can't pass GST elements, have to pass IDs
 class eprox():
     def __init__(self,parent,id) -> None:
@@ -18,6 +20,11 @@ class eprox():
 
     def set_property(self,p,v,maxWait=10):
         self.parent().setProperty(self.id,p,v,maxWait=maxWait)
+
+    def pullBuffer(self,element,timeout=0.1):
+        return base64.b64decode(self.parent().pullBuffer(self.id, timeout))
+
+
 
 pipes = weakref.WeakValueDictionary()
 
@@ -38,6 +45,7 @@ class GStreamerPipeline():
     def __del__(self):
         self.worker.kill()
         workers.do(self.worker.wait)
+
 
     def addElement(self,*a,**k):
 
@@ -63,7 +71,10 @@ class GStreamerPipeline():
         a = [i.id if isinstance(i,eprox) else i for i in a]
         return eprox(self,self.rpc.call("setProperty",args=a,kwargs=k,block=0.0001,timeout=maxWait))
 
-
+    def onAppsinkData(self,elementName,data,*a,**k):
+        return
+    def _onAppsinkData(self,elementName,data):
+        self.onAppsinkData(elementName,base64.b64decode(data))
     def stop(self):
         if self.ended:
             return

@@ -343,6 +343,40 @@ class Device():
 
 
 
+    def bytestream_data_point(self,
+                           name: str,
+                           description: str = "",
+                           unit: str = '',
+                           handler: Optional[Callable[[Dict,float,Any], Any]] = None,
+                           interval: float = 0,
+                            writable=True,
+                           **kwargs):
+        """register a new bytestream data point with the given properties. handler will be called when it changes.
+        only meant to be called from within __init__.
+        
+        Bytestream data points do not store data, they only push it through.
+
+        Despite the name, buffers of bytes may not be broken up or combined, this is buffer oriented,
+        """
+
+        self.datapoints[name] = None
+
+        def onChangeAttempt(v: Optional[str], t, a):
+            t = t or time.monotonic()
+            self.datapoints[name] = v
+
+            #Handler used by the device
+            if handler:
+                handler(v, t, a)
+
+            self.on_data_change(name, v, t, a)
+
+        self.__datapointhandlers[name] = onChangeAttempt
+
+
+    def push_bytes(self,name:str,value:bytes):
+        """Same as set_data_point but for bytestream data"""
+
 
     def set_data_point(self,
                        name: str,
