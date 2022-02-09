@@ -82,6 +82,7 @@ class ClientInfo():
 
 lastLoggedUserError = 0
 
+lastPrintedUserError =0 
 
 class WebInterface():
     @cherrypy.expose
@@ -162,7 +163,7 @@ def raw_subsc_closure(self, i, widget):
         except socket.error:
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
-            pass
+            print("wtimeout")
         except:
             if not widget.errored_send:
                 widget.errored_send = True
@@ -296,6 +297,7 @@ class websocket(WebSocket):
 
     def received_message(self, message):
         global lastLoggedUserError
+        global lastPrintedUserError
         try:
             if isinstance(message, ws4py.messaging.BinaryMessage):
                 o = msgpack.unpackb(message.data, raw=False)
@@ -312,6 +314,10 @@ class websocket(WebSocket):
                     logger.error(
                         "Client side err(These are globally ratelimited):\r\n" + o['telemetry.err'])
                     lastLoggedUserError = time.time()
+
+                elif lastPrintedUserError < time.time() - 1:
+                    print("Client side err(These are globally ratelimited):\r\n" + o['telemetry.err'])
+                    lastPrintedUserError = time.time()
                 return
 
             upd = o['upd']

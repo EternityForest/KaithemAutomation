@@ -180,7 +180,7 @@ section {
     background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAHRJREFUKFNVTzsVgEAMSwYWTKAAEahAIyrwgAJUsDCEl7TwHjfc9dJ8Wq7LqG2/SBCCQAAC8BaEWxJEY26bIFBFLNg/l6o3hFhZ8hUVUB7t0/JEtATzNOg47zbIBH1oayTbV9LKseYPNaCjflu8lMC93bcsHiEmMBAIk7iGAAAAAElFTkSuQmCC) repeat;
 }
 
-img {
+img,video {
     filter: blur(0.6px) contrast(1.71) saturate(0.32) sepia(0.4);
 }
 

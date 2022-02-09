@@ -56,6 +56,9 @@ class GStreamerPipeline():
         for i in k:
             if isinstance(k[i],eprox):
                 k[i]=k[i].id
+
+        if 'connectToOutput' in k and isinstance(k['connectToOutput'],(list,tuple)):
+            k['connectToOutput'] = [(i.id if isinstance(i, eprox) else i) for i in k['connectToOutput'] ]
         return eprox(self,self.rpc.call("addElementRemote",args=a,kwargs=k,block=0.0001))
 
     def setProperty(self,*a,maxWait=10,**k):

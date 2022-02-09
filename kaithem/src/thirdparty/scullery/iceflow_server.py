@@ -22,7 +22,7 @@ import os
 import sys
 import base64
 
-from matplotlib.pyplot import cla
+from matplotlib.pyplot import cla, connect
 #import workers  # , ]messagebus
 
 def doNow(f):
@@ -155,8 +155,12 @@ def link(a, b):
             if not a.link(b) == Gst.PadLinkReturn.OK:
                 raise RuntimeError("Could not link: " + str(a) + str(b))
 
-        elif not a.link(b):
-            raise RuntimeError("Could not link" + str(a) + str(b))
+        else:
+            x = a.link(b)
+
+            
+            if not x:
+                raise RuntimeError("Could not link" + str(a) + str(b)+" reason "+str(x))
     finally:
         if unref:
             pass  # b.unref()
@@ -947,40 +951,54 @@ class GStreamerPipeline():
                 self.setProperty(e, i, v)
 
             self.pipeline.add(e)
-
+            op=[]
             # May need to use an ID if its a remore command
             if connectToOutput:
-                if isinstance(connectToOutput, int):
-                    connectToOutput = elementsByShortId[connectToOutput]
+                if not isinstance(connectToOutput,(list,tuple)):
+                    cto= [connectToOutput]
+                else:
+                    cto = connectToOutput
 
-                if not id(connectToOutput) in self.elementTypesById:
-                    raise ValueError("Cannot connect to the output of: " +
-                                     str(connectToOutput) + ", no such element in pipeline.")
+                
+                for connectToOutput in cto:
 
-            # Element doesn't have an input pad, we want this to be usable as a fake source to go after a real source if someone
-            # wants to use it as a effect
-            if t == "audiotestsrc":
-                connectToOutput = False
+                    if isinstance(connectToOutput, int):
+                        connectToOutput = elementsByShortId[connectToOutput]
 
-            # This could be the first element
-            if self.elements and (not (connectToOutput is False)):
-                connectToOutput = connectToOutput or self.elements[-1]
+                    if not id(connectToOutput) in self.elementTypesById:
+                        raise ValueError("Cannot connect to the output of: " +
+                                        str(connectToOutput) + ", no such element in pipeline.")
+                    op.append(connectToOutput)
+            else:
+                #One auto connect
+                if connectToOutput is None:
+                    op=[None]
 
-                # Fakesinks have no output, we automatically don't connect those
-                if self.elementTypesById[id(connectToOutput)] == 'fakesink':
+            for connectToOutput in op:
+                # Element doesn't have an input pad, we want this to be usable as a fake source to go after a real source if someone
+                # wants to use it as a effect
+                if t == "audiotestsrc":
                     connectToOutput = False
 
-                # Decodebin doesn't have a pad yet for some awful reason
-                elif (self.elementTypesById[id(connectToOutput)] == 'decodebin') or connectWhenAvailable:
-                    eid = time.time()
-                    f = linkClosureMaker(weakref.ref(
-                        self), connectToOutput, e, connectWhenAvailable, eid)
+                # This could be the first element
+                if self.elements and (not (connectToOutput is False)):
+                    connectToOutput = connectToOutput or self.elements[-1]
 
-                    self.waitingCallbacks[eid] = f
-                    # Dummy 1 param because some have claimed to get segfaults without
-                    connectToOutput.connect("pad-added", f, 1)
-                else:
-                    link(connectToOutput, e)
+                    # Fakesinks have no output, we automatically don't connect those
+                    if self.elementTypesById[id(connectToOutput)] == 'fakesink':
+                        connectToOutput = False
+
+                    # Decodebin doesn't have a pad yet for some awful reason
+                    elif (self.elementTypesById[id(connectToOutput)] == 'decodebin') or connectWhenAvailable:
+                        eid = time.time()
+                        f = linkClosureMaker(weakref.ref(
+                            self), connectToOutput, e, connectWhenAvailable, eid)
+
+                        self.waitingCallbacks[eid] = f
+                        # Dummy 1 param because some have claimed to get segfaults without
+                        connectToOutput.connect("pad-added", f, 1)
+                    else:
+                        link(connectToOutput, e)
 
             # Sidechain means don't set this element as the
             # automatic thing that the next entry links to

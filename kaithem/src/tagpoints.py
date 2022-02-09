@@ -1529,6 +1529,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     self.dataSourceWidget.send(value)
                 finally:
                     self.guiLock.release()
+            else:
+                print("Timed out in the push function")
 
         # Should there already be a function queued for this exact reason, we just let
         # That one do it's job

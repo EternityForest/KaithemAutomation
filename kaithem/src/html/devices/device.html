@@ -208,22 +208,28 @@ ${manageForm}
 
 
         %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts':
-        <video controls></video>
+        <video muted controls></video>
 
         <script> 
+                if(!mpegts.isSupported())
+                {       alert("MPEG TS Not supported here")
+                        kaithemapi.sendErrorMessage("MPEG TS Not supported here")
+                }
+
                 video = document.querySelector('video');
                 var player = mpegts.createPlayer({
                         type: 'mpegts',  // could also be mpegts, m2ts, flv
                         isLive: true,
                         url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${obj.tagPoints[i].dataSourceWidget.uuid|u}",
                         liveBufferLatencyChasing: true,
-                        liveBufferLatencyMaxLatency: 1.5,
-                        liveBufferLatencyMinRemain: 0.5,
-                        enableWorker:true
+                        liveBufferLatencyMaxLatency: 3,
+                        liveBufferLatencyMinRemain: 1,
+                        enableStashBuffer: false,
+                        lazyLoad: false
                 });
                 player.attachMediaElement(video);
                 player.load();
-                player.play();
+                player.play()
 
         </script>
 
