@@ -208,7 +208,7 @@ ${manageForm}
 
 
         %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts':
-        <video muted controls></video>
+        <video style="width: 100%" muted controls></video>
 
         <script> 
                 if(!mpegts.isSupported())
@@ -222,8 +222,8 @@ ${manageForm}
                         isLive: true,
                         url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${obj.tagPoints[i].dataSourceWidget.uuid|u}",
                         liveBufferLatencyChasing: true,
-                        liveBufferLatencyMaxLatency: 3,
-                        liveBufferLatencyMinRemain: 1,
+                        liveBufferLatencyMaxLatency: 1,
+                        liveBufferLatencyMinRemain: 0.5,
                         enableStashBuffer: false,
                         lazyLoad: false
                 });

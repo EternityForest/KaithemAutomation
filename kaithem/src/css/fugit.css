@@ -181,7 +181,7 @@ section {
 }
 
 img,video {
-    filter: blur(0.6px) contrast(1.71) saturate(0.32) sepia(0.4);
+    filter: blur(0.6px) contrast(1.71) saturate(1.32) sepia(0.55);
 }
 
 div.sectionbox,

@@ -66,8 +66,11 @@ class Pipeline(iceflow.GstreamerPipeline):
             self.addElement("v4l2src")
             self.addElement("videoconvert")
             self.addElement("queue")
-            self.addElement("x264enc", tune="zerolatency",rc_lookahead=8,bitrate=1024)
-            self.addElement("capsfilter", caps="video/x-h264, profile=baseline")
+            try:
+                self.addElement("omxh264enc",interval_intraframes=60)
+            except:
+                self.addElement("x264enc", tune="zerolatency",rc_lookahead=0,bitrate=386,key_int_max=60)
+            self.addElement("capsfilter",caps="video/x-h264, profile=baseline")
             self.h264source =  self.addElement("h264parse")
 
 
