@@ -27,7 +27,7 @@ specialKeys={
         }
 </style>
 <script type="text/javascript" src="/static/widget.js"></script>
-<script type="text/javascript" src="/static/js/mux.min.js"></script>
+<script type="text/javascript" src="/static/js/mpegts.js"></script>
 
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
 <script type="text/javascript" src="/static/js/editTable/editTable.min.js"></script>
@@ -185,7 +185,7 @@ ${manageForm}
 
 %endif
 
-<h2>Tag Points</h2>
+<h2>Tag Point</h2>
 <p class="help">This section lists all the tag points owned.  Controls do not work if
         the tag has been overriden by some high priority claim.
 </p>
@@ -210,54 +210,20 @@ ${manageForm}
         %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts':
         <video controls></video>
 
-        <script>
-                // Replace this value with your files codec info
-                mime = 'video/mp4; codecs="avc1.7a001e"';
-
-                let mediaSource = new MediaSource();
-                let transmuxer = new muxjs.mp4.Transmuxer();
-
+        <script> 
                 video = document.querySelector('video');
-                video.src = URL.createObjectURL(mediaSource);
-                mediaSource.addEventListener("sourceopen", appendFirstSegment);
-
-                function appendFirstSegment(){
-                        URL.revokeObjectURL(video.src);
-                        sourceBuffer = mediaSource.addSourceBuffer(mime);
-                        sourceBuffer.addEventListener('updateend', appendNextSegment);
-
-                        transmuxer.on('data', (segment) => {
-
-                        let data = new Uint8Array(segment.initSegment.byteLength + segment.data.byteLength);
-                        data.set(segment.initSegment, 0);
-                        data.set(segment.data, segment.initSegment.byteLength);
-                        console.log(muxjs.mp4.tools.inspect(data));
-
-                        console.log(muxjs.mp4.probe.tracks(data))
-
-                        sourceBuffer.appendBuffer(data);
-                        })
-                }
-
-                function appendNextSegment(){
-                        // reset the 'data' event listener to just append (moof/mdat) boxes to the Source Buffer
-                        transmuxer.off('data');
-                        transmuxer.on('data', (segment) =>{
-                        sourceBuffer.appendBuffer(new Uint8Array(segment.data));
-                        })
-
-                }
-
-                var f = function(data)
-                        {
-                                if(data[0] != 71){
-                                        throw new Error("Framing error")
-                                }
-                                transmuxer.push(data);
-                                transmuxer.flush()
-                        }
-                kaithemapi.subscribe("${obj.tagPoints[i].dataSourceWidget.uuid|h}",f)
-
+                var player = mpegts.createPlayer({
+                        type: 'mpegts',  // could also be mpegts, m2ts, flv
+                        isLive: true,
+                        url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${obj.tagPoints[i].dataSourceWidget.uuid|u}",
+                        liveBufferLatencyChasing: true,
+                        liveBufferLatencyMaxLatency: 1.5,
+                        liveBufferLatencyMinRemain: 0.5,
+                        enableWorker:true
+                });
+                player.attachMediaElement(video);
+                player.load();
+                player.play();
 
         </script>
 

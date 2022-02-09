@@ -221,6 +221,10 @@ KaithemApi = function () {
 			this.poll_ratelimited();
 		},
 
+		wsPrefix: function () {
+			return window.location.protocol.replace("http", "ws") + "//" + window.location.host
+		},
+
 		can_show_error: 1,
 		usual_delay: 0,
 		reconnect_timeout: 1500,

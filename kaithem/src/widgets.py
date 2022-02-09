@@ -14,6 +14,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 from multiprocessing.dummy import connection
 from typing import Callable
+from numpy import byte
 from typeguard import typechecked
 from .unitsofmeasure import convert, unitTypes
 import ws4py.messaging
@@ -104,14 +105,60 @@ class WebInterface():
         clients_info[handler.uuid] = handler.clientinfo
 
     @cherrypy.expose
+    def wsraw(self,*a,**k):
+        pages.strictNoCrossSite()
+        # you can access the class instance through
+        handler = cherrypy.request.ws_handler
+        x = cherrypy.request.remote.ip
+        try:
+            handler.user_agent = cherrypy.request.headers["User-Agent"]
+        except:
+            pass
+
+        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
+            handler.user = pages.getAcessingUser()
+            handler.cookie = cherrypy.request.cookie
+        else:
+            handler.cookie = None
+            handler.user = "__guest__"
+        handler.clientinfo = ClientInfo(handler.user, handler.cookie)
+        clients_info[handler.uuid] = handler.clientinfo
+
+
+    @cherrypy.expose
     def session_id(self):
         return server_session_ID
 
 
 def subsc_closure(self, i, widget):
-    def f(msg):
+    def f(msg,raw):
         try:
             self.send(msg)
+        except socket.error:
+            # These happen sometimes when things are disconnecting it seems,
+            # And there's no need to waste log space or send a notification.
+            pass
+        except:
+            if not widget.errored_send:
+                widget.errored_send = True
+                messagebus.postMessage(
+                    "/system/notifications/errors", "Problem in widget " + repr(widget) + ", see logs")
+                logger.exception(
+                    "Error sending data from widget " + repr(widget) + " via websocket")
+            else:
+                logging.exception("Error sending data from websocket")
+    return f
+
+
+
+def raw_subsc_closure(self, i, widget):
+    def f(msg,raw):
+        try:
+            if isinstance(raw, bytes):
+                self.send(raw)
+            else:
+                self.send(json.dumps(raw))
+
         except socket.error:
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
@@ -359,6 +406,105 @@ class websocket(WebSocket):
             self.send(json.dumps({'__WIDGETERROR__': repr(e)}))
 
 
+
+
+
+
+
+
+import urllib
+class rawwebsocket(WebSocket):
+    def __init__(self, *args, **kwargs):
+        self.subscriptions = []
+        self.lastPushedNewData = 0
+        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace(
+            "/", '').replace("-", '').replace('+', '')[:-2]
+        self.widget_wslock = threading.Lock()
+        self.subCount = 0
+        ws_connections[self.uuid] = self
+        messagebus.subscribe(
+            "/system/permissions/rmfromuser", self.onPermissionRemoved)
+        self.user = '__guest__'
+
+        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
+            self.user = pages.getAcessingUser()
+        else:
+            self.user = "__guest__"
+        self.usedPermissions = collections.defaultdict(lambda: 0)
+
+     
+        params = urllib.parse.parse_qs(args[3]['QUERY_STRING'])
+        widgetName = params['widgetid'][0]
+        WebSocket.__init__(self, *args, **kwargs)
+
+        with subscriptionLock:
+            if widgetName in widgets:
+                for p in widgets[widgetName]._read_perms:
+                    if not pages.canUserDoThis(p, self.user):
+                        raise RuntimeError(
+                            self.user + " missing permission: " + str(p))
+                    self.usedPermissions[p] += 1
+
+                widgets[widgetName].subscriptions[self.uuid] = raw_subsc_closure(
+                    self, widgetName, widgets[widgetName])
+                widgets[widgetName].subscriptions_atomic = widgets[widgetName].subscriptions.copy(
+                )
+                # This comes after in case it  sends data
+                widgets[widgetName].onNewSubscriber(self.user, {})
+                widgets[widgetName].lastSubscribedTo = time.monotonic()
+
+                self.subscriptions.append(widgetName)
+                self.subCount += 1
+
+
+
+
+    def onPermissionRemoved(self, t, v):
+        "Close the socket if the user no longer has the permission"
+        if v[0] == self.user and v[1] in self.usedPermissions:
+            self.close()
+
+    def send(self, *a, **k):
+        with self.widget_wslock:
+            WebSocket.send(self, *a, **k, binary=isinstance(a[0], bytes))
+
+    def closed(self, code, reason):
+        with subscriptionLock:
+            for i in self.subscriptions:
+                try:
+                    widgets[i].subscriptions.pop(self.uuid)
+                    widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+
+                    if not widgets[i].subscriptions:
+                        widgets[i].lastSubscribedTo = time.monotonic()
+                except:
+                    pass
+
+    def received_message(self, message):
+        global lastLoggedUserError
+        try:
+            if isinstance(message, ws4py.messaging.BinaryMessage):
+                o = msgpack.unpackb(message.data, raw=False)
+            else:
+                o = json.loads(message.data.decode('utf8'))
+
+        except Exception as e:
+            logging.exception(
+                'Error in widget, responding to ' + str(message.data))
+            messagebus.postMessage(
+                "system/errors/widgets/websocket", traceback.format_exc(6))
+            self.send(json.dumps({'__WIDGETERROR__': repr(e)}))
+
+
+
+
+
+
+
+
+
+
+
 def randID():
     "Generate a base64 id"
     return base64.b64encode(os.urandom(8))[:-1].decode().replace("+", '').replace("/", '').replace("-", '')
@@ -564,7 +710,7 @@ class Widget():
         # So we use an intermediate value so we know it won't change
         x = self.subscriptions_atomic
         for i in x:
-            x[i](d)
+            x[i](d,value)
 
     def sendTo(self, value, target):
         "Send a value to one subscriber by the connection ID"
@@ -574,7 +720,7 @@ class Widget():
             d = json.dumps([[self.uuid, value]])
         if (len(d) > 32 * 1024 * 1024):
             raise ValueError("Data is too large, refusing to send")
-        self.subscriptions_atomic[target](d)
+        self.subscriptions_atomic[target](d,value)
 
     # Lets you add permissions that are required to read or write the widget.
     def require(self, permission):
