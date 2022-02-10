@@ -197,16 +197,19 @@ ${manageForm}
 %for i in obj.tagPoints:
 <div class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
 <h3 style="font-size: 140%;"><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></h3>
-        <h4>Current</h4>
+
         %if len(obj.tagPoints)>8:
+        <h4>Current</h4>
         ${str(obj.tagPoints[i].value)[:48]|h}
+
         %elif hasattr(obj.tagPoints[i],'meterWidget'):
+        <h4>Current</h4>
         ${obj.tagPoints[i].meterWidget.render()}
+
         %elif hasattr(obj.tagPoints[i],'spanWidget'):
+        <h4>Current</h4>
         ${obj.tagPoints[i].spanWidget.render()}
   
-
-
         %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts':
         <video style="width: 100%" muted controls></video>
 
@@ -222,7 +225,7 @@ ${manageForm}
                         isLive: true,
                         url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${obj.tagPoints[i].dataSourceWidget.uuid|u}",
                         liveBufferLatencyChasing: true,
-                        liveBufferLatencyMaxLatency: 1.5,
+                        liveBufferLatencyMaxLatency: 1,
                         liveBufferLatencyMinRemain: 0.5,
                         enableStashBuffer: false,
                         lazyLoad: false
@@ -231,42 +234,61 @@ ${manageForm}
                 player.load();
                 player.play()
 
+                function keepUp(){
+                        if (video.buffered.length>0 && (video.buffered.end(video.buffered.length-1) -  video.currentTime ) > 2)
+                        {
+                                video.playbackRate=3
+                        }
+                        if (video.buffered.length> 0 && (video.buffered.end(video.buffered.length-1) -  video.currentTime ) < 0.7)
+                        {
+   
+                                video.playbackRate=1
+                        }
+
+                }
+
+                setInterval(keepUp, 250);
+
         </script>
 
         %else:
         Binary data tagpoint cannot be displayed
         %endif
 
-        <h4>Controls</h4>
-        %if obj.tagPoints[i].activeClaim().priority > 50:
-                Overridden: ${obj.tagPoints[i].activeClaim().name}
-        %else:
-        <div style="display: flex; flex-wrap: wrap;" class="buttonbar">
-                %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
-                %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
-                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
-                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
-                %elif obj.tagPoints[i].subtype == 'trigger':
-                <button  type="button"  onclick="triggerCounters['${i|h}'] = (triggerCounters['${i|h}']||0)+1; _generic_ws_channel.send(['set', '${i|h}', triggerCounters['${i|h}']])">Trigger</button>
-                %elif obj.tagPoints[i].subtype == 'color':
-                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set Hex</button>
-                <button  type="button"  style="background-color: black;  color: lightblue;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#000000'])">Blk</button>
-                <button  style="background-color: #FF0000;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FF0000'])">Red</button>
-                <button   style="background-color: #FFDD00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFDD00'])">Yel</button>
-                <button   style="background-color: #00FF00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#00FF00'])">Grn</button>
-                <button   style="background-color: #0000FF;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#0000FF'])">Blu</button>
-                <button   style="background-color: #8F17E5;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#8F17E5'])">Prp</button>
-                <button  type="button"  style="background-color: white;  color: darkgray;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
+        %if not obj.tagPoints[i].subtype == 'mpegts':
+                <h4>Controls</h4>
+                %if obj.tagPoints[i].activeClaim().priority > 50:
+                        Overridden: ${obj.tagPoints[i].activeClaim().name}
                 %else:
-                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
-                        %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
+                <div style="display: flex; flex-wrap: wrap;" class="buttonbar">
+                        %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
+                        %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
+                        %elif obj.tagPoints[i].subtype == 'trigger':
+                        <button  type="button"  onclick="triggerCounters['${i|h}'] = (triggerCounters['${i|h}']||0)+1; _generic_ws_channel.send(['set', '${i|h}', triggerCounters['${i|h}']])">Trigger</button>
+                        %elif obj.tagPoints[i].subtype == 'color':
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set Hex</button>
+                        <button  type="button"  style="background-color: black;  color: lightblue;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#000000'])">Blk</button>
+                        <button  style="background-color: #FF0000;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FF0000'])">Red</button>
+                        <button   style="background-color: #FFDD00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFDD00'])">Yel</button>
+                        <button   style="background-color: #00FF00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#00FF00'])">Grn</button>
+                        <button   style="background-color: #0000FF;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#0000FF'])">Blu</button>
+                        <button   style="background-color: #8F17E5;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#8F17E5'])">Prp</button>
+                        <button  type="button"  style="background-color: white;  color: darkgray;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
+                        %else:
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
+                                %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
+                                %endif
                         %endif
-                %endif
-                %endif
-                <button type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
-        </div>
+                        %endif
+
+                        <button type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
+                </div>
+        %endif
+
         %if obj.tagPoints[i].subtype == 'color':
         <div class="buttonbar">
                 <button  type="button"   style="background-color: #fafafa;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#fafafa'])">Argent</button>

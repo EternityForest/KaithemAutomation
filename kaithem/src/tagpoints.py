@@ -336,10 +336,15 @@ class _TagPoint(virtualresource.VirtualResource):
             allTags[name] = weakref.ref(self)
             allTagsAtomic = allTags.copy()
 
+        # This pushes a value. That is fine because we know there are no listeners
         self.defaultClaim = self.claim(copy.deepcopy(self.defaultData),
                                        'default',
                                        timestamp=0,
                                        annotation=self.DEFAULT_ANNOTATION)
+
+        # Reset this so that any future value sets actually do push.  First write should always push
+        # Independent of change detection.
+        self.lastPushedValue = None
 
         # What permissions are needed to
         # read or override this tag, as a tuple of 2 permission strings and an int representing the priority
@@ -1884,9 +1889,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 if priority is None:
                     priority = 50
 
-            claim.vta = value, timestamp, annotation
 
-            claim.priority = priority
 
             # Note  that we use the time, so that the most recent claim is
             # Always the winner in case of conflictsclaim
@@ -1898,16 +1901,32 @@ class _TagPoint(virtualresource.VirtualResource):
             else:
                 ac = None
 
+            oldAcPriority = None
+            oldAcTimestamp = None
+
+            if ac:
+                oldAcPriority = ac.priority
+                oldAcTimestamp = ac.timestamp
+
+            claim.priority = priority
+            claim.vta = value, timestamp, annotation
+
             # If we have priortity on them, or if we have the same priority but are newer
-            if (ac is None) or (priority > ac.priority) or (
-                (priority == ac.priority) and (timestamp > ac.timestamp)):
+            if (ac is None) or (priority > oldAcPriority) or (
+                (priority == oldAcPriority) and (timestamp >oldAcTimestamp)):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
                 if callable(self.vta[0]) or callable(value):
-                    self._managePolling()
+                    needsManagePolling=True
+                else:
+                    needsManagePolling=False
 
                 self.vta = (value, timestamp, annotation)
+                
+                if needsManagePolling:
+                    self._managePolling()
+
 
             # If priority has been changed on the existing active claim
             # We need to handle it
@@ -2685,7 +2704,7 @@ class Claim():
 
     def _managePolling(self):
         interval = self.expiration
-        if interval > 0:
+        if interval:
             if not self.poller or not (interval == self.poller.interval):
                 if self.poller:
                     self.poller.unregister()

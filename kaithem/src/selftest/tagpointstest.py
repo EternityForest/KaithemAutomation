@@ -191,9 +191,12 @@ def testTags():
     if not t2.value==33:
         raise RuntimeError("Tag MQTT sync feature failed to reconnect")
     
-
-
-
+    #Clear them for the next test 
+    t1.mqttConnect(server='')
+    t2.mqttConnect(server='')
+    gc.collect()
+    gc.collect()
+    
     t1 = tagpoints.Tag("/system/selftest/ExpireTest")
     t1.value=0
 

@@ -233,7 +233,7 @@ class DigitalOutput(GPIOTag):
             t = time.time()
             # We show the actual pin value not the tag point value
             if t-self.lastPushed > .2:
-                api.send(['o', self.pin, self.gpio.value > (0.5 if not self.pwm else 0.0001)])
+                api.send(['o', self.pin, self.gpio.value > (0.5 if not self.PWM else 0.0001)])
             self.lastPushed = time.time()
 
         self.tagHandler = tagHandler

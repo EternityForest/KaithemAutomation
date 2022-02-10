@@ -84,7 +84,7 @@ class Pipeline(iceflow.GstreamerPipeline):
                 self.addElement("omxh264enc", interval_intraframes=60)
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
-                                rc_lookahead=0, bitrate=386, key_int_max=60)
+                                rc_lookahead=0, bitrate=2048, key_int_max=30)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=baseline")
             self.h264source = self.addElement("h264parse")
@@ -148,7 +148,8 @@ class NVRChannel(devices.Device):
                 print(traceback.format_exc())
 
             if self.runWidgetThread:
-                if len(b) > (188 * 512) or lp<(time.monotonic() <0.25):
+                if len(b) > (188 * 512) or (lp<(time.monotonic() -0.25) and b):
+                    lp = time.monotonic()
                     self.push_bytes("raw_feed", b)
                     b = b''
         self.threadExited = True
@@ -264,6 +265,18 @@ class NVRChannel(devices.Device):
             if not v:
                 if self.process:
                     self.process.stop()
+                self.runWidgetThread = False
+                try:
+                    self.putTrashInBuffer()
+                except Exception:
+                    print(traceback.format_exc())
+
+                s = 10
+                while s:
+                    s -= 1
+                    if self.threadExited:
+                        break
+                    time.sleep(0.1)
             else:
                 self.check()
 
