@@ -31,6 +31,13 @@ specialKeys={
 
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
 <script type="text/javascript" src="/static/js/editTable/editTable.min.js"></script>
+
+
+
+<script type="text/javascript" src="/static/js/evm/jsfeat.js"></script>
+<script type="text/javascript" src="/static/js/evm/compat.js"></script>
+<script type="text/javascript" src="/static/js/evm/color.js"></script>
+
 <link rel="stylesheet" href="/static/js/editTable/editTable.min.css">
 
 <datalist id="k_bindtype">
@@ -212,6 +219,13 @@ ${manageForm}
   
         %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts':
         <video style="width: 100%" muted controls></video>
+        <canvas id="canvas" style="display: none; width: 100%"></canvas>
+
+        <h4>Controls</h4>
+
+        <div class="buttonbar">
+                <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
+        </div>
 
         <script> 
                 if(!mpegts.isSupported())
@@ -415,5 +429,92 @@ var mytable = $('#bindings').editTable({
 });
 
 mytable.loadData(${json.dumps(data.get('kaithem.input_bindings',[])+ [['','','']])})
+</script>
+
+
+
+
+<script type="text/javascript">
+// lets do some fun
+
+
+function startEVM(video,canvas){
+
+        canvas.style.display="block"
+
+        var alpha = 10, 
+        lambda_c = 16, 
+        r1 = 0.4, 
+        r2 = 0.05, 
+        chromAttenuation = 1;
+
+        var exaggeration_factor = 2;
+
+        // document.getElementById('r1').value = r1;
+        // document.getElementById('r2').value = r2;
+        // document.getElementById('alpha').value = alpha;
+        // document.getElementById('lambdac').value = lambda_c;
+        // document.getElementById('chroma').value = chromAttenuation;
+        // document.getElementById('exa').value = exaggeration_factor;
+
+
+        // function updateR12(){
+        // r1 = +document.getElementById('r1').value;
+        // r2 = +document.getElementById('r2').value; 
+        // alpha = +document.getElementById('alpha').value;
+        // lambda_c = +document.getElementById('lambdac').value;    
+        // chromAttenuation = +document.getElementById('chroma').value;    
+        // exaggeration_factor = +document.getElementById('exa').value;    
+        // }
+
+        try {
+        var attempts = 0;
+        var readyListener = function(event) {
+                findVideoSize();
+        };
+        var findVideoSize = function() {
+                // demo_app(width, height);
+                var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
+                
+                var w = Math.floor(video.videoWidth * s >> 3) << 3,
+                h = Math.floor(video.videoHeight * s >> 3) << 3;
+                // video.style.width = w + 'px'
+                // demo_app(Math.max(480, w), Math.max(480, h))
+                // demo_app(640, 480)
+                demo_app(Math.max(480, w), h)
+                canvas.width = w
+                canvas.height = h
+
+                compatibility.requestAnimationFrame(tick);
+        };
+
+        setTimeout(readyListener, 300);
+        } catch (error) {
+        console.log(error)
+        }
+
+        var current_frame = 0;
+        var frames_processed = 0;
+
+        function tick() {
+        compatibility.requestAnimationFrame(tick);
+        // stat.new_frame();
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                // ctx.drawImage(video, 0, 0, 640, 480);
+                ctx.fillRect(0, 0, 640, 480)
+                var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
+                // var s = 0.01 // call this number for fun times
+                ctx.drawImage(video, 0, 0, video.videoWidth * s, video.videoHeight * s)
+                
+                evm()
+                if(frames_processed == 0){
+                lowpass1.iirFilter(img_pyr, 1);
+                lowpass2.iirFilter(img_pyr, 1);
+                }
+                frames_processed++
+                
+        }
+        }
+}
 </script>
 <%include file="/pagefooter.html"/>

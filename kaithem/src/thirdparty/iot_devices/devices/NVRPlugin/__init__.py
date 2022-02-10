@@ -150,7 +150,8 @@ class NVRChannel(devices.Device):
                 b += f.read(188 * 24)
             except OSError:
                 time.sleep(0.2)
-            except TypeError:
+            except Exception:
+                time.sleep(0.5)
                 print(traceback.format_exc())
 
             if self.runWidgetThread:

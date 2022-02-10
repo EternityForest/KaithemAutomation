@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+
+<title>Eulerian Video Magnification</title>
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+<link href="cover.css" rel="stylesheet">
+</head>
+<body>
+
+<style>
+label {
+    width: 50px;
+}
+/*body {
+	font-family: 'Raleway', sans-serif;
+	margin: 50px;
+}
+
+h1 {
+	font-family: 'Open Sans', sans-serif;
+}*/
+
+
+
+#centerpiece {
+/*	width: 100px;
+	height: 100px;
+	background: white;
+	position: absolute;
+	top: 0;
+	left: 0;*/
+
+	    background: white;
+    
+    border-radius: 5px;
+    color: black;
+    width: 100%;
+    padding: 0;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+</style>
+
+
+
+    <div class="site-wrapper">
+
+      <div class="site-wrapper-inner">
+
+        <div class="cover-container">
+
+          <div class="masthead clearfix">
+            <div class="inner">
+              <h3 class="masthead-brand">Eulerian Video Magnification<br>
+              <span style="font-size:small">(running in the browser)</span></h3>
+              <nav>
+                <ul class="nav masthead-nav">
+                  <li class="active"><a href="#">Demo</a></li>
+                  <!-- <li><a href="#">Features</a></li> -->
+                  <li><a href="http://people.csail.mit.edu/mrub/evm/">Original Paper</a></li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+
+          <video class="inner cover" autoplay loop id="centerpiece">
+          	<source src="baby.mp4" type="video/mp4">
+             
+          </video>
+
+          <div class="mastfoot">
+            <div class="inner">
+              <p>made with <img src="http://tesseract.projectnaptha.com/img/keyboard.png" style="height: 12px"> <br><a href="https://twitter.com/antimatter15">Kevin Kwok</a> and <a href="https://omrelli.ug/">Guillermo Webster</a></p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+
+    <!-- Marketing messaging and featurettes
+    ================================================== -->
+    <!-- Wrap the rest of the page in another container to center all the content. -->
+
+    <div class="container marketing" style="margin-top: 70px">
+
+      <div class="row featurette">
+        <div class="col-md-9">
+          <h2 class="featurette-heading">What is this?</h2>
+          <p class="lead">
+            In Fall 2014 <span style="color: gray">(yeah... it's taken a really long time to post this)</span>, we took <b>Bill Freeman</b> and <b>Antonio Torralba</b>'s class <a href="" title="MIT people use obscure decimals instead of, y'know sane course titles and newspeakian portmanteaus">6.869: Advances in Computer Vision</a>. For our final project, we were supposed to implement some variation of one of the algorithms which were covered in class. We decided to implement <a href="http://people.csail.mit.edu/mrub/evm/">Eulerian Video Magnification</a> in the browser, to see if it could work with a live webcam feed. 
+          </p>
+          <p>
+            If you wanna learn more about details of the algorithm, or check out the exciting sequels they've worked on. Check out the <a href="http://people.csail.mit.edu/mrub/evm/">original 2012 paper</a> or  the 2013 <a href="http://people.csail.mit.edu/nwadhwa/phase-video/"> phase-based technique</a>.
+          </p>
+        </div>
+        <div class="col-md-3">
+          <a href="http://people.csail.mit.edu/mrub/evm/"><img class="featurette-image img-responsive center-block" src="evmpaper.png" alt="Generic placeholder image" style="    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);"></a>
+        </div>
+      </div>
+
+      <hr class="featurette-divider">
+
+      <div class="row featurette">
+        <div class="col-md-9 col-md-push-3">
+          <h2 class="featurette-heading">Wat? <span class="text-muted">What's Video Magnification?</span></h2>
+          <p class="lead">
+            It's sort of like being <b>Superman</b> and having <b>X-Ray vision</b>. It's about being able to see things that wee ordinary people can't, because the changes are <b>too small to notice</b>. But rather than being like a microscope, which just <b>blows everything up</b>, it lets you appreciate subtle change at the original spatial scale. 
+          </p>
+        </div>
+        <div class="col-md-3 col-md-pull-9">
+          <img class="featurette-image img-responsive center-block" src="xrayspecs.jpg" alt="Generic placeholder image" style="margin-top: 25px">
+        </div>
+      </div>
+
+      <hr class="featurette-divider">
+
+      <div class="row featurette">
+        <div class="col-md-7">
+          <h2 class="featurette-heading">How does it work? </h2>
+          <p class="lead">Like everything you've ever known and loved, Eulerian Video Magnification is built on a lie. It's a bit of an optical illusion because while it <i>looks</i> like things are moving more, the pixels aren't actually shifting around. </p>
+        </div>
+        <div class="col-md-5">
+          <img class="featurette-image img-responsive center-block" data-src="holder.js/500x500/auto" alt="Generic placeholder image">
+        </div>
+      </div>
+
+
+      <hr class="featurette-divider">
+
+      <!-- Three columns of text below the carousel -->
+      <div class="row">
+        <div class="col-lg-4">
+          <img class="img-circle" src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Generic placeholder image" width="140" height="140">
+          <h2>Heading</h2>
+          <p>Donec sed odio dui. Etiam porta sem malesuada magna mollis euismod. Nullam id dolor id nibh ultricies vehicula ut id elit. Morbi leo risus, porta ac consectetur ac, vestibulum at eros. Praesent commodo cursus magna.</p>
+          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+        </div><!-- /.col-lg-4 -->
+        <div class="col-lg-4">
+          <img class="img-circle" src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Generic placeholder image" width="140" height="140">
+          <h2>Heading</h2>
+          <p>Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit. Cras mattis consectetur purus sit amet fermentum. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh.</p>
+          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+        </div><!-- /.col-lg-4 -->
+        <div class="col-lg-4">
+          <img class="img-circle" src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Generic placeholder image" width="140" height="140">
+          <h2>Heading</h2>
+          <p>Donec sed odio dui. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Vestibulum id ligula porta felis euismod semper. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.</p>
+          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+        </div><!-- /.col-lg-4 -->
+      </div><!-- /.row -->
+
+
+      <!-- START THE FEATURETTES -->
+
+      <hr class="featurette-divider">
+
+      <div class="row featurette">
+        <div class="col-md-7 col-md-push-5">
+          <h2 class="featurette-heading">Oh yeah, it's that good. <span class="text-muted">See for yourself.</span></h2>
+          <p class="lead">Donec ullamcorper nulla non metus auctor fringilla. Vestibulum id ligula porta felis euismod semper. Praesent commodo cursus magna, vel scelerisque nisl consectetur. Fusce dapibus, tellus ac cursus commodo.</p>
+        </div>
+        <div class="col-md-5 col-md-pull-7">
+          <img class="featurette-image img-responsive center-block" data-src="holder.js/500x500/auto" alt="Generic placeholder image">
+        </div>
+      </div>
+
+      <hr class="featurette-divider">
+
+      <div class="row featurette">
+        <div class="col-md-7">
+          <h2 class="featurette-heading">And lastly, this one. <span class="text-muted">Checkmate.</span></h2>
+          <p class="lead">Donec ullamcorper nulla non metus auctor fringilla. Vestibulum id ligula porta felis euismod semper. Praesent commodo cursus magna, vel scelerisque nisl consectetur. Fusce dapibus, tellus ac cursus commodo.</p>
+        </div>
+        <div class="col-md-5">
+          <img class="featurette-image img-responsive center-block" data-src="holder.js/500x500/auto" alt="Generic placeholder image">
+        </div>
+      </div>
+
+      <hr class="featurette-divider">
+
+      <!-- /END THE FEATURETTES -->
+
+
+      <!-- FOOTER -->
+      <footer>
+        <p class="pull-right"><a href="#">Back to top</a></p>
+        <p>&copy; 2014 Company, Inc. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a></p>
+      </footer>
+
+
+<!-- <label for="exa">exa: </label><input type="range" id="exa" style="width: 700px" min="0" max="5" step="0.01" oninput="updateR12()"><br>
+<label for="alpha">&alpha;: </label><input type="range" id="alpha" style="width: 700px" min="1" max="100" step="0.01" oninput="updateR12()"><br>
+<label for="lambdac">&lambda;c: </label><input type="range" id="lambdac" style="width: 700px" min="1" max="90" step="0.01" oninput="updateR12()"><br>
+<label for="chroma">chr: </label><input type="range" id="chroma" style="width: 700px" min="0" max="10" step="0.01" oninput="updateR12()"><br>
+<label for="r1">r1: </label><input type="range" id="r1" style="width: 700px" min="0" max="1" step="0.01" oninput="updateR12()"><br>
+<label for="r2">r2: </label><input type="range" id="r2" style="width: 700px" min="0" max="1" step="0.01" oninput="updateR12()">
+<br>
+<video id="webcam"></video>
+<canvas id="canvas"></canvas>
+<canvas id="savnac"></canvas>
+ -->
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+<script type="text/javascript" src="jsfeat.js"></script>
+<script type="text/javascript" src="compat.js"></script>
+<script type="text/javascript" src="color.js"></script>
+<link href='https://fonts.googleapis.com/css?family=Raleway:400,300,500,200' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:300' rel='stylesheet' type='text/css'>
+
+</body>
+</html>
