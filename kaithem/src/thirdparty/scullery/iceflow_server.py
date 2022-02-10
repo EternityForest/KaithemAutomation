@@ -962,13 +962,14 @@ class GStreamerPipeline():
                 
                 for connectToOutput in cto:
 
-                    if isinstance(connectToOutput, int):
-                        connectToOutput = elementsByShortId[connectToOutput]
+                    if not connectToOutput is False:
+                        if isinstance(connectToOutput, int):
+                            connectToOutput = elementsByShortId[connectToOutput]
 
-                    if not id(connectToOutput) in self.elementTypesById:
-                        raise ValueError("Cannot connect to the output of: " +
-                                        str(connectToOutput) + ", no such element in pipeline.")
-                    op.append(connectToOutput)
+                        if not id(connectToOutput) in self.elementTypesById:
+                            raise ValueError("Cannot connect to the output of: " +
+                                            str(connectToOutput) + ", no such element in pipeline.")
+                        op.append(connectToOutput)
             else:
                 #One auto connect
                 if connectToOutput is None:

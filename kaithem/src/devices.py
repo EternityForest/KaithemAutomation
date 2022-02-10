@@ -1327,6 +1327,12 @@ def makeDevice(name, data, module=None, resource=None):
                     #Ensure we don't lose any data should the base class ever set any new keys
                     dt2.__init__(self, name, self.config, **kw)
 
+                def close(self,*a,**k):
+                    dt2.close(self,*a,**k)
+                    #Our internal device close.  The plugin should call the iot_devices close itself
+                    Device.close(self,*a,**k)
+
+
             dt = ImportedDeviceClass
         except KeyError:
             dt = UnsupportedDevice

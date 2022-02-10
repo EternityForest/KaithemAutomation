@@ -222,7 +222,7 @@ ${manageForm}
                         isLive: true,
                         url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${obj.tagPoints[i].dataSourceWidget.uuid|u}",
                         liveBufferLatencyChasing: true,
-                        liveBufferLatencyMaxLatency: 1,
+                        liveBufferLatencyMaxLatency: 1.5,
                         liveBufferLatencyMinRemain: 0.5,
                         enableStashBuffer: false,
                         lazyLoad: false
