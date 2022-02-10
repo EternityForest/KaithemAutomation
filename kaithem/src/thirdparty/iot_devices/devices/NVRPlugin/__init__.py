@@ -42,7 +42,8 @@ class Pipeline(iceflow.GstreamerPipeline):
             self.addElement("souphttpsrc", location=s)
             self.addElement("hlsdemux")
             self.addElement("tsdemux")
-            self.h264source = self.addElement("parsebin")
+            self.addElement("parsebin")
+            self.h264source = self.addElement("tee")
 
         elif s.startswith("file://"):
             if not os.path.exists(s[len("file://"):]):
@@ -53,9 +54,11 @@ class Pipeline(iceflow.GstreamerPipeline):
                 self.addElement("matroskademux")
             else:
                 self.addElement("qtdemux")
-            self.h264source = self.addElement(
+            self.addElement(
                 "h264parse", connectWhenAvailable="video/x-h264", config_interval=1)
             self.syncFile = True
+            self.h264source = self.addElement("tee")
+
 
         # Make a video test src just for this purpose
         elif not s:
@@ -65,7 +68,8 @@ class Pipeline(iceflow.GstreamerPipeline):
             self.addElement("videoconvert")
             self.addElement("x264enc", tune="zerolatency",
                             byte_stream=True, rc_lookahead=0)
-            self.h264source = self.addElement("h264parse")
+            self.addElement("h264parse")
+            self.h264source = self.addElement("tee")
 
         # Make a video test src just for this purpose
         elif s == "test":
@@ -74,20 +78,22 @@ class Pipeline(iceflow.GstreamerPipeline):
                 "capsfilter", caps="video/x-raw, format=I420, width=320, height=240")
             self.addElement("videoconvert")
             self.addElement("x264enc", tune="zerolatency")
-            self.h264source = self.addElement("h264parse")
+            self.addElement("h264parse")
+            self.h264source = self.addElement("tee")
 
         elif s == "webcam" or s == "webcam_audio":
             self.addElement("v4l2src")
             self.addElement("videoconvert")
-            self.addElement("queue")
+            self.addElement("queue",max_size_time=10000000)
             try:
                 self.addElement("omxh264enc", interval_intraframes=60)
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
                                 rc_lookahead=0, bitrate=2048, key_int_max=30)
             self.addElement(
-                "capsfilter", caps="video/x-h264, profile=baseline")
-            self.h264source = self.addElement("h264parse")
+                "capsfilter")
+            self.addElement("h264parse")
+            self.h264source = self.addElement("tee")
 
             self.addElement("alsasrc", connectToOutput=False)
             self.addElement("audioconvert")
@@ -95,7 +101,7 @@ class Pipeline(iceflow.GstreamerPipeline):
             self.addElement("voaacenc")
             self.addElement("aacparse")
 
-            self.mp3src = self.addElement("queue")
+            self.mp3src = self.addElement("queue",max_size_time=10000000)
 
         # Tested
         # rtspsrc location=rtsp://192.168.1.6:8080/h264_pcm.sdp latency=100 ! queue ! rtph264depay ! h264parse
@@ -113,11 +119,11 @@ class NVRChannel(devices.Device):
 
     def putTrashInBuffer(self):
         "Force a wake up of a thread sitting around waiting for the pipe"
-        if os.path.exists("/dev/shm/nvr_pipe.ts"):
+        if os.path.exists(self.rawFeedPipe):
 
             import select
             try:
-                f = os.open("/dev/shm/nvr_pipe.ts",
+                f = os.open(self.rawFeedPipe,
                             flags=os.O_NONBLOCK | os.O_APPEND)
                 for i in range(188 * 42):
                     r, w, x = select.select([], [f], [], 0.2)
@@ -132,10 +138,10 @@ class NVRChannel(devices.Device):
         self.threadExited = False
 
         b = b''
-        while not os.path.exists("/dev/shm/nvr_pipe.ts"):
+        while not os.path.exists(self.rawFeedPipe):
             time.sleep(1)
 
-        f = open("/dev/shm/nvr_pipe.ts", 'rb')
+        f = open(self.rawFeedPipe, 'rb')
         initialValue = self.runWidgetThread
         lp = time.monotonic()
 
@@ -220,12 +226,17 @@ class NVRChannel(devices.Device):
         self.process = Pipeline()
         self.process.dev = self
         self.process.getGstreamerSourceData(self.data.get('device.source', ''))
+
+
+        x = self.process.addElement("queue", connectToOutput=self.process.h264source,max_size_time=10000000)
+
         self.process.addElement("mpegtsmux", connectToOutput=(
-            self.process.h264source, self.process.mp3src))
+            x, self.process.mp3src))
+
 
         import os
         # Path to be created
-        path = "/dev/shm/nvr_pipe.ts"
+        path = self.rawFeedPipe
 
         # Get rid of the old one, it could be clogged
         try:
@@ -236,13 +247,39 @@ class NVRChannel(devices.Device):
             os.mkfifo(path)
         except OSError:
             print("Failed to create FIFO")
-        self.process.addElement("queue")
+        self.process.addElement("queue",max_size_time=10000000)
         self.process.addElement("filesink", location=path,
                                 buffer_mode=2, sync=self.process.syncFile)
+
+        #This flag discards every unit that cannot be handled individually
+        # self.process.addElement("identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
+        # self.process.addElement("queue",max_size_time=10000000)
+
+        # try:
+        #     self.process.addElement("omxh264dec")
+        # except:
+        #     self.process.addElement("avdec_h264")
+
+
+
+        # self.process.addElement("videoconvert")
+        # self.process.addElement("videorate",drop_only=True)
+        # self.process.addElement("capsfilter",caps="video/x-raw,framerate=1/1")
+        # self.process.addElement("motioncells",sensitivity=0.99)
+
+        # self.process.addElement("videoconvert")
+
+        # self.process.addElement("ximagesink", sync=False)
+
+
+
+
+
 
         self.datapusher = threading.Thread(
             target=self.thread, daemon=True, name="NVR")
         self.datapusher.start()
+
 
         self.process.start()
 
@@ -292,6 +329,9 @@ class NVRChannel(devices.Device):
             self.threadExited = True
 
             self.tsQueue = b''
+
+            self.rawFeedPipe = "/dev/shm/nvr_pipe."+name.replace("/",'')+".raw_feed.tspipe"
+
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
