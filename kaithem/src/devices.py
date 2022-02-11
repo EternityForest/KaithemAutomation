@@ -745,9 +745,8 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 self._deviceSpecIntegrationHandlers[name] = handler
                 t.subscribe(handler)
 
-            if handler:
-                self.tagPoints[name] = t
-                self.datapoints[name] = None
+            self.tagPoints[name] = t
+            self.datapoints[name] = None
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:

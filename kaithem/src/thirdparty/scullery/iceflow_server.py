@@ -635,6 +635,19 @@ class GStreamerPipeline():
             decay = sum([i for i in s['decay']]) / len(s['decay'])
             rpc[0]("onLevelMessage", [str(src), rms, decay])
 
+        elif s.get_name() == 'motion':
+            if s.has_field("motion_begin"):
+                rpc[0]("onMotionBegin", [])
+            if s.has_field("motion_finished"):
+                rpc[0]("onMotionEnd", [])
+
+        elif s.get_name() == 'GstVideoAnalyse':
+            rpc[0]("onVideoAnalyze", [{'luma-average': s.get_double('luma-average')[1], 'luma-variance':s.get_double('luma-variance')[1]}])
+
+        elif s.get_name() == 'barcode':
+            rpc[0]("onBarcode", [s.get_string("type"),s.get_string("symbol"), s.get_int("quality")[1]])
+         
+
         elif s.get_name() == 'pocketsphynx':
             if s.get_value('hypothesis'):
                 rpc[0]("onSTTMessage", [str(src), s.get_value('hypothesis')])

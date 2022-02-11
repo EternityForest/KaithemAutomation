@@ -205,11 +205,8 @@ ${manageForm}
 <div class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
 <h3 style="font-size: 140%;"><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></h3>
 
-        %if len(obj.tagPoints)>8:
-        <h4>Current</h4>
-        ${str(obj.tagPoints[i].value)[:48]|h}
 
-        %elif hasattr(obj.tagPoints[i],'meterWidget'):
+        %if hasattr(obj.tagPoints[i],'meterWidget'):
         <h4>Current</h4>
         ${obj.tagPoints[i].meterWidget.render()}
 

@@ -30,6 +30,19 @@ mediaFolders = weakref.WeakValueDictionary()
 
 
 class Pipeline(iceflow.GstreamerPipeline):
+
+    def onMotionBegin(self, *a, **k):
+        self.mcb(True)
+
+    def onMotionEnd(self, *a, **k):
+        self.mcb(False)
+
+    def onVideoAnalyze(self, *a, **k):
+        self.acb(*a)
+
+    def onBarcode(self, *a, **k):
+        self.bcb(*a, **k)
+
     def onAppsinkData(self, *a, **k):
         self.dev.onAppsinkData(*a, **k)
 
@@ -59,7 +72,6 @@ class Pipeline(iceflow.GstreamerPipeline):
             self.syncFile = True
             self.h264source = self.addElement("tee")
 
-
         # Make a video test src just for this purpose
         elif not s:
             self.addElement("videotestsrc", is_live=True)
@@ -84,14 +96,14 @@ class Pipeline(iceflow.GstreamerPipeline):
         elif s == "webcam" or s == "webcam_audio":
             self.addElement("v4l2src")
             self.addElement("videoconvert")
-            self.addElement("queue",max_size_time=10000000)
+            self.addElement("queue", max_size_time=10000000)
             try:
                 self.addElement("omxh264enc", interval_intraframes=60)
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
                                 rc_lookahead=0, bitrate=2048, key_int_max=30)
             self.addElement(
-                "capsfilter",caps="video/x-h264, profile=main")
+                "capsfilter", caps="video/x-h264, profile=main")
             self.addElement("h264parse")
             self.h264source = self.addElement("tee")
 
@@ -101,7 +113,7 @@ class Pipeline(iceflow.GstreamerPipeline):
             self.addElement("voaacenc")
             self.addElement("aacparse")
 
-            self.mp3src = self.addElement("queue",max_size_time=10000000)
+            self.mp3src = self.addElement("queue", max_size_time=10000000)
 
         # Tested
         # rtspsrc location=rtsp://192.168.1.6:8080/h264_pcm.sdp latency=100 ! queue ! rtph264depay ! h264parse
@@ -155,7 +167,7 @@ class NVRChannel(devices.Device):
                 print(traceback.format_exc())
 
             if self.runWidgetThread:
-                if len(b) > (188 * 256) or (lp<(time.monotonic() -0.10) and b):
+                if len(b) > (188 * 256) or (lp < (time.monotonic() - 0.10) and b):
                     lp = time.monotonic()
                     self.push_bytes("raw_feed", b)
                     b = b''
@@ -228,12 +240,12 @@ class NVRChannel(devices.Device):
         self.process.dev = self
         self.process.getGstreamerSourceData(self.data.get('device.source', ''))
 
-
-        x = self.process.addElement("queue", connectToOutput=self.process.h264source,max_size_time=10000000)
+        x = self.process.addElement(
+            "queue", connectToOutput=self.process.h264source, max_size_time=10000000)
 
         self.process.addElement("mpegtsmux", connectToOutput=(
             x, self.process.mp3src))
-
+        self.mpegtssrc = self.process.addElement("tee")
 
         import os
         # Path to be created
@@ -248,39 +260,39 @@ class NVRChannel(devices.Device):
             os.mkfifo(path)
         except OSError:
             print("Failed to create FIFO")
-        self.process.addElement("queue",max_size_time=10000000)
+        self.process.addElement("queue", max_size_time=10000000)
         self.process.addElement("filesink", location=path,
                                 buffer_mode=2, sync=self.process.syncFile)
 
-        #This flag discards every unit that cannot be handled individually
-        # self.process.addElement("identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
-        # self.process.addElement("queue",max_size_time=10000000)
+        # Motion detection part of the graph
 
-        # try:
-        #     self.process.addElement("omxh264dec")
-        # except:
-        #     self.process.addElement("avdec_h264")
+        # This flag discards every unit that cannot be handled individually
+        self.process.addElement(
+            "identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
+        self.process.addElement("queue", max_size_time=10000000)
 
+        try:
+            self.process.addElement("omxh264dec")
+        except:
+            self.process.addElement("avdec_h264")
 
+        self.process.addElement("videorate", drop_only=True)
+        self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
+        self.process.addElement("videoanalyse")
 
-        # self.process.addElement("videoconvert")
-        # self.process.addElement("videorate",drop_only=True)
-        # self.process.addElement("capsfilter",caps="video/x-raw,framerate=1/1")
-        # self.process.addElement("motioncells",sensitivity=0.99)
+        self.process.addElement("zbar")
+        self.process.addElement("videoconvert")
+        self.process.addElement("motioncells", sensitivity=0.78, gap=2, display=False)
 
-        # self.process.addElement("videoconvert")
-
-        # self.process.addElement("ximagesink", sync=False)
-
-
-
-
-
+        self.process.addElement("fakesink")
 
         self.datapusher = threading.Thread(
             target=self.thread, daemon=True, name="NVR")
         self.datapusher.start()
 
+        self.process.mcb = self.motion
+        self.process.bcb = self.barcode
+        self.process.acb = self.analysis
 
         self.process.start()
 
@@ -323,6 +335,16 @@ class NVRChannel(devices.Device):
             self.serve_file(os.path.join(
                 "/dev/shm/knvr/", self.name, *(relpath[1:])))
 
+    def motion(self, v):
+        self.set_data_point("motion_detected", v)
+
+    def analysis(self, v):
+        self.set_data_point("luma_average", v['luma-average'])
+        self.set_data_point("luma_variance", v['luma-variance'])
+
+    def barcode(self, t, d,q):
+        self.set_data_point("barcode", {'barcode_type': t, "barcode_data": d, "wallclock":time.time(),"quality":q})
+
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
         try:
@@ -331,8 +353,8 @@ class NVRChannel(devices.Device):
 
             self.tsQueue = b''
 
-            self.rawFeedPipe = "/dev/shm/nvr_pipe."+name.replace("/",'')+".raw_feed.tspipe"
-
+            self.rawFeedPipe = "/dev/shm/nvr_pipe." + \
+                name.replace("/", '') + ".raw_feed.tspipe"
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
@@ -349,7 +371,31 @@ class NVRChannel(devices.Device):
             self.numeric_data_point("running",
                                     min=0,
                                     max=1,
-                                    subtype='bool')
+                                    subtype='bool',
+                                    writable=False)
+
+            self.numeric_data_point("motion_detected",
+                                    min=0,
+                                    max=1,
+                                    subtype='bool',
+                                    writable=False)
+
+            self.numeric_data_point("luma_average",
+                                    min=0,
+                                    max=1,
+                                    writable=False)
+
+            self.numeric_data_point("luma_variance",
+                                    min=0,
+                                    max=1,
+                                    writable=False)
+
+
+            self.set_alarm("Camera dark","luma_average", "value < 0.095", trip_delay=3,auto_ack=True)
+            self.set_alarm("Camera low varience","luma_variance", "value < 0.008", trip_delay=3,auto_ack=True)
+
+            self.object_data_point("barcode",
+                                   writable=False)
 
             self.set_config_default("device.source", '')
 

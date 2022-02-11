@@ -331,6 +331,9 @@ class Alert(virtualresource.VirtualResource):
             logger.warning("Alarm "+self.name + " ACTIVE")
         else:
             logger.info("Alarm "+self.name + " active")
+
+        if self.priority in ("info"):
+            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" is active")
         
 
     def _onAck(self):
@@ -347,10 +350,10 @@ class Alert(virtualresource.VirtualResource):
     def _onNormal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
         global unacknowledged, active
-        if self.priority in ("error", "critical", "warning"):
+        if self.priority in ("info","warning", "error", "critical"):
             messagebus.postMessage(
                 "/system/notifications", "Alarm "+self.name+" returned to normal")
-
+       
         with lock:
             cleanup()
             if self.id in _unacknowledged:

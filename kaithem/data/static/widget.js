@@ -415,8 +415,6 @@ navigator.permissions.query({name:'idle-detection'}).then(async function(result)
 		  }	}
   });
   
-
-	
 	
 setTimeout(__kwidget_doBattery, 60)
 setInterval(__kwidget_doBattery, 1800000)

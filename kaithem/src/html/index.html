@@ -23,6 +23,8 @@ scolor={
     'acknowledged':'orange',
     "cleared":'blue'
 }
+
+
 %>
     <%include file="/pageheader.html"/>
 <title>Kaithem Automation</title>
@@ -38,9 +40,27 @@ ${api.render("api")}
 ${alertsapi.render("alertapi")}
 
 <style>
-    span.grey{
-        opacity: 70%;
-    }
+
+
+
+.notificationstg-move, /* apply transition to moving elements */
+.notificationstg-enter-active,
+.notificationstg-leave-active {
+  transition: all 0.6s ease;
+}
+
+.notificationstg-enter-from,
+.notificationstg-leave-to {
+  opacity: 0%;
+  transform: translateX(30px) !important;
+}
+
+/* ensure leaving items are taken out of layout flow so that moving
+   animations can be calculated correctly. */
+.notificationstg-leave-active {
+  position: absolute;
+}
+
 </style>
 <main>
 
@@ -124,10 +144,14 @@ ${alertsapi.render("alertapi")}
             <h2> System Notifications</h2>
             <div id="app">
                 <div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content;" id="notifications">
-                    <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
-                        <b>{{formatTime(i[0])}}</b>
-                        <p>{{i[2]}}</p>
-                    </div>
+                    <transition-group name="notificationstg" tag="div">
+                            <div v-for="i in notifications.slice().reverse()" :key="i[0]">
+                                <div v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
+                                    <b>{{formatTime(i[0])}}</b>
+                                    <p>{{i[2]}}</p>
+                                </div>
+                            </div>
+                    </transition-group>
                 </div>
             </div>
             </main>
@@ -141,13 +165,16 @@ ${alertsapi.render("alertapi")}
                         notifications: [],
                         getClass: function(i) {
                             if (i[1].includes("errors")) {
-                                return 'error'
+                                return 'error notification'
                             }
-                            if (i[1].includes("important")) {
-                                return 'highlight'
+                            else if (i[1].includes("important")) {
+                                return 'highlight notification'
                             }
-                            if (i[1].includes("warnings")) {
-                                return 'warning'
+                            else if (i[1].includes("warnings")) {
+                                return 'warning notification'
+                            }
+                            else{
+                                return "notification"
                             }
                         },
 
@@ -166,7 +193,7 @@ ${alertsapi.render("alertapi")}
                         app.$data.notifications.push(msg[1])
                         app.$data.notifications = app.$data.notifications.slice(-100)
                         setTimeout(() => {
-                            document.getElementById("notifications").scroll(0, 10000)
+                            document.getElementById("notifications").scroll(0, 0)
                         }, 250);
                     }
                 }
@@ -175,7 +202,7 @@ ${alertsapi.render("alertapi")}
 
                 }
                 setTimeout(() => {
-                    document.getElementById("notifications").scroll(0, 10000)
+                    document.getElementById("notifications").scroll(0, 0)
                 }, 1000);
             </script>
             <%include file="/pagefooter.html"/>

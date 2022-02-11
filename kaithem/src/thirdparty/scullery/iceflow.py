@@ -78,6 +78,18 @@ class GStreamerPipeline():
         return
     def _onAppsinkData(self,elementName,data):
         self.onAppsinkData(elementName,base64.b64decode(data))
+
+
+    def onMotionBegin(self,*a,**k):
+        print("Motion start")
+
+    def onMotionEnd(self,*a,**k):
+        print("Motion end")
+
+
+    def onBarcode(self,type, data):
+        print("Barcode: ", type, data)
+        
     def stop(self):
         if self.ended:
             return
