@@ -115,6 +115,21 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             self.mp3src = self.addElement("queue", max_size_time=10000000)
 
+        elif s == "screen":
+            self.addElement("ximagesrc")
+            self.addElement("capsfilter", caps="video/x-raw,framerate=4/1")
+            self.addElement("videoconvert")
+            self.addElement("queue", max_size_time=10000000)
+            try:
+                self.addElement("omxh264enc", interval_intraframes=30)
+            except Exception:
+                self.addElement("x264enc", tune="zerolatency",
+                                rc_lookahead=0, bitrate=2048, key_int_max=8)
+            self.addElement(
+                "capsfilter", caps="video/x-h264, profile=main")
+            self.addElement("h264parse")
+            self.h264source = self.addElement("tee")
+
         # Tested
         # rtspsrc location=rtsp://192.168.1.6:8080/h264_pcm.sdp latency=100 ! queue ! rtph264depay ! h264parse
 
