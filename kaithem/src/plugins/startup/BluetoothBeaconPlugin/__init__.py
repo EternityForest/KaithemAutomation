@@ -32,7 +32,7 @@ def scan():
                     logging.exception("BLE err")                            
                         
 
-t = threading.Thread(target=scan,name="BluetoothPresenceBot")
+t = threading.Thread(target=scan,name="BluetoothPresenceBot",daemon=True)
 t.start()
 
 from mako.lookup import TemplateLookup

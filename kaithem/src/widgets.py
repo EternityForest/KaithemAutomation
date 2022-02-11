@@ -163,7 +163,7 @@ def raw_subsc_closure(self, i, widget):
         except socket.error:
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
-            print("wtimeout")
+            print("wtimeout", traceback.format_exc())
         except:
             if not widget.errored_send:
                 widget.errored_send = True
@@ -307,19 +307,7 @@ class websocket(WebSocket):
             resp = []
             user = self.user
 
-            if 'telemetry.err' in o:
-                # Only log one user error per minute, globally.  It's not meant to catch *everything*,
-                # just to give you a decent change
-                if lastLoggedUserError < time.time() - 10:
-                    logger.error(
-                        "Client side err(These are globally ratelimited):\r\n" + o['telemetry.err'])
-                    lastLoggedUserError = time.time()
-
-                elif lastPrintedUserError < time.time() - 1:
-                    print("Client side err(These are globally ratelimited):\r\n" + o['telemetry.err'])
-                    lastPrintedUserError = time.time()
-                return
-
+ 
             upd = o['upd']
             for i in upd:
                 if i[0] in widgets:
@@ -340,6 +328,21 @@ class websocket(WebSocket):
                                 userBatteryAlerts[self.user].release()
                         except:
                             logging.exception("Error in battery status telemetry")
+                
+                elif i[0]=="__USERIDLE__":
+                    self.userState =i[1]['userState']
+                    self.screenState =i[1]['screenState']
+                elif i[0]=="__ERROR__":
+                    # Only log one user error per minute, globally.  It's not meant to catch *everything*,
+                    # just to give you a decent change
+                    if lastLoggedUserError < time.time() - 10:
+                        logger.error(
+                            "Client side err(These are globally ratelimited):\r\n" + i[1])
+                        lastLoggedUserError = time.time()
+
+                    elif lastPrintedUserError < time.time() - 1:
+                        print("Client side err(These are globally ratelimited):\r\n" +i[1])
+                        lastPrintedUserError = time.time()
 
             if 'subsc' in o:
                 for i in o['subsc']:
@@ -716,7 +719,10 @@ class Widget():
         # So we use an intermediate value so we know it won't change
         x = self.subscriptions_atomic
         for i in x:
-            x[i](d,value)
+            try:
+                x[i](d,value)
+            except Exception:
+                print("WS Send Error ",traceback.format_exc())
 
     def sendTo(self, value, target):
         "Send a value to one subscriber by the connection ID"

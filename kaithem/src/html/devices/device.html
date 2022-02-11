@@ -226,7 +226,7 @@ ${manageForm}
         <div class="buttonbar">
                 <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
         </div>
-
+ 
         <script> 
                 if(!mpegts.isSupported())
                 {       alert("MPEG TS Not supported here")
@@ -253,7 +253,7 @@ ${manageForm}
                         {
                                 video.playbackRate=3
                         }
-                        if (video.buffered.length> 0 && (video.buffered.end(video.buffered.length-1) -  video.currentTime ) < 0.7)
+                        if (video.buffered.length> 0 && (video.buffered.end(video.buffered.length-1) -  video.currentTime ) < 1.5)
                         {
    
                                 video.playbackRate=1

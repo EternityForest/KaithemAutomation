@@ -4,7 +4,10 @@ Change Log
 ### 0.68.8
 
 - New Fugit SciFi inspired theme
-- 
+- NVRPlugin has been rewritten to give low latency streaming over websockets.
+- New unreliable mode for tag points to support this kind of media.
+- User telemetry hidden on admin page unless you explicitly press "show"
+- Unlogged realtime only telemetry now includes user idle state if permission has been granted, to check on digital signage and kiosks.
 
 ### 0.68.7
 

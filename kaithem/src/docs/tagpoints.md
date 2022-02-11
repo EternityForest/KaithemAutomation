@@ -276,6 +276,15 @@ BinaryTags are created or fetched on demand by kaithem.tags.BinaryTag(name). The
 
 You can set the default value from the management page for any particular tag, but for BinaryTags it will be interpreted as a hex string.
 
+#### BinaryTag.unreliable
+
+Set to true, makes tag act more like a UDP connection. Setting the value just pushed to subscribers. Polling not guaranteed to work. Type checking disabled.
+
+#### BinaryTag.fastPush(self, value,timestamp=None, annotation=None)
+
+Just notify sbscribers. Use with unreliable mode.  Does not set the value and ignores all claims and priorities. Allows tag points to be used for realtime
+media streaming.  Preferably, use MPEG 2 TS. Subtype should be "mpegts" and data packets must start at 188 byte boundaries for that.
+
 
 
 
@@ -318,3 +327,12 @@ Suppress small changes with a hysteresis window.  If window is 3, and you set in
 you get to 7.
 
 Once at 7, the output will be 7, and positive changes will be ignored till you get back up to 10.  If you go to 11, the back of the window will then move to 8.
+
+
+## The raw data API endpoint
+
+Go to the URL of this form:
+
+`kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${obj.tagPoints[i].dataSourceWidget.uuid|u}",`
+
+And if you have read permissions, you will get tag data updates as raw data. Added to support video playback with mpegts.js

@@ -1524,26 +1524,20 @@ class _TagPoint(virtualresource.VirtualResource):
         if not self.dataSourceWidget:
             return
 
-        # Immediate write, don't push yet, do that in a thread because TCP can block
-        def pushFunction():
-            # Set value immediately, for later page loads
-            if self.guiLock.acquire(timeout=0.3):
-                try:
-                    # Use the new literal computed value, not what we were passed,
-                    # Because it could have changed by the time we actually get to push
-                    self.dataSourceWidget.send(value)
-                finally:
-                    self.guiLock.release()
-            else:
-                print("Timed out in the push function")
-
-        # Should there already be a function queued for this exact reason, we just let
-        # That one do it's job
-        if self.guiLock.acquire(timeout=0.001):
+        # Set value immediately, for later page loads
+        if self.guiLock.acquire(timeout=0.3):
             try:
-                workers.do(pushFunction)
+                # Use the new literal computed value, not what we were passed,
+                # Because it could have changed by the time we actually get to push
+                self.dataSourceWidget.send(value)
+        
+            except Exception:
+                raise
             finally:
                 self.guiLock.release()
+        else:
+            print("Timed out in the push function")
+
 
     @typechecked
     def subscribe(self, f: Callable, immediate=False):

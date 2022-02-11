@@ -194,17 +194,13 @@ KaithemApi = function () {
 
 		sendErrorMessage: function (error) {
 			if (this.lastErrMsg) {
-				if (this.lastErrMsg > (Date.now() - 1500000)) {
+				if (this.lastErrMsg > (Date.now() - 10000)) {
 					return
 				}
-				this.lastErrMsg = Date.now();
 			}
-			if (this.connection) {
-				if (this.connection.readyState == 1) {
-					var j = { "telemetry.err": error }
-					this.connection.send(JSON.stringify(j))
-				}
-			}
+			this.lastErrMsg = Date.now();
+
+			this.sendValue("__ERROR__",error)			
 		},
 
 		register: function (key, callback) {
@@ -360,6 +356,10 @@ if (!window.onerror) {
 	var globalPageErrorHandler = function (msg, url, line) {
 		kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + msg)
 	}
+	window.addEventListener("unhandledrejection", event => {
+		kaithemapi.sendErrorMessage(`UNHANDLED PROMISE REJECTION: ${event.reason}`);
+	});
+	
 	window.onerror = globalPageErrorHandler
 }
 //Backwards compatibility hack
@@ -376,7 +376,47 @@ __kwidget_doBattery= function() {
 	catch (e) {
 		console.log(e)
 	}
+
+	try {
+		if ('AmbientLightSensor' in window) {
+			const sensor = new AmbientLightSensor();
+			sensor.addEventListener('reading', event => {
+				KWidget_sendValue("__SENSORS__", { 'ambientLight': sensor.illuminance })
+			});
+		}
+	}
+	catch {
+		console.log(e);
+	}
 }
+
+navigator.permissions.query({name:'idle-detection'}).then(async function(result) {
+	if (result.state === 'granted') {
+		try {
+			const controller = new AbortController();
+			const signal = controller.signal;
+		  
+			const idleDetector = new IdleDetector();
+			idleDetector.addEventListener('change', () => {
+			const userState = idleDetector.userState;
+			const screenState = idleDetector.screenState;
+			KWidget_sendValue("__USERIDLE__", { 'userState': userState, 'screenState': screenState})
+
+			});
+		  
+			await idleDetector.start({
+			  threshold: 240000,
+			  signal,
+			});
+		  } catch (err) {
+			// Deal with initialization errors like permission denied,
+			// running outside of top-level frame, etc.
+			console.error(err.name, err.message);
+		  }	}
+  });
+  
+
+	
 	
 setTimeout(__kwidget_doBattery, 60)
 setInterval(__kwidget_doBattery, 1800000)

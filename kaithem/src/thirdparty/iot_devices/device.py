@@ -348,7 +348,6 @@ class Device():
                            description: str = "",
                            unit: str = '',
                            handler: Optional[Callable[[Dict,float,Any], Any]] = None,
-                           interval: float = 0,
                             writable=True,
                            **kwargs):
         """register a new bytestream data point with the given properties. handler will be called when it changes.
@@ -376,6 +375,7 @@ class Device():
 
     def push_bytes(self,name:str,value:bytes):
         """Same as set_data_point but for bytestream data"""
+        self.set_data_point(name, value)
 
 
     def set_data_point(self,
