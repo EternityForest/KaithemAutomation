@@ -1,4 +1,5 @@
 from email.mime import audio
+from pydoc import locate
 from mako.lookup import TemplateLookup
 from matplotlib.pyplot import connect
 from numpy import append
@@ -62,21 +63,30 @@ class Pipeline(iceflow.GstreamerPipeline):
             if not os.path.exists(s[len("file://"):]):
                 raise RuntimeError("Bad file: " + s)
             self.addElement(
-                "multifilesrc", location=s[len("file://"):], loop=True)
-            self.addElement("queue")
+                "multifilesrc", location=s[len("file://"):], loop=True, do_timestamp=True)
             if s.endswith(".mkv"):
-                self.addElement("matroskademux")
+                dm = self.addElement("matroskademux")
             else:
-                self.addElement("qtdemux")
+                dm = self.addElement("qtdemux")
             self.addElement(
                 "h264parse", connectWhenAvailable="video/x-h264", config_interval=1)
+            self.addElement('identity',sync=True)
             self.syncFile = True
+
             self.h264source = self.addElement("tee")
+            # self.addElement("decodebin", connectToOutput=dm, connectWhenAvailable="audio",async_handling=True)
+            # self.addElement("audioconvert")
+            # self.addElement("audiorate")
+            # self.addElement("voaacenc")
+            # self.addElement("aacparse")
+
+            # self.mp3src = self.addElement("queue", max_size_time=10000000)
+            
 
         # Make a video test src just for this purpose
         elif not s:
             self.addElement("videotestsrc", is_live=True)
-            self.addElement("videorate", drop_only=True)
+            self.addElement("videorate")
             self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
             self.addElement(
                 "capsfilter", caps="video/x-raw, format=I420, width=320, height=240")
@@ -122,6 +132,24 @@ class Pipeline(iceflow.GstreamerPipeline):
             self.addElement("aacparse")
 
             self.mp3src = self.addElement("queue", max_size_time=10000000)
+
+
+
+        elif s.startswith("rtsp://"):
+            rtsp = self.addElement("rtspsrc", location=s,latency=100,async_handling=True)
+            self.addElement("rtph264depay", connectWhenAvailable="video")
+         
+            self.addElement("h264parse",config_interval=1)
+            self.h264source = self.addElement("tee")
+
+            # self.addElement("decodebin", connectToOutput=rtsp, connectWhenAvailable="audio",async_handling=True)
+            # self.addElement("audioconvert")
+            # self.addElement("audiorate")
+            # self.addElement("voaacenc")
+            # self.addElement("aacparse")
+
+            # self.mp3src = self.addElement("queue", max_size_time=10000000)
+
 
         elif s == "screen":
             self.addElement("ximagesrc")
@@ -302,31 +330,29 @@ class NVRChannel(devices.Device):
         self.process.addElement("filesink", location=path,
                                 buffer_mode=2, sync=False)
 
-        # Motion detection part of the graph
 
-        # This flag discards every unit that cannot be handled individually
-        self.process.addElement(
-            "identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
-        self.process.addElement("queue", max_size_time=10000000)
+        # # Motion detection part of the graph
 
-        try:
-            self.process.addElement("omxh264dec")
-        except:
-            self.process.addElement("avdec_h264")
+        # # This flag discards every unit that cannot be handled individually
+        # self.process.addElement(
+        #     "identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
+        # self.process.addElement("queue", max_size_time=20000000,leaky=2)
 
-        self.process.addElement("videorate", drop_only=True)
-        self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
-        self.process.addElement("videoanalyse")
+        # try:
+        #     self.process.addElement("omxh264dec")
+        # except:
+        #     self.process.addElement("decodebin",async_handling=True)
 
-        self.process.addElement("zbar")
-        self.process.addElement("videoconvert")
-        self.process.addElement("motioncells", sensitivity=0.78, gap=2, display=False)
+        # self.process.addElement("videorate", drop_only=True)
+        # self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
+        # self.process.addElement("videoanalyse")
 
-        self.process.addElement("fakesink")
+        # self.process.addElement("zbar")
+        # self.process.addElement("videoconvert")
+        # self.process.addElement("motioncells", sensitivity=0.78, gap=2, display=False)
 
-        self.datapusher = threading.Thread(
-            target=self.thread, daemon=True, name="NVR")
-        self.datapusher.start()
+        # self.process.addElement("fakesink")
+
 
         self.process.mcb = self.motion
         self.process.bcb = self.barcode
@@ -334,12 +360,15 @@ class NVRChannel(devices.Device):
 
 
 
-        self.process.addElement("hlssink", connectToOutput= self.mpegtssrc,
+        self.process.addElement("hlssink", connectToOutput= self.mpegtssrc, async_handling=True,
         location=os.path.join("/dev/shm/knvr_buffer/", self.name, r"segment%08d.ts"),
         playlist_root=os.path.join("/dev/shm/knvr_buffer/", self.name),
         playlist_location=os.path.join("/dev/shm/knvr_buffer/", self.name, "playlist.m3u8"))
 
-
+        self.datapusher = threading.Thread(
+            target=self.thread, daemon=True, name="NVR")
+        self.datapusher.start()
+        
         self.process.start()
 
     def check(self):
