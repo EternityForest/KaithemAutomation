@@ -295,8 +295,12 @@ ${manageForm}
                                 %endif
                         %endif
                         %endif
-
+                        
+                        %if callable(obj.tagPoints[i].activeClaim().value):
                         <button type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
+                        %else:
+                        <button title="Tag does not support refresh" disabled type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
+                        %endif
                 </div>
         %endif
 

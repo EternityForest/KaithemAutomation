@@ -39,7 +39,7 @@ def setupCython():
                 os.mkdir(d)
 
         import pyximport
-        pyximport.install(build_dir=d if os.path.isdir(d) else None)
+        pyximport.install(build_dir=d if os.path.isdir(d) else None,language_level=3)
     except:
         logger.exception(
             "Could not set up pyximport. Ensure that Cython is installed if you want to use .pyx files")

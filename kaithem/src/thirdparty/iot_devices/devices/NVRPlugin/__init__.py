@@ -11,7 +11,6 @@ import weakref
 import traceback
 import shutil
 
-
 logger = logging.Logger("plugins.nvr")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
@@ -46,7 +45,8 @@ class Pipeline(iceflow.GstreamerPipeline):
     def onAppsinkData(self, *a, **k):
         self.dev.onAppsinkData(*a, **k)
 
-    def getGstreamerSourceData(self, s):
+    def getGstreamerSourceData(self, s,cfg):
+        self.config=cfg
         self.h264source = self.mp3src = False
         self.syncFile = False
 
@@ -63,6 +63,7 @@ class Pipeline(iceflow.GstreamerPipeline):
                 raise RuntimeError("Bad file: " + s)
             self.addElement(
                 "multifilesrc", location=s[len("file://"):], loop=True)
+            self.addElement("queue")
             if s.endswith(".mkv"):
                 self.addElement("matroskademux")
             else:
@@ -75,8 +76,11 @@ class Pipeline(iceflow.GstreamerPipeline):
         # Make a video test src just for this purpose
         elif not s:
             self.addElement("videotestsrc", is_live=True)
+            self.addElement("videorate", drop_only=True)
+            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
             self.addElement(
                 "capsfilter", caps="video/x-raw, format=I420, width=320, height=240")
+            
             self.addElement("videoconvert")
             self.addElement("x264enc", tune="zerolatency",
                             byte_stream=True, rc_lookahead=0)
@@ -85,23 +89,27 @@ class Pipeline(iceflow.GstreamerPipeline):
 
         # Make a video test src just for this purpose
         elif s == "test":
-            self.addElement("videotestsrc", is_live=True, pattern="checkers")
+            self.addElement("videotestsrc", is_live=True)
+            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
+
             self.addElement(
                 "capsfilter", caps="video/x-raw, format=I420, width=320, height=240")
             self.addElement("videoconvert")
-            self.addElement("x264enc", tune="zerolatency")
+            self.addElement("x264enc", tune="zerolatency", key_int_max=int((self.config.get('device.fps','4') or '4'))*2)
             self.addElement("h264parse")
             self.h264source = self.addElement("tee")
 
         elif s == "webcam" or s == "webcam_audio":
             self.addElement("v4l2src")
+            self.addElement("videorate", drop_only=True)
+            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
             self.addElement("videoconvert")
             self.addElement("queue", max_size_time=10000000)
             try:
-                self.addElement("omxh264enc", interval_intraframes=60)
+                self.addElement("omxh264enc", interval_intraframes=int((self.config.get('device.fps','4') or '4'))*2)
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
-                                rc_lookahead=0, bitrate=2048, key_int_max=30)
+                                rc_lookahead=0, bitrate=2048, key_int_max=int((self.config.get('device.fps','4') or '4'))*2)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=main")
             self.addElement("h264parse")
@@ -117,14 +125,14 @@ class Pipeline(iceflow.GstreamerPipeline):
 
         elif s == "screen":
             self.addElement("ximagesrc")
-            self.addElement("capsfilter", caps="video/x-raw,framerate=4/1")
+            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
             self.addElement("videoconvert")
             self.addElement("queue", max_size_time=10000000)
             try:
-                self.addElement("omxh264enc", interval_intraframes=30)
+                self.addElement("omxh264enc", interval_intraframes=int((self.config.get('device.fps','4') or '4')))
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
-                                rc_lookahead=0, bitrate=2048, key_int_max=8)
+                                rc_lookahead=0, bitrate=2048, key_int_max=int((self.config.get('device.fps','4') or '4'))*2)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=main")
             self.addElement("h264parse")
@@ -174,15 +182,22 @@ class NVRChannel(devices.Device):
 
         while self.runWidgetThread and (self.runWidgetThread == initialValue):
             try:
-                b += f.read(188 * 24)
+                b += f.read(188 * 32)
             except OSError:
                 time.sleep(0.2)
+            except TypeError:
+                time.sleep(1)
+                try:
+                    f = open(self.rawFeedPipe, 'rb')
+                except:
+                    print(traceback.format_exc())
+
             except Exception:
                 time.sleep(0.5)
                 print(traceback.format_exc())
 
             if self.runWidgetThread:
-                if len(b) > (188 * 256) or (lp < (time.monotonic() - 0.10) and b):
+                if len(b) > (188 * 256) or (lp < (time.monotonic() - 0.2) and b):
                     lp = time.monotonic()
                     self.push_bytes("raw_feed", b)
                     b = b''
@@ -209,8 +224,9 @@ class NVRChannel(devices.Device):
             time.sleep(0.1)
 
         devices.Device.close(self)
+
         try:
-            shutil.rmtree("/dev/shm/knvr/" + self.name)
+            shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
         except Exception:
             pass
 
@@ -225,18 +241,23 @@ class NVRChannel(devices.Device):
     def onRawTSData(self, data):
         pass
 
-    def connect(self):
+    def connect(self,config):
+        self.config=config
         if time.monotonic() - self.lastStart < 15:
             return
 
         self.lastStart = time.monotonic()
+
         try:
-            os.makedirs("/dev/shm/knvr/" + self.name)
+            shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
         except Exception:
             pass
 
+        os.makedirs("/dev/shm/knvr_buffer/" + self.name)
+
         try:
-            os.chmod("/dev/shm/knvr/" + self.name, 0o755)
+            #Make it so nobody else can read the files
+            os.chmod("/dev/shm/knvr_buffer/" + self.name, 0o700)
         except Exception:
             pass
 
@@ -253,7 +274,7 @@ class NVRChannel(devices.Device):
         # self.process = reap.Popen("exec gst-launch-1.0 -q "+getGstreamerSourceData(self.data.get('device.source','')) +"! ",shell=True)
         self.process = Pipeline()
         self.process.dev = self
-        self.process.getGstreamerSourceData(self.data.get('device.source', ''))
+        self.process.getGstreamerSourceData(self.config.get('device.source', ''),self.config)
 
         x = self.process.addElement(
             "queue", connectToOutput=self.process.h264source, max_size_time=10000000)
@@ -262,7 +283,6 @@ class NVRChannel(devices.Device):
             x, self.process.mp3src))
         self.mpegtssrc = self.process.addElement("tee")
 
-        import os
         # Path to be created
         path = self.rawFeedPipe
 
@@ -275,9 +295,12 @@ class NVRChannel(devices.Device):
             os.mkfifo(path)
         except OSError:
             print("Failed to create FIFO")
+
+        os.chmod(path, 0o700)
+
         self.process.addElement("queue", max_size_time=10000000)
         self.process.addElement("filesink", location=path,
-                                buffer_mode=2, sync=self.process.syncFile)
+                                buffer_mode=2, sync=False)
 
         # Motion detection part of the graph
 
@@ -309,6 +332,14 @@ class NVRChannel(devices.Device):
         self.process.bcb = self.barcode
         self.process.acb = self.analysis
 
+
+
+        self.process.addElement("hlssink", connectToOutput= self.mpegtssrc,
+        location=os.path.join("/dev/shm/knvr_buffer/", self.name, r"segment%08d.ts"),
+        playlist_root=os.path.join("/dev/shm/knvr_buffer/", self.name),
+        playlist_location=os.path.join("/dev/shm/knvr_buffer/", self.name, "playlist.m3u8"))
+
+
         self.process.start()
 
     def check(self):
@@ -323,7 +354,7 @@ class NVRChannel(devices.Device):
             self.set_data_point('running', 0)
 
             if self.datapoints['switch']:
-                self.connect()
+                self.connect(self.config)
 
     def commandState(self, v, t, a):
         with self.streamLock:
@@ -413,13 +444,15 @@ class NVRChannel(devices.Device):
                                    writable=False)
 
             self.set_config_default("device.source", '')
+            self.set_config_default("device.fps", '4')
+
 
             self.streamLock = threading.RLock()
             self.lastStart = 0
 
             mediaFolders[name] = self
 
-            self.connect()
+            self.connect(self.config)
             self.check()
             from src import scheduling
             self.checker = scheduling.scheduler.every(self.check, 5)
