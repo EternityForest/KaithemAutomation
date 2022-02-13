@@ -46,8 +46,8 @@ class Pipeline(iceflow.GstreamerPipeline):
     def onAppsinkData(self, *a, **k):
         self.dev.onAppsinkData(*a, **k)
 
-    def getGstreamerSourceData(self, s,cfg):
-        self.config=cfg
+    def getGstreamerSourceData(self, s, cfg):
+        self.config = cfg
         self.h264source = self.mp3src = False
         self.syncFile = False
 
@@ -69,8 +69,8 @@ class Pipeline(iceflow.GstreamerPipeline):
             else:
                 dm = self.addElement("qtdemux")
             self.addElement(
-                "h264parse", connectWhenAvailable="video/x-h264", config_interval=1)
-            self.addElement('identity',sync=True)
+                "h264parse", connectWhenAvailable="video/x-h264")
+            self.addElement('identity', sync=True)
             self.syncFile = True
 
             self.h264source = self.addElement("tee")
@@ -81,16 +81,16 @@ class Pipeline(iceflow.GstreamerPipeline):
             # self.addElement("aacparse")
 
             # self.mp3src = self.addElement("queue", max_size_time=10000000)
-            
 
         # Make a video test src just for this purpose
         elif not s:
             self.addElement("videotestsrc", is_live=True)
             self.addElement("videorate")
-            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
+            self.addElement("capsfilter", caps="video/x-raw,framerate=" +
+                            (self.config.get('device.fps', '4') or '4') + "/1")
             self.addElement(
                 "capsfilter", caps="video/x-raw, format=I420, width=320, height=240")
-            
+
             self.addElement("videoconvert")
             self.addElement("x264enc", tune="zerolatency",
                             byte_stream=True, rc_lookahead=0)
@@ -100,32 +100,37 @@ class Pipeline(iceflow.GstreamerPipeline):
         # Make a video test src just for this purpose
         elif s == "test":
             self.addElement("videotestsrc", is_live=True)
-            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
+            self.addElement("capsfilter", caps="video/x-raw,framerate=" +
+                            (self.config.get('device.fps', '4') or '4') + "/1")
 
             self.addElement(
                 "capsfilter", caps="video/x-raw, format=I420, width=320, height=240")
             self.addElement("videoconvert")
-            self.addElement("x264enc", tune="zerolatency", key_int_max=int((self.config.get('device.fps','4') or '4'))*2)
+            self.addElement("x264enc", tune="zerolatency", key_int_max=int(
+                (self.config.get('device.fps', '4') or '4')) * 2)
             self.addElement("h264parse")
             self.h264source = self.addElement("tee")
 
         elif s == "webcam" or s == "webcam_audio":
             self.addElement("v4l2src")
             self.addElement("videorate", drop_only=True)
-            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
+            self.addElement("capsfilter", caps="video/x-raw,framerate=" +
+                            (self.config.get('device.fps', '4') or '4') + "/1")
             self.addElement("videoconvert")
             self.addElement("queue", max_size_time=10000000)
             try:
-                self.addElement("omxh264enc", interval_intraframes=int((self.config.get('device.fps','4') or '4'))*2)
+                self.addElement("omxh264enc", interval_intraframes=int(
+                    (self.config.get('device.fps', '4') or '4')) * 2)
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
-                                rc_lookahead=0, bitrate=2048, key_int_max=int((self.config.get('device.fps','4') or '4'))*2)
+                                rc_lookahead=0, bitrate=2048, key_int_max=int((self.config.get('device.fps', '4') or '4')) * 2)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=main")
-            self.addElement("h264parse")
+            self.addElement("h264parse",config_interval=1)
             self.h264source = self.addElement("tee")
 
             self.addElement("alsasrc", connectToOutput=False)
+            self.addElement("queue")
             self.addElement("audioconvert")
 
             self.addElement("voaacenc")
@@ -133,13 +138,13 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             self.mp3src = self.addElement("queue", max_size_time=10000000)
 
-
-
         elif s.startswith("rtsp://"):
-            rtsp = self.addElement("rtspsrc", location=s,latency=100,async_handling=True)
+            rtsp = self.addElement(
+                "rtspsrc", location=s, latency=100, async_handling=True)
             self.addElement("rtph264depay", connectWhenAvailable="video")
-         
-            self.addElement("h264parse",config_interval=1)
+
+            self.addElement("h264parse", config_interval=1)
+
             self.h264source = self.addElement("tee")
 
             # self.addElement("decodebin", connectToOutput=rtsp, connectWhenAvailable="audio",async_handling=True)
@@ -150,17 +155,18 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             # self.mp3src = self.addElement("queue", max_size_time=10000000)
 
-
         elif s == "screen":
             self.addElement("ximagesrc")
-            self.addElement("capsfilter", caps="video/x-raw,framerate="+ (self.config.get('device.fps','4') or '4') +"/1")
+            self.addElement("capsfilter", caps="video/x-raw,framerate=" +
+                            (self.config.get('device.fps', '4') or '4') + "/1")
             self.addElement("videoconvert")
             self.addElement("queue", max_size_time=10000000)
             try:
-                self.addElement("omxh264enc", interval_intraframes=int((self.config.get('device.fps','4') or '4')))
+                self.addElement("omxh264enc", interval_intraframes=int(
+                    (self.config.get('device.fps', '4') or '4')))
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
-                                rc_lookahead=0, bitrate=2048, key_int_max=int((self.config.get('device.fps','4') or '4'))*2)
+                                rc_lookahead=0, bitrate=2048, key_int_max=int((self.config.get('device.fps', '4') or '4')) * 2)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=main")
             self.addElement("h264parse")
@@ -269,8 +275,8 @@ class NVRChannel(devices.Device):
     def onRawTSData(self, data):
         pass
 
-    def connect(self,config):
-        self.config=config
+    def connect(self, config):
+        self.config = config
         if time.monotonic() - self.lastStart < 15:
             return
 
@@ -284,7 +290,7 @@ class NVRChannel(devices.Device):
         os.makedirs("/dev/shm/knvr_buffer/" + self.name)
 
         try:
-            #Make it so nobody else can read the files
+            # Make it so nobody else can read the files
             os.chmod("/dev/shm/knvr_buffer/" + self.name, 0o700)
         except Exception:
             pass
@@ -302,13 +308,15 @@ class NVRChannel(devices.Device):
         # self.process = reap.Popen("exec gst-launch-1.0 -q "+getGstreamerSourceData(self.data.get('device.source','')) +"! ",shell=True)
         self.process = Pipeline()
         self.process.dev = self
-        self.process.getGstreamerSourceData(self.config.get('device.source', ''),self.config)
+        self.process.getGstreamerSourceData(
+            self.config.get('device.source', ''), self.config)
 
         x = self.process.addElement(
             "queue", connectToOutput=self.process.h264source, max_size_time=10000000)
 
         self.process.addElement("mpegtsmux", connectToOutput=(
             x, self.process.mp3src))
+
         self.mpegtssrc = self.process.addElement("tee")
 
         # Path to be created
@@ -330,35 +338,35 @@ class NVRChannel(devices.Device):
         self.process.addElement("filesink", location=path,
                                 buffer_mode=2, sync=False)
 
-
         # # Motion detection part of the graph
 
         # # This flag discards every unit that cannot be handled individually
-        # self.process.addElement(
-        #     "identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
-        # self.process.addElement("queue", max_size_time=20000000,leaky=2)
+        self.process.addElement(
+            "identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
+        self.process.addElement("queue", max_size_time=20000000,
+                                 leaky=2)
+        self.process.addElement("capsfilter", caps="video/x-h264")
 
-        # try:
-        #     self.process.addElement("omxh264dec")
-        # except:
-        #     self.process.addElement("decodebin",async_handling=True)
+        try:
+            self.process.addElement("omxh264dec")
+        except:
+            self.process.addElement("avdec_h264")
 
-        # self.process.addElement("videorate", drop_only=True)
+        # self.process.addElement("videorate",drop_only=True)
         # self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
-        # self.process.addElement("videoanalyse")
+        self.process.addElement("videoanalyse")
 
-        # self.process.addElement("zbar")
-        # self.process.addElement("videoconvert")
-        # self.process.addElement("motioncells", sensitivity=0.78, gap=2, display=False)
+        self.process.addElement("zbar")
+        self.process.addElement("videoconvert", chroma_resampler=0)
 
-        # self.process.addElement("fakesink")
+        self.process.addElement(
+            "motioncells", sensitivity=0.78, gap=2, display=False)
 
+        self.process.addElement("fakesink")
 
         self.process.mcb = self.motion
         self.process.bcb = self.barcode
         self.process.acb = self.analysis
-
-
 
         self.process.addElement("hlssink", connectToOutput= self.mpegtssrc, async_handling=True,
         location=os.path.join("/dev/shm/knvr_buffer/", self.name, r"segment%08d.ts"),
@@ -368,7 +376,7 @@ class NVRChannel(devices.Device):
         self.datapusher = threading.Thread(
             target=self.thread, daemon=True, name="NVR")
         self.datapusher.start()
-        
+
         self.process.start()
 
     def check(self):
@@ -417,8 +425,9 @@ class NVRChannel(devices.Device):
         self.set_data_point("luma_average", v['luma-average'])
         self.set_data_point("luma_variance", v['luma-variance'])
 
-    def barcode(self, t, d,q):
-        self.set_data_point("barcode", {'barcode_type': t, "barcode_data": d, "wallclock":time.time(),"quality":q})
+    def barcode(self, t, d, q):
+        self.set_data_point("barcode", {
+                            'barcode_type': t, "barcode_data": d, "wallclock": time.time(), "quality": q})
 
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
@@ -465,16 +474,16 @@ class NVRChannel(devices.Device):
                                     max=1,
                                     writable=False)
 
-
-            self.set_alarm("Camera dark","luma_average", "value < 0.095", trip_delay=3,auto_ack=True)
-            self.set_alarm("Camera low varience","luma_variance", "value < 0.008", trip_delay=3,auto_ack=True)
+            self.set_alarm("Camera dark", "luma_average",
+                           "value < 0.095", trip_delay=3, auto_ack=True)
+            self.set_alarm("Camera low varience", "luma_variance",
+                           "value < 0.008", trip_delay=3, auto_ack=True)
 
             self.object_data_point("barcode",
                                    writable=False)
 
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
-
 
             self.streamLock = threading.RLock()
             self.lastStart = 0
