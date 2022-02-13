@@ -63,24 +63,27 @@ class Pipeline(iceflow.GstreamerPipeline):
             if not os.path.exists(s[len("file://"):]):
                 raise RuntimeError("Bad file: " + s)
             self.addElement(
-                "multifilesrc", location=s[len("file://"):], loop=True, do_timestamp=True)
+                "multifilesrc", location=s[len("file://"):], loop=True)
             if s.endswith(".mkv"):
                 dm = self.addElement("matroskademux")
             else:
                 dm = self.addElement("qtdemux")
             self.addElement(
                 "h264parse", connectWhenAvailable="video/x-h264")
-            self.addElement('identity', sync=True)
+            #self.addElement('identity', sync=True)
             self.syncFile = True
+            self.addElement('queue',max_size_time=10000000)
 
             self.h264source = self.addElement("tee")
-            # self.addElement("decodebin", connectToOutput=dm, connectWhenAvailable="audio",async_handling=True)
-            # self.addElement("audioconvert")
-            # self.addElement("audiorate")
-            # self.addElement("voaacenc")
-            # self.addElement("aacparse")
+            self.addElement("decodebin3", connectToOutput=dm, connectWhenAvailable="audio")
+            self.addElement("audioconvert",connectWhenAvailable="audio")
 
-            # self.mp3src = self.addElement("queue", max_size_time=10000000)
+            self.addElement("audiorate")
+            self.addElement("queue", max_size_time=10000000)
+            self.addElement("voaacenc")
+            self.addElement("aacparse")
+
+            self.mp3src = self.addElement("queue", max_size_time=10000000)
 
         # Make a video test src just for this purpose
         elif not s:
@@ -336,7 +339,7 @@ class NVRChannel(devices.Device):
 
         self.process.addElement("queue", max_size_time=10000000)
         self.process.addElement("filesink", location=path,
-                                buffer_mode=2, sync=False)
+                                buffer_mode=2, sync=self.process.syncFile)
 
         # # Motion detection part of the graph
 
@@ -356,7 +359,10 @@ class NVRChannel(devices.Device):
         # self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
         self.process.addElement("videoanalyse")
 
-        self.process.addElement("zbar")
+        if self.config.get('device.barcodes', '').lower() in ("yes","true","detect","enable","on"):
+            self.process.addElement("zbar")
+            self.print("Barcode detection enabled")
+
         self.process.addElement("videoconvert", chroma_resampler=0)
 
         self.process.addElement(
@@ -484,6 +490,7 @@ class NVRChannel(devices.Device):
 
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
+            self.set_config_default("device.barcodes", 'no')
 
             self.streamLock = threading.RLock()
             self.lastStart = 0
