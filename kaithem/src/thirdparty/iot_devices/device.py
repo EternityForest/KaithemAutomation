@@ -78,6 +78,9 @@ class Device():
         self.__datapointhandlers: Dict[str, Callable] = {}
         self.datapoints = {}
 
+        # Used to store properties about config keys
+        self.config_properties: Dict[str, Dict[str:Any]]= {}
+
         #Functions that can be called to explicitly request a data point
         #That return the new value
         self.__datapoint_getters: Dict[str, Callable] = {}

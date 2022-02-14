@@ -3,12 +3,16 @@
 from src import config,registry,sound
 import yaml
 %>
+
+<datalist id="l">
+    <option>/static/css/kaithem_scrapbook_green.css</option>
+    <option>/static/css/fugit.css</option>
+</datalist>
 <h2>Theme</h2>
 <section>
 <form method="post" action="/settings/settheming">
-<p class="help">Builtin Themes: /static/css/kaithem_scrapbook_green.css /static/css/fugit.css</p>
 <label>CSS Themefile(Empty for configured default): 
-    <input value="${registry.get('/system.theming/csstheme','')}" name="cssfile"></label>
+    <input list="l" value="${registry.get('/system.theming/csstheme','')}" name="cssfile"></label>
 <input type="submit">
 </form>
 </section>

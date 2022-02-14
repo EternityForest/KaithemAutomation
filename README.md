@@ -113,6 +113,19 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.8
+
+- New Fugit SciFi inspired theme
+- NVRPlugin has been rewritten to give low latency streaming over websockets.  It still doesn't have recording, but likely will.
+- New unreliable mode for tag points to support this kind of media.
+- User telemetry hidden on admin page unless you explicitly press "show"
+- Unlogged realtime only telemetry now includes user idle state if permission has been granted, to check on digital signage and kiosks.
+- Easier selection of the builtin themes
+- Icons switched to the IcoFont for more standardization
+- Improve mobile support
+
+
+
 ### 0.68.7
 
 - Admin can see battery status of all connected devices if said device supports it

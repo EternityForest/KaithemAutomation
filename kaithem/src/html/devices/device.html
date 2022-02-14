@@ -83,14 +83,19 @@ specialKeys={
 
 <tr>
         <td>Device Type</td>
-        <td><input name="type" disabled value="${data.get('type','')}"></td>
+        <td>${data.get('type','')|h}</td>
 </tr>
 <tr>
         <td>Device Name</td>
-        <td><input name="name" value="${name}"></td>
+        <td><input name="name" value="${name|h}"></td>
 </tr>
 
 </table>
+
+
+
+<input type="hidden" name="type" value="${data.get('type','')}">
+<h2><i class="icofont-question-circle"></i>Help</h2>
 
 %if hasattr(obj,'description') and obj.description:
 <h3>Description</h3>
@@ -99,15 +104,13 @@ specialKeys={
 </p>
 %endif
 
-<input type="hidden" name="type" value="${data.get('type','')}">
-<h2>Help</h2>
 <ul>
 <li><a href="/devices/devicedocs/${url(name)}">README for this device type</a></li>
 </ul>
 <title>${name|h}</title>
 
 
-<h2>Bindings</h2>
+<h2><i class="icofont-link"></i>Bindings</h2>
 
 <p class="help">A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
         all of these devices are one way. The device will be updated when the tag point changes.  For the local point, 
@@ -124,7 +127,7 @@ specialKeys={
 ${json.dumps(data.get('kaithem.input_bindings',[])) or '[]'|h}
 </textarea>
 
-<h2>Device Specific</h2>
+<h2><i class="icofont-ui-settings"></i>Settings</h2>
 
 
 
@@ -143,24 +146,37 @@ ${traceback.format_exc()}
 %if manageForm.strip():
 ${manageForm}
 %else:
-
 <table  style="width:100%">
 %for i in sorted([i for i in obj.config.keys() if not i in specialKeys and not i.startswith("kaithem.")] ):
 <tr>
         %if i.startswith('device.'):
         <td>${i[7:]|h}</td>
         %else:
-        <td>${i[7:]|h}</td>
+        <td>${i|h}</td>
         %endif
 
-        <td><input name="${i|h}" value="${obj.config[i]|h}"></td>
+
+        <td>
+                %if obj.config_properties.get(i,{}).get("type") =='bool':
+
+                <select name="${i|h}">
+                        <option>False/Off</option>
+                        <option ${'selected' if obj.config[i].lower().strip() in ('true','yes','on','enable','active','enabled' ) else '' } value="true">True/On</option>
+                        
+                </select>
+                %else:
+                <input name="${i|h}" value="${obj.config[i]|h}">
+                %endif
+        
+        
+        </td>
 </tr>
 %endfor
 </table>
 %endif
 
 %if obj.alerts:
-<h2>Alerts</h2>
+<h2><i class="icofont-ui-text-chat"></i>Alerts</h2>
 <p class="help">This section lists all alerts supported by the device.
 </p>
 <p class="help">For new device types, the alarms will likely be configured via the corresponding
@@ -185,14 +201,22 @@ ${manageForm}
         </select>
         %endif
         </td>
-        <td>${obj.alerts[i].sm.state}</td>
+        <td>
+                %if obj.alerts[i].sm.state=='normal':
+                <i class="icofont-ui-check"></i>
+                %else:
+                <i class="icofont-warning"></i>
+                %endif
+
+                ${obj.alerts[i].sm.state}
+        </td>
 </tr>
 %endfor
 </table>
 
 %endif
 
-<h2>Tag Point</h2>
+<h2><i class="icofont-chart-flow-2"></i>Tag Points</h2>
 <p class="help">This section lists all the tag points owned.  Controls do not work if
         the tag has been overriden by some high priority claim.
 </p>
@@ -274,8 +298,8 @@ ${manageForm}
                 <div style="display: flex; flex-wrap: wrap;" class="buttonbar">
                         %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
                         %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">On</button>
                         %elif obj.tagPoints[i].subtype == 'trigger':
                         <button  type="button"  onclick="triggerCounters['${i|h}'] = (triggerCounters['${i|h}']||0)+1; _generic_ws_channel.send(['set', '${i|h}', triggerCounters['${i|h}']])">Trigger</button>
                         %elif obj.tagPoints[i].subtype == 'color':

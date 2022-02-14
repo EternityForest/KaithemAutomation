@@ -366,7 +366,7 @@ class NVRChannel(devices.Device):
         self.process.addElement("videoconvert", chroma_resampler=0)
 
         self.process.addElement(
-            "motioncells", sensitivity=0.78, gap=2, display=False)
+            "motioncells", sensitivity=float(self.config.get('device.motion_sensitivity', '0.75')), gap=2, display=False)
 
         self.process.addElement("fakesink")
 
@@ -491,6 +491,11 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
+            self.set_config_default("device.motion_sensitivity", '0.75')
+
+            self.config_properties['device.barcodes'] = {
+                'type': 'bool'
+            }
 
             self.streamLock = threading.RLock()
             self.lastStart = 0

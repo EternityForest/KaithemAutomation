@@ -109,9 +109,9 @@ Err in login history${traceback.format_exc()}
 
                 %if hasattr(i, 'batteryStatus'):
                 <tr>
-                    <td>Battery Status:</td> 
+                    <td><i class="icofont-ui-battery"></i>Battery Status:</td> 
                     <td>${round(i.batteryStatus['level']*100)}%<meter min="0" max="100" low="20" value="${i.batteryStatus['level']*100}"></meter>
-                        ${"Charging" if i.batteryStatus['charging'] else "Not Charging"|}
+                        ${'<i class="icofont-plugin"></i> Charging' if i.batteryStatus['charging'] else "Not Charging"}
                     </td>
                 </tr>
                 %endif
