@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.68.9
+- Any module page can now be accessed via it's subfolder
+
+
 ### 0.68.8
 
 - New Fugit SciFi inspired theme
@@ -11,6 +15,7 @@ Change Log
 - Easier selection of the builtin themes
 - Icons switched to the IcoFont for more standardization
 - Improve mobile support
+
 
 
 ### 0.68.7

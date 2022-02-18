@@ -22,8 +22,13 @@ def devStatString(d):
 
         if 'rssi' in d.tagPoints:
             s.append(d.tagPoints['rssi'].meterWidget.render(label="RSSI"))
+        if 'switch' in d.tagPoints:
+            s.append(d.tagPoints['switch'].meterWidget.render(label="Switch"))
+        if 'running' in d.tagPoints:
+            s.append(d.tagPoints['running'].meterWidget.render(label="Running"))
 
-       
+
+            
     except Exception as e:
         s.append(str(e))
 
@@ -33,7 +38,7 @@ def devStatString(d):
         s.append(" offline" if  deviceData[i]().pclient and deviceData[i]().pclient.remoteAddress==None else "")
 
 
-    return ", ".join(s)
+    return ''.join(['<div>'+i+"</div>" for i in s])
     
 %>
 <script src="/static/widget.js"></script>
@@ -51,12 +56,20 @@ def devStatString(d):
 <dl>
 
 %for i in sorted(deviceData.keys()):
-    <dt> <a href="device/${url(i)}/manage"><i class="icofont-pencil"></i>${i|h}</a>
-        <span style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
-            ${(str(len(deviceData[i]().errors))+" errors") if len(deviceData[i]().errors) else '' }
-        </span>
+    <dt> 
+        <div class="buttonbar">
+            <a href="device/${url(i)}/manage"><i class="icofont-pencil"></i>${i|h}
 
-        </dt>
+            %if len(deviceData[i]().errors):
+            <span style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
+                ${(str(len(deviceData[i]().errors))+" errors")}
+            </span>
+</a>
+            %endif
+            <a href="deleteDevice/${url(i)}" class="button" style="flex-grow: 0.1;"><i class="icofont-ui-delete"></i>Delete</a>
+
+        </div>
+    </dt>
     <dd>
 
     <h4>Type</h4>
@@ -65,18 +78,16 @@ def devStatString(d):
             (${deviceData[i]().data.get('type','UndefinedType')})
             %endif
     <h4>Action</h4>
-    <a href="deleteDevice/${url(i)}" class="button"><i class="icofont-ui-delete"></i>Delete</a>
 
     <%
     h=devStatString(deviceData[i]())
     %>
     %if h:
     <h4>Status</h4>
-    <div>${h}</div>
+    <div style="display: flex;">${h}</div>
     %endif
 </dd>
 
-<hr>
 %endfor
 </dl>
 

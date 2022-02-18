@@ -1,5 +1,9 @@
+from distutils.filelist import findall
 from email.mime import audio
+from multiprocessing import RLock
+from ntpath import join
 from pydoc import locate
+from sys import path
 from mako.lookup import TemplateLookup
 from matplotlib.pyplot import connect
 from numpy import append
@@ -11,11 +15,12 @@ import logging
 import weakref
 import traceback
 import shutil
+import re
 
 logger = logging.Logger("plugins.nvr")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
-
+from datetime import datetime
 
 defaultSubclassCode = """
 class CustomDeviceType(DeviceType):
@@ -24,6 +29,55 @@ class CustomDeviceType(DeviceType):
         # self.accept()
         pass
 """
+
+
+
+
+from zeroconf import ServiceBrowser, ServiceStateChange
+
+
+# very much not thread safe, doesn't matter, it's only for one UI page
+httpservices = []
+httplock = threading.Lock()
+
+import socket
+
+def on_service_state_change(zeroconf, service_type, name, state_change):
+    with httplock:
+        info = zeroconf.get_service_info(service_type, name)
+        if not info:
+            return
+        if state_change is ServiceStateChange.Added:
+            httpservices.append((tuple(sorted(
+                [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
+            if len(httpservices) > 2048:
+                httpservices.pop(0)
+        else:
+            try:
+                httpservices.remove((tuple(sorted(
+                    [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
+            except:
+                logging.exception("???")
+
+
+
+#Not common enough to waste CPU all the time on
+#browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
+
+try:
+    from src.util import zeroconf as zcinstance
+except:
+    import zeroconf
+    zcinstance = zeroconf.Zeroconf()
+
+browser2 = ServiceBrowser(zcinstance, "_http._tcp.local.", handlers=[
+                          on_service_state_change])
+
+
+
+
+
+
 
 
 mediaFolders = weakref.WeakValueDictionary()
@@ -374,7 +428,7 @@ class NVRChannel(devices.Device):
         self.process.bcb = self.barcode
         self.process.acb = self.analysis
 
-        self.process.addElement("hlssink", connectToOutput= self.mpegtssrc, async_handling=True,
+        self.process.addElement("hlssink", connectToOutput= self.mpegtssrc, message_forward=True, async_handling=True, max_files=0,
         location=os.path.join("/dev/shm/knvr_buffer/", self.name, r"segment%08d.ts"),
         playlist_root=os.path.join("/dev/shm/knvr_buffer/", self.name),
         playlist_location=os.path.join("/dev/shm/knvr_buffer/", self.name, "playlist.m3u8"))
@@ -385,7 +439,96 @@ class NVRChannel(devices.Device):
 
         self.process.start()
 
+
+
+    def onRecordingChange(self, v, *a):
+        with self.recordlock:
+            if v:
+                self.setsegmentDir()
+            else:
+                self.segmentDir = None
+
+    def setsegmentDir(self,manual=False):
+        with self.recordlock:
+            # Manually triggered recordings should go in a different folder
+
+            my_date = datetime.now()
+            date=my_date.strftime('%Y-%m-%d')
+            t= my_date.strftime("%Y-%m-%dT%H:%M:%S")
+
+            d = os.path.join(self.storageDir,"recordings",self.name, date,t)
+            os.makedirs(d)
+            self.segmentDir = d
+
+            with open(os.path.join(self.segmentDir, "playlist.m3u8"), "w") as f:
+                f.write("#EXTM3U\r\n")
+                f.write("#EXT-X-START:	TIME-OFFSET=0\r\n")
+                f.write("#EXT-X-PLAYLIST-TYPE: VOD\r\n")
+                f.write("#EXT-X-VERSION:3\r\n")
+                f.write("##EXT-X-ALLOW-CACHE:NO\r\n")
+                f.write("#EXT-X-TARGETDURATION:15\r\n")
+
+    
+    def onMultiFileSink(self,fn,*a,**k):
+        with self.recordlock:
+            self.moveSegments()
+            d = os.path.join("/dev/shm/knvr_buffer/", self.name)
+            ls = os.listdir(d)
+            ls = list(sorted([i for i in ls if i.endswith(".ts")]))
+            
+            if len(ls) > 1:
+                os.remove(os.path.join(d,ls[0]))
+
+
+
+    def moveSegments(self):
+        with self.recordlock:
+            d = os.path.join("/dev/shm/knvr_buffer/", self.name)
+            ls = os.listdir(d)
+            ls = list(sorted([i for i in ls if i.endswith(".ts")]))
+
+
+            if self.segmentDir:
+                # Ignore latest, that could still be recording
+                for i in ls[:-1]:
+
+    
+
+                    #Find the duration of the segment from the hlssink playlist file
+                    with open(os.path.join(d, "playlist.m3u8")) as f:
+                        x = f.read()
+                    if not i in x:
+                        return
+                    
+                    x=x.split(i)[0]
+                    x = float(re.findall(r"EXTINF:\s*([\d\.]*)",x)[-1])
+
+
+                    #Assume the start time is mod time minus length
+                    my_date = datetime.fromtimestamp(os.stat(os.path.join(d, i)).st_mtime-x)
+                    t= my_date.isoformat()
+
+                    shutil.move(os.path.join(d, i), self.segmentDir)
+                    with open(os.path.join(self.segmentDir, "playlist.m3u8"), "a+") as f:
+                        f.write("\r\n")
+                        f.write("#EXTINF:"+str(x)+",\r\n")
+                        f.write("#EXT-X-PROGRAM-DATE-TIME:"+t+"\r\n")
+                        f.write(i+"\r\n")
+
+
+
+
+
+
+
     def check(self):
+        d = os.path.join("/dev/shm/knvr_buffer/", self.name)
+        ls = os.listdir(d)
+        if not len(ls)==self.lastshmcount:
+            self.onMultiFileSink('')
+        self.lastshmcount=len(ls)
+
+
         with self.streamLock:
             if self.process:
                 try:
@@ -398,6 +541,8 @@ class NVRChannel(devices.Device):
 
             if self.datapoints['switch']:
                 self.connect(self.config)
+        
+
 
     def commandState(self, v, t, a):
         with self.streamLock:
@@ -441,7 +586,20 @@ class NVRChannel(devices.Device):
             self.runWidgetThread = True
             self.threadExited = True
 
+            self.storageDir = os.path.expanduser("~/NVR")
+
+            self.segmentDir = None
+            self.lastshmcount =0 
+
+            if not os.path.exists(self.storageDir):
+                os.makedirs(self.storageDir)
+                #Secure it!
+                os.chmod(self.storageDir, 0o700)
+
+
             self.tsQueue = b''
+
+            self.recordlock = threading.RLock()
 
             self.rawFeedPipe = "/dev/shm/nvr_pipe." + \
                 name.replace("/", '') + ".raw_feed.tspipe"
@@ -454,9 +612,16 @@ class NVRChannel(devices.Device):
                                     min=0,
                                     max=1,
                                     subtype='bool',
-                                    interval=300,
                                     default=1,
                                     handler=self.commandState)
+
+            self.numeric_data_point("record",
+                                    min=0,
+                                    max=1,
+                                    subtype='bool',
+                                    default=0,
+                                    handler=self.onRecordingChange)
+
 
             self.numeric_data_point("running",
                                     min=0,

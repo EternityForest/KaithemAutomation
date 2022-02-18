@@ -4,11 +4,14 @@
 
 [class*=" icofont-"],
 [class^=icofont-] {
-    color: #dddca7;
+    color: white;
     margin-left: 4px;
     margin-right: 4px;
 }
 
+th{
+    color: white;
+}
 a{
     color:#dddca7;
     text-decoration: none;

@@ -1,0 +1,3 @@
+{resource-timestamp: 1645142163527464, resource-type: module-description, text: 'Network
+    Video Recorder for CCTV systems.  To add inputs, add NVRChannel devices, this
+    module will auto discover them.'}

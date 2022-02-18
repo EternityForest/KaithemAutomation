@@ -1,0 +1,44 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: false
+no-navheader: false
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1645141878690235
+resource-type: page
+template-engine: mako
+
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+%>
+
+<%
+__doc__= "#Python Code here runs every page load"
+%>
+
+<script src="/static/js/vue3.js"></script>
+
+<h2>Beholder NVR</h2>
+<title>Beholder NVR</title>
+
+<div class="sectionbox">
+<div id="app">{{ message }}</div>
+</div>
+
+
+
+
+<script>
+  Vue.createApp({
+    data() {
+      return {
+        message: 'Hello Vue!'
+      }
+    }
+  }).mount('#app')
+</script>

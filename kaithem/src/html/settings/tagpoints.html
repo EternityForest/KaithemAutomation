@@ -66,7 +66,7 @@ Page:
     <i  title="Logging is enabled for this tag" class="icofont-ui-press"></i>
     %endif
     </td>
-    <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit} ${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().lastValue}</td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 </tr>
 %endif
@@ -74,7 +74,7 @@ Page:
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._StringTagPoint):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
-    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} </td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 
 </tr>
@@ -83,7 +83,7 @@ Page:
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._ObjectTagPoint):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
-    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} </td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 
 </tr>

@@ -20,7 +20,6 @@ def getDesc():
 <section>
     <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
 
-<form action="/modules/module/${url(name)}/update" method="POST" name="user">
 MD5 Sum: <b>${getModuleHash(name)}</b></br>
 WordHash: <b>${getModuleWordHash(name)}</b></br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file</a><br>
@@ -28,6 +27,7 @@ WordHash: <b>${getModuleWordHash(name)}</b></br>
 </section>
 <h3>Basic Information</h3>
 <div class="sectionbox">
+    <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
 <p class="help">Changing the name of a module will invalidate all external references to the module by its old name,
     and will reload all events in the module. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>

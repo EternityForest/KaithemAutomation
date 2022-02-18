@@ -101,6 +101,12 @@ def lookup(module, args):
 
     while resource_path:
         resource_path.pop()
+        if "/".join(resource_path) in m:
+            return _Pages[module]["/".join(resource_path)]
+
+        if "/".join(resource_path+['__index__']) in m:
+            return _Pages[module]["/".join(resource_path+['__index__'])]
+            
         if "/".join(resource_path+['__default__']) in m:
             return m["/".join(resource_path+['__default__'])]
     return None

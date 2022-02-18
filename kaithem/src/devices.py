@@ -16,6 +16,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import shutil
 import string
 import weakref
 import threading
@@ -336,6 +337,8 @@ class Device(virtualresource.VirtualResource):
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
         global remote_devices
+
+        self.config_properties = {}
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
@@ -858,6 +861,12 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     def on_delete(self):
         pass
+
+
+    ### FS
+
+    def framework_storage_root(self):
+        return directories.vardir
 
     ### UI Integration
 

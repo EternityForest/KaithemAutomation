@@ -1,0 +1,104 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: false
+no-navheader: false
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1645158099135995
+resource-type: page
+template-engine: mako
+
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+%>
+
+<%
+__doc__= "#Python Code here runs every page load"
+%>
+
+<script src="/pages/Beholder/hls.js"></script>
+<script src="/static/js/striftime-min.js"></script>
+
+<section>
+
+<div>
+  <table>
+    <tr>
+      <td>Local Time(Est)</td>
+      <td id="time"></td>
+    </tr>
+    <tr>
+      <td>GMT Time(Est)</td>
+      <td id="gmt"></td>
+    </tr>
+    <tr>
+      <td>Segment</td>
+      <td id="seg"></td>
+    </tr>
+  </table>
+</div>
+<div>
+<video id="video" controls></video>
+</div>
+
+
+</section>
+<script>
+  var video = document.getElementById('video');
+  var videoSrc = "/pages/Beholder/serve/${'/'.join(path[1:])}"
+  if (Hls.isSupported()) {
+    var hls = new Hls();
+    hls.loadSource(videoSrc);
+    hls.attachMedia(video);
+  }
+  // HLS.js is not supported on platforms that do not have Media Source
+  // Extensions (MSE) enabled.
+  //
+  // When the browser has built-in HLS support (check using `canPlayType`),
+  // we can provide an HLS manifest (i.e. .m3u8 URL) directly to the video
+  // element through the `src` property. This is using the built-in support
+  // of the plain video element, without using HLS.js.
+  //
+  // Note: it would be more normal to wait on the 'canplay' event below however
+  // on Safari (where you are most likely to find built-in HLS support) the
+  // video.src URL must be on the user-driven white-list before a 'canplay'
+  // event will be emitted; the last video event that can be reliably
+  // listened-for when the URL is not on the white-list is 'loadedmetadata'.
+  else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = videoSrc;
+  }
+  else{
+    alert("No HLS")
+  }
+
+fragOffset=null
+
+    const hlsInstance = hls;
+    hlsInstance.on(window.Hls.Events.FRAG_CHANGED, function(event, data) {
+        d= new Date(data.frag.programDateTime)
+        document.getElementById('time').innerHTML= d.toLocaleString()
+        document.getElementById('gmt').innerHTML= d.toISOString()
+        document.getElementById('seg').innerHTML= data.frag.relurl
+        
+        fragOffset = data.frag.start
+        fragStart = data.frag.programDateTime
+    });
+
+function updateTime(){
+if(fragOffset == null)
+{
+  return
+}
+timeIntoFrag = (document.getElementById('video').currentTime*1000) - (fragOffset*1000)
+d= new Date(timeIntoFrag+fragStart)
+document.getElementById('time').innerHTML= d.toLocaleString()
+document.getElementById('gmt').innerHTML= d.toISOString()
+}
+
+setInterval(updateTime, 300)
+</script>
