@@ -58,13 +58,19 @@ Upload zip and unpack:
 </form>
 
 <table border=1>
-<tr><th>Path</th><th>Size</th><th>Delete</th></tr>
+<tr><th>Path</th><th>Size</th><th>Action</th></tr>
 %for i in sorted(os.listdir(dir)):
 
 <tr><td><a href="/settings/files/${util.url(os.path.join(dir,i))}">${i+("/" if os.path.isdir(os.path.join(dir,i)) else '')|h}</a></td>
 <td>${size(i)}B</td>\
 
-<td><a href="/settings/cnfdel/${util.url(os.path.join(dir,i))}">Delete</a></td>
+<td><a class="button" href="/settings/cnfdel/${util.url(os.path.join(dir,i))}">Delete</a>
+
+%if i.endswith("m3u8"):
+<a class="button" href="/settings/hlsplayer/${util.url(os.path.join(dir,i))}">Play in browser</a>
+%endif
+</td>
+
 </tr>
 %endfor
 </table>

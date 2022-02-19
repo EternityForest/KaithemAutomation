@@ -242,6 +242,18 @@ class Settings():
         except:
             return(traceback.format_exc())
 
+
+
+    @cherrypy.expose
+    def hlsplayer(self, *args, **kwargs):
+        """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
+        pages.require("/admin/settings.edit")
+        try:
+            dir = os.path.join('/', *args)
+            return pages.get_template("settings/hlsplayer.html").render(play=dir)
+        except:
+            return(traceback.format_exc())
+
     @cherrypy.expose
     def cnfdel(self, *args, **kwargs):
         pages.require("/admin/settings.edit")

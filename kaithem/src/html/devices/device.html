@@ -2,6 +2,7 @@
 <%
 import traceback
 import json
+import os
 from src import unitsofmeasure,tagpoints, devices
 import urllib.parse
 
@@ -167,7 +168,12 @@ ${manageForm}
                 %else:
                 <input name="${i|h}" value="${obj.config[i]|h}">
                 %endif
-        
+
+                %if obj.config_properties.get(i,{}).get("type") =='local_fs_dir':
+
+                <a class="button" href="/settings/files/${url(os.path.expanduser(obj.config[i]))}"><i class="icofont-ui-folder"></i>Browse ${os.path.expanduser(obj.config[i])|h}</a>
+                %endif
+
         
         </td>
 </tr>

@@ -1,0 +1,60 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1645225063321335
+resource-type: page
+template-engine: mako
+
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+import json
+import os
+%>
+
+<%
+__doc__= "#Python Code here runs every page load"
+
+dirs = []
+result = []
+
+l=''
+
+for i in kaithem.devices:
+  if kaithem.devices[i].deviceTypeName in ['NVRChannel']:
+    for j in  kaithem.devices[i].config.get("kaithem.read_perms",'').strip().split(","):
+      if not kaithem.web.hasPermission(j.strip()):
+        continue
+    if not 'filter' in kwargs or not kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():
+      dirs.append((os.path.join(os.path.expanduser(kaithem.devices[i].config['device.storage_dir']),i,'recordings'), i))
+
+for t in dirs:
+  i=t[0]
+  if not os.path.isdir(i):
+    continue
+  for j in os.listdir(i):
+    j2 = os.path.join(i,j)
+    if not os.path.isdir(j2):
+      continue
+
+
+    for k in os.listdir(j2):
+      k2 = os.path.join(j2,k)
+      # Date range filter
+      if not 'starttime' in kwargs or not kwargs['starttime'].strip() or  kwargs['starttime'].strip().lower() <= j.lower():
+        # Always get everything from exact day, limit count from next day
+        if len(result)<500 or not 'starttime' in kwargs or not kwargs['starttime'].strip() or  kwargs['starttime'].strip().lower() == j.lower():
+          if not os.path.isfile(os.path.join(k2, "playlist.m3u8")):
+            continue
+          result.append(os.path.join(t[1],'recordings',j,k))
+
+%>
+
+${json.dumps(result)}

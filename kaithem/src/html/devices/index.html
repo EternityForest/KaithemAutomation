@@ -26,6 +26,9 @@ def devStatString(d):
             s.append(d.tagPoints['switch'].meterWidget.render(label="Switch"))
         if 'running' in d.tagPoints:
             s.append(d.tagPoints['running'].meterWidget.render(label="Running"))
+        if 'record' in d.tagPoints:
+            s.append(d.tagPoints['record'].meterWidget.render(label="Recording"))
+
 
 
             

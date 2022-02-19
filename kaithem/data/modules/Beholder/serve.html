@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1645153828800269
+resource-timestamp: 1645223699151640
 resource-type: page
 template-engine: mako
 
@@ -19,8 +19,16 @@ import os
 %>
 
 <%
-print(os.path.join(os.path.expanduser("~/NVR"),*path[1:]))
-kaithem.web.serveFile(os.path.join(os.path.expanduser("~/NVR"),*path[1:]))
+
+device = kaithem.devices[path[1]]
+for i in kaithem.devices[path[1]].config.get('kaithem.read_perms','').strip().split(","):
+    if not kaithem.web.hasPermission(i):
+        raise RuntimeError("Missing permission for that camera: "+repr(i))
+
+dir = os.path.expanduser(device.config['device.storage_dir'])
+
+print(os.path.join(dir,*path[1:]))
+kaithem.web.serveFile(os.path.join(dir,*path[1:]))
 
 %>
 

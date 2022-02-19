@@ -49,6 +49,20 @@ __doc__= "#Python Code here runs every page load"
 """
 
 
+servicehtml = """
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+import json
+%>
+<%
+__doc__= "#Python Code here runs every page load"
+
+result = {}
+%>
+${result}
+"""
+
+
 def default(basename, **kw):
     return{
         "resource-type": "page",
@@ -69,11 +83,23 @@ def freeboard(basename, **kw):
         'require-method': ['GET', 'POST'],
         'require-permissions': [],
         'resource-timestamp': int(time.time()*1000000),
-        'resource-type': 'page'
     }
 
 
-templates = {'default': default, 'freeboard': freeboard}
+#For making a web API call
+def service(basename, **kw):
+    return{
+        "resource-type": "page",
+        "body": servicehtml,
+        'no-navheader': True,
+        'no-header': True,
+        'require-method': ['GET', 'POST'],
+        'require-permissions': [],
+        'resource-timestamp': int(time.time()*1000000),
+        'template-engine': "mako"
+    }
+
+templates = {'default': default, 'freeboard': freeboard, 'service': service}
 
 
 vue = """

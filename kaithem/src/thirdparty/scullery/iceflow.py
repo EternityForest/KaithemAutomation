@@ -86,6 +86,8 @@ class GStreamerPipeline():
     def onMotionEnd(self,*a,**k):
         print("Motion end")
 
+    def onMultiFileSinkFile(self,fn,*a,**k):
+        print("MultiFileSink",fn)
 
     def onBarcode(self,type, data):
         print("Barcode: ", type, data)

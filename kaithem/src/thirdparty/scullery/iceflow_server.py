@@ -646,13 +646,18 @@ class GStreamerPipeline():
 
         elif s.get_name() == 'barcode':
             rpc[0]("onBarcode", [s.get_string("type"),s.get_string("symbol"), s.get_int("quality")[1]])
-         
+
+        elif s.get_name() == 'GstMultiFileSink':
+            rpc[0]("onMultiFileSink", [''])
+
 
         elif s.get_name() == 'pocketsphynx':
             if s.get_value('hypothesis'):
                 rpc[0]("onSTTMessage", [str(src), s.get_value('hypothesis')])
             if s.get_value('final'):
                 rpc[0]("onSTTMessageFinal", [str(src), s.get_value('final')])
+
+
 
     def on_error(self, bus, msg, userdata):
         with self.lock:

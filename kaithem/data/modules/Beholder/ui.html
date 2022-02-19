@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1645141878690235
+resource-timestamp: 1645225426980734
 resource-type: page
 template-engine: mako
 
@@ -23,22 +23,63 @@ __doc__= "#Python Code here runs every page load"
 
 <script src="/static/js/vue3.js"></script>
 
-<h2>Beholder NVR</h2>
+<h2><i class="icofont-castle"></i>Beholder NVR</h2>
 <title>Beholder NVR</title>
 
 <div class="sectionbox">
-<div id="app">{{ message }}</div>
+<div id="app">
+
+
+<div>
+
+<ul>
+<li v-for="i,v of fileSet">{{i}}</li>
+</ul>
+
+<div class="buttonbar">
+<p>Starting:</p><input v-model="searchtime" type="date">
+<p>Filter:</p><input v-model="searchcam" value="" placeholder="All Cameras">
+<button v-on:click="getFiles(searchcam, searchtime)">Search</button>
+</div>
+</div>
+
+</div>
 </div>
 
 
 
 
 <script>
-  Vue.createApp({
-    data() {
-      return {
-        message: 'Hello Vue!'
+
+appData=
+  {
+        message: 'Hello Vue!',
+
+        searchcam:'',
+        searchtime: '1999-01-01',
+        fileSet: [],
+
+        getFiles: function(filter, date){
+
+          var sp =  new URLSearchParams({
+                filter: app.searchcam,
+                starttime: app.searchtime,
+            })
+          fetch('filesearch?'+sp)
+          .then(function(r){
+            r.json().then(
+              function(r){
+                app.fileSet = r
+              }
+            )
+          })
+        }
       }
+
+
+  app= Vue.createApp({
+    data() {
+      return appData
     }
   }).mount('#app')
 </script>
