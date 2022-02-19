@@ -31,7 +31,7 @@ class CustomDeviceType(DeviceType):
 """
 
 
-
+automated_record_uuid = '76241b9c-5b08-4828-9358-37c6a25dd823'
 
 from zeroconf import ServiceBrowser, ServiceStateChange
 
@@ -447,8 +447,12 @@ class NVRChannel(devices.Device):
 
 
 
-    def onRecordingChange(self, v, *a):
+    def onRecordingChange(self, v, t, a):
         with self.recordlock:
+            if a==automated_record_uuid:
+                self.canAutoStopRecord = True
+            else:
+                self.canAutoStopRecord = False
             if v:
                 self.stoprecordingafternextsegment=0
                 self.setsegmentDir()
@@ -495,7 +499,7 @@ class NVRChannel(devices.Device):
             ls = list(sorted([i for i in ls if i.endswith(".ts")]))
 
 
-            if self.segmentDir:
+            if self.activeSegmentDir or self.segmentDir:
                 # Ignore latest, that could still be recording
                 for i in ls[:-1]:
 
@@ -515,17 +519,29 @@ class NVRChannel(devices.Device):
                     my_date = datetime.fromtimestamp(os.stat(os.path.join(d, i)).st_mtime-x)
                     t= my_date.isoformat()
 
-                    shutil.move(os.path.join(d, i), self.segmentDir)
-                    with open(os.path.join(self.segmentDir, "playlist.m3u8"), "a+") as f:
+                    shutil.move(os.path.join(d, i), self.activeSegmentDir or self.segmentDir)
+                    with open(os.path.join(self.activeSegmentDir or self.segmentDir, "playlist.m3u8"), "a+") as f:
                         f.write("\r\n")
                         f.write("#EXTINF:"+str(x)+",\r\n")
                         f.write("#EXT-X-PROGRAM-DATE-TIME:"+t+"\r\n")
                         f.write(i+"\r\n")
+                    
+                    self.directorySegments+=1
+
+                  
 
                     if self.stoprecordingafternextsegment:
                         self.segmentDir=None
+                        self.activeSegmentDir=None
                         break
+                    else:
+                        # Don't make single directories with more than an hour of video.
+                        if self.directorySegments > (3600/5):
+                            self.setsegmentDir()
 
+                # Now we can transition to the new one!
+                self.activeSegmentDir=self.segmentDir
+                self.directorySegments=0
 
 
 
@@ -581,6 +597,13 @@ class NVRChannel(devices.Device):
                 "/dev/shm/knvr/", self.name, *(relpath[1:])))
 
     def motion(self, v):
+        if self.config.get('device.motion_recording', 'no').lower() in ('true','yes','on','enable','enabled'):
+            if v:
+                self.set_data_point("record", True, None, automated_record_uuid)
+            elif not v and self.canAutoStopRecord:
+                self.set_data_point("record", False, None, automated_record_uuid)
+
+
         self.set_data_point("motion_detected", v)
 
     def analysis(self, v):
@@ -598,10 +621,22 @@ class NVRChannel(devices.Device):
             self.threadExited = True
             self.set_config_default("device.storage_dir", '~/NVR')
 
+            # If this is true, record when there is motion
+            self.set_config_default("device.motion_recording", 'no')
+
             self.storageDir = os.path.expanduser(self.config['device.storage_dir'] or '~/NVR')
 
             self.segmentDir = None
+
+            # When changing segment dir, we can't do it instantly, we instead wait to be done with the current file.
+            self.activeSegmentDir = None
+
+            #How many segments in this dir. Must track so we can switch to a new directory if we need to.
+            self.directorySegments = 0
+
             self.lastshmcount =0 
+
+            self.canAutoStopRecord = False
 
             if not os.path.exists(self.storageDir):
                 os.makedirs(self.storageDir)
@@ -681,6 +716,10 @@ class NVRChannel(devices.Device):
 
 
             self.config_properties['device.barcodes'] = {
+                'type': 'bool'
+            }
+
+            self.config_properties['device.motion_recording'] = {
                 'type': 'bool'
             }
 

@@ -32,7 +32,7 @@ import weakref
 
 import cherrypy
 from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, auth, breakpoint,statemachines
-from . import timesync, devices, alerts, midi, gpio
+from . import timesync, devices, alerts, midi, gpio, theming
 
 from . import version_info
 
@@ -485,6 +485,8 @@ class Kaithem():
         controllers = pages.nativeHandlers
 
         navBarPlugins = pages.navBarPlugins
+
+        theming = theming
 
         @staticmethod
         def freeboard(page, kwargs, plugins=[]):

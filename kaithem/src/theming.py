@@ -1,5 +1,5 @@
 from src.config import config
-from src import auth, util, notifications, pages, modules, registry
+from src import registry
 
 
 def getCSSTheme():
