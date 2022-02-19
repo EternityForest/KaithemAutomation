@@ -151,9 +151,12 @@ ${manageForm}
 %for i in sorted([i for i in obj.config.keys() if not i in specialKeys and not i.startswith("kaithem.")] ):
 <tr>
         %if i.startswith('device.'):
-        <td>${i[7:]|h}</td>
+        <td>
+                <p class="help">${obj.config_properties.get(i,{}).get("description",'No description')|h}</p>
+                ${i[7:]|h}</td>
         %else:
-        <td>${i|h}</td>
+        <td>                
+                ${i|h}</td>
         %endif
 
 
@@ -166,7 +169,12 @@ ${manageForm}
                         
                 </select>
                 %else:
-                <input name="${i|h}" value="${obj.config[i]|h}">
+                        %if obj.config_properties.get(i,{}).get("secret",False):
+                        <input name="${i|h}" value="${obj.config[i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
+                        %else:
+                        <input name="${i|h}" value="${obj.config[i]|h}">
+                        %endif
+
                 %endif
 
                 %if obj.config_properties.get(i,{}).get("type") =='local_fs_dir':

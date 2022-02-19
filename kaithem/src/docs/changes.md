@@ -5,6 +5,7 @@ Change Log
 - Any module page can now be accessed via it's subfolder
 - No more H1 header at the top of most pages, to save screen space
 - Dropdown panel to keep an eye on notofications from any page
+- Manual and motion-activated NVR recording
 
 ### 0.68.8
 

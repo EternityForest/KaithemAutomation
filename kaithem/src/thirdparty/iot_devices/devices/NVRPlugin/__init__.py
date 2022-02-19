@@ -204,13 +204,13 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             self.h264source = self.addElement("tee")
 
-            # self.addElement("decodebin", connectToOutput=rtsp, connectWhenAvailable="audio",async_handling=True)
-            # self.addElement("audioconvert")
-            # self.addElement("audiorate")
-            # self.addElement("voaacenc")
-            # self.addElement("aacparse")
+            self.addElement("decodebin", connectToOutput=rtsp, connectWhenAvailable="audio",async_handling=True)
+            self.addElement("audioconvert")
+            self.addElement("audiorate")
+            self.addElement("voaacenc")
+            self.addElement("aacparse")
 
-            # self.mp3src = self.addElement("queue", max_size_time=10000000)
+            self.mp3src = self.addElement("queue", max_size_time=10000000)
 
         elif s == "screen":
             self.addElement("ximagesrc")
@@ -425,7 +425,7 @@ class NVRChannel(devices.Device):
         self.process.addElement("videoconvert", chroma_resampler=0)
 
         self.process.addElement(
-            "motioncells", sensitivity=float(self.config.get('device.motion_sensitivity', '0.75')), gap=2, display=False)
+            "motioncells", sensitivity=float(self.config.get('device.motion_sensitivity', '0.75')), gap=1, display=False)
 
         self.process.addElement("fakesink")
 
@@ -463,7 +463,7 @@ class NVRChannel(devices.Device):
         with self.recordlock:
             # Manually triggered recordings should go in a different folder
 
-            my_date = datetime.now()
+            my_date = datetime.utcnow()
             date=my_date.strftime('%Y-%m-%d')
             t= my_date.strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -487,7 +487,7 @@ class NVRChannel(devices.Device):
             ls = os.listdir(d)
             ls = list(sorted([i for i in ls if i.endswith(".ts")]))
             
-            if len(ls) > 2:
+            if len(ls) > 1:
                 os.remove(os.path.join(d,ls[0]))
 
 
@@ -717,6 +717,10 @@ class NVRChannel(devices.Device):
 
             self.config_properties['device.barcodes'] = {
                 'type': 'bool'
+            }
+
+            self.config_properties['device.source'] = {
+                'secret': True
             }
 
             self.config_properties['device.motion_recording'] = {

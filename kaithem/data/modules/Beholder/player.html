@@ -8,15 +8,27 @@ no-header: true
 no-navheader: true
 require-method: [GET]
 require-permissions: []
-resource-timestamp: 1645231106896006
+resource-timestamp: 1645295075443426
 resource-type: page
 template-engine: mako
 
 ---
 <script src="/static/js/hls.js"></script>
 <script src="/static/js/striftime-min.js"></script>
+<link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">
+
+<div>
+<video id="video" style="max-width: 98%" controls></video>
 <div>
   <table>
+    <tr>
+      <td>Camera</td>
+      <td class="dseg">${path[1]|h}</td>
+    </tr>
+    <tr>
+      <td>Start Time</td>
+      <td class="dseg">${path[-2]|h}</td>
+    </tr>
     <tr>
       <td>Local Time(Est)</td>
       <td id="time" class="dseg"></td>
@@ -31,11 +43,13 @@ template-engine: mako
     </tr>
   </table>
 </div>
-<div>
-<video id="video" controls></video>
 </div>
 
 <style>
+  body{
+    background-color: rgb(20,20,20);
+    color: rgb(235, 44, 44);
+  }
     @font-face {
     font-family: 'dseg';
     font-style: italic;
@@ -54,6 +68,8 @@ template-engine: mako
 </section>
 <script>
   var video = document.getElementById('video');
+  video.defaultPlaybackRate = 2.5;
+
   var videoSrc = "/pages/Beholder/serve/${'/'.join(path[1:])}"
   if (Hls.isSupported()) {
     var hls = new Hls();

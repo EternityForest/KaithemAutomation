@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1645223699151640
+resource-timestamp: 1645235594542772
 resource-type: page
 template-engine: mako
 
@@ -26,8 +26,6 @@ for i in kaithem.devices[path[1]].config.get('kaithem.read_perms','').strip().sp
         raise RuntimeError("Missing permission for that camera: "+repr(i))
 
 dir = os.path.expanduser(device.config['device.storage_dir'])
-
-print(os.path.join(dir,*path[1:]))
 kaithem.web.serveFile(os.path.join(dir,*path[1:]))
 
 %>
