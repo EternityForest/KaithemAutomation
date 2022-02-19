@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1641276840099904
+resource-timestamp: 1644937201354076
 resource-type: event
 versions: {}
 
@@ -42,7 +42,7 @@ if __name__=='__setup__':
     
     
     def nbr():
-        return(50, '<a href="/pages/Chandler/Console"><img src="/static/img/icons/kenny/tent.png" style="height:1.8ex;" ></img>Chandler</a>')
+        return(50, '<a href="/pages/Chandler/Console"><i class="icofont-ship-wheel"></i>Chandler</a>')
     kaithem.web.navBarPlugins['chandler']=nbr
     
     logger = logging.getLogger("system.chandler")

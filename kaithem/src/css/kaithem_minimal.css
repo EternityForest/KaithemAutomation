@@ -182,50 +182,17 @@ h3:first-of-type {
     flex-grow: 0.98;
     flex-shrink: 0;
     margin: 2px;
-    display: inline-block;
 }
 
-.navbar a {
-    flex-grow: 1;
-}
 
-.navbar .buttonbar {
-    width: 98%;
-}
-
-.navbar {
-    margin-top: 1px;
-    margin-bottom: 0.3em;
-    margin-left: auto;
-    margin-right: auto;
-    width: 98%;
-    list-style-type: none;
-    display: flex;
-    flex-wrap: wrap;
-    padding: 2px;
-}
-
-.navbar div {
-    border-width: 1px;
-    border-style: solid;
-    border-color: grey;
-    font-size: 130%;
-}
-
-.navbar * a:hover {
-    opacity: 100%;
+.navbar .buttonbar a {
+    text-align: center;
 }
 
 input[type=checkbox] {
     min-width: 2em;
 }
 
-.navbar {
-    border-style: solid;
-    border-width: 1px;
-    border-color: grey;
-    padding: 2px;
-}
 
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/

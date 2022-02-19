@@ -41,15 +41,6 @@ body {
 
 /*************************Navigation and headers************************************************************/
 
-.navbar div {
-    border-width: 1px;
-    border-style: solid;
-    border-color: grey;
-    font-size: 130%;
-    border-radius: 5px;
-    background-color: rgba(220, 255, 200, 0.3);
-    backdrop-filter: blur(3px);
-}
 
 .navbar .buttonbar {
     width: 100%;
@@ -57,18 +48,6 @@ body {
     background-color: rgba(160, 64, 238, 0.1);
 }
 
-.navbar .buttonbar a {
-    text-align: center;
-}
-
-.navbar {
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 9px;
-    border-color: transparent;
-    padding: 2px;
-    background-color: transparent;
-}
 
 #topbanner {
     width: auto;

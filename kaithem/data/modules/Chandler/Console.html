@@ -6,10 +6,10 @@ auto-reload-interval: 5.0
 dont-show-in-index: false
 mimetype: text/html
 no-header: false
-no-navheader: true
+no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1644133491125477
+resource-timestamp: 1645233752298924
 resource-type: page
 template-engine: mako
 
@@ -276,8 +276,7 @@ limitedTagsListing=module.limitedTagsListing()
                     <button v-on:click="showhidefixtureassignments"><i class="icofont-light-bulb"></i>Fixtures</button>
                     <button v-if="showAdvancedControls" v-on:click="showevents=!showevents"><i class="icofont-flag-alt-1"></i>Events</button>
                     <button v-on:click="showimportexport=!showimportexport"><i class="icofont-folder-open"></i>Import/Export</button>
-                    <button v-on:click="showsoundmixer=!showsoundmixer"><i class="icofont-ui-volume"></i>Sound</button>
-                    <button v-on:click="showtags=!showtags"><i class="icofont-listing-box"></i>Tags</button>
+
                     <button onclick="document.documentElement.requestFullscreen()"><i class="icofont-expand"></i>Fullscreen</button>
                     <a class="button" href="/pages/Chandler/docs/index" target="_blank"><i class="icofont-question-circle"></i>Help</a>
                     <a class="button" href="/pages/Chandler/Setup"><i class="icofont-gears"></i>Settings</a>
@@ -320,14 +319,7 @@ limitedTagsListing=module.limitedTagsListing()
             </div>
 
 
-            <div v-if="showsoundmixer" class="sectionbox flex-item" style="width:50%; height:30em; resize:both;float:right;">
-                <iframe src="/settings/mixer?kaithem_disable_header=true"  style="width:100%; height:100%; " ></iframe>
-            </div>
 
-
-            <div v-if="showtags" class="sectionbox flex-item" style="width:49%; height:30em; resize:both;float:right;">
-                <iframe src="/tagpoints?kaithem_disable_header=true" style="width:100%; height:100%;"></iframe>
-            </div>
 
 
 
@@ -1765,8 +1757,6 @@ limitedTagsListing=module.limitedTagsListing()
 
             'showDMXSetup': false,
             'showsceneoptions': false,
-            'showsoundmixer': false,
-            'showtags': false,
             'scenetab': 'cue',
             'configuredUniverses':
             {

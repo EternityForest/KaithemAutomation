@@ -24,9 +24,10 @@ import cherrypy,socket,base64
   <div class="navbar">
 
 
-    <p class="buttonbar">
+    <div class="buttonbar">
       %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
-    <a id="notifications_toolbar_item" href="/" title="New Notifications">
+    <a href="/">Kaithem@<b>${socket.gethostname()|h}</b>
+    <span id="notifications_toolbar_item"  title="New Notifications">
       ${notifications.toolbarapi.render("wsapi")}
 
       <script type="text/javascript">
@@ -66,10 +67,10 @@ import cherrypy,socket,base64
             if (k[0]=='newmessage')
             {
               totalNotifications+=1
-              document.getElementById("notifications_toolbar_item").innerHTML = "Main (" + totalNotifications + ")";
+              document.getElementById("notifications_toolbar_item").innerHTML = "(" + totalNotifications + ")";
             }
             if (k[0] > 0) {
-              document.getElementById("notifications_toolbar_item").innerHTML = "Main (" + k[0] + ")";
+              document.getElementById("notifications_toolbar_item").innerHTML = "M(" + k[0] + ")";
               totalNotifications = k[0]
 
               if (k[2] > 0) {
@@ -82,7 +83,7 @@ import cherrypy,socket,base64
 
             }
             else {
-              document.getElementById("notifications_toolbar_item").innerHTML = 'Main (0)';
+              document.getElementById("notifications_toolbar_item").innerHTML = '(0)';
             }
           }
           catch (err) {
@@ -93,7 +94,8 @@ import cherrypy,socket,base64
       wsapi.send(["countsince",parseFloat(y)])
 
       </script>
-    </a>
+    </span>
+  </a>
     %endif
 
 
@@ -162,7 +164,6 @@ Tools</a>
         %else:
         <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="icofont-key"></i>Login</a>
         %endif
-      </p>
 
   
 

@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1645225063321335
+resource-timestamp: 1645232463119183
 resource-type: page
 template-engine: mako
 
@@ -53,7 +53,7 @@ for t in dirs:
         if len(result)<500 or not 'starttime' in kwargs or not kwargs['starttime'].strip() or  kwargs['starttime'].strip().lower() == j.lower():
           if not os.path.isfile(os.path.join(k2, "playlist.m3u8")):
             continue
-          result.append(os.path.join(t[1],'recordings',j,k))
+          result.append((os.path.join(t[1],'recordings',j,k), t[1], k))
 
 %>
 

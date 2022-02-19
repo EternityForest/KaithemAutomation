@@ -4,41 +4,30 @@ allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 mimetype: text/html
-no-header: false
-no-navheader: false
-require-method: [GET, POST]
+no-header: true
+no-navheader: true
+require-method: [GET]
 require-permissions: []
-resource-timestamp: 1645158099135995
+resource-timestamp: 1645231106896006
 resource-type: page
 template-engine: mako
 
 ---
-<%!
-#Code Here runs once when page is first rendered. Good place for import statements.
-%>
-
-<%
-__doc__= "#Python Code here runs every page load"
-%>
-
-<script src="/pages/Beholder/hls.js"></script>
+<script src="/static/js/hls.js"></script>
 <script src="/static/js/striftime-min.js"></script>
-
-<section>
-
 <div>
   <table>
     <tr>
       <td>Local Time(Est)</td>
-      <td id="time"></td>
+      <td id="time" class="dseg"></td>
     </tr>
     <tr>
       <td>GMT Time(Est)</td>
-      <td id="gmt"></td>
+      <td id="gmt" class="dseg"></td>
     </tr>
     <tr>
       <td>Segment</td>
-      <td id="seg"></td>
+      <td id="seg" class="dseg"></td>
     </tr>
   </table>
 </div>
@@ -46,7 +35,22 @@ __doc__= "#Python Code here runs every page load"
 <video id="video" controls></video>
 </div>
 
+<style>
+    @font-face {
+    font-family: 'dseg';
+    font-style: italic;
+    font-weight: 400;
+    src: url('/static/fonts/DSEG/DSEG14ClassicMini-Italic.ttf');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
 
+.dseg{
+    font-family: 'dseg';
+    background-color: rgb(1, 24, 1) !important;
+    color: rgb(235, 44, 44);
+    font-size: 125%;
+}
+</style>
 </section>
 <script>
   var video = document.getElementById('video');
@@ -80,10 +84,10 @@ fragOffset=null
 
     const hlsInstance = hls;
     hlsInstance.on(window.Hls.Events.FRAG_CHANGED, function(event, data) {
+        document.getElementById('seg').innerHTML= data.frag.relurl
         d= new Date(data.frag.programDateTime)
         document.getElementById('time').innerHTML= d.toLocaleString()
         document.getElementById('gmt').innerHTML= d.toISOString()
-        document.getElementById('seg').innerHTML= data.frag.relurl
         
         fragOffset = data.frag.start
         fragStart = data.frag.programDateTime

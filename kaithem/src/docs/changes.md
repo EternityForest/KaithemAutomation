@@ -3,6 +3,7 @@ Change Log
 
 ### 0.68.9
 - Any module page can now be accessed via it's subfolder
+- No more H1 header at the top of most pages, to save screen space
 
 
 ### 0.68.8
