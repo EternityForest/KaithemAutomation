@@ -176,6 +176,10 @@ h3:first-of-type {
     margin-top: 0px;
 }
 
+.navbar{
+    max-width: 98vw;
+    margin: auto;
+}
 .navbar div {
     text-align: center;
     font-size: 16px;

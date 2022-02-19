@@ -1,0 +1,120 @@
+<%!
+from src import notifications,auth,unitsofmeasure,pages,alerts
+import time
+import cherrypy
+from src.config import config
+from src.unitsofmeasure import formatTimeInterval
+from src import kaithemobj
+
+kaithem = kaithemobj.kaithem
+
+pcolor={
+    "critical": "pink",
+    "error": 'red',
+    "warning": 'orange',
+    "info": 'lightgreen'
+}
+iclass={
+    "critical": "critical-icon",
+    "error": 'error-icon',
+    "warning": 'warning-icon',
+    "info": 'info-icon'
+}
+scolor={
+    'active':'yellow',
+    'acknowledged':'orange',
+    "cleared":'blue'
+}
+
+
+%>
+<head>
+<link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme() or config['theme-url']}">
+</head>
+<script src="/static/js/vue2.js"></script>
+<script src="/static/widget.js"></script>
+<script src="/static/js/strftime-min.js"></script>
+
+${api.render("api")}
+<!-- ${alertsapi.render("alertapi")} -->
+
+
+<style>
+
+
+.notificationstg-move, /* apply transition to moving elements */
+.notificationstg-enter-active,
+.notificationstg-leave-active {
+  transition: all 0.6s ease;
+}
+
+.notificationstg-enter-from,
+.notificationstg-leave-to {
+  opacity: 0%;
+  transform: translateX(30px) !important;
+}
+
+/* ensure leaving items are taken out of layout flow so that moving
+   animations can be calculated correctly. */
+.notificationstg-leave-active {
+  position: absolute;
+}
+
+</style>
+
+
+<h2> System Notifications</h2>
+<div id="app" style="width: 100%;">
+    
+        <transition-group name="notificationstg" tag="div">
+                <div v-for="i in notifications.slice().reverse()" :key="i[0]">
+                    <div v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
+                        <b>{{formatTime(i[0])}}</b>
+                        <p>{{i[2]}}</p>
+                    </div>
+                </div>
+        </transition-group>
+</div>
+</main>
+
+
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            notifications: [],
+            getClass: function(i) {
+                if (i[1].includes("errors")) {
+                    return 'error notification'
+                }
+                else if (i[1].includes("important")) {
+                    return 'highlight notification'
+                }
+                else if (i[1].includes("warnings")) {
+                    return 'warning notification'
+                }
+                else{
+                    return "notification"
+                }
+            },
+
+            formatTime: function(t) {
+                var date = new Date(t * 1000);
+                return date.strftime("%b %m %Y  %I:%M:%S%p %Z")
+            }
+        }
+    });
+
+    api.upd = function(msg) {
+        if (msg[0] == "all") {
+            app.$data.notifications = msg[1]
+        }
+        if (msg[0] == 'notification') {
+            app.$data.notifications.push(msg[1])
+            app.$data.notifications = app.$data.notifications.slice(-100)
+        }
+    }
+
+  
+</script>

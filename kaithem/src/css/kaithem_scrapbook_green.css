@@ -41,6 +41,10 @@ body {
 
 /*************************Navigation and headers************************************************************/
 
+.top-navbar-dropdown{
+    opacity: 85%;
+    backdrop-filter: blur(8px) !important;
+}
 
 .navbar .buttonbar {
     width: 100%;

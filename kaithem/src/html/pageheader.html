@@ -20,17 +20,32 @@ import cherrypy,socket,base64
 
   %if not cherrypy.request.params.get("kaithem_disable_header",0):
   <header>
-   
-  <div class="navbar">
 
 
+  <div id="kaithem-main-dropdown-panel" class="sectionbox top-navbar-dropdown" style="z-index: 5; display:none; position: absolute; left:2em; top:3em;width: 35wv;">
     <div class="buttonbar">
+      <button onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='none'"><i class="icofont-ui-close"></i>Close</button>
+    </div>
+  <iframe  id="kaithem-main-dropdown-iframe" style="height: 80vh; width: 100%; max-height: 80vh;" height="80%"></iframe>
+  </div>
+
+
+  <div class="navbar" style="z-index: 5;">
+
+
+    <div class="buttonbar" style="position: relative;">
       %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
+      <button style="flex-grow: 0" onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='block';document.getElementById('kaithem-main-dropdown-iframe').src='/dropdownpanel'">
+        <i class="icofont-dotted-down"></i></button>
+
     <a href="/">Kaithem@<b>${socket.gethostname()|h}</b>
+
     <span id="notifications_toolbar_item"  title="New Notifications">
       ${notifications.toolbarapi.render("wsapi")}
 
       <script type="text/javascript">
+        var totalNotifications=0;
+
         function getCookie(c_name) {
           var c_value = document.cookie;
           var c_start = c_value.indexOf(" " + c_name + "=");
@@ -64,12 +79,12 @@ import cherrypy,socket,base64
           try {
             var k = e;
 
-            if (k[0]=='newmessage')
+            if (k[0]=='newmsg')
             {
               totalNotifications+=1
               document.getElementById("notifications_toolbar_item").innerHTML = "(" + totalNotifications + ")";
             }
-            if (k[0] > 0) {
+            else if (k[0] > 0) {
               document.getElementById("notifications_toolbar_item").innerHTML = "M(" + k[0] + ")";
               totalNotifications = k[0]
 
