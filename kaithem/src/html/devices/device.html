@@ -240,6 +240,7 @@ ${manageForm}
         triggerCounters = {}
 </script>
 %for i in obj.tagPoints:
+%try:
 <div class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
 <h3 style="font-size: 140%;"><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></h3>
 
@@ -252,7 +253,7 @@ ${manageForm}
         <h4>Current</h4>
         ${obj.tagPoints[i].spanWidget.render()}
   
-        %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts':
+        %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts' and obj.tagPoints[i].dataSourceWidget:
         <video style="width: 100%" muted controls></video>
         <canvas id="canvas" style="display: none; width: 100%"></canvas>
 
@@ -301,7 +302,7 @@ ${manageForm}
         </script>
 
         %else:
-        Binary data tagpoint cannot be displayed
+        Binary data tagpoint cannot be displayed.  If this is a video feed, you may need to set up Permissions on this device.
         %endif
 
         %if not obj.tagPoints[i].subtype == 'mpegts':
@@ -370,6 +371,14 @@ ${manageForm}
 
         %endif
 </div>
+%except:
+</div>
+<div>
+<hr><hr>
+        ${trahceback.format_exc()|h}
+<hr><hr>
+</div>
+%endtry
 %endfor
 
 <h2>Messages</h2>

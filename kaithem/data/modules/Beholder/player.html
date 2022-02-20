@@ -7,8 +7,8 @@ mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET]
-require-permissions: []
-resource-timestamp: 1645335315949810
+require-permissions: [users.nvr.view]
+resource-timestamp: 1645351009054098
 resource-type: page
 template-engine: mako
 
@@ -18,7 +18,7 @@ template-engine: mako
 <link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">
 
 <div>
-<video id="video" style="max-width: 98%" controls></video>
+<video id="video" style="max-width: 98%; max-height: 98%" controls></video>
 <div>
   <table>
     <tr>

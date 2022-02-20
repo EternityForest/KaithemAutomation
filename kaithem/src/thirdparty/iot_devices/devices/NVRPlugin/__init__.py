@@ -451,17 +451,18 @@ class NVRChannel(devices.Device):
         with self.recordlock:
             
             d= os.path.join(self.storageDir,self.name,"recordings")
-            for i in os.listdir(d):
-                i2 = os.path.join(d, i)
-                try:
-                    dt =datetime.fromisoformat(i)
-                except:
-                    continue
+            if os.path.exists(d):
+                for i in os.listdir(d):
+                    i2 = os.path.join(d, i)
+                    try:
+                        dt =datetime.fromisoformat(i)
+                    except:
+                        continue
 
-                dt = datetime.utcnow() - dt
-                # Sanity check
-                if dt.days > self.retainDays and dt.days<10000:
-                    shutil.rmtree(i2)
+                    dt = datetime.utcnow() - dt
+                    # Sanity check
+                    if dt.days > self.retainDays and dt.days<10000:
+                        shutil.rmtree(i2)
 
 
             if a==automated_record_uuid:
@@ -566,9 +567,9 @@ class NVRChannel(devices.Device):
     def check(self):
         d = os.path.join("/dev/shm/knvr_buffer/", self.name)
         ls = os.listdir(d)
-        if not len(ls)==self.lastshmcount:
+        if not ls==self.lastshm:
             self.onMultiFileSink('')
-        self.lastshmcount=len(ls)
+        self.lastshm=ls
 
 
         with self.streamLock:
@@ -649,7 +650,7 @@ class NVRChannel(devices.Device):
             #How many segments in this dir. Must track so we can switch to a new directory if we need to.
             self.directorySegments = 0
 
-            self.lastshmcount =0 
+            self.lastshm =None 
 
             self.canAutoStopRecord = False
 

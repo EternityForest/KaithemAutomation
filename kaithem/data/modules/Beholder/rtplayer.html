@@ -7,8 +7,8 @@ mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
-require-permissions: []
-resource-timestamp: 1645338473681638
+require-permissions: [users.nvr.view]
+resource-timestamp: 1645351255774005
 resource-type: page
 template-engine: mako
 
@@ -23,16 +23,17 @@ template-engine: mako
 
 
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
-<video style="width: 100%" muted controls></video>
+<video style="width: 100%; max-height:100%;" muted controls></video>
 <canvas id="canvas" style="display: none; width: 100%"></canvas>
 
 
-    
+%if 'controls' in kwargs:
     <div class="buttonbar">
             <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
             <button type="button"  id="recbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',true)">Record</button>
             <button type="button"  id="stoprecbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',false)">Stop Record</button>
     </div>
+%endif
 
 
 
