@@ -20,7 +20,7 @@ import re
 logger = logging.Logger("plugins.nvr")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
-from datetime import datetime
+from datetime import date, datetime
 
 defaultSubclassCode = """
 class CustomDeviceType(DeviceType):
@@ -449,6 +449,21 @@ class NVRChannel(devices.Device):
 
     def onRecordingChange(self, v, t, a):
         with self.recordlock:
+            
+            d= os.path.join(self.storageDir,self.name,"recordings")
+            for i in os.listdir(d):
+                i2 = os.path.join(d, i)
+                try:
+                    dt =datetime.fromisoformat(i)
+                except:
+                    continue
+
+                dt = datetime.utcnow() - dt
+                # Sanity check
+                if dt.days > self.retainDays and dt.days<10000:
+                    shutil.rmtree(i2)
+
+
             if a==automated_record_uuid:
                 self.canAutoStopRecord = True
             else:
@@ -465,7 +480,7 @@ class NVRChannel(devices.Device):
 
             my_date = datetime.utcnow()
             date=my_date.strftime('%Y-%m-%d')
-            t= my_date.strftime("%Y-%m-%dT%H:%M:%S")
+            t= my_date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             d = os.path.join(self.storageDir,self.name,"recordings", date,t)
             os.makedirs(d)
@@ -708,6 +723,11 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.barcodes", 'no')
             self.set_config_default("device.motion_sensitivity", '0.75')
             self.set_config_default("device.bitrate", '386')
+
+            self.set_config_default("device.retain_days", '999999')
+
+            self.retainDays = int(self.config['device.retain_days'])
+
 
 
             if self.config['device.barcodes'].lower() in ('yes','true', 'enable', 'enabled'):

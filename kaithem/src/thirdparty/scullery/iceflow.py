@@ -133,7 +133,7 @@ class GStreamerPipeline():
         self.lock=threading.RLock()
         env={}
         env.update(os.environ)
-        env['GST_DEBUG']='3'
+        env['GST_DEBUG']='0'
 
 
         self.rpc=None

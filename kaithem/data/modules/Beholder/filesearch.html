@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1645294841689025
+resource-timestamp: 1645339390589837
 resource-type: page
 template-engine: mako
 
@@ -29,11 +29,13 @@ l=''
 
 for i in kaithem.devices:
   if kaithem.devices[i].deviceTypeName in ['NVRChannel']:
+    canDo=True
     for j in  kaithem.devices[i].config.get("kaithem.read_perms",'').strip().split(","):
       if not kaithem.web.hasPermission(j.strip()):
-        continue
-    if not 'filter' in kwargs or not kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():
-      dirs.append((os.path.join(os.path.expanduser(kaithem.devices[i].config['device.storage_dir']),i,'recordings'), i))
+        canDo=False
+    if canDo:
+      if not 'filter' in kwargs or not kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():
+        dirs.append((os.path.join(os.path.expanduser(kaithem.devices[i].config['device.storage_dir']),i,'recordings'), i))
 
 for t in dirs:
   i=t[0]

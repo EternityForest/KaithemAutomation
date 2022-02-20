@@ -1,0 +1,156 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1645338473681638
+resource-type: page
+template-engine: mako
+
+---
+<script type="text/javascript" src="/static/widget.js"></script>
+<script type="text/javascript" src="/static/js/evm/jsfeat.js"></script>
+<script type="text/javascript" src="/static/js/evm/compat.js"></script>
+<script type="text/javascript" src="/static/js/evm/color.js"></script>
+
+<script type="text/javascript" src="/static/js/mpegts.js"></script>
+<link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">
+
+
+<script type="text/javascript" src="/static/js/jquery3.js"></script>
+<video style="width: 100%" muted controls></video>
+<canvas id="canvas" style="display: none; width: 100%"></canvas>
+
+
+    
+    <div class="buttonbar">
+            <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
+            <button type="button"  id="recbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',true)">Record</button>
+            <button type="button"  id="stoprecbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',false)">Stop Record</button>
+    </div>
+
+
+
+    <script> 
+            if(!mpegts.isSupported())
+            {       alert("MPEG TS Not supported here")
+                    kaithemapi.sendErrorMessage("MPEG TS Not supported here")
+            }
+
+            video = document.querySelector('video');
+            var player = mpegts.createPlayer({
+                    type: 'mpegts',  // could also be mpegts, m2ts, flv
+                    isLive: true,
+                    url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${kaithem.devices[kwargs['play']].tagpoints['raw_feed'].dataSourceWidget.uuid|u}",
+                    liveBufferLatencyChasing: true,
+                    liveBufferLatencyMaxLatency: 2,
+                    liveBufferLatencyMinRemain: 1,
+                    enableStashBuffer: false,
+                    lazyLoad: false
+            });
+            player.attachMediaElement(video);
+            player.load();
+            player.play()
+
+            function keepUp(){
+                    if (video.buffered.length>0 && (video.buffered.end(video.buffered.length-1) -  video.currentTime ) > 2)
+                    {
+                            video.playbackRate=3
+                    }
+                    if (video.buffered.length> 0 && (video.buffered.end(video.buffered.length-1) -  video.currentTime ) < 1.5)
+                    {
+
+                            video.playbackRate=1
+                    }
+
+            }
+
+            setInterval(keepUp, 250);
+    </script>
+
+
+
+<script type="text/javascript">
+// lets do some fun
+
+
+function onrecordchange(d){
+        if(d){
+                var rb = document.getElementById('recbutton')
+                rb.classList.add('highlight');
+        }
+        else{
+                var rb = document.getElementById('recbutton')
+                rb.classList.remove('highlight');  
+        }
+}
+
+kaithemapi.subscribe("${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}", onrecordchange)
+
+function startEVM(video,canvas){
+
+        canvas.style.display="block"
+
+        var alpha = 10, 
+        lambda_c = 16, 
+        r1 = 0.4, 
+        r2 = 0.05, 
+        chromAttenuation = 1;
+
+        var exaggeration_factor = 2;
+
+        try {
+        var attempts = 0;
+        var readyListener = function(event) {
+                findVideoSize();
+        };
+        var findVideoSize = function() {
+                // demo_app(width, height);
+                var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
+                
+                var w = Math.floor(video.videoWidth * s >> 3) << 3,
+                h = Math.floor(video.videoHeight * s >> 3) << 3;
+                // video.style.width = w + 'px'
+                // demo_app(Math.max(480, w), Math.max(480, h))
+                // demo_app(640, 480)
+                demo_app(Math.max(480, w), h)
+                canvas.width = w
+                canvas.height = h
+
+                compatibility.requestAnimationFrame(tick);
+        };
+
+        setTimeout(readyListener, 300);
+        } catch (error) {
+        console.log(error)
+        }
+
+        var current_frame = 0;
+        var frames_processed = 0;
+
+        function tick() {
+        compatibility.requestAnimationFrame(tick);
+        // stat.new_frame();
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                // ctx.drawImage(video, 0, 0, 640, 480);
+                ctx.fillRect(0, 0, 640, 480)
+                var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
+                // var s = 0.01 // call this number for fun times
+                ctx.drawImage(video, 0, 0, video.videoWidth * s, video.videoHeight * s)
+                
+                evm()
+                if(frames_processed == 0){
+                lowpass1.iirFilter(img_pyr, 1);
+                lowpass2.iirFilter(img_pyr, 1);
+                }
+                frames_processed++
+                
+        }
+        }
+}
+</script>

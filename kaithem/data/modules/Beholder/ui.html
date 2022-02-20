@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1645295080893232
+resource-timestamp: 1645338185812938
 resource-type: page
 template-engine: mako
 
@@ -33,17 +33,44 @@ __doc__= "#Python Code here runs every page load"
         <h2><i class="icofont-castle"></i>Beholder NVR</h2>
         <title>Beholder NVR</title>
 
-            <div id="app" class="sectionbox" style="display: flex; flex-wrap: wrap;">
+            <div id="app" class="sectionbox">
 
+              <div class="buttonbar" style="width:100%">
+                <button v-on:click="tab='playback'" :class="{'highlight': tab=='playback'}"><i class="icofont-files-stack"></i>Recordings</button>
+                <button v-on:click="tab='cameras'" :class="{'highlight': tab=='cameras'}"><i class="icofont-cc-camera"></i>Cameras</button>
+
+              </div>
+              <div style="display: flex; flex-wrap: wrap;">
+
+
+                <div v-if="tab=='cameras'"  style="display: flex; flex-wrap: wrap;">
+
+                    <div style="max-height: 25em; overflow: scroll">
+                      <ul>
+                          <li v-for="v,i of cameraUrls"><a v-on:click="setRTPlayback(cameraUrls[i])">{{i}}</a></li>
+                      </ul>
+                    </div>
+
+                    <div style="min-width:30vw; flex-grow: 2; background-color: black;">
+
+                        <iframe :src="rtPlaybackUrl" scrolling="no" id="playback-iframe">
+                        </iframe>
+                  
+                    </div> 
+                </div>
+
+
+
+                <div v-if="tab=='playback'"  style="display: flex; flex-wrap: wrap;">
                   <div>
                   <div class="buttonbar">
                         <p>Starting:</p><input v-model="searchtime" type="date">
                         <p>Filter:</p><input v-model="searchcam" value="" placeholder="All Cameras">
-                        <button v-on:click="getFiles(searchcam, searchtime)">Search</button>
+                        <button v-on:click="getFiles(searchcam, searchtime)"><i class="icofont-binoculars"></i>Search</button>
                   </div>
-                    <div style="max-height: 25em; overflow: scroll">
+                    <div style="min-width:12vw; max-height: 25em; overflow-y: scroll;">
                       <ul>
-                          <li v-for="i,v of fileSet"><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8')">{{i[0]}} @ {{i[2]}}</a></li>
+                          <li v-for="i,v of fileSet"><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8')">{{new Date(Date.parse(i[0])).toLocaleString()}} @ {{i[2]}}</a></li>
                       </ul>
                     </div>
                   </div>
@@ -52,10 +79,10 @@ __doc__= "#Python Code here runs every page load"
 
                     <iframe :src="playbackURL" scrolling="no" id="playback-iframe">
                     </iframe>
-                    
                   
                 </div>
-
+                </div>
+              </div>
 
             </div>
 
@@ -66,13 +93,22 @@ __doc__= "#Python Code here runs every page load"
             appData=
   {
         message: 'Hello Vue!',
+        tab: 'playback',
 
         searchcam:'',
         searchtime: '1999-01-01',
         fileSet: [],
         playbackURL: '',
+        rtPlaybackUrl: '',
+
         setPlayback: function(x){
           app.playbackURL=x
+        },
+
+
+        setRTPlayback: function(x){
+          app.rtPlaybackUrl=x
+          app.tab='cameras'
         },
 
         getFiles: function(filter, date){
@@ -89,7 +125,19 @@ __doc__= "#Python Code here runs every page load"
               }
             )
           })
+        },
+
+        cameraUrls:{
+          %for i in kaithem.devices:
+          %if kaithem.devices[i].deviceTypeName =='NVRChannel':
+          '${i}': "rtplayer?play=${i|u}",
+          %endif
+          %endfor
+          "None": ''
         }
+
+
+
       }
 
 

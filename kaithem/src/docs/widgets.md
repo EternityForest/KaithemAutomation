@@ -20,6 +20,11 @@ line:
 This will include a small JS library that will automatically handle just aboud everything for you.
 
 
+kaithemapi.subscribe(widgetid, callback) is used to programmatically subscribe in JS.
+kaithemapi.sendValue(wid, val) is used to send.  
+
+Note: When subscribing, the server always responds with the current value, even if nothing has changed.
+
 ### Widget Objects on the server side.
 
 A widget object represents one widget, and handles AJAX for you

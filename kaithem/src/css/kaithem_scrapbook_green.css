@@ -38,6 +38,9 @@ body {
     background-color: rgba(255, 255, 0, 0.2);
 }
 
+.highlight{
+    background-color: #78dba479 !important;
+}
 
 /*************************Navigation and headers************************************************************/
 
@@ -410,6 +413,7 @@ tab-panel div {
     display: table;
     border-color: grey;
 }
+
 
 
 /*one of the tabs in the tab strip. No, I'm not sure what's really going on here. I copied and pasted from the code that does the navigation bar.*/
