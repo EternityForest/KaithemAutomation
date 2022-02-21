@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645352618535256
+resource-timestamp: 1645436671633340
 resource-type: page
 template-engine: mako
 
@@ -95,15 +95,43 @@ __doc__= "#Python Code here runs every page load"
                       <ul>
                           <li v-for="v,i of cameraUrls"><a v-on:click="setRTPlayback(cameraUrls[i])">{{i}}</a></li>
                       </ul>
-                      <h3>Embeddable Viewer Code</h3>
+
+                      <table>
+                        <tr>
+                          <td>Enable Effects</td>
+                          <td><input type="checkbox" v-model="rtplayerFX"></td>
+                        </tr>
+                        <tr>
+                          <td>CRT</td>
+                          <td><input type="checkbox" v-model="rtplayerCRT"></td>
+                        </tr>
+                        <tr>
+                          <td>Film Grain</td>
+                          <td><input type="checkbox" v-model="rtplayerFilm"></td>
+                        </tr>
+                        <tr>
+                          <td>Blur</td>
+                          <td><input type="number" v-model="rtplayerBlur"></td>
+                        </tr>
+                        <tr>
+                          <td>Water Reflection</td>
+                          <td><input type="number" step="0.1" v-model="rtplayerWater"></td>
+                        </tr>
+                      </table>
+                      
+                      <h3>Embeddable Viewer Code for wall builder</h3>
+                  
                       <p class="help">Copy and paste this into a wall builder slot</p>
-                        <pre>{{rtPlaybackUrl}}</pre>
+                        <pre>{{makeFullRtPlaybackUrl() }}</pre>
+
+                      <h3>Fullscreen Link</h3>
+                      <p><a :href="makeFullRtPlaybackUrl()+'&fs=1'">Link</a></p>
                   
                     </div>
 
                     <div style="min-width:30vw; flex-grow: 2; background-color: black;" v-if="rtPlaybackUrl">
 
-                        <iframe :src="rtPlaybackUrl+'&controls=1'" id="playback-iframe" style="overflow: auto">
+                        <iframe :src="makeFullRtPlaybackUrl()+'&controls=1'" id="playback-iframe" style="overflow: auto">
                         </iframe>
                   
                     </div> 
@@ -151,10 +179,23 @@ __doc__= "#Python Code here runs every page load"
         playbackURL: '',
         rtPlaybackUrl: '',
         viewSlots: ${kwargs.get('viewslots',['','','',''])},
+        rtplayerAnime: false,
+        rtplayerFilm:false,
+        rtplayerCRT:false,
+        rtplayerBlur:0,
+        rtplayerFX:0,
+        rtplayerWater:0,
+
+        makeFullRtPlaybackUrl : function()
+        {
+          return appData.rtPlaybackUrl + (appData.rtplayerFX?'&fx=1':'') +(appData.rtplayerCRT?'&crt=1':'') + (appData.rtplayerFilm?'&film=1':'')+"&blur="+appData.rtplayerBlur+"&waterreflection="+appData.rtplayerWater
+        },
 
         goFS : function(){
             document.getElementById("app").requestFullscreen()
         },
+
+      
 
         goFSWall : function(){
             document.getElementById("videowall").requestFullscreen()

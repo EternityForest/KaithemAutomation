@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645351255774005
+resource-timestamp: 1645437785234718
 resource-type: page
 template-engine: mako
 
@@ -19,13 +19,105 @@ template-engine: mako
 <script type="text/javascript" src="/static/js/evm/color.js"></script>
 
 <script type="text/javascript" src="/static/js/mpegts.js"></script>
-<link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">
 
 
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
-<video style="width: 100%; max-height:100%;" muted controls></video>
+<video id="videl" style="width: 100%; max-height:100%;" muted controls></video>
 <canvas id="canvas" style="display: none; width: 100%"></canvas>
 
+%if 'fx' in kwargs:
+
+<script src="/static/js/pixi6.min.js"></script>
+<script src="/static/js/pixi-filters.js"></script>
+
+<script>
+
+// convert the image to a texture
+var image = document.getElementById('videl');
+
+image.oncanplay = function() {
+
+
+        var renderer = PIXI.autoDetectRenderer(videl.videoWidth, videl.videoHeight, { transparent: true });
+        document.body.appendChild(renderer.view);
+        image.style.position="absolute"
+        renderer.view.style.position="absolute"
+        renderer.view.style['width']='100%'
+        renderer.view.style['max-height']='100%'
+        renderer.view.style['z-index']=2
+
+        //From https://stackoverflow.com/questions/10750125/scaling-html5-canvas-width-preserving-w-h-aspect-ratio
+        $(window).resize(function(){
+                renderer.style.height=(renderer.clientWidth / (videl.videoWidth/videl.videoHeight))+'px';
+
+                if(renderer.clientHeight> document.body.height){
+                         renderer.style.height=document.body.clientHeight+'px'
+                        renderer.style.width= (renderer.clientHeight*(videl.videoWidth/videl.videoHeight))+'px'
+                }
+        });
+
+
+        var reseedable = []
+
+
+        // create the root of the scene graph
+        var stage = new PIXI.Container();
+        stage.filters = []
+
+
+        %if 'blur' in kwargs and float(kwargs['blur']):
+        var f = new PIXI.filters.KawaseBlurFilter(${kwargs['blur']})
+        stage.filters.push(f)
+        %endif
+
+        %if 'film' in kwargs:
+        var f = new PIXI.filters.OldFilmFilter({sepia:0, scratchDensity:0,noise:0.15, vignettingAlpha:0.05, vignetting: 0})
+        stage.filters.push(f)
+        reseedable.push(f)
+        %endif
+
+        %if 'crt' in kwargs:
+        var f = new PIXI.filters.CRTFilter({noise: 0.2, lineWidth: 0.8,vignettingAlpha:0.175})
+        stage.filters.push(f)
+        reseedable.push(f)
+        %endif
+
+        %if 'waterreflection' in kwargs:
+        var f = new PIXI.filters.ReflectionFilter({boundary:1-${kwargs['waterreflection']}})
+        stage.filters.push(f)
+        reseedable.push(f)
+        %endif
+
+
+        // create a video texture from a path
+        var texture = PIXI.Texture.from(videl);
+
+        // create a new Sprite using the video texture (yes it's that easy)
+        var videoSprite = new PIXI.Sprite(texture);
+
+        videoSprite.width = renderer.width;
+        videoSprite.height = renderer.height;
+
+        stage.addChild(videoSprite);
+
+        animate();
+        var begin = Date.now()
+        function animate(){
+                // render the stage
+                renderer.render(stage);
+                requestAnimationFrame(animate);
+                for(i of reseedable){
+                        i.seed = Math.random();
+                        i.time= (Date.now()-begin)/1000;
+                }
+        }
+
+
+
+}
+</script>
+
+%endif
 
 %if 'controls' in kwargs:
     <div class="buttonbar">
