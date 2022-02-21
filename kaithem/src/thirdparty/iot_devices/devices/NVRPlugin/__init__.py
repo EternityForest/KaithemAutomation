@@ -1,3 +1,4 @@
+from distutils.command.config import config
 from distutils.filelist import findall
 from email.mime import audio
 from multiprocessing import RLock
@@ -90,6 +91,9 @@ class Pipeline(iceflow.GstreamerPipeline):
 
     def onMotionEnd(self, *a, **k):
         self.mcb(False)
+
+    def onPresenceValue(self,v):
+        self.presenceval(v)
 
     def onVideoAnalyze(self, *a, **k):
         self.acb(*a)
@@ -251,12 +255,16 @@ class NVRChannel(devices.Device):
             try:
                 f = os.open(self.rawFeedPipe,
                             flags=os.O_NONBLOCK | os.O_APPEND)
+                s = 0
                 for i in range(188 * 42):
                     r, w, x = select.select([], [f], [], 0.2)
                     if w:
                         f.write(b'b')
                     else:
-                        return
+                        s+=1
+                        if s>15:
+                            return
+
             except Exception:
                 print(traceback.format_exc())
 
@@ -306,6 +314,12 @@ class NVRChannel(devices.Device):
             self.putTrashInBuffer()
         except Exception:
             print(traceback.format_exc())
+        try:
+            os.remove(self.rawFeedPipe)
+        except Exception:
+            print(traceback.format_exc())
+
+        
 
         s = 10
         while s:
@@ -422,16 +436,21 @@ class NVRChannel(devices.Device):
             self.process.addElement("zbar")
             self.print("Barcode detection enabled")
 
-        self.process.addElement("videoconvert", chroma_resampler=0)
+        #self.process.addElement("videoconvert", chroma_resampler=0)
 
-        self.process.addElement(
-            "motioncells", sensitivity=float(self.config.get('device.motion_sensitivity', '0.75')), gap=1, display=False)
+        # self.process.addElement(
+        #     "motioncells", sensitivity=float(self.config.get('device.motion_sensitivity', '0.75')), gap=1, display=False)
 
-        self.process.addElement("fakesink")
+        #self.process.addElement("fakesink")
+
+        # Not a real GST element. The iceflow backend hardcodes this motion/presense detection
+        self.process.addPresenceDetector((192,192))
 
         self.process.mcb = self.motion
         self.process.bcb = self.barcode
         self.process.acb = self.analysis
+
+        self.process.presenceval = self.presencevalue
 
         self.process.addElement("hlssink", connectToOutput= self.mpegtssrc, message_forward=True, async_handling=True, max_files=0,
         location=os.path.join("/dev/shm/knvr_buffer/", self.name, r"segment%08d.ts"),
@@ -469,9 +488,11 @@ class NVRChannel(devices.Device):
                 self.canAutoStopRecord = True
             else:
                 self.canAutoStopRecord = False
+
             if v:
                 self.stoprecordingafternextsegment=0
-                self.setsegmentDir()
+                if not self.segmentDir:
+                    self.setsegmentDir()
             else:
                 self.stoprecordingafternextsegment=1
 
@@ -514,37 +535,37 @@ class NVRChannel(devices.Device):
             ls = os.listdir(d)
             ls = list(sorted([i for i in ls if i.endswith(".ts")]))
 
-
             if self.activeSegmentDir or self.segmentDir:
                 # Ignore latest, that could still be recording
                 for i in ls[:-1]:
 
-    
+                    #Someone could delete a segment dir while it is being written to.
+                    #Prevent that from locking everything up.
+                    if os.path.exists(self.activeSegmentDir or self.segmentDir):
+                        #Find the duration of the segment from the hlssink playlist file
+                        with open(os.path.join(d, "playlist.m3u8")) as f:
+                            x = f.read()
+                        if not i in x:
+                            return
+                        
+                        x=x.split(i)[0]
+                        x = float(re.findall(r"EXTINF:\s*([\d\.]*)",x)[-1])
 
-                    #Find the duration of the segment from the hlssink playlist file
-                    with open(os.path.join(d, "playlist.m3u8")) as f:
-                        x = f.read()
-                    if not i in x:
-                        return
+
+                        #Assume the start time is mod time minus length
+                        my_date = datetime.fromtimestamp(os.stat(os.path.join(d, i)).st_mtime-x)
+                        t= my_date.isoformat()
+
+                        shutil.move(os.path.join(d, i), self.activeSegmentDir or self.segmentDir)
+                        with open(os.path.join(self.activeSegmentDir or self.segmentDir, "playlist.m3u8"), "a+") as f:
+                            f.write("\r\n")
+                            f.write("#EXTINF:"+str(x)+",\r\n")
+                            f.write("#EXT-X-PROGRAM-DATE-TIME:"+t+"\r\n")
+                            f.write(i+"\r\n")
+                        
+                        self.directorySegments+=1
+
                     
-                    x=x.split(i)[0]
-                    x = float(re.findall(r"EXTINF:\s*([\d\.]*)",x)[-1])
-
-
-                    #Assume the start time is mod time minus length
-                    my_date = datetime.fromtimestamp(os.stat(os.path.join(d, i)).st_mtime-x)
-                    t= my_date.isoformat()
-
-                    shutil.move(os.path.join(d, i), self.activeSegmentDir or self.segmentDir)
-                    with open(os.path.join(self.activeSegmentDir or self.segmentDir, "playlist.m3u8"), "a+") as f:
-                        f.write("\r\n")
-                        f.write("#EXTINF:"+str(x)+",\r\n")
-                        f.write("#EXT-X-PROGRAM-DATE-TIME:"+t+"\r\n")
-                        f.write(i+"\r\n")
-                    
-                    self.directorySegments+=1
-
-                  
 
                     if self.stoprecordingafternextsegment:
                         self.segmentDir=None
@@ -622,6 +643,14 @@ class NVRChannel(devices.Device):
 
         self.set_data_point("motion_detected", v)
 
+
+    def presencevalue(self, v):
+        "Takes a raw presence value. Unfortunately it seems we need to do our own motion detection."
+        self.set_data_point("raw_motion_value", v)
+
+        self.motion(v> float(self.config.get('device.motion_threshold', 1.75)) )
+
+
     def analysis(self, v):
         self.set_data_point("luma_average", v['luma-average'])
         self.set_data_point("luma_variance", v['luma-variance'])
@@ -665,7 +694,7 @@ class NVRChannel(devices.Device):
             self.recordlock = threading.RLock()
 
             self.rawFeedPipe = "/dev/shm/nvr_pipe." + \
-                name.replace("/", '') + ".raw_feed.tspipe"
+                name.replace("/", '') +"."+ str(time.monotonic)+".raw_feed.tspipe"
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
@@ -698,6 +727,12 @@ class NVRChannel(devices.Device):
                                     subtype='bool',
                                     writable=False)
 
+
+            self.numeric_data_point("raw_motion_value",
+                                    min=0,
+                                    max=250,
+                                    writable=False)
+
             self.numeric_data_point("luma_average",
                                     min=0,
                                     max=1,
@@ -722,10 +757,12 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
-            self.set_config_default("device.motion_sensitivity", '0.75')
+            self.set_config_default("device.motion_threshold", '0.6')
             self.set_config_default("device.bitrate", '386')
 
             self.set_config_default("device.retain_days", '999999')
+
+            self.config.pop("device.motion_sensitivity",0)
 
             self.retainDays = int(self.config['device.retain_days'])
 

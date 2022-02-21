@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+### 0.68.10
+- BREAKING: NVRPlugin no longer uses a sensitivity value. We have a custom detector and we use a threshold value now
+- NVRChannel now reports the raw "level" of motion
+- NVRChannel uses a custom motion algorithm that requires Pillow, based on RMS and erosion.
+- Retriggering recording in NVRChannel before recording is finished will just append to the active recording
+- NVRChannel should no longer crash if you delete a segment dir while it is being written to
+
 ### 0.68.9
 - Any module page can now be accessed via it's subfolder
 - No more H1 header at the top of most pages, to save screen space

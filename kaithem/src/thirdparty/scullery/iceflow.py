@@ -143,4 +143,7 @@ class GStreamerPipeline():
     def print(self,s):
         print(s)
 
+    def onPresenceValue(self,v):
+        print(v)
+
 GstreamerPipeline=GStreamerPipeline

@@ -21,8 +21,8 @@ import traceback
 import os
 import sys
 import base64
+import math
 
-from matplotlib.pyplot import cla, connect
 #import workers  # , ]messagebus
 
 def doNow(f):
@@ -71,6 +71,46 @@ log = logging.getLogger("IceFlow_gst")
 import jsonrpyc
 
 
+class PresenceDetector():
+    def __init__(self,capture):
+        self.masks = {}
+        #This is a first order filter(Time domain blur) of the entire image
+
+        self.state = None
+        self.last=None
+        self.capture=capture
+
+    def poll(self):
+        from PIL import ImageMath
+        from PIL import ImageFilter
+
+        import numpy as np
+        #Floating point
+        x= self.capture.pull()
+        self.last = x.convert('F') if x else self.last
+        # if not self.state:
+        #     self.state = self.last
+        # else:
+        #     self.state = ImageMath.eval("old*0.5 + new*0.5",old=self.state, new=self.last)
+        
+        rval = 0
+        if self.state:
+            diff = ImageMath.eval("new-old",old=self.state, new=self.last)
+            diff = ImageMath.eval("diff*diff",diff=diff)
+
+            # This is an erosion operation to prioritize multipixel stuff
+            # over single pixel noise
+            diff = diff.filter(ImageFilter.MinFilter(3))
+            d = np.array(diff.convert("L"))
+            rval = math.sqrt(np.mean(d))
+
+        self.state = self.last
+        return rval
+
+            
+
+
+
 class PILCapture():
     def __init__(self, appsink):
         from PIL import Image
@@ -78,8 +118,8 @@ class PILCapture():
         self.img = Image
         self.appsink = appsink
 
-    def pull(self):
-        sample = self.appsink.emit('try-pull-sample', 0.1 * 10**9)
+    def pull(self,timeout=0.1):
+        sample = self.appsink.emit('try-pull-sample', timeout * 10**9)
         if not sample:
             return None
 
@@ -381,6 +421,11 @@ class GStreamerPipeline():
 
         self.seeklock = self.lock
 
+        # We use this for detecting motion.
+        # We have to use this hack because gstreamer's detection is... not great.
+        self._pilmotiondetectorcapture =None
+        self._pilmotiondetector =None
+
         self.exiting = False
 
         self.uuid = time.time()
@@ -470,8 +515,20 @@ class GStreamerPipeline():
         self.pipeline.send_event(Gst.Event.new_eos())
 
     def loopCallback(self):
-        # Meant to subclass. Gets called under the lock
-        pass
+        if self._pilmotiondetector:
+            x = self._pilmotiondetector.poll()
+            rpc[0]("onPresenceValue", [x])
+
+
+        
+
+    def addPresenceDetector(self, resolution, connectToOutput=None):
+        if self._pilmotiondetector:
+            raise RuntimeError("Already have one of these")
+
+        self._pilmotiondetectorcapture= self.addPILCapture(resolution,connectToOutput,method=0)
+        self._pilmotiondetector = PresenceDetector(self._pilmotiondetectorcapture)
+
 
     def seek(self, t=None, rate=None, _raw=False, _offset=0.008, flush=True, segment=False, sync=False, skip=False):
         "Seek the pipeline to a position in seconds, set the playback rate, or both"
@@ -888,12 +945,15 @@ class GStreamerPipeline():
 
 
 
-    def addPILCapture(self, resolution, connectToOutput=None, buffer=1):
+    def addPILCapture(self, resolution, connectToOutput=None, buffer=1,method=1):
         "Return a video capture object"
+        scale = self.addElement("videoscale",method=method)
+        caps = self.addElement("capsfilter", caps="video/x-raw,width=" +
+                               str(resolution[0]) + ",height=" + str(resolution[0]))
         conv = self.addElement("videoconvert", connectToOutput=connectToOutput)
-        scale = self.addElement("videoscale")
         caps = self.addElement("capsfilter", caps="video/x-raw,width=" +
                                str(resolution[0]) + ",height=" + str(resolution[0]) + ", format=RGB")
+
         appsink = self.addElement(
             "appsink", drop=True, sync=False, max_buffers=buffer)
 
