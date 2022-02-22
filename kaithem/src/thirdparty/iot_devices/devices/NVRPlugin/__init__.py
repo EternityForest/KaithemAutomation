@@ -452,7 +452,7 @@ class NVRChannel(devices.Device):
         #self.process.addElement("fakesink")
 
         # Not a real GST element. The iceflow backend hardcodes this motion/presense detection
-        self.process.addPresenceDetector((192,192))
+        self.process.addPresenceDetector((640,480))
 
         self.process.mcb = self.motion
         self.process.bcb = self.barcode
@@ -797,7 +797,7 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
-            self.set_config_default("device.motion_threshold", '0.08')
+            self.set_config_default("device.motion_threshold", '0.12')
             self.set_config_default("device.bitrate", '386')
 
             self.set_config_default("device.retain_days", '999999')

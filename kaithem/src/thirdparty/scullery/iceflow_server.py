@@ -23,6 +23,8 @@ import sys
 import base64
 import math
 
+from matplotlib.image import imsave
+
 #import workers  # , ]messagebus
 
 def doNow(f):
@@ -70,9 +72,9 @@ log = logging.getLogger("IceFlow_gst")
 
 import jsonrpyc
 
-
 class PresenceDetector():
     def __init__(self,capture):
+        from PIL import ImageChops
         self.masks = {}
         #This is a first order filter(Time domain blur) of the entire image
 
@@ -80,14 +82,18 @@ class PresenceDetector():
         self.last=None
         self.capture=capture
 
+
+
     def poll(self):
         from PIL import ImageMath
         from PIL import ImageFilter
+        from PIL import ImageChops
 
         import numpy as np
         #Floating point
         x= self.capture.pull()
-        self.last = x.convert('F') if x else self.last
+       
+        self.last = x if x else self.last
         # if not self.state:
         #     self.state = self.last
         # else:
@@ -95,16 +101,25 @@ class PresenceDetector():
         
         rval = 0
         if self.state:
-            diff = ImageMath.eval("new-old",old=self.state, new=self.last)
-            #Prefilter out some very small noise
-            diff = ImageMath.eval("max(diff-1,0)", diff=diff)
-            diff = ImageMath.eval("diff*diff",diff=diff)
-
+            diff = ImageChops.difference(self.state,self.last)
             # This is an erosion operation to prioritize multipixel stuff
             # over single pixel noise
             diff = diff.filter(ImageFilter.MinFilter(3))
-            d = np.array(diff.convert("L"))
-            rval = math.sqrt(np.mean(d))
+            d = np.array(diff.convert('F'))
+
+            #Ignore everythong below the threshold, that gets rid of a lot of our noise
+            m = np.mean(d)*1.5+4
+            d = np.fmax(d-m,0)
+
+
+            x = np.mean(d*d)
+            if x==0:
+                 rval= 0
+
+            rval= math.sqrt(x)/2.5
+
+            #return float(np.mean(d))
+
 
         self.state = self.last
         return rval
