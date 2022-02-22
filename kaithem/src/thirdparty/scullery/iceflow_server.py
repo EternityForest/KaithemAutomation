@@ -96,6 +96,8 @@ class PresenceDetector():
         rval = 0
         if self.state:
             diff = ImageMath.eval("new-old",old=self.state, new=self.last)
+            #Prefilter out some very small noise
+            diff = ImageMath.eval("max(diff-1,0)", diff=diff)
             diff = ImageMath.eval("diff*diff",diff=diff)
 
             # This is an erosion operation to prioritize multipixel stuff

@@ -694,7 +694,7 @@ class NVRChannel(devices.Device):
             self.recordlock = threading.RLock()
 
             self.rawFeedPipe = "/dev/shm/nvr_pipe." + \
-                name.replace("/", '') +"."+ str(time.monotonic)+".raw_feed.tspipe"
+                name.replace("/", '') +"."+ str(time.monotonic())+".raw_feed.tspipe"
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
@@ -757,7 +757,7 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
-            self.set_config_default("device.motion_threshold", '0.6')
+            self.set_config_default("device.motion_threshold", '0.23')
             self.set_config_default("device.bitrate", '386')
 
             self.set_config_default("device.retain_days", '999999')

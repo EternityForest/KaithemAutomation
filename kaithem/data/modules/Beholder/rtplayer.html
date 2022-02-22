@@ -8,12 +8,15 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645437785234718
+resource-timestamp: 1645509071787756
 resource-type: page
 template-engine: mako
 
 ---
 <script type="text/javascript" src="/static/widget.js"></script>
+
+
+
 <script type="text/javascript" src="/static/js/evm/jsfeat.js"></script>
 <script type="text/javascript" src="/static/js/evm/compat.js"></script>
 <script type="text/javascript" src="/static/js/evm/color.js"></script>
@@ -22,9 +25,9 @@ template-engine: mako
 
 
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
-<video id="videl" style="width: 100%; max-height:100%;" muted controls></video>
-<canvas id="canvas" style="display: none; width: 100%"></canvas>
 
+<video id="videl" style="width: 100%; margin: 0px;padding: 0px; align-self:center;" muted controls></video>
+<canvas id="canvas" style="display: none; width: 100%; margin: 0px;padding: 0px;"></canvas>
 %if 'fx' in kwargs:
 
 <script src="/static/js/pixi6.min.js"></script>
@@ -34,71 +37,140 @@ template-engine: mako
 
 // convert the image to a texture
 var image = document.getElementById('videl');
+var container = document.getElementById('container');
 
+once = [0]
 image.oncanplay = function() {
+        if(once[0]){
+                return
+        }
+        once[0]=1
 
 
         var renderer = PIXI.autoDetectRenderer(videl.videoWidth, videl.videoHeight, { transparent: true });
         document.body.appendChild(renderer.view);
         image.style.position="absolute"
-        renderer.view.style.position="absolute"
-        renderer.view.style['width']='100%'
-        renderer.view.style['max-height']='100%'
+        image.style.width='48px'
+        image.style.height='48px'
+        image.style['margin']='auto'
+
+        renderer.view.style.position="relative"
+        renderer.view.style['width']='100vw'
         renderer.view.style['z-index']=2
+        renderer.view.style['margin']='0px'
+        renderer.view.style['padding']='0px'
+
 
         //From https://stackoverflow.com/questions/10750125/scaling-html5-canvas-width-preserving-w-h-aspect-ratio
-        $(window).resize(function(){
-                renderer.style.height=(renderer.clientWidth / (videl.videoWidth/videl.videoHeight))+'px';
+        onresize = function(){
+                renderer.view.style.width= document.body.clientWidth+'px'
 
-                if(renderer.clientHeight> document.body.height){
-                         renderer.style.height=document.body.clientHeight+'px'
-                        renderer.style.width= (renderer.clientHeight*(videl.videoWidth/videl.videoHeight))+'px'
+                renderer.view.style.height=(document.body.clientWidth / (videl.videoWidth/videl.videoHeight))+'px';
+
+                if(renderer.view.clientHeight>= document.body.clientHeight){
+                        renderer.view.style.height =document.body.clientHeight+'px'
+                        renderer.view.style.width= (document.body.clientHeight*(videl.videoWidth/videl.videoHeight))+'px'
                 }
-        });
+
+
+        }
+        $(window).resize(function(){setTimeout(onresize,300)});
+        setTimeout(onresize,1000)
+        //setTimeout(onresize,2000)
 
 
         var reseedable = []
 
+        var mainFilterChain=[]
 
         // create the root of the scene graph
         var stage = new PIXI.Container();
-        stage.filters = []
+        //stage.filters = mainFilterChain = []
 
+
+        %if 'posterize' in kwargs and float(kwargs['posterize'])>0 :
+        var f = new PIXI.filters.AdjustmentFilter()
+        f.saturation=1.5
+        mainFilterChain.push(f)
+
+
+
+        var f = new PIXI.filters.MultiColorReplaceFilter([[0, 0], [63, 1507891], [126, 1441928], [189, 989393], [252, 2366445], [16128, 3883269], [16191, 864078], [16254, 738192], [16317, 989393], [16380, 2366445], [32256, 5209611], [32319, 1073775], [32382, 1073775], [32445, 2654153], [32508, 2523135], [48384, 5091619], [48447, 5091619], [48510, 43978], [48573, 43978], [48636, 1689342], [64512, 5091619], [64575, 5091619], [64638, 43978], [64701, 2161663], [64764, 2161663], [4128768, 3147793], [4128831, 1507891], [4128894, 1968771], [4128957, 989393], [4129020, 2366445], [4144896, 3883269], [4144959, 3158064], [4145022, 3884665], [4145085, 5733049], [4145148, 2366445], [4161024, 5209611], [4161087, 5209611], [4161150, 3884665], [4161213, 5733049], [4161276, 2523135], [4177152, 5091619], [4177215, 5091619], [4177278, 8355711], [4177341, 5759459], [4177404, 4233983], [4193280, 5091619], [4193343, 5091619], [4193406, 7926195], [4193469, 5759459], [4193532, 2161663], [8257536, 7809060], [8257599, 6946909], [8257662, 6946909], [8257725, 10964387], [8257788, 2366445], [8273664, 7809060], [8273727, 7163698], [8273790, 10964387], [8273853, 10964387], [8273916, 5733049], [8289792, 5209611], [8289855, 10582879], [8289918, 8355711], [8289981, 5733049], [8290044, 7649771], [8305920, 5091619], [8305983, 5091619], [8306046, 8355711], [8306109, 7649771], [8306172, 7587573], [8322048, 5091619], [8322111, 5091619], [8322174, 7926195], [8322237, 7926195], [8322300, 5759459], [12386304, 7809060], [12386367, 13584448], [12386430, 10964387], [12386493, 10964387], [12386556, 10964387], [12402432, 13584448], [12402495, 13584448], [12402558, 10964387], [12402621, 10964387], [12402684, 10964387], [12418560, 15569926], [12418623, 10582879], [12418686, 10582879], [12418749, 10964387], [12418812, 13217534], [12434688, 15569926], [12434751, 10582879], [12434814, 14334381], [12434877, 12764099], [12434940, 13217534], [12450816, 15569926], [12450879, 15391130], [12450942, 15391130], [12451005, 12764099], [12451068, 12975871], [16515072, 13584448], [16515135, 13584448], [16515198, 13584448], [16515261, 10964387], [16515324, 10964387], [16531200, 13584448], [16531263, 13584448], [16531326, 13584448], [16531389, 10964387], [16531452, 13217534], [16547328, 15569926], [16547391, 15569926], [16547454, 14334381], [16547517, 14334381], [16547580, 13217534], [16563456, 15569926], [16563519, 15569926], [16563582, 15391130], [16563645, 14334381], [16563708, 13217534], [16579584, 15569926], [16579647, 15391130], [16579710, 15391130], [16579773, 15391130], [16579836, 16776958]]
+
+,
+                        0.2
+                        )
+        f.alpha = ${kwargs['posterize']}
+        mainFilterChain.push(f)
+        %endif
 
         %if 'blur' in kwargs and float(kwargs['blur']):
         var f = new PIXI.filters.KawaseBlurFilter(${kwargs['blur']})
-        stage.filters.push(f)
+        mainFilterChain.push(f)
         %endif
 
-        %if 'film' in kwargs:
-        var f = new PIXI.filters.OldFilmFilter({sepia:0, scratchDensity:0,noise:0.15, vignettingAlpha:0.05, vignetting: 0})
-        stage.filters.push(f)
+        %if 'film' in kwargs and float(kwargs['film']):
+        var f = new PIXI.filters.OldFilmFilter({sepia:0, scratchDensity:0,noise:${kwargs['film']}, vignettingAlpha:0.05, vignetting: 0})
+        mainFilterChain.push(f)
         reseedable.push(f)
         %endif
 
-        %if 'crt' in kwargs:
-        var f = new PIXI.filters.CRTFilter({noise: 0.2, lineWidth: 0.8,vignettingAlpha:0.175})
-        stage.filters.push(f)
+        %if 'crt' in kwargs and float(kwargs['crt']):
+        var f = new PIXI.filters.CRTFilter({noise: 0.2, lineWidth: ${kwargs['crt']},vignettingAlpha:0.175})
+        mainFilterChain.push(f)
         reseedable.push(f)
         %endif
 
-        %if 'waterreflection' in kwargs:
+        %if 'waterreflection' in kwargs and float(kwargs['waterreflection'])>0 :
         var f = new PIXI.filters.ReflectionFilter({boundary:1-${kwargs['waterreflection']}})
-        stage.filters.push(f)
+        f.alpha = [1,0.70]
+
+        mainFilterChain.push(f)
         reseedable.push(f)
         %endif
 
+        %if 'sepia' in kwargs and float(kwargs['sepia'])>0 :
+        var f = new PIXI.filters.ColorMatrixFilter({alpha:${kwargs['sepia']}})
+        f.alpha = ${kwargs['sepia']}
+        mainFilterChain.push(f)
+        f.sepia()
+        %endif
+
+        %if 'waterreflection' in kwargs and float(kwargs['waterreflection'])>0 :
+
+                // create a video texture from a path
+                var texture2 = PIXI.Texture.from(videl);
+
+                // create a new Sprite using the video texture (yes it's that easy)
+                var videoSprite2 = new PIXI.Sprite(texture2);
+                videoSprite2.filters = []
+
+                videoSprite2.width = renderer.width;
+                videoSprite2.height = renderer.height;
+
+                stage.addChild(videoSprite2);
+
+                var f = new PIXI.filters.AdjustmentFilter({red:0.7, green: 0.75})
+                videoSprite2.filters.push(f)
+
+                var f = new PIXI.filters.BulgePinchFilter({radius:1000, strength: 0.05, centerY:[0.5,0.75]})
+                videoSprite2.filters.push(f)
+
+        %endif
 
         // create a video texture from a path
         var texture = PIXI.Texture.from(videl);
 
         // create a new Sprite using the video texture (yes it's that easy)
         var videoSprite = new PIXI.Sprite(texture);
+        videoSprite.filters = mainFilterChain
 
         videoSprite.width = renderer.width;
         videoSprite.height = renderer.height;
 
         stage.addChild(videoSprite);
+
+        
 
         animate();
         var begin = Date.now()
@@ -112,19 +184,31 @@ image.oncanplay = function() {
                 }
         }
 
-
-
 }
 </script>
 
 %endif
 
 %if 'controls' in kwargs:
-    <div class="buttonbar">
+<link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">
+
+    <div class="buttonbar" style="opacity:40%">
             <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
             <button type="button"  id="recbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',true)">Record</button>
             <button type="button"  id="stoprecbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',false)">Stop Record</button>
     </div>
+%else:
+<style>
+body{
+        margin:0px;
+        padding:0px;
+        background-color: black;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        text-align: center;
+}
+</style>
 %endif
 
 

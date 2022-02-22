@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645436671633340
+resource-timestamp: 1645445133192391
 resource-type: page
 template-engine: mako
 
@@ -103,11 +103,11 @@ __doc__= "#Python Code here runs every page load"
                         </tr>
                         <tr>
                           <td>CRT</td>
-                          <td><input type="checkbox" v-model="rtplayerCRT"></td>
+                          <td><input type="number" step="0.1" v-model="rtplayerCRT"></td>
                         </tr>
                         <tr>
                           <td>Film Grain</td>
-                          <td><input type="checkbox" v-model="rtplayerFilm"></td>
+                          <td><input type="number" step="0.1" v-model="rtplayerFilm"></td>
                         </tr>
                         <tr>
                           <td>Blur</td>
@@ -116,6 +116,10 @@ __doc__= "#Python Code here runs every page load"
                         <tr>
                           <td>Water Reflection</td>
                           <td><input type="number" step="0.1" v-model="rtplayerWater"></td>
+                        </tr>
+                          <tr>
+                          <td>Sepia</td>
+                          <td><input type="number" step="0.1" v-model="rtplayerSepia"></td>
                         </tr>
                       </table>
                       
@@ -179,16 +183,19 @@ __doc__= "#Python Code here runs every page load"
         playbackURL: '',
         rtPlaybackUrl: '',
         viewSlots: ${kwargs.get('viewslots',['','','',''])},
-        rtplayerAnime: false,
-        rtplayerFilm:false,
-        rtplayerCRT:false,
+        rtplayerFilm:0,
+        rtplayerCRT:0,
         rtplayerBlur:0,
-        rtplayerFX:0,
+        rtplayerFX:false,
         rtplayerWater:0,
+        rtplayerSepia:0,
+
 
         makeFullRtPlaybackUrl : function()
         {
-          return appData.rtPlaybackUrl + (appData.rtplayerFX?'&fx=1':'') +(appData.rtplayerCRT?'&crt=1':'') + (appData.rtplayerFilm?'&film=1':'')+"&blur="+appData.rtplayerBlur+"&waterreflection="+appData.rtplayerWater
+          return (appData.rtPlaybackUrl + (appData.rtplayerFX?'&fx=1':'') +"&blur="+appData.rtplayerBlur+
+          "&waterreflection="+appData.rtplayerWater+"&sepia="+appData.rtplayerSepia+
+          "&crt="+appData.rtplayerCRT+"&film="+appData.rtplayerFilm)
         },
 
         goFS : function(){

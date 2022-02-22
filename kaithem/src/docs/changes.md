@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.68.11
+- Minor tweak to the motion detection algorithm for enhanced resistance to  low level noise.
+- Water ripple filter now uses alpha blending for better realism.
+
 ### 0.68.10
 - BREAKING: NVRPlugin no longer uses a sensitivity value. We have a custom detector and we use a threshold value now
 - NVRChannel now reports the raw "level" of motion
