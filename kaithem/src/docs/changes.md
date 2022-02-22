@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+
+### 0.68.12
+- NVRChannel can now auto reconnect after a network problem.
+
 ### 0.68.11
 - Minor tweak to the motion detection algorithm for enhanced resistance to  low level noise.
 - Water ripple filter now uses alpha blending for better realism.

@@ -1010,7 +1010,7 @@ class _TagPoint(virtualresource.VirtualResource):
             t = Tag(n)
             obj.sourceTags[n] = weakref.ref(t)
             # When any source tag updates, we want to recalculate.
-            obj.sourceTags[n].subscribe(obj.recalcFunction)
+            obj.sourceTags[n]().subscribe(obj.recalcFunction)
             return t.value
 
         def contextGetStringTagValue(n):

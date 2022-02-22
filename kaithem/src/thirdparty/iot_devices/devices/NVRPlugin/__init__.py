@@ -1,13 +1,6 @@
-from distutils.command.config import config
-from distutils.filelist import findall
-from email.mime import audio
 from multiprocessing import RLock
-from ntpath import join
-from pydoc import locate
 from sys import path
 from mako.lookup import TemplateLookup
-from matplotlib.pyplot import connect
-from numpy import append
 from scullery import iceflow
 import os
 import time
@@ -299,10 +292,12 @@ class NVRChannel(devices.Device):
                 if len(b) > (188 * 256) or (lp < (time.monotonic() - 0.2) and b):
                     lp = time.monotonic()
                     self.push_bytes("raw_feed", b)
+                    self.lastPushedWSData = time.monotonic()
                     b = b''
         self.threadExited = True
 
     def close(self):
+        self.closed=True
 
         try:
             self.process.stop()
@@ -347,11 +342,23 @@ class NVRChannel(devices.Device):
         pass
 
     def connect(self, config):
+        if self.closed:
+            return
         self.config = config
         if time.monotonic() - self.lastStart < 15:
             return
-
         self.lastStart = time.monotonic()
+
+        if self.process:
+            try:
+                self.process.stop()
+            except Exception:
+                print(traceback.format_exc())
+
+        #Used to check that things are actually still working.
+        #Set them to prevent a loop.
+        self.lastSegment  = time.monotonic()
+        self.lastPushedWSData  = time.monotonic()
 
         #Can't stop as soon as they push stop, still need to capture
         #the currently being recorded segment
@@ -402,7 +409,8 @@ class NVRChannel(devices.Device):
         try:
             os.remove(path)
         except OSError:
-            print("Failed to delete FIFO")
+            pass
+        
         try:
             os.mkfifo(path)
         except OSError:
@@ -450,6 +458,8 @@ class NVRChannel(devices.Device):
         self.process.bcb = self.barcode
         self.process.acb = self.analysis
 
+        self.processStarted = False
+
         self.process.presenceval = self.presencevalue
 
         self.process.addElement("hlssink", connectToOutput= self.mpegtssrc, message_forward=True, async_handling=True, max_files=0,
@@ -463,7 +473,10 @@ class NVRChannel(devices.Device):
         self.datapusher.start()
 
         self.process.start()
-
+        #Used to check that things are actually still working.
+        #Set them to prevent a loop.
+        self.lastSegment  = time.monotonic()
+        self.lastPushedWSData  = time.monotonic()
 
 
     def onRecordingChange(self, v, t, a):
@@ -526,6 +539,8 @@ class NVRChannel(devices.Device):
             
             if len(ls) > 1:
                 os.remove(os.path.join(d,ls[0]))
+                self.lastSegment  = time.monotonic()
+
 
 
 
@@ -538,6 +553,7 @@ class NVRChannel(devices.Device):
             if self.activeSegmentDir or self.segmentDir:
                 # Ignore latest, that could still be recording
                 for i in ls[:-1]:
+                    self.lastSegment  = time.monotonic()
 
                     #Someone could delete a segment dir while it is being written to.
                     #Prevent that from locking everything up.
@@ -586,6 +602,23 @@ class NVRChannel(devices.Device):
 
 
     def check(self):
+
+        "Pretty mush all periodic tasks go here"
+
+
+        # Make sure we are actually getting video frames. Otherwise we reconnect.
+        if not self.lastSegment > (time.monotonic()- 15):
+            self.set_data_point('running', False)
+            if self.datapoints.get('switch',1):
+                self.connect(self.config)
+                return
+
+        if not self.lastPushedWSData > (time.monotonic()- 15):
+            self.set_data_point('running', False)
+            if self.datapoints.get('switch',1):
+                self.connect(self.config)
+                return
+
         d = os.path.join("/dev/shm/knvr_buffer/", self.name)
         ls = os.listdir(d)
         if not ls==self.lastshm:
@@ -597,13 +630,15 @@ class NVRChannel(devices.Device):
             if self.process:
                 try:
                     if self.process.isActive:
-                        self.set_data_point('running', 1)
+                        if not self.processStarted:
+                            self.processStarted=True
+                            self.set_data_point('running', 1)
                         return
                 except Exception:
                     pass
-            self.set_data_point('running', 0)
 
-            if self.datapoints['switch']:
+            self.set_data_point('running', 0)
+            if self.datapoints.get('switch',1):
                 self.connect(self.config)
         
 
@@ -664,7 +699,11 @@ class NVRChannel(devices.Device):
         try:
             self.runWidgetThread = True
             self.threadExited = True
+            self.closed=False
             self.set_config_default("device.storage_dir", '~/NVR')
+
+            self.process=None
+
 
             # If this is true, record when there is motion
             self.set_config_default("device.motion_recording", 'no')
@@ -706,6 +745,7 @@ class NVRChannel(devices.Device):
                                     subtype='bool',
                                     default=1,
                                     handler=self.commandState)
+            
 
             self.numeric_data_point("record",
                                     min=0,
@@ -747,8 +787,8 @@ class NVRChannel(devices.Device):
                            "value < 0.095", trip_delay=3, auto_ack=True)
             self.set_alarm("Camera low varience", "luma_variance",
                            "value < 0.008", trip_delay=3, auto_ack=True)
-            self.set_alarm("Recording", "record",
-                           "value > 0.5", trip_delay=0, auto_ack=True, priority='debug')
+            self.set_alarm("Long_recording", "record",
+                           "value > 0.5", trip_delay=800, auto_ack=True, priority='debug')
 
             self.set_alarm("Not Running", "running",
                            "value < 0.5", trip_delay=0, auto_ack=False, priority='warning')
@@ -757,7 +797,7 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
-            self.set_config_default("device.motion_threshold", '0.23')
+            self.set_config_default("device.motion_threshold", '0.08')
             self.set_config_default("device.bitrate", '386')
 
             self.set_config_default("device.retain_days", '999999')
@@ -795,6 +835,12 @@ class NVRChannel(devices.Device):
             mediaFolders[name] = self
 
             self.connect(self.config)
+            self.set_data_point('switch',1)
+
+            #Used to check that things are actually still working.
+            self.lastSegment  = time.monotonic()
+            self.lastPushedWSData  = time.monotonic()
+
             self.check()
             from src import scheduling
             self.checker = scheduling.scheduler.every(self.check, 3)
