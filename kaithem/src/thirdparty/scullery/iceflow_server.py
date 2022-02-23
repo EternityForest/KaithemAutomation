@@ -85,9 +85,17 @@ class PresenceDetector():
 
 
     def poll(self):
+
+        # 
         from PIL import ImageMath
         from PIL import ImageFilter
         from PIL import ImageChops
+
+        try:
+            import scipy.ndimage
+            ndim = 1
+        except:
+            ndim = 0
 
         import numpy as np
         #Floating point
@@ -104,8 +112,14 @@ class PresenceDetector():
             diff = ImageChops.difference(self.state,self.last)
             # This is an erosion operation to prioritize multipixel stuff
             # over single pixel noise
-            diff = diff.filter(ImageFilter.MinFilter(3))
-            d = np.array(diff.convert('F'))
+            d = diff.convert('F')
+
+            if ndim:
+                #This is like 4 times faster.
+                d= scipy.ndimage.morphology.grey_erosion(d,(3,3))
+            else:
+                d = d.filter(ImageFilter.MinFilter(3))
+            d=np.array(d)
 
             #Ignore everythong below the threshold, that gets rid of a lot of our noise
             m = np.mean(d)*1.5+4

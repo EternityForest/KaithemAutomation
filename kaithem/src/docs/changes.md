@@ -1,7 +1,9 @@
 Change Log
 ----------
 
-
+### 0.68.13
+- NVRChannel can now use scipy for way better performance on erosion operations.
+- 
 ### 0.68.12
 - NVRChannel can now auto reconnect after a network problem.
 
