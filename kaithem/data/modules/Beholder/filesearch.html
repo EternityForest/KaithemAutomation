@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645345977244190
+resource-timestamp: 1645698410042018
 resource-type: page
 template-engine: mako
 
@@ -17,15 +17,32 @@ template-engine: mako
 #Code Here runs once when page is first rendered. Good place for import statements.
 import json
 import os
+import datetime
+import traceback
 %>
 
 <%
 __doc__= "#Python Code here runs every page load"
 
+if 'starttime' in kwargs:
+  starttime = datetime.datetime.fromisoformat(kwargs['starttime'])
+else:
+  starttime= datetime.datetime.fromisoformat('1900-01-01'+"+00:00").replace(tzinfo=datetime.timezone.utc)
+
 dirs = []
 result = []
 
 l=''
+
+def parse(s):
+  if not "Z" in s and not '+' in s:
+    x= datetime.datetime.fromisoformat(s+"+00:00")
+  else:
+    x= datetime.datetime.fromisoformat(s.replace("Z","+00:00"))
+
+    if x.tzinfo is None:
+      x=x.replace(tzinfo=datetime.timezone.utc)
+  return x
 
 for i in kaithem.devices:
   if kaithem.devices[i].deviceTypeName in ['NVRChannel']:
@@ -37,6 +54,9 @@ for i in kaithem.devices:
       if not 'filter' in kwargs or not kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():
         dirs.append((os.path.join(os.path.expanduser(kaithem.devices[i].config['device.storage_dir']),i,'recordings'), i))
 
+
+enough = 0
+
 for t in dirs:
   i=t[0]
   if not os.path.isdir(i):
@@ -45,17 +65,38 @@ for t in dirs:
     j2 = os.path.join(i,j)
     if not os.path.isdir(j2):
       continue
+    
+    #Parse the day folders
+    try:
+      jt = parse(j)
+    except:
+      print(traceback.format_exc)
+      continue
+
+    # Only look in the correct top level dir.
+    if (jt- starttime).total_seconds() > (3600 * 25):
+      if enough:
+        continue
+
+
+    # Only look in the correct top level dir.
+    if jt<starttime and (starttime-jt).total_seconds() > (3600 * 25):
+        continue
 
 
     for k in os.listdir(j2):
       k2 = os.path.join(j2,k)
       # Date range filter
-      if not 'starttime' in kwargs or not kwargs['starttime'].strip() or  kwargs['starttime'].strip().lower() <= j.lower():
-        # Always get everything from exact day, limit count from next day
-        if len(result)<500 or not 'starttime' in kwargs or not kwargs['starttime'].strip() or  kwargs['starttime'].strip().lower() == j.lower():
-          if not os.path.isfile(os.path.join(k2, "playlist.m3u8")):
-            continue
-          result.append((k, os.path.join(t[1],'recordings',j,k), t[1]))
+      # Always get everything from exact day, limit count from next day
+      if  (parse(k)>starttime and (parse(k)-starttime).total_seconds() < ((24*3600)+60))  or((not enough) and parse(k)>starttime):
+        if not os.path.isfile(os.path.join(k2, "playlist.m3u8")):
+          continue
+        result.append((k, os.path.join(t[1],'recordings',j,k), t[1]))
+
+        if len(result)>500:
+          enough=1
+      else:
+        print(k, starttime, (parse(k)-starttime).total_seconds())
 
 %>
 

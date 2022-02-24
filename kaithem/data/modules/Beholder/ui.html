@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645445133192391
+resource-timestamp: 1645693758495087
 resource-type: page
 template-engine: mako
 
@@ -16,6 +16,7 @@ template-engine: mako
 <%!
 #Code Here runs once when page is first rendered. Good place for import statements.
 import json
+import datetime
 %>
 
     <%
@@ -30,6 +31,7 @@ __doc__= "#Python Code here runs every page load"
         </style>
 
         <script src="/static/js/vue3.js"></script>
+        <script src="/static/js/luxon.min.js"></script>
 
         <h2><i class="icofont-castle"></i>Beholder NVR</h2>
         <title>Beholder NVR</title>
@@ -178,7 +180,7 @@ __doc__= "#Python Code here runs every page load"
         tab: "${'multiview' if 'viewslots' in kwargs else 'playback'}",
         
         searchcam:'',
-        searchtime: '1999-01-01',
+        searchtime: "${datetime.datetime.now().strftime('%Y-%m-%d')}",
         fileSet: [],
         playbackURL: '',
         rtPlaybackUrl: '',
@@ -223,7 +225,7 @@ __doc__= "#Python Code here runs every page load"
 
           var sp =  new URLSearchParams({
                 filter: app.searchcam,
-                starttime: app.searchtime,
+                starttime: luxon.DateTime.fromISO(app.searchtime).toISO()
             })
           fetch('filesearch?'+sp)
           .then(function(r){

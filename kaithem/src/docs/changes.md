@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.68.14
+- Fix bug where NVRChannel would carry over record sessions and thereby crash and not be able to recover from connection failure
+- Improve nvr time search
+
 ### 0.68.13
 - NVRChannel can now use scipy for way better performance on erosion operations.
 - 

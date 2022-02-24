@@ -15,6 +15,7 @@ logger = logging.Logger("plugins.nvr")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
 from datetime import date, datetime
+from datetime import timezone
 
 defaultSubclassCode = """
 class CustomDeviceType(DeviceType):
@@ -36,6 +37,7 @@ httplock = threading.Lock()
 
 import socket
 
+
 def on_service_state_change(zeroconf, service_type, name, state_change):
     with httplock:
         info = zeroconf.get_service_info(service_type, name)
@@ -54,10 +56,8 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                 logging.exception("???")
 
 
-
-#Not common enough to waste CPU all the time on
+# Not common enough to waste CPU all the time on
 #browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
-
 try:
     from src.util import zeroconf as zcinstance
 except:
@@ -66,12 +66,6 @@ except:
 
 browser2 = ServiceBrowser(zcinstance, "_http._tcp.local.", handlers=[
                           on_service_state_change])
-
-
-
-
-
-
 
 
 mediaFolders = weakref.WeakValueDictionary()
@@ -85,7 +79,7 @@ class Pipeline(iceflow.GstreamerPipeline):
     def onMotionEnd(self, *a, **k):
         self.mcb(False)
 
-    def onPresenceValue(self,v):
+    def onPresenceValue(self, v):
         self.presenceval(v)
 
     def onVideoAnalyze(self, *a, **k):
@@ -123,11 +117,12 @@ class Pipeline(iceflow.GstreamerPipeline):
                 "h264parse", connectWhenAvailable="video/x-h264")
             #self.addElement('identity', sync=True)
             self.syncFile = True
-            self.addElement('queue',max_size_time=10000000)
+            self.addElement('queue', max_size_time=10000000)
 
             self.h264source = self.addElement("tee")
-            self.addElement("decodebin3", connectToOutput=dm, connectWhenAvailable="audio")
-            self.addElement("audioconvert",connectWhenAvailable="audio")
+            self.addElement("decodebin3", connectToOutput=dm,
+                            connectWhenAvailable="audio")
+            self.addElement("audioconvert", connectWhenAvailable="audio")
 
             self.addElement("audiorate")
             self.addElement("queue", max_size_time=10000000)
@@ -180,7 +175,7 @@ class Pipeline(iceflow.GstreamerPipeline):
                                 rc_lookahead=0, bitrate=int(self.dev.config['device.bitrate']), key_int_max=int((self.config.get('device.fps', '4') or '4')) * 2)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=main")
-            self.addElement("h264parse",config_interval=1)
+            self.addElement("h264parse", config_interval=1)
             self.h264source = self.addElement("tee")
 
             self.addElement("alsasrc", connectToOutput=False)
@@ -201,7 +196,8 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             self.h264source = self.addElement("tee")
 
-            self.addElement("decodebin", connectToOutput=rtsp, connectWhenAvailable="audio",async_handling=True)
+            self.addElement("decodebin", connectToOutput=rtsp,
+                            connectWhenAvailable="audio", async_handling=True)
             self.addElement("audioconvert")
             self.addElement("audiorate")
             self.addElement("voaacenc")
@@ -254,8 +250,8 @@ class NVRChannel(devices.Device):
                     if w:
                         f.write(b'b')
                     else:
-                        s+=1
-                        if s>15:
+                        s += 1
+                        if s > 15:
                             return
 
             except Exception:
@@ -297,7 +293,7 @@ class NVRChannel(devices.Device):
         self.threadExited = True
 
     def close(self):
-        self.closed=True
+        self.closed = True
 
         try:
             self.process.stop()
@@ -309,12 +305,11 @@ class NVRChannel(devices.Device):
             self.putTrashInBuffer()
         except Exception:
             print(traceback.format_exc())
+
         try:
             os.remove(self.rawFeedPipe)
         except Exception:
             print(traceback.format_exc())
-
-        
 
         s = 10
         while s:
@@ -347,6 +342,13 @@ class NVRChannel(devices.Device):
         self.config = config
         if time.monotonic() - self.lastStart < 15:
             return
+
+        # When we reconnect we stop the recording and motion
+        self.set_data_point("record", False, None, automated_record_uuid)
+        self.set_data_point("raw_motion_value", 0)
+        self.set_data_point("motion_detected", 0)
+        self.activeSegmentDir = self.segmentDir = None
+
         self.lastStart = time.monotonic()
 
         if self.process:
@@ -355,14 +357,14 @@ class NVRChannel(devices.Device):
             except Exception:
                 print(traceback.format_exc())
 
-        #Used to check that things are actually still working.
-        #Set them to prevent a loop.
-        self.lastSegment  = time.monotonic()
-        self.lastPushedWSData  = time.monotonic()
+        # Used to check that things are actually still working.
+        # Set them to prevent a loop.
+        self.lastSegment = time.monotonic()
+        self.lastPushedWSData = time.monotonic()
 
-        #Can't stop as soon as they push stop, still need to capture
-        #the currently being recorded segment
-        self.stoprecordingafternextsegment =0
+        # Can't stop as soon as they push stop, still need to capture
+        # the currently being recorded segment
+        self.stoprecordingafternextsegment = 0
 
         try:
             shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
@@ -410,7 +412,7 @@ class NVRChannel(devices.Device):
             os.remove(path)
         except OSError:
             pass
-        
+
         try:
             os.mkfifo(path)
         except OSError:
@@ -428,7 +430,7 @@ class NVRChannel(devices.Device):
         self.process.addElement(
             "identity", drop_buffer_flags=8192, connectToOutput=self.process.h264source)
         self.process.addElement("queue", max_size_time=20000000,
-                                 leaky=2)
+                                leaky=2)
         self.process.addElement("capsfilter", caps="video/x-h264")
 
         try:
@@ -440,7 +442,7 @@ class NVRChannel(devices.Device):
         # self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
         self.process.addElement("videoanalyse")
 
-        if self.config.get('device.barcodes', '').lower() in ("yes","true","detect","enable","on"):
+        if self.config.get('device.barcodes', '').lower() in ("yes", "true", "detect", "enable", "on"):
             self.process.addElement("zbar")
             self.print("Barcode detection enabled")
 
@@ -449,10 +451,10 @@ class NVRChannel(devices.Device):
         # self.process.addElement(
         #     "motioncells", sensitivity=float(self.config.get('device.motion_sensitivity', '0.75')), gap=1, display=False)
 
-        #self.process.addElement("fakesink")
+        # self.process.addElement("fakesink")
 
         # Not a real GST element. The iceflow backend hardcodes this motion/presense detection
-        self.process.addPresenceDetector((640,480))
+        self.process.addPresenceDetector((640, 480))
 
         self.process.mcb = self.motion
         self.process.bcb = self.barcode
@@ -462,62 +464,67 @@ class NVRChannel(devices.Device):
 
         self.process.presenceval = self.presencevalue
 
-        self.process.addElement("hlssink", connectToOutput= self.mpegtssrc, message_forward=True, async_handling=True, max_files=0,
-        location=os.path.join("/dev/shm/knvr_buffer/", self.name, r"segment%08d.ts"),
-        playlist_root=os.path.join("/dev/shm/knvr_buffer/", self.name),
-        playlist_location=os.path.join("/dev/shm/knvr_buffer/", self.name, "playlist.m3u8"),
-        target_duration=5)
+        self.process.addElement("hlssink", connectToOutput=self.mpegtssrc, message_forward=True, async_handling=True, max_files=0,
+                                location=os.path.join(
+                                    "/dev/shm/knvr_buffer/", self.name, r"segment%08d.ts"),
+                                playlist_root=os.path.join(
+                                    "/dev/shm/knvr_buffer/", self.name),
+                                playlist_location=os.path.join(
+                                    "/dev/shm/knvr_buffer/", self.name, "playlist.m3u8"),
+                                target_duration=5)
 
         self.datapusher = threading.Thread(
             target=self.thread, daemon=True, name="NVR")
         self.datapusher.start()
 
         self.process.start()
-        #Used to check that things are actually still working.
-        #Set them to prevent a loop.
-        self.lastSegment  = time.monotonic()
-        self.lastPushedWSData  = time.monotonic()
-
+        # Used to check that things are actually still working.
+        # Set them to prevent a loop.
+        self.lastSegment = time.monotonic()
+        self.lastPushedWSData = time.monotonic()
 
     def onRecordingChange(self, v, t, a):
         with self.recordlock:
-            
-            d= os.path.join(self.storageDir,self.name,"recordings")
+
+            d = os.path.join(self.storageDir, self.name, "recordings")
             if os.path.exists(d):
                 for i in os.listdir(d):
                     i2 = os.path.join(d, i)
                     try:
-                        dt =datetime.fromisoformat(i)
+                        dt = datetime.fromisoformat(i)
                     except:
                         continue
 
-                    dt = datetime.utcnow() - dt
-                    # Sanity check
-                    if dt.days > self.retainDays and dt.days<10000:
-                        shutil.rmtree(i2)
+                    now = datetime.utcnow().replace(tzinfo=timezone.utc)
 
+                    if dt < now:
+                        dt = now - dt
+                        # Sanity check
+                        if dt.days > self.retainDays and dt.days < 10000:
+                            shutil.rmtree(i2)
 
-            if a==automated_record_uuid:
+            if a == automated_record_uuid:
                 self.canAutoStopRecord = True
             else:
                 self.canAutoStopRecord = False
 
             if v:
-                self.stoprecordingafternextsegment=0
+                self.stoprecordingafternextsegment = 0
                 if not self.segmentDir:
                     self.setsegmentDir()
             else:
-                self.stoprecordingafternextsegment=1
+                self.stoprecordingafternextsegment = 1
 
-    def setsegmentDir(self,manual=False):
+    def setsegmentDir(self, manual=False):
         with self.recordlock:
             # Manually triggered recordings should go in a different folder
 
             my_date = datetime.utcnow()
-            date=my_date.strftime('%Y-%m-%d')
-            t= my_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+            date = my_date.replace(
+                hour=0, minute=0, second=0, microsecond=0).isoformat() + "+00:00"
+            t = my_date.isoformat() + "+00:00"
 
-            d = os.path.join(self.storageDir,self.name,"recordings", date,t)
+            d = os.path.join(self.storageDir, self.name, "recordings", date, t)
             os.makedirs(d)
             self.segmentDir = d
 
@@ -529,20 +536,16 @@ class NVRChannel(devices.Device):
                 f.write("##EXT-X-ALLOW-CACHE:NO\r\n")
                 f.write("#EXT-X-TARGETDURATION:5\r\n")
 
-    
-    def onMultiFileSink(self,fn,*a,**k):
+    def onMultiFileSink(self, fn, *a, **k):
         with self.recordlock:
             self.moveSegments()
             d = os.path.join("/dev/shm/knvr_buffer/", self.name)
             ls = os.listdir(d)
             ls = list(sorted([i for i in ls if i.endswith(".ts")]))
-            
+
             if len(ls) > 1:
-                os.remove(os.path.join(d,ls[0]))
-                self.lastSegment  = time.monotonic()
-
-
-
+                os.remove(os.path.join(d, ls[0]))
+                self.lastSegment = time.monotonic()
 
     def moveSegments(self):
         with self.recordlock:
@@ -553,95 +556,84 @@ class NVRChannel(devices.Device):
             if self.activeSegmentDir or self.segmentDir:
                 # Ignore latest, that could still be recording
                 for i in ls[:-1]:
-                    self.lastSegment  = time.monotonic()
+                    self.lastSegment = time.monotonic()
 
-                    #Someone could delete a segment dir while it is being written to.
-                    #Prevent that from locking everything up.
+                    # Someone could delete a segment dir while it is being written to.
+                    # Prevent that from locking everything up.
                     if os.path.exists(self.activeSegmentDir or self.segmentDir):
-                        #Find the duration of the segment from the hlssink playlist file
+                        # Find the duration of the segment from the hlssink playlist file
                         with open(os.path.join(d, "playlist.m3u8")) as f:
                             x = f.read()
                         if not i in x:
                             return
-                        
-                        x=x.split(i)[0]
-                        x = float(re.findall(r"EXTINF:\s*([\d\.]*)",x)[-1])
 
+                        x = x.split(i)[0]
+                        x = float(re.findall(r"EXTINF:\s*([\d\.]*)", x)[-1])
 
-                        #Assume the start time is mod time minus length
-                        my_date = datetime.fromtimestamp(os.stat(os.path.join(d, i)).st_mtime-x)
-                        t= my_date.isoformat()
+                        # Assume the start time is mod time minus length
+                        my_date = datetime.utcfromtimestamp(
+                            os.stat(os.path.join(d, i)).st_mtime - x)
+                        t = my_date.isoformat() + "+00:00"
 
-                        shutil.move(os.path.join(d, i), self.activeSegmentDir or self.segmentDir)
+                        shutil.move(os.path.join(d, i),
+                                    self.activeSegmentDir or self.segmentDir)
                         with open(os.path.join(self.activeSegmentDir or self.segmentDir, "playlist.m3u8"), "a+") as f:
                             f.write("\r\n")
-                            f.write("#EXTINF:"+str(x)+",\r\n")
-                            f.write("#EXT-X-PROGRAM-DATE-TIME:"+t+"\r\n")
-                            f.write(i+"\r\n")
-                        
-                        self.directorySegments+=1
+                            f.write("#EXTINF:" + str(x) + ",\r\n")
+                            f.write("#EXT-X-PROGRAM-DATE-TIME:" + t + "\r\n")
+                            f.write(i + "\r\n")
 
-                    
+                        self.directorySegments += 1
 
                     if self.stoprecordingafternextsegment:
-                        self.segmentDir=None
-                        self.activeSegmentDir=None
+                        self.segmentDir = None
+                        self.activeSegmentDir = None
                         break
                     else:
                         # Don't make single directories with more than an hour of video.
-                        if self.directorySegments > (3600/5):
+                        if self.directorySegments > (3600 / 5):
                             self.setsegmentDir()
 
                 # Now we can transition to the new one!
-                self.activeSegmentDir=self.segmentDir
-                self.directorySegments=0
-
-
-
-
-
+                self.activeSegmentDir = self.segmentDir
+                self.directorySegments = 0
 
     def check(self):
-
         "Pretty mush all periodic tasks go here"
 
-
         # Make sure we are actually getting video frames. Otherwise we reconnect.
-        if not self.lastSegment > (time.monotonic()- 15):
+        if not self.lastSegment > (time.monotonic() - 15):
             self.set_data_point('running', False)
-            if self.datapoints.get('switch',1):
+            if self.datapoints.get('switch', 1):
                 self.connect(self.config)
                 return
 
-        if not self.lastPushedWSData > (time.monotonic()- 15):
+        if not self.lastPushedWSData > (time.monotonic() - 15):
             self.set_data_point('running', False)
-            if self.datapoints.get('switch',1):
+            if self.datapoints.get('switch', 1):
                 self.connect(self.config)
                 return
 
         d = os.path.join("/dev/shm/knvr_buffer/", self.name)
         ls = os.listdir(d)
-        if not ls==self.lastshm:
+        if not ls == self.lastshm:
             self.onMultiFileSink('')
-        self.lastshm=ls
-
+        self.lastshm = ls
 
         with self.streamLock:
             if self.process:
                 try:
                     if self.process.isActive:
                         if not self.processStarted:
-                            self.processStarted=True
+                            self.processStarted = True
                             self.set_data_point('running', 1)
                         return
                 except Exception:
                     pass
 
             self.set_data_point('running', 0)
-            if self.datapoints.get('switch',1):
+            if self.datapoints.get('switch', 1):
                 self.connect(self.config)
-        
-
 
     def commandState(self, v, t, a):
         with self.streamLock:
@@ -669,22 +661,22 @@ class NVRChannel(devices.Device):
                 "/dev/shm/knvr/", self.name, *(relpath[1:])))
 
     def motion(self, v):
-        if self.config.get('device.motion_recording', 'no').lower() in ('true','yes','on','enable','enabled'):
+        if self.config.get('device.motion_recording', 'no').lower() in ('true', 'yes', 'on', 'enable', 'enabled'):
             if v:
-                self.set_data_point("record", True, None, automated_record_uuid)
+                self.set_data_point("record", True, None,
+                                    automated_record_uuid)
             elif not v and self.canAutoStopRecord:
-                self.set_data_point("record", False, None, automated_record_uuid)
-
+                self.set_data_point("record", False, None,
+                                    automated_record_uuid)
 
         self.set_data_point("motion_detected", v)
-
 
     def presencevalue(self, v):
         "Takes a raw presence value. Unfortunately it seems we need to do our own motion detection."
         self.set_data_point("raw_motion_value", v)
 
-        self.motion(v> float(self.config.get('device.motion_threshold', 1.75)) )
-
+        self.motion(v > float(self.config.get(
+            'device.motion_threshold', 1.75)))
 
     def analysis(self, v):
         self.set_data_point("luma_average", v['luma-average'])
@@ -699,41 +691,41 @@ class NVRChannel(devices.Device):
         try:
             self.runWidgetThread = True
             self.threadExited = True
-            self.closed=False
+            self.closed = False
             self.set_config_default("device.storage_dir", '~/NVR')
 
-            self.process=None
-
+            self.process = None
 
             # If this is true, record when there is motion
             self.set_config_default("device.motion_recording", 'no')
 
-            self.storageDir = os.path.expanduser(self.config['device.storage_dir'] or '~/NVR')
+            self.storageDir = os.path.expanduser(
+                self.config['device.storage_dir'] or '~/NVR')
 
             self.segmentDir = None
 
             # When changing segment dir, we can't do it instantly, we instead wait to be done with the current file.
             self.activeSegmentDir = None
 
-            #How many segments in this dir. Must track so we can switch to a new directory if we need to.
+            # How many segments in this dir. Must track so we can switch to a new directory if we need to.
             self.directorySegments = 0
 
-            self.lastshm =None 
+            self.lastshm = None
 
             self.canAutoStopRecord = False
 
             if not os.path.exists(self.storageDir):
                 os.makedirs(self.storageDir)
-                #Secure it!
+                # Secure it!
                 os.chmod(self.storageDir, 0o700)
-
 
             self.tsQueue = b''
 
             self.recordlock = threading.RLock()
 
             self.rawFeedPipe = "/dev/shm/nvr_pipe." + \
-                name.replace("/", '') +"."+ str(time.monotonic())+".raw_feed.tspipe"
+                name.replace("/", '') + "." + \
+                str(time.monotonic()) + ".raw_feed.tspipe"
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
@@ -745,7 +737,6 @@ class NVRChannel(devices.Device):
                                     subtype='bool',
                                     default=1,
                                     handler=self.commandState)
-            
 
             self.numeric_data_point("record",
                                     min=0,
@@ -753,7 +744,6 @@ class NVRChannel(devices.Device):
                                     subtype='bool',
                                     default=0,
                                     handler=self.onRecordingChange)
-
 
             self.numeric_data_point("running",
                                     min=0,
@@ -766,7 +756,6 @@ class NVRChannel(devices.Device):
                                     max=1,
                                     subtype='bool',
                                     writable=False)
-
 
             self.numeric_data_point("raw_motion_value",
                                     min=0,
@@ -793,25 +782,21 @@ class NVRChannel(devices.Device):
             self.set_alarm("Not Running", "running",
                            "value < 0.5", trip_delay=0, auto_ack=False, priority='warning')
 
-
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
             self.set_config_default("device.motion_threshold", '0.12')
             self.set_config_default("device.bitrate", '386')
 
-            self.set_config_default("device.retain_days", '999999')
+            self.set_config_default("device.retain_days", '90')
 
-            self.config.pop("device.motion_sensitivity",0)
+            self.config.pop("device.motion_sensitivity", 0)
 
             self.retainDays = int(self.config['device.retain_days'])
 
-
-
-            if self.config['device.barcodes'].lower() in ('yes','true', 'enable', 'enabled'):
+            if self.config['device.barcodes'].lower() in ('yes', 'true', 'enable', 'enabled'):
                 self.object_data_point("barcode",
-                                    writable=False)
-
+                                       writable=False)
 
             self.config_properties['device.barcodes'] = {
                 'type': 'bool'
@@ -835,11 +820,11 @@ class NVRChannel(devices.Device):
             mediaFolders[name] = self
 
             self.connect(self.config)
-            self.set_data_point('switch',1)
+            self.set_data_point('switch', 1)
 
-            #Used to check that things are actually still working.
-            self.lastSegment  = time.monotonic()
-            self.lastPushedWSData  = time.monotonic()
+            # Used to check that things are actually still working.
+            self.lastSegment = time.monotonic()
+            self.lastPushedWSData = time.monotonic()
 
             self.check()
             from src import scheduling
