@@ -3,6 +3,9 @@
 
 ![Create a nice dashboard](screenshots/FreeboardDash.jpg)
 
+![Visitors](https://api.visitorbadge.io/api/combined?path=https%3A%2F%2Fgithub.com%2FEternityForest%2FKaithemAutomation&countColor=%23263759&style=plastic)
+
+
 Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system, but it allows you to control anything python can.
 
 It runs on python3, but it is not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
