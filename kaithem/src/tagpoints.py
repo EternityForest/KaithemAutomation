@@ -1807,8 +1807,10 @@ class _TagPoint(virtualresource.VirtualResource):
                     # If we can, try to send the exception back whence it came
                     try:
                         from src import newevt
-                        newevt.eventByModuleName(
-                            activeClaimValue.__module__)._handle_exception()
+                        if hasattr(activeClaimValue, "__module__"):
+                            if activeClaimValue.__module__ in newevt.eventsByModuleName:
+                                newevt.eventsByModuleName[
+                                    activeClaimValue.__module__]._handle_exception()
                     except Exception:
                         print(traceback.format_exc())
 

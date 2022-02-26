@@ -38,7 +38,7 @@ import cherrypy,socket,base64
       <button style="flex-grow: 0" onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='block';document.getElementById('kaithem-main-dropdown-iframe').src='/dropdownpanel'">
         <i class="icofont-dotted-down"></i></button>
 
-    <a href="/">Kaithem@<b>${socket.gethostname()|h}</b>
+    <a href="/"><b>${socket.gethostname()|h}</b>
 
     <span id="notifications_toolbar_item"  title="New Notifications">
       ${notifications.toolbarapi.render("wsapi")}

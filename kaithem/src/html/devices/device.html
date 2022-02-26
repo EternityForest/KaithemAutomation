@@ -302,7 +302,10 @@ ${manageForm}
         </script>
 
         %else:
-        Binary data tagpoint cannot be displayed.  If this is a video feed, you may need to set up Permissions on this device.
+        Binary data tagpoint cannot be displayed.  
+        %if obj.tagPoints[i].subtype == 'mpegts':
+        If this is a video feed, you may need to set up Permissions on this device.
+        %endif
         %endif
 
         %if not obj.tagPoints[i].subtype == 'mpegts':

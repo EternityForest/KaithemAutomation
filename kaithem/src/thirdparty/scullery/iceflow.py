@@ -21,10 +21,11 @@ class eprox():
     def set_property(self,p,v,maxWait=10):
         self.parent().setProperty(self.id,p,v,maxWait=maxWait)
 
-    def pullBuffer(self,element,timeout=0.1):
+    def pullBuffer(self,timeout=0.1):
         return base64.b64decode(self.parent().pullBuffer(self.id, timeout))
 
-
+    def pullToFile(self,f):
+        return self.parent().pullToFile(self.id, f)
 
 pipes = weakref.WeakValueDictionary()
 
@@ -73,6 +74,17 @@ class GStreamerPipeline():
                 k[i]=k[i].id
         a = [i.id if isinstance(i,eprox) else i for i in a]
         return eprox(self,self.rpc.call("setProperty",args=a,kwargs=k,block=0.0001,timeout=maxWait))
+
+    def addPILCapture(self,*a, **k):
+
+        #Probably Just Not Important enough to raise an error for this.
+        if  self.ended or not self.worker.poll() is None:
+            print("Prop set in dead process")
+            self.ended=True
+            return
+        return eprox(self,self.rpc.call("addRemotePILCapture",args=a,kwargs=k,block=0.0001,timeout=10))
+
+
 
     def onAppsinkData(self,elementName,data,*a,**k):
         return

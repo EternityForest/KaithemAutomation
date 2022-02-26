@@ -23,8 +23,6 @@ import sys
 import base64
 import math
 
-from matplotlib.image import imsave
-
 #import workers  # , ]messagebus
 
 def doNow(f):
@@ -74,7 +72,6 @@ import jsonrpyc
 
 class PresenceDetector():
     def __init__(self,capture):
-        from PIL import ImageChops
         self.masks = {}
         #This is a first order filter(Time domain blur) of the entire image
 
@@ -87,7 +84,6 @@ class PresenceDetector():
     def poll(self):
 
         # 
-        from PIL import ImageMath
         from PIL import ImageFilter
         from PIL import ImageChops
 
@@ -102,11 +98,7 @@ class PresenceDetector():
         x= self.capture.pull()
        
         self.last = x if x else self.last
-        # if not self.state:
-        #     self.state = self.last
-        # else:
-        #     self.state = ImageMath.eval("old*0.5 + new*0.5",old=self.state, new=self.last)
-        
+    
         rval = 0
         if self.state:
             diff = ImageChops.difference(self.state,self.last)
@@ -132,8 +124,6 @@ class PresenceDetector():
 
             rval= math.sqrt(x)/2.5
 
-            #return float(np.mean(d))
-
 
         self.state = self.last
         return rval
@@ -148,6 +138,13 @@ class PILCapture():
 
         self.img = Image
         self.appsink = appsink
+
+    def pullToFile(self,f,timeout=0.1):
+        x = self.pull(timeout)
+        if not x:
+            return None
+        x.save(f)
+        return 1
 
     def pull(self,timeout=0.1):
         sample = self.appsink.emit('try-pull-sample', timeout * 10**9)
@@ -452,6 +449,8 @@ class GStreamerPipeline():
 
         self.seeklock = self.lock
 
+        self.pilcaptures = []
+
         # We use this for detecting motion.
         # We have to use this hack because gstreamer's detection is... not great.
         self._pilmotiondetectorcapture =None
@@ -710,12 +709,12 @@ class GStreamerPipeline():
         return True
 
 
-    def appsinkhandler(self,appsink, user_data):
-        sample = appsink.emit("pull-sample")
-        gst_buffer = sample.get_buffer()
-        (ret, buffer_map) = gst_buffer.map(Gst.MapFlags.READ)
-        rpc[0]("_onAppsinkData", [str(user_data), base64.b64encode(buffer_map.data).decode()])
-        return Gst.FlowReturn.OK
+    # def appsinkhandler(self,appsink, user_data):
+    #     sample = appsink.emit("pull-sample")
+    #     gst_buffer = sample.get_buffer()
+    #     (ret, buffer_map) = gst_buffer.map(Gst.MapFlags.READ)
+    #     rpc[0]("_onAppsinkData", [str(user_data), base64.b64encode(buffer_map.data).decode()])
+    #     return Gst.FlowReturn.OK
 
     def onMessage(self, src, name, s):
         if s.get_name() == 'level':
@@ -975,20 +974,27 @@ class GStreamerPipeline():
             sys.exit()
 
 
+       
 
-    def addPILCapture(self, resolution, connectToOutput=None, buffer=1,method=1):
-        "Return a video capture object"
-        scale = self.addElement("videoscale",method=method)
-        caps = self.addElement("capsfilter", caps="video/x-raw,width=" +
-                               str(resolution[0]) + ",height=" + str(resolution[0]))
+    def addPILCapture(self, resolution=None, connectToOutput=None, buffer=1, method=1):
+        "Return a video capture object.  Now that we use BG threads this is just used to save snapshots to file"
+        if resolution:
+            scale = self.addElement("videoscale",method=method)
+            caps = self.addElement("capsfilter", caps="video/x-raw,width=" +
+                                str(resolution[0]) + ",height=" + str(resolution[0]))
         conv = self.addElement("videoconvert", connectToOutput=connectToOutput)
-        caps = self.addElement("capsfilter", caps="video/x-raw,width=" +
-                               str(resolution[0]) + ",height=" + str(resolution[0]) + ", format=RGB")
+        caps = self.addElement("capsfilter", caps="video/x-raw,format=RGB")
 
         appsink = self.addElement(
             "appsink", drop=True, sync=False, max_buffers=buffer)
 
-        return PILCapture(appsink)
+        p= PILCapture(appsink)
+        elementsByShortId[id(p)]=p
+        self.pilcaptures.append(p)
+        return p
+
+    def addRemotePILCapture(self,*a,**k):
+        return id(self.addPILCapture(*a,**k))
 
     def addPILSource(self, resolution, buffer=1, greyscale=False):
         "Return a video source object that we can use to put PIL buffers into the stream"
@@ -1036,6 +1042,12 @@ class GStreamerPipeline():
 
         return base64.b64encode(buf.extract_dup(0, buf.get_size()))
 
+    def pullToFile(self,element,fn):
+        if isinstance(element, int):
+            element = elementsByShortId[element]
+
+        return element.pullToFile(fn)
+
 
     def addElement(self, t, name=None, connectWhenAvailable=False, connectToOutput=None, sidechain=False, **kwargs):
 
@@ -1045,8 +1057,8 @@ class GStreamerPipeline():
 
             e = Gst.ElementFactory.make(t, name)
 
-            if t=='appsink':
-                e.connect("new-sample", self.appsinkhandler, name)
+            # if t=='appsink':
+            #     e.connect("new-sample", self.appsinkhandler, name)
 
 
             if e == None:

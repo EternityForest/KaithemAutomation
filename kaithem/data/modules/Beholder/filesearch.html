@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645698410042018
+resource-timestamp: 1645699475417792
 resource-type: page
 template-engine: mako
 
@@ -95,8 +95,6 @@ for t in dirs:
 
         if len(result)>500:
           enough=1
-      else:
-        print(k, starttime, (parse(k)-starttime).total_seconds())
 
 %>
 

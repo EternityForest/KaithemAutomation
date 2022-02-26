@@ -336,6 +336,17 @@ class NVRChannel(devices.Device):
     def onRawTSData(self, data):
         pass
 
+
+    def getSnapshot(self):
+        if hasattr(self,'snapshotter'):
+            x = self.snapshotter.pullToFile("/dev/shm/knvr_buffer/" + self.name+".bmp")
+            if x:
+                with open("/dev/shm/knvr_buffer/" + self.name+".bmp",'rb') as f:
+                    x= f.read()
+                os.remove("/dev/shm/knvr_buffer/" + self.name+".bmp")
+
+            return x
+
     def connect(self, config):
         if self.closed:
             return
@@ -437,10 +448,16 @@ class NVRChannel(devices.Device):
             self.process.addElement("omxh264dec")
         except:
             self.process.addElement("avdec_h264")
-
         # self.process.addElement("videorate",drop_only=True)
         # self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
-        self.process.addElement("videoanalyse")
+
+        rawtee= self.process.addElement("tee")
+        self.process.addElement("queue",max_size_buffers=1,leaky=2)
+
+        self.snapshotter = self.process.addPILCapture()
+
+
+        self.process.addElement("videoanalyse",connectToOutput=rawtee)
 
         if self.config.get('device.barcodes', '').lower() in ("yes", "true", "detect", "enable", "on"):
             self.process.addElement("zbar")
@@ -730,6 +747,14 @@ class NVRChannel(devices.Device):
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
                                        writable=False)
+
+
+            self.bytestream_data_point("bmp_snapshot",
+                                       subtype='bmp',
+                                       writable=False)
+
+            self.set_data_point_getter('bmp_snapshot', self.getSnapshot)
+
 
             self.numeric_data_point("switch",
                                     min=0,

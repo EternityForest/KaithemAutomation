@@ -474,6 +474,8 @@ class Device():
         Args:
             name: The data point to set
 
+            value: The literal value (Use set_data_point_getter for a callable which will return such)
+
             timestamp: if present is a time.monotonic() time.  
 
             annotation: is an arbitrary object meant to be compared for identity,

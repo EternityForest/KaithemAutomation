@@ -445,6 +445,8 @@ else:
 %elif tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
     <td>${tag.spanWidget.render()}</td>
 
+%elif tag and isinstance(tag,(tagpoints._BinaryTagPoint)):
+<td>${len(tag.value)} bytes at page load</td>
 %else:
     <td>No live preview</td>
 %endif
