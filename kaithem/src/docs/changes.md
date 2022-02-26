@@ -1,6 +1,7 @@
 Change Log
 ----------
-
+### 0.68.15
+- kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.
 
 ### 0.68.14
 - Fix bug where NVRChannel would carry over record sessions and thereby crash and not be able to recover from connection failure

@@ -1111,6 +1111,9 @@ causing the server to skip rendering the current page and instead serve
 a static file. Useful when you need to serve a static file and also need
 to restrict acess to it with permissions.
 
+Can serve a bytesIO object if mime and filename are provided.
+
+
 #### kaithem.web.hasPermission(permission)
 
 #### 

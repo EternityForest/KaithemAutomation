@@ -518,6 +518,11 @@ class KaithemPage():
                 return page.text.encode('utf-8')
 
         except self.kaithemobj.ServeFileInsteadOfRenderingPageException as e:
+            if hasattr(e.f_filepath,'getvalue'):
+                cherrypy.response.headers['Content-Type'] =  e.f_MIME
+                cherrypy.response.headers['Content-Disposition'] =  'attachment ; filename = "' + e.f_name+ '"'
+                return(e.f_filepath.getvalue())
+
             return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
         except Exception as e:

@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645693758495087
+resource-timestamp: 1645912479095158
 resource-type: page
 template-engine: mako
 
@@ -95,7 +95,7 @@ __doc__= "#Python Code here runs every page load"
                 <div v-if="tab=='cameras'"  style="display: flex; flex-wrap: wrap;">
                     <div style="max-height: 25em; overflow: scroll">
                       <ul>
-                          <li v-for="v,i of cameraUrls"><a v-on:click="setRTPlayback(cameraUrls[i])">{{i}}</a></li>
+                          <li v-for="v,i of cameraUrls"><a v-on:click="setRTPlayback(cameraUrls[i],i)">{{i}}</a></li>
                       </ul>
 
                       <table>
@@ -133,6 +133,9 @@ __doc__= "#Python Code here runs every page load"
                       <h3>Fullscreen Link</h3>
                       <p><a :href="makeFullRtPlaybackUrl()+'&fs=1'">Link</a></p>
                   
+                      <h3>JPEG Snapshot</h3>
+                      <p><a :href="'serve_jpg?device='+selectedRTCam">Link</a></p>
+                  
                     </div>
 
                     <div style="min-width:30vw; flex-grow: 2; background-color: black;" v-if="rtPlaybackUrl">
@@ -149,7 +152,7 @@ __doc__= "#Python Code here runs every page load"
                   <div>
                   <div class="buttonbar">
                         <p>Starting:</p><input v-model="searchtime" type="date">
-                        <input v-model="searchcam" list="cameras" value="" placeholder="All Cameras">
+                        <input v-model="searchcam" list="cameras" placeholder="All Cameras">
                         <button v-on:click="getFiles(searchcam, searchtime)"><i class="icofont-binoculars"></i>Search</button>
                   </div>
                     <div style="min-width:12vw; max-height: 25em; overflow-y: scroll;">
@@ -184,6 +187,7 @@ __doc__= "#Python Code here runs every page load"
         fileSet: [],
         playbackURL: '',
         rtPlaybackUrl: '',
+        selectedRTCam:'',
         viewSlots: ${kwargs.get('viewslots',['','','',''])},
         rtplayerFilm:0,
         rtplayerCRT:0,
@@ -216,8 +220,9 @@ __doc__= "#Python Code here runs every page load"
         },
 
 
-        setRTPlayback: function(x){
+        setRTPlayback: function(x,name){
           app.rtPlaybackUrl=x
+          app.selectedRTCam=name
           app.tab='cameras'
         },
 
