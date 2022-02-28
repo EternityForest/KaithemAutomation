@@ -53,7 +53,7 @@ def saveAllAtExit():
             i.save()
         except Exception:
             logging.exception()
-
+import stat
 def chmod_private_try(p, execute=True):
     try:
         if execute:

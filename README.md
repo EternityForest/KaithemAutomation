@@ -54,6 +54,8 @@ Several other audio file players may still work, but the only one supported and 
 sudo apt install python3 cython3 build-essential python3-msgpack python3-future apt install python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy
 ```
 
+If on intel you will probably want intel-opencl-icd for a bit faster inferrence when doing object detection.
+
 ### Systemd service
 
 Ajdust as needed  to point to your paths and users.  Or just use emberos.
@@ -106,6 +108,21 @@ WantedBy=multi-user.target
 # To download all optional dependancies
 
 See helpers/debianpackaging/CONTROL for the list
+
+## Installing Object Detection
+
+The NVRChannel plugin uses the full YOLOv3 model, until such a time as I can get a lighter model to work.  It needs these two files:
+https://pjreddie.com/media/files/yolov3.weights
+and 
+https://github.com/arunponnusamy/object-detection-opencv/raw/master/yolov3.cfg
+
+To be in one of several locations.
+
+'/home/USER/.cvlib/object_detection/yolo/yolov3'
+'/usr/share/pjreddie_darknet/yolov3_coco'
+
+Note that if you have ever used the cvlib library it auto downloads in /home/USER/.cvlib/object_detection/yolo/yolov3
+And also, the files are already included in EmberOS.
 
 ### Security
 At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at

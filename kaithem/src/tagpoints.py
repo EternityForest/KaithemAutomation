@@ -117,7 +117,7 @@ class TagProvider():
 
 
 configTags: Dict[str, object] = {}
-configTagData: Dict[str, Dict] = {}
+configTagData: Dict[str, persist.SharedStateFile] = {}
 
 
 def getFilenameForTagConfig(i: str):
@@ -233,7 +233,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._dynConfigValues: Dict[str, object] = {}
         self.dynamicAlarmData: Dict[str, object] = {}
-        self.configuredAlarmData: Dict[str, object] = {}
+        self.configuredAlarmData: Dict[str, persist.SharedStateFile] = {}
         # The merged combo of both of those
         self.effectiveAlarmData: Dict[str, object] = {}
 
@@ -273,7 +273,6 @@ class _TagPoint(virtualresource.VirtualResource):
         self.lock = threading.RLock()
         self.subscribers: List[weakref.ref] = []
 
-
         # This is only used for fast stream mode
         self.subscribers_atomic: List[weakref.ref] = []
 
@@ -310,7 +309,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self.evalContext: dict = {
             "math": math,
             "time": time,
-            #Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
+            # Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
             # go away cleanly
             'tag': weakref.proxy(self),
             're': re,
@@ -416,7 +415,7 @@ class _TagPoint(virtualresource.VirtualResource):
             w = ','.join(w)
             w = w.strip()
 
-        #Handle different falsy things someone might use to try and disable this
+        # Handle different falsy things someone might use to try and disable this
         if not r:
             r = ''
         if not w:
@@ -477,7 +476,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     w = widgets.DataSource(id="tag:" + self.name)
 
                     if self.unreliable:
-                        w.noOnConnectData=True
+                        w.noOnConnectData = True
 
                     # The tag.control version is exactly the same but output-only,
                     #  so you can have a synced UI widget that
@@ -934,7 +933,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 if a:
                     if not limitTo or i == limitTo:
 
-                        #This is the polling function, the poller, and the subscriber
+                        # This is the polling function, the poller, and the subscriber
                         pollStuff = self._alarmGCRefs.pop(i, None)
 
                         if pollStuff:
@@ -1081,7 +1080,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 if refs:
                     self.unsubscribe(refs[2])
 
-                    #This is the poller
+                    # This is the poller
                     try:
                         refs[1].unregister()
                     except Exception:
@@ -1382,7 +1381,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def interval(self, val):
         self._dynConfigValues['interval'] = val
 
-        #Config tages priority over code
+        # Config tages priority over code
         if not val == self.configOverrides.get('interval', val):
             return
         if val is not None:
@@ -1504,8 +1503,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.poller.unregister()
                 self.poller = None
 
-
-    def fastPush(self, value,timestamp=None, annotation=None):
+    def fastPush(self, value, timestamp=None, annotation=None):
         """
             Push a value to all subscribers. Does not set the tag's value.
             Bypasses all claims. Does not guarantee to get any locks, multiples of this call can happen at once.
@@ -1514,13 +1512,13 @@ class _TagPoint(virtualresource.VirtualResource):
             Meant for streaming video analysis.
         """
 
-        timestamp=timestamp or time.monotonic()
+        timestamp = timestamp or time.monotonic()
 
         for i in self.subscribers_atomic:
             f = i()
             if f:
                 f(value, timestamp, annotation)
-            
+
         if not self.dataSourceWidget:
             return
 
@@ -1530,14 +1528,13 @@ class _TagPoint(virtualresource.VirtualResource):
                 # Use the new literal computed value, not what we were passed,
                 # Because it could have changed by the time we actually get to push
                 self.dataSourceWidget.send(value)
-        
+
             except Exception:
                 raise
             finally:
                 self.guiLock.release()
         else:
             print("Timed out in the push function")
-
 
     @typechecked
     def subscribe(self, f: Callable, immediate=False):
@@ -1885,8 +1882,6 @@ class _TagPoint(virtualresource.VirtualResource):
                 if priority is None:
                     priority = 50
 
-
-
             # Note  that we use the time, so that the most recent claim is
             # Always the winner in case of conflictsclaim
 
@@ -1909,20 +1904,19 @@ class _TagPoint(virtualresource.VirtualResource):
 
             # If we have priortity on them, or if we have the same priority but are newer
             if (ac is None) or (priority > oldAcPriority) or (
-                (priority == oldAcPriority) and (timestamp >oldAcTimestamp)):
+                    (priority == oldAcPriority) and (timestamp > oldAcTimestamp)):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
                 if callable(self.vta[0]) or callable(value):
-                    needsManagePolling=True
+                    needsManagePolling = True
                 else:
-                    needsManagePolling=False
+                    needsManagePolling = False
 
                 self.vta = (value, timestamp, annotation)
-                
+
                 if needsManagePolling:
                     self._managePolling()
-
 
             # If priority has been changed on the existing active claim
             # We need to handle it
@@ -3023,7 +3017,10 @@ def configTagFromData(name: str, data: dict):
         tag = allTags[name]()
     else:
         # Config later when the tag is actually created
-        configTagData[name] = data
+        configTagData[name] = persist.getStateFile(
+            getFilenameForTagConfig(name))
+        for i in data:
+            configTagData[name][i] = data[i]
         return
 
     if tag:

@@ -1,6 +1,6 @@
 from src import statemachines, widgets, registry, scheduling, workers, pages, messagebus, virtualresource, unitsofmeasure, auth
 from typeguard import typechecked
-
+from typing import Union
 import logging
 import threading
 import time
@@ -160,7 +160,7 @@ def cleanup():
 
 class Alert(virtualresource.VirtualResource):
     @typechecked
-    def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: (int, float) = 0, autoAck: bool = False,
+    def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: Union[int, float] = 0, autoAck: bool = False,
                  permissions: list = [], ackPermissions: list = [], id=None, description: str = "", silent: bool = False
                  ):
         """

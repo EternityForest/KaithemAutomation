@@ -152,7 +152,9 @@ ${manageForm}
 <tr>
         %if i.startswith('device.'):
         <td style="max-width: 30%;">
-                <details><summary><i class="icofont-question-circle"></i></summary>${obj.config_properties.get(i,{}).get("description",'No description')|h}</details>
+                %if obj.config_properties.get(i,{}).get("description",''):
+                <details><summary><i class="icofont-question-circle"></i></summary>${obj.config_properties.get(i,{}).get("description",'')|h}</details>
+                %endif
                 ${i[7:]|h}</td>
         %else:
         <td>                

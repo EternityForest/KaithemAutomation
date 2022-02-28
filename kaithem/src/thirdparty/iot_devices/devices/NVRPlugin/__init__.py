@@ -1,5 +1,6 @@
 from multiprocessing import RLock
 from sys import path
+from charset_normalizer import detect
 from mako.lookup import TemplateLookup
 from scullery import iceflow,workers
 import os
@@ -27,15 +28,49 @@ class CustomDeviceType(DeviceType):
         pass
 """
 
-objectDetector = [None]
+path = os.path.abspath(__file__)
+path = os.path.dirname(path)
+
+# This is the cache dir that cvlib uses.
+dest_dir = os.path.expanduser('~') + os.path.sep + '.cvlib' + os.path.sep + 'object_detection' + os.path.sep + 'yolo' + os.path.sep + 'yolov3'
+
+# Where to look for files entitled yolov3.weights and yolov3.cfg
+yolo_search=[
+    "/usr/share/pjreddie_darknet/yolov3_coco",
+    os.path.expanduser("~/.local/share/pjreddie_darknet/yolov3_coco"),
+    "/opt/pjreddie_darknet/yolov3_coco",
+    path,
+    dest_dir
+]
+
+yolocfg=yoloweights=None
+
+yolocfg4=yoloweights4=None
+
+for i in yolo_search:
+    if os.path.exists(os.path.join(i, "yolov3.weights")):
+        yoloweights = os.path.join(i, "yolov3.weights")
+    if os.path.exists(os.path.join(i, "yolov3.cfg")):
+        yolocfg= os.path.join(i, "yolov3.cfg")
+
+
+# for i in yolo_search:
+#     if os.path.exists(os.path.join(i, "yolov4-tiny.weights")):
+#         yoloweights4 = os.path.join(i, "yolov4-tiny.weights")
+#     if os.path.exists(os.path.join(i, "yolov4-tiny.cfg")):
+#         yolocfg4= os.path.join(i, "yolov4-tiny.cfg")
+
+# Choose our modded version with smaller size that actually runs on sane processors
+if os.path.exists(os.path.join(path, "yolov3.cfg")):
+    yolocfg= os.path.join(path, "yolov3.cfg")
+
+objectDetector = [None,None]
 
 # Only one of these should happpen at a time. Because we need to limit how much CPU it can burn.
 object_detection_lock = threading.Lock()
 
 import numpy
 
-path = os.path.abspath(__file__)
-path = os.path.dirname(path)
 
 with open(os.path.join(path,"yolov3.txt") ,'r') as f:
     classes = [line.strip() for line in f.readlines()]
@@ -52,24 +87,131 @@ def toImgOpenCV(imgPIL): # Conver imgPIL to imgOpenCV
     red = i[:,:,0].copy(); i[:,:,0] = i[:,:,2].copy(); i[:,:,2] = red;
     return i; 
 
-def recognize(i):
+def letterbox_image(image, size):
+    '''resize image with unchanged aspect ratio using padding'''
+    import cv2
+    import numpy as np
+    iw, ih = image.shape[0:2][::-1]
+    w, h = size
+    scale = min(w/iw, h/ih)
+    nw = int(iw*scale)
+    nh = int(ih*scale)
+    image = cv2.resize(image, (nw,nh), interpolation=cv2.INTER_CUBIC)
+    new_image = np.zeros((size[1], size[0], 3), np.uint8)
+    new_image.fill(128)
+    dx = (w-nw)//2
+    dy = (h-nh)//2
+    new_image[dy:dy+nh, dx:dx+nw,:] = image
+    return new_image
+
+
+def recognize_tflite(i):
+    import tflite_runtime.interpreter as tflite
     import cv2
     import PIL.Image
-
+    Conf_threshold = 0.4
+    NMS_threshold = 0.4
     i = PIL.Image.open(io.BytesIO(i))
     Width = i.width
     Height = i.height
     if not objectDetector[0]:
-        objectDetector[0]= cv2.dnn.readNet(os.path.join(path,"yolov3.weights"),os.path.join(path,"yolov3.cfg"))
+        # objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
+        # #objectDetector[0] = cv2.dnn_DetectionModel(objectDetector[0])
+        # objectDetector[0].net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL_FP16)
+        # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+
+        #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
+        objectDetector[0]=tflite.Interpreter(model_path=os.path.join(path,"ssd_mobilenet_v1_1_default_1.tflite"))
+        objectDetector[0].allocate_tensors()
+
+        objectDetector[1]=numpy.loadtxt(os.path.join(path,"centrenet/label_map.txt"),dtype = str, delimiter="/n") 
+
+    original_image = toImgOpenCV(i)
+
+    image = letterbox_image(original_image,(300,300))
+    image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+
+    interpreter = objectDetector[0]
+    labels = objectDetector[1]
+
+    # Get input and output tensors.
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    input_image = numpy.expand_dims(image,0)
+    # scale = 0.00392
+    # input_image=input_image.astype("float32")*scale
+
+    interpreter.set_tensor(input_details[0]['index'], input_image)
+
+    invoke_time = time.time()
+    interpreter.invoke()
+    print("invoke time:", time.time()-invoke_time, "sec")
+    # The function `get_tensor()` returns a copy of the tensor data.
+    # Use `tensor()` in order to get a pointer to the tensor.
+    boxesPosition = interpreter.get_tensor(output_details[0]['index'])
+    boxesPosition[:,:,0] = boxesPosition[:,:,0]*original_image.shape[0]
+    boxesPosition[:,:,1] = boxesPosition[:,:,1]*original_image.shape[1]
+    boxesPosition[:,:,2] = boxesPosition[:,:,2]*original_image.shape[0]
+    boxesPosition[:,:,3] = boxesPosition[:,:,3]*original_image.shape[1]
+    boxesPosition = boxesPosition.astype(int)
+    probability = interpreter.get_tensor(output_details[2]['index'])
+
+    categories = interpreter.get_tensor(output_details[1]['index'])
+    categories = categories[probability>float(0.18)]
+
+    boxesPosition = boxesPosition[probability>float(0.18)]
+    probability = probability[probability>float(0.18)]
+
+    retval = []
+    for i in range(len(categories)):     
+        x,y,w,h = (boxesPosition[i][1],boxesPosition[i][0], boxesPosition[i][3],boxesPosition[i][2])
+        if int(categories[i])>0:
+            retval.append({
+                'x':float(x), 'y':float(y), "w":float(w), 'h': float(h),
+                'class': labels[int(categories[i])],
+                'confidence': float(probability[i])
+            })
+
+    return {'objects':retval}
+
+
+
+def recognize(i):
+    if not (yoloweights or yoloweights4):
+        return []
+
+    import cv2
+    import PIL.Image
+    i = PIL.Image.open(io.BytesIO(i))
+    Width = i.width
+    Height = i.height
+    if not objectDetector[0]:
+        if yoloweights4:
+            try:
+                objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg4,yoloweights4)
+            except:
+                print(traceback.format_exc())
+                objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
+        else:
+            objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
+        #objectDetector[0] = cv2.dnn_DetectionModel(objectDetector[0])
+        # objectDetector[0].net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL_FP16)
+        # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+
+        #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
     
     image = toImgOpenCV(i)
     scale = 0.00392
+    tm = time.time()
     blob= cv2.dnn.blobFromImage(image, scale, (416,416), (0,0,0), True, crop=False)
     objectDetector[0].setInput(blob)
+    ln = objectDetector[0].getLayerNames()
+    ln = [ln[i[0] - 1] for i in objectDetector[0].getUnconnectedOutLayers()]
 
-
-    outs = objectDetector[0].forward(get_output_layers(objectDetector[0]))
-    
+    outs = objectDetector[0].forward(ln)
+    print(time.time()-tm)
+    #outs =  objectDetector[0].detect(image, Conf_threshold, NMS_threshold)
     retval = []
 
     for out in outs:
@@ -78,7 +220,7 @@ def recognize(i):
             class_id = numpy.argmax(scores)
             objclass = classes[class_id]
             confidence = scores[class_id]
-            if confidence > 0.05:
+            if confidence > 0.001:
                 center_x = int(detection[0] * Width)
                 center_y = int(detection[1] * Height)
                 w = int(detection[2] * Width)
@@ -92,7 +234,7 @@ def recognize(i):
                     'confidence': float(confidence)
                 })
 
-    return retval
+    return {'objects':retval}
 
 
 automated_record_uuid = '76241b9c-5b08-4828-9358-37c6a25dd823'
@@ -736,22 +878,29 @@ class NVRChannel(devices.Device):
         self.set_data_point("motion_detected", v)
 
 
-    def doMotionRecordControl(self,v):
+    def doMotionRecordControl(self,v,forceMotionOnly=False):
+        "forceMotionOnly records even if there is no object detection, for when the CPU can't keep up with how many motion requests there are"
         if self.config.get('device.motion_recording', 'no').lower() in ('true', 'yes', 'on', 'enable', 'enabled'):
+
+
             if v:
-                self.lastRecordTrigger = time.monotonic()
 
                 #If object recording is set up, and we have some object detection, only record if there is one of the objects
                 #In frame
                 lookfor = self.config.get('device.object_record', '').strip()
+                if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
+                    lookfor = None
 
-                if lookfor and not self.lastObjectSet is None:
-                    for i in self.lastObjectSet:
+                # Do obj recognition. Accept recent object detection too in addition to current.
+                #  We also rerun this after we successfully do the motion detection
+                if lookfor and (not self.lastObjectSet is None) and (not forceMotionOnly):
+                    for i in self.lastObjectSet['objects']:
                         if i['class'] in lookfor:
+                            self.lastRecordTrigger = time.monotonic()
                             self.set_data_point("record", True, None,
                                                 automated_record_uuid)
                 else:
-
+                    self.lastRecordTrigger = time.monotonic()
                     self.set_data_point("record", True, None,
                                         automated_record_uuid)
 
@@ -761,6 +910,9 @@ class NVRChannel(devices.Device):
                                         automated_record_uuid)
 
 
+        self.lastDidMotionRecordControl = time.monotonic()
+
+
     def presencevalue(self, v):
         "Takes a raw presence value. Unfortunately it seems we need to do our own motion detection."
         self.set_data_point("raw_motion_value", v)
@@ -768,29 +920,78 @@ class NVRChannel(devices.Device):
         self.motion(v > float(self.config.get(
             'device.motion_threshold', 0.12)))
 
-        # We do object detection on one of two conditions. Either when there is motion or every ten seconds no matter what.
-        # Even when there is motion, however, we rate limit to once every 3 seconds
+    
+        # We do object detection on one of two conditions. Either when there is motion or every N seconds no matter what.
+        # Even when there is motion, however, we rate limit to once every 1 second.
         # On top of that we give up waiting for the one available slot to do the detection, after a random amount of time.
         # This ensures that under high CPU load we just gracefully fall back to not doing very much detection.
-        if (v > float(self.config.get('device.motion_threshold', 0.12))) or (self.lastDidObjectRecognition< time.monotonic() - 10):
-            if (self.lastDidObjectRecognition< time.monotonic() - 3):
-                self.lastDidObjectRecognition=time.monotonic()
-                def f():
-                    if object_detection_lock.acquire(True, 4*random.random()):
-                        try:
-                            o=recognize(self.request_data_point("bmp_snapshot"))
-                            self.lastObjectSet=o
-                            self.set_data_point("detected_objects",o)
 
+        # The value of N seconds should be very low if we detect that there is *really* nothing that could reasonably be seen as motion.
+        detect_interval = 12 if v>0.008 else 45
+
+        objects = True
+        if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
+            objects=False
+
+        if objects and ((v > float(self.config.get('device.motion_threshold', 0.12))) or (self.lastDidObjectRecognition< time.monotonic() - detect_interval)):
+            if (self.lastDidObjectRecognition< time.monotonic() - 1):
+                self.obj_rec_wait_timestamp = time.monotonic()
+                obj_rec_wait = self.obj_rec_wait_timestamp
+                def f():
+
+                    # Wait longer if not already recording so that things that don't need to detect as much give up faster.
+                    # prioritize reliable start of record!
+
+                    #Cannot wait too long thogh because we nee to quickly fail back to motion only.
+                    t = 6 if self.datapoints['record'] else 4
+
+                    if object_detection_lock.acquire(True, t+(random.random()*0.1)):
+
+                       
+                        try:
+                            # We have to make sure an older detection does not wait on a newer detection. 
+                            # Only the latest should get through, or we would queue up a problem.
+                            if self.obj_rec_wait_timestamp > obj_rec_wait:
+                                return
+                            o=recognize(self.request_data_point("bmp_snapshot"))
+                            self.lastDidObjectRecognition=time.monotonic()
+                            self.lastObjectSet=o
+                            
+                            lookfor = self.config.get('device.object_record', '').strip()
+                            # For some high-certainty things we can trigger motion even when there is no motion detected by
+                            # the standard algorithm.
+                            relevantObjects = 0
+                            if lookfor and (not self.lastObjectSet is None):
+                                for i in self.lastObjectSet['objects']:
+                                    if i['class'] in lookfor and i['confidence']>0.55:
+                                        relevantObjects += 1
+
+                            if self.oldRelevantObjectCount > -1 and not(self.oldRelevantObjectCount==relevantObjects):
+                                self.motion(True)
+
+                            self.oldRelevantObjectCount = relevantObjects
+
+
+
+                            self.set_data_point("detected_objects",o)
+                            # We are going to redo this.
+                            # We do it in both places.
+                            # Imagine you detect a person but no motion, but then later see motion, but no person a few seconds later
+                            # You probably want to catch that because a person was likely involved
+                            self.doMotionRecordControl(self.datapoints['motion_detected'])
                         finally:
                             object_detection_lock.release()
-                        # We are going to redo this.
-                        # We do it in both places.
-                        # Imagine you detect a person but no motion, but then later see motion, but no person a few seconds later
-                        # You probably want to catch that because a person was likely involved
-                        self.doMotionRecordControl(self.datapoints['motion_detected'])
+                                
+                      
+                    else:
+                        self.doMotionRecordControl(self.datapoints['motion_detected'],True)
+                workers.do(f)
 
-            workers.do(f)
+        else:
+            #We arent't even using obj detct at all
+            self.doMotionRecordControl(self.datapoints['motion_detected'],True)
+                        
+
 
     def analysis(self, v):
         self.set_data_point("luma_average", v['luma-average'])
@@ -812,6 +1013,12 @@ class NVRChannel(devices.Device):
 
             self.lastDidObjectRecognition = 0
 
+            # So we can tell if there is new object recogintion data since we last checked.
+            self.lastDidMotionRecordControl=0
+
+            # Used to detect motion by looking at changes in the number of relevant objects.
+            # Response time may be very low.
+            self.oldRelevantObjectCount = -1
 
             # The most recent set of object detection results.
             self.lastObjectSet=None
@@ -918,7 +1125,7 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
-            self.set_config_default("device.object_detection", 'yes')
+            self.set_config_default("device.object_detection", 'no')
 
             self.set_config_default("device.object_record", 'person, dog, cat, horse, sheep, cow, handbag, frisbee, bird, backpack, suitcase, sports ball')
 
@@ -946,11 +1153,12 @@ class NVRChannel(devices.Device):
 
 
             self.config_properties['device.object_detection'] = {
-                'type': 'bool'
+                'type': 'bool',
+                'description': "Enable object detection.  See kaithem readme for where to put model files. "
             }
 
             self.config_properties['device.object_record'] = {
-                'description': "Only record if there is both motion, and a recognized object on the list in the frame. If empty, always record. Can use any COCO item."
+                'description': "Does nothing without object detection. Only record if there is both motion, and a recognized object on the list in the frame. If empty, always record. Can use any COCO item."
             }
 
             self.config_properties['device.source'] = {

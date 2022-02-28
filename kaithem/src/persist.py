@@ -92,6 +92,7 @@ class SharedStateFile():
         self.legacy_registry_key_mappings = {}
         self.lock = threading.RLock()
         self.noFileForEmpty = False
+        self.private=True
         allFiles[filename] = self
         subscribe("/system/save", self.save)
 
@@ -145,21 +146,21 @@ class SharedStateFile():
             dirty[self.filename] = self
 
             if self.recoveryFile:
-                save(self.data, self.recoveryFile, nolog=True)
+                save(self.data, self.recoveryFile, nolog=True,private=True)
 
     def clear(self):
         with self.lock:
             self.data.clear()
             dirty[self.filename] = self
             if self.recoveryFile:
-                save(self.data, self.recoveryFile, nolog=True)
+                save(self.data, self.recoveryFile, nolog=True,private=True)
 
     def pop(self, key, default=None):
         with self.lock:
             self.data.pop(key, default)
             dirty[self.filename] = self
             if self.recoveryFile:
-                save(self.data, self.recoveryFile, nolog=True)
+                save(self.data, self.recoveryFile, nolog=True,private=True)
 
     def delete(self, key):
         with self.lock:
@@ -175,7 +176,7 @@ class SharedStateFile():
                     pass
             dirty[self.filename] = self
             if self.recoveryFile:
-                save(self.data, self.recoveryFile)
+                save(self.data, self.recoveryFile,private=True)
 
     def save(self):
         with self.lock:
@@ -185,7 +186,7 @@ class SharedStateFile():
             if self.noFileForEmpty and (not self.data):
                 self.tryDeleteFile()
             else:
-                save(self.data, self.filename)
+                save(self.data, self.filename,private=self.private)
             if self.recoveryFile and os.path.exists(self.recoveryFile):
                 try:
                     os.remove(self.recoveryFile)
