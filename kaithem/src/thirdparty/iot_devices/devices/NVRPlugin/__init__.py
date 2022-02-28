@@ -1,7 +1,7 @@
 from multiprocessing import RLock
 from sys import path
 from mako.lookup import TemplateLookup
-from scullery import iceflow
+from scullery import iceflow,workers
 import os
 import time
 import threading
@@ -10,6 +10,8 @@ import weakref
 import traceback
 import shutil
 import re
+import io
+import random
 
 logger = logging.Logger("plugins.nvr")
 
@@ -24,6 +26,73 @@ class CustomDeviceType(DeviceType):
         # self.accept()
         pass
 """
+
+objectDetector = [None]
+
+# Only one of these should happpen at a time. Because we need to limit how much CPU it can burn.
+object_detection_lock = threading.Lock()
+
+import numpy
+
+path = os.path.abspath(__file__)
+path = os.path.dirname(path)
+
+with open(os.path.join(path,"yolov3.txt") ,'r') as f:
+    classes = [line.strip() for line in f.readlines()]
+
+
+def get_output_layers(net):    
+    layer_names = net.getLayerNames()
+    output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+    return output_layers
+
+def toImgOpenCV(imgPIL): # Conver imgPIL to imgOpenCV
+    i = numpy.array(imgPIL) # After mapping from PIL to numpy : [R,G,B,A]
+                         # numpy Image Channel system: [B,G,R,A]
+    red = i[:,:,0].copy(); i[:,:,0] = i[:,:,2].copy(); i[:,:,2] = red;
+    return i; 
+
+def recognize(i):
+    import cv2
+    import PIL.Image
+
+    i = PIL.Image.open(io.BytesIO(i))
+    Width = i.width
+    Height = i.height
+    if not objectDetector[0]:
+        objectDetector[0]= cv2.dnn.readNet(os.path.join(path,"yolov3.weights"),os.path.join(path,"yolov3.cfg"))
+    
+    image = toImgOpenCV(i)
+    scale = 0.00392
+    blob= cv2.dnn.blobFromImage(image, scale, (416,416), (0,0,0), True, crop=False)
+    objectDetector[0].setInput(blob)
+
+
+    outs = objectDetector[0].forward(get_output_layers(objectDetector[0]))
+    
+    retval = []
+
+    for out in outs:
+        for detection in out:
+            scores = detection[5:]
+            class_id = numpy.argmax(scores)
+            objclass = classes[class_id]
+            confidence = scores[class_id]
+            if confidence > 0.05:
+                center_x = int(detection[0] * Width)
+                center_y = int(detection[1] * Height)
+                w = int(detection[2] * Width)
+                h = int(detection[3] * Height)
+                x = center_x - w / 2
+                y = center_y - h / 2
+            
+                retval.append({
+                    'x':x, 'y':y, "w":w, 'h': h,
+                    'class': objclass,
+                    'confidence': float(confidence)
+                })
+
+    return retval
 
 
 automated_record_uuid = '76241b9c-5b08-4828-9358-37c6a25dd823'
@@ -477,8 +546,6 @@ class NVRChannel(devices.Device):
         self.process.bcb = self.barcode
         self.process.acb = self.analysis
 
-        self.processStarted = False
-
         self.process.presenceval = self.presencevalue
 
         self.process.addElement("hlssink", connectToOutput=self.mpegtssrc, message_forward=True, async_handling=True, max_files=0,
@@ -563,6 +630,7 @@ class NVRChannel(devices.Device):
             if len(ls) > 1:
                 os.remove(os.path.join(d, ls[0]))
                 self.lastSegment = time.monotonic()
+                self.set_data_point('running', 1)
 
     def moveSegments(self):
         with self.recordlock:
@@ -574,6 +642,7 @@ class NVRChannel(devices.Device):
                 # Ignore latest, that could still be recording
                 for i in ls[:-1]:
                     self.lastSegment = time.monotonic()
+                    self.set_data_point('running', 1)
 
                     # Someone could delete a segment dir while it is being written to.
                     # Prevent that from locking everything up.
@@ -637,21 +706,6 @@ class NVRChannel(devices.Device):
             self.onMultiFileSink('')
         self.lastshm = ls
 
-        with self.streamLock:
-            if self.process:
-                try:
-                    if self.process.isActive:
-                        if not self.processStarted:
-                            self.processStarted = True
-                            self.set_data_point('running', 1)
-                        return
-                except Exception:
-                    pass
-
-            self.set_data_point('running', 0)
-            if self.datapoints.get('switch', 1):
-                self.connect(self.config)
-
     def commandState(self, v, t, a):
         with self.streamLock:
             if not v:
@@ -678,22 +732,65 @@ class NVRChannel(devices.Device):
                 "/dev/shm/knvr/", self.name, *(relpath[1:])))
 
     def motion(self, v):
+        self.doMotionRecordControl(v)
+        self.set_data_point("motion_detected", v)
+
+
+    def doMotionRecordControl(self,v):
         if self.config.get('device.motion_recording', 'no').lower() in ('true', 'yes', 'on', 'enable', 'enabled'):
             if v:
-                self.set_data_point("record", True, None,
-                                    automated_record_uuid)
-            elif not v and self.canAutoStopRecord:
-                self.set_data_point("record", False, None,
-                                    automated_record_uuid)
+                self.lastRecordTrigger = time.monotonic()
 
-        self.set_data_point("motion_detected", v)
+                #If object recording is set up, and we have some object detection, only record if there is one of the objects
+                #In frame
+                lookfor = self.config.get('device.object_record', '').strip()
+
+                if lookfor and not self.lastObjectSet is None:
+                    for i in self.lastObjectSet:
+                        if i['class'] in lookfor:
+                            self.set_data_point("record", True, None,
+                                                automated_record_uuid)
+                else:
+
+                    self.set_data_point("record", True, None,
+                                        automated_record_uuid)
+
+            elif not v and self.canAutoStopRecord:
+                if self.lastRecordTrigger < (time.monotonic() - 12):
+                    self.set_data_point("record", False, None,
+                                        automated_record_uuid)
+
 
     def presencevalue(self, v):
         "Takes a raw presence value. Unfortunately it seems we need to do our own motion detection."
         self.set_data_point("raw_motion_value", v)
 
         self.motion(v > float(self.config.get(
-            'device.motion_threshold', 1.75)))
+            'device.motion_threshold', 0.12)))
+
+        # We do object detection on one of two conditions. Either when there is motion or every ten seconds no matter what.
+        # Even when there is motion, however, we rate limit to once every 3 seconds
+        # On top of that we give up waiting for the one available slot to do the detection, after a random amount of time.
+        # This ensures that under high CPU load we just gracefully fall back to not doing very much detection.
+        if (v > float(self.config.get('device.motion_threshold', 0.12))) or (self.lastDidObjectRecognition< time.monotonic() - 10):
+            if (self.lastDidObjectRecognition< time.monotonic() - 3):
+                self.lastDidObjectRecognition=time.monotonic()
+                def f():
+                    if object_detection_lock.acquire(True, 4*random.random()):
+                        try:
+                            o=recognize(self.request_data_point("bmp_snapshot"))
+                            self.lastObjectSet=o
+                            self.set_data_point("detected_objects",o)
+
+                        finally:
+                            object_detection_lock.release()
+                        # We are going to redo this.
+                        # We do it in both places.
+                        # Imagine you detect a person but no motion, but then later see motion, but no person a few seconds later
+                        # You probably want to catch that because a person was likely involved
+                        self.doMotionRecordControl(self.datapoints['motion_detected'])
+
+            workers.do(f)
 
     def analysis(self, v):
         self.set_data_point("luma_average", v['luma-average'])
@@ -712,6 +809,15 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.storage_dir", '~/NVR')
 
             self.process = None
+
+            self.lastDidObjectRecognition = 0
+
+
+            # The most recent set of object detection results.
+            self.lastObjectSet=None
+
+            # We don't want to stop till a few seconds after an event that would cause motion
+            self.lastRecordTrigger = 0
 
             # If this is true, record when there is motion
             self.set_config_default("device.motion_recording", 'no')
@@ -749,9 +855,11 @@ class NVRChannel(devices.Device):
                                        writable=False)
 
 
+            #Give this a little bit of caching
             self.bytestream_data_point("bmp_snapshot",
                                        subtype='bmp',
-                                       writable=False)
+                                       writable=False,
+                                       interval=0.3)
 
             self.set_data_point_getter('bmp_snapshot', self.getSnapshot)
 
@@ -805,11 +913,15 @@ class NVRChannel(devices.Device):
                            "value > 0.5", trip_delay=800, auto_ack=True, priority='debug')
 
             self.set_alarm("Not Running", "running",
-                           "value < 0.5", trip_delay=0, auto_ack=False, priority='warning')
+                           "value < 0.5", trip_delay=5, auto_ack=False, priority='warning')
 
             self.set_config_default("device.source", '')
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
+            self.set_config_default("device.object_detection", 'yes')
+
+            self.set_config_default("device.object_record", 'person, dog, cat, horse, sheep, cow, handbag, frisbee, bird, backpack, suitcase, sports ball')
+
             self.set_config_default("device.motion_threshold", '0.12')
             self.set_config_default("device.bitrate", '386')
 
@@ -823,8 +935,22 @@ class NVRChannel(devices.Device):
                 self.object_data_point("barcode",
                                        writable=False)
 
+            if self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
+                self.object_data_point("detected_objects",
+                                       writable=False)
+
+
             self.config_properties['device.barcodes'] = {
                 'type': 'bool'
+            }
+
+
+            self.config_properties['device.object_detection'] = {
+                'type': 'bool'
+            }
+
+            self.config_properties['device.object_record'] = {
+                'description': "Only record if there is both motion, and a recognized object on the list in the frame. If empty, always record. Can use any COCO item."
             }
 
             self.config_properties['device.source'] = {

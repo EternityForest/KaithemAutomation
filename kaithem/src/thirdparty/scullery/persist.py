@@ -51,7 +51,7 @@ def saveAllAtExit():
         i = persisters.pop()()
         try:
             i.save()
-        except:
+        except Exception:
             logging.exception()
 
 def chmod_private_try(p, execute=True):
@@ -72,7 +72,7 @@ class Persister():
         self.fn= fn
         try:
             self.reload()
-        except:
+        except Exception:
             self.value = default
         torm = []
         #Before we add ourselves, clear out any old persisters that are no longer needed.
@@ -242,12 +242,12 @@ def load(filename, *,expand=True):
         except Exception as e:
             try:
                 f.close()
-            except:
+            except Exception:
                 pass
             raise
         try:
             f.close()
-        except:
+        except Exception:
             pass
 
         return r

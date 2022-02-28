@@ -90,7 +90,7 @@ class PresenceDetector():
         try:
             import scipy.ndimage
             ndim = 1
-        except:
+        except Exception:
             ndim = 0
 
         import numpy as np

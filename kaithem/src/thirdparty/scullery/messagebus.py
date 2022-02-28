@@ -55,7 +55,7 @@ def handleError(f,topic,value):
     for i in subscriberErrorHandlers:
         try:
             i(f,topic,value)
-        except:
+        except Exception:
             print(traceback.format_exc())
 
 def runFunction(f,a):
@@ -70,7 +70,7 @@ class MessageBus(object):
             def do(self, f):
                 try:
                     f()
-                except:
+                except Exception:
                     pass
             self.executor = do
         else:
@@ -102,7 +102,7 @@ class MessageBus(object):
                         self.subscribers[topic].remove(target)
                     else:
                         pass
-            except:
+            except Exception:
                 print(traceback.format_exception())
                 pass
             #There is a very slight chance someone will
@@ -168,7 +168,7 @@ class MessageBus(object):
 
         try:
             desc=str(f.__name__+' of '+f.__module__)
-        except:
+        except Exception:
             desc = str(f)
 
 
@@ -186,7 +186,7 @@ class MessageBus(object):
             try:
                 with _subscribers_list_modify_lock:
                     self.subscribers[topic].remove(weakrefobject)
-            except:
+            except Exception:
                 pass
             #There is a very slight chance someone will
             #Add something to topic before we delete it but after the test.
@@ -220,7 +220,7 @@ class MessageBus(object):
                     f2 = f()
                     if f2:
                         f2()
-                except:
+                except Exception:
                     try:
                         if errors:
                             if not alreadyLogged[0]:
@@ -234,7 +234,7 @@ class MessageBus(object):
                     f2 = f()
                     if f2:
                         f2(topic,message)
-                except:
+                except Exception:
                     try:
                         if errors:
                             if not alreadyLogged[0]:
@@ -249,7 +249,7 @@ class MessageBus(object):
                     f2 = f()
                     if f2:
                         f2(topic,message,timestamp,annotation)
-                except:
+                except Exception:
                     try:
                         if errors:
                             if not alreadyLogged[0]:
@@ -264,7 +264,7 @@ class MessageBus(object):
                     f2 = f()
                     if f2:
                         f2(message)
-                except:
+                except Exception:
                     try:
                         if errors:
                             if not alreadyLogged[0]:

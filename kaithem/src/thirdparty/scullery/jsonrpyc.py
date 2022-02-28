@@ -279,11 +279,11 @@ class RPC(object):
        if server_only:
         try:
             self.stdin.close()
-        except:
+        except Exception:
             pass
         try:
             self.stdout.close()
-        except:
+        except Exception:
             pass
             
         watchdog = getattr(self, "watchdog", None)
@@ -361,7 +361,7 @@ class RPC(object):
         """
         try:
             obj = json.loads(line)
-        except:
+        except Exception:
 
             print("Bad JSON",line)
             #What if we just didn't?
@@ -585,14 +585,14 @@ class Watchdog(threading.Thread):
                     for line in lines:
                         try:
                             line = line.decode("utf-8").strip()
-                        except:
+                        except Exception:
                             print("Bad line",line)
                         if line:
                             rpc._handle(line)
                 else:
                     self._stop.wait(self.interval)
                 del rpc
-        except:
+        except Exception:
             print(traceback.format_exc())      
 
         finally:
@@ -600,7 +600,7 @@ class Watchdog(threading.Thread):
                 try:
                     self.rpc().stdin.close()
                     self.rpc().stdout.close()
-                except:
+                except Exception:
                     pass
 
             x = self.rpc()

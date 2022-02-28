@@ -92,7 +92,7 @@ class JackClientProxy():
                     self.worker.kill()
                     workers.do(self.worker.wait)
                 raise
-            except:
+            except Exception:
                 print(traceback.format_exc())
                 raise
 
@@ -156,12 +156,12 @@ class JackClientProxy():
 
                         try:
                                del portsList[name]
-                        except:
+                        except Exception:
                             pass
                         realConnections = _realConnections.copy()
 
                     messagebus.postMessage("/system/jack/delport", p)
-            except:
+            except Exception:
                 print(traceback.format_exc())
 
         jackEventHandlingQueue.append(f)
@@ -211,7 +211,7 @@ class JackClientProxy():
                         activeConnections[i].active = False
                         del allConnections[i]
                         del activeConnections[i]
-                    except:
+                    except Exception:
                         pass
 
                 # def f():
@@ -236,7 +236,7 @@ class JackClientProxy():
         try:
             x= self.rpc.call("close")
             self.rpc.stopFlag=True
-        except:
+        except Exception:
             self.rpc.stopFlag=True
             self.worker.kill()
             workers.do(self.worker.wait)
@@ -284,7 +284,7 @@ def shouldAllowGstJack(*a):
             try:
                 if getPortsListCache():
                     return True
-            except:
+            except Exception:
                 if i > 8:
                     print(traceback.format_exc())
             finally:
@@ -387,7 +387,7 @@ def setupPulse():
     try:
         subprocess.call(['pulseaudio', '-k'], timeout=5,
                         stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    except:
+    except Exception:
         print(traceback.format_exc())
 
     if not usePulse:
@@ -411,7 +411,7 @@ def setupPulse():
         # This may mean it's already running, but hanging in some way
         try:
             subprocess.check_call(cmd, timeout=5)
-        except:
+        except Exception:
             subprocess.call(['killall', '-9', 'pulseaudio'], timeout=5,
                             stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
             subprocess.check_call(cmd, timeout=5)
@@ -426,10 +426,10 @@ def setupPulse():
                     "pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;192.168.0.0/24;10.0.0.0/24 auth-anonymous=1", timeout=5, shell=True)
                 subprocess.check_call(
                     "pactl load-module module-zeroconf-publish", timeout=5, shell=True)
-        except:
+        except Exception:
             log.exception("Error configuring pulseaudio sharing")
 
-    except:
+    except Exception:
         log.exception("Error configuring pulseaudio")
 
 
@@ -456,9 +456,9 @@ def _ensureConnections(*a, **k):
         for i in x:
             try:
                 allConnections[i].reconnect()
-            except:
+            except Exception:
                 print(traceback.format_exc())
-    except:
+    except Exception:
         ensureConnectionsQueued[0]=0
         log.exception("Probably just a weakref that went away.")
 
@@ -470,9 +470,9 @@ def _checkNewAvailableConnection(*a, **k):
         for i in x:
             try:
                 allConnections[i].reconnect()
-            except:
+            except Exception:
                 print(traceback.format_exc())
-    except:
+    except Exception:
         log.exception("Probably just a weakref that went away.")
 
 
@@ -497,7 +497,7 @@ def findReal():
             try:
                 for j in _jackclient.get_all_connections(i):
                     pl[i.name, j.name] = True
-            except:
+            except Exception:
                 log.exception("Err")
         global realConnections,_realConnections
         with portsListLock:
@@ -527,7 +527,7 @@ class MonoAirwire():
         self.disconnected = True
         try:
             del allConnections[self.orig, self.to]
-        except:
+        except Exception:
             pass
         try:
             if lock.acquire(timeout=10):
@@ -552,7 +552,7 @@ class MonoAirwire():
             else:
                 raise RuntimeError("getting lock")
 
-        except:
+        except Exception:
             pass
 
     def __del__(self):
@@ -585,7 +585,7 @@ class MonoAirwire():
                                 lock.release()
                         else:
                             raise RuntimeError("Could not get lock")
-                except:
+                except Exception:
                     print(traceback.format_exc())
 
 
@@ -754,7 +754,7 @@ class CombiningAirwire(MultichannelAirwire):
                         if isConnected(i, j):
                             try:
                                 disconnect(i, j)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
                             try:
                                 del activeConnections[i, j]
@@ -831,22 +831,22 @@ def tryCloseFds(p):
         return
     try:
         p.stdout.close()
-    except:
+    except Exception:
         pass
     try:
         p.stderr.close()
-    except:
+    except Exception:
         pass
     try:
         p.stdin.close()
-    except:
+    except Exception:
         pass
 
 
 def try_stop(p):
     try:
         p.terminate()
-    except:
+    except Exception:
         pass
     tryCloseFds(p)
 
@@ -1237,7 +1237,7 @@ def cleanup():
     try:
         print("Killing jack process")
         jackp.kill()
-    except:
+    except Exception:
         pass
     with lock:
         for i in alsa_in_instances:
@@ -1275,23 +1275,23 @@ def _stopJackProcess():
     try:
         subprocess.call(['killall', 'alsa_in'],
                         stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    except:
+    except Exception:
         print(traceback.format_exc())
     try:
         subprocess.call(['killall', 'alsa_out'],
                         stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    except:
+    except Exception:
         print(traceback.format_exc())
     try:
         subprocess.call(['killall', 'a2jmidid'],
                         stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    except:
+    except Exception:
         print(traceback.format_exc())
 
     try:
         subprocess.call(['killall', 'jackd'],
                         stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    except:
+    except Exception:
         logging.exception("Failed to stop, retrying with -9")
 
     time.sleep(1)
@@ -1299,14 +1299,14 @@ def _stopJackProcess():
     try:
         subprocess.call(['killall', '-9', 'jackd'],
                         stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    except:
+    except Exception:
         print(traceback.format_exc())
     try:
         # Close any existing stuff
         if _jackclient:
             _jackclient.close()
             _jackclient = None
-    except:
+    except Exception:
         print(traceback.format_exc())
         log.exception("Probably just already closed")
     tryCloseFds(jackp)
@@ -1331,20 +1331,20 @@ def _startJackProcess(p=None, n=None, logErrs=True):
         if midip:
             try:
                 midip.kill()
-            except:
+            except Exception:
                 print(traceback.format_exc())
 
         try:
             subprocess.call(
                 ['pulseaudio', '-k'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        except:
+        except Exception:
             print(traceback.format_exc())
 
         # Let's be real sure it's gone
         try:
             subprocess.call(['killall', '-9', 'pulseaudio'],
                             stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        except:
+        except Exception:
             print(traceback.format_exc())
 
         # TODO: Explicitly close all the FDs we open!
@@ -1425,7 +1425,7 @@ def _startJackProcess(p=None, n=None, logErrs=True):
                 if _checkJackClient(err=False):
                     startedClient = True
                     break
-            except:
+            except Exception:
                 time.sleep(1)
         global prevJackStatus
 
@@ -1445,13 +1445,13 @@ def _startJackProcess(p=None, n=None, logErrs=True):
             try:
                 subprocess.check_call(
                     ['chrt', '-f', '-p', str(realtimePriority), str(jackp.pid)])
-            except:
+            except Exception:
                 log.exception("Error getting RT")
 
         try:
             setupPulse()
             log.debug("Set up pulse")
-        except:
+        except Exception:
             log.exception("Error starting pulse, ignoring")
 
         def f():
@@ -1575,7 +1575,7 @@ def handleManagedSoundcards():
                 for i in tr:
                     try_stop(alsa_in_instances[i])
                     del alsa_in_instances[i]
-            except:
+            except Exception:
                 print(traceback.format_exc())
 
             # HANDLE CREATING AND GC-ING things
@@ -1605,7 +1605,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.call(
                                     ['pulseaudio', '-k'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
                             time.sleep(2)
 
@@ -1616,7 +1616,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.check_call(
                                     ['chrt', '-f', '-p', '70', str(x.pid)])
-                            except:
+                            except Exception:
                                 log.exception("Error getting RT")
 
                             alsa_in_instances[i] = x
@@ -1632,7 +1632,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.call(
                                     ['pulseaudio', '-k'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
 
                             log.debug(
@@ -1644,7 +1644,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.check_call(
                                     ['chrt', '-f', '-p', '70', str(x.pid)])
-                            except:
+                            except Exception:
                                 log.exception("Error getting RT")
                             log.info("Added " + i + "o")
 
@@ -1652,7 +1652,7 @@ def handleManagedSoundcards():
                 if startPulse:
                     try:
                         setupPulse()
-                    except:
+                    except Exception:
                         log.exception("Error restarting pulse, ignoring")
                 if lastFullScan > time.monotonic() - 10:
                     return
@@ -1669,7 +1669,7 @@ def handleManagedSoundcards():
                             try:
                                 if not i in j.aliases:
                                     j.set_alias(i)
-                            except:
+                            except Exception:
                                 log.exception("Error setting MIDI alias")
 
             for i in inp:
@@ -1692,7 +1692,7 @@ def handleManagedSoundcards():
                         try:
                             subprocess.check_call(
                                 ['chrt', '-f', '-p', '70', str(x.pid)])
-                        except:
+                        except Exception:
                             log.exception("Error getting RT")
                         alsa_in_instances[i] = x
                         log.info("Added " + i + "i at " + inp[i][1])
@@ -1713,7 +1713,7 @@ def handleManagedSoundcards():
                         try:
                             subprocess.check_call(
                                 ['chrt', '-f', '-p', '70', str(x.pid)])
-                        except:
+                        except Exception:
                             log.exception("Error getting RT")
                         alsa_out_instances[i] = x
                         log.info("Added " + i + "o at " + op[i][1])
@@ -1730,7 +1730,7 @@ def handleManagedSoundcards():
                                 "o because the card was removed")
                     try:
                         closeAlsaProcess(alsa_out_instances[i])
-                    except:
+                    except Exception:
                         log.exception("Error closing process")
                     del alsa_out_instances[i]
 
@@ -1743,10 +1743,10 @@ def handleManagedSoundcards():
                                 "i because the card was removed")
                     try:
                         closeAlsaProcess(alsa_in_instances[i])
-                    except:
+                    except Exception:
                         log.exception("Error closing process")
                     del alsa_in_instances[i]
-            except:
+            except Exception:
                 log.exception("Exception in loop")
             try:
                 tr = []
@@ -1812,7 +1812,7 @@ def handleManagedSoundcards():
                 for i in tr:
                     try_stop(alsa_in_instances[i])
                     del alsa_in_instances[i]
-            except:
+            except Exception:
                 print(traceback.format_exc())
 
             # HANDLE CREATING AND GC-ING things
@@ -1842,7 +1842,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.call(
                                     ['pulseaudio', '-k'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
                             time.sleep(2)
 
@@ -1853,7 +1853,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.check_call(
                                     ['chrt', '-f', '-p', '70', str(x.pid)])
-                            except:
+                            except Exception:
                                 log.exception("Error getting RT")
 
                             alsa_in_instances[i] = x
@@ -1869,7 +1869,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.call(
                                     ['pulseaudio', '-k'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
 
                             log.debug(
@@ -1881,7 +1881,7 @@ def handleManagedSoundcards():
                             try:
                                 subprocess.check_call(
                                     ['chrt', '-f', '-p', '70', str(x.pid)])
-                            except:
+                            except Exception:
                                 log.exception("Error getting RT")
                             log.info("Added " + i + "o")
 
@@ -1889,7 +1889,7 @@ def handleManagedSoundcards():
                 if startPulse:
                     try:
                         setupPulse()
-                    except:
+                    except Exception:
                         log.exception("Error restarting pulse, ignoring")
                 if lastFullScan > time.monotonic() - 10:
                     return
@@ -1906,7 +1906,7 @@ def handleManagedSoundcards():
                             try:
                                 if not i in j.aliases:
                                     j.set_alias(i)
-                            except:
+                            except Exception:
                                 log.exception("Error setting MIDI alias")
 
             for i in inp:
@@ -1927,7 +1927,7 @@ def handleManagedSoundcards():
                         try:
                             subprocess.check_call(
                                 ['chrt', '-f', '-p', '70', str(x.pid)])
-                        except:
+                        except Exception:
                             log.exception("Error getting RT")
                         alsa_in_instances[i] = x
                         log.info("Added " + i + "i at " + inp[i][1])
@@ -1948,7 +1948,7 @@ def handleManagedSoundcards():
                         try:
                             subprocess.check_call(
                                 ['chrt', '-f', '-p', '70', str(x.pid)])
-                        except:
+                        except Exception:
                             log.exception("Error getting RT")
                         alsa_out_instances[i] = x
                         log.info("Added " + i + "o at " + op[i][1])
@@ -1965,7 +1965,7 @@ def handleManagedSoundcards():
                                 "o because the card was removed")
                     try:
                         closeAlsaProcess(alsa_out_instances[i])
-                    except:
+                    except Exception:
                         log.exception("Error closing process")
                     del alsa_out_instances[i]
 
@@ -1978,10 +1978,10 @@ def handleManagedSoundcards():
                                 "i because the card was removed")
                     try:
                         closeAlsaProcess(alsa_in_instances[i])
-                    except:
+                    except Exception:
                         log.exception("Error closing process")
                     del alsa_in_instances[i]
-            except:
+            except Exception:
                 log.exception("Exception in loop")
         finally:
             lock.release()
@@ -2025,7 +2025,7 @@ def work():
                     # Already stopping anyway, ignore
                     pass
             time.sleep(5)
-        except:
+        except Exception:
             logging.exception("Error in jack manager")
 
 
@@ -2046,7 +2046,7 @@ def startJackProcess(p=None, n=None):
                 # Only log on the last attempt
                 _startJackProcess(p, n, logErrs=i == 9)
                 break
-            except:
+            except Exception:
                 log.exception("Failed to start JACK?")
                 time.sleep(0.5)
                 if i == 9:
@@ -2066,13 +2066,13 @@ def startManaging(p=None, n=None):
         try:
             if _reconnecterThreadObject:
                 _reconnecterThreadObject.join()
-        except:
+        except Exception:
             pass
 
         if manageJackProcess:
             try:
                 startJackProcess()
-            except:
+            except Exception:
                 log.exception("Could not start JACK, retrying later")
 
         _reconnecterThreadObjectStopper[0] = 1
@@ -2089,7 +2089,7 @@ def stopManaging():
         try:
             if _reconnecterThreadObject:
                 _reconnecterThreadObject.join()
-        except:
+        except Exception:
             pass
         _reconnecterThreadObject = None
 
@@ -2109,14 +2109,14 @@ def _checkJack():
                     try:
                         jack_output += readAllSoFar(jackp)
                         jack_output += readAllErrSoFar(jackp)
-                    except:
+                    except Exception:
                         print(traceback.format_exc())
                         print(jack_output)
 
                         try:
                             print("Killing jack process, read fail")
                             jackp.kill()
-                        except:
+                        except Exception:
                             pass
                         jackp = None
 
@@ -2158,14 +2158,14 @@ def _checkJackClient(err=True):
                 messagebus.postMessage("/system/jack/started", {})
             
             return True
-        except:
+        except Exception:
             postedCheck=False
             print(traceback.format_exc())
             print("Remaking client")
             try:
                 _jackclient.close()
                 _jackclient = None
-            except:
+            except Exception:
                 pass
 
 
@@ -2176,7 +2176,7 @@ def _checkJackClient(err=True):
 
             try:
                 _jackclient = JackClientProxy()
-            except:
+            except Exception:
                 if err:
                     log.exception("Error creating JACK client")
                 return
@@ -2264,7 +2264,7 @@ def getConnections(name, *a, **k):
                 return []
             try:
                 return _jackclient.get_all_connections(name)
-            except:
+            except Exception:
                 log.exception("Error getting connections")
                 return []
         finally:
@@ -2333,7 +2333,7 @@ def disconnect(f, t):
                     except KeyError:
                         pass
 
-            except:
+            except Exception:
                 print(traceback.format_exc())
         finally:
             lock.release()
@@ -2371,7 +2371,7 @@ def connect(f, t):
                         f = f.name
                     if isinstance(t, PortInfo):
                         t = t.name
-                except:
+                except Exception:
                     return
 
                 try:
@@ -2394,7 +2394,7 @@ def connect(f, t):
                             realConnections = _realConnections.copy()
                         except KeyError:
                             pass
-                except:
+                except Exception:
                     print(traceback.format_exc())
             finally:
                 lock.release()

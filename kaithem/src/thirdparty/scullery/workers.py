@@ -135,7 +135,7 @@ def makeWorker(e, q, id, fastMode=False):
                 while (len(taskQueue)):
                     try:
                         f = pop()
-                    except:
+                    except Exception:
                         f = None
 
                     if f:
@@ -156,14 +156,14 @@ def makeWorker(e, q, id, fastMode=False):
                                     "Error in function running in thread pool "
                                     + f[0].__name__ + " from " +
                                     f[0].__module__)
-                            except:
+                            except Exception:
                                 print("Failed to handle error: " +
                                       traceback.format_exc(6))
 
                             for i in backgroundFunctionErrorHandlers:
                                 try:
                                     i(f)
-                                except:
+                                except Exception:
                                     print("Failed to handle error: " +
                                           traceback.format_exc(6))
                         finally:
@@ -214,7 +214,7 @@ def makeWorker(e, q, id, fastMode=False):
                                         workers = workersMutable.copy()
                                         wakeupHandlesMutable.remove(handle)
                                         wakeupHandles = wakeupHandlesMutable[:]
-            except:
+            except Exception:
                 print("Exception in worker loop: " + traceback.format_exc(6))
 
     return workerloop

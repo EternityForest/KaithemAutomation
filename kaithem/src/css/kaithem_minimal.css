@@ -346,7 +346,9 @@ div.help:hover {
     z-index: 100;
 }
 
-
+td details{
+    display: inline-block;
+}
 /*A link styled to look like a button*/
 
 a.button {

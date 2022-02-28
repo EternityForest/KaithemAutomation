@@ -121,7 +121,7 @@ specialKeys={
 "=tv("/some/tag/name") + 50" to create a virtual tag.
 </p>
 
-<p class="help">If either the external or device tag point exists, you can leave the type field blank.</p>
+<details><summary><i class="icofont-question-circle"></i></summary>If either the external or device tag point exists, you can leave the type field blank.</details>
 
 
 <textarea name="temp.kaithem.inputbindings" id="bindings" style="display: none">
@@ -151,8 +151,8 @@ ${manageForm}
 %for i in sorted([i for i in obj.config.keys() if not i in specialKeys and not i.startswith("kaithem.")] ):
 <tr>
         %if i.startswith('device.'):
-        <td>
-                <p class="help">${obj.config_properties.get(i,{}).get("description",'No description')|h}</p>
+        <td style="max-width: 30%;">
+                <details><summary><i class="icofont-question-circle"></i></summary>${obj.config_properties.get(i,{}).get("description",'No description')|h}</details>
                 ${i[7:]|h}</td>
         %else:
         <td>                

@@ -27,7 +27,7 @@ from scullery import messagebus, workers, util
 
 try:
     import msgpack
-except:
+except Exception:
     pass
 
 logger = logging.getLogger("system.mqtt")
@@ -75,7 +75,7 @@ def getWeakrefHandlers(self):
                             if allSubscriptions[i]():
                                 # Refresh all subscriptions
                                 self().connection.subscribe(i[1], i[2])
-            except:
+            except Exception:
                 logger.exception("Error subscription refresh")
         workers.do(subscriptionRefresh)
 
@@ -112,7 +112,7 @@ def makeThread(c, ref):
                 testCrashOnce = False
                 raise RuntimeError("Test crash once")
             c.loop_forever(retry_first_connection=True)
-        except:
+        except Exception:
             if ref():
                 ref().onConnectionCrash(traceback.format_exc())
                 logger.exception("MQTT Crash")
@@ -311,7 +311,7 @@ class Connection():
                             try:
                                 if self.connection:
                                     self.connection.disconnect()
-                            except:
+                            except Exception:
                                 pass
 
                             self.connection = mqtt.Client()
@@ -507,7 +507,7 @@ class Connection():
                     m = m.decode('utf-8')
                 try:
                     m = json.loads(m)
-                except:
+                except Exception:
                     logging.debug("Bad JSON:" + m[:64])
                 function()(t, m)
 
