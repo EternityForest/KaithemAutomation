@@ -39,6 +39,12 @@ or access the full help via the web interface!
 ## Setup
 See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
 
+Note that to clone everything properly you must have git-lfs installed and set up, otherwise you won't get the tflite
+data file needed for video recognition.
+
+To set this up globally, do `sudo apt install git-lfs` then `git lfs install --skip-repo`. No I don't know why
+Git doesn't have this in the core by default.
+
 There are many optional dependancies in the .deb recommended section that enable extra features. All are available in the debian repos and do not need to be compiled, except for Cython, which is installed automatically by the postinstall script of the debian package, or can easily be manually installed with "sudo pip3 install Cython".
 
 At the moment, Cython is only used to give audio mixer gstreamer threads realtime priority.
@@ -152,6 +158,13 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.15
+- kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.
+- Object Detection in NVRChannel!!! You just need opencv and tflite_runtime!! Future cleanup may not need opencv
+- Fix bug where deleting a tag point logger would not save.
+- We use git-lfs now.  If you are missing files it's probably because that isn't set up.
+
+
 ### 0.68.14
 - Fix bug where NVRChannel would carry over record sessions and thereby crash and not be able to recover from connection failure
 - Improve nvr time search
@@ -197,17 +210,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Admin can see battery status of all connected devices if said device supports it
 - Admin can remotely refresh any client page
 - Enabling telemetry alerts for an account will raise an alarm when an associated kiosk device browser hs low battery(Chrome/Chromium only, FF killed the API on others)
-
-### 0.68.6
-
-- Poll every hour to find any disks that may be above 90% full and raise an alarm automatically about this.
-- Disk usage status on about page
-
-### 0.68.5
-
-- Compatibility with newer Linux Mint
-- Midi last note tags fixed
-- Compatibility with yet another RTMidi variant
 
 
 License Terms

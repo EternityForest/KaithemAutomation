@@ -32,38 +32,6 @@ class CustomDeviceType(DeviceType):
 path = os.path.abspath(__file__)
 path = os.path.dirname(path)
 
-# This is the cache dir that cvlib uses.
-dest_dir = os.path.expanduser('~') + os.path.sep + '.cvlib' + os.path.sep + 'object_detection' + os.path.sep + 'yolo' + os.path.sep + 'yolov3'
-
-# Where to look for files entitled yolov3.weights and yolov3.cfg
-yolo_search=[
-    "/usr/share/pjreddie_darknet/yolov3_coco",
-    os.path.expanduser("~/.local/share/pjreddie_darknet/yolov3_coco"),
-    "/opt/pjreddie_darknet/yolov3_coco",
-    path,
-    dest_dir
-]
-
-yolocfg=yoloweights=None
-
-yolocfg4=yoloweights4=None
-
-for i in yolo_search:
-    if os.path.exists(os.path.join(i, "yolov3.weights")):
-        yoloweights = os.path.join(i, "yolov3.weights")
-    if os.path.exists(os.path.join(i, "yolov3.cfg")):
-        yolocfg= os.path.join(i, "yolov3.cfg")
-
-
-# for i in yolo_search:
-#     if os.path.exists(os.path.join(i, "yolov4-tiny.weights")):
-#         yoloweights4 = os.path.join(i, "yolov4-tiny.weights")
-#     if os.path.exists(os.path.join(i, "yolov4-tiny.cfg")):
-#         yolocfg4= os.path.join(i, "yolov4-tiny.cfg")
-
-# Choose our modded version with smaller size that actually runs on sane processors
-if os.path.exists(os.path.join(path, "yolov3.cfg")):
-    yolocfg= os.path.join(path, "yolov3.cfg")
 
 objectDetector = [None,None]
 
@@ -110,26 +78,19 @@ def letterbox_image(image, size):
 # We get the model from here and export it as tflite without any extra quantization:
 # https://github.com/google/automl/blob/master/efficientdet/README.md
 
+# Label map: https://github.com/joonb14/TFLiteDetection
+
 def recognize_tflite(i,r):
     import tflite_runtime.interpreter as tflite
     import cv2
     import PIL.Image
     import PIL.ImageOps
-    Conf_threshold = 0.4
-    NMS_threshold = 0.4
+
     i = PIL.Image.open(io.BytesIO(i))
     pilimg=i
     i=PIL.ImageOps.autocontrast(i, cutoff=0.20)
 
-    Width = i.width
-    Height = i.height
     if not objectDetector[0]:
-        # objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
-        # #objectDetector[0] = cv2.dnn_DetectionModel(objectDetector[0])
-        # objectDetector[0].net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL_FP16)
-        # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-
-        #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
         objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/efficientdet-lite0-f32.tflite"))
         objectDetector[0].allocate_tensors()
 
@@ -151,9 +112,7 @@ def recognize_tflite(i,r):
 
 
     input_image = numpy.expand_dims(image,0)
-    # scale = 0.00392
-    # input_image=input_image.astype("float32")*scale
-
+   
     interpreter.set_tensor(input_details[0]['index'], input_image)
     original_image_h=original_image.shape[0]
     original_image_w=original_image.shape[1]
@@ -170,34 +129,10 @@ def recognize_tflite(i,r):
     o = interpreter.get_tensor(output_details[0]['index'])[0]
     probability = numpy.array([i[5]for i in o])
 
-    # boxesPosition = interpreter.get_tensor(output_details[0]['index'])
-    # probability = interpreter.get_tensor(output_details[2]['index'])
-    # categories = interpreter.get_tensor(output_details[1]['index'])
-
-
-    # boxesPosition[:,:,0] = boxesPosition[:,:,0]*original_image_h
-    # boxesPosition[:,:,1] = boxesPosition[:,:,1]*original_image_w
-    # boxesPosition[:,:,2] = boxesPosition[:,:,2]*original_image_h
-    # boxesPosition[:,:,3] = boxesPosition[:,:,3]*original_image_w
-    # boxesPosition = boxesPosition.astype(int)
-
     # Our dynamically chosen confidence threshhold meant to pick up things in dim light
     p = float(max(min(0.10, float(probability.max())*0.8),0.01))
-    # categories = categories[probability>p]
-
-    # boxesPosition = boxesPosition[probability>p]
-    #probability = probability[probability>p]
-
-
+ 
     retval = []
-
-
-
-    # for i in range(len(categories)):     
-    #     x,y,w,h = (boxesPosition[i][1],boxesPosition[i][0], boxesPosition[i][3],boxesPosition[i][2])
-    #     confidence = float(probability[i])
-    #     label = labels[int(categories[i])]
-
 
     # All this is reverse engineered from looging at the output.
     for i in o:
@@ -244,66 +179,6 @@ def recognize_tflite(i,r):
 
     return {'objects':retval,'x-inferencetime':t}
 
-
-
-def recognize(i):
-    if not (yoloweights or yoloweights4):
-        return []
-
-    import cv2
-    import PIL.Image
-    i = PIL.Image.open(io.BytesIO(i))
-    Width = i.width
-    Height = i.height
-    if not objectDetector[0]:
-        if yoloweights4:
-            try:
-                objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg4,yoloweights4)
-            except:
-                print(traceback.format_exc())
-                objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
-        else:
-            objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
-
-        #objectDetector[0] = cv2.dnn_DetectionModel(objectDetector[0])
-        # objectDetector[0].net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL_FP16)
-        # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-
-        #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
-    
-    image = toImgOpenCV(i)
-    scale = 0.00392
-    tm = time.time()
-    blob= cv2.dnn.blobFromImage(image, scale, (416,416), (0,0,0), True, crop=False)
-    objectDetector[0].setInput(blob)
-    ln = objectDetector[0].getLayerNames()
-    ln = [ln[i[0] - 1] for i in objectDetector[0].getUnconnectedOutLayers()]
-
-    outs = objectDetector[0].forward(ln)
-    print(time.time()-tm)
-    retval = []
-
-    for out in outs:
-        for detection in out:
-            scores = detection[5:]
-            class_id = numpy.argmax(scores)
-            objclass = classes[class_id]
-            confidence = scores[class_id]
-            if confidence > 0.001:
-                center_x = int(detection[0] * Width)
-                center_y = int(detection[1] * Height)
-                w = int(detection[2] * Width)
-                h = int(detection[3] * Height)
-                x = center_x - w / 2
-                y = center_y - h / 2
-            
-                retval.append({
-                    'x':x, 'y':y, "w":w, 'h': h,
-                    'class': objclass,
-                    'confidence': float(confidence)
-                })
-
-    return {'objects':retval}
 
 
 

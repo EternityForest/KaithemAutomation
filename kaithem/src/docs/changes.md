@@ -2,9 +2,10 @@ Change Log
 ----------
 ### 0.68.15
 - kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.
-- Object Detection in NVRChannel!!!
+- Object Detection in NVRChannel!!! You just need opencv and tflite_runtime!! Future cleanup may not need opencv
 - Fix bug where deleting a tag point logger would not save.
-  
+- We use git-lfs now.  If you are missing files it's probably because that isn't set up.
+
 ### 0.68.14
 - Fix bug where NVRChannel would carry over record sessions and thereby crash and not be able to recover from connection failure
 - Improve nvr time search
