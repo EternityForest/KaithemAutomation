@@ -107,7 +107,10 @@ def letterbox_image(image, size):
 
 
 
-def recognize_tflite(i):
+# We get the model from here and export it as tflite without any extra quantization:
+# https://github.com/google/automl/blob/master/efficientdet/README.md
+
+def recognize_tflite(i,r):
     import tflite_runtime.interpreter as tflite
     import cv2
     import PIL.Image
@@ -115,6 +118,7 @@ def recognize_tflite(i):
     Conf_threshold = 0.4
     NMS_threshold = 0.4
     i = PIL.Image.open(io.BytesIO(i))
+    pilimg=i
     i=PIL.ImageOps.autocontrast(i, cutoff=0.20)
 
     Width = i.width
@@ -126,7 +130,7 @@ def recognize_tflite(i):
         # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 
         #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
-        objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/lite-model_efficientdet_lite0_int8_1.tflite"))
+        objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/efficientdet-lite0-f32.tflite"))
         objectDetector[0].allocate_tensors()
 
         objectDetector[1]=numpy.loadtxt(os.path.join(path,"labelmap.txt"),dtype = str, delimiter="/n") 
@@ -139,7 +143,10 @@ def recognize_tflite(i):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    image = letterbox_image(original_image,(input_details[0]['shape'][1],input_details[0]['shape'][2]))
+    tensor_w = input_details[0]['shape'][1]
+    tensor_h= input_details[0]['shape'][2]
+
+    image = letterbox_image(original_image,(tensor_w,tensor_h))
     image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
 
 
@@ -155,35 +162,60 @@ def recognize_tflite(i):
     invoke_time = time.time()
     interpreter.invoke()
     t = time.time()-invoke_time
+    r.lastInferenceTime = t
+
     # The function `get_tensor()` returns a copy of the tensor data.
     # Use `tensor()` in order to get a pointer to the tensor.
-    boxesPosition = interpreter.get_tensor(output_details[0]['index'])
-    boxesPosition[:,:,0] = boxesPosition[:,:,0]*original_image_h
-    boxesPosition[:,:,1] = boxesPosition[:,:,1]*original_image_w
-    boxesPosition[:,:,2] = boxesPosition[:,:,2]*original_image_h
-    boxesPosition[:,:,3] = boxesPosition[:,:,3]*original_image_w
-    boxesPosition = boxesPosition.astype(int)
-    probability = interpreter.get_tensor(output_details[2]['index'])
 
-    categories = interpreter.get_tensor(output_details[1]['index'])
+    o = interpreter.get_tensor(output_details[0]['index'])[0]
+    probability = numpy.array([i[5]for i in o])
+
+    # boxesPosition = interpreter.get_tensor(output_details[0]['index'])
+    # probability = interpreter.get_tensor(output_details[2]['index'])
+    # categories = interpreter.get_tensor(output_details[1]['index'])
 
 
-    p = min(0.10, float(probability.max())*0.8)
-    categories = categories[probability>p]
+    # boxesPosition[:,:,0] = boxesPosition[:,:,0]*original_image_h
+    # boxesPosition[:,:,1] = boxesPosition[:,:,1]*original_image_w
+    # boxesPosition[:,:,2] = boxesPosition[:,:,2]*original_image_h
+    # boxesPosition[:,:,3] = boxesPosition[:,:,3]*original_image_w
+    # boxesPosition = boxesPosition.astype(int)
 
-    boxesPosition = boxesPosition[probability>p]
-    probability = probability[probability>p]
+    # Our dynamically chosen confidence threshhold meant to pick up things in dim light
+    p = float(max(min(0.10, float(probability.max())*0.8),0.01))
+    # categories = categories[probability>p]
+
+    # boxesPosition = boxesPosition[probability>p]
+    #probability = probability[probability>p]
+
 
     retval = []
 
 
 
-    for i in range(len(categories)):     
-        x,y,w,h = (boxesPosition[i][1],boxesPosition[i][0], boxesPosition[i][3],boxesPosition[i][2])
-        confidence = float(probability[i])
+    # for i in range(len(categories)):     
+    #     x,y,w,h = (boxesPosition[i][1],boxesPosition[i][0], boxesPosition[i][3],boxesPosition[i][2])
+    #     confidence = float(probability[i])
+    #     label = labels[int(categories[i])]
+
+
+    # All this is reverse engineered from looging at the output.
+    for i in o:
+        if float(i[5])<p:
+            continue 
+        if int(i[6])<1:
+            continue
+
+        x,y,w,h = (float((i[2]/tensor_w)*original_image_w),float((i[1]/tensor_h)*original_image_h), float((i[4]/tensor_w)*original_image_w),
+        float((i[3]/tensor_h)*original_image_h))
+
+        confidence = float(i[5])
+        label = labels[int(i[6])-1]
+
+
         v= {
                 'x':float(x), 'y':float(y), "w":float(w), 'h': float(h),
-                'class': labels[int(categories[i])],
+                'class': label,
                 'confidence': confidence,
             }
         # For some reason I am consistently getting false positive people detections with y values in the -6 to 15 range
@@ -962,7 +994,7 @@ class NVRChannel(devices.Device):
         self.set_data_point("raw_motion_value", v)
 
         self.motion(v > float(self.config.get(
-            'device.motion_threshold', 0.12)))
+            'device.motion_threshold', 0.08)))
 
     
         # We do object detection on one of two conditions. Either when there is motion or every N seconds no matter what.
@@ -977,8 +1009,9 @@ class NVRChannel(devices.Device):
         if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
             objects=False
 
-        if objects and ((v > float(self.config.get('device.motion_threshold', 0.12))) or (self.lastDidObjectRecognition < time.monotonic() - detect_interval)):
-            if (self.lastDidObjectRecognition< time.monotonic() - 1):
+        if objects and ((v > float(self.config.get('device.motion_threshold', 0.08))) or (self.lastDidObjectRecognition < time.monotonic() - detect_interval)):
+            #Limit CPU usage. But don't limit so much we go more than 5s between detections
+            if ((self.lastDidObjectRecognition- min(self.lastInferenceTime*1.1,5 ))< time.monotonic() - min(self.lastInferenceTime*1.1,5 )):
                 self.obj_rec_wait_timestamp = time.monotonic()
                 obj_rec_wait = self.obj_rec_wait_timestamp
                 def f():
@@ -992,7 +1025,7 @@ class NVRChannel(devices.Device):
                     # We have to detect within this window or it will dissapear before we capture it.
 
                     #Note
-                    n = max(1,int((float(self.config.get('device.loop_record_length', 5))+2.5)/5))*5
+                    n = max(1, int((float(self.config.get('device.loop_record_length', 5))+2.5)/5))*5
 
 
                     # If we have not seen any objects lately, better check more often because
@@ -1008,7 +1041,7 @@ class NVRChannel(devices.Device):
                             # Only the latest should get through, or we would queue up a problem.
                             if self.obj_rec_wait_timestamp > obj_rec_wait:
                                 return
-                            o=recognize_tflite(self.request_data_point("bmp_snapshot"))
+                            o=recognize_tflite(self.request_data_point("bmp_snapshot"), self)
                             self.lastDidObjectRecognition=time.monotonic()
                             self.lastObjectSet=o
                             
@@ -1067,6 +1100,8 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.loop_record_length", '5')
 
             self.process = None
+
+            self.lastInferenceTime = 1
 
             self.lastDidObjectRecognition = 0
 
@@ -1190,7 +1225,7 @@ class NVRChannel(devices.Device):
 
             self.set_config_default("device.object_record", 'person, dog, cat, horse, sheep, cow, handbag, frisbee, bird, backpack, suitcase, sports ball')
 
-            self.set_config_default("device.motion_threshold", '0.12')
+            self.set_config_default("device.motion_threshold", '0.08')
             self.set_config_default("device.bitrate", '386')
 
             self.set_config_default("device.retain_days", '90')

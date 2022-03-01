@@ -6,8 +6,8 @@
 *.json text
 *.mako text
 *.c text
-
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.xcf binary
+*.tflite filter=lfs diff=lfs merge=lfs -text

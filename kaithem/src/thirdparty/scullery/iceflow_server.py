@@ -140,14 +140,29 @@ class PILCapture():
         self.appsink = appsink
 
     def pullToFile(self,f,timeout=0.1):
-        x = self.pull(timeout)
+        x = self.pull(timeout,True)
         if not x:
             return None
         x.save(f)
         return 1
 
-    def pull(self,timeout=0.1):
+    def pull(self,timeout=0.1,forceLatest=False):
         sample = self.appsink.emit('try-pull-sample', timeout * 10**9)
+
+        if forceLatest:
+            # Try another pull but only wait 1ms.
+            # This is in case there is another queued up frame, such as if we have buffer elements or something
+            # before this
+            sample2 = self.appsink.emit('try-pull-sample', 1000000)
+            c = 10
+            while sample2:
+                if c<1:
+                    break
+                c-=1
+                sample2 = self.appsink.emit('try-pull-sample', 1000000)
+
+            sample = sample2 or sample
+
         if not sample:
             return None
 
