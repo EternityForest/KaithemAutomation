@@ -68,7 +68,7 @@ if os.path.exists(os.path.join(path, "yolov3.cfg")):
 objectDetector = [None,None]
 
 # Only one of these should happpen at a time. Because we need to limit how much CPU it can burn.
-object_detection_lock = threading.Lock()
+object_detection_lock = threading.RLock()
 
 import numpy
 
@@ -126,7 +126,7 @@ def recognize_tflite(i):
         # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 
         #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
-        objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/lite-model_efficientdet_lite2_detection_metadata_1.tflite"))
+        objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/lite-model_efficientdet_lite0_int8_1.tflite"))
         objectDetector[0].allocate_tensors()
 
         objectDetector[1]=numpy.loadtxt(os.path.join(path,"labelmap.txt"),dtype = str, delimiter="/n") 
@@ -148,38 +148,67 @@ def recognize_tflite(i):
     # input_image=input_image.astype("float32")*scale
 
     interpreter.set_tensor(input_details[0]['index'], input_image)
+    original_image_h=original_image.shape[0]
+    original_image_w=original_image.shape[1]
+
 
     invoke_time = time.time()
     interpreter.invoke()
     t = time.time()-invoke_time
-    print("invoke time:", t, "sec")
     # The function `get_tensor()` returns a copy of the tensor data.
     # Use `tensor()` in order to get a pointer to the tensor.
     boxesPosition = interpreter.get_tensor(output_details[0]['index'])
-    boxesPosition[:,:,0] = boxesPosition[:,:,0]*original_image.shape[0]
-    boxesPosition[:,:,1] = boxesPosition[:,:,1]*original_image.shape[1]
-    boxesPosition[:,:,2] = boxesPosition[:,:,2]*original_image.shape[0]
-    boxesPosition[:,:,3] = boxesPosition[:,:,3]*original_image.shape[1]
+    boxesPosition[:,:,0] = boxesPosition[:,:,0]*original_image_h
+    boxesPosition[:,:,1] = boxesPosition[:,:,1]*original_image_w
+    boxesPosition[:,:,2] = boxesPosition[:,:,2]*original_image_h
+    boxesPosition[:,:,3] = boxesPosition[:,:,3]*original_image_w
     boxesPosition = boxesPosition.astype(int)
     probability = interpreter.get_tensor(output_details[2]['index'])
 
     categories = interpreter.get_tensor(output_details[1]['index'])
 
 
-    p = min(0.16, float(probability.max())*0.8)
+    p = min(0.10, float(probability.max())*0.8)
     categories = categories[probability>p]
 
     boxesPosition = boxesPosition[probability>p]
     probability = probability[probability>p]
 
     retval = []
+
+
+
     for i in range(len(categories)):     
         x,y,w,h = (boxesPosition[i][1],boxesPosition[i][0], boxesPosition[i][3],boxesPosition[i][2])
-        retval.append({
-            'x':float(x), 'y':float(y), "w":float(w), 'h': float(h),
-            'class': labels[int(categories[i])],
-            'confidence': float(probability[i]),
-        })
+        confidence = float(probability[i])
+        v= {
+                'x':float(x), 'y':float(y), "w":float(w), 'h': float(h),
+                'class': labels[int(categories[i])],
+                'confidence': confidence,
+            }
+        # For some reason I am consistently getting false positive people detections with y values in the -6 to 15 range
+        # Could just be my input data.  But, things are usually not that high up unless they are big and big means a clear view which means
+        # you probably would have a higher confidence
+        if (x> 1 and y>24) or confidence>0.33 :
+            
+            # If something takes up a very large amount of the frame, we probably have a clear view of it.  If we are still not confident the ANN
+            # Is probably making stuff up.  Very large things are going to be uncommon since most cameras like this aren't doing extreme close ups
+            # and the ones that are probably have good lighting
+            if ( (w< original_image_w/4) or (confidence >0.18)) and ((h< (original_image_h/3)) or (confidence > 0.15)):
+                if (w< (original_image_w/1.5) or (confidence >0.32)) and (h< (original_image_h/1.5) or (confidence > 0.32)):
+
+                    # If the width of this object is such that more than 2/3d is off of the frame, we had better be very confident
+                    # because that seems to be a common pattern of false positives.
+                    if ( ((original_image_w-x) > w/3) or confidence > 0.4  ):
+                        retval.append(v)
+                    else:
+                        pass#print(v, "reject large offscreen")
+                else:
+                    pass#print(v, "reject to large for confidence 2")
+            else:
+                pass#print(v, "reject too large for confidence")
+        else:
+            pass#print(v,"reject low xy")
 
     return {'objects':retval,'x-inferencetime':t}
 
@@ -893,15 +922,14 @@ class NVRChannel(devices.Device):
     def doMotionRecordControl(self,v,forceMotionOnly=False):
         "forceMotionOnly records even if there is no object detection, for when the CPU can't keep up with how many motion requests there are"
         if self.config.get('device.motion_recording', 'no').lower() in ('true', 'yes', 'on', 'enable', 'enabled'):
-
+    
+            #If object recording is set up, and we have some object detection, only record if there is one of the objects
+            #In frame
+            lookfor = self.config.get('device.object_record', '').strip()
+            if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
+                lookfor = None
 
             if v:
-
-                #If object recording is set up, and we have some object detection, only record if there is one of the objects
-                #In frame
-                lookfor = self.config.get('device.object_record', '').strip()
-                if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
-                    lookfor = None
 
                 # Do obj recognition. Accept recent object detection too in addition to current.
                 #  We also rerun this after we successfully do the motion detection
@@ -909,6 +937,7 @@ class NVRChannel(devices.Device):
                     for i in self.lastObjectSet['objects']:
                         if i['class'] in lookfor:
                             self.lastRecordTrigger = time.monotonic()
+                            self.lastObjectDetectionHit = time.monotonic()
                             self.set_data_point("record", True, None,
                                                 automated_record_uuid)
                 else:
@@ -918,8 +947,11 @@ class NVRChannel(devices.Device):
 
             elif not v and self.canAutoStopRecord:
                 if self.lastRecordTrigger < (time.monotonic() - 12):
-                    self.set_data_point("record", False, None,
-                                        automated_record_uuid)
+                    #Even if there is still motion, if we have object detection data coming in but have not seen the object recently, stop if we are in objetc detecting
+                    #mode
+                    if (self.lastDidObjectRecognition > (time.monotonic() - 15)) and lookfor and (self.lastObjectDetectionHit< (time.monotonic() - 30 )):
+                        self.set_data_point("record", False, None,
+                                            automated_record_uuid)
 
 
         self.lastDidMotionRecordControl = time.monotonic()
@@ -963,7 +995,12 @@ class NVRChannel(devices.Device):
                     n = max(1,int((float(self.config.get('device.loop_record_length', 5))+2.5)/5))*5
 
 
-                    t = 4 if self.datapoints['record'] else (n*0.75)
+                    # If we have not seen any objects lately, better check more often because
+                    # We might be about to stop the recording even if there is still motion, so it must be accurate.
+                    if self.lastObjectDetectionHit > (time.monotonic()-15):
+                        t = 3 if self.datapoints['record'] else (n*0.75)
+                    else:
+                        t = n*0.75
 
                     if object_detection_lock.acquire(True, t+(random.random()*0.1)):
                         try:
@@ -1045,6 +1082,10 @@ class NVRChannel(devices.Device):
 
             # We don't want to stop till a few seconds after an event that would cause motion
             self.lastRecordTrigger = 0
+
+            # We also DO want to stop if we are in object record mode and have not seen the object in a long time
+
+            self.lastObjectDetectionHit = 0
 
             # If this is true, record when there is motion
             self.set_config_default("device.motion_recording", 'no')
