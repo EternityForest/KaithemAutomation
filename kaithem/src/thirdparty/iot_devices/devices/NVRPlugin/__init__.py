@@ -115,7 +115,7 @@ def recognize_tflite(i):
     Conf_threshold = 0.4
     NMS_threshold = 0.4
     i = PIL.Image.open(io.BytesIO(i))
-    i=PIL.ImageOps.equalize(i)
+    i=PIL.ImageOps.autocontrast(i, cutoff=0.20)
 
     Width = i.width
     Height = i.height
@@ -126,7 +126,7 @@ def recognize_tflite(i):
         # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 
         #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
-        objectDetector[0]=tflite.Interpreter(num_threads=3, model_path=os.path.join(path,"efficientdet/lite-model_efficientdet_lite0_int8_1.tflite"))
+        objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/lite-model_efficientdet_lite2_detection_metadata_1.tflite"))
         objectDetector[0].allocate_tensors()
 
         objectDetector[1]=numpy.loadtxt(os.path.join(path,"labelmap.txt"),dtype = str, delimiter="/n") 
@@ -151,7 +151,8 @@ def recognize_tflite(i):
 
     invoke_time = time.time()
     interpreter.invoke()
-    print("invoke time:", time.time()-invoke_time, "sec")
+    t = time.time()-invoke_time
+    print("invoke time:", t, "sec")
     # The function `get_tensor()` returns a copy of the tensor data.
     # Use `tensor()` in order to get a pointer to the tensor.
     boxesPosition = interpreter.get_tensor(output_details[0]['index'])
@@ -174,14 +175,13 @@ def recognize_tflite(i):
     retval = []
     for i in range(len(categories)):     
         x,y,w,h = (boxesPosition[i][1],boxesPosition[i][0], boxesPosition[i][3],boxesPosition[i][2])
-        if int(categories[i])>0:
-            retval.append({
-                'x':float(x), 'y':float(y), "w":float(w), 'h': float(h),
-                'class': labels[int(categories[i])],
-                'confidence': float(probability[i])
-            })
+        retval.append({
+            'x':float(x), 'y':float(y), "w":float(w), 'h': float(h),
+            'class': labels[int(categories[i])],
+            'confidence': float(probability[i]),
+        })
 
-    return {'objects':retval}
+    return {'objects':retval,'x-inferencetime':t}
 
 
 
@@ -971,7 +971,7 @@ class NVRChannel(devices.Device):
                             # Only the latest should get through, or we would queue up a problem.
                             if self.obj_rec_wait_timestamp > obj_rec_wait:
                                 return
-                            o=recognize_cv_en(self.request_data_point("bmp_snapshot"))
+                            o=recognize_tflite(self.request_data_point("bmp_snapshot"))
                             self.lastDidObjectRecognition=time.monotonic()
                             self.lastObjectSet=o
                             
@@ -981,7 +981,7 @@ class NVRChannel(devices.Device):
                             relevantObjects = 0
                             if lookfor and (not self.lastObjectSet is None):
                                 for i in self.lastObjectSet['objects']:
-                                    if i['class'] in lookfor and i['confidence']>0.55:
+                                    if i['class'] in lookfor and i['confidence']>0.35:
                                         relevantObjects += 1
 
                             if self.oldRelevantObjectCount > -1 and not(self.oldRelevantObjectCount==relevantObjects):
