@@ -1,5 +1,6 @@
 from multiprocessing import RLock
 from sys import path
+from tkinter import Image
 from charset_normalizer import detect
 from mako.lookup import TemplateLookup
 from scullery import iceflow,workers
@@ -105,13 +106,17 @@ def letterbox_image(image, size):
     return new_image
 
 
+
 def recognize_tflite(i):
     import tflite_runtime.interpreter as tflite
     import cv2
     import PIL.Image
+    import PIL.ImageOps
     Conf_threshold = 0.4
     NMS_threshold = 0.4
     i = PIL.Image.open(io.BytesIO(i))
+    i=PIL.ImageOps.equalize(i)
+
     Width = i.width
     Height = i.height
     if not objectDetector[0]:
@@ -121,22 +126,22 @@ def recognize_tflite(i):
         # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 
         #objectDetector[0].setInputParams(size=(416, 416), scale=1/255)
-        objectDetector[0]=tflite.Interpreter(model_path=os.path.join(path,"ssd_mobilenet_v1_1_default_1.tflite"))
+        objectDetector[0]=tflite.Interpreter(num_threads=3, model_path=os.path.join(path,"efficientdet/lite-model_efficientdet_lite0_int8_1.tflite"))
         objectDetector[0].allocate_tensors()
 
-        objectDetector[1]=numpy.loadtxt(os.path.join(path,"centrenet/label_map.txt"),dtype = str, delimiter="/n") 
-
-    original_image = toImgOpenCV(i)
-
-    image = letterbox_image(original_image,(300,300))
-    image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        objectDetector[1]=numpy.loadtxt(os.path.join(path,"labelmap.txt"),dtype = str, delimiter="/n") 
 
     interpreter = objectDetector[0]
     labels = objectDetector[1]
 
+    original_image = toImgOpenCV(i)
     # Get input and output tensors.
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
+
+    image = letterbox_image(original_image,(input_details[0]['shape'][1],input_details[0]['shape'][2]))
+    image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+
 
     input_image = numpy.expand_dims(image,0)
     # scale = 0.00392
@@ -158,10 +163,13 @@ def recognize_tflite(i):
     probability = interpreter.get_tensor(output_details[2]['index'])
 
     categories = interpreter.get_tensor(output_details[1]['index'])
-    categories = categories[probability>float(0.18)]
 
-    boxesPosition = boxesPosition[probability>float(0.18)]
-    probability = probability[probability>float(0.18)]
+
+    p = min(0.16, float(probability.max())*0.8)
+    categories = categories[probability>p]
+
+    boxesPosition = boxesPosition[probability>p]
+    probability = probability[probability>p]
 
     retval = []
     for i in range(len(categories)):     
@@ -195,6 +203,7 @@ def recognize(i):
                 objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
         else:
             objectDetector[0]= cv2.dnn.readNetFromDarknet(yolocfg,yoloweights)
+
         #objectDetector[0] = cv2.dnn_DetectionModel(objectDetector[0])
         # objectDetector[0].net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL_FP16)
         # objectDetector[0].net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
@@ -211,7 +220,6 @@ def recognize(i):
 
     outs = objectDetector[0].forward(ln)
     print(time.time()-tm)
-    #outs =  objectDetector[0].detect(image, Conf_threshold, NMS_threshold)
     retval = []
 
     for out in outs:
@@ -235,6 +243,7 @@ def recognize(i):
                 })
 
     return {'objects':retval}
+
 
 
 automated_record_uuid = '76241b9c-5b08-4828-9358-37c6a25dd823'
@@ -769,7 +778,10 @@ class NVRChannel(devices.Device):
             ls = os.listdir(d)
             ls = list(sorted([i for i in ls if i.endswith(".ts")]))
 
-            if len(ls) > 1:
+
+            n = max(1,int((float(self.config.get('device.loop_record_length', 5))+2.5)/5))
+            
+            if len(ls) > n:
                 os.remove(os.path.join(d, ls[0]))
                 self.lastSegment = time.monotonic()
                 self.set_data_point('running', 1)
@@ -933,7 +945,7 @@ class NVRChannel(devices.Device):
         if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
             objects=False
 
-        if objects and ((v > float(self.config.get('device.motion_threshold', 0.12))) or (self.lastDidObjectRecognition< time.monotonic() - detect_interval)):
+        if objects and ((v > float(self.config.get('device.motion_threshold', 0.12))) or (self.lastDidObjectRecognition < time.monotonic() - detect_interval)):
             if (self.lastDidObjectRecognition< time.monotonic() - 1):
                 self.obj_rec_wait_timestamp = time.monotonic()
                 obj_rec_wait = self.obj_rec_wait_timestamp
@@ -943,17 +955,23 @@ class NVRChannel(devices.Device):
                     # prioritize reliable start of record!
 
                     #Cannot wait too long thogh because we nee to quickly fail back to motion only.
-                    t = 6 if self.datapoints['record'] else 4
+
+                    # This calculates our length in terms of how much loop recorded footage we have
+                    # We have to detect within this window or it will dissapear before we capture it.
+
+                    #Note
+                    n = max(1,int((float(self.config.get('device.loop_record_length', 5))+2.5)/5))*5
+
+
+                    t = 4 if self.datapoints['record'] else (n*0.75)
 
                     if object_detection_lock.acquire(True, t+(random.random()*0.1)):
-
-                       
                         try:
                             # We have to make sure an older detection does not wait on a newer detection. 
                             # Only the latest should get through, or we would queue up a problem.
                             if self.obj_rec_wait_timestamp > obj_rec_wait:
                                 return
-                            o=recognize(self.request_data_point("bmp_snapshot"))
+                            o=recognize_cv_en(self.request_data_point("bmp_snapshot"))
                             self.lastDidObjectRecognition=time.monotonic()
                             self.lastObjectSet=o
                             
@@ -1008,6 +1026,8 @@ class NVRChannel(devices.Device):
             self.threadExited = True
             self.closed = False
             self.set_config_default("device.storage_dir", '~/NVR')
+
+            self.set_config_default("device.loop_record_length", '5')
 
             self.process = None
 
@@ -1146,6 +1166,9 @@ class NVRChannel(devices.Device):
                 self.object_data_point("detected_objects",
                                        writable=False)
 
+            self.config_properties['device.loop_record_length']={
+                'description':'How many seconds to buffer at all times to allow recording things before motion events actually happen.'
+            }
 
             self.config_properties['device.barcodes'] = {
                 'type': 'bool'
