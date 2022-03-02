@@ -26,7 +26,7 @@ import time
 import threading
 import weakref
 import traceback
-
+import os
 
 server_only=False
 class Spec(object):
@@ -279,11 +279,11 @@ class RPC(object):
        if server_only:
         try:
             self.stdin.close()
-        except:
+        except Exception:
             pass
         try:
             self.stdout.close()
-        except:
+        except Exception:
             pass
             
         watchdog = getattr(self, "watchdog", None)
@@ -361,7 +361,7 @@ class RPC(object):
         """
         try:
             obj = json.loads(line)
-        except:
+        except Exception:
 
             print("Bad JSON",line)
             #What if we just didn't?
@@ -575,6 +575,9 @@ class Watchdog(threading.Thread):
                         #polling and select() based response.
                         if rfds:
                             self.interval=0.1
+                        #We should exit if we detect we have been adopted by pid1
+                        if os.getppid()<2:
+                            exit(1)
                         lines = [rpc.stdin.readline()]
                     except IOError:
                         # prevent residual race conditions occurring when stdin is closed externally
@@ -590,7 +593,7 @@ class Watchdog(threading.Thread):
                 else:
                     self._stop.wait(self.interval)
                 del rpc
-        except:
+        except Exception:
             print(traceback.format_exc())      
 
         finally:
@@ -598,7 +601,7 @@ class Watchdog(threading.Thread):
                 try:
                     self.rpc().stdin.close()
                     self.rpc().stdout.close()
-                except:
+                except Exception:
                     pass
 
             x = self.rpc()

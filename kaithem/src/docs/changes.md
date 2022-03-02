@@ -1,8 +1,12 @@
 Change Log
 ----------
+
+
+### 0.68.17
+- Clean up a process leak with the IceFlow servers
+
 ### 0.68.16
 - Correctly compute width and height of deteted objects
-
 
 ### 0.68.15
 - kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.

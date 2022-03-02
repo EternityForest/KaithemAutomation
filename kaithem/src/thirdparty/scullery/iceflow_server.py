@@ -108,7 +108,7 @@ class PresenceDetector():
 
             if ndim:
                 #This is like 4 times faster.
-                d= scipy.ndimage.morphology.grey_erosion(d,(3,3))
+                d= scipy.ndimage.grey_erosion(d,(3,3))
             else:
                 d = d.filter(ImageFilter.MinFilter(3))
             d=np.array(d)

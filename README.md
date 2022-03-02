@@ -160,6 +160,10 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.68.17
+- Clean up a process leak with the IceFlow servers
+- 
 ### 0.68.16
 - Correctly compute width and height of deteted objects
 

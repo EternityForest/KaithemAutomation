@@ -26,6 +26,7 @@ import time
 import threading
 import weakref
 import traceback
+import os
 
 
 server_only=False
@@ -574,6 +575,10 @@ class Watchdog(threading.Thread):
                         #polling and select() based response.
                         if rfds:
                             self.interval=0.1
+                        #We should exit if we detect we have been adopted by pid1
+                        if os.getppid()<2:
+                            exit(1)
+
                         lines = [rpc.stdin.readline()]
                     except IOError:
                         # prevent residual race conditions occurring when stdin is closed externally
