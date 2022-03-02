@@ -1037,9 +1037,7 @@ class NVRChannel(devices.Device):
 
             self.recordlock = threading.RLock()
 
-            self.rawFeedPipe = "/dev/shm/nvr_pipe." + \
-                name.replace("/", '') + "." + \
-                str(time.monotonic()) + ".raw_feed.tspipe"
+            self.rawFeedPipe = "/dev/shm/knvr_buffer/" + self.name + "." + str(time.monotonic()) + ".raw_feed.tspipe"
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
