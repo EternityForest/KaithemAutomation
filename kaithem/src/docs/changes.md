@@ -1,5 +1,9 @@
 Change Log
 ----------
+### 0.68.16
+- Correctly compute width and height of deteted objects
+
+
 ### 0.68.15
 - kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.
 - Object Detection in NVRChannel!!! You just need opencv and tflite_runtime!! Future cleanup may not need opencv

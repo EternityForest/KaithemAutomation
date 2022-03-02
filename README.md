@@ -160,6 +160,8 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.68.16
+- Correctly compute width and height of deteted objects
 
 ### 0.68.15
 - kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.

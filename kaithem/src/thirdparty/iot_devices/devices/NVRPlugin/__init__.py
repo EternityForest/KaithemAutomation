@@ -85,10 +85,13 @@ def recognize_tflite(i,r):
     import cv2
     import PIL.Image
     import PIL.ImageOps
+    import PIL.ImageFilter
+    invoke_time = time.time()
 
     i = PIL.Image.open(io.BytesIO(i))
     pilimg=i
-    i=PIL.ImageOps.autocontrast(i, cutoff=0.20)
+    i=i.filter(PIL.ImageFilter.GaussianBlur(1))
+    i=PIL.ImageOps.autocontrast(i, cutoff=(0.1,0,25))
 
     if not objectDetector[0]:
         objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/efficientdet-lite0-f32.tflite"))
@@ -118,7 +121,6 @@ def recognize_tflite(i,r):
     original_image_w=original_image.shape[1]
 
 
-    invoke_time = time.time()
     interpreter.invoke()
     t = time.time()-invoke_time
     r.lastInferenceTime = t
@@ -141,8 +143,13 @@ def recognize_tflite(i,r):
         if int(i[6])<1:
             continue
 
-        x,y,w,h = (float((i[2]/tensor_w)*original_image_w),float((i[1]/tensor_h)*original_image_h), float((i[4]/tensor_w)*original_image_w),
+        x,y,x2,y2 = (float((i[2]/tensor_w)*original_image_w),float((i[1]/tensor_h)*original_image_h), float((i[4]/tensor_w)*original_image_w), 
         float((i[3]/tensor_h)*original_image_h))
+        
+        x = min(x,x2)
+        w = max(x,x2)-x
+        y=min(y,y2)
+        h = max(y,y2)-y
 
         confidence = float(i[5])
         label = labels[int(i[6])-1]
@@ -153,6 +160,11 @@ def recognize_tflite(i,r):
                 'class': label,
                 'confidence': confidence,
             }
+
+        if x2 >(original_image_w-20) and confidence<0.2:
+            continue
+        if y2>(original_image_h-10) and confidence<0.15:
+            continue
         # For some reason I am consistently getting false positive people detections with y values in the -6 to 15 range
         # Could just be my input data.  But, things are usually not that high up unless they are big and big means a clear view which means
         # you probably would have a higher confidence
@@ -176,6 +188,7 @@ def recognize_tflite(i,r):
                 pass#print(v, "reject too large for confidence")
         else:
             pass#print(v,"reject low xy")
+
 
     return {'objects':retval,'x-inferencetime':t}
 
