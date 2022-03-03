@@ -915,6 +915,8 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj['mimetype'] = kwargs['mimetype']
             resourceobj['template-engine'] = kwargs['template-engine']
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
+            resourceobj['streaming-response'] = 'streaming-response' in kwargs
+
             resourceobj['no-header'] = 'no-header' in kwargs
             resourceobj['auto-reload'] = 'autoreload' in kwargs
             resourceobj['allow-xss'] = 'allow-xss' in kwargs

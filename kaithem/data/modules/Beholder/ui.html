@@ -8,8 +8,9 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645912479095158
+resource-timestamp: 1646332987395178
 resource-type: page
+streaming-response: false
 template-engine: mako
 
 ---
@@ -157,8 +158,13 @@ __doc__= "#Python Code here runs every page load"
                   </div>
                     <div style="min-width:12vw; max-height: 25em; overflow-y: scroll;">
                       <ul>
-                          <li v-for="i,v of fileSet"><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8')">{{new Date(Date.parse(i[0])).toLocaleString()}} @ {{i[2]}}</a></li>
+                          <li v-for="i,v of fileSet"><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8',i)">{{new Date(Date.parse(i[0])).toLocaleString()}} @ {{i[2]}}</a></li>
                       </ul>
+                    </div>
+                    <div v-if="playbackClipInfo">
+                      <h3>Selected: {{new Date(Date.parse(playbackClipInfo[0])).toLocaleString()}} @ {{playbackClipInfo[2]}}</h3>
+                      <h4>Download</h4>
+                      <a :href="'serve_mp4/' + playbackClipInfo[1]+'/playlist.m3u8'">Download as MP4</a>
                     </div>
                   </div>
 
@@ -195,6 +201,7 @@ __doc__= "#Python Code here runs every page load"
         rtplayerFX:false,
         rtplayerWater:0,
         rtplayerSepia:0,
+        playbackClipInfo: 0,
 
 
         makeFullRtPlaybackUrl : function()
@@ -215,8 +222,9 @@ __doc__= "#Python Code here runs every page load"
         },
 
 
-        setPlayback: function(x){
+        setPlayback: function(x,i){
           app.playbackURL=x
+          app.playbackClipInfo = i
         },
 
 

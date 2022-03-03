@@ -22,6 +22,8 @@ import threading
 import traceback
 import gc
 import mimetypes
+
+from attr import has
 from . import util, pages, directories, messagebus, systasks, modules_state
 import mako
 import cherrypy
@@ -186,6 +188,8 @@ class CompiledPage():
 
             if resource['resource-type'] == 'page':
                 template = resource['body']
+
+                self.streaming= resource.get("streaming-response",False)
 
                 self.mime = resource.get("mimetype", "text/html")
                 if 'require-method' in resource:
@@ -424,6 +428,13 @@ def getPagesFromModules():
     lookup.invalidate_cache()
 
 
+def streamGen(e):
+    while 1:
+        x = e.read(4096)
+        if not x:
+            return
+        yield x
+
 # kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
     # Class encapsulating one request to a user-defined page
@@ -518,6 +529,12 @@ class KaithemPage():
                 return page.text.encode('utf-8')
 
         except self.kaithemobj.ServeFileInsteadOfRenderingPageException as e:
+
+            if page.streaming and hasattr(e.f_filepath, 'read'):
+               cherrypy.response.headers['Content-Type'] =  e.f_MIME
+               cherrypy.response.headers['Content-Disposition'] =  'attachment ; filename = "' + e.f_name+ '"'
+               return streamGen(e.f_filepath)
+
             if hasattr(e.f_filepath,'getvalue'):
                 cherrypy.response.headers['Content-Type'] =  e.f_MIME
                 cherrypy.response.headers['Content-Disposition'] =  'attachment ; filename = "' + e.f_name+ '"'

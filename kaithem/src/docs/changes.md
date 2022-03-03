@@ -1,7 +1,11 @@
 Change Log
 ----------
 
-
+### 0.68.18
+- kaithem.web.serveFile streaming response
+- SECURITY: Beholder no longer allows unauthorized access to camera snapshots
+- Correctly finalize M3U8 files with the end playlist tag
+  
 ### 0.68.17
 - Clean up a process leak with the IceFlow servers
 

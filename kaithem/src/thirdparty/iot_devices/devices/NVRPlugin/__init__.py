@@ -717,7 +717,7 @@ class NVRChannel(devices.Device):
                 f.write("#EXT-X-START:	TIME-OFFSET=0\r\n")
                 f.write("#EXT-X-PLAYLIST-TYPE: VOD\r\n")
                 f.write("#EXT-X-VERSION:3\r\n")
-                f.write("##EXT-X-ALLOW-CACHE:NO\r\n")
+                f.write("#EXT-X-ALLOW-CACHE:NO\r\n")
                 f.write("#EXT-X-TARGETDURATION:5\r\n")
 
     def onMultiFileSink(self, fn, *a, **k):
@@ -775,8 +775,13 @@ class NVRChannel(devices.Device):
                         self.directorySegments += 1
 
                     if self.stoprecordingafternextsegment:
+                        x = self.segmentDir
                         self.segmentDir = None
                         self.activeSegmentDir = None
+
+                        with open(os.path.join(x, "playlist.m3u8"), "a+") as f:
+                            f.write("\r\n#EXT-X-ENDLIST\r\n")
+
                         break
                     else:
                         # Don't make single directories with more than an hour of video.

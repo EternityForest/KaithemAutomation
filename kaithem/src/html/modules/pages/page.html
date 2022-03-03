@@ -160,6 +160,18 @@ document.getElementById("box").style="display:none;";
 </p>
 <div class="scrollbox">
 
+<input type="checkbox"  name="streaming-response" value="true"
+    %if 'streaming-response' in page:
+       %if page['streaming-response'] == True:
+       checked="yes"
+       %endif
+   %endif
+   %if not pages.canUserDoThis("/admin/modules.edit"):
+               disabled=1\
+   %endif
+  ></input>kaithem.web.serveFile streaming response<br>
+
+
 <input type="checkbox"  name="no-navheader" value="true"
          %if 'no-navheader' in page:
             %if page['no-navheader'] == True:
