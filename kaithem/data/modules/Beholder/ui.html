@@ -8,7 +8,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1646332987395178
+resource-timestamp: 1646352852865893
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -62,6 +62,11 @@ __doc__= "#Python Code here runs every page load"
 
                   <div style="display: flex; flex-wrap: wrap;">
                     <div style="max-height: 25em; overflow: scroll">
+                        <details><summary>Help</summary>
+                        Take up to 4 URLs or wall builder codes and assemble them into a display.
+                        Note that this does not get saved anywhere, instead, the you just bookmark the generated link to get back.
+                        You can embed *any* page into a wall so long as it fits in the quarter-screen size. 
+                        </details>
 
                       <table>
                         <tr>
@@ -128,7 +133,9 @@ __doc__= "#Python Code here runs every page load"
                       
                       <h3>Embeddable Viewer Code for wall builder</h3>
                   
-                      <p class="help">Copy and paste this into a wall builder slot</p>
+                      <details><summary>Help</summary>
+                        Copy and paste this into a wall builder slot. 
+                        </details>
                         <pre>{{makeFullRtPlaybackUrl() }}</pre>
 
                       <h3>Fullscreen Link</h3>
@@ -155,11 +162,17 @@ __doc__= "#Python Code here runs every page load"
                         <p>Starting:</p><input v-model="searchtime" type="date">
                         <input v-model="searchcam" list="cameras" placeholder="All Cameras">
                         <button v-on:click="getFiles(searchcam, searchtime)"><i class="icofont-binoculars"></i>Search</button>
+                        <button :class="{'highlight': showClipThumbnails}" v-on:click="showClipThumbnails=!showClipThumbnails">Previews</button>
                   </div>
                     <div style="min-width:12vw; max-height: 25em; overflow-y: scroll;">
-                      <ul>
-                          <li v-for="i,v of fileSet"><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8',i)">{{new Date(Date.parse(i[0])).toLocaleString()}} @ {{i[2]}}</a></li>
-                      </ul>
+                      <dl>
+                          <template v-for="i,v of fileSet">
+                          <dt><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8',i)">{{new Date(Date.parse(i[0])).toLocaleString()}} @ {{i[2]}}</a></dt>
+                          <dd>
+                            <img :src="'serve/' + i[1]+'/thumbnail.jpg'" v-if="showClipThumbnails"></img>
+                          </dd>
+                          </template>
+                      </dl>
                     </div>
                     <div v-if="playbackClipInfo">
                       <h3>Selected: {{new Date(Date.parse(playbackClipInfo[0])).toLocaleString()}} @ {{playbackClipInfo[2]}}</h3>
@@ -194,6 +207,7 @@ __doc__= "#Python Code here runs every page load"
         playbackURL: '',
         rtPlaybackUrl: '',
         selectedRTCam:'',
+        showClipThumbnails: false,
         viewSlots: ${kwargs.get('viewslots',['','','',''])},
         rtplayerFilm:0,
         rtplayerCRT:0,
