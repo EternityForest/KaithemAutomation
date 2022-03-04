@@ -30,12 +30,8 @@ def resolvePath(fn,expand=True):
 
 #TODO: Ensure only one thread can save a file at a time
 
-if sys.version_info <(3,0):
-    import StringIO
-    strio = StringIO.StringIO
-else:
-    import io
-    strio = io.BytesIO
+import io
+strio = io.BytesIO
 
 persisters = []
 

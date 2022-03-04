@@ -37,12 +37,12 @@
     def get_user():
         try:
             return subprocess.check_output(['whoami'])
-        except:
+        except Exception:
             return ""
     def get_user():
         try:
             return subprocess.check_output(['whoami'])
-        except:
+        except Exception:
             return ""
 
     def get_lan_ip():
@@ -118,12 +118,12 @@
             for i in x:
                 try:
                     v4 = netifaces.ifaddresses(i)[netifaces.AF_INET][0]['addr']
-                except:
+                except Exception:
                     v4= None
 
                 try:
                     v6 = netifaces.ifaddresses(i)[netifaces.AF_INET6][0]['addr']
-                except:
+                except Exception:
                     v6= None
 
 
@@ -140,7 +140,7 @@ lanip =get_lan_ip()
 <%
 try:
     import psutil
-except:
+except Exception:
     psutil=None
 
 try:
@@ -155,7 +155,7 @@ try:
                     disks[p.device, p.mountpoint] =  psutil.disk_usage(p.mountpoint)
                 except OSError:
                     pass
-except:
+except Exception:
     print(traceback.format_exc())
     disks = {}
 %>
@@ -359,7 +359,7 @@ except:
             try:
                 load = os.getloadavg()
                 load = (round(load[0],2), round(load[1],2),round(load[2],2))
-            except:
+            except Exception:
                 load = "Load average not availible on non UNIX-like systems."
 
             try:

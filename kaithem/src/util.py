@@ -41,22 +41,13 @@ import zeroconf
 zeroconf = zeroconf.Zeroconf()
 
 logger = logging.getLogger("system")
-# 2 and 3 have basically the same module with diferent names
-if sys.version_info < (3, 0):
-    from urllib import quote
-    from urllib import unquote as unurl
-    import repr as reprlib
-else:
-    from urllib.parse import quote
-    from urllib.parse import unquote as unurl
-    import reprlib
+from urllib.parse import quote
+from urllib.parse import unquote as unurl
+import reprlib
 
 min_time = 0
 
-if sys.version_info < (3, 0):
-    from urllib2 import urlopen
-else:
-    from urllib.request import urlopen
+from urllib.request import urlopen
 
 savelock = threading.RLock()
 

@@ -16,10 +16,8 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-import shutil
-import string
+import typing
 import weakref
-import threading
 import time
 import textwrap
 import logging
@@ -31,6 +29,8 @@ import cherrypy
 import copy
 import asyncio
 from typing import Dict, Optional, Union, Any, Callable
+
+from matplotlib.pyplot import cla
 
 from . import virtualresource, pages, workers, tagpoints, alerts
 from . import persist, directories, messagebus, widgets, unitsofmeasure
@@ -252,7 +252,6 @@ class Device(virtualresource.VirtualResource):
         with modules_state.modulesLock:
             self.config[key] = val
             if self.parentModule:
-                from src import modules
                 modules_state.ActiveModules[self.parentModule][
                     self.parentResource]['device'][key] = str(val)
                 modules_state.unsaved_changed_obj[
@@ -1255,7 +1254,7 @@ class WebDevices():
 
 
 builtinDeviceTypes = {'device': Device}
-deviceTypes = weakref.WeakValueDictionary()
+deviceTypes= weakref.WeakValueDictionary()
 
 
 class DeviceNamespace():
@@ -1493,6 +1492,7 @@ def loadDeviceType(root, i):
 
 
 def createDevicesFromData():
+    global remote_devices_atomic
     for i in device_data:
 
         # We can call this again to reload unsupported devices.
