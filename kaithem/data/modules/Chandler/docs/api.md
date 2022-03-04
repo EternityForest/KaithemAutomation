@@ -9,8 +9,9 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1627984713007792
+resource-timestamp: 1646374742901364
 resource-type: page
+streaming-response: false
 template-engine: markdown
 
 ---
@@ -22,7 +23,7 @@ Chandler Help
 
 ### Web API
 
-Go to: /pages/Chandler/sendevent?event=EVENTNAME&value=VALUE  to send an event titled "http:EVENTNAME" to Chandler.
+POST to: /pages/Chandler/sendevent?event=EVENTNAME&value=VALUE  to send an event titled "http:EVENTNAME" to Chandler.
 
 You need the "api.chandler.sendevent" permission for this.
 

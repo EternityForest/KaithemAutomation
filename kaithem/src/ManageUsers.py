@@ -24,6 +24,7 @@ class ManageAuthorization():
     @cherrypy.expose
     def index(self):
         pages.require("/admin/users.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("auth/index.html").render(auth=auth)
 
     # The actual POST target to delete a user
@@ -50,24 +51,29 @@ class ManageAuthorization():
     @cherrypy.expose
     def deleteuser(self, **kwargs):
         pages.require("/admin/users.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("auth/deleteuser.html").render()
 
     # Interface to select a group to delete
     @cherrypy.expose
     def deletegroup(self, **kwargs):
         pages.require("/admin/users.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("auth/deletegroup.html").render()
 
     # Add user interface
     @cherrypy.expose
     def newuser(self):
         pages.require("/admin/users.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("auth/adduser.html").render()
 
     # add group interface
     @cherrypy.expose
     def newgroup(self):
         pages.require("/admin/users.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+
         return pages.get_template("auth/newgroup.html").render()
 
     @cherrypy.expose
@@ -82,7 +88,7 @@ class ManageAuthorization():
         auth.addUser(kwargs['username'], kwargs['password'])
         # Take the user back to the users page
         messagebus.postMessage('/system/notifications',
-                               'New user "'+kwargs['username']+'" added')
+                               'New user "' + kwargs['username'] + '" added')
         messagebus.postMessage(
             "/system/auth/user/added", {'user': kwargs['username'], 'addedby': pages.getAcessingUser()})
 
@@ -107,7 +113,7 @@ class ManageAuthorization():
     @cherrypy.expose
     # handler for the POST request to change user settings
     def updateuser(self, user, **kwargs):
-        pages.require("/admin/users.edit",  noautoreturn=True)
+        pages.require("/admin/users.edit", noautoreturn=True)
         pages.postOnly()
 
         if not kwargs['password'] == kwargs['password2']:
@@ -119,7 +125,7 @@ class ManageAuthorization():
 
         # Remove the user from all groups that the checkbox was not checked for
         for i in auth.Users[user]['groups']:
-            if not ('Group'+i) in kwargs:
+            if not ('Group' + i) in kwargs:
                 auth.removeUserFromGroup(user, i)
 
         # Add the user to all checked groups
@@ -134,7 +140,8 @@ class ManageAuthorization():
         auth.setUserSetting(pages.getAcessingUser(),
                             'allow-cors', 'allowcors' in kwargs)
         auth.setUserSetting(user, "restrict-lan", 'lanonly' in kwargs)
-        auth.setUserSetting(user, "telemetry-alerts", 'telemetryalerts' in kwargs)
+        auth.setUserSetting(user, "telemetry-alerts",
+                            'telemetryalerts' in kwargs)
         messagebus.postMessage("/system/auth/user/modified",
                                {'user': user, 'modifiedby': pages.getAcessingUser()})
         # Take the user back to the users page
@@ -143,7 +150,7 @@ class ManageAuthorization():
     @cherrypy.expose
     # handler for the POST request to change user settings
     def updategroup(self, group, **kwargs):
-        pages.require("/admin/users.edit",  noautoreturn=True)
+        pages.require("/admin/users.edit", noautoreturn=True)
         pages.postOnly()
         group = group.encode("latin-1").decode("utf-8")
 
@@ -169,6 +176,8 @@ class ManageAuthorization():
     def user(self, username):
         username = username.encode("latin-1").decode("utf-8")
         pages.require("/admin/users.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+
         return pages.get_template("auth/user.html").render(
             usergroups=auth.Users[username]['groups'],
             groups=sorted(auth.Groups.keys()),
@@ -179,5 +188,6 @@ class ManageAuthorization():
     def group(self, group):
         group = group.encode("latin-1").decode("utf-8")
         pages.require("/admin/users.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("auth/group.html").render(
             auth=auth, name=group)

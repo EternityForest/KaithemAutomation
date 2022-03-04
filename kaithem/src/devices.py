@@ -1053,6 +1053,8 @@ class WebDevices():
     def index(self):
         """Index page for web interface"""
         pages.require("/admin/settings.edit")
+        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+
         return pages.get_template("devices/index.html").render(
             deviceData=remote_devices_atomic)
 
@@ -1122,6 +1124,7 @@ class WebDevices():
         """
         pages.require("/admin/settings.edit")
         pages.postOnly()
+        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
 
         current = kwargs
 
@@ -1154,6 +1157,8 @@ class WebDevices():
         "Actually create the new device"
         pages.require("/admin/settings.edit")
         pages.postOnly()
+        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+
         name = name or kwargs.get('name', None)
         m = r = None
         with lock:
@@ -1202,6 +1207,7 @@ class WebDevices():
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("/admin/settings.edit")
         pages.postOnly()
+        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
 
         tp = getDeviceType(kwargs['type'])
 
@@ -1220,6 +1226,8 @@ class WebDevices():
     @cherrypy.expose
     def deleteDevice(self, name, **kwargs):
         pages.require("/admin/settings.edit")
+        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+
         name = name or kwargs['name']
         return pages.get_template("devices/confirmdelete.html").render(
             name=name)

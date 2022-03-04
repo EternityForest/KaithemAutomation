@@ -77,6 +77,7 @@ class Settings():
     @cherrypy.expose
     def index(self):
         """Index page for web interface"""
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("settings/index.html").render()
 
     @cherrypy.expose
@@ -278,6 +279,7 @@ class Settings():
     @cherrypy.expose
     def console(self, **kwargs):
         pages.require("/admin/settings.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         if 'script' in kwargs:
             pages.postOnly()
             x = ''
@@ -348,6 +350,7 @@ class Settings():
     @cherrypy.expose
     def changeprefs(self, **kwargs):
         pages.require("/users/accountsettings.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         pages.postOnly()
         lists = []
         if "tabtospace" in kwargs:
@@ -383,6 +386,7 @@ class Settings():
     def changeinfo(self, **kwargs):
         pages.require("/users/accountsettings.edit")
         pages.postOnly()
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         if len(kwargs['email']) > 120:
             raise RuntimeError("Limit 120 chars for email address")
         auth.setUserSetting(pages.getAcessingUser(), 'email', kwargs['email'])
@@ -394,6 +398,7 @@ class Settings():
     def changepwd(self, **kwargs):
         pages.require("/users/accountsettings.edit")
         pages.postOnly()
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         t = cherrypy.request.cookie['auth'].value
         u = auth.whoHasToken(t)
         if len(kwargs['new']) > 100:
@@ -487,11 +492,13 @@ class Settings():
     @cherrypy.expose
     def restart(self):
         pages.require("/admin/settings.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("settings/restart.html").render()
 
     @cherrypy.expose
     def restart_nosave(self):
         pages.require("/admin/settings.edit")
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         return pages.get_template("settings/restart_nosave.html").render()
 
     @cherrypy.expose

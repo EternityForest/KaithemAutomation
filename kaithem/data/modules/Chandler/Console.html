@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1645233752298924
+resource-timestamp: 1645255486036507
 resource-type: page
 template-engine: mako
 
@@ -709,13 +709,13 @@ limitedTagsListing=module.limitedTagsListing()
                 </h3>
                 
                  <p class="buttonbar">
-                        <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'">Normal View</button>
-                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'">Sound View</button>
-                        <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'">Add/Remove Channels</button>
-                        <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene Settings</button>
+                        <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i class="icofont-settings"></i>Normal View</button>
+                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'"><i class="icofont-music"></i>Sound View</button>
+                        <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i class="icofont-listing-box"></i>Add/Remove Channels</button>
+                        <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'"><i class="icofont-ui-settings"></i>Scene Settings</button>
 
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
-                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
+                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"><i class="icofont-law-document"></i>Cue Logic</button>
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                         <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
                         <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>

@@ -353,6 +353,7 @@ class WebInterface():
             if path[0] == 'runeventdialog':
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("/admin/modules.edit")
+                cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
                 return pages.get_template("modules/events/run.html").render(module=root, event=path[1])
 
             if path[0] == 'obj':
@@ -389,6 +390,7 @@ class WebInterface():
 
             # This gets the interface to add a page
             if path[0] == 'addresource':
+                cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
                 if len(path) > 2:
                     x = path[2]
                 else:
@@ -398,6 +400,8 @@ class WebInterface():
 
             # This case handles the POST request from the new resource target
             if path[0] == 'addresourcetarget':
+                pages.require("/admin/modules.edit")
+                pages.postOnly()
                 if len(path) > 2:
                     x = path[2]
                 else:
@@ -406,6 +410,7 @@ class WebInterface():
 
             # This case shows the information and editing page for one resource
             if path[0] == 'resource':
+                cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
                 version = '__default__'
                 if len(path) > 2:
                     version = path[2]
@@ -437,6 +442,7 @@ class WebInterface():
 
             # This gets the interface to add a page
             if path[0] == 'addfileresource':
+                cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
                 pages.require("/admin/modules.edit")
                 if len(path) > 1:
                     x = path[1]
@@ -511,6 +517,7 @@ class WebInterface():
 
             # This returns a page to delete any resource by name
             if path[0] == 'deleteresource':
+                cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
                 pages.require("/admin/modules.edit", noautoreturn=True)
                 if len(path) > 1:
                     x = path[1]
@@ -710,7 +717,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 # show a edit page for a resource. No side effect here so it only requires the view permission
 def resourceEditPage(module, resource, version='default', kwargs={}):
     pages.require("/admin/modules.view")
-
+    cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
     with modulesLock:
         resourceinquestion = ActiveModules[module][resource]
         if version == '__default__':

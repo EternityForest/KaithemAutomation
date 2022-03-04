@@ -143,15 +143,17 @@ def resist_timing_attack(data, maxdelay=0.0001):
 
 def importPermissionsFromModules():
     "Import all user defined permissions that are module resources into the global list of modules that can be assigned, and delete any that are no loger defined in modules."
-    Permissions = BasePermissions
+    p2 = BasePermissions
     with modules_state.modulesLock:
         for module in modules_state.ActiveModules.copy():  # Iterate over all modules
             # for every resource of type permission
             for resource in modules_state.ActiveModules[module].copy():
                 if modules_state.ActiveModules[module][resource]['resource-type'] == 'permission':
                     # add it to the permissions list
-                    Permissions[util.split_escape(
+                    p2[util.split_escape(
                         resource, '/', '\\')[-1]] = modules_state.ActiveModules[module][resource]
+    global Permissions
+    Permissions=p2
 
 
 def getPermissionsFromMail():
