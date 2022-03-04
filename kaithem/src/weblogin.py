@@ -86,6 +86,9 @@ class LoginScreen():
         if "__nologin__" in pages.getSubdomain():
             raise RuntimeError(
                 "To prevent XSS attacks, login is forbidden from any subdomain containing __nologin__")
+        
+        #Not exactly needed but it could prevent attackers from making nuisiance log errors to scare you
+        pages.postOnly()
 
         # Empty fields try the default. But don't autofill username if password is set.
         # If that actually worked because someone didn't fill the username in, they might be confused and
@@ -170,6 +173,7 @@ class LoginScreen():
     @cherrypy.expose
     def logout(self, **kwargs):
         # Change the security token to make the old one invalid and thus log user out.
+        pages.postOnly()
         if cherrypy.request.cookie['auth'].value in auth.Tokens:
             messagebus.postMessage("/system/auth/logout", [auth.whoHasToken(
                 cherrypy.request.cookie['auth'].value), cherrypy.request.remote.ip])

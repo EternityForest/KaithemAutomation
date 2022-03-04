@@ -169,7 +169,9 @@ Tools</a>
         %if "auth" in cherrypy.request.cookie:
 
         %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-        <a  style="flex-grow: 0.05;" href="/login/logout"><i class="icofont-key"></i>Logout(${pages.getAcessingUser()[:10]|h})</a>
+        <form style="flex-grow: 0.05;" method="POST" action="/login/logout">
+        <button href="/login/logout"><i class="icofont-key"></i>Logout(${pages.getAcessingUser()[:10]|h})</button>
+        </form>
 
         %else:
         <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="icofont-key"></i>Login</a>
