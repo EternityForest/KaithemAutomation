@@ -51,7 +51,7 @@
 
 .buttonbar * {
     box-sizing: border-box;
-    height: 100%;
+    min-height: 100%;
     font-size: inherit;
     max-height: 28px;
 }
@@ -125,7 +125,7 @@
 }
 
 .buttonbar meter {
-    height: 100%;
+    min-height: 100%;
 }
 
 .buttonbar :is(p, h1, h2, h3, h4, h5, h6, label) {

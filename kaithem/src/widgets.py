@@ -160,7 +160,9 @@ def raw_subsc_closure(self, i, widget):
             else:
                 self.send(json.dumps(raw))
 
-        except socket.error:
+        except socket.error as e:
+            if e.errno==32:
+                self.closeUnderLock()
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
             print("wtimeout", traceback.format_exc())
@@ -277,7 +279,7 @@ class websocket(WebSocket):
     def onPermissionRemoved(self, t, v):
         "Close the socket if the user no longer has the permission"
         if v[0] == self.user and v[1] in self.usedPermissions:
-            self.close()
+            self.closeUnderLock()
 
     def send(self, *a, **k):
         with self.widget_wslock:
@@ -294,6 +296,11 @@ class websocket(WebSocket):
                         widgets[i].lastSubscribedTo = time.monotonic()
                 except:
                     pass
+
+    def closeUnderLock(self):
+        def f():
+            with self.widget_wslock:
+                self.close()
 
     def received_message(self, message):
         global lastLoggedUserError
@@ -471,7 +478,13 @@ class rawwebsocket(WebSocket):
     def onPermissionRemoved(self, t, v):
         "Close the socket if the user no longer has the permission"
         if v[0] == self.user and v[1] in self.usedPermissions:
-            self.close()
+            self.closeUnderLock()
+
+
+    def closeUnderLock(self):
+        def f():
+            with self.widget_wslock:
+                self.close()
 
     def send(self, *a, **k):
         with self.widget_wslock:

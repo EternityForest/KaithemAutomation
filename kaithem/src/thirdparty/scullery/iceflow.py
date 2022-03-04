@@ -43,6 +43,19 @@ class GStreamerPipeline():
 
         return f 
 
+    def pullToFile(self,*a,**k):
+        if  self.ended or not self.worker.poll() is None:
+            raise RuntimeError("This process is already dead")
+
+        try:
+            return self.rpc.call('pullToFile',args=a,kwargs=k,block=0.001, timeout=0.5)
+        except Exception:
+            self.worker.kill()
+            workers.do(self.worker.wait)
+            raise
+
+
+
     def __del__(self):
         self.worker.kill()
         workers.do(self.worker.wait)

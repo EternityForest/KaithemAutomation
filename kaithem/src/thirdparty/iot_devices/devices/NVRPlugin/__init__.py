@@ -1,7 +1,5 @@
 from multiprocessing import RLock
 from sys import path
-from tkinter import Image
-from charset_normalizer import detect
 from mako.lookup import TemplateLookup
 from scullery import iceflow,workers
 import os
@@ -720,6 +718,16 @@ class NVRChannel(devices.Device):
                 f.write("#EXT-X-ALLOW-CACHE:NO\r\n")
                 f.write("#EXT-X-TARGETDURATION:5\r\n")
 
+        # Capture a tiny preview snapshot
+        import PIL
+        x = PIL.Image.open(io.BytesIO(self.request_data_point("bmp_snapshot")))
+        x.thumbnail((320,240))
+        x=PIL.ImageOps.autocontrast(x, cutoff=(0.1,0,25))
+        with open(os.path.join(self.segmentDir, "thumbnail.jpg"),'wb') as f:
+            x.save(f,'jpeg')
+
+
+    
     def onMultiFileSink(self, fn, *a, **k):
         with self.recordlock:
             self.moveSegments()
@@ -874,7 +882,12 @@ class NVRChannel(devices.Device):
                 if self.lastRecordTrigger < (time.monotonic() - 12):
                     #Even if there is still motion, if we have object detection data coming in but have not seen the object recently, stop if we are in objetc detecting
                     #mode
-                    if (self.lastDidObjectRecognition > (time.monotonic() - 15)) and lookfor and (self.lastObjectDetectionHit< (time.monotonic() - 30 )):
+
+                    # But after a while we just have to stop, because maybe the object detector failed for some reason.
+
+                    # Our window is 3 sucessive runs with no object hits.  Our window never goes past 30 seconds.
+                    window = min(self.lastDidObjectRecognition - ((time.monotonic()-self.lastDidObjectRecognition) * 3), 30)
+                    if (self.lastRecordTrigger < (time.monotonic() - 60)) or ((self.lastDidObjectRecognition > (time.monotonic() - 15)) and lookfor and (self.lastObjectDetectionHit< window)):
                         self.set_data_point("record", False, None,
                                             automated_record_uuid)
 

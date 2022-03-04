@@ -1824,75 +1824,36 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Libraries used in Kaithem for Devices Arduino code
+#### [hls.js](https://github.com/video-dev/hls.js/)
 
-#### [TweetNaCl](https://tweetnacl.cr.yp.to/index.html)  
-    Public Domain tp the best of my knowledge.
+Copyright (c) 2017 Dailymotion (http://www.dailymotion.com)
 
-#### [minIni](https://github.com/compuphase/minIni)  
-    minIni - Multi-Platform INI file parser, suitable for embedded systems
-     *
-     *  These routines are in part based on the article "Multiplatform .INI Files"
-     *  by Joseph J. Graf in the March 1994 issue of Dr. Dobb's Journal.
-     *
-     *  Copyright (c) CompuPhase, 2008-2017
-     *
-     *  Licensed under the Apache License, Version 2.0 (the "License"); you may not
-     *  use this file except in compliance with the License. You may obtain a copy
-     *  of the License at
-     *
-     *      http://www.apache.org/licenses/LICENSE-2.0
-     *
-     *  Unless required by applicable law or agreed to in writing, software
-     *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-     *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-     *  License for the specific language governing permissions and limitations
-     *  under the License.
-     *
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-#### [Squirrel](http://www.squirrel-lang.org/)  
-    
-    Copyright (c) 2003-2017 Alberto Demichelis
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
-    */
+    http://www.apache.org/licenses/LICENSE-2.0
 
-#### [Crypto(Used for BLAKE2B)](https://github.com/rweather/arduinolibs)  
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
-    * Copyright (C) 2015,2018 Southern Storm Software, Pty Ltd.
-    *
-    * Permission is hereby granted, free of charge, to any person obtaining a
-    * copy of this software and associated documentation files (the "Software"),
-    * to deal in the Software without restriction, including without limitation
-    * the rights to use, copy, modify, merge, publish, distribute, sublicense,
-    * and/or sell copies of the Software, and to permit persons to whom the
-    * Software is furnished to do so, subject to the following conditions:
-    *
-    * The above copyright notice and this permission notice shall be included
-    * in all copies or substantial portions of the Software.
-    *
-    * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-    * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    * DEALINGS IN THE SOFTWARE.
-    */
+src/remux/mp4-generator.js and src/demux/exp-golomb.ts implementation in this project
+are derived from the HLS library for video.js (https://github.com/videojs/videojs-contrib-hls)
 
+That work is also covered by the Apache 2 License, following copyright:
+Copyright (c) 2013-2015 Brightcove
+
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 
 
