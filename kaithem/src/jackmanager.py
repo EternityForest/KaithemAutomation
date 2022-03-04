@@ -23,7 +23,7 @@ __doc__ = ''
 
 from . import persist, directories
 settingsFile = os.path.join(
-    directories.vardir, "system.mixer", "jacksettings.yaml")
+    directories.mixerdir, "jacksettings.yaml")
 
 
 legacy_keys = {
@@ -63,7 +63,7 @@ scullery.jacktools.onJackStart = onStart
 settings = persist.getStateFile(settingsFile, default, legacy_keys)
 
 settingsFile = os.path.join(
-    directories.vardir, "system.mixer", "jacksettings.yaml")
+    directories.mixerdir, "jacksettings.yaml")
 settings = persist.getStateFile(settingsFile)
 
 

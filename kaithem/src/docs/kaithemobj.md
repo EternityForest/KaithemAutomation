@@ -50,6 +50,14 @@ it attributes. Be careful, as the kaithem namespace is truly global.
 
 ### kaithem.misc
 
+#### kaithem.misc.vardir:
+
+The configured "var dir" for kaithem, where the modules, users, etc, and most user data is kept.
+
+Some folders are used by kaithem internally, but otherwise it can be treated similar a home dir.  Modules may also
+store things in other places though.
+
+
 #### kaithem.misc.do(function):
 
 Executes a function of no arguments in the background using kaithem's
@@ -591,40 +599,11 @@ otherwise. Also returns False if the user does not exist.
 
 The kaithem registry is a persistance store for small amounts of
 configuration data. It does not get saved to disk until the server state
-is saved, or a configured autosave occurs. The registry is heirarchial
-and slash separated, keys are strings, values are anything json
-serializable, and keys should begin with the relevant module name, and
-should consider double underscores reserved.
+is saved, or a configured autosave occurs. Use of this is deprecated.  APIs remain as they were, for now.
 
-Internally as of V0.53, the registry is stored with one file per root
-path component("foo/bar" and "foo/baz" are stored in the same file)
+Use Python's configparse, YAML, or the kaithem.persist namespace in your own folder in the vardir instead.
 
-These should really not be used for large amount of data or frequently
-acessed data as the registry is not designed for high performance.
-Applications include small amounts of configuration data such as
-schedules, playlists, and disk locations for other files.
-
-Registry files are only readable by the user kaithem runs as and so you
-should store passwords in the registry instead of directly in the code.
-
-#### kaithem.registry.get(key,default=None)
-
-Gets the registry key. Returns default if the key does not exist.
-
-#### kaithem.registry.set(key,value)
-
-Sets the registry key.
-
-#### kaithem.registry.setschema(key, schema)
-
-Set a validictory validation schema for key. Schema must be a dict
-describing the format(Validictory schemas are very close to JSON schema,
-see validictory documentation for more info). If you try to set a key to
-a value that is invalid acording to a schema, it will raise an error.
-
-#### kaithem.registry.delete(key, schema)
-
-Delete a key and and data and schema assosiated with it
+Kaithem.persist is suggested as it protects from unecessesarily rewriting a file.
 
 
 ### kaithem.serial
@@ -1173,13 +1152,6 @@ by keeping changes in RAM until explicitly saved.
 To store things directly in the vardir, use kaithem.misc.vardir
 to find it.
 
-
-#### kaithem.persist.load(filename, *, expand=True)
-
-Load data from a file named filname in a format dictated by the file
-extension. Data will be converted to a python appropriate representation
-and returned.
-
 #### Supported File Types
 
 .json  
@@ -1206,6 +1178,13 @@ Any other type may be compressed with gzip compresssion(e.g.
 Any other type may be compressed with bz2 compression(e.g.
 "bar.json.bz2")
 
+
+#### kaithem.persist.load(filename, *, expand=True)
+
+Load data from a file named filname in a format dictated by the file
+extension. Data will be converted to a python appropriate representation
+and returned.
+
 #### kaithem.persist.save(data,filename,*,private=False,backup=True,expand=False)
 
 Saves data to a file named fn in a format dictated by the file
@@ -1221,30 +1200,6 @@ along with any higher level directories needed.
 If private is True, file will have the mode 700(Only owner or admin/root
 can read or write the file). The mode is changed before the file is
 written so there is no race condition attack.
-
-#### Supported File Types
-
-.json  
-Values may be list, dict, string, int, bool, or None
-
-.yaml  
-Values may be list, dict, string, int, bool, or None
-
-.txt  
-Directly reads TXT file and returns as string. May be ASCII or UTF-8.
-
-.bin  
-Bytes and bytearrays.
-
-\*.gz
-
-Any other type may be compressed with gzip compresssion(e.g.
-"foo.txt.gz")
-
-\*.bz2
-
-Any other type may be compressed with bz2 compression(e.g.
-"bar.json.bz2")
 
 ### kaithem.string
 

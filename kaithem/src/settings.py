@@ -30,7 +30,7 @@ from . import pages, util, messagebus, config, auth, registry, mail, kaithemobj,
 
 
 jacksettingsfile = os.path.join(
-    directories.vardir, "system.mixer", "jacksettings.yaml")
+    directories.mixerdir, "jacksettings.yaml")
 jacksettings = persist.getStateFile(jacksettingsfile)
 
 

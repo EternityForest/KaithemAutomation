@@ -68,6 +68,11 @@ moduledatadir = os.path.join(vardir, 'moduledata')
 
 usersdir = os.path.join(vardir, 'users')
 regdir = os.path.join(vardir, 'registry')
+
+
+mixerdir = os.path.join(vardir, 'system.mixer')
+
+
 moduledir = os.path.join(vardir, 'modules')
 htmldir = os.path.join(dn, 'html')
 if not config['ssl-dir'].startswith("/"):
