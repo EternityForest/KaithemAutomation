@@ -144,7 +144,12 @@ def require(permission, noautoreturn=False):
     else:
         p = [permission]
     for permission in p:
-        if permission in auth.crossSiteRestrictedPermissions:
+        if permission =='__guest__':
+            continue
+
+        user = getAcessingUser()
+
+        if permission in auth.crossSiteRestrictedPermissions or not auth.getUserSetting(user, 'allow-cors'):
             noCrossSite()
 
         # If the special __guest__ user can do it, anybody can.
@@ -162,7 +167,6 @@ def require(permission, noautoreturn=False):
             if not isHTTPAllowed(x):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
 
-        user = getAcessingUser()
 
         if user == "__guest__":
             # The login page can auto return people to what they were doing before logging in
@@ -187,11 +191,17 @@ def require(permission, noautoreturn=False):
 def canUserDoThis(permissions, user=None):
     "None means get the user from the request context"
 
+    # If a disallowed CORS post is detected here, we get __guest__
+    user = user or getAcessingUser()
+
     if not isinstance(permissions, (list, tuple)):
         permissions = (permissions,)
+        
 
     for permission in permissions:
-        if not auth.canUserDoThis(user or getAcessingUser(), permission):
+        if permission in auth.crossSiteRestrictedPermissions:
+            noCrossSite()
+        if not auth.canUserDoThis(user, permission):
             return False
     return True
 
@@ -210,11 +220,12 @@ if noSecurityMode:
 
 
 def noCrossSite():
-    if not cherrypy.request.base.startswith(cherrypy.request.headers.get("Origin",'')):
-        raise PermissionError("Cannot make this request from a different origin")
+    if cherrypy.request.headers.get("Origin",''):
+        if not cherrypy.request.base == cherrypy.request.headers.get("Origin",''):
+            raise PermissionError("Cannot make this request from a different origin")
 
 def strictNoCrossSite():
-    if not cherrypy.request.base.startswith(cherrypy.request.headers.get("Origin",'__FAIL__NO_ORIGIN_PROVIDED')):
+    if not cherrypy.request.base == cherrypy.request.headers.get("Origin",''):
         raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
 
 
@@ -254,7 +265,13 @@ def getAcessingUser():
     if not 'auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['auth'].value):
         return "__guest__"
     try:
-        return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+        user =  auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+        if not auth.getUserSetting(user, 'allow-cors'):
+            if cherrypy.request.headers.get("Origin",''):
+                if not cherrypy.request.base == cherrypy.request.headers.get("Origin",''):
+                    return "__guest__"
+        return user
+
     except KeyError:
             return "__guest__"
     except:

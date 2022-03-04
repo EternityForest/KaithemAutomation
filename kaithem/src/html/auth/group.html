@@ -31,7 +31,7 @@ class="specialentry"\
 		checked="yes"\
 	%endif
 	></input>
-	${auth.Permissions[i]}
+	${auth.Permissions[i].get('description','No description')}
 %endfor
 </div>
 

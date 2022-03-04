@@ -373,6 +373,10 @@ class Settings():
         auth.setUserSetting(pages.getAcessingUser(),
                             'usemonaco', 'usemonaco' in kwargs)
 
+        auth.setUserSetting(pages.getAcessingUser(),
+                            'allow-cors', 'allowcors' in kwargs)
+
+                            
         raise cherrypy.HTTPRedirect("/settings/account")
 
     @cherrypy.expose

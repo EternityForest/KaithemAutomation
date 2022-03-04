@@ -160,6 +160,10 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.68.19
+- SECURITY/SEMI-BREAKING: No CORS requests from any other domain allowed as a user, regardless of permissions needed, unless enabled in user settings.
+- SECURITY: Fix bug where an attack from my.org could be accepted as matching your domain at my.org.fooo.com
+- Fix old code that was looking for YOLOv3.txt
 
 ### 0.68.18
 - kaithem.web.serveFile streaming response

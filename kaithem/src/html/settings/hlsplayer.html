@@ -1,0 +1,99 @@
+<%include file="/pageheader.html"/>
+
+<script src="/static/js/hls.js"></script>
+<script src="/static/js/striftime-min.js"></script>
+<h2>${play|h}</h2>
+
+<section>
+<div>
+  <table>
+    <tr>
+      <td>Local Time(Est)</td>
+      <td id="time" class="dseg"></td>
+    </tr>
+    <tr>
+      <td>GMT Time(Est)</td>
+      <td id="gmt" class="dseg"></td>
+    </tr>
+    <tr>
+      <td>Segment</td>
+      <td id="seg" class="dseg"></td>
+    </tr>
+  </table>
+</div>
+<div>
+<video id="video" controls></video>
+</div>
+
+<style>
+    @font-face {
+    font-family: 'dseg';
+    font-style: italic;
+    font-weight: 400;
+    src: url('/static/fonts/DSEG/DSEG14ClassicMini-Italic.ttf');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+.dseg{
+    font-family: 'dseg';
+    background-color: rgb(1, 24, 1) !important;
+    color: rgb(235, 44, 44);
+    font-size: 125%;
+}
+</style>
+</section>
+<script>
+  var video = document.getElementById('video');
+  var videoSrc = "/settings/files/${play}"
+  if (Hls.isSupported()) {
+    var hls = new Hls();
+    hls.loadSource(videoSrc);
+    hls.attachMedia(video);
+  }
+  // HLS.js is not supported on platforms that do not have Media Source
+  // Extensions (MSE) enabled.
+  //
+  // When the browser has built-in HLS support (check using `canPlayType`),
+  // we can provide an HLS manifest (i.e. .m3u8 URL) directly to the video
+  // element through the `src` property. This is using the built-in support
+  // of the plain video element, without using HLS.js.
+  //
+  // Note: it would be more normal to wait on the 'canplay' event below however
+  // on Safari (where you are most likely to find built-in HLS support) the
+  // video.src URL must be on the user-driven white-list before a 'canplay'
+  // event will be emitted; the last video event that can be reliably
+  // listened-for when the URL is not on the white-list is 'loadedmetadata'.
+  else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = videoSrc;
+  }
+  else{
+    alert("No HLS")
+  }
+
+fragOffset=null
+
+    const hlsInstance = hls;
+    hlsInstance.on(window.Hls.Events.FRAG_CHANGED, function(event, data) {
+        document.getElementById('seg').innerHTML= data.frag.relurl
+        d= new Date(data.frag.programDateTime)
+        document.getElementById('time').innerHTML= d.toLocaleString()
+        document.getElementById('gmt').innerHTML= d.toISOString()
+        
+        fragOffset = data.frag.start
+        fragStart = data.frag.programDateTime
+    });
+
+function updateTime(){
+if(fragOffset == null)
+{
+  return
+}
+timeIntoFrag = (document.getElementById('video').currentTime*1000) - (fragOffset*1000)
+d= new Date(timeIntoFrag+fragStart)
+document.getElementById('time').innerHTML= d.toLocaleString()
+document.getElementById('gmt').innerHTML= d.toISOString()
+}
+
+setInterval(updateTime, 300)
+</script>
+<%include file="/pagefooter.html"/>

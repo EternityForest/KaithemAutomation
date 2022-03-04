@@ -21,7 +21,19 @@ class="specialentry"\
 Username:<input required="required" name="username" type="text" value="${username}"></input><br>
 Password(Leave blank=don't change):<input name="password" type="password" value="" autocomplete='off'></input>
 Retype:<input name="password2" type="password" value="" autocomplete='off'></input><br>
-<label>Disallow login from IP outside of LAN<input name="lanonly" type="checkbox"
+<label>Disallow login from IP outside of LAN<input name="lanonly" type="checkbox"</br>
+    <details>
+        <summary>GET request security Warning</summary>
+        This option curretly can usually only block POST requests.  You should be sure to not allow a GET request to change anything important.
+        However it may also block easily detected CORS get requests.
+    </details>
+<label>Allow CORS access as this user: <input type="checkbox" name="allowcors"
+
+%if auth.getUserSetting(pages.getAcessingUser(), 'allow-cors'):
+checked="on"
+%endif
+></input> </label>
+
 
 %if auth.getUserSetting(username,"restrict-lan"):
     checked="yes"

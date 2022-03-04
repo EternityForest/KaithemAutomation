@@ -39,9 +39,6 @@ object_detection_lock = threading.RLock()
 import numpy
 
 
-with open(os.path.join(path,"yolov3.txt") ,'r') as f:
-    classes = [line.strip() for line in f.readlines()]
-
 
 def get_output_layers(net):    
     layer_names = net.getLayerNames()
@@ -258,7 +255,7 @@ class Pipeline(iceflow.GstreamerPipeline):
     def onAppsinkData(self, *a, **k):
         self.dev.onAppsinkData(*a, **k)
 
-    def getGstreamerSourceData(self, s, cfg):
+    def getGstreamerSourceData(self, s, cfg,un,pw):
         self.config = cfg
         self.h264source = self.mp3src = False
         self.syncFile = False
@@ -356,7 +353,7 @@ class Pipeline(iceflow.GstreamerPipeline):
 
         elif s.startswith("rtsp://"):
             rtsp = self.addElement(
-                "rtspsrc", location=s, latency=100, async_handling=True)
+                "rtspsrc", location=s, latency=100, async_handling=True, user_id=un or None, user_pw=pw or None)
             self.addElement("rtph264depay", connectWhenAvailable="video")
 
             self.addElement("h264parse", config_interval=1)
@@ -572,7 +569,7 @@ class NVRChannel(devices.Device):
         self.process.dev = self
 
         self.process.getGstreamerSourceData(
-            self.config.get('device.source', ''), self.config)
+            self.config.get('device.source', ''), self.config,  self.config.get('device.username', ''), self.config.get('device.password', ''))
 
         x = self.process.addElement(
             "queue", connectToOutput=self.process.h264source, max_size_time=10000000)
@@ -1123,6 +1120,10 @@ class NVRChannel(devices.Device):
                            "value < 0.5", trip_delay=5, auto_ack=False, priority='warning')
 
             self.set_config_default("device.source", '')
+            self.set_config_default("device.username", '')
+            self.set_config_default("device.password", '')
+
+
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
             self.set_config_default("device.object_detection", 'no')

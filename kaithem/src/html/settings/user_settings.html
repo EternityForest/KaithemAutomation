@@ -8,6 +8,20 @@ import pytz
 <h2>Security</h2>
 <div class="sectionbox">
 Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pages.getAcessingUser(), 'restrict-lan')}</br>
+<details>
+    <summary>GET request security Warning</summary>
+    This option curretly can usually only block POST requests.  You should be sure to not allow a GET request to change anything important.
+    However it may also block easily detected CORS get requests.
+</details>
+Allow CORS access as this user: <input type="checkbox" name="allowcors"
+
+                                    %if auth.getUserSetting(pages.getAcessingUser(), 'allow-cors'):
+                                    checked="on"
+                                    %endif
+                                    ></input> 
+
+
+
 <h3>Change Password</h3>
 <form action='/settings/changepwd' method='post'>
 <table border=1>
@@ -119,7 +133,7 @@ class="specialentry"\
 >${i|h}
 </h3>
 %if i in auth.Permissions:
-    ${auth.Permissions[i]|h}
+    ${auth.Permissions[i].get("description",'No description found')|h}
 %else:
     "Unknown"
 %endif

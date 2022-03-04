@@ -151,14 +151,14 @@ def importPermissionsFromModules():
                 if modules_state.ActiveModules[module][resource]['resource-type'] == 'permission':
                     # add it to the permissions list
                     Permissions[util.split_escape(
-                        resource, '/', '\\')[-1]] = modules_state.ActiveModules[module][resource]['description']
+                        resource, '/', '\\')[-1]] = modules_state.ActiveModules[module][resource]
 
 
 def getPermissionsFromMail():
     """Generate a permission for each mailing list, and add that permission to the global list of assignable permissions"""
     for i in registry.get('system/mail/lists', {}):
         Permissions["/users/mail/lists/"+i +
-                    "/subscribe"] = "Subscribe to mailing list with given UUID"
+                    "/subscribe"] = {'description':"Subscribe to mailing list with given UUID"}
 
 # Python doesn't let us make custom attributes on normal dicts
 

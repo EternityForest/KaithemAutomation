@@ -131,6 +131,8 @@ class ManageAuthorization():
             auth.changePassword(user, kwargs['password'])
 
         auth.changeUsername(user, kwargs['username'])
+        auth.setUserSetting(pages.getAcessingUser(),
+                            'allow-cors', 'allowcors' in kwargs)
         auth.setUserSetting(user, "restrict-lan", 'lanonly' in kwargs)
         auth.setUserSetting(user, "telemetry-alerts", 'telemetryalerts' in kwargs)
         messagebus.postMessage("/system/auth/user/modified",
