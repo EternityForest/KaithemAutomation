@@ -13,12 +13,6 @@ Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pag
     This option curretly can usually only block POST requests.  You should be sure to not allow a GET request to change anything important.
     However it may also block easily detected CORS get requests.
 </details>
-Allow CORS access as this user: <input type="checkbox" name="allowcors"
-
-                                    %if auth.getUserSetting(pages.getAcessingUser(), 'allow-cors'):
-                                    checked="on"
-                                    %endif
-                                    ></input> 
 
 
 
@@ -36,7 +30,7 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
 
 <h2>Basic Info</h2>
 <div class="sectionbox">
-<form action='/settings/changeinfo'>
+<form action='/settings/changeinfo' method='post'>
 <h3>Contact Info</h3>
 <table border=1>
 <tr>
@@ -48,8 +42,21 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
 </div>
 <form action='/settings/changeprefs' method='post'>
 
-<h2>Mailing Lists</h2>
+
 <div class="sectionbox">
+
+<h2>Web Services</h2>
+<h3>CORS Access</h3>
+Allow CORS access as this user: <input type="checkbox" name="allowcors"
+
+                                    %if auth.getUserSetting(pages.getAcessingUser(), 'allow-cors'):
+                                    checked="on"
+                                    %endif
+                                    ></input> 
+
+
+
+<h3>Mailing Lists</h3>
 <p class="help">Check the box to subscribe to a mailing list. Uncheck to unsubscribe</p>
 <%x = registry.get('system/mail/lists',{})%>
 

@@ -118,7 +118,7 @@ crossSiteRestrictedPermissions= BasePermissions.copy()
 crossSiteRestrictedPermissions.pop("__guest__")
 
 
-Permissions = BasePermissions
+Permissions = {i:{'description':BasePermissions[i]} for i in BasePermissions}
 
 """True only if auth module stuff changed since last save, used to prevent unneccesary disk writes.
 YOU MUST SET THIS EVERY TIME YOU CHANGE THE STATE AND WANT IT TO BE PERSISTANT"""
