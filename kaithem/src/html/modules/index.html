@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import modules
+from src import modules, modules_state
 %>
 <%include file="/pageheader.html"/>
 <h2> Modules <sup><a href="/docs#modules">[help]</a></sup></h2>
@@ -16,7 +16,7 @@ from src import modules
     <form style="display:inline-flex;" action="/modules/search/__all__"><input name="search" size="4" placeholder="Search all modules"/><input type=submit value="search"/></form>
     </div>
     <div class="buttonbar">
-        <p><b style="font-size: smaller;">${modules.moduleshash}</b></p>
+        <p><b style="font-size: smaller;">${modules_state.moduleshash}</b></p>
     </div>
 <p class="help">
 The following modules are currently loaded and active on the server.
@@ -26,17 +26,23 @@ The following modules are currently loaded and active on the server.
 <ul>
 %for i in sorted(ActiveModules.keys()):
 <li>\
-%if i in modules.unsaved_changed_obj or i in [j[0] for j in modules.unsaved_changed_obj if isinstance(j,tuple)]:
+%if i in modules_state.unsaved_changed_obj or i in [j[0] for j in modules_state.unsaved_changed_obj if isinstance(j,tuple)]:
 *\
 %endif
 %try:
-<a href="/modules/module/${url(i)}#resources" title="MD5: ${modules.getModuleHash(i)}">${i}</a>\
+<a href="/modules/module/${url(i)}#resources" title="MD5: ${modules_state.getModuleHash(i)}">${i}</a>\
 %if i in modules.external_module_locations:
 [From ${modules.external_module_locations[i]|h}]\
 %endif
 </li>\
 %except Exception as e:
+<%
+print(e)
+%>
+</li>
+<li>
 ${e|h}
+</li>
 %endtry
 %endfor
 </ul>

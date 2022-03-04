@@ -1,7 +1,8 @@
 <%!
 from src.unitsofmeasure import siFormatNumber
 from src.util import url
-from src.modules import getModuleHash,getModuleWordHash,fileResourceAbsPaths, external_module_locations
+from src.modules import fileResourceAbsPaths, external_module_locations
+from src.modules_state import getModuleHash,getModuleWordHash
 from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,registry,modules
 import time,os,weakref
 %>
@@ -167,7 +168,7 @@ continue
     <h3>
 <a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
     <i class="icofont-flag-alt-1"></i><b>\
-%if (name,i) in modules.unsaved_changed_obj:
+%if (name,i) in modules_state.unsaved_changed_obj:
 *\
 %endif
 
@@ -239,7 +240,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	  <dt>
         <div class="buttonbar style="display:inline-flex">
 
-          %if (name,i) in modules.unsaved_changed_obj:
+          %if (name,i) in modules_state.unsaved_changed_obj:
           *\
           %endif
 <h3>
@@ -281,7 +282,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
   <h3>
     
 <a href="/modules/module/${url(name)}/resource/${url(i)}">    <i class="icofont-key"></i>\
-  %if (name,i) in modules.unsaved_changed_obj:
+  %if (name,i) in modules_state.unsaved_changed_obj:
   *\
   %endif
   ${util.split_escape(i,'/','\\')[-1]|h}</a>
@@ -297,7 +298,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
        <dt>\
         <div class="buttonbar style="display:inline-flex">
 
-    %if (name,i) in modules.unsaved_changed_obj:
+    %if (name,i) in modules_state.unsaved_changed_obj:
     *\
     %endif
     <h3>
@@ -322,7 +323,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 %if module[i]['resource-type'] == 'device':
 
      <dt>\
-  %if (name,i) in modules.unsaved_changed_obj:
+  %if (name,i) in modules_state.unsaved_changed_obj:
   *\
   %endif
   <div class="buttonbar">
@@ -340,7 +341,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
     %if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref','device'] and not i.startswith("__"):
 
            <dt><span></span>\
-        %if (name,i) in modules.unsaved_changed_obj:
+        %if (name,i) in modules_state.unsaved_changed_obj:
         *\
         %endif
         <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
@@ -351,7 +352,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 %if module[i]['resource-type'] == 'directory':
 
       <dt>
-    %if (name,i) in modules.unsaved_changed_obj or [True for j in modules.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
+    %if (name,i) in modules_state.unsaved_changed_obj or [True for j in modules_state.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
     *\
     %endif
 <div class="buttonbar">

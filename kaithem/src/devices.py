@@ -32,15 +32,18 @@ import copy
 import asyncio
 from typing import Dict, Optional, Union, Any, Callable
 
-from . import virtualresource, pages, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
+from . import virtualresource, pages, workers, tagpoints, alerts
+from . import persist, directories, messagebus, widgets, unitsofmeasure
 
 import iot_devices.host
 import iot_devices.device
 
-#Has to be the same lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
-#edit the state because self modifying devices exist and can be saved in a module
-from .modules_state import modulesLock as lock
+# Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
+# edit the state because self modifying devices exist and can be saved in a module
+
+
 from .modules_state import additionalTypes
+from src import modules_state
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -68,7 +71,7 @@ unsaved_changes = {}
 
 class DeviceResourceType():
     def onload(self, module, name, value):
-        with lock:
+        with modules_state.modulesLock:
             n = module + "/" + name
             if n in remote_devices:
                 remote_devices[n].close()
@@ -78,7 +81,7 @@ class DeviceResourceType():
             remote_devices_atomic = wrcopy(remote_devices)
 
     def ondelete(self, module, name, value):
-        with lock:
+        with modules_state.modulesLock:
             n = module + "/" + name
             if n in remote_devices:
                 x = remote_devices[n]
@@ -106,7 +109,7 @@ class DeviceResourceType():
             module=module, path=path)
 
     def editpage(self, module, name, value):
-        with lock:
+        with modules_state.modulesLock:
             n = module + "/" + name
         return pages.get_template("devices/device.html").render(
             data=remote_devices[n].config, obj=remote_devices[n], name=n)
@@ -133,7 +136,7 @@ def saveAsFiles():
 
     saved = {}
     # Lock used to prevent conflict, saving over each other with nonsense data.
-    with lock:
+    with modules_state.modulesLock:
         for i in sd:
             saved[i + ".yaml"] = True
             persist.save(sd[i], os.path.join(saveLocation, i + ".yaml"))
@@ -166,17 +169,10 @@ def getByDescriptor(d):
     return x
 
 
-try:
-    try:
-        import html
-        esc = html.escape
-    except:
-        import cgi
-        esc = cgi.escape
-except:
 
-    def esc(t):
-        return t
+import html
+esc = html.escape
+
 
 
 def makeBackgroundPrintFunction(p, t, title, self):
@@ -253,23 +249,23 @@ class Device(virtualresource.VirtualResource):
 
     def setDataKey(self, key, val):
         "Lets a device set it's own persistent stored data"
-        with lock:
+        with modules_state.modulesLock:
             self.config[key] = val
             if self.parentModule:
                 from src import modules
-                modules.modules_state.ActiveModules[self.parentModule][
+                modules_state.ActiveModules[self.parentModule][
                     self.parentResource]['device'][key] = str(val)
-                modules.unsaved_changed_obj[
+                modules_state.unsaved_changed_obj[
                     self.parentModule, self.parentResource] = "Device changed"
-                modules.modules_state.createRecoveryEntry(
+                modules_state.createRecoveryEntry(
                     self.parentModule, self.parentResource,
-                    modules.modules_state.ActiveModules[self.parentModule][
+                    modules_state.ActiveModules[self.parentModule][
                         self.parentResource])
-                modules.modulesHaveChanged()
+                modules_state.modulesHaveChanged()
             else:
-                #This might not be stored in the master lists, and yet it might not be connected to
-                #the parentModule, because of legacy API reasons.
-                #Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
+                # This might not be stored in the master lists, and yet it might not be connected to
+                # the parentModule, because of legacy API reasons.
+                # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
                 if self.name in device_data:
                     device_data[self.name][key] = str(val)
                     unsaved_changes[self.name] = True
@@ -279,37 +275,36 @@ class Device(virtualresource.VirtualResource):
         json.dumps(val)
 
         "Lets a device set it's own persistent stored data"
-        with lock:
+        with modules_state.modulesLock:
             self.config[key] = val
             if self.parentModule:
-                from src import modules
-                modules.modules_state.ActiveModules[self.parentModule][
+                from src import modules_state
+                modules_state.ActiveModules[self.parentModule][
                     self.parentResource]['device'][key] = val
-                modules.unsaved_changed_obj[
+                modules_state.unsaved_changed_obj[
                     self.parentModule, self.parentResource] = "Device changed"
-                modules.modules_state.createRecoveryEntry(
+                modules_state.createRecoveryEntry(
                     self.parentModule, self.parentResource,
-                    modules.modules_state.ActiveModules[self.parentModule][
+                    modules_state.ActiveModules[self.parentModule][
                         self.parentResource])
-                modules.modulesHaveChanged()
+                modules_state.modulesHaveChanged()
             else:
-                #This might not be stored in the master lists, and yet it might not be connected to
-                #the parentModule, because of legacy API reasons.
-                #Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
+                # This might not be stored in the master lists, and yet it might not be connected to
+                # the parentModule, because of legacy API reasons.
+                # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
                 if self.name in device_data:
                     device_data[self.name][key] = val
 
     def getObject(self, key, default=None):
         "Lets a device set it's own persistent stored data"
-        with lock:
+        with modules_state.modulesLock:
             if self.parentModule:
-                from src import modules
-                return modules.modules_state.ActiveModules[self.parentModule][
+                return modules_state.ActiveModules[self.parentModule][
                     self.parentResource]['device'][key]
             else:
-                #This might not be stored in the master lists, and yet it might not be connected to
-                #the parentModule, because of legacy API reasons.
-                #Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
+                # This might not be stored in the master lists, and yet it might not be connected to
+                # the parentModule, because of legacy API reasons.
+                # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
                 if self.name in device_data:
                     return device_data[self.name][key]
         return default
@@ -332,7 +327,9 @@ class Device(virtualresource.VirtualResource):
         if not data[
                 'type'] == self.deviceTypeName and not self.deviceTypeName == 'unsupported':
             raise ValueError(
-                "Incorrect device type in info dict," + data['type'] +" does not match deviceTypeName " + self.deviceTypeName
+                "Incorrect device type in info dict," +
+                data['type'] + " does not match deviceTypeName " +
+                self.deviceTypeName
             )
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
@@ -352,14 +349,12 @@ class Device(virtualresource.VirtualResource):
         self._generic_ws_channel = widgets.APIWidget()
         self._generic_ws_channel.require("/admin/settings.edit")
 
-
         # Widgets could potentially stay around after this was deleted,
         # because a connection was open. We wouldn't want that to keep this device around when it should not
         # be.
         onMessage = self.makeUIMsgHandler(weakref.ref(self))
 
         onMessage2 = self.makeGenericUIMsgHandler(weakref.ref(self))
-
 
         # Maps the local short tag namre to the tag the user bound it to in the UI
         self._kBindings = {}
@@ -409,7 +404,7 @@ class Device(virtualresource.VirtualResource):
 
         # self.scriptContext.commands['print'] = self.print
 
-        with lock:
+        with modules_state.modulesLock:
             remote_devices[name] = self
             remote_devices_atomic = wrcopy(remote_devices)
 
@@ -461,19 +456,18 @@ class Device(virtualresource.VirtualResource):
                                    "First error in device: " + self.name)
             syslogger.error("in device: " + self.name + "\n" + s)
 
-
     def onGenericUIMessage(self, u, v):
-        if v[0]=='set':
+        if v[0] == 'set':
             if v[2] is not None:
                 self.tagPoints[v[1]].value = v[2]
 
-        elif v[0]=='refresh':
+        elif v[0] == 'refresh':
             self.tagPoints[v[1]].pull()
 
     # delete a device, it should not be used after this
     def close(self):
         global remote_devices_atomic
-        with lock:
+        with modules_state.modulesLock:
             if self.name in remote_devices:
                 del remote_devices[self.name]
                 remote_devices_atomic = wrcopy(remote_devices)
@@ -485,7 +479,7 @@ class Device(virtualresource.VirtualResource):
                 except KeyError:
                     pass
 
-            if hasattr(self,"_kBindings"):
+            if hasattr(self, "_kBindings"):
                 for i in self._kBindings:
                     try:
                         self._kBindings[i].unsubscribe(self.tagPoints[i])
@@ -541,7 +535,6 @@ class Device(virtualresource.VirtualResource):
         workers.do(makeBackgroundPrintFunction(t, tm, title, self))
 
 
-
 class UnsupportedDevice(Device):
     description = "This device does not have support, or else the support is not loaded."
     deviceTypeName = "unsupported"
@@ -572,40 +565,38 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         """
             A device's web page is also permissioned based on the global rules.
         """
-        if cherrypy.request.method in ('post','put'):
-            perms = self.config.get("kaithem.write_perms",'').strip() or "/admin/settings.edit"
+        if cherrypy.request.method in ('post', 'put'):
+            perms = self.config.get(
+                "kaithem.write_perms", '').strip() or "/admin/settings.edit"
 
-        if cherrypy.request.method =="get":
-            perms = self.config.get("kaithem.write_perms",'').strip() or "/admin/settings.edit"
+        if cherrypy.request.method == "get":
+            perms = self.config.get(
+                "kaithem.write_perms", '').strip() or "/admin/settings.edit"
 
         for i in perms.split(","):
             pages.require(i)
 
-        return asyncio.run(self.web_handler(path, kwargs,cherrypy.request.method))
+        return asyncio.run(self.web_handler(path, kwargs, cherrypy.request.method))
 
-    def serve_file(self,fn,mime='', name=None):
+    def serve_file(self, fn, mime='', name=None):
         from . import kaithemobj
-        return kaithemobj.kaithem.web.serveFile(fn,mime, name)
+        return kaithemobj.kaithem.web.serveFile(fn, mime, name)
 
     def __setupTagPerms(self, t, writable=True):
         # Devices can have a default exposure
-        readPerms = self.config.get("kaithem.read_perms",'').strip()
-        writePerms = self.config.get("kaithem.write_perms",'').strip()
+        readPerms = self.config.get("kaithem.read_perms", '').strip()
+        writePerms = self.config.get("kaithem.write_perms", '').strip()
         t.expose(readPerms, writePerms if writable else [])
 
-
-
-
-    def handle_web_request(self,relpath,params,method,**kwargs):
+    def handle_web_request(self, relpath, params, method, **kwargs):
         "To be called by the framework"
         return "No web content here"
 
-    def web_serve_file(self,path,filename=None,mime=None):
+    def web_serve_file(self, path, filename=None, mime=None):
         """
         From within your web handler, you can return the result of this to serve that file
         """
-        return pages.serveFile(path,mime or '', filename)
-
+        return pages.serveFile(path, mime or '', filename)
 
     def numeric_data_point(self,
                            name: str,
@@ -620,19 +611,18 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                            default: float = 0,
                            interval: float = 0,
                            writable: bool = True,
-                           subtype: string='',
+                           subtype: str = '',
                            **kwargs):
 
-        with lock:
+        with modules_state.modulesLock:
             if "/" in name:
                 t = tagpoints.Tag("/devices/" + self.name + "/" + name)
             else:
                 t = tagpoints.Tag("/devices/" + self.name + "." + name)
 
-            self.__setupTagPerms(t,writable)
+            self.__setupTagPerms(t, writable)
 
             t._dev_ui_writable = writable
-
 
             t.min = min
             t.max = max
@@ -644,9 +634,9 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.interval = interval
             t.subtype = subtype
 
-            def f(v,t,a):
-                self.datapoints[name]=v
-            self._tagBookKeepers[name]=f
+            def f(v, t, a):
+                self.datapoints[name] = v
+            self._tagBookKeepers[name] = f
             t.subscribe(f)
 
             # Be defensive
@@ -673,16 +663,16 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                                                      Any]] = None,
                           default: float = 0,
                           interval: float = 0,
-                          writable:bool =True,
-                        subtype: string='',
+                          writable: bool = True,
+                          subtype: str = '',
                           **kwargs):
-        with lock:
+        with modules_state.modulesLock:
             if "/" in name:
                 t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
             else:
                 t = tagpoints.StringTag("/devices/" + self.name + "." + name)
 
-            self.__setupTagPerms(t,writable)
+            self.__setupTagPerms(t, writable)
             t._dev_ui_writable = writable
 
             t.description = description
@@ -690,9 +680,9 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.interval = interval
             t.subtype = subtype
 
-            def f(v,t,a):
-                self.datapoints[name]=v
-            self._tagBookKeepers[name]=f
+            def f(v, t, a):
+                self.datapoints[name] = v
+            self._tagBookKeepers[name] = f
             t.subscribe(f)
 
             # Be defensive
@@ -718,26 +708,26 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                                                      Any]] = None,
                           interval: float = 0,
                           writable: bool = True,
-                          subtype: string='',
+                          subtype: str = '',
 
                           **kwargs):
 
-        with lock:
+        with modules_state.modulesLock:
             if "/" in name:
                 t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
             else:
                 t = tagpoints.ObjectTag("/devices/" + self.name + "." + name)
 
-            self.__setupTagPerms(t,writable)
+            self.__setupTagPerms(t, writable)
             t._dev_ui_writable = writable
             t.subtype = subtype
 
             t.description = description
             t.interval = interval
 
-            def f(v,t,a):
-                self.datapoints[name]=v
-            self._tagBookKeepers[name]=f
+            def f(v, t, a):
+                self.datapoints[name] = v
+            self._tagBookKeepers[name] = f
             t.subscribe(f)
 
             # Be defensive
@@ -757,30 +747,29 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             messagebus.postMessage("/system/tags/configured", t.name)
 
     def bytestream_data_point(self,
-                          name: str,
-                          description: str = "",
-                          handler: Optional[Callable[[str, float, Any],
-                                                     Any]] = None,
-                          interval: float = 0,
-                          writable: bool = True,
-                          subtype: string='',
+                              name: str,
+                              description: str = "",
+                              handler: Optional[Callable[[str, float, Any],
+                                                         Any]] = None,
+                              interval: float = 0,
+                              writable: bool = True,
+                              subtype: str = '',
 
-                          **kwargs):
+                              **kwargs):
 
-        with lock:
+        with modules_state.modulesLock:
             if "/" in name:
                 t = tagpoints.BinaryTag("/devices/" + self.name + "/" + name)
             else:
                 t = tagpoints.BinaryTag("/devices/" + self.name + "." + name)
-            t.unreliable=True
+            t.unreliable = True
 
-            self.__setupTagPerms(t,writable)
+            self.__setupTagPerms(t, writable)
             t._dev_ui_writable = writable
             t.subtype = subtype
 
             t.description = description
             t.interval = interval
-
 
             # Be defensive
             if name in self._deviceSpecIntegrationHandlers:
@@ -799,12 +788,12 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             messagebus.postMessage("/system/tags/configured", t.name)
 
     def push_bytes(self, name, value,):
-        self.tagPoints[name].fastPush(value,None, None)
+        self.tagPoints[name].fastPush(value, None, None)
 
-    def set_data_point(self, name, value,timestamp=None,annotation=None):
-        self.tagPoints[name](value,timestamp, annotation)
+    def set_data_point(self, name, value, timestamp=None, annotation=None):
+        self.tagPoints[name](value, timestamp, annotation)
 
-        #TODO this isn't really in spec, we should
+        # TODO this isn't really in spec, we should
         # use the full library to properly validate these values
         self.datapoints[name] = copy.deepcopy(value)
 
@@ -838,7 +827,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     def set_config_default(self, key: str, value: str):
         """sets an option in self.config if it does not exist or is blank. used for subclassing as you may want to persist.
-       
+
          Calls into set_config_option, you should not need to subclass this.
         """
 
@@ -854,7 +843,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         """
         pass
 
-    ### Lifecycle
+    # Lifecycle
 
     def onDelete(self):
         self.on_delete()
@@ -862,24 +851,23 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     def on_delete(self):
         pass
 
-
-    ### FS
+    # FS
 
     def framework_storage_root(self):
         return directories.vardir
 
-    ### UI Integration
+    # UI Integration
 
     def on_ui_message(self, msg: Union[float, int, str, bool, None, dict,
                                        list], **kw):
         """recieve a json message from the ui page.  the host is responsible for providing a send_ui_message(msg)
         function to the manage and create forms, and a set_ui_message_callback(f) function.
-        
+
         these messages are not directed at anyone in particular, have no semantics, and will be recieved by all
         manage forms including yourself.  they are only meant for very tiny amounts of general interest data and fast commands.
-        
+
         this lowest common denominator approach is to ensure that the ui can be fully served over mqtt if desired.
-    
+
         """
 
     def send_ui_message(self, msg: Union[float, int, str, bool, None, dict,
@@ -892,10 +880,10 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     def get_management_form(self) -> Optional[str]:
         """must return a snippet of html suitable for insertion into a form tag, but not the form tag itself.
         the host application is responsible for implementing the post target, the authentication, etc.
-        
+
         when the user posts the form, the config options will be used to first close the device, then build 
         a completely new device.
-        
+
         the host is responsible for the name and type parts of config, and everything other than the device.* keys.
         """
         return ''
@@ -946,7 +934,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 # is name, and that's optional but can be used to rename a device
 def updateDevice(devname, kwargs, saveChanges=True):
 
-    #The NEW name, which could just be the old name
+    # The NEW name, which could just be the old name
     name = kwargs.get('name', None) or devname
 
     ib = kwargs.pop("temp.kaithem.inputbindings", None)
@@ -965,7 +953,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
     old_read_perms = {}
     old_write_perms = {}
 
-    with lock:
+    with modules_state.modulesLock:
         if devname in remote_devices:
             parentModule = remote_devices[devname].parentModule
             parentResource = remote_devices[devname].parentResource
@@ -974,28 +962,26 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
             old_read_perms = remote_devices[devname].config.get(
                 "kaithem.read_perms", [])
-                
 
             old_write_perms = remote_devices[devname].config.get(
                 "kaithem.write_perms", [])
-                
+
             remote_devices[devname].close()
             messagebus.postMessage("/devices/removed/", devname)
 
-            #Delete and then recreate because we may be renaming to a different name
+            # Delete and then recreate because we may be renaming to a different name
 
             if not parentModule:
                 del device_data[devname]
             else:
-                from src import modules
-                del modules.modules_state.ActiveModules[parentModule][
+                del modules_state.ActiveModules[parentModule][
                     parentResource]
-                modules.unsaved_changed_obj[
+                modules_state.unsaved_changed_obj[
                     parentModule, parentResource] = "Device Changed or renamed"
-                modules.modules_state.createRecoveryEntry(
+                modules_state.createRecoveryEntry(
                     parentModule, parentResource, None)
 
-                #Forbid moving to new module for now, specifically we don't want to move to nonexistent
+                # Forbid moving to new module for now, specifically we don't want to move to nonexistent
                 name = parentModule + "/" + name.split("/", 1)[-1]
                 parentResource = name.split("/", 1)[-1]
 
@@ -1009,32 +995,29 @@ def updateDevice(devname, kwargs, saveChanges=True):
         d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
 
         # allow forms that don't have the whole binding widget
-        if not 'kaithem.input_bindings' in d:
+        if 'kaithem.input_bindings' not in d:
             d['kaithem.input_bindings'] = old_bindings
 
-        if not 'kaithem.read_perms' in d:
+        if 'kaithem.read_perms' not in d:
             d['kaithem.read_perms'] = old_read_perms or '/users/devices.read'
 
-        if not 'kaithem.write_perms' in d:
+        if 'kaithem.write_perms' not in d:
             d['kaithem.write_perms'] = old_write_perms or '/users/devices.write'
 
-
-
         if parentModule:
-            from src import modules
-            modules.modules_state.ActiveModules[parentModule][
+            modules_state.ActiveModules[parentModule][
                 parentResource] = {
                     'resource-type': 'device',
                     "device": d
-                }
-            modules.unsaved_changed_obj[parentModule,
-                                        parentResource] = "Device changed"
-            modules.modules_state.createRecoveryEntry(
+            }
+            modules_state.unsaved_changed_obj[parentModule,
+                                              parentResource] = "Device changed"
+            modules_state.createRecoveryEntry(
                 parentModule, parentResource, {
                     'resource-type': 'device',
                     "device": d
                 })
-            modules.modulesHaveChanged()
+            modules_state.modulesHaveChanged()
 
         else:
             # Allow name changing via data, we save under new, not the old name
@@ -1053,14 +1036,14 @@ class WebDevices():
     def index(self):
         """Index page for web interface"""
         pages.require("/admin/settings.edit")
-        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         return pages.get_template("devices/index.html").render(
             deviceData=remote_devices_atomic)
 
     @cherrypy.expose
     def device(self, name, *args, **kwargs):
-        #This is a customizable per-device page
+        # This is a customizable per-device page
         if args and args[0] == 'web':
             if kwargs:
                 # Just don't allow gets that way
@@ -1083,11 +1066,11 @@ class WebDevices():
                 merged.update(device_data[name])
 
             if obj.parentModule:
-                from src import modules
-                merged.update(modules.modules_state.ActiveModules[
+                from src import modules_state
+                merged.update(modules_state.ActiveModules[
                     obj.parentModule][obj.parentResource]['device'])
 
-            #I think stored data is enough, this is just defensive
+            # I think stored data is enough, this is just defensive
             merged.update(remote_devices[name].config)
 
             return pages.get_template("devices/device.html").render(
@@ -1108,7 +1091,6 @@ class WebDevices():
 
         return pages.get_template("devices/devicedocs.html").render(docs=x)
 
-
     @cherrypy.expose
     def updateDevice(self, devname, **kwargs):
         pages.require("/admin/settings.edit")
@@ -1124,7 +1106,7 @@ class WebDevices():
         """
         pages.require("/admin/settings.edit")
         pages.postOnly()
-        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         current = kwargs
 
@@ -1137,7 +1119,7 @@ class WebDevices():
         else:
             d = getDeviceType(type)
 
-        #We don't have pt adapter layer with raw classes
+        # We don't have pt adapter layer with raw classes
         if hasattr(d, "discoverDevices"):
             d = d.discoverDevices(current,
                                   current_device=remote_devices.get(
@@ -1157,13 +1139,12 @@ class WebDevices():
         "Actually create the new device"
         pages.require("/admin/settings.edit")
         pages.postOnly()
-        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         name = name or kwargs.get('name', None)
         m = r = None
-        with lock:
+        with modules_state.modulesLock:
             if 'module' in kwargs:
-                from src import modules
                 m = kwargs['module']
                 r = kwargs['resource']
                 name = m + "/" + r
@@ -1171,17 +1152,16 @@ class WebDevices():
                 del kwargs['resource']
                 d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
 
-
                 # Set these as the default
                 kwargs['kaithem.read_perms'] = "/users/devices.read"
                 kwargs['kaithem.write_perms'] = "/users/devices.write"
 
-                modules.ActiveModules[m][r] = {
+                modules_state.ActiveModules[m][r] = {
                     'resource-type': 'device',
                     'device': d
                 }
-                modules.unsaved_changed_obj[m, r] = "Device changed"
-                modules.modulesHaveChanged()
+                modules_state.unsaved_changed_obj[m, r] = "Device changed"
+                modules_state.modulesHaveChanged()
             else:
                 if not name:
                     raise RuntimeError("No name?")
@@ -1199,7 +1179,6 @@ class WebDevices():
             remote_devices_atomic = wrcopy(remote_devices)
             messagebus.postMessage("/devices/added/", name)
 
-
         raise cherrypy.HTTPRedirect("/devices")
 
     @cherrypy.expose
@@ -1207,7 +1186,7 @@ class WebDevices():
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("/admin/settings.edit")
         pages.postOnly()
-        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         tp = getDeviceType(kwargs['type'])
 
@@ -1226,7 +1205,7 @@ class WebDevices():
     @cherrypy.expose
     def deleteDevice(self, name, **kwargs):
         pages.require("/admin/settings.edit")
-        cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         name = name or kwargs['name']
         return pages.get_template("devices/confirmdelete.html").render(
@@ -1237,7 +1216,7 @@ class WebDevices():
         pages.require("/admin/settings.edit")
         pages.postOnly()
         name = kwargs['name']
-        with lock:
+        with modules_state.modulesLock:
             x = remote_devices[name]
             x.close()
             gc.collect()
@@ -1253,14 +1232,13 @@ class WebDevices():
                 pass
 
             if x.parentModule:
-                from src import modules
-                del modules.modules_state.ActiveModules[x.parentModule][
+                del modules_state.ActiveModules[x.parentModule][
                     x.parentResource]
-                modules.unsaved_changed_obj[
+                modules_state.unsaved_changed_obj[
                     x.parentModule, x.parentResource] = "Device deleted"
-                modules.modules_state.createRecoveryEntry(
+                modules_state.createRecoveryEntry(
                     x.parentModule, x.parentResource, None)
-                modules.modulesHaveChanged()
+                modules_state.modulesHaveChanged()
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
             # Gotta be aggressive about ref cycle breaking!
@@ -1336,18 +1314,17 @@ def makeDevice(name, data, module=None, resource=None):
                 pass
 
                 def __init__(self, name, data, **kw):
-                    #We have to call ours first because we need things like the tag points list
+                    # We have to call ours first because we need things like the tag points list
                     # to be able to do the things theirs could call
                     Device.__init__(self, name, data, **kw)
                     CrossFrameworkDevice.__init__(self, name, data, **kw)
-                    #Ensure we don't lose any data should the base class ever set any new keys
+                    # Ensure we don't lose any data should the base class ever set any new keys
                     dt2.__init__(self, name, self.config, **kw)
 
-                def close(self,*a,**k):
-                    dt2.close(self,*a,**k)
-                    #Our internal device close.  The plugin should call the iot_devices close itself
-                    Device.close(self,*a,**k)
-
+                def close(self, *a, **k):
+                    dt2.close(self, *a, **k)
+                    # Our internal device close.  The plugin should call the iot_devices close itself
+                    Device.close(self, *a, **k)
 
             dt = ImportedDeviceClass
         except KeyError:
@@ -1357,9 +1334,7 @@ def makeDevice(name, data, module=None, resource=None):
         except Exception:
             dt = UnsupportedDevice
             logging.exception("Err creating device")
-            err=traceback.format_exc()
-
-        
+            err = traceback.format_exc()
 
     new_data = copy.deepcopy(data)
     frd = new_data.pop("framework_data", None)
@@ -1374,7 +1349,7 @@ def makeDevice(name, data, module=None, resource=None):
 
     try:
         d = dt(name, new_data)
-    except Exception as e:
+    except Exception:
         d = UnsupportedDevice(name, new_data)
         d.handleException()
 
@@ -1382,27 +1357,26 @@ def makeDevice(name, data, module=None, resource=None):
         d.handleError(err)
 
     if module:
-        from src import modules
         d.parentModule = module
         d.parentResource = resource
         devicesByModuleAndResource[module, resource] = d
 
         # In case something changed during initializatiion before we set it
         # flush the changes back to the modules object if applicable
-        with lock:
-            modules.modules_state.ActiveModules[d.parentModule][
+        with modules_state.modulesLock:
+            modules_state.ActiveModules[d.parentModule][
                 d.parentResource] = {
                     'resource-type': 'device',
                     'device': d.config
-                }
-            modules.unsaved_changed_obj[d.parentModule,
-                                        d.parentResource] = "Device changed"
-            modules.modules_state.createRecoveryEntry(
+            }
+            modules_state.unsaved_changed_obj[d.parentModule,
+                                              d.parentResource] = "Device changed"
+            modules_state.createRecoveryEntry(
                 d.parentModule, d.parentResource, {
                     'resource-type': 'device',
                     "device": d.config
                 })
-            modules.modulesHaveChanged()
+            modules_state.modulesHaveChanged()
 
     try:
         needSet = 0
@@ -1527,7 +1501,7 @@ def createDevicesFromData():
             continue
 
         try:
-            #No module or resource here
+            # No module or resource here
             remote_devices[i] = makeDevice(i, device_data[i])
             syslogger.info("Created device from config: " + i)
         except:
@@ -1545,8 +1519,8 @@ unsupportedDevices = weakref.WeakValueDictionary()
 def fixUnsupported():
     "For all placeholder unsupported devices, let's see if we can fix them with a newly set up driver"
     global remote_devices_atomic
-    with lock:
-        #Small optimization here
+    with modules_state.modulesLock:
+        # Small optimization here
         if not unsupportedDevices:
             return
         s = 0

@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util,notifications,pages,modules,registry,theming,devices,persist
+from src import auth,util,notifications,pages,modules,modules_state,registry,theming,devices,persist
 import cherrypy,socket,base64
 %>
 
@@ -131,7 +131,7 @@ import cherrypy,socket,base64
 
 
       <a href="/modules/"><i class="icofont-briefcase"></i>
-        %if modules.unsaved_changed_obj:
+        %if modules_state.unsaved_changed_obj:
         <span title="The modules have unsaved changes">*</span>
         %endif
         Modules</a>

@@ -1,15 +1,15 @@
 import logging
-from src import messagebus,pages
-import time 
+from src import messagebus, pages
+import time
 import cherrypy
 
 
 class WebUI():
     @cherrypy.expose
-    def scan(self): 
+    def scan(self):
         pages.postOnly()
         pages.require("/admin/settings.edit")
-        
+
         import bluetoothctl
         bt = bluetoothctl.Bluetoothctl()
 
@@ -23,13 +23,13 @@ class WebUI():
         finally:
             bt.close(force=True)
 
-        return pages.get_template("settings/bluetooth/scan.html").render(devs=devs,paired=paired)
+        return pages.get_template("settings/bluetooth/scan.html").render(devs=devs, paired=paired)
 
     @cherrypy.expose
-    def pair(self,mac):
+    def pair(self, mac):
         pages.require("/admin/settings.edit")
         pages.postOnly()
-                
+
         import bluetoothctl
         bt = bluetoothctl.Bluetoothctl()
         bt.set_agent("NoInputNoOutput")
@@ -37,13 +37,13 @@ class WebUI():
         time.sleep(0.5)
         try:
 
-            #I think this horriby fussy command needs exactlt this order to work. 
+            # I think this horriby fussy command needs exactlt this order to work.
             if not bt.pair(mac):
                 raise RuntimeError("Pairing failed")
-         
+
             if not bt.connect(mac):
-                raise RuntimeError("Pairing suceeded but connection failed")   
-                
+                raise RuntimeError("Pairing suceeded but connection failed")
+
             if not bt.trust(mac):
                 raise RuntimeError("Trusting failed")
         finally:
@@ -52,11 +52,10 @@ class WebUI():
         devs = []
         paired = bt.get_paired_devices()
 
-        return pages.get_template("settings/bluetooth/scan.html").render(devs=devs,paired=paired)
-
+        return pages.get_template("settings/bluetooth/scan.html").render(devs=devs, paired=paired)
 
     @cherrypy.expose
-    def remove(self,mac):
+    def remove(self, mac):
         pages.require("/admin/settings.edit")
         pages.postOnly()
         import bluetoothctl
@@ -70,6 +69,4 @@ class WebUI():
         finally:
             bt.close(force=True)
 
-        return pages.get_template("settings/bluetooth/scan.html").render(devs=devs,paired=paired)
-
-        
+        return pages.get_template("settings/bluetooth/scan.html").render(devs=devs, paired=paired)

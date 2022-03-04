@@ -13,22 +13,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading
-import urllib
-import shutil
-import sys
+
 import time
 import os
 import json
 import traceback
 import copy
 import mimetypes
-import uuid
 import cherrypy
-import yaml
-from . import auth, pages, directories, util, newevt, kaithemobj, usrpages, messagebus, scheduling, registry, devices
+from . import auth, pages, directories, util, newevt, usrpages, messagebus, scheduling, devices
 from .modules import *
 from src import modules
+from src import modules_state
 from src.config import config
 from cherrypy.lib.static import serve_file
 
@@ -46,7 +42,7 @@ def validate_upload():
 def searchModules(search, max_results=100, start=0, mstart=0):
     pointer = mstart
     results = []
-    for i in sorted(ActiveModules.keys(), reverse=True)[mstart:]:
+    for i in sorted(modules_state.ActiveModules.keys(), reverse=True)[mstart:]:
         x = searchModuleResources(i, search, max_results, start)
         if x[0]:
             results.append((i, x[0]))
@@ -78,7 +74,7 @@ def searchTags(search):
 
 def searchModuleResources(modulename, search, max_results=100, start=0):
     search = search.lower()
-    m = ActiveModules[modulename]
+    m = modules_state.ActiveModules[modulename]
     results = []
     pointer = start
     for i in sorted(m.keys(), reverse=True)[start:]:
@@ -151,33 +147,13 @@ class WebInterface():
         pages.require('/admin/modules.view')
         if config["downloads-include-md5-in-filename"]:
             cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"' % util.url(
-                module[:-4]+"_"+getModuleHash(module[:-4])+".zip")
+                module[:-4]+"_"+modules_state.getModuleHash(module[:-4])+".zip")
         cherrypy.response.headers['Content-Type'] = 'application/zip'
         try:
-            return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles=not pages.canUserDoThis("/admin/modules.edit"))
-        except:
+            return modules_state.getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles=not pages.canUserDoThis("/admin/modules.edit"))
+        except Exception:
             logging.exception("Failed to handle zip download request")
             raise
-    # This lets the user download a module as a zip file
-    @cherrypy.expose
-    def download(self, module):
-        pages.require('/admin/modules.view')
-        if config["downloads-include-md5-in-filename"]:
-            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"' % util.url(
-                module[:-4]+"_"+getModuleHash(module[:-4]))
-        cherrypy.response.headers['Content-Type'] = 'application/zip'
-        try:
-            return getModuleAsZip(module[:-4], noFiles=not pages.canUserDoThis("/admin/modules.edit"))
-        except:
-            logging.exception("Failed to handle zip download request")
-
-    # This lets the user download a module as a zip file. But this one is deprecated.
-    # It's only here for backwards compatibility, but it really doesn't matter.
-    @cherrypy.expose
-    def downloads(self, module):
-        pages.require('/admin/modules.view')
-        cherrypy.response.headers['Content-Type'] = 'application/zip'
-        return getModuleAsZip(module)
 
     # This lets the user upload modules
     @cherrypy.expose
@@ -191,12 +167,12 @@ class WebInterface():
     def uploadtarget(self, modulesfile, **kwargs):
         pages.require('/admin/modules.edit')
         pages.postOnly()
-        modulesHaveChanged()
+        modules_state.modulesHaveChanged()
         for i in load_modules_from_zip(modulesfile.file, replace='replace' in kwargs):
-            unsaved_changed_obj[i] = "Module uploaded by" + \
+            modules_state.unsaved_changed_obj[i] = "Module uploaded by" + \
                 pages.getAcessingUser()
-            for j in ActiveModules[i]:
-                unsaved_changed_obj[i, j] = "Resource is part of module uploaded by" + \
+            for j in modules_state.ActiveModules[i]:
+                modules_state.unsaved_changed_obj[i, j] = "Resource is part of module uploaded by" + \
                     pages.getAcessingUser()
 
         messagebus.postMessage("/system/modules/uploaded",
@@ -207,18 +183,13 @@ class WebInterface():
     def index(self):
         # Require permissions and render page. A lotta that in this file.
         pages.require("/admin/modules.view")
-        return pages.get_template("modules/index.html").render(ActiveModules=ActiveModules)
+        return pages.get_template("modules/index.html").render(ActiveModules=modules_state.ActiveModules)
 
     @cherrypy.expose
     def library(self):
         # Require permissions and render page. A lotta that in this file.
         pages.require("/admin/modules.view")
         return pages.get_template("modules/library.html").render()
-
-    @cherrypy.expose
-    def editlibrary(self):
-        pages.require("/admin/modules.edit")
-        return pages.get_template("modules/library_edit.html").render()
 
     @cherrypy.expose
     def newmodule(self):
@@ -232,17 +203,17 @@ class WebInterface():
 
     @cherrypy.expose
     def savemoduletarget(self, module):
-        with modulesLock:
+        with modules_state.modulesLock:
             pages.require("/admin/modules.edit")
             pages.postOnly()
-            s = saveModule(
-                ActiveModules[module], external_module_locations[module], module)
+            s = modules.saveModule(
+                modules_state.ActiveModules[module], external_module_locations[module], module)
             if not os.path.isfile(os.path.join(directories.moduledir, "data", "__"+url(module)+".location")):
                 with open(os.path.join(directories.moduledir, "data", "__"+url(module)+".location"), "w") as f:
                     f.write(external_module_locations[module])
             for i in s:
-                if i in unsaved_changed_obj:
-                    del unsaved_changed_obj[i]
+                if i in modules_state.unsaved_changed_obj:
+                    del modules_state.unsaved_changed_obj[i]
 
         raise cherrypy.HTTPRedirect("/modules")
 
@@ -279,10 +250,10 @@ class WebInterface():
         pages.postOnly()
 
         # If there is no module by that name, create a blank template and the scope obj
-        with modulesLock:
-            if kwargs['name'] in ActiveModules:
+        with modules_state.modulesLock:
+            if kwargs['name'] in modules_state.ActiveModules:
                 return pages.get_template("error.html").render(info=" A module already exists by that name,")
-            newModule(kwargs['name'], kwargs.get("location", None))
+            modules.newModule(kwargs['name'], kwargs.get("location", None))
             raise cherrypy.HTTPRedirect(
                 "/modules/module/"+util.url(kwargs['name']))
 
@@ -291,39 +262,16 @@ class WebInterface():
         "Load a module from the library"
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        if module in ActiveModules:
+        if module in modules_state.ActiveModules:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
         loadModule(os.path.join(directories.datadir,
                                 "modules", module), module)
-        modulesHaveChanged()
-        unsaved_changed_obj[module] = "Loaded from library by user"
-        for i in ActiveModules[module]:
-            unsaved_changed_obj[module, i] = "Loaded from kibrary by user"
-        bookkeeponemodule(module)
-        auth.importPermissionsFromModules()
-        raise cherrypy.HTTPRedirect('/modules')
-
-    @cherrypy.expose
-    def editlibmodule(self, module):
-        "Load a module from the library"
-        pages.require("/admin/modules.edit")
-        pages.postOnly()
-        if module in ActiveModules:
-            raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-
-        # This is the only difference. In edit mode we can load a library module
-        # And save it back to the library. At the moment this is pretty much entirely
-        # For developers
-        external_module_locations[kwargs['name']] = kwargs['location']
-
-        loadModule(os.path.join(directories.datadir,
-                                "modules", module), module)
-        modulesHaveChanged()
-        unsaved_changed_obj[module] = "Loaded from library by user"
-        for i in ActiveModules[module]:
-            unsaved_changed_obj[module, i] = "Loaded from kibrary by user"
-        bookkeeponemodule(module)
+        modules_state.modulesHaveChanged()
+        modules_state.unsaved_changed_obj[module] = "Loaded from library by user"
+        for i in modules_state.ActiveModules[module]:
+            modules_state.unsaved_changed_obj[module, i] = "Loaded from kibrary by user"
+        modules.bookkeeponemodule(module)
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')
 
@@ -341,7 +289,7 @@ class WebInterface():
         # If we are not performing an action on a module just going to its page
         if not path:
             pages.require("/admin/modules.view")
-            return pages.get_template("modules/module.html").render(module=ActiveModules[root], name=root, path=modulepath, fullpath=fullpath)
+            return pages.get_template("modules/module.html").render(module=modules_state.ActiveModules[root], name=root, path=modulepath, fullpath=fullpath)
 
         else:
             if path[0] == 'runevent':
@@ -487,7 +435,7 @@ class WebInterface():
                             break
                         f.write(d)
 
-                with modulesLock:
+                with modules_state.modulesLock:
                     # BEGIN BLOCK OF CODE COPY PASTED FROM ANOTHER PART OF CODE. I DO NOT REALLY UNDERSTAND IT
                     # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
                     escapedName = (kwargs['name'].replace(
@@ -501,7 +449,7 @@ class WebInterface():
                         root, escapedName)] = "Resource added by" + pages.getAcessingUser()
 
                     def insertResource(r):
-                        ActiveModules[root][escapedName] = r
+                        modules_state.ActiveModules[root][escapedName] = r
                         modules_state.createRecoveryEntry(root, escapedName, r)
                     # END BLOCK OF COPY PASTED CODE.
 
@@ -512,7 +460,7 @@ class WebInterface():
                     else:
                         x = ""
                     fileResourceAbsPaths[root, x+kwargs['name']] = dataname
-                    modulesHaveChanged()
+                    modules_state.modulesHaveChanged()
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root))
 
             # This returns a page to delete any resource by name
@@ -547,16 +495,16 @@ class WebInterface():
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                modulesHaveChanged()
-                with modulesLock:
+                modules_state.modulesHaveChanged()
+                with modules_state.modulesLock:
                     if not kwargs['name'] == root:
-                        unsaved_changed_obj[kwargs['name']] = "New name of module. " + \
+                        modules_state.unsaved_changed_obj[kwargs['name']] = "New name of module. " + \
                             pages.getAcessingUser() + " old name was "+root
-                        unsaved_changed_obj[root] = "Old name of module that was renamed by " + \
+                        modules_state.unsaved_changed_obj[root] = "Old name of module that was renamed by " + \
                             pages.getAcessingUser()+" new name is " + \
                             kwargs['name']
                     else:
-                        unsaved_changed_obj[root] = "Module metadata changed"
+                        modules_state.unsaved_changed_obj[root] = "Module metadata changed"
 
                     if "location" in kwargs and kwargs['location']:
                         external_module_locations[kwargs['name']
@@ -580,16 +528,16 @@ class WebInterface():
                         if root in external_module_locations:
                             external_module_locations.pop(root)
                     # Missing descriptions have caused a lot of bugs
-                    if '__description' in ActiveModules[root]:
-                        ActiveModules[root]['__description']['text'] = kwargs['description']
+                    if '__description' in modules_state.ActiveModules[root]:
+                        modules_state.ActiveModules[root]['__description']['text'] = kwargs['description']
                     else:
-                        ActiveModules[root]['__description'] = {
+                        modules_state.ActiveModules[root]['__description'] = {
                             'resource-type': 'module-description', 'text': kwargs['description']}
 
                     # Renaming reloads the entire module.
                     # TODO This needs to handle custom resource types if we ever implement them.
                     if not kwargs['name'] == root:
-                        ActiveModules[kwargs['name']] = ActiveModules.pop(root)
+                        modules_state.ActiveModules[kwargs['name']] = modules_state.ActiveModules.pop(root)
                         # UHHG. So very much code tht just syncs data structures.
                         # This gets rid of the cache under the old name
                         newevt.removeModuleEvents(root)
@@ -632,7 +580,7 @@ def addResourceDispatcher(module, type, path):
 def addResourceTarget(module, type, name, kwargs, path):
     pages.require("/admin/modules.edit")
     pages.postOnly()
-    modulesHaveChanged()
+    modules_state.modulesHaveChanged()
 
     # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = (kwargs['name'].replace("\\", "\\\\").replace("/", '\\/'))
@@ -641,17 +589,17 @@ def addResourceTarget(module, type, name, kwargs, path):
     x = util.split_escape(module, "/", "\\")
     escapedName = "/".join(x[1:]+[escapedName])
     root = x[0]
-    unsaved_changed_obj[(root, escapedName)
+    modules_state.unsaved_changed_obj[(root, escapedName)
                         ] = "Resource added by" + pages.getAcessingUser()
 
     def insertResource(r):
         r['resource-timestamp'] = int(time.time()*1000000)
-        ActiveModules[root][escapedName] = r
+        modules_state.ActiveModules[root][escapedName] = r
         modules_state.createRecoveryEntry(module, escapedName, r)
 
-    with modulesLock:
+    with modules_state.modulesLock:
         # Check if a resource by that name is already there
-        if escapedName in ActiveModules[root]:
+        if escapedName in modules_state.ActiveModules[root]:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
         if type == 'directory':
@@ -718,11 +666,11 @@ def addResourceTarget(module, type, name, kwargs, path):
 def resourceEditPage(module, resource, version='default', kwargs={}):
     pages.require("/admin/modules.view")
     cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
-    with modulesLock:
-        resourceinquestion = ActiveModules[module][resource]
+    with modules_state.modulesLock:
+        resourceinquestion = modules_state.ActiveModules[module][resource]
         if version == '__default__':
             try:
-                resourceinquestion = ActiveModules[module][resource]['versions']['__draft__']
+                resourceinquestion = modules_state.ActiveModules[module][resource]['versions']['__draft__']
                 version = '__draft__'
             except KeyError as e:
                 version = "__live__"
@@ -763,11 +711,11 @@ def resourceEditPage(module, resource, version='default', kwargs={}):
                 requiredpermissions = []
 
             return pages.get_template("modules/pages/page.html").render(module=module, name=resource, kwargs=kwargs,
-                                                                        page=ActiveModules[module][resource], requiredpermissions=requiredpermissions)
+                                                                        page=modules_state.ActiveModules[module][resource], requiredpermissions=requiredpermissions)
 
         if resourceinquestion['resource-type'] == 'directory':
             pages.require("/admin/modules.view")
-            return pages.get_template("modules/module.html").render(module=ActiveModules[module], name=module, path=util.split_escape(resource, '\\'), fullpath=module+"/"+resource)
+            return pages.get_template("modules/module.html").render(module=modules_state.ActiveModules[module], name=module, path=util.split_escape(resource, '\\'), fullpath=module+"/"+resource)
 
         # This is for the custom resource types interface stuff.
         return additionalTypes[resourceinquestion['resource-type']].editpage(module, resource, resourceinquestion)
@@ -776,19 +724,19 @@ def resourceEditPage(module, resource, version='default', kwargs={}):
 def permissionEditPage(module, resource):
     pages.require("/admin/modules.view")
     return pages.get_template("modules/permissions/permission.html").render(module=module,
-                                                                            permission=resource, description=ActiveModules[module][resource]['description'])
+                                                                            permission=resource, description=modules_state.ActiveModules[module][resource]['description'])
 
 
 # The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module, resource, kwargs):
     pages.require("/admin/modules.edit", noautoreturn=True)
     pages.postOnly()
-    modulesHaveChanged()
-    unsaved_changed_obj[(module, resource)
+    modules_state.modulesHaveChanged()
+    modules_state.unsaved_changed_obj[(module, resource)
                         ] = "Resource modified by" + pages.getAcessingUser()
-    with modulesLock:
-        t = ActiveModules[module][resource]['resource-type']
-        resourceobj = ActiveModules[module][resource]
+    with modules_state.modulesLock:
+        t = modules_state.ActiveModules[module][resource]['resource-type']
+        resourceobj = modules_state.ActiveModules[module][resource]
         resourceobj['resource-timestamp'] = int(time.time()*1000000)
 
         if t == 'permission':
@@ -873,7 +821,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                     raise
 
                 # If everything seems fine, then we update the actual resource data
-                ActiveModules[module][resource] = r2
+                modules_state.ActiveModules[module][resource] = r2
                 resourceobj = r2
             # Save but don't enable
             else:
@@ -893,7 +841,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                 time.sleep(0.08)
 
                 # If everything seems fine, then we update the actual resource data
-                ActiveModules[module][resource] = r2
+                modules_state.ActiveModules[module][resource] = r2
 
             # I really need to do something about this possibly brittle bookkeeping system
             # But anyway, when the active modules thing changes we must update the newevt cache thing.

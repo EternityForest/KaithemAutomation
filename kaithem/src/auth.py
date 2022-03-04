@@ -26,7 +26,7 @@ of a valid token"""
 # Users and groups are saved in RAM and synched with the filesystem due to the goal
 # of not using the filesystem much to save any SD cards.
 
-from typing import Dict
+from typing import Dict, Union
 from . import util, directories, modules_state, registry, messagebus
 import json
 import base64
@@ -40,13 +40,19 @@ import hmac
 import struct
 import logging
 import threading
-import subprocess
 
 lock = threading.RLock()
 
+
+# Python doesn't let us make custom attributes on normal dicts
+class User(dict):
+    permissions : Union[Dict,set]= {}
+    pass
+
+
 logger = logging.getLogger("system.auth")
 # This maps raw tokens to users
-Tokens = {}
+Tokens: Dict[str, User] = {}
 
 # This maps hashed tokens to users. There's an easy timing attack I'd imagine
 # with looking up tokens literally in a dict.
@@ -58,19 +64,11 @@ Tokens = {}
 
 # This post discusses token auth directly:
 # https://stackoverflow.com/questions/18605294/is-devises-token-authenticatable-secure
-tokenHashes = {}
+tokenHashes: Dict[bytes, User] = {}
 
 with open(os.path.join(directories.datadir, "defaultusersettings.yaml")) as f:
     defaultusersettings = yaml.load(f)
 
-# untested stuff that only works sometimes maybe for supporting logins by unix users
-try:
-    if sys.version_info < (3, 3):
-        from shlex import quote as shellquote
-    else:
-        from pipes import quote as shellquote
-except:
-    pass
 
 if sys.version_info < (3, 0):
     # In python 2 bytes is an alias for str
@@ -83,21 +81,22 @@ if sys.version_info < (3, 0):
 else:
     usr_bytes = bytes
 
+
 # If nobody loadsusers from the file make sure nothing breaks(mostly for tests)
 """A dict of all the users"""
-Users = {}
+Users: Dict[str, User] = {}
 """A dict of all the groups"""
-Groups = {}
+Groups: Dict[str, dict] = {}
 
 """These are the "built in" permissions required to control basic functions
 User code can add to these"""
-BasePermissions: Dict[str,str] = {
-    "/admin/users.edit": "Edit users, groups, and permissions, View and change usernames and passwords. Implies full access so watch out who you give this to.",
+BasePermissions: Dict[str, str] = {
+    "/admin/users.edit": "Edit users, groups, and permissions, View and change usernames and passwords. Implies FULL ACCESS.",
     "/admin/mainpage.view": "View the main page of the application.",
-    "/admin/modules.view":  "View and download all module contents but not make any changes.",
-    "/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives full access essentially so watch out.",
+    "/admin/modules.view": "View and download all module contents but not make any changes.",
+    "/admin/modules.edit": "Create, Edit, Import, Upload, and Download modules and module contents. Implies FULL ACCESS.",
     "/admin/settings.view": "View but not change settings.",
-    "/admin/settings.edit": "Change settings. Also serves as a generic admin permission for several misc thingas. Implies full access.",
+    "/admin/settings.edit": "Change settings. Also serves as a generic admin permission for several misc thingas. Implies FULL ACCESS.",
     "/admin/logging.edit": "Modify settings in the logging subsystem",
     "/admin/eventoutput.view": "View the message logs.",
     "/users/logs.view": "View the message logs.",
@@ -114,11 +113,11 @@ BasePermissions: Dict[str,str] = {
     "__guest__": "Everyone always has this permission even when not logged in"
 }
 
-crossSiteRestrictedPermissions= BasePermissions.copy()
+crossSiteRestrictedPermissions = BasePermissions.copy()
 crossSiteRestrictedPermissions.pop("__guest__")
 
 
-Permissions = {i:{'description':BasePermissions[i]} for i in BasePermissions}
+Permissions = {i: {'description': BasePermissions[i]} for i in BasePermissions}
 
 """True only if auth module stuff changed since last save, used to prevent unneccesary disk writes.
 YOU MUST SET THIS EVERY TIME YOU CHANGE THE STATE AND WANT IT TO BE PERSISTANT"""
@@ -136,9 +135,9 @@ def resist_timing_attack(data, maxdelay=0.0001):
     """
     # Note the very high timing resolution.
     # Attackers can determine nanosecond level timings.
-    h = hashlib.sha256(data+__local_secret).digest()
+    h = hashlib.sha256(data + __local_secret).digest()
     t = struct.unpack("<Q", h[:8])[0]
-    time.sleep(maxdelay*(t/2**64))
+    time.sleep(maxdelay * (t / 2**64))
 
 
 def importPermissionsFromModules():
@@ -153,21 +152,14 @@ def importPermissionsFromModules():
                     p2[util.split_escape(
                         resource, '/', '\\')[-1]] = modules_state.ActiveModules[module][resource]
     global Permissions
-    Permissions=p2
+    Permissions = p2
 
 
 def getPermissionsFromMail():
     """Generate a permission for each mailing list, and add that permission to the global list of assignable permissions"""
     for i in registry.get('system/mail/lists', {}):
-        Permissions["/users/mail/lists/"+i +
-                    "/subscribe"] = {'description':"Subscribe to mailing list with given UUID"}
-
-# Python doesn't let us make custom attributes on normal dicts
-
-
-class User(dict):
-    permissions = []
-    pass
+        Permissions["/users/mail/lists/" + i +
+                    "/subscribe"] = {'description': "Subscribe to mailing list with given UUID"}
 
 
 def changeUsername(old, new):
@@ -210,7 +202,7 @@ def addUser(username, password):
     global authchanged
     with lock:
         authchanged = True
-        if not username in Users:  # stop overwriting attempts
+        if username not in Users:  # stop overwriting attempts
             Users[username] = User({'username': username, 'groups': []})
             Users[username].limits = {}
             changePassword(username, password)
@@ -227,7 +219,7 @@ def removeUser(user):
                 Tokens.pop(x.token)
                 try:
                     tokenHashes.pop(hashToken(x.token))
-                except:
+                except Exception:
                     raise
 
 
@@ -247,7 +239,7 @@ def addGroup(groupname):
     global authchanged
     with lock:
         authchanged = True
-        if not groupname in Groups:  # stop from overwriting
+        if groupname not in Groups:  # stop from overwriting
             Groups[groupname] = {'permissions': []}
 
 
@@ -278,8 +270,8 @@ def promptGenerateUser(username="admin"):
         p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
 
         while not p == p2:
-            p = "samejytfdcvbnjytfgvbnmjuytrfdcv bnmjuytgfvbnmjuytgfvbnmjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
-            p2 = "differentkyhgfvbnmjuytrdcxvbhjytredsxcvbnjkjnmkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
+            p = "samejytfdcvbnjytfgvbnmjumjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
+            p2 = "differentkyhgfvbnmjuytrdcxvbkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
             p = input("Account %s created. Choose password:" % (username))
             p2 = input("Reenter Password:")
             if not p == p2:
@@ -350,7 +342,7 @@ def tryToLoadFrom(d):
             return True
         else:
             raise RuntimeError("No complete marker found")
-        logger.info("Loaded auth data from "+d)
+        logger.info("Loaded auth data from " + d)
 
 
 data_bad = False
@@ -369,7 +361,7 @@ def initializeAuthentication():
             logger.exception(
                 "Error loading auth data, may be able to continue from old state")
             messagebus.postMessage("/system/notifications/errors",
-                                   "Error loading auth data, may be able to continue from old state:\n"+str(e))
+                                   "Error loading auth data, may be able to continue from old state:\n" + str(e))
             data_bad = True
             try:
                 dirname = util.getHighestNumberedTimeDirectory(
@@ -385,7 +377,7 @@ def initializeAuthentication():
                 """)
             except:
                 messagebus.postMessage(
-                    "/system/notifications/errors", "Could not load old state:\n"+str(e))
+                    "/system/notifications/errors", "Could not load old state:\n" + str(e))
                 pass
 
         if not loaded:
@@ -413,7 +405,7 @@ def generateUserPermissions(username=None):
                 # Handle nonexistant groups
                 if not j in Groups:
                     logger.warning(
-                        "User "+i+" is member of nonexistant group " + j)
+                        "User " + i + " is member of nonexistant group " + j)
 
                 for k in Groups[j]['permissions']:
                     newp.append(k)
@@ -512,7 +504,7 @@ def dumpDatabase():
                 copyto = os.path.join(directories.usersdir, str(t))
             else:
                 copyto = os.path.join(
-                    directories.usersdir, str(t)+"INCOMPLETE")
+                    directories.usersdir, str(t) + "INCOMPLETE")
 
             shutil.copytree(os.path.join(directories.usersdir, str("data")), copyto,
                             ignore=shutil.ignore_patterns("__COMPLETE__"))
@@ -602,8 +594,8 @@ def whoHasToken(token):
 tokenHashSecret = os.urandom(24)
 
 
-def hashToken(token):
-    return hashlib.sha256(usr_bytes(token, "utf8")+tokenHashSecret).digest()
+def hashToken(token) -> bytes:
+    return hashlib.sha256(usr_bytes(token, "utf8") + tokenHashSecret).digest()
 
 
 def assignNewToken(user):
@@ -618,7 +610,7 @@ def assignNewToken(user):
             del Tokens[oldtoken]
             try:
                 del tokenHashes[hashToken(oldtoken)]
-            except:
+            except KeyError:
                 # Not there?
                 pass
         Users[user].token = x
@@ -710,6 +702,16 @@ def canUserDoThis(user, permission):
 
     return False
 
+# untested stuff that only works sometimes maybe for supporting logins by unix users
+# try:
+#     if sys.version_info < (3, 3):
+#         from shlex import quote as shellquote
+#     else:
+#         from pipes import quote as shellquote
+# except:
+#     pass
+# import subprocess
 
-def sys_login(username, password):
-    return subprocess.check_output('echo "' + shellquote(password[:40]) + '" | sudo  -S -u ' + shellquote(username[:25]) + ' groups', shell=True)[:-1]
+
+# def sys_login(username, password):
+#     return subprocess.check_output('echo "' + shellquote(password[:40]) + '" | sudo  -S -u ' + shellquote(username[:25]) + ' groups', shell=True)[:-1]

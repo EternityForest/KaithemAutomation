@@ -14,6 +14,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 # This file is just for keeping track of state info that would otherwise cause circular issues.
+from typing import Any, Dict
 import weakref
 import sqlite3
 import os
@@ -21,10 +22,12 @@ import sys
 import hashlib
 import json
 import time
-import getpass
 import shutil
+import logging
 from threading import RLock
 from src import util, config
+
+logger = logging.getLogger("system")
 
 # Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
 # That is a function which takes 3 arguments, module and resource, and the current resource arg,
@@ -59,7 +62,7 @@ additionalTypes = weakref.WeakValueDictionary()
 
 # This is a dict indexed by module/resource tuples that contains the absolute path to what
 # The system considers the current "loaded" version.
-fileResourceAbsPaths = {}
+fileResourceAbsPaths : Dict[tuple, str] = {}
 
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
@@ -125,7 +128,7 @@ def createRecoveryEntry(module, resource, value):
                 "delete from change where module=? and resource=?", (module, resource))
             recoveryDb.execute("insert into change values (?,?,?,?,?)", (
                 module, resource, valuej if value else '', 0 if (
-                    value != None) else 1, int(time.time()*1000000)
+                    value is not None) else 1, int(time.time()*1000000)
             ))
         recoveryDb.commit()
 
@@ -185,15 +188,15 @@ class HierarchyDict():
 
     def ls(self, k):
         p = self.parsePath(k)
-        l = self.root
+        currentLocation = self.root
         # Navigate to the last dir in the path, making dirs as needed.
         for i in p:
-            if i in l:
-                l = l[i]
+            if i in currentLocation:
+                currentLocation = currentLocation[i]
             else:
-                l[i] = {}
-                l = l[i]
-        return l.keys()
+                currentLocation[i] = {}
+                currentLocation = currentLocation[i]
+        return currentLocation.keys()
 
     def __contains__(self, k):
         if k in self.flat:
@@ -203,15 +206,15 @@ class HierarchyDict():
     def __setitem__(self, k, v):
         self.flat[k] = v
         p = self.parsePath(k)
-        l = self.root
+        currentLocation = self.root
         # Navigate to the last dir in the path, making dirs as needed.
         #
         for i in p:
-            if i in l:
-                l = l[i]
+            if i in currentLocation:
+                currentLocation = currentLocation[i]
             else:
-                l[i] = {}
-                l = l[i]
+                currentLocation[i] = {}
+                currentLocation = currentLocation[i]
 
     def __getitem__(self, k):
         return self.flat[k]
@@ -219,25 +222,25 @@ class HierarchyDict():
     def __delitem__(self, k):
         del self.flat[k]
         p = self.parsePath(k)
-        l = self.root
+        location = self.root
         pathTaken = []
         # Navigate to the last dir in the path, making dirs as needed
         for i in p[:-1]:
-            if i in l:
-                pathTaken.append((l, l[i], i))
-                l = l[i]
+            if i in location:
+                pathTaken.append((location, location[i], i))
+                location = location[i]
             else:
-                l[i] = {}
-                pathTaken.append((l, l[i], i))
-                l = l[i]
+                location[i] = {}
+                pathTaken.append((location, location[i], i))
+                location = location[i]
         # Now delete the "leaf node"
-        for i in l[p[-1]]:
+        for i in location[p[-1]]:
             try:
                 del self[self.pathJoin(k, i)]
             except KeyError:
                 pass
 
-        del l[p[-1]]
+        del location[p[-1]]
 
         # This deletes the entire chain of empty folders, should such things exist.
         for i in reversed(pathTaken):
@@ -246,10 +249,80 @@ class HierarchyDict():
 
 
 # Lets just store the entire list of modules as a huge dict for now at least
-ActiveModules = {}
+ActiveModules : Dict[str, Dict] = {}
 
 # The total list of al the vresources. We want to store separately so that we can handle the locking easier.
 virtualResourceRoot = {}
+
+# This must be set to true by anything that changes the modules
+# it's o the code knows to save everything is it has been changed.
+unsaved_changed_obj : Dict[tuple,str]= {}
+
+
+moduleshash = "000000000000000000000000"
+modulehashes = {}
+modulewordhashes = {}
+
+
+def hashModules():
+    """For some unknown lagacy reason, the hash of the entire module state is different from the hash of individual modules 
+        hashed together
+    """
+    try:
+        m = hashlib.md5()
+        with modulesLock:
+            for i in sorted(ActiveModules.keys()):
+                m.update(i.encode('utf-8'))
+                for j in sorted(ActiveModules[i].keys()):
+                    if isinstance(ActiveModules[i][j], weakref.ref):
+                        continue
+                    m.update(j.encode('utf-8'))
+                    m.update(json.dumps(ActiveModules[i][j], sort_keys=True, separators=(
+                        ',', ':')).encode('utf-8'))
+        return m.hexdigest().upper()
+    except Exception:
+        logger.exception("Could not hash modules")
+        return("ERRORHASHINGMODULES")
+
+def hashModule(module: str):
+    try:
+        m = hashlib.md5()
+        with modulesLock:
+            m.update(json.dumps({i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(
+                ActiveModules[module][i], weakref.ref)}, sort_keys=True, separators=(',', ':')).encode('utf-8'))
+        return m.hexdigest()
+    except Exception:
+        logger.exception("Could not hash module")
+        return("ERRORHASHINGMODULE")
+
+def wordHashModule(module: str):
+    try:
+        with modulesLock:
+            return util.blakeMemorable(
+                json.dumps({i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i], weakref.ref)}, sort_keys=True, separators=(',', ':')).encode('utf-8'), num=12, separator=" ")
+    except Exception:
+        logger.exception("Could not hash module")
+        return("ERRORHASHINGMODULE")
+
+
+def getModuleHash(m: str):
+    if m not in modulehashes:
+        modulehashes[m] = hashModule(m)
+    return modulehashes[m].upper()
+
+
+def getModuleWordHash(m: str):
+    if m not in modulewordhashes:
+        modulewordhashes[m] = wordHashModule(m)
+    return modulewordhashes[m].upper()
+
+
+def modulesHaveChanged():
+    global moduleshash, modulehashes, modulewordhashes
+    moduleshash = hashModules()
+    modulehashes = {}
+    modulewordhashes = {}
+    ls_folder.invalidate_cache()
 
 
 def addVirtualResource(m, n, o):

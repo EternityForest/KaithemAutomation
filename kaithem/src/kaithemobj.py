@@ -228,10 +228,6 @@ class Kaithem():
             return(time.localtime().tm_hour)
 
         @staticmethod
-        def hour():
-            return(time.localtime().tm_hour)
-
-        @staticmethod
         def minute():
             return(time.localtime().tm_min)
 
@@ -250,12 +246,12 @@ class Kaithem():
 
         @staticmethod
         def sunsetTime(lat=None, lon=None, date=None):
-            if lon == None:
+            if lon is None:
                 lat = registry.get("system/location/lat", None)
                 lon = registry.get("system/location/lon", None)
             else:
                 raise ValueError("You set lon, but not lst?")
-            if lat == None or lon == None:
+            if lat is None or lon is None:
                 raise RuntimeError(
                     "No server location set, fix this in system settings")
 

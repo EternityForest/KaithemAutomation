@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.68.21
+- :coffin: Remove a lot of dead code
+- :bug: Fix inability to create new device inside a module
+
+
 ### 0.68.20
 - :lock:SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.
 - :lock:SECURITY/BREAKING: Now you need a POST request for Chandler's sendevent API

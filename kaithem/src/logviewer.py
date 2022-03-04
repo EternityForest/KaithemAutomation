@@ -31,7 +31,7 @@ try:
     try:
         import html
         esc = html.escape
-    except:
+    except Exception:
         import cgi
         esc = cgi.escape
 except:
@@ -54,13 +54,13 @@ class WidgetHandler(logging.Handler):
             t = textwrap.fill(pylogginghandler.syslogger.format(r), 120)
             t = esc(t)
             if r.levelname in ["ERROR", "CRITICAL"]:
-                self.widget.write('<pre class="error">'+t+"</pre>")
+                self.widget.write('<pre class="error">' + t + "</pre>")
             elif r.levelname in ["WARNING"]:
-                self.widget.write('<pre class="error">' + t+"</pre>")
+                self.widget.write('<pre class="error">' + t + "</pre>")
             elif r.name == 'system.notifications.important':
-                self.widget.write('<pre class="highlight">' + t+"</pre>")
+                self.widget.write('<pre class="highlight">' + t + "</pre>")
             else:
-                self.widget.write('<pre>' + t+"</pre>")
+                self.widget.write('<pre>' + t + "</pre>")
 
 
 dbg = WidgetHandler()
@@ -71,13 +71,13 @@ logging.getLogger().addHandler(dbg)
 def f(r):
     t = textwrap.fill(pylogginghandler.syslogger.format(r), 120)
     if r.levelname in ["ERROR", "CRITICAL"]:
-        syslogwidget.write('<pre class="error">'+t+"</pre>")
+        syslogwidget.write('<pre class="error">' + t + "</pre>")
     elif r.levelname in ["WARNING"]:
-        syslogwidget.write('<pre class="error">' + t+"</pre>")
+        syslogwidget.write('<pre class="error">' + t + "</pre>")
     elif r.name == 'system.notifications.important':
-        syslogwidget.write('<pre class="highlight">' + t+"</pre>")
+        syslogwidget.write('<pre class="highlight">' + t + "</pre>")
     else:
-        syslogwidget.write('<pre>' + t+"</pre>")
+        syslogwidget.write('<pre>' + t + "</pre>")
 
 
 pylogginghandler.syslogger.callback = f
