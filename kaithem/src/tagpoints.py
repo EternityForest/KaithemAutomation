@@ -1,7 +1,7 @@
 import typing
 from . import widgets
 from .unitsofmeasure import convert, unitTypes
-from . import scheduling, workers, virtualresource, messagebus, directories, persist, alerts, taghistorian, util
+from . import scheduling, workers, messagebus, directories, persist, alerts, taghistorian, util
 import time
 import threading
 import weakref
@@ -152,7 +152,7 @@ def gcEmptyConfigTags():
 ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
-class _TagPoint(virtualresource.VirtualResource):
+class _TagPoint():
     """
         A Tag Point is a named object that can be chooses from a set of data sources based on priority,
         filters that data, and returns it on a push or a pull basis.
@@ -166,9 +166,6 @@ class _TagPoint(virtualresource.VirtualResource):
         If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
         with the one parameter being the tag's value. Any getter functions will be called to get the value.
 
-
-        It is also a VirtualResource, and as such if you enter it into a module, then replace it,
-        all claims and subscriptions carry over.
 
         One generally does not instantiate a tag this way, instead they use the Tag function
         which can get existing tags. This allows use of tags for cross=
@@ -197,8 +194,6 @@ class _TagPoint(virtualresource.VirtualResource):
             raise RuntimeError(
                 "Tag with this name already exists, use the getter function to get it instead"
             )
-        virtualresource.VirtualResource.__init__(self)
-
         # Dependancu tracking, if a tag depends on other tags, such as =expression based ones
         self.sourceTags: Dict[str, _TagPoint] = {}
 
@@ -1479,14 +1474,6 @@ class _TagPoint(virtualresource.VirtualResource):
         "Override the VResource thing"
         # With no replacement or master objs, we just return self
         return self
-
-    def handoff(self, other):
-        # Tag points have no concept of a master object.
-        # They have no parameters that can' be set from any ref to it
-        if not other == self:
-            raise RuntimeError(
-                "Tag points can't be replaced except by the same obj")
-        return
 
     def _managePolling(self):
         interval = self._interval or 0

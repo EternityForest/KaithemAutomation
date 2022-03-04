@@ -17,7 +17,7 @@ __trigger__='True'
 if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolution
-    __doc__='This is a demo of state machines. State machines are VirtualResources and can be displayed on the module pages.'
+    __doc__='This is a demo of state machines.'
     
     sm = kaithem.states.StateMachine(start='off', description="This state machine toggles every 5s if enableTurningOn is True.")
     

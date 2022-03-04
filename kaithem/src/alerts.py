@@ -1,4 +1,4 @@
-from src import statemachines, widgets, registry, scheduling, workers, pages, messagebus, virtualresource, unitsofmeasure, auth
+from src import statemachines, widgets, registry, scheduling, workers, pages, messagebus, unitsofmeasure, auth
 from typeguard import typechecked
 from typing import Union
 import logging
@@ -158,7 +158,7 @@ def cleanup():
                 pass
 
 
-class Alert(virtualresource.VirtualResource):
+class Alert():
     @typechecked
     def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: Union[int, float] = 0, autoAck: bool = False,
                  permissions: list = [], ackPermissions: list = [], id=None, description: str = "", silent: bool = False
@@ -203,8 +203,6 @@ class Alert(virtualresource.VirtualResource):
         for i in illegalCharsInName:
             if i in name:
                 raise ValueError("Illegal char in alert name: "+i)
-
-        virtualresource.VirtualResource.__init__(self)
 
         self.permissions = permissions + ['/users/alerts.view']
         self.ackPermissions = ackPermissions + ['users/alerts.acknowledge']
@@ -280,11 +278,6 @@ class Alert(virtualresource.VirtualResource):
             'name': self.name,
             'zone': self.zone
         }
-
-    def handoff(self, other):
-        # The underlying state machine handles the handoff
-        self.sm.handoff(other.sm)
-        virtualresource.VirtualResource.handoff(self, other)
 
     def API_ack(self):
         pages.require(self.ackPermissions)

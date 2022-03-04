@@ -3,6 +3,11 @@ Change Log
 
 ### 0.68.21
 - :coffin: Remove a lot of dead code
+- :coffin: :fire: BREAKING: Remove the entire VirtualResource mechanism. I think it was too complicated to use anyway.
+- As a result, getting a Device object will give a Weak Proxy to the device instead of a VirtualResourceInterface.
+- REMINDER: When accessing a Device, tagpoint, etc, don't keep a reference to somthing a user could update and replace! 
+   access kaithem.devices['foo'] directly rather than making a local reference.
+- Tag Points and the Message Bus are the official ways to do loose coupling, and are much simpler.
 - :bug: Fix inability to create new device inside a module
 
 

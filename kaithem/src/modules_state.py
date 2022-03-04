@@ -251,8 +251,6 @@ class HierarchyDict():
 # Lets just store the entire list of modules as a huge dict for now at least
 ActiveModules : Dict[str, Dict] = {}
 
-# The total list of al the vresources. We want to store separately so that we can handle the locking easier.
-virtualResourceRoot = {}
 
 # This must be set to true by anything that changes the modules
 # it's o the code knows to save everything is it has been changed.
@@ -324,12 +322,6 @@ def modulesHaveChanged():
     modulewordhashes = {}
     ls_folder.invalidate_cache()
 
-
-def addVirtualResource(m, n, o):
-    "Adds a resource to ActiveModules that will go away as soon as there are no references."
-    def f(r):
-        ActiveModules[m].pop(n)
-    ActiveModules[m][n] = weakref.ref(o, f)
 
 
 def in_folder(r, f):

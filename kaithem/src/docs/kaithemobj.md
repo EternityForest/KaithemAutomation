@@ -187,9 +187,7 @@ In PWM mode, the range is 0-1.
 
 ### kaithem.resource
 
-This is both a namespace containing the API for
-[VirtualResources](vresources.html), and a dict-like object allowing you
-to access resources by module, resource tuple.
+A dict-like object allowing you to access resources by module, resource tuple.
 
 
 ### kaithem.mqtt
@@ -251,9 +249,7 @@ This namespace deals with kaithem's state machine library.
 
 #### sm=kaithem.states.StateMachine(start="start")
 
-Creates a state machine that starts in the given state. State machines
-are VirtualResources, and their current state, previous state, timers,
-and subscribers transfer when handing off. State machines are fully
+Creates a state machine that starts in the given state. State machines are fully
 threadsafe. Machines start with no states, so they are in a nonexistant
 state to begin with.
 
@@ -400,9 +396,7 @@ tripDelay is the delay in seconds that the alarm remains tripped before
 becoming active.
 
 Internally, alarms are state machines that may be in any of the listed
-states. The underlying state machine object can be accessed as alert.sm,
-and Alerts are VirtualResources in and of themselves. The handoff
-function correctly calls the handoff of the state machines.
+states. The underlying state machine object can be accessed as alert.sm.
 
 #### normal
 

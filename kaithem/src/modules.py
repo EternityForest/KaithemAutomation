@@ -37,7 +37,6 @@ from . import auth, pages, directories, util, newevt, kaithemobj
 from . import usrpages, messagebus
 from .modules_state import  modulesLock, scopes, additionalTypes, fileResourceAbsPaths
 from . import modules_state
-from .virtualresource import VirtualResource, VirtualResourceInterface
 import urllib.parse
 
 logger = logging.getLogger("system")
@@ -238,13 +237,6 @@ class InternalFileRef(ResourceObject):
         return fileResourceAbsPaths[self.module, self.resource]
 
 
-class VirtualResourceReference(weakref.ref):
-    def __getitem__(self, name):
-        if name == "resource-type":
-            return "virtual-resource"
-        else:
-            raise KeyError(name)
-
 
 class ModuleObject(object):
     """
@@ -260,9 +252,6 @@ class ModuleObject(object):
     def __getitem__(self, name):
         "When someone acesses a key, return an interface to that module."
         x = modules_state.ActiveModules[self.__kaithem_modulename__][name]
-
-        if isinstance(x, weakref.ref):
-            return VirtualResourceInterface(x())
 
         module = self.__kaithem_modulename__
 
@@ -291,43 +280,41 @@ class ModuleObject(object):
 
         def f():
             with modulesLock:
-                # Delete dead weakrefs
-                if isinstance(value, VirtualResource):
-                    insertVirtualResource(module, name, value)
+                if not isinstance(value,dict):
+                    messagebus.postMessage("/system/notifications/errors","VirtualResource is removed. Can't add "+name + ' to '+module)
                     return
+                if not 'resource-type' in value:
+                    raise ValueError("Supplied dict has no resource-type")
+                resourcetype = value['resource-type']
+                # Raise an exception on anything non-serializable or without a resource-type,
+                # As those could break something.
+                json.dumps({name: value})
+                modules_state.unsaved_changed_obj[(
+                    module, name)] = "User code inserted or modified module"
+                # Insert the new item into the global modules thing
+                modules_state.ActiveModules[module][name] = value
+                modules_state.createRecoveryEntry(module, name, value)
+                modules_state.modulesHaveChanged()
+
+                # Make sure we recognize the resource-type, or else we can't load it.
+                if (not resourcetype in ['event', 'page', 'permission', 'directory']) and (not resourcetype in additionalTypes):
+                    raise ValueError("Unknown resource-type")
+
+                # Do the type-specific init action
+                if resourcetype == 'event':
+                    e = newevt.make_event_from_resource(module, name)
+                    newevt.updateOneEvent(module, name, e)
+
+                elif resourcetype == 'page':
+                    # Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
+                    usrpages.updateOnePage(name, module)
+
+                elif resourcetype == 'permission':
+                    auth.importPermissionsFromModules()
+
                 else:
-                    if not 'resource-type' in value:
-                        raise ValueError("Supplied dict has no resource-type")
-                    resourcetype = value['resource-type']
-                    # Raise an exception on anything non-serializable or without a resource-type,
-                    # As those could break something.
-                    json.dumps({name: value})
-                    modules_state.unsaved_changed_obj[(
-                        module, name)] = "User code inserted or modified module"
-                    # Insert the new item into the global modules thing
-                    modules_state.ActiveModules[module][name] = value
-                    modules_state.createRecoveryEntry(module, name, value)
-                    modules_state.modulesHaveChanged()
-
-                    # Make sure we recognize the resource-type, or else we can't load it.
-                    if (not resourcetype in ['event', 'page', 'permission', 'directory']) and (not resourcetype in additionalTypes):
-                        raise ValueError("Unknown resource-type")
-
-                    # Do the type-specific init action
-                    if resourcetype == 'event':
-                        e = newevt.make_event_from_resource(module, name)
-                        newevt.updateOneEvent(module, name, e)
-
-                    elif resourcetype == 'page':
-                        # Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
-                        usrpages.updateOnePage(name, module)
-
-                    elif resourcetype == 'permission':
-                        auth.importPermissionsFromModules()
-
-                    else:
-                        additionalTypes[resourcetype].onload(
-                            module, name, value)
+                    additionalTypes[resourcetype].onload(
+                        module, name, value)
 
         modules_state.runWithModulesLock(f)
 
@@ -335,8 +322,6 @@ class ModuleObject(object):
 
 
 class ResourceAPI(object):
-    VirtualResource = VirtualResource
-
     def __getitem__(self, name):
         if isinstance(name, tuple):
             x = modules_state.ActiveModules[name[0]][name[1]]
@@ -347,42 +332,6 @@ class ResourceAPI(object):
 
 
 kaithemobj.kaithem.resource = ResourceAPI()
-
-
-def insertVirtualResource(modulename: str, name: str, value: VirtualResource):
-    with modulesLock:
-        module = modules_state.ActiveModules[modulename]
-        rmlist = []
-        for i in module:
-            if isinstance(module[i], weakref.ref):
-                if not module[i]():
-                    rmlist.append(i)
-        for i in rmlist:
-            del module[i]
-
-        if name in module:
-            if not isinstance(module[name], weakref.ref):
-                raise RuntimeError(
-                    "Cannot overwrite real resource with virtual. You must delete old resource first")
-            if not isinstance(value, module[name]().__class__):
-                raise RuntimeError(
-                    "Can only overwrite virtual resource with same class. Delete old resource first.")
-            x = module[name]()
-            if x:
-                x.handoff(value)
-
-        module[name] = VirtualResourceReference(value)
-
-        # Set the value's "name". A virtual resource may only have
-        # one "hard link".
-        # The rest of the links, if you insert under multiple
-        # names, will work, but won't be the "real" name, and
-        # subscriptions and things like that are always to the real name.
-
-        # VResources can have names set elsewhere, and those are respected
-        if not value.name:
-            value.name = "x-module:" + util.url(modulename) + "/" + "/".join(
-                [util.url(i) for i in util.split_escape(name, "/", "\\")])
 
 
 def readResourceFromFile(fn: str, relative_name: str, ver: int = 1):
@@ -1488,5 +1437,3 @@ def rmModule(module, message="deleted"):
 class KaithemEvent(dict):
     pass
 
-
-kaithemobj.kaithem.resource.VirtualResource = VirtualResource

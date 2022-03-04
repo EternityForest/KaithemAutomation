@@ -27,28 +27,7 @@ if __name__=='__setup__':
     blink.setTimer("off", 1, "on")
     blink.addRule("off", 'begin', "on")
     blink('begin')
-    module['Oscillating State Machine'] = blink
     
-    
-    blah = kaithem.states.StateMachine(start="test")
-    blah.addState("test")
-    blah.addState("test2")
-    blah.goto("test2")
-    
-    blah2 = kaithem.states.StateMachine(start="test")
-    blah.addState("test")
-    blah.addState("test2")
-    
-    blah.handoff(blah2)
-    
-    if not blah2.state =="test2":
-        raise RuntimeError("State was not correctly transferred to new machine")
-                 
-    if not blah2.prevState =="test":
-        raise RuntimeError("previous state was not correctly transferred to new machine")
-        
-    if not blah2.enteredState ==blah.enteredState:
-        raise RuntimeError("previous state entry time was not correctly transferred to new machine")
 
 def eventAction():
     module.sm_lamp = 0

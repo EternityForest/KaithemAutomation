@@ -22,17 +22,14 @@ import random
 import subprocess
 import threading
 import random
-import gzip
 import json
 import yaml
 import os
-import ntplib
-import bz2
 import weakref
 
 import cherrypy
 from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, auth, breakpoint,statemachines
-from . import timesync, devices, alerts, midi, gpio, theming
+from . import devices, alerts, midi, gpio, theming
 
 from . import version_info
 

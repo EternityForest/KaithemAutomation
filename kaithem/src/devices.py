@@ -30,9 +30,7 @@ import copy
 import asyncio
 from typing import Dict, Optional, Union, Any, Callable
 
-from matplotlib.pyplot import cla
-
-from . import virtualresource, pages, workers, tagpoints, alerts
+from . import pages, workers, tagpoints, alerts
 from . import persist, directories, messagebus, widgets, unitsofmeasure
 
 import iot_devices.host
@@ -191,7 +189,7 @@ def makeBackgroundErrorFunction(t, time, self):
     return f
 
 
-class Device(virtualresource.VirtualResource):
+class Device():
     """A Descriptor is something that describes a capability or attribute
     of a device. They are string names and object values,
     and names should be globally unique"""
@@ -330,7 +328,6 @@ class Device(virtualresource.VirtualResource):
                 data['type'] + " does not match deviceTypeName " +
                 self.deviceTypeName
             )
-        virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
         global remote_devices
 
@@ -1264,12 +1261,12 @@ class DeviceNamespace():
     def __getattr__(self, name):
         if remote_devices[name].deviceTypeName == "unsupported":
             raise RuntimeError("There is no driver for this device")
-        return remote_devices[name].interface()
+        return weakref.proxy(remote_devices[name])
 
     def __getitem__(self, name):
         if remote_devices[name].deviceTypeName == "unsupported":
             raise RuntimeError("There is no driver for this device")
-        return remote_devices[name].interface()
+        return weakref.proxy(remote_devices[name])
 
     def __iter__(self):
         x = remote_devices_atomic

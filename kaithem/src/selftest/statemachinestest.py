@@ -37,29 +37,6 @@ def stateMachinesTest():
     module['Oscillating State Machine'] = blink
 
 
-    blah =statemachines.StateMachine(start="test")
-    blah.addState("test")
-    blah.addState("test2")
-    blah.goto("test2")
-
-    blah2 = statemachines.StateMachine(start="test")
-    blah.addState("test")
-    blah.addState("test2")
-
-    blah.handoff(blah2)
-
-    if not blah2.state =="test2":
-        raise RuntimeError("State was not correctly transferred to new machine")
-                
-    if not blah2.prevState =="test":
-        raise RuntimeError("previous state was not correctly transferred to new machine")
-        
-    if not blah2.enteredState ==blah.enteredState:
-        raise RuntimeError("previous state entry time was not correctly transferred to new machine")
-                            
-
-
-
     module.sm_lamp = 0
 
     def on():

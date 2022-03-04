@@ -23,7 +23,7 @@ from typing import Union, Callable
 
 
 # Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
-from . import scheduling, virtualresource, unitsofmeasure, workers, util
+from . import scheduling, unitsofmeasure, workers, util
 
 #
 # StateMachine API
@@ -91,12 +91,10 @@ def startPollerThread(sm):
             x = sm()
             if not x:
                 return
-            if x.replacement:
-                return
             x.poll()
 
 
-class StateMachine(virtualresource.VirtualResource):
+class StateMachine():
     def __init__(self, start="start", name="Untitled", description=""):
         self.states = {}
         self.state = start
@@ -116,8 +114,6 @@ class StateMachine(virtualresource.VirtualResource):
         # Controls what gets carried over during handoffs
         self.keepState = True
         self.keepSubscribers = True
-
-        virtualresource.VirtualResource.__init__(self)
 
     def __call__(self, event):
         "Trigger an event, return the current state"
@@ -166,40 +162,8 @@ class StateMachine(virtualresource.VirtualResource):
         with self.lock:
             return (self.state, time.time()-self.enteredState)
 
-    def handoff(self, other):
-        "pushes all subscribers to the new one"
-        if other == self:
-            return
-        with self.lock:
-            with other.lock:
-                x = self.replacement
-                if x and (not x is other):
-                    return x.handoff(self)
-                if other.keepSubscribers:
-                    # export all the old subscribers
-                    for i in self.subscribers:
-                        # duplicate detection
-                        if not i in other.subscribers:
-                            other.subscribers[i] = []
-                        other.subscribers[i].extend(self.subscribers[i])
-
-                if other.keepState:
-                    # Carry over the state and the time at which that state was entered.
-                    other.state = self.state
-                    other.prevState = self.prevState
-                    other.enteredState = self.enteredState
-                    other.time_offset = self.time_offset
-
-                other.lock = self.lock
-
-                virtualresource.VirtualResource.handoff(self, other)
-
     def checkTimer(self):
         with self.lock:
-            if self.replacement:
-                self.replacement.checkTimer()
-                return
-
             if self.states[self.state].get('timer'):
                 if ((time.time()+self.time_offset)-self.enteredState) > self.states[self.state]['timer'][0]:
 
@@ -286,10 +250,6 @@ class StateMachine(virtualresource.VirtualResource):
         """Tell the machine that a specific event just occurred. If there is a matching Transiton rule for that event,
         then we do the current state's exit func, enter the new state, and do it's enter func"""
         with self.lock:
-            if self.replacement:
-                self.replacement.event(event)
-                return self.state
-
             if not self.state in self.states:
                 return self.state
 
