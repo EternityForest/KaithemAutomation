@@ -1,5 +1,5 @@
 Package: kaithem
-Version: 0.68.17
+Version: 0.68.18
 Maintainer: Daniel Dunn
 Installed-Size: 35000
 Description: The KaithemAutomation Web GUI based automation platform.
@@ -9,7 +9,7 @@ Section: web
 Priority: optional
 Depends: python3, systemd, cython3, build-essential, python3-msgpack,python3-future
 Recommends: python3-serial,
- python3-tz, python3-dateutil, lm-sensors,
+ python3-tz, python3-dateutil, lm-sensors, ffmpeg, python3-skimage,
  python3-netifaces,python3-jack-client,
  python3-gst-1.0, python3-libnacl, jack-tools,
  jackd2, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, python3-pillow,
