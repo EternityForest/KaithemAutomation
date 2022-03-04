@@ -6,7 +6,7 @@ Change Log
 - :lock:SECURITY/BREAKING: Now you need a POST request for Chandler's sendevent API
 - :lock: :sparkles:SECURITY: User pages show at a glance whether they accept GET
 - :bug: Fix inability to assign new user-created permissions to users or pages.
-
+- :sparkles: This file uses GitMoji now! Gitmoji chosen because it is the first Google result.
 
 ### 0.68.19
 - SECURITY/SEMI-BREAKING: No CORS requests from any other domain allowed as a user, regardless of permissions needed, unless enabled in user settings.
