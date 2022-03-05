@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### 0.68.21
+### 0.68.21 Security Matters!
 - :coffin: Remove a lot of dead code
 - :coffin: :fire: BREAKING: Remove the entire VirtualResource mechanism. I think it was too complicated to use anyway.
 - As a result, getting a Device object will give a Weak Proxy to the device instead of a VirtualResourceInterface.

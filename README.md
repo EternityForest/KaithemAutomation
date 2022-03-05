@@ -161,6 +161,23 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.21 Security Matters!
+- :coffin: Remove a lot of dead code
+- :coffin: :fire: BREAKING: Remove the entire VirtualResource mechanism. I think it was too complicated to use anyway.
+- As a result, getting a Device object will give a Weak Proxy to the device instead of a VirtualResourceInterface.
+- REMINDER: When accessing a Device, tagpoint, etc, don't keep a reference to somthing a user could update and replace! 
+   access kaithem.devices['foo'] directly rather than making a local reference.
+- Tag Points and the Message Bus are the official ways to do loose coupling, and are much simpler.
+- :bug: Fix inability to create new device inside a module
+- :coffin: Theming, alert tones, and server locations use files in core.settings. Registry data is auto migrated.
+- :sparkles: New kaithem.persist.unsaved dict for user-created files to inform the UI of unsaved changes.
+- :fire: Announce that the registry will be deprecated eventually.  Modules should attempt to move data to files instead.
+- :coffin: Remove mailing list features, as they were very old, unmaintained, and email is a security critical feature.
+- :coffin: Remove kaithem.serial.  It was unmaintained and never production-tested, and not used internally here in a very long time.
+- :coffin: Remove the restart server option.  On newer systems it would sometimes just stop and not restart.
+
+
+
 ### 0.68.20
 - :lock:SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.
 - :lock:SECURITY/BREAKING: Now you need a POST request for Chandler's sendevent API
