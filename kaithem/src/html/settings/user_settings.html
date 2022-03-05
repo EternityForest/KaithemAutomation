@@ -8,11 +8,7 @@ import pytz
 <h2>Security</h2>
 <div class="sectionbox">
 Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pages.getAcessingUser(), 'restrict-lan')}</br>
-<details>
-    <summary>GET request security Warning</summary>
-    This option curretly can usually only block POST requests.  You should be sure to not allow a GET request to change anything important.
-    However it may also block easily detected CORS get requests.
-</details>
+
 
 
 
@@ -53,26 +49,6 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
                                     checked="on"
                                     %endif
                                     ></input> 
-
-
-
-<h3>Mailing Lists</h3>
-<p class="help">Check the box to subscribe to a mailing list. Uncheck to unsubscribe</p>
-<%x = registry.get('system/mail/lists',{})%>
-
-%for i in x:
-    %if pages.canUserDoThis("/users/mail/lists/"+i+"/subscribe"):
-    <div>
-    <input type="checkbox" name="list_${i|h}" value="subscribe"
-
-    %if i in auth.getUserSetting(pages.getAcessingUser(),'mailinglists'):
-    checked="on"
-    %endif
-
-    ></input> ${x[i]['name']|h}(UUID: ${i})<p>${x[i]['description']}</p>
-    </div>
-    %endif
- %endfor
  
  <input type="submit" value="Save"></input>
 
@@ -141,7 +117,11 @@ class="specialentry"\
 >${i|h}
 </h3>
 %if i in auth.Permissions:
+    %if isinstance(auth.Permissions[i],str):
+    ${auth.Permissions[i]|h}
+    %else:
     ${auth.Permissions[i].get("description",'No description found')|h}
+    %endif
 %else:
     "Unknown"
 %endif

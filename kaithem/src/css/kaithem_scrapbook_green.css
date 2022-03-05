@@ -27,6 +27,7 @@ html {
 
 body {
     color: #412019;
+    --box-bg: rgba(228, 233, 227, 0.6);
 }
 
 .error,
@@ -168,7 +169,7 @@ div.kmainpagebody {}
 div.sectionbox,
 section {
     border-style: solid;
-    background: rgba(228, 233, 227, 0.6);
+    background: var(--box-bg);
     border-width: 1px;
     border-radius: 15px;
     backdrop-filter: blur(1px);

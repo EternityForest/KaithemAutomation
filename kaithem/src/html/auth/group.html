@@ -7,16 +7,16 @@
 <title>Editing Group: ${name}</title>
 
 <h2> Group ${name}</h2>
+<div class="sectionbox">
+
 <form action="/auth/updategroup/${url(name)}" method="POST" name="user">
 
 <h3>Basic</h3>
-<div class="sectionbox">
 Group Name: <input required="required" name="name" type="text" value="${name}"></input><br>
-</div>
 
 
-<h3>Permissions</h3>
-<div class="sectionbox">
+	<h3>Permissions</h3>
+
 <p class="help">
 All members of this group are entitled to all checked permissions.
 </p>
@@ -31,9 +31,12 @@ class="specialentry"\
 		checked="yes"\
 	%endif
 	></input>
+	%if isinstance(auth.Permissions[i], str):
+	***${auth.Permissions[i]}
+	%else:
 	${auth.Permissions[i].get('description','No description')}
+	%endif
 %endfor
-</div>
 
 <h3>Limits</h3>
 <p class="help">A user has access to the highest value from any of their groups</p>
@@ -48,6 +51,10 @@ class="specialentry"\
 	</tr>
 </table>
 
+
+
 <br><input value="Save Changes" type="submit">
 </form>
+</div>
+
 <%include file="/pagefooter.html"/>

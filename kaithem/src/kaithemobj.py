@@ -28,7 +28,7 @@ import weakref
 import scullery.persist
 
 import cherrypy
-from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, breakpoint,statemachines
+from . import unitsofmeasure, workers, sound, messagebus, util, widgets, registry, directories, pages, config, persist, breakpoint,statemachines
 from . import devices, alerts, midi, gpio, theming
 
 from . import version_info
@@ -447,15 +447,6 @@ class Kaithem():
         StateMachine = statemachines.StateMachine
 
 
-    class mail(object):
-        @staticmethod
-        def send(recipient, subject, message):
-            mail.raw_send(message, recipient, subject)
-
-        @staticmethod
-        def listSend(list, subject, message):
-            mail.rawlistsend(subject, message, list)
-            
     class web(object):
         # TODO: Deprecate webresource stuff
         @staticmethod

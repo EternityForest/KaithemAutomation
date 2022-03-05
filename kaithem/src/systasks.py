@@ -28,7 +28,7 @@ import gc
 import subprocess
 import random
 import cherrypy
-from . import newevt, messagebus, unitsofmeasure, util, messagelogging, mail, scheduling
+from . import newevt, messagebus, unitsofmeasure, util, messagelogging, scheduling
 from .kaithemobj import kaithem
 from .config import config
 
@@ -166,11 +166,6 @@ def checkBitErrors():
 
             ramTestData = b'\0'*int(1024*2048*random.random())
             lastRamTestValue = 0
-
-
-@scheduling.scheduler.everyHour
-def check_mail_credentials():
-    mail.check_credentials()
 
 
 try:

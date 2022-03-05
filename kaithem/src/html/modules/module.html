@@ -30,8 +30,6 @@ WordHash: <b>${getModuleWordHash(name)}</b></br>
 <div class="sectionbox">
     <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
-<p class="help">Changing the name of a module will invalidate all external references to the module by its old name,
-    and will reload all events in the module. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>
 <h4>Name:</h4>
 <input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
@@ -94,8 +92,6 @@ temp_p+= i+'/'
     </div>
     
     </div>
-
-<p class="help">This module contains the following resources.</p>
 
 <%!
 def get_time(ev):

@@ -26,7 +26,7 @@ import traceback
 import zipfile
 import threading
 from cherrypy.lib.static import serve_file
-from . import pages, util, messagebus, config, auth, registry, mail, kaithemobj, config, weblogin, systasks, gpio, directories, persist
+from . import pages, util, messagebus, config, auth, registry, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 
 
 jacksettingsfile = os.path.join(
@@ -366,13 +366,6 @@ class Settings():
                 auth.setUserSetting(pages.getAcessingUser(),
                                     i[5:], kwargs[i][:200])
 
-            m = registry.get('system/mail/lists')
-            if i.startswith("list_"):
-                if kwargs[i] == "subscribe":
-                    if i[5:][:100] in m:
-                        lists.append(i[5:][:100])
-        auth.setUserSetting(pages.getAcessingUser(), 'mailinglists', lists)
-
         auth.setUserSetting(pages.getAcessingUser(),
                             'usemonaco', 'usemonaco' in kwargs)
 
@@ -416,56 +409,6 @@ class Settings():
 
         raise cherrypy.HTTPRedirect("/")
 
-    @cherrypy.expose
-    def testmail(self, *a, **k):
-        pages.require("/admin/settings.edit")
-        pages.postOnly()
-        mail.raw_send("testing", k['to'], 'test mail')
-        raise cherrypy.HTTPRedirect("/")
-
-    @cherrypy.expose
-    def listmail(self, *a, **k):
-        pages.require("/admin/settings.edit")
-        pages.postOnly()
-        mail.rawlistsend(k['subj'], k['msg'], k['list'])
-        raise cherrypy.HTTPRedirect("/")
-
-    @cherrypy.expose
-    def savemail(self, *a, **k):
-        pages.require("/admin/settings.edit")
-        pages.postOnly()
-        registry.set("system/mail/server",  k['smtpserver'])
-        registry.set("system/mail/port",  k['smtpport'])
-        registry.set("system/mail/address", k['smtpaddress'])
-
-        if not k['smtpassword1'] == '':
-            if k['smtpassword1'] == k['smtpassword2']:
-                registry.set("system/mail/password", k['smtpassword1'])
-            else:
-                raise Exception("Passwords must match")
-        mail = registry.get("system/mail/lists", {})
-
-        for i in k:
-            if i.startswith('mlist_name'):
-                uuid = i[10:]
-                newname = k[i]
-                mail[uuid]['name'] = newname
-
-            if i.startswith("mlist_desc"):
-                list = i[10:]
-                mail[list]['description'] = k[i]
-        for i in k:
-            if i.startswith("del_"):
-                list = i[4:]
-                del mail[list]
-
-        if 'newlist' in k:
-            mail[base64.b64encode(os.urandom(16)).decode()[
-                :-2]] = {'name': 'Untitled', 'description': "Insert Description"}
-
-        registry.set("system/mail/lists", mail)
-        auth.getPermissionsFromMail()
-        raise cherrypy.HTTPRedirect("/settings/system")
 
     @cherrypy.expose
     def system(self):
@@ -489,57 +432,8 @@ class Settings():
         util.SaveAllState()
         raise cherrypy.HTTPRedirect('/')
 
-    @cherrypy.expose
-    def restart(self):
-        pages.require("/admin/settings.edit")
-        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        return pages.get_template("settings/restart.html").render()
+      
 
-    @cherrypy.expose
-    def restart_nosave(self):
-        pages.require("/admin/settings.edit")
-        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        return pages.get_template("settings/restart_nosave.html").render()
-
-    @cherrypy.expose
-    def restarttarget(self):
-        pages.require("/admin/settings.edit", noautoreturn=True)
-        pages.postOnly()
-        # This log won't be seen by anyone unless they set up autosaving before resets
-        messagebus.postMessage(
-            "/system/notifications", "User " + pages.getAcessingUser() + ' reset the system.')
-        cherrypy.engine.restart()  # (!)
-        # It might come online fast enough for this to work, otherwise they see an error.
-        return """
-                <HTML>
-                <HEAD>
-                <META HTTP-EQUIV="refresh" CONTENT="30;URL=/">
-                </HEAD>
-                <BODY>
-                <p>Reloading. If you get an error, try again.</p>
-                </BODY>
-                </HTML> """
-
-    @cherrypy.expose
-    def restarttarget_nosave(self):
-        "This turns off the config option to save before shutting down."
-        pages.require("/admin/settings.edit", noautoreturn=True)
-        pages.postOnly()
-        config.config['save-before-shutdown'] = False
-        # This log won't be seen by anyone unless they set up autosaving before resets
-        messagebus.postMessage(
-            "/system/notifications", "User " + pages.getAcessingUser() + ' reset the system.')
-        cherrypy.engine.restart()  # (!)
-        # It might come online fast enough for this to work, otherwise they see an error.
-        return """
-                <HTML>
-                <HEAD>
-                <META HTTP-EQUIV="refresh" CONTENT="30;URL=/">
-                </HEAD>
-                <BODY>
-                <p>Reloading. If you get an error, try again.</p>
-                </BODY>
-                </HTML> """
 
     @cherrypy.expose
     def clearerrors(self):

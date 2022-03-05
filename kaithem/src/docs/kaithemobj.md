@@ -1047,26 +1047,8 @@ as long as you enable streming response on page config.
 
 #### kaithem.web.hasPermission(permission)
 
-#### 
-
 When clled from within a mako template, returns true if the acessing
 user has the given permission.
-
-### <span id="kdotmail"></span>kaithem.mail
-
-These functions allow sending email messages through the [SMTP
-Server](#email) configured in the settings page
-
-#### kaithem.mail.send(recipient,subject,message)
-
-Send a message to an email address, where recipient is an address or
-list therof, and subject and message are strings.
-
-#### kaithem.mail.listSend(list,subject,message)
-
-Send a message to an email address, where list is the UUID of a mailing
-list, and subject and message are strings. The message will be sent to
-all subscribed users.
 
 ### kaithem.events
 

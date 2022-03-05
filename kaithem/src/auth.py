@@ -142,7 +142,7 @@ def resist_timing_attack(data, maxdelay=0.0001):
 
 def importPermissionsFromModules():
     "Import all user defined permissions that are module resources into the global list of modules that can be assigned, and delete any that are no loger defined in modules."
-    p2 = BasePermissions
+    p2 = {i: {'description': BasePermissions[i]} for i in BasePermissions}
     with modules_state.modulesLock:
         for module in modules_state.ActiveModules.copy():  # Iterate over all modules
             # for every resource of type permission
@@ -154,12 +154,6 @@ def importPermissionsFromModules():
     global Permissions
     Permissions = p2
 
-
-def getPermissionsFromMail():
-    """Generate a permission for each mailing list, and add that permission to the global list of assignable permissions"""
-    for i in registry.get('system/mail/lists', {}):
-        Permissions["/users/mail/lists/" + i +
-                    "/subscribe"] = {'description': "Subscribe to mailing list with given UUID"}
 
 
 def changeUsername(old, new):
@@ -350,7 +344,7 @@ data_bad = False
 
 def initializeAuthentication():
     with lock:
-        "Load the saved users and groups, and the permissions from the mailing lists, but not the permissions from the modules. "
+        "Load the saved users and groups, but not the permissions from the modules. "
         # If no file use default but set filename anyway so the dump function will work
         # Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
         loaded = False
@@ -385,8 +379,6 @@ def initializeAuthentication():
             promptGenerateUser()
             messagebus.postMessage(
                 "/system/notifications/warnings", "No valid users file, using command line prompt")
-
-        getPermissionsFromMail()
 
 
 def generateUserPermissions(username=None):

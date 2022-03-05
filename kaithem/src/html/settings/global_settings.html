@@ -10,18 +10,16 @@ location = geolocation.getLocation('default')
 
 %>
 <h2>Options</h2>
-<p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
+
+
 <title>Options</title>
 <div class="sectionbox">
-<p class="help">
-You need the <i>/admin/settings.edit</i> permission to perform these actions. <b>Note that "saving" settings on this page will not be saved to disk unless you then use save server state to disk, or an autosave occurs</b> </p>
-<a href="/settings/restart">Completely restart the whole server(!)</a><br>
-%if not config.config['save-before-shutdown']:
-<p class="warning">Kaithem is not currently configured to save before shutting down. Restarting will lose any unsaved changes to modules, the registry, users and groups, and settings.</p>
-%else:
-<a href="/settings/restart_nosave">Completely restart the whole server without saving first(!)</a><br>
-%endif
-<br>
+    <details>
+        <summary>Saving info</summary>
+        Most changes are saved temporarily to RAM until either a configured autosave, or a manual save of the server state.
+    
+    </details> 
+
 <a href="/settings/save">Save server state to disk</a><br>
 <a href="/settings/clearerrors">Clear all errors from pages and events</a><br>
 <a href="/settings/reloadcfg">Reload the configuration file(Not all options take effect without restart)</a>
@@ -48,19 +46,25 @@ passwords are very strong. This will open a port on all discovered routers if en
 
 
 
-<h2>JACK Audio</h2>
+<h2>JACK/PipeWire Audio</h2>
 <section>
-<p class="help">
+
+<details>
+
+    <summary>Audo help</summary>
+<p>
 Kaithem can use JACK audio, including automaticallly giving soundcards persistant JACK
 names.  Using this is required for Kaithem's integrated sound mixer to work correctly.  Settings for external usb cards are set via the mixer.
 </p>
 
-<p class="help">
+<p >
 If you have PipeWire running, kaithem will just detect and use that and these settings will be ignored.
 </p>
 
-<p class="help"><b>Note:</b>Managing the jack server is only supported with Jackd2, not the original implementation! On some versions of raspbian you may need to use Pi "dummy" compatibility mode which runs the main card as if it were a USB</p>
-<p class="help">Compatibility mode may allow better performance.</p>
+<p><b>Note:</b>Managing the jack server is only supported with Jackd2, not the original implementation! On some versions of raspbian you may need to use Pi "dummy" compatibility mode which runs the main card as if it were a USB</p>
+<p>Compatibility mode may allow better performance.</p>
+</details>
+
 <form method="POST" action="/settings/changejacksettingstarget">
 <table border=1>
     <tr>
@@ -188,10 +192,6 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 </p>
 
 
-<p class="warning">
-    Kaithem no longer supports multiple sound cards with anything besides JACK!! The sound card alias mechanism is gone.  Multiple JACK outputs remain as a core use case.
-</p>
-
 <h3>Sound</h3>
 <form action="/settings/changealertsettingstarget" method="POST">
 <table border=1>
@@ -224,73 +224,6 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 
 </table>
 <input type="submit" value="Save sound settings">
-</form>
-</div>
-
-<h2>Mailroom</h2>
-<div class="sectionbox">
-<h3>Email Account</h3>
-<p class="help">You must configure an email account for kaithem to use. Most free email services
-allow SMTP access. Gmail and Yahoo both work. You can also run your own SMTP server
-Unencrypted connections are not supported. Please note: the email password must be stored in plaintext in a kaithem registry file.</p>
-<form action="/settings/savemail" method="POST">
-<table border=1>
-<tr>
-<td>SMTP Server</td><td><input name="smtpserver" value="${registry.get("system/mail/server")}"></input></td>
-</tr>
-<tr>
-<td>Port</td><td><input name="smtpport" value="${registry.get("system/mail/port")}"></input></td>
-</tr><tr>
-<td>Login/email address</td><td><input name="smtpaddress" value="${registry.get("system/mail/address")}"></input></td>
-</tr><tr>
-<td>New Password(blank for no change)</td><td><input type="password" name="smtpassword1"}"></input></td>
-</tr><tr>
-<td>Confirm: New Password</td><td><input type="password" name="smtpassword2"}"></input></td>
-</tr>
-</table>
-
-<%mail= registry.get("system/mail/lists",{})%>
-
-<h3>Mailing Lists</h3>
-<p class="help">Mailing lists are identified by UUID.</p>
-<table border=1>
-<tr><td>Name</td><td>Info</td><td>UUID</td><td>Delete</td></tr>
-%for i in mail:
-<tr>
-<td>
-<input name="mlist_name${i|h}" value="${mail[i]['name']}">
-</td>
-<td>
-<input name="mlist_desc${i|h}" value="${mail[i]['description']}">
-</td>
-<td>
-${i|h}
-</td>
-<td>
-<input type="submit" name="del_${i}" value="Delete"></input>
-</td>
-</tr>
-%endfor
-</table>
-
-<input type="submit" name="newlist" value="New list"></input>
-<input type="submit" value="save mail settings"></input>
-
-</form>
-<h3>Send Test Email</h3>
-<form method="post" action="/settings/testmail">
-
-<input name="to" placeholder="Destination Address"></input><input type="submit" value="Test Email"></input>
-</form>
-
-<h3>Send Message To List</h3>
-<form method="post" action="/settings/listmail">
-<input name="list" placeholder="List UUID"></input>
-<input name="subj" placeholder="Subject"></input><br>
-<textarea name="msg" class="code" placeholder="Message Here"></textarea>
-<input type="submit" value="Send(To entire list) Email">
-
-
 </form>
 </div>
 

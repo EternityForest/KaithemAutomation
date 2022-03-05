@@ -109,6 +109,7 @@ body {
     font-family: Lora;
     font-size: 18px;
     margin: 0px;
+    --box-bg: rgba(0,0,0,0);
 }
 
 .nonavtopbannercontainer h1 {
