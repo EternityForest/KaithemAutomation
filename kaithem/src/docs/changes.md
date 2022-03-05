@@ -11,9 +11,11 @@ Change Log
 - :bug: Fix inability to create new device inside a module
 - :coffin: Theming, alert tones, and server locations use files in core.settings. Registry data is auto migrated.
 - :sparkles: New kaithem.persist.unsaved dict for user-created files to inform the UI of unsaved changes.
+- :fire: Announce that the registry will be deprecated eventually.  Modules should attempt to move data to files instead.
+- :coffin: Mail features have an uncertain future and are removed from documentation as they have not been maintained in years.
+  Given that email is a highly security critical thing, it may be best not to have this there as an unused feature.
+- :coffin: Remove kaithem.serial.  It was unmaintained and never production-tested, and not used internally here in a very long time.
 
-
-- :fire: Announce that the registry will be deprecated eventually.  Modules should attempt to move data to files instread.
 
 ### 0.68.20
 - :lock:SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.

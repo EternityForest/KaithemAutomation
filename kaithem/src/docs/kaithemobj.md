@@ -200,7 +200,8 @@ A dict-like object allowing you to access resources by module, resource tuple.
 
 ### kaithem.mqtt
 
-This namespace depends on Paho-MQTT and provides very easy access to MQTT.
+This namespace depends on Paho-MQTT and provides access to MQTT.  While it is not deprecated or planned to be,
+you may want to consider using Paho or HBMQTT directly for simplicity and portability.
 
 #### kaithem.mqtt.Connection(server,port=1883,messageBusName=None,password=None, *)
 
@@ -608,54 +609,6 @@ Kaithem.persist is suggested as it protects from unecessesarily rewriting a file
 If you would like to only save when the user explicity uses global save, listen on the /system/save message topic.
 
 When you have dirty data, use kaithem.persist.unsaved to create a notification.
-
-
-### kaithem.serial
-
-This namespace deals with serial port objects. It requires pyserial to work, which is imported on demand.
-
-#### kaithem.serial.Port(portname,alertPriority="warning", alertZone="", *, **settings)
-
-Open a port object.Portname is the name as would be passed to serial.Serial. It does not have to be connected,
-and connections are automatically reestablished when the device is reconnected.
-
-The idea is to create the illusion of a hardware COM port, which is always present, ensuring that writes and reads
-never fail, although they may be meaningless if no device is physically connected.
-
-Settings may include any param you would pass to serial.Serial, like baudrate.
-
-By default, the port blocks and has a short timeout, which is different from the endless blocking
-raw pyserial uses.
-
-The object has a lock property, and acts as a context manager.
-
-
-#### kaithem.serial.Port.isConnected()
-Return True if the port is actually connected, False otherwise.
-
-#### kaithem.serial.Port.read()
-Read all available data. Never raises errors. In case of exception, returns b''
-
-#### kaithem.serial.Port.write(s)
-Write the bytestring. All errors are ignored.
-
-#### kaithem.serial.Port.sendBreak(t=0.002)
-Send a break condition for the given duration.
-
-#### kaithem.serial.Port.alert
-This alert object is tripped when the port is disconnected.
-
-#### kaithem.serial.Port.tag
-This tagpoint's value is 'connected' when the port is connected. The default claim is used.
-
-#### kaithem.serial.Port.port
-
-This is either None, if the port has not yet connected, or the raw pyserial port object.
-Will not change while the lock is held.
-
-#### kaithem.serial.Port.lock
-This is just a lock. Read and write do not use this lock! You are meant to manually use the port
-as a context manager for "transactions"
 
 
 
@@ -1160,6 +1113,10 @@ to find it.
 
 .json  
 Values may any JSON serializable object
+
+.toml  
+Values may any TOML serializable object
+
 
 .yaml  
 Values may any YAML serializable object
