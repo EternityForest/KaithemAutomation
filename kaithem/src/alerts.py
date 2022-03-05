@@ -7,8 +7,83 @@ import time
 import random
 import weakref
 logger = logging.getLogger("system.alerts")
-
 lock = threading.RLock()
+
+
+from src import registry
+from src import directories
+from scullery import persist
+from scullery import messagebus
+
+import os
+import logging
+
+fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
+
+if os.path.exists(fn):
+    file = persist.load(fn)
+else:
+    file = {}
+
+def setupFile():
+    "Set up some config defaults"
+    if not 'warning' in file:
+        # Legacy registry stuff.
+        file['warning'] = {}
+        interval = registry.get("system/alerts/warning/soundinterval", 60*30)
+        sfile = registry.get("system/alerts/warning/soundfile", "error.ogg")
+        file['warning']['interval'] = interval
+        file['warning']['file'] = sfile
+
+    if not 'error' in file:
+        # Legacy registry stuff.
+        file['error'] = {}
+        interval = registry.get("system/alerts/warning/soundinterval", 60*5)
+        sfile = registry.get("system/alerts/warning/soundfile", "error.ogg")
+        file['error']['interval'] = interval
+        file['error']['file'] = sfile
+
+    if not 'critical' in file:
+        # Legacy registry stuff.
+        file['critical'] = {}
+        interval = registry.get("system/alerts/warning/soundinterval", 12)
+        sfile = registry.get("system/alerts/warning/soundfile", "error.ogg")
+        file['critical']['interval'] = interval
+        file['critical']['file'] = sfile
+
+    if not 'all' in file:
+        # Legacy registry stuff.
+        file['all'] = {}
+        card = registry.get("system/alerts/soundcard", None)
+        file['all']['soundcard'] = card
+
+    try:
+        persist.save(file, fn, private=True)
+    except Exception:
+        logging.exception("Save fail")
+
+setupFile()
+
+def saveSettings(*a,**k):
+    persist.save(file, fn, private=True)
+    persist.unsavedFiles.pop(fn,"")
+
+def settingsDirty():
+    persist.unsavedFiles[fn]="Alert settings changed"
+
+messagebus.subscribe("/system/save", saveSettings)
+
+
+
+
+
+
+
+
+
+
+
+
 
 # This is a dict of all alerts that have not yet been acknowledged.
 # It is immutable and only ever atomically replaces
@@ -70,18 +145,16 @@ def calcNextBeep():
     else:
         x = priorities.get(x, 40)
     if x >= 30 and x < 40:
-        nextbeep = registry.get(
-            "system/alerts/warning/soundinterval", 60*30) + time.time()
-        sfile = registry.get("system/alerts/warning/soundfile", "error.ogg")
-    elif x >= 40 and x < 50:
-        nextbeep = registry.get("system/alerts/error/soundinterval",
-                                120) * ((random.random()/5.0)+0.9) + time.time()
-        sfile = registry.get("system/alerts/error/soundfile", "error.ogg")
+        nextbeep = file['warning']['interval'] + time.time() +(random.random()*3)
+        sfile =  file['warning']['file']
 
+    elif x >= 40 and x < 50:
+        nextbeep = file['error']['interval'] + time.time() +(random.random()*3)
+        sfile =  file['eror']['file']
+        
     elif x >= 50:
-        nextbeep = registry.get("system/alerts/critical/soundinterval",
-                                12.6) * ((random.random()/2.0)+0.75) + time.time()
-        sfile = registry.get("system/alerts/critical/soundfile", "error.ogg")
+        nextbeep = file['critical']['interval'] + time.time() +(random.random()*3)
+        sfile =  file['critical']['file']
     else:
         nextbeep = 10**10
         sfile = None
@@ -95,7 +168,7 @@ def alarmBeep():
     if time.time() > nextbeep:
         calcNextBeep()
         s = sfile
-        beepDevice = registry.get("system/alerts/soundcard", None)
+        beepDevice = file['all']['soundcard']
         if beepDevice == "__disable__":
             return
         if s:
@@ -307,7 +380,7 @@ class Alert():
             def f():
                 # Ondemand to avoid circular import
                 from . import sound
-                beepDevice = registry.get("system/alerts/soundcard", None)
+                beepDevice = file['all']['soundcard']
                 sound.playSound(
                     s, handle="kaithem_sys_main_alarm", output=beepDevice)
                 api.send(['shouldRefresh'])

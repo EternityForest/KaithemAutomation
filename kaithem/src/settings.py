@@ -569,19 +569,16 @@ class Settings():
     def changealertsettingstarget(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        registry.set("system/alerts/warning/soundinterval",
-                     float(kwargs['warningbeeptime']))
-        registry.set("system/alerts/error/soundinterval",
-                     float(kwargs['errorbeeptime']))
-        registry.set("system/alerts/critical/soundinterval",
-                     float(kwargs['critbeeptime']))
+        from . import alerts
 
-        registry.set("system/alerts/warning/soundfile", kwargs['warningsound'])
-        registry.set("system/alerts/error/soundfile", kwargs['errorsound'])
-        registry.set("system/alerts/critical/soundfile", kwargs['critsound'])
-
-        if not kwargs['soundcard'] == "default":
-            registry.set("system/alerts/soundcard", kwargs['soundcard'])
+        alerts.file['warning']['interval']= float(kwargs['warningbeeptime'])
+        alerts.file['error']['interval']= float(kwargs['errorbeeptime'])
+        alerts.file['critical']['interval']= float(kwargs['critbeeptime'])
+        alerts.file['warning']['file']= kwargs['warningsound']
+        alerts.file['error']['file']= kwargs['errorsound']
+        alerts.file['critical']['file']= kwargs['critsound']
+        alerts.file['all']['soundcard']= kwargs['soundcard']
+        alerts.settingsDirty()
 
         raise cherrypy.HTTPRedirect('/settings/system')
 
@@ -610,7 +607,9 @@ class Settings():
     def settheming(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        registry.set("/system.theming/csstheme", kwargs['cssfile'])
+        from . import theming
+        theming.file['web']['csstheme'] = kwargs['cssfile']
+        theming.setDirty()
         raise cherrypy.HTTPRedirect('/settings/theming')
 
     @cherrypy.expose

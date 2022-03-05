@@ -20,6 +20,8 @@ if sys.platform.startswith('linux'):
 if sys.platform.startswith('darwin'):
     posix_rename =True
 
+# Purely just a dict for the rest of the application to keep track of what files are changed and not saved.
+unsavedFiles = {}
 
 def resolvePath(fn,expand=True):
     if not expand:
@@ -237,7 +239,7 @@ def load(filename, *,expand=True):
 
             elif x.endswith(".toml"):
                 import toml
-                r = toml.load(f.read().decode('utf8'))
+                r = toml.loads(f.read().decode('utf8'))
 
             elif x.endswith(".txt") or x.endswith(".md") or x.endswith(".rst"):
                 r=f.read().decode('utf8')

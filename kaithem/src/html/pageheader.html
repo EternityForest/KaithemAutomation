@@ -1,6 +1,7 @@
 <%!
 from src.config import config
 from src import auth,util,notifications,pages,modules,modules_state,registry,theming,devices,persist
+import scullery.persist
 import cherrypy,socket,base64
 %>
 
@@ -161,6 +162,11 @@ import cherrypy,socket,base64
 
           %if  persist.dirty:
           <span title="The there are persistance files with unsaved changes">*</span>
+          %endif
+
+
+          %if  scullery.persist.unsavedFiles:
+          <span title="Something has an unsaved file">*</span>
           %endif
 Tools</a>
 

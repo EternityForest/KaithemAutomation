@@ -605,6 +605,10 @@ Use Python's configparse, YAML, or the kaithem.persist namespace in your own fol
 
 Kaithem.persist is suggested as it protects from unecessesarily rewriting a file.
 
+If you would like to only save when the user explicity uses global save, listen on the /system/save message topic.
+
+When you have dirty data, use kaithem.persist.unsaved to create a notification.
+
 
 ### kaithem.serial
 
@@ -1178,6 +1182,15 @@ Any other type may be compressed with gzip compresssion(e.g.
 Any other type may be compressed with bz2 compression(e.g.
 "bar.json.bz2")
 
+#### kaithem.persist.unsaved
+
+This is just a dict. When anything is in here, an asterisk is displayed in the UI.
+
+What you do is kaithem.persist.unsaved['filename'] = "Explanation".
+
+When you save that file(Such as by listening to the /system/save message), then you pop it out of the dict.
+
+It is equivalent to scullery.persist.unsavedFiles.
 
 #### kaithem.persist.load(filename, *, expand=True)
 

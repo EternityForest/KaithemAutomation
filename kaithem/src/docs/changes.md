@@ -9,7 +9,10 @@ Change Log
    access kaithem.devices['foo'] directly rather than making a local reference.
 - Tag Points and the Message Bus are the official ways to do loose coupling, and are much simpler.
 - :bug: Fix inability to create new device inside a module
-- 
+- :coffin: Theming, alert tones, and server locations use files in core.settings. Registry data is auto migrated.
+- :sparkles: New kaithem.persist.unsaved dict for user-created files to inform the UI of unsaved changes.
+
+
 - :fire: Announce that the registry will be deprecated eventually.  Modules should attempt to move data to files instread.
 
 ### 0.68.20

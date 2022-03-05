@@ -14,14 +14,14 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Optional
-from . import config, util
 import stat
 import os
 import json
 from pwd import getpwuid, getpwnam
 from scullery.persist import *
 from scullery.messagebus import subscribe, postMessage
-from . import registry
+
+registry=None
 
 import weakref
 import threading
@@ -30,11 +30,17 @@ import traceback
 import urllib.parse
 
 dirty = weakref.WeakValueDictionary()
+
+dirty_state_files = dirty
+
 stateFileLock = threading.RLock()
 
+import os
+import pwd
 
-selected_user = config.config['run-as-user'] if util.getUser(
-) == 'root' else util.getUser()
+
+selected_user = pwd.getpwuid( os.geteuid() ).pw_name
+
 recoveryDir : str = os.path.join("/dev/shm/SculleryRFRecovery", selected_user)
 if os.path.exists("/dev/shm"):
     if not os.path.exists("/dev/shm/SculleryRFRecovery"):
@@ -66,7 +72,7 @@ class SharedStateFile():
         But it will aso use /dev/shm based recovery if the program crashes
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, save_topic="/system/save"):
         # Save all changes immediately to /dev/shm, for crash recovery.
         if not os.path.exists("/dev/shm") or not recoveryDir:
             self.recoveryFile = None
@@ -94,14 +100,18 @@ class SharedStateFile():
         self.noFileForEmpty = False
         self.private=True
         allFiles[filename] = self
-        subscribe("/system/save", self.save)
+        if save_topic:
+            subscribe(save_topic, self.save)
 
     def setupDefaults(self, defaults={}, legacy_registry_key_mappings={}):
         self.legacy_registry_key_mappings.update(legacy_registry_key_mappings)
-        for i in legacy_registry_key_mappings:
-            km = legacy_registry_key_mappings[i]
-            if not i in self.data:
-                self.set(i,registry.get(km, defaults[i]))
+
+        # Legacy Kaithem feature
+        if registry:
+            for i in legacy_registry_key_mappings:
+                km = legacy_registry_key_mappings[i]
+                if not i in self.data:
+                    self.set(i,registry.get(km, defaults[i]))
 
         for i in defaults:
             if not i in self.data:
@@ -138,11 +148,13 @@ class SharedStateFile():
                 return
             self.data[key] = value
 
-            if key in self.legacy_registry_key_mappings:
-                try:
-                    registry.delete(self.legacy_registry_key_mappings[key])
-                except:
-                    pass
+            if registry:
+                if key in self.legacy_registry_key_mappings:
+                    try:
+                        registry.delete(self.legacy_registry_key_mappings[key])
+                    except:
+                        pass
+
             dirty[self.filename] = self
 
             if self.recoveryFile:
@@ -169,11 +181,12 @@ class SharedStateFile():
             except KeyError:
                 pass
 
-            if key in self.legacy_registry_key_mappings:
-                try:
-                    registry.delete(self.legacy_registry_key_mappings[key])
-                except:
-                    pass
+            if registry:
+                if key in self.legacy_registry_key_mappings:
+                    try:
+                        registry.delete(self.legacy_registry_key_mappings[key])
+                    except:
+                        pass
             dirty[self.filename] = self
             if self.recoveryFile:
                 save(self.data, self.recoveryFile,private=True)

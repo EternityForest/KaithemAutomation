@@ -25,6 +25,7 @@ import json
 import yaml
 import os
 import weakref
+import scullery.persist
 
 import cherrypy
 from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, breakpoint,statemachines
@@ -630,6 +631,7 @@ class Kaithem():
             messagebus.pySubscribe(topic, callback)
 
     class persist():
+        unsaved = scullery.persist.unsavedFiles
         @staticmethod
         def load(*args, **kwargs):
             return persist.load(*args, **kwargs)
