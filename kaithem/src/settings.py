@@ -589,9 +589,8 @@ class Settings():
     def changesettingstarget(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-
-        registry.set("system/location/lat", float(kwargs['lat']))
-        registry.set("system/location/lon", float(kwargs['lon']))
+        from . import geolocation
+        geolocation.setDefaultLocation(float(kwargs['lat']), float(kwargs['lon']), kwargs['city'])
 
         messagebus.postMessage(
             "/system/settings/changedelocation", pages.getAcessingUser())
@@ -643,10 +642,9 @@ class Settings():
     def ip_geolocate(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        l = util.ip_geolocate()
-        registry.set("system/location/lat", l['lat'])
-        registry.set("system/location/lon", l['lon'])
-        registry.set("system/location/city", l['city'])
+        from src import geolocation
+        l = geolocation.ip_geolocate()
+        geolocation.setDefaultLocation(l['lat'], l['lon'],l['city'])
         messagebus.postMessage(
             "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')

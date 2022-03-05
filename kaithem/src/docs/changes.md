@@ -9,7 +9,8 @@ Change Log
    access kaithem.devices['foo'] directly rather than making a local reference.
 - Tag Points and the Message Bus are the official ways to do loose coupling, and are much simpler.
 - :bug: Fix inability to create new device inside a module
-
+- 
+- :fire: Announce that the registry will be deprecated eventually.  Modules should attempt to move data to files instread.
 
 ### 0.68.20
 - :lock:SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.

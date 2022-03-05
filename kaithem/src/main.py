@@ -83,7 +83,7 @@ __version__ = version_info.__version__
 __version_info__ = version_info.__version_info__
 
 from .import tagpoints
-from . import kaithemobj
+from src import kaithemobj
 from . import wifimanager
 
 

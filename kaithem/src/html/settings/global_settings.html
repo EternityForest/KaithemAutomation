@@ -1,10 +1,12 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import config,registry,sound,persist,directories
+from src import config,registry,sound,persist,directories,geolocation
 import yaml,os
 
 jacksettingsfile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
 jacksettings = persist.getStateFile(jacksettingsfile)
+
+location = geolocation.getLocation('default')
 
 %>
 <h2>Options</h2>
@@ -162,14 +164,14 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 <tr>
 <tr>
 <td>City</td>
-<td><input name="city" value="${registry.get('system/location/city','')}".></td>
+<td><input name="city" value="${location['city']}".></td>
 </tr>
 <td>Lattitude</td>
-<td><input name="lat" value="${registry.get('system/location/lat','')}".></td>
+<td><input name="lat" value="${location['lat']}".></td>
 </tr>
 <tr>
 <td>Longitude</td>
-<td><input name="lon" value="${registry.get('system/location/lon','')}".></td>
+<td><input name="lon" value="${location['lon']}".></td>
 </tr>
 </table>
 <input type="submit" >

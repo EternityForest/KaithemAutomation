@@ -16,19 +16,18 @@
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
 import traceback
-from . import tagpoints
+from . import tagpoints, geolocation
 import time
 import random
 import subprocess
 import threading
-import random
 import json
 import yaml
 import os
 import weakref
 
 import cherrypy
-from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, auth, breakpoint,statemachines
+from . import unitsofmeasure, workers, sound, messagebus, util, mail, widgets, registry, directories, pages, config, persist, breakpoint,statemachines
 from . import devices, alerts, midi, gpio, theming
 
 from . import version_info
@@ -157,8 +156,7 @@ class Kaithem():
 
         @staticmethod
         def location():
-            lat = float(registry.get("system/location/lat", None))
-            lon = float(registry.get("system/location/lon", None))
+            lat,lon = geolocation.getCoords()
             if not lon or not lat:
                 raise RuntimeError("No location set")
             return((lat, lon))
@@ -244,8 +242,8 @@ class Kaithem():
         @staticmethod
         def sunsetTime(lat=None, lon=None, date=None):
             if lon is None:
-                lat = registry.get("system/location/lat", None)
-                lon = registry.get("system/location/lon", None)
+                lat,lon = geolocation.getCoords()
+                
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
@@ -257,8 +255,8 @@ class Kaithem():
         @staticmethod
         def sunriseTime(lat=None, lon=None, date=None):
             if lon == None:
-                lat = registry.get("system/location/lat", None)
-                lon = registry.get("system/location/lon", None)
+                lat,lon = geolocation.getCoords()
+                
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat == None or lon == None:
@@ -270,8 +268,8 @@ class Kaithem():
         @staticmethod
         def civilDuskTime(lat=None, lon=None, date=None):
             if lon == None:
-                lat = registry.get("system/location/lat", None)
-                lon = registry.get("system/location/lon", None)
+                lat,lon = geolocation.getCoords()
+                
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat == None or lon == None:
@@ -283,8 +281,8 @@ class Kaithem():
         @staticmethod
         def civilDawnTime(lat=None, lon=None, date=None):
             if lon == None:
-                lat = registry.get("system/location/lat", None)
-                lon = registry.get("system/location/lon", None)
+                lat,lon = geolocation.getCoords()
+                
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat == None or lon == None:
@@ -296,8 +294,8 @@ class Kaithem():
         @staticmethod
         def rahuStart(lat=None, lon=None, date=None):
             if lon == None:
-                lat = registry.get("system/location/lat", None)
-                lon = registry.get("system/location/lon", None)
+                lat,lon = geolocation.getCoords()
+                
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat == None or lon == None:
@@ -309,8 +307,8 @@ class Kaithem():
         @staticmethod
         def rahuEnd(lat=None, lon=None, date=None):
             if lon == None:
-                lat = registry.get("system/location/lat", None)
-                lon = registry.get("system/location/lon", None)
+                lat,lon = geolocation.getCoords()
+                
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat == None or lon == None:
@@ -322,8 +320,8 @@ class Kaithem():
         @staticmethod
         def isDark(lat=None, lon=None):
             if lon == None:
-                lat = registry.get("system/location/lat", None)
-                lon = registry.get("system/location/lon", None)
+                lat,lon = geolocation.getCoords()
+                
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat == None or lon == None:
@@ -336,8 +334,8 @@ class Kaithem():
         def isRahu(lat=None, lon=None):
             if lat == None:
                 if lon == None:
-                    lat = registry.get("system/location/lat", None)
-                    lon = registry.get("system/location/lon", None)
+                    lat,lon = geolocation.getCoords()
+                    
                 else:
                     raise ValueError("You set lon, but not lst?")
                 if lat == None or lon == None:
@@ -350,8 +348,8 @@ class Kaithem():
         def isDay(lat=None, lon=None):
             if lat == None:
                 if lon == None:
-                    lat = registry.get("system/location/lat", None)
-                    lon = registry.get("system/location/lon", None)
+                    lat,lon = geolocation.getCoords()
+                    
                 if lat == None or lon == None:
                     raise RuntimeError(
                         "No server location set, fix this in system settings")
@@ -361,8 +359,8 @@ class Kaithem():
         def isNight(lat=None, lon=None):
             if lat == None:
                 if lon == None:
-                    lat = registry.get("system/location/lat", None)
-                    lon = registry.get("system/location/lon", None)
+                    lat,lon = geolocation.getCoords()
+                    
                 if lat == None or lon == None:
                     raise RuntimeError(
                         "No server location set, fix this in system settings")
@@ -372,8 +370,8 @@ class Kaithem():
         def isLight(lat=None, lon=None):
             if lat == None:
                 if lon == None:
-                    lat = registry.get("system/location/lat", None)
-                    lon = registry.get("system/location/lon", None)
+                    lat,lon = geolocation.getCoords()
+                    
                 if lat == None or lon == None:
                     raise RuntimeError(
                         "No server location set, fix this in system settings")

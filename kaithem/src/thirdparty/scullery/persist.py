@@ -138,6 +138,11 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False,nolog=Fals
         elif x.endswith(".yaml"):
             import yaml
             data = yaml.dump(data).encode('utf8')
+
+        elif x.endswith(".toml"):
+            import toml
+            data = toml.dumps(data).encode("utf8")
+
         elif x.endswith(".txt") or x.endswith(".md") or x.endswith(".rst"):
             data = (str(data).encode('utf8'))
         elif x.endswith(".bin"):
@@ -229,6 +234,11 @@ def load(filename, *,expand=True):
             elif x.endswith(".yaml"):
                 import yaml
                 r=yaml.load(f.read().decode('utf8'))
+
+            elif x.endswith(".toml"):
+                import toml
+                r = toml.load(f.read().decode('utf8'))
+
             elif x.endswith(".txt") or x.endswith(".md") or x.endswith(".rst"):
                 r=f.read().decode('utf8')
             elif x.endswith(".bin"):

@@ -620,11 +620,8 @@ class BaseEvent():
     def _handle_exception(self, e=None, tb=None):
         global _lastGC
         if tb is None:
-            if sys.version_info > (3, 0):
-                tb = traceback.format_exc(chain=True)
-            else:
-                tb = traceback.format_exc()
-
+            tb = traceback.format_exc(chain=True)
+            
         # TODO: Get rid of legacy error stuff
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object

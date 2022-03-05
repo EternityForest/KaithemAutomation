@@ -367,16 +367,7 @@ def updateIP():
 last = time.time()
 
 
-def ip_geolocate():
-    # Block for a bit if its been less than a second since the last time we did this
-    while time.time()-last < 1.5:
-        time.sleep(0.1)
-    u = urlopen("http://ip-api.com/json", timeout=60)
-    try:
-        return(json.loads(u.read().decode('utf8')))
 
-    finally:
-        u.close()
 
 
 lastNTP = 0

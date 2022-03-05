@@ -36,10 +36,10 @@ channels: Dict[str, Dict] = {}
 
 log = logging.getLogger("system.mixer")
 
-presetsDir = os.path.join(directories.mixerdir "presets")
+presetsDir = os.path.join(directories.mixerdir, "presets")
 
 settingsFile = os.path.join(
-    directories.mixerdir "jacksettings.yaml")
+    directories.mixerdir, "jacksettings.yaml")
 
 
 recorder = None
