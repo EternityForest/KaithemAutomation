@@ -1,6 +1,7 @@
 from multiprocessing import RLock
 from sys import path
 from mako.lookup import TemplateLookup
+from matplotlib.pyplot import connect
 from scullery import iceflow,workers
 import os
 import time
@@ -369,6 +370,26 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             self.mp3src = self.addElement("queue", max_size_time=10000000)
 
+        elif s.startswith("srt://"):
+            rtsp = self.addElement(
+                "srtsrc", mode=1, uri=s, passphrase=pw or None)
+
+            self.addElement('tsdemux', connectWhenAvailable="video")
+            self.addElement("h264parse", config_interval=1, connectWhenAvailable="video")
+            self.addElement("queue", max_size_time=10000000)
+
+            self.h264source = self.addElement("tee")
+
+            self.addElement("decodebin", connectToOutput=rtsp,
+                            connectWhenAvailable="audio", async_handling=True)
+            self.addElement("audioconvert")
+            self.addElement("audiorate")
+            self.addElement("voaacenc")
+            self.addElement("aacparse")
+
+            self.mp3src = self.addElement("queue", max_size_time=10000000)
+
+
         elif s == "screen":
             self.addElement("ximagesrc")
             self.addElement("capsfilter", caps="video/x-raw,framerate=" +
@@ -577,6 +598,8 @@ class NVRChannel(devices.Device):
         self.process.addElement("mpegtsmux", connectToOutput=(
             x, self.process.mp3src))
 
+        self.process.addElement('tsparse',set_timestamps=True)
+
         self.mpegtssrc = self.process.addElement("tee")
 
         # Path to be created
@@ -651,6 +674,12 @@ class NVRChannel(devices.Device):
                                 playlist_location=os.path.join(
                                     "/dev/shm/knvr_buffer/", self.name, "playlist.m3u8"),
                                 target_duration=5)
+
+
+        # We may want to have an SRT source.
+        if int(self.config['device.srt_server_port'])>0:
+            self.process.addElement("queue", leaky=2, max_size_time=200000000, connectToOutput=self.mpegtssrc)
+            self.process.addElement("srtsink", mode=2, localaddress="0.0.0.0", localport=int(self.config['device.srt_server_port']), sync=False)
 
         self.datapusher = threading.Thread(
             target=self.thread, daemon=True, name="NVR")
@@ -1002,6 +1031,10 @@ class NVRChannel(devices.Device):
 
             self.set_config_default("device.loop_record_length", '5')
 
+
+            self.set_config_default("device.srt_server_port", '0')
+
+
             self.process = None
 
             self.lastInferenceTime = 1
@@ -1052,7 +1085,7 @@ class NVRChannel(devices.Device):
 
             self.recordlock = threading.RLock()
 
-            self.rawFeedPipe = "/dev/shm/knvr_buffer/" + self.name + "." + str(time.monotonic()) + ".raw_feed.tspipe"
+            self.rawFeedPipe = "/dev/shm/knvr_buffer/" + self.name + "/" + str(time.monotonic()) + ".raw_feed.tspipe"
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
