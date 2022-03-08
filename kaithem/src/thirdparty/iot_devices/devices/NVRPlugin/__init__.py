@@ -1,8 +1,6 @@
 from multiprocessing import RLock
-from sys import path
 from mako.lookup import TemplateLookup
-from matplotlib.pyplot import connect
-from scullery import iceflow,workers
+from scullery import iceflow, workers
 import os
 import time
 import threading
@@ -17,7 +15,7 @@ import random
 logger = logging.Logger("plugins.nvr")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
-from datetime import date, datetime
+from datetime import datetime
 from datetime import timezone
 
 defaultSubclassCode = """
@@ -28,11 +26,10 @@ class CustomDeviceType(DeviceType):
         pass
 """
 
-path = os.path.abspath(__file__)
-path = os.path.dirname(path)
+path = os.path.dirname( os.path.abspath(__file__))
 
 
-objectDetector = [None,None]
+objectDetector = [None, None]
 
 # Only one of these should happpen at a time. Because we need to limit how much CPU it can burn.
 object_detection_lock = threading.RLock()
@@ -40,17 +37,21 @@ object_detection_lock = threading.RLock()
 import numpy
 
 
-
-def get_output_layers(net):    
+def get_output_layers(net):
     layer_names = net.getLayerNames()
-    output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+    output_layers = [layer_names[i[0] - 1]
+                     for i in net.getUnconnectedOutLayers()]
     return output_layers
 
-def toImgOpenCV(imgPIL): # Conver imgPIL to imgOpenCV
-    i = numpy.array(imgPIL) # After mapping from PIL to numpy : [R,G,B,A]
-                         # numpy Image Channel system: [B,G,R,A]
-    red = i[:,:,0].copy(); i[:,:,0] = i[:,:,2].copy(); i[:,:,2] = red;
-    return i; 
+
+def toImgOpenCV(imgPIL):  # Conver imgPIL to imgOpenCV
+    i = numpy.array(imgPIL)  # After mapping from PIL to numpy : [R,G,B,A]
+    # numpy Image Channel system: [B,G,R,A]
+    red = i[:, :, 0].copy()
+    i[:, :, 0] = i[:, :, 2].copy()
+    i[:, :, 2] = red
+    return i
+
 
 def letterbox_image(image, size):
     '''resize image with unchanged aspect ratio using padding'''
@@ -58,17 +59,16 @@ def letterbox_image(image, size):
     import numpy as np
     iw, ih = image.shape[0:2][::-1]
     w, h = size
-    scale = min(w/iw, h/ih)
-    nw = int(iw*scale)
-    nh = int(ih*scale)
-    image = cv2.resize(image, (nw,nh), interpolation=cv2.INTER_CUBIC)
+    scale = min(w / iw, h / ih)
+    nw = int(iw * scale)
+    nh = int(ih * scale)
+    image = cv2.resize(image, (nw, nh), interpolation=cv2.INTER_CUBIC)
     new_image = np.zeros((size[1], size[0], 3), np.uint8)
-    new_image.fill(128)
-    dx = (w-nw)//2
-    dy = (h-nh)//2
-    new_image[dy:dy+nh, dx:dx+nw,:] = image
+    new_image.fill(0)
+    dx = (w - nw) // 2
+    dy = (h - nh) // 2
+    new_image[dy:dy + nh, dx:dx + nw, :] = image
     return new_image
-
 
 
 # We get the model from here and export it as tflite without any extra quantization:
@@ -76,7 +76,7 @@ def letterbox_image(image, size):
 
 # Label map: https://github.com/joonb14/TFLiteDetection
 
-def recognize_tflite(i,r):
+def recognize_tflite(i, r):
     import tflite_runtime.interpreter as tflite
     import cv2
     import PIL.Image
@@ -85,15 +85,17 @@ def recognize_tflite(i,r):
     invoke_time = time.time()
 
     i = PIL.Image.open(io.BytesIO(i))
-    pilimg=i
-    i=i.filter(PIL.ImageFilter.GaussianBlur(1))
-    i=PIL.ImageOps.autocontrast(i, cutoff=(0.1,0,25))
+    pilimg = i
+    i = i.filter(PIL.ImageFilter.GaussianBlur(1))
+    i = PIL.ImageOps.autocontrast(i, cutoff=(0.05, 0.05))
 
     if not objectDetector[0]:
-        objectDetector[0]=tflite.Interpreter(num_threads=4, model_path=os.path.join(path,"efficientdet/efficientdet-lite0-f32.tflite"))
+        objectDetector[0] = tflite.Interpreter(num_threads=4, model_path=os.path.join(
+            path, "efficientdet/efficientdet-lite0-f32.tflite"))
         objectDetector[0].allocate_tensors()
 
-        objectDetector[1]=numpy.loadtxt(os.path.join(path,"labelmap.txt"),dtype = str, delimiter="/n") 
+        objectDetector[1] = numpy.loadtxt(os.path.join(
+            path, "labelmap.txt"), dtype=str, delimiter="/n")
 
     interpreter = objectDetector[0]
     labels = objectDetector[1]
@@ -104,21 +106,19 @@ def recognize_tflite(i,r):
     output_details = interpreter.get_output_details()
 
     tensor_w = input_details[0]['shape'][1]
-    tensor_h= input_details[0]['shape'][2]
+    tensor_h = input_details[0]['shape'][2]
 
-    image = letterbox_image(original_image,(tensor_w,tensor_h))
-    image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+    image = letterbox_image(original_image, (tensor_w, tensor_h))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+    input_image = numpy.expand_dims(image, 0)
 
-    input_image = numpy.expand_dims(image,0)
-   
     interpreter.set_tensor(input_details[0]['index'], input_image)
-    original_image_h=original_image.shape[0]
-    original_image_w=original_image.shape[1]
-
+    original_image_h = original_image.shape[0]
+    original_image_w = original_image.shape[1]
 
     interpreter.invoke()
-    t = time.time()-invoke_time
+    t = time.time() - invoke_time
     r.lastInferenceTime = t
 
     # The function `get_tensor()` returns a copy of the tensor data.
@@ -128,67 +128,69 @@ def recognize_tflite(i,r):
     probability = numpy.array([i[5]for i in o])
 
     # Our dynamically chosen confidence threshhold meant to pick up things in dim light
-    p = float(max(min(0.10, float(probability.max())*0.8),0.01))
- 
+    p = float(max(min(0.10, float(probability.max()) * 0.8), 0.01))
+
     retval = []
 
     # All this is reverse engineered from looging at the output.
     for i in o:
-        if float(i[5])<p:
-            continue 
-        if int(i[6])<1:
+        if float(i[5]) < p:
+            continue
+        if int(i[6]) < 1:
             continue
 
-        x,y,x2,y2 = (float((i[2]/tensor_w)*original_image_w),float((i[1]/tensor_h)*original_image_h), float((i[4]/tensor_w)*original_image_w), 
-        float((i[3]/tensor_h)*original_image_h))
-        
-        x = min(x,x2)
-        w = max(x,x2)-x
-        y=min(y,y2)
-        h = max(y,y2)-y
+        x, y, x2, y2 = (float((i[2] / tensor_w) * original_image_w), 
+                        float((i[1] / tensor_h) * original_image_h), 
+                        float((i[4] / tensor_w) * original_image_w),
+                        float((i[3] / tensor_h) * original_image_h))
+
+        x = min(x, x2)
+        w = max(x, x2) - x
+        y = min(y, y2)
+        h = max(y, y2) - y
 
         confidence = float(i[5])
-        label = labels[int(i[6])-1]
+        label = labels[int(i[6]) - 1]
 
+        v = {
+            'x': float(x), 'y': float(y), "w": float(w), 'h': float(h),
+            'class': label,
+            'confidence': confidence,
+        }
 
-        v= {
-                'x':float(x), 'y':float(y), "w":float(w), 'h': float(h),
-                'class': label,
-                'confidence': confidence,
-            }
-
-        if x2 >(original_image_w-20) and confidence<0.2:
+        if x2 > (original_image_w - 20) and confidence < 0.2:
             continue
-        if y2>(original_image_h-10) and confidence<0.15:
+        if y2 > (original_image_h - 10) and confidence < 0.15:
             continue
-        # For some reason I am consistently getting false positive people detections with y values in the -6 to 15 range
-        # Could just be my input data.  But, things are usually not that high up unless they are big and big means a clear view which means
+        # For some reason I am consistently getting false positive people detections
+        #  with y values in the -6 to 15 range
+        # Could just be my input data.  But, things are usually not that high up unless
+        #  they are big and big means a clear view which means
         # you probably would have a higher confidence
-        if (x> 1 and y>24) or confidence>0.33 :
-            
-            # If something takes up a very large amount of the frame, we probably have a clear view of it.  If we are still not confident the ANN
-            # Is probably making stuff up.  Very large things are going to be uncommon since most cameras like this aren't doing extreme close ups
+        if (x > 1 and y > 24) or confidence > 0.33:
+
+            # If something takes up a very large amount of the frame, we probably have a clear view of it.  
+            # If we are still not confident the ANN
+            # Is probably making stuff up.  Very large things are going to be uncommon since most cameras like 
+            # this aren't doing extreme close ups
             # and the ones that are probably have good lighting
-            if ( (w< original_image_w/4) or (confidence >0.18)) and ((h< (original_image_h/3)) or (confidence > 0.15)):
-                if (w< (original_image_w/1.5) or (confidence >0.32)) and (h< (original_image_h/1.5) or (confidence > 0.32)):
+            if ((w < original_image_w / 4) or (confidence > 0.18)) and ((h < (original_image_h / 3)) or (confidence > 0.15)):
+                if (w < (original_image_w / 1.5) or (confidence > 0.32)) and (h < (original_image_h / 1.5) or (confidence > 0.32)):
 
                     # If the width of this object is such that more than 2/3d is off of the frame, we had better be very confident
                     # because that seems to be a common pattern of false positives.
-                    if ( ((original_image_w-x) > w/3) or confidence > 0.4  ):
+                    if (((original_image_w - x) > w / 3) or confidence > 0.4):
                         retval.append(v)
                     else:
-                        pass#print(v, "reject large offscreen")
+                        pass  # print(v, "reject large offscreen")
                 else:
-                    pass#print(v, "reject to large for confidence 2")
+                    pass  # print(v, "reject to large for confidence 2")
             else:
-                pass#print(v, "reject too large for confidence")
+                pass  # print(v, "reject too large for confidence")
         else:
-            pass#print(v,"reject low xy")
+            pass  # print(v,"reject low xy")
 
-
-    return {'objects':retval,'x-inferencetime':t}
-
-
+    return {'objects': retval, 'x-inferencetime': t}
 
 
 automated_record_uuid = '76241b9c-5b08-4828-9358-37c6a25dd823'
@@ -217,7 +219,7 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
             try:
                 httpservices.remove((tuple(sorted(
                     [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
-            except:
+            except Exception:
                 logging.exception("???")
 
 
@@ -225,7 +227,7 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
 #browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
 try:
     from src.util import zeroconf as zcinstance
-except:
+except Exception:
     import zeroconf
     zcinstance = zeroconf.Zeroconf()
 
@@ -256,7 +258,7 @@ class Pipeline(iceflow.GstreamerPipeline):
     def onAppsinkData(self, *a, **k):
         self.dev.onAppsinkData(*a, **k)
 
-    def getGstreamerSourceData(self, s, cfg,un,pw):
+    def getGstreamerSourceData(self, s, cfg, un, pw):
         self.config = cfg
         self.h264source = self.mp3src = False
         self.syncFile = False
@@ -280,7 +282,7 @@ class Pipeline(iceflow.GstreamerPipeline):
                 dm = self.addElement("qtdemux")
             self.addElement(
                 "h264parse", connectWhenAvailable="video/x-h264")
-            #self.addElement('identity', sync=True)
+            # self.addElement('identity', sync=True)
             self.syncFile = True
             self.addElement('queue', max_size_time=10000000)
 
@@ -372,23 +374,18 @@ class Pipeline(iceflow.GstreamerPipeline):
 
         elif s.startswith("srt://"):
             rtsp = self.addElement(
-                "srtsrc", mode=1, uri=s, passphrase=pw or None)
+                "srtsrc", mode=1, uri=s, passphrase=pw or '')
 
-            self.addElement('tsdemux', connectWhenAvailable="video")
-            self.addElement("h264parse", config_interval=1, connectWhenAvailable="video")
-            self.addElement("queue", max_size_time=10000000)
+            demux = self.addElement('tsdemux')
+            self.addElement("h264parse", config_interval=2,
+                            connectWhenAvailable="video")
+            self.addElement("queue")
 
             self.h264source = self.addElement("tee")
 
-            self.addElement("decodebin", connectToOutput=rtsp,
-                            connectWhenAvailable="audio", async_handling=True)
-            self.addElement("audioconvert")
-            self.addElement("audiorate")
-            self.addElement("voaacenc")
-            self.addElement("aacparse")
-
+            self.addElement("aacparse", connectToOutput=demux,
+                            connectWhenAvailable="audio")
             self.mp3src = self.addElement("queue", max_size_time=10000000)
-
 
         elif s == "screen":
             self.addElement("ximagesrc")
@@ -401,7 +398,8 @@ class Pipeline(iceflow.GstreamerPipeline):
                     (self.config.get('device.fps', '4') or '4')))
             except Exception:
                 self.addElement("x264enc", tune="zerolatency",
-                                rc_lookahead=0, bitrate=int(self.dev.config['device.bitrate']), key_int_max=int((self.config.get('device.fps', '4') or '4')) * 2)
+                                rc_lookahead=0, bitrate=int(self.dev.config['device.bitrate']), 
+                                key_int_max=int((self.config.get('device.fps', '4') or '4')) * 2)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=main")
             self.addElement("h264parse")
@@ -462,7 +460,7 @@ class NVRChannel(devices.Device):
                 time.sleep(1)
                 try:
                     f = open(self.rawFeedPipe, 'rb')
-                except:
+                except Exception:
                     print(traceback.format_exc())
 
             except Exception:
@@ -521,14 +519,17 @@ class NVRChannel(devices.Device):
     def onRawTSData(self, data):
         pass
 
-
     def getSnapshot(self):
-        if hasattr(self,'snapshotter'):
-            x = self.snapshotter.pullToFile("/dev/shm/knvr_buffer/" + self.name+".bmp")
+        if hasattr(self, 'snapshotter'):
+            with open("/dev/shm/knvr_buffer/" + self.name + ".bmp","w") as f:
+                os.chmod("/dev/shm/knvr_buffer/" + self.name + ".bmp", 0o700)
+
+            x = self.snapshotter.pullToFile(
+                "/dev/shm/knvr_buffer/" + self.name + ".bmp")
             if x:
-                with open("/dev/shm/knvr_buffer/" + self.name+".bmp",'rb') as f:
-                    x= f.read()
-                os.remove("/dev/shm/knvr_buffer/" + self.name+".bmp")
+                with open("/dev/shm/knvr_buffer/" + self.name + ".bmp", 'rb') as f:
+                    x = f.read()
+                os.remove("/dev/shm/knvr_buffer/" + self.name + ".bmp")
 
             return x
 
@@ -590,7 +591,7 @@ class NVRChannel(devices.Device):
         self.process.dev = self
 
         self.process.getGstreamerSourceData(
-            self.config.get('device.source', ''), self.config,  self.config.get('device.username', ''), self.config.get('device.password', ''))
+            self.config.get('device.source', ''), self.config, self.config.get('device.username', ''), self.config.get('device.password', ''))
 
         x = self.process.addElement(
             "queue", connectToOutput=self.process.h264source, max_size_time=10000000)
@@ -598,7 +599,7 @@ class NVRChannel(devices.Device):
         self.process.addElement("mpegtsmux", connectToOutput=(
             x, self.process.mp3src))
 
-        self.process.addElement('tsparse',set_timestamps=True)
+        self.process.addElement('tsparse', set_timestamps=True)
 
         self.mpegtssrc = self.process.addElement("tee")
 
@@ -633,29 +634,22 @@ class NVRChannel(devices.Device):
 
         try:
             self.process.addElement("omxh264dec")
-        except:
+        except Exception:
             self.process.addElement("avdec_h264")
         # self.process.addElement("videorate",drop_only=True)
         # self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
 
-        rawtee= self.process.addElement("tee")
-        self.process.addElement("queue",max_size_buffers=1,leaky=2)
+        rawtee = self.process.addElement("tee")
+        self.process.addElement("queue", max_size_buffers=1, leaky=2)
 
         self.snapshotter = self.process.addPILCapture()
 
-
-        self.process.addElement("videoanalyse",connectToOutput=rawtee)
+        self.process.addElement("videoanalyse", connectToOutput=rawtee)
 
         if self.config.get('device.barcodes', '').lower() in ("yes", "true", "detect", "enable", "on"):
             self.process.addElement("zbar")
             self.print("Barcode detection enabled")
 
-        #self.process.addElement("videoconvert", chroma_resampler=0)
-
-        # self.process.addElement(
-        #     "motioncells", sensitivity=float(self.config.get('device.motion_sensitivity', '0.75')), gap=1, display=False)
-
-        # self.process.addElement("fakesink")
 
         # Not a real GST element. The iceflow backend hardcodes this motion/presense detection
         self.process.addPresenceDetector((640, 480))
@@ -675,11 +669,12 @@ class NVRChannel(devices.Device):
                                     "/dev/shm/knvr_buffer/", self.name, "playlist.m3u8"),
                                 target_duration=5)
 
-
         # We may want to have an SRT source.
-        if int(self.config['device.srt_server_port'])>0:
-            self.process.addElement("queue", leaky=2, max_size_time=200000000, connectToOutput=self.mpegtssrc)
-            self.process.addElement("srtsink", mode=2, localaddress="0.0.0.0", localport=int(self.config['device.srt_server_port']), sync=False)
+        if int(self.config['device.srt_server_port']) > 0:
+            self.process.addElement(
+                "queue", leaky=2, max_size_time=200000000, connectToOutput=self.mpegtssrc)
+            self.process.addElement("srtsink", mode=2, localaddress="0.0.0.0", localport=int(
+                self.config['device.srt_server_port']), sync=False)
 
         self.datapusher = threading.Thread(
             target=self.thread, daemon=True, name="NVR")
@@ -700,7 +695,7 @@ class NVRChannel(devices.Device):
                     i2 = os.path.join(d, i)
                     try:
                         dt = datetime.fromisoformat(i)
-                    except:
+                    except Exception:
                         continue
 
                     now = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -747,13 +742,11 @@ class NVRChannel(devices.Device):
         # Capture a tiny preview snapshot
         import PIL
         x = PIL.Image.open(io.BytesIO(self.request_data_point("bmp_snapshot")))
-        x.thumbnail((320,240))
-        x=PIL.ImageOps.autocontrast(x, cutoff=(0.1,0,25))
-        with open(os.path.join(self.segmentDir, "thumbnail.jpg"),'wb') as f:
-            x.save(f,'jpeg')
+        x.thumbnail((320, 240))
+        x = PIL.ImageOps.autocontrast(x, cutoff=(0.1, 0, 25))
+        with open(os.path.join(self.segmentDir, "thumbnail.jpg"), 'wb') as f:
+            x.save(f, 'jpeg')
 
-
-    
     def onMultiFileSink(self, fn, *a, **k):
         with self.recordlock:
             self.moveSegments()
@@ -761,13 +754,22 @@ class NVRChannel(devices.Device):
             ls = os.listdir(d)
             ls = list(sorted([i for i in ls if i.endswith(".ts")]))
 
+            n = max(
+                1, int((float(self.config.get('device.loop_record_length', 5)) + 2.5) / 5))
 
-            n = max(1,int((float(self.config.get('device.loop_record_length', 5))+2.5)/5))
-            
-            if len(ls) > n:
+            s = 100
+            while len(ls) > n:
+                if s < 1:
+                    break
+                s -= 1
                 os.remove(os.path.join(d, ls[0]))
                 self.lastSegment = time.monotonic()
                 self.set_data_point('running', 1)
+
+                ls = os.listdir(d)
+                ls = list(sorted([i for i in ls if i.endswith(".ts")]))
+                n = max(
+                    1, int((float(self.config.get('device.loop_record_length', 5)) + 2.5) / 5))
 
     def moveSegments(self):
         with self.recordlock:
@@ -844,7 +846,10 @@ class NVRChannel(devices.Device):
 
         d = os.path.join("/dev/shm/knvr_buffer/", self.name)
         ls = os.listdir(d)
-        if not ls == self.lastshm:
+
+        # If there is a ton of files run the poller anyway, if could have stalled because it ran out of memory
+        # because something caused things to block long enough for it all to fill up.
+        if (not ls == self.lastshm) or len(ls) > 16:
             self.onMultiFileSink('')
         self.lastshm = ls
 
@@ -877,13 +882,12 @@ class NVRChannel(devices.Device):
         self.doMotionRecordControl(v)
         self.set_data_point("motion_detected", v)
 
-
-    def doMotionRecordControl(self,v,forceMotionOnly=False):
+    def doMotionRecordControl(self, v, forceMotionOnly=False):
         "forceMotionOnly records even if there is no object detection, for when the CPU can't keep up with how many motion requests there are"
         if self.config.get('device.motion_recording', 'no').lower() in ('true', 'yes', 'on', 'enable', 'enabled'):
-    
-            #If object recording is set up, and we have some object detection, only record if there is one of the objects
-            #In frame
+
+            # If object recording is set up, and we have some object detection, only record if there is one of the objects
+            # In frame
             lookfor = self.config.get('device.object_record', '').strip()
             if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
                 lookfor = None
@@ -892,7 +896,7 @@ class NVRChannel(devices.Device):
 
                 # Do obj recognition. Accept recent object detection too in addition to current.
                 #  We also rerun this after we successfully do the motion detection
-                if lookfor and (not self.lastObjectSet is None) and (not forceMotionOnly):
+                if lookfor and (self.lastObjectSet is not None) and (not forceMotionOnly):
                     for i in self.lastObjectSet['objects']:
                         if i['class'] in lookfor:
                             self.lastRecordTrigger = time.monotonic()
@@ -906,20 +910,19 @@ class NVRChannel(devices.Device):
 
             elif not v and self.canAutoStopRecord:
                 if self.lastRecordTrigger < (time.monotonic() - 12):
-                    #Even if there is still motion, if we have object detection data coming in but have not seen the object recently, stop if we are in objetc detecting
-                    #mode
+                    # Even if there is still motion, if we have object detection data coming in but have not seen the object recently, stop if we are in objetc detecting
+                    # mode
 
                     # But after a while we just have to stop, because maybe the object detector failed for some reason.
 
                     # Our window is 3 sucessive runs with no object hits.  Our window never goes past 30 seconds.
-                    window = min(self.lastDidObjectRecognition - ((time.monotonic()-self.lastDidObjectRecognition) * 3), 30)
-                    if (self.lastRecordTrigger < (time.monotonic() - 60)) or ((self.lastDidObjectRecognition > (time.monotonic() - 15)) and lookfor and (self.lastObjectDetectionHit< window)):
+                    window = min(self.lastDidObjectRecognition -
+                                 ((time.monotonic() - self.lastDidObjectRecognition) * 3), 30)
+                    if (self.lastRecordTrigger < (time.monotonic() - 60)) or ((self.lastDidObjectRecognition > (time.monotonic() - 15)) and lookfor and (self.lastObjectDetectionHit < window)):
                         self.set_data_point("record", False, None,
                                             automated_record_uuid)
 
-
         self.lastDidMotionRecordControl = time.monotonic()
-
 
     def presencevalue(self, v):
         "Takes a raw presence value. Unfortunately it seems we need to do our own motion detection."
@@ -928,90 +931,91 @@ class NVRChannel(devices.Device):
         self.motion(v > float(self.config.get(
             'device.motion_threshold', 0.08)))
 
-    
         # We do object detection on one of two conditions. Either when there is motion or every N seconds no matter what.
         # Even when there is motion, however, we rate limit to once every 1 second.
         # On top of that we give up waiting for the one available slot to do the detection, after a random amount of time.
         # This ensures that under high CPU load we just gracefully fall back to not doing very much detection.
 
         # The value of N seconds should be very low if we detect that there is *really* nothing that could reasonably be seen as motion.
-        detect_interval = 12 if v>0.008 else 45
+        detect_interval = 8 if v > 0.003 else 15
 
         objects = True
         if not self.config['device.object_detection'].lower() in ('yes', 'true', 'enable', 'enabled'):
-            objects=False
+            objects = False
 
         if objects and ((v > float(self.config.get('device.motion_threshold', 0.08))) or (self.lastDidObjectRecognition < time.monotonic() - detect_interval)):
-            #Limit CPU usage. But don't limit so much we go more than 5s between detections
-            if ((self.lastDidObjectRecognition- min(self.lastInferenceTime*1.1,5 ))< time.monotonic() - min(self.lastInferenceTime*1.1,5 )):
+            # Limit CPU usage. But don't limit so much we go more than 5s between detections
+            if ((self.lastDidObjectRecognition - min(self.lastInferenceTime * 1.1, 5)) < time.monotonic() - min(self.lastInferenceTime * 1.1, 5)):
                 self.obj_rec_wait_timestamp = time.monotonic()
                 obj_rec_wait = self.obj_rec_wait_timestamp
+
                 def f():
 
                     # Wait longer if not already recording so that things that don't need to detect as much give up faster.
                     # prioritize reliable start of record!
 
-                    #Cannot wait too long thogh because we nee to quickly fail back to motion only.
+                    # Cannot wait too long thogh because we nee to quickly fail back to motion only.
 
                     # This calculates our length in terms of how much loop recorded footage we have
                     # We have to detect within this window or it will dissapear before we capture it.
 
-                    #Note
-                    n = max(1, int((float(self.config.get('device.loop_record_length', 5))+2.5)/5))*5
-
+                    # Note
+                    n = max(
+                        1, int((float(self.config.get('device.loop_record_length', 5)) + 2.5) / 5)) * 5
 
                     # If we have not seen any objects lately, better check more often because
                     # We might be about to stop the recording even if there is still motion, so it must be accurate.
-                    if self.lastObjectDetectionHit > (time.monotonic()-15):
-                        t = 3 if self.datapoints['record'] else (n*0.75)
+                    if self.lastObjectDetectionHit > (time.monotonic() - 15):
+                        t = 3 if self.datapoints['record'] else (n * 0.75)
                     else:
-                        t = n*0.75
+                        t = n * 0.75
 
-                    if object_detection_lock.acquire(True, t+(random.random()*0.1)):
+                    if object_detection_lock.acquire(True, t + (random.random() * 0.1)):
                         try:
-                            # We have to make sure an older detection does not wait on a newer detection. 
+                            # We have to make sure an older detection does not wait on a newer detection.
                             # Only the latest should get through, or we would queue up a problem.
                             if self.obj_rec_wait_timestamp > obj_rec_wait:
                                 return
-                            o=recognize_tflite(self.request_data_point("bmp_snapshot"), self)
-                            self.lastDidObjectRecognition=time.monotonic()
-                            self.lastObjectSet=o
-                            
-                            lookfor = self.config.get('device.object_record', '').strip()
+                            o = recognize_tflite(
+                                self.request_data_point("bmp_snapshot"), self)
+                            self.lastDidObjectRecognition = time.monotonic()
+                            self.lastObjectSet = o
+
+                            lookfor = self.config.get(
+                                'device.object_record', '').strip()
                             # For some high-certainty things we can trigger motion even when there is no motion detected by
                             # the standard algorithm.
                             relevantObjects = 0
-                            if lookfor and (not self.lastObjectSet is None):
+                            if lookfor and (self.lastObjectSet is not None):
                                 for i in self.lastObjectSet['objects']:
-                                    if i['class'] in lookfor and i['confidence']>0.35:
+                                    if i['class'] in lookfor and i['confidence'] > 0.35:
                                         relevantObjects += 1
 
-                            if self.oldRelevantObjectCount > -1 and not(self.oldRelevantObjectCount==relevantObjects):
+                            if self.oldRelevantObjectCount > -1 and not(self.oldRelevantObjectCount == relevantObjects):
                                 self.motion(True)
 
                             self.oldRelevantObjectCount = relevantObjects
 
-
-
-                            self.set_data_point("detected_objects",o)
+                            self.set_data_point("detected_objects", o)
                             # We are going to redo this.
                             # We do it in both places.
-                            # Imagine you detect a person but no motion, but then later see motion, but no person a few seconds later
+                            # Imagine you detect a person but no motion, but then later see motion, 
+                            # but no person a few seconds later
                             # You probably want to catch that because a person was likely involved
-                            self.doMotionRecordControl(self.datapoints['motion_detected'])
+                            self.doMotionRecordControl(
+                                self.datapoints['motion_detected'])
                         finally:
                             object_detection_lock.release()
-                                
-                      
+
                     else:
-                        self.doMotionRecordControl(self.datapoints['motion_detected'],True)
+                        self.doMotionRecordControl(
+                            self.datapoints['motion_detected'], True)
                 workers.do(f)
 
         else:
-            #We arent't even using obj detct at all
-            self.doMotionRecordControl(self.datapoints['motion_detected'],True)
-                        
-
+            # We arent't even using obj detct at all
+            self.doMotionRecordControl(
+                self.datapoints['motion_detected'], True)
 
     def analysis(self, v):
         self.set_data_point("luma_average", v['luma-average'])
@@ -1031,9 +1035,7 @@ class NVRChannel(devices.Device):
 
             self.set_config_default("device.loop_record_length", '5')
 
-
             self.set_config_default("device.srt_server_port", '0')
-
 
             self.process = None
 
@@ -1042,14 +1044,14 @@ class NVRChannel(devices.Device):
             self.lastDidObjectRecognition = 0
 
             # So we can tell if there is new object recogintion data since we last checked.
-            self.lastDidMotionRecordControl=0
+            self.lastDidMotionRecordControl = 0
 
             # Used to detect motion by looking at changes in the number of relevant objects.
             # Response time may be very low.
             self.oldRelevantObjectCount = -1
 
             # The most recent set of object detection results.
-            self.lastObjectSet=None
+            self.lastObjectSet = None
 
             # We don't want to stop till a few seconds after an event that would cause motion
             self.lastRecordTrigger = 0
@@ -1085,21 +1087,20 @@ class NVRChannel(devices.Device):
 
             self.recordlock = threading.RLock()
 
-            self.rawFeedPipe = "/dev/shm/knvr_buffer/" + self.name + "/" + str(time.monotonic()) + ".raw_feed.tspipe"
+            self.rawFeedPipe = "/dev/shm/knvr_buffer/" + self.name + \
+                "/" + str(time.monotonic()) + ".raw_feed.tspipe"
 
             self.bytestream_data_point("raw_feed",
                                        subtype='mpegts',
                                        writable=False)
 
-
-            #Give this a little bit of caching
+            # Give this a little bit of caching
             self.bytestream_data_point("bmp_snapshot",
                                        subtype='bmp',
                                        writable=False,
                                        interval=0.3)
 
             self.set_data_point_getter('bmp_snapshot', self.getSnapshot)
-
 
             self.numeric_data_point("switch",
                                     min=0,
@@ -1156,12 +1157,12 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.username", '')
             self.set_config_default("device.password", '')
 
-
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
             self.set_config_default("device.object_detection", 'no')
 
-            self.set_config_default("device.object_record", 'person, dog, cat, horse, sheep, cow, handbag, frisbee, bird, backpack, suitcase, sports ball')
+            self.set_config_default(
+                "device.object_record", 'person, dog, cat, horse, sheep, cow, handbag, frisbee, bird, backpack, suitcase, sports ball')
 
             self.set_config_default("device.motion_threshold", '0.08')
             self.set_config_default("device.bitrate", '386')
@@ -1180,14 +1181,13 @@ class NVRChannel(devices.Device):
                 self.object_data_point("detected_objects",
                                        writable=False)
 
-            self.config_properties['device.loop_record_length']={
-                'description':'How many seconds to buffer at all times to allow recording things before motion events actually happen.'
+            self.config_properties['device.loop_record_length'] = {
+                'description': 'How many seconds to buffer at all times to allow recording things before motion events actually happen.'
             }
 
             self.config_properties['device.barcodes'] = {
                 'type': 'bool'
             }
-
 
             self.config_properties['device.object_detection'] = {
                 'type': 'bool',
@@ -1201,7 +1201,9 @@ class NVRChannel(devices.Device):
             self.config_properties['device.source'] = {
                 'secret': True
             }
-
+            self.config_properties['device.password'] = {
+                'secret': True
+            }
             self.config_properties['device.motion_recording'] = {
                 'type': 'bool'
             }

@@ -1336,6 +1336,76 @@ effectTemplates_data = {
         }
     },
 
+    "srtserver": {
+        "type": "srtserver",
+        "displayType": "SRT Sender Server",
+        "help": "Send raw Opus audio via SRT to anyone who subscribes.",
+        "gstElement": "opusenc",
+        "params": {
+            "frame-size": {
+                "displayName": "Frame Size",
+                "type": "enum",
+                "value": 20,
+                "options": [["2.5ms", 2], ['5ms', 5], ["10ms", 10], ["20ms", 20], ["40ms", 40], ["60ms", 60]],
+                "sort": 0
+            },
+            "bitrate": {
+                "displayName": "Bit Rate",
+                "type": "enum",
+                "value": 128000,
+                "options": [["16k", 16000],["32k", 32000], ["48k", 48000], ['64k', 64000], ["128k", 128000], ["192k", 192000]],
+                "sort": 0
+            },
+            "postSupport.1.localaddress": {
+                "displayName": "Host",
+                "type": "string",
+                "value": '0.0.0.0',
+                "sort": 0
+            },
+            "postSupport.1.localport": {
+                "displayName": "Host",
+                "type": "string",
+                "value": '7001',
+                "sort": 0
+            },
+        },
+        "gstSetup": {},
+        "sidechain": True,
+        "silenceMainChain": False,
+        "preSupportElements": [
+            {"gstElement": "audioconvert", "gstSetup": {}},
+        ],
+        "postSupportElements": [
+            {"gstElement": "srtsink", "gstSetup": {"mode":2, "wait-for-connection": False}},
+        ]
+    },
+
+    "srtsrc": {
+        "type": "srtsrc",
+        "displayType": "SRT Subscriber",
+        "help": "Get Opus audio from an SRT server",
+        "gstElement": "srtsrc",
+        "params": {
+
+            "uri": {
+                "displayName": "Server",
+                "type": "string",
+                "value": "127.0.0.1:7001",
+                "sort": 0
+            },
+        },
+        "gstSetup": {"mode":1, "wait-for-connection": False},
+        "sidechain": True,
+        "silenceMainChain": False,
+        "preSupportElements": [
+            {"gstElement": "fakesink", "gstSetup": {}},
+        ],
+        "postSupportElements": [
+            {"gstElement": "opusdec", "gstSetup": {}, 'connectWhenAvailable':'audio'},
+            {"gstElement": "audiorate", "gstSetup": {}},
+        ]
+    },
+
     "hqpitchshift":
     {
         "type": "hqpitchshift",
@@ -1356,6 +1426,7 @@ effectTemplates_data = {
         'gstSetup': {
         }
     },
+
 
     "multichorus":
     {

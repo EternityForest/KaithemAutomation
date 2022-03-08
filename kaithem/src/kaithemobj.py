@@ -28,7 +28,7 @@ import weakref
 import scullery.persist
 
 import cherrypy
-from . import unitsofmeasure, workers, sound, messagebus, util, widgets, registry, directories, pages, config, persist, breakpoint,statemachines
+from . import unitsofmeasure, workers, sound, messagebus, util, widgets, registry, directories, pages, config, persist, breakpoint, statemachines
 from . import devices, alerts, midi, gpio, theming
 
 from . import version_info
@@ -52,7 +52,7 @@ persist.resolvePath = resolvePath
 # This exception is what we raise from within the page handler to serve a static file
 
 
-ServeFileInsteadOfRenderingPageException=pages.ServeFileInsteadOfRenderingPageException
+ServeFileInsteadOfRenderingPageException = pages.ServeFileInsteadOfRenderingPageException
 
 plugins = weakref.WeakValueDictionary()
 
@@ -77,6 +77,7 @@ class TagInterface():
     #HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter
     HighpassFilter = tagpoints.HighpassFilter
+
 
 class SoundOutput():
     pass
@@ -129,17 +130,16 @@ class Kaithem():
 
     class mqtt(object):
         @staticmethod
-        def Connection(server, port=1883, password=None, alertPriority="info", alertAck=True, messageBusName=None,connectionID=None):
+        def Connection(server, port=1883, password=None, alertPriority="info", alertAck=True, messageBusName=None, connectionID=None):
             from src import mqtt as mqttPatch
             from scullery import mqtt
-            return mqtt.getConnection(server=server, port=port, password=password, alertPriority=alertPriority, alertAck=alertAck, messageBusName=messageBusName,connectionID=connectionID)
-        
+            return mqtt.getConnection(server=server, port=port, password=password, alertPriority=alertPriority, alertAck=alertAck, messageBusName=messageBusName, connectionID=connectionID)
+
         @staticmethod
         def listConnections():
             from src import mqtt as mqttPatch
             from scullery import mqtt
             return mqttPatch.listConnections()
-
 
     class misc(object):
 
@@ -157,14 +157,14 @@ class Kaithem():
 
         @staticmethod
         def location():
-            lat,lon = geolocation.getCoords()
+            lat, lon = geolocation.getCoords()
             if not lon or not lat:
                 raise RuntimeError("No location set")
             return((lat, lon))
 
         @staticmethod
         def uptime():
-            return time.time()-bootTime
+            return time.time() - bootTime
 
         @staticmethod
         def errors(f):
@@ -197,7 +197,7 @@ class Kaithem():
 
         @staticmethod
         def uptime():
-            return time.time()-bootTime
+            return time.time() - bootTime
 
         @staticmethod
         def strftime(*args):
@@ -243,8 +243,8 @@ class Kaithem():
         @staticmethod
         def sunsetTime(lat=None, lon=None, date=None):
             if lon is None:
-                lat,lon = geolocation.getCoords()
-                
+                lat, lon = geolocation.getCoords()
+
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
@@ -255,12 +255,12 @@ class Kaithem():
 
         @staticmethod
         def sunriseTime(lat=None, lon=None, date=None):
-            if lon == None:
-                lat,lon = geolocation.getCoords()
-                
+            if lon is None:
+                lat, lon = geolocation.getCoords()
+
             else:
                 raise ValueError("You set lon, but not lst?")
-            if lat == None or lon == None:
+            if lat is None or lon is None:
                 raise RuntimeError(
                     "No server location set, fix this in system settings")
 
@@ -268,12 +268,12 @@ class Kaithem():
 
         @staticmethod
         def civilDuskTime(lat=None, lon=None, date=None):
-            if lon == None:
-                lat,lon = geolocation.getCoords()
-                
+            if lon is None:
+                lat, lon = geolocation.getCoords()
+
             else:
                 raise ValueError("You set lon, but not lst?")
-            if lat == None or lon == None:
+            if lat is None or lon is None:
                 raise RuntimeError(
                     "No server location set, fix this in system settings")
 
@@ -281,12 +281,12 @@ class Kaithem():
 
         @staticmethod
         def civilDawnTime(lat=None, lon=None, date=None):
-            if lon == None:
-                lat,lon = geolocation.getCoords()
-                
+            if lon is None:
+                lat, lon = geolocation.getCoords()
+
             else:
                 raise ValueError("You set lon, but not lst?")
-            if lat == None or lon == None:
+            if lat is None or lon is None:
                 raise RuntimeError(
                     "No server location set, fix this in system settings")
 
@@ -294,12 +294,12 @@ class Kaithem():
 
         @staticmethod
         def rahuStart(lat=None, lon=None, date=None):
-            if lon == None:
-                lat,lon = geolocation.getCoords()
-                
+            if lon is None:
+                lat, lon = geolocation.getCoords()
+
             else:
                 raise ValueError("You set lon, but not lst?")
-            if lat == None or lon == None:
+            if lat is None or lon is None:
                 raise RuntimeError(
                     "No server location set, fix this in system settings")
 
@@ -307,12 +307,12 @@ class Kaithem():
 
         @staticmethod
         def rahuEnd(lat=None, lon=None, date=None):
-            if lon == None:
-                lat,lon = geolocation.getCoords()
-                
+            if lon is None:
+                lat, lon = geolocation.getCoords()
+
             else:
                 raise ValueError("You set lon, but not lst?")
-            if lat == None or lon == None:
+            if lat is None or lon is None:
                 raise RuntimeError(
                     "No server location set, fix this in system settings")
 
@@ -320,12 +320,12 @@ class Kaithem():
 
         @staticmethod
         def isDark(lat=None, lon=None):
-            if lon == None:
-                lat,lon = geolocation.getCoords()
-                
+            if lon is None:
+                lat, lon = geolocation.getCoords()
+
             else:
                 raise ValueError("You set lon, but not lst?")
-            if lat == None or lon == None:
+            if lat is None or lon is None:
                 raise RuntimeError(
                     "No server location set, fix this in system settings")
 
@@ -333,13 +333,13 @@ class Kaithem():
 
         @staticmethod
         def isRahu(lat=None, lon=None):
-            if lat == None:
-                if lon == None:
-                    lat,lon = geolocation.getCoords()
-                    
+            if lat is None:
+                if lon is None:
+                    lat, lon = geolocation.getCoords()
+
                 else:
                     raise ValueError("You set lon, but not lst?")
-                if lat == None or lon == None:
+                if lat is None or lon is None:
                     raise RuntimeError(
                         "No server location set, fix this in system settings")
 
@@ -347,33 +347,33 @@ class Kaithem():
 
         @staticmethod
         def isDay(lat=None, lon=None):
-            if lat == None:
-                if lon == None:
-                    lat,lon = geolocation.getCoords()
-                    
-                if lat == None or lon == None:
+            if lat is None:
+                if lon is None:
+                    lat, lon = geolocation.getCoords()
+
+                if lat is None or lon is None:
                     raise RuntimeError(
                         "No server location set, fix this in system settings")
             return (sky.isDay(lat, lon))
 
         @staticmethod
         def isNight(lat=None, lon=None):
-            if lat == None:
-                if lon == None:
-                    lat,lon = geolocation.getCoords()
-                    
-                if lat == None or lon == None:
+            if lat is None:
+                if lon is None:
+                    lat, lon = geolocation.getCoords()
+
+                if lat is None or lon is None:
                     raise RuntimeError(
                         "No server location set, fix this in system settings")
             return (sky.isNight(lat, lon))
 
         @staticmethod
         def isLight(lat=None, lon=None):
-            if lat == None:
-                if lon == None:
-                    lat,lon = geolocation.getCoords()
-                    
-                if lat == None or lon == None:
+            if lat is None:
+                if lon is None:
+                    lat, lon = geolocation.getCoords()
+
+                if lat is None or lon is None:
                     raise RuntimeError(
                         "No server location set, fix this in system settings")
             return (sky.isLight(lat, lon))
@@ -387,9 +387,9 @@ class Kaithem():
             x = sky.moon()
             if x > 14:
                 x -= 14
-                x = 14-x
+                x = 14 - x
 
-            return 100*(x/14.0)
+            return 100 * (x / 14.0)
 
         @staticmethod
         def accuracy():
@@ -446,7 +446,6 @@ class Kaithem():
     class states(object):
         StateMachine = statemachines.StateMachine
 
-
     class web(object):
         # TODO: Deprecate webresource stuff
         @staticmethod
@@ -467,7 +466,7 @@ class Kaithem():
                 import html
                 pages.require("/admin/modules.edit")
                 c = re.sub(r"<\s*freeboard-data\s*>[\s\S]*<\s*\/freeboard-data\s*>", "<freeboard-data>\n" + html.escape(
-                    yaml.dump(json.loads(kwargs['bd'])))+"\n</freeboard-data>", page.getContent())
+                    yaml.dump(json.loads(kwargs['bd']))) + "\n</freeboard-data>", page.getContent())
                 page.setContent(c)
             else:
                 return pages.get_template("freeboard/app.html").render(plugins=plugins)
@@ -489,8 +488,8 @@ class Kaithem():
             raise cherrypy.HTTPRedirect(url)
 
         @staticmethod
-        def serveFile(*a,**k):
-           pages.serveFile(*a,**k)
+        def serveFile(*a, **k):
+            pages.serveFile(*a, **k)
 
         @staticmethod
         def user():
@@ -519,26 +518,24 @@ class Kaithem():
         def outputs():
             try:
                 from src import jackmanager
-                #Always 
+                # Always
                 try:
-                    x= [i.name for i in jackmanager.getPorts(is_audio=True, is_input=True)]
+                    x = [i.name for i in jackmanager.getPorts(
+                        is_audio=True, is_input=True)]
                 except:
                     print(traceback.format_exc())
-                    x=[]
+                    x = []
 
-
-                prefixes={}
-                op=[]
+                prefixes = {}
+                op = []
 
                 for i in x:
                     if not i.split(":")[0] in prefixes:
-                        prefixes[i.split(":")[0]]=i
+                        prefixes[i.split(":")[0]] = i
                         op.append(i.split(":")[0])
                     op.append(i)
-                    
 
-
-                return ['']+op
+                return [''] + op
             except:
                 print(traceback.format_exc())
                 return []
@@ -611,6 +608,7 @@ class Kaithem():
 
     class persist():
         unsaved = scullery.persist.unsavedFiles
+
         @staticmethod
         def load(*args, **kwargs):
             return persist.load(*args, **kwargs)

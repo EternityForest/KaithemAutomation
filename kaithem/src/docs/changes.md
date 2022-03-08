@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+
+### 0.68.22
+- :sparkles: NVRChannels can now act as open SRT servers
+- :sparkles: NVRChannels can play SRT URLs as long as they are h264/AAC in an MPEG-TS codec.
+- Boost the no-motion detection interval for spotting sneaky people far away.
+- :sparkles: Image frames by Kebinite of OGA
+- :sparkles: New CSS class section class=fancy(BG Image by West of OGA)
+
 ### 0.68.21 Security Matters!
 - :coffin: Remove a lot of dead code
 - :coffin: :fire: BREAKING: Remove the entire VirtualResource mechanism. I think it was too complicated to use anyway.

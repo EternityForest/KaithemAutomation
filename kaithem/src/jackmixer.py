@@ -23,7 +23,7 @@ import subprocess
 import os
 
 
-from . import widgets, messagebus, util, registry, tagpoints, persist, directories, alerts, workers, directories
+from . import widgets, messagebus, util, registry, tagpoints, persist, directories, alerts, workers
 from . import jackmanager, gstwrapper, mixerfx
 
 import threading
@@ -481,15 +481,15 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 if self.channels == 1 and 'monoGstElement' in i:
                     linkTo = self.effectsById[i['id']] = self.addElement(
                         i['monoGstElement'], **i['gstSetup'], sidechain=sidechain,
-                        connectToOutput=linkTo if (not i.get("noConnectInput", False)) else False)
+                        connectToOutput=linkTo if (not i.get("noConnectInput", False)) else False,connectWhenAvailable=i.get("connectWhenAvailable", None))
                 elif self.channels == 2 and 'stereoGstElement' in i:
                     linkTo = self.effectsById[i['id']] = self.addElement(
                         i['stereoGstElement'], **i['gstSetup'], sidechain=sidechain,
-                        connectToOutput=linkTo if (not i.get("noConnectInput", False)) else False)
+                        connectToOutput=linkTo if (not i.get("noConnectInput", False)) else False, connectWhenAvailable=i.get("connectWhenAvailable", None))
                 else:
                     linkTo = self.effectsById[i['id']] = self.addElement(
                         i['gstElement'], **i['gstSetup'], sidechain=sidechain,
-                        connectToOutput=linkTo if (not i.get("noConnectInput", False)) else False)
+                        connectToOutput=linkTo if (not i.get("noConnectInput", False)) else False, connectWhenAvailable=i.get("connectWhenAvailable", None))
 
                 elmt = linkTo
                 linkTo.preSupports = supports

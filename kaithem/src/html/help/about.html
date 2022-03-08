@@ -164,22 +164,23 @@ except Exception:
     <%include file="/pageheader.html"/>
 	<title>About Kaithem </title>
     <h1>About Kaithem Automation</h1>
-	<div class="sectionbox" style="text-align:center">
+	<section class="fancy" style="text-align:center">
     <img src="/static/img/klogoapr22.jpg" height="400px"></img><br>
-    <b>Copyright 2013-2020 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.
+    <b>Copyright 2013-2020 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.</br>
     Includes external open-source libraries by third parties.
-    </div>
+    </section>
+
     <div class="sectionbox">${config['about-box-banner']}</div>
-    <div class="sectionbox">
+    <section>
     <b>Version:</b> ${kaithemobj.kaithem.misc.version|h}
-    </div>
-    <div class="sectionbox">
+    </section>
+    <section>
         <b>LAN access QR(${lanip[1]}):</b><br>
         <div id="lanqr"></div>
         <script>
         new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https-port']}");
         </script>
-    </div>
+    </section>
     <br>
 <div class="sectionbox">
 <p>

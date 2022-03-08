@@ -620,7 +620,7 @@ class GStreamerPipeline():
                 with self.seeklock:
                     if (not flush) and self.pipeline.get_state(1000_000_000)[1] == Gst.State.PAUSED:
                         raise RuntimeError(
-                            "Cannot do non-flushing seek in paused state as this may deadlock.  State has changed while request inflight, request cancelled.")
+                            "Cannot do non-flushing seek in paused as this may deadlock.  State has changed while request inflight, request cancelled.")
 
                     self.pipeline.seek(rate, Gst.Format.TIME,
                                        flags, Gst.SeekType.NONE if t is None else Gst.SeekType.SET, max(
@@ -945,7 +945,8 @@ class GStreamerPipeline():
                 # On account of the race condition, it is possible that the thread actually never did start yet
                 # So we have to ignore the exit flag stuff.
 
-                # It shouldn't really be critical, most likely the thread can stop on it's own time anyway, because it doesn't do anything without getting the lock.
+                # It shouldn't really be critical, most likely the thread can stop on it's own time anyway, 
+                # because it doesn't do anything without getting the lock.
                 if self.threadStarted:
                     while not self.exitSignal:
                         time.sleep(0.1)
@@ -1163,10 +1164,6 @@ class GStreamerPipeline():
 
     def addElementRemote(self, *a, **k):
         return id(self.addElement(*a, **k))
-
-    def addElementRemote(self, *a, **k):
-        return id(self.addElement(*a, **k))
-
 
     def addJackMixerSendElements(self, target, idee, volume=-60):
         with self.lock:
