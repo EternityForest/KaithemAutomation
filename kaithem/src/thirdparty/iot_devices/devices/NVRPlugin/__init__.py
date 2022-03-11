@@ -379,13 +379,13 @@ class Pipeline(iceflow.GstreamerPipeline):
             demux = self.addElement('tsdemux')
             self.addElement("h264parse", config_interval=2,
                             connectWhenAvailable="video")
-            self.addElement("queue")
+            self.addElement("queue",max_size_time=100_000_000,leaky=2)
 
             self.h264source = self.addElement("tee")
 
             self.addElement("aacparse", connectToOutput=demux,
                             connectWhenAvailable="audio")
-            self.mp3src = self.addElement("queue", max_size_time=10000000)
+            self.mp3src = self.addElement("queue", max_size_time=100_000_000,leaky=2)
 
         elif s == "screen":
             self.addElement("ximagesrc")
@@ -453,7 +453,10 @@ class NVRChannel(devices.Device):
 
         while self.runWidgetThread and (self.runWidgetThread == initialValue):
             try:
-                b += f.read(188 * 32)
+                x =  f.read(188 * 32)
+                if x is None:
+                    return
+                b+=x
             except OSError:
                 time.sleep(0.2)
             except TypeError:

@@ -194,26 +194,30 @@ def makeWorker(e, q, id, fastMode=False):
                         #Once the list is clear, we can be sure there is no further inserts, and the next round will catch almost
                         #all race conditions. Any remaining one in a million ones will be caught in 1 second
                         if lastActivity < (monotonic() - 10):
-                            with spawnLock:
-                                if len(workers) > minWorkers:
-                                    #Only stop one thread per 5 seconds to prevent
-                                    #chattering
+                            # This should not block.
+                            if spawnLock.acquire(timeout=2):
+                                try:
+                                    if len(workers) > minWorkers:
+                                        #Only stop one thread per 5 seconds to prevent
+                                        #chattering
 
-                                    #Also don't stop a thread when there aren't at least
-                                    #2 threads that aren't busy.
-                                    unbusyCount = 0
-                                    for i in wakeupHandles:
-                                        if not i[1][0]:
-                                            unbusyCount += 1
+                                        #Also don't stop a thread when there aren't at least
+                                        #2 threads that aren't busy.
+                                        unbusyCount = 0
+                                        for i in wakeupHandles:
+                                            if not i[1][0]:
+                                                unbusyCount += 1
 
-                                    if unbusyCount > 2 and lastStoppedThread < (
-                                            monotonic() - 5):
-                                        lastStoppedThread = monotonic()
-                                        shouldRun = None
-                                        del workersMutable[id]
-                                        workers = workersMutable.copy()
-                                        wakeupHandlesMutable.remove(handle)
-                                        wakeupHandles = wakeupHandlesMutable[:]
+                                        if unbusyCount > 2 and lastStoppedThread < (
+                                                monotonic() - 5):
+                                            lastStoppedThread = monotonic()
+                                            shouldRun = None
+                                            del workersMutable[id]
+                                            workers = workersMutable.copy()
+                                            wakeupHandlesMutable.remove(handle)
+                                            wakeupHandles = wakeupHandlesMutable[:]
+                                finally:
+                                    spawnLock.release()
             except Exception:
                 print("Exception in worker loop: " + traceback.format_exc(6))
 
@@ -222,18 +226,23 @@ def makeWorker(e, q, id, fastMode=False):
 
 def addWorker():
     global workers
-    with spawnLock:
-        q = []
-        e = threading.Lock()
-        e.acquire()
+    if spawnLock.acquire(timeout=60):
+        try:
+            q = []
+            e = threading.Lock()
+            e.acquire()
 
-        id = time.time()
-        #First worker always polls at 100hz
-        t = threading.Thread(target=makeWorker(e, q, id),
-                             name="nostartstoplog.ThreadPoolWorker-" + str(id))
-        workersMutable[id] = t
-        t.start()
-        workers = workersMutable.copy()
+            id = time.time()
+            #First worker always polls at 100hz
+            t = threading.Thread(target=makeWorker(e, q, id),
+                                name="nostartstoplog.ThreadPoolWorker-" + str(id))
+            workersMutable[id] = t
+            t.start()
+            workers = workersMutable.copy()
+        finally:
+            spawnLock.release()
+    else:
+        raise RuntimeError("Could not get the lock!")
 
 
 _append = taskQueue.append
@@ -256,6 +265,20 @@ def do(func, args=[]):
         except RuntimeError:
             pass
 
+    if len(workers)> 4:
+        # Wait and retry before attempting to spawn a new thread, if there is probable already enough.
+        # that is a slow problematic thing
+        time.sleep(0.001)
+        time.sleep(0.0001)
+
+        for i in wakeupHandles:
+            try:
+                if i[0].locked():
+                    i[0].release()
+                    return
+            except RuntimeError:
+                pass
+
     #Sleep 1/25000th of a second for every item in the queue past the max number of threads
     #In an attempt to rate limit
     if len(taskQueue) > maxWorkers:
@@ -265,10 +288,18 @@ def do(func, args=[]):
     #Soft rate limit here should work a bit better than the old hard limit at keeping away
     #the deadlocks.
     #Under lock
-    with spawnLock:
-        if len(workers) < maxWorkers:
-            addWorker()
-            return
+    
+    #We also need this fast preliminary check to use that lock as rarely as possible.
+    if len(workers) < maxWorkers:
+        if spawnLock.acquire(timeout=15):
+            try:
+                if len(workers) < maxWorkers:
+                    addWorker()
+                    return
+            finally:
+                spawnLock.release()
+        else:
+            print("COULD NOT GET SPAWN LOCK TO CREATE ADDITIONAL THREAD. CONTINUING WITH FEWER THREADS. RESTART SUGGESTED")
 
     #If we can't spawn a new thread
     #Wait a maximum of 15ms before

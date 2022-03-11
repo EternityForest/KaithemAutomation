@@ -125,7 +125,7 @@ def aPageJustLoaded():
     pageviewsthisminute = pageviewsthisminute + 1
     if config["log-http"]:
         messagebus.postMessage(
-            "/system/http/access", {"ip": cherrypy.request.remote.ip, "req": cherrypy.request.request_line})
+            "/system/http/access", {"ip": cherrypy.request.remote.ip, "req": cherrypy.request.request_line},synchronous=True)
 
 
 # Acessed by stuff outide this file
