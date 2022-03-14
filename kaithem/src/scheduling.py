@@ -432,8 +432,8 @@ class NewScheduler():
 
         event.schedID = self.sched.enterabs(event.time,1,event.run)
         #Only very fast events need to use this wake mechanism that burns CPU.
-        #We have a min 0.07hz poll rate
-        if event.time< (time.time()+0.07):
+        #We have a min 0.15hz poll rate
+        if event.time< (time.time()+0.15):
             self.wakeUp.set()
 
 
