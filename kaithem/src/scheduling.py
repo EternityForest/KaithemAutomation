@@ -207,6 +207,18 @@ class RepeatingEvent(BaseEvent):
 
         # race mitigation: it could all run, and stuff could happen before we set the flag and never run again because
         # we said it already did
+
+        # Specific race we are worried about:
+        # We insert
+        # it runs at the same time as error recovery because everything was paused
+        # error rec schedules, to do that it gets lock
+        #It schedules for the past and runs.
+
+        # That run, and our run, both exit because they lack the lock.
+        # Nothing reschedules
+
+        # However, we then set it to True so it can never be resceduled by recovery.
+
         try:
             self.scheduled = True
             scheduler.insert(self)
@@ -237,8 +249,19 @@ class RepeatingEvent(BaseEvent):
 
         if self.stop:
             return
+
+
+        # Don't run way too fast but do allow some tolerance in the speed.
+        if time.time()-self.lastrun < (self.interval/3):
+            return
+
         self.lastrun = time.time()
-        # We must have been pulled out of the event queue or we wouldn't be running
+
+
+        # We must have been pulled out of the event queue or we wouldn't be running.
+        # If somehow there is another copy, exit and let recovery reschedule us later.
+
+
         if self.lock.acquire(False):
             try:
                 f = self.f()
@@ -281,6 +304,7 @@ class RepeatingEvent(BaseEvent):
                 try:
                     self._schedule()
                 except:
+
                     # Don't even trust logging here. I'm being extremely paranoid about a deadlock.
                     try:
                         logging.exception("Error scheduling")
@@ -305,8 +329,9 @@ class UnsynchronizedRepeatingEvent(RepeatingEvent):
             return
         t = self.lastrun + self.interval
         self.time = t
-        scheduler.insert(self)
         self.scheduled = True
+        scheduler.insert(self)
+        
 
 
 class RepeatWhileEvent(RepeatingEvent):
