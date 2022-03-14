@@ -441,6 +441,9 @@ class NVRChannel(devices.Device):
                 print(traceback.format_exc())
 
     def thread(self):
+        #Has to be at top othherwise other threads wait and get same val.... and we have multiple...
+        initialValue = self.runWidgetThread
+        self.threadStarted = True
         self.threadExited = False
 
         b = b''
@@ -448,7 +451,6 @@ class NVRChannel(devices.Device):
             time.sleep(1)
 
         f = open(self.rawFeedPipe, 'rb')
-        initialValue = self.runWidgetThread
         lp = time.monotonic()
 
         while self.runWidgetThread and (self.runWidgetThread == initialValue):
@@ -539,6 +541,9 @@ class NVRChannel(devices.Device):
     def connect(self, config):
         if self.closed:
             return
+        # Close the old thread
+        self.runWidgetThread = time.monotonic()
+        
         self.config = config
         if time.monotonic() - self.lastStart < 15:
             return
@@ -588,6 +593,9 @@ class NVRChannel(devices.Device):
             if self.threadExited:
                 break
             time.sleep(0.1)
+        else:
+            self.print("COULD NOT STOP OLD THREAD")
+
         # Exec is needed so we can kill it
         # self.process = reap.Popen("exec gst-launch-1.0 -q "+getGstreamerSourceData(self.data.get('device.source','')) +"! ",shell=True)
         self.process = Pipeline()
@@ -679,9 +687,19 @@ class NVRChannel(devices.Device):
             self.process.addElement("srtsink", mode=2, localaddress="0.0.0.0", localport=int(
                 self.config['device.srt_server_port']), sync=False)
 
+        self.threadStarted=False
+
         self.datapusher = threading.Thread(
             target=self.thread, daemon=True, name="NVR")
         self.datapusher.start()
+
+        s = 5000
+        while not self.threadStarted:
+            time.sleep(0.001)
+            s -= 1
+        else:
+            self.print("Thread not started within 5 seconds")
+
 
         self.process.start()
         # Used to check that things are actually still working.

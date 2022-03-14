@@ -128,6 +128,7 @@ def makeWorker(e, q, id, fastMode=False):
             wakeupHandlesMutable.append(handle)
             wakeupHandles = wakeupHandlesMutable[:]
 
+
         while (run):
             try:
                 runningState[0] = True

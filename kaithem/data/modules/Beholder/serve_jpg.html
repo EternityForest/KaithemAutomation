@@ -6,10 +6,11 @@ auto-reload-interval: 5.0
 mimetype: text/html
 no-header: false
 no-navheader: false
-require-method: [GET, POST]
+require-method: [GET]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1646328741991144
+resource-timestamp: 1647218821855624
 resource-type: page
+streaming-response: false
 template-engine: mako
 
 ---
@@ -23,7 +24,7 @@ import PIL.Image
 <%
 __doc__= "#Python Code here runs every page load"
 
-if not kaithem.web.hasPermission(kaithem.devices[kwargs['device']]):
+if not kaithem.web.hasPermission(kaithem.devices[kwargs['device']].config.get("kaithem.read_perms", '').strip()):
     raise RuntimeError('Security')
     
 x = PIL.Image.open(io.BytesIO(kaithem.devices[kwargs['device']].tagpoints['bmp_snapshot'].value))
