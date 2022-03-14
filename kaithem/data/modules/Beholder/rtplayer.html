@@ -8,8 +8,9 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645509071787756
+resource-timestamp: 1647228202445315
 resource-type: page
+streaming-response: false
 template-engine: mako
 
 ---
@@ -28,17 +29,34 @@ template-engine: mako
 
 <video id="videl" style="width: 100%; margin: 0px;padding: 0px; align-self:center;" muted controls></video>
 <canvas id="canvas" style="display: none; width: 100%; margin: 0px;padding: 0px;"></canvas>
+
+<script>
+        view = videoElement = document.getElementById('videl')
+        
+        lastPostion = 0
+        function checkStalled(){
+                if(videoElement.currentTime == lastPostion){
+                        window.location.reload()
+                }
+                lastPostion = videoElement.currentTime
+        }
+
+        setInterval(checkStalled, 20000)
+
+</script>
+
+
 %if 'fx' in kwargs:
 
 <script src="/static/js/pixi6.min.js"></script>
 <script src="/static/js/pixi-filters.js"></script>
+
 
 <script>
 
 // convert the image to a texture
 var image = document.getElementById('videl');
 var container = document.getElementById('container');
-
 once = [0]
 image.oncanplay = function() {
         if(once[0]){
@@ -47,7 +65,7 @@ image.oncanplay = function() {
         once[0]=1
 
 
-        var renderer = PIXI.autoDetectRenderer(videl.videoWidth, videl.videoHeight, { transparent: true });
+        renderer = view = PIXI.autoDetectRenderer(videl.videoWidth, videl.videoHeight, { transparent: true });
         document.body.appendChild(renderer.view);
         image.style.position="absolute"
         image.style.width='48px'
@@ -61,22 +79,7 @@ image.oncanplay = function() {
         renderer.view.style['padding']='0px'
 
 
-        //From https://stackoverflow.com/questions/10750125/scaling-html5-canvas-width-preserving-w-h-aspect-ratio
-        onresize = function(){
-                renderer.view.style.width= document.body.clientWidth+'px'
 
-                renderer.view.style.height=(document.body.clientWidth / (videl.videoWidth/videl.videoHeight))+'px';
-
-                if(renderer.view.clientHeight>= document.body.clientHeight){
-                        renderer.view.style.height =document.body.clientHeight+'px'
-                        renderer.view.style.width= (document.body.clientHeight*(videl.videoWidth/videl.videoHeight))+'px'
-                }
-
-
-        }
-        $(window).resize(function(){setTimeout(onresize,300)});
-        setTimeout(onresize,1000)
-        //setTimeout(onresize,2000)
 
 
         var reseedable = []
@@ -185,9 +188,33 @@ image.oncanplay = function() {
         }
 
 }
+
+
 </script>
 
 %endif
+
+
+
+
+<script>
+//From https://stackoverflow.com/questions/10750125/scaling-html5-canvas-width-preserving-w-h-aspect-ratio
+onresize = function(){
+        view.style.width= document.body.clientWidth+'px'
+
+        view.style.height=(document.body.clientWidth / (videl.videoWidth/videl.videoHeight))+'px';
+
+        if(view.clientHeight>= document.body.clientHeight){
+                view.style.height =document.body.clientHeight+'px'
+                view.style.width= (document.body.clientHeight*(videl.videoWidth/videl.videoHeight))+'px'
+        }
+
+
+}
+$(window).resize(function(){setTimeout(onresize,300)});
+setTimeout(onresize,1000)
+</script>
+
 
 %if 'controls' in kwargs:
 <link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">

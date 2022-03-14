@@ -512,8 +512,8 @@ srepr.maxdict = 25
 srepr.maxlist = 15
 srepr.maxset = 10
 srepr.maxlong = 24
-srepr.maxstring = 120
-srepr.maxother = 120
+srepr.maxstring = 240
+srepr.maxother = 240
 
 
 def saferepr(obj):

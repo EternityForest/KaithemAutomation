@@ -690,15 +690,15 @@ class NVRChannel(devices.Device):
         self.threadStarted=False
 
         self.datapusher = threading.Thread(
-            target=self.thread, daemon=True, name="NVR")
+            target=self.thread, daemon=True, name="NVR "+self.name)
         self.datapusher.start()
 
-        s = 5000
+        s = 25000
         while not self.threadStarted:
             time.sleep(0.001)
             s -= 1
         else:
-            self.print("Thread not started within 5 seconds")
+            self.print("Thread not started within 25 seconds")
 
 
         self.process.start()

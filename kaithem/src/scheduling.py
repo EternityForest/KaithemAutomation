@@ -22,6 +22,8 @@ import logging
 import types
 from . import workers, util
 
+from scullery import messagebus
+
 logger = logging.getLogger("system.scheduling")
 
 localLogger = logging.getLogger("scheduling")
@@ -124,6 +126,7 @@ class RepeatingEvent(BaseEvent):
     def __init__(self, function, interval, priority="realtime", phase=0):
         BaseEvent.__init__(self)
         self.f = util.universal_weakref(function)
+        self.fstr = str(function)
         self.interval = float(interval)
 
         # True if the event is in the scheduler queue or the worker queue,
@@ -141,6 +144,16 @@ class RepeatingEvent(BaseEvent):
         self.stop = False
         del function
 
+    def __repr__(self) -> str:
+        try:
+            f = self.f()
+            if not f:
+                f= self.fstr +"(dead)"
+            f = str(f)
+            return "<RepeatingEvent at "+str(id(self)) + f + " every "+str(self.interval)+ "s >"
+        except Exception:
+            print(traceback.format_exc())
+            return super().__repr__()
     def schedule(self):
         """Insert self into the scheduler.
         Note for subclassing: The responsibility of this function to check if it is already scheduled, return if so,
@@ -167,7 +180,7 @@ class RepeatingEvent(BaseEvent):
 
     def _schedule(self):
         """Calculate next runtime and put self into the queue.
-        Currently should only every be called from the loop in the scheduler."""
+        Currently should only ever be called from the loop in the scheduler."""
         # We want to schedule to the multiple of local time.
         # Things on the hour should be on the local hour.
 
@@ -191,8 +204,15 @@ class RepeatingEvent(BaseEvent):
         t = last + self.interval
         # Convert back to UTC/UNIX and add the phase offset
         self.time = (t - offset)
-        scheduler.insert(self)
-        self.scheduled = True
+
+        # race mitigation: it could all run, and stuff could happen before we set the flag and never run again because
+        # we said it already did
+        try:
+            self.scheduled = True
+            scheduler.insert(self)
+        except:
+            self.scheduled=False
+        
 
     def register(self):
         self.stop = False
@@ -462,11 +482,14 @@ class NewScheduler():
     #Custom delay func because we must be able to recieve new events while waiting
     def delay(self,t):
         self.wakeUp.clear()
-        self.wakeUp.wait(min(t, 0.07))
+        self.wakeUp.wait(min(t, 0.15))
     
     def run(self):
         while 1:
-            self.sched.run()
+            try:
+                self.sched.run()
+            except Exception:
+                logging.exception("Error in scheduler thread")
 
     def _dorErrorRecovery(self):
         for i in self.repeatingtasks:
@@ -489,3 +512,26 @@ class NewScheduler():
 
 scheduler = NewScheduler()
 scheduler.start()
+
+
+# If either of these doesn't run at the right time, raise a message
+selftest = [time.monotonic(),time.monotonic()]
+
+lastpost = [0]
+
+def a():
+    selftest[0] = time.monotonic()
+    if selftest[1]< time.monotonic()-75:
+        if lastpost[0]< time.monotonic()-600:
+            lastpost[0]=time.monotonic()
+            messagebus.postMessage("/system/notifications/errors", "Something caused a scheduler continual selftest function not to run.")
+
+def b():
+    selftest[1] = time.monotonic()
+    if selftest[0]< time.monotonic()-75:
+        if lastpost[0]< time.monotonic()-600:
+            lastpost[0]=time.monotonic()
+            messagebus.postMessage("/system/notifications/errors", "Something caused a scheduler continual selftest function not to run.")
+
+scheduler.every(a,60)
+scheduler.every(b,60)
