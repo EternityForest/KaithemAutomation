@@ -698,7 +698,7 @@ class NVRChannel(devices.Device):
             time.sleep(0.001)
             s -= 1
         else:
-            if not not self.threadStarted:
+            if not self.threadStarted:
                 self.print("Thread not started within 25 seconds")
 
 
