@@ -13,25 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-from . import gstwrapper
 import subprocess
 import os
-import math
 import time
-import sys
 import threading
 import collections
 import logging
-import re
-import uuid
 import traceback
-import scullery
-from scullery import iceflow, fluidsynth
-from . import util, scheduling, directories, workers, registry, widgets, messagebus, midi
+from . import util, scheduling, directories, workers, messagebus, midi
 from .config import config
-
-import gc
-from . import gstwrapper, jackmanager, jackmixer
+from . import jackmanager
 log = logging.getLogger("system.sound")
 
 jackAPIWidget = None
