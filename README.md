@@ -161,6 +161,9 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.23
+- :zap: JSON RPC performance boost with select polling
+
 ### 0.68.22
 - :sparkles: NVRChannels can now act as open SRT servers
 - :sparkles: NVRChannels can play SRT URLs as long as they are h264/AAC in an MPEG-TS codec.

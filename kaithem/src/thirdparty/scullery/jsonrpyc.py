@@ -568,13 +568,13 @@ class Watchdog(threading.Thread):
                         rpc.stdin.seek(cur_pos)
                 else:
                     try:
-                        rfds, wfds, efds = select.select( [ sys.stdin.fileno()], [], [], self.interval)
+                        rfds, wfds, efds = select.select( [ rpc.stdin.fileno()], [], [], self.interval)
                         #On some systems it seems we never got the select return,
                         #So we had to resort to polling way too much.
                         #It seems that might be fixed, so if possible we go back to slower
                         #polling and select() based response.
                         if rfds:
-                            self.interval=0.1
+                            self.interval=3
                         #We should exit if we detect we have been adopted by pid1
                         if os.getppid()<2:
                             exit(1)
@@ -585,7 +585,7 @@ class Watchdog(threading.Thread):
                         pass
 
                 # handle new lines if any
-                if lines:
+                if lines and lines[0]:
                     rpc.fastResponseFlag.set()
                     for line in lines:
                         try:

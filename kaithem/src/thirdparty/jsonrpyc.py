@@ -28,6 +28,7 @@ import weakref
 import traceback
 import os
 
+
 server_only=False
 class Spec(object):
     """
@@ -567,27 +568,30 @@ class Watchdog(threading.Thread):
                         rpc.stdin.seek(cur_pos)
                 else:
                     try:
-                        rfds, wfds, efds = select.select( [ sys.stdin.fileno()], [], [], self.interval)
-
+                        rfds, wfds, efds = select.select( [ rpc.stdin.fileno()], [], [], self.interval)
                         #On some systems it seems we never got the select return,
                         #So we had to resort to polling way too much.
                         #It seems that might be fixed, so if possible we go back to slower
                         #polling and select() based response.
                         if rfds:
-                            self.interval=0.1
+                            self.interval=3
                         #We should exit if we detect we have been adopted by pid1
                         if os.getppid()<2:
                             exit(1)
+
                         lines = [rpc.stdin.readline()]
                     except IOError:
                         # prevent residual race conditions occurring when stdin is closed externally
                         pass
 
                 # handle new lines if any
-                if lines:
+                if lines and lines[0]:
                     rpc.fastResponseFlag.set()
                     for line in lines:
-                        line = line.decode("utf-8").strip()
+                        try:
+                            line = line.decode("utf-8").strip()
+                        except Exception:
+                            print("Bad line",line)
                         if line:
                             rpc._handle(line)
                 else:

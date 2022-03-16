@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.68.23
+- :zap: JSON RPC performance boost with select polling
+
 
 ### 0.68.22
 - :sparkles: NVRChannels can now act as open SRT servers
