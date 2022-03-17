@@ -59,11 +59,30 @@ background:grey;
 <h3>Device Specific</h3>
 
 <table>
-%for i in sorted([i for i in current.keys() if not (i in specialKeys or i.startswith("kaithem."))] ):
+%for i in sorted([i for i in current.keys() if not i in specialKeys ] ):
+%if not i.startswith("kaithem."):
 <tr>
         <td>${i|h}</td>
-        <td><input name="${i|h}" value="${current[i]|h}"></td>
+        <td>
+                %if obj and obj.config_properties.get(i,{}).get("secret",False):
+                <input name="${i|h}" value="${current[i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
+                %else:
+                <input name="${i|h}" value="${current[i]|h}">
+                %endif
+        </td>
 </tr>
+%else:
+<tr style="visibility: hidden;">
+        <td>${i|h}</td>
+        <td>
+                %if obj and obj.config_properties.get(i,{}).get("secret",False):
+                <input name="${i|h}" value="${current[i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
+                %else:
+                <input name="${i|h}" value="${current[i]|h}">
+                %endif
+        </td>
+</tr>
+%endif
 %endfor
 </table>
 
@@ -94,11 +113,31 @@ background:grey;
 <h3>Device Specific</h3>
 
 <table>
-%for i in sorted([i for i in data[c].keys() if not i in specialKeys] ):
+%for i in sorted([i for i in data[c].keys() if not i in specialKeys  ] ):
+%if not i.startswith("kaithem."):
 <tr>
         <td>${i|h}</td>
-        <td><input name="${i|h}" value="${data[c][i]|h}"></td>
+        <td>
+                %if obj and obj.config_properties.get(i,{}).get("secret",False):
+                <input name="${i|h}" value="${data[c][i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
+                %else:
+                <input name="${i|h}" value="${data[c][i]|h}">
+                %endif
+        </td>
 </tr>
+%else:
+<tr style="visibility: hidden;">
+        <td>${i|h}</td>
+        <td>
+                %if obj and obj.config_properties.get(i,{}).get("secret",False):
+                <input name="${i|h}" value="${data[c][i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
+                %else:
+                <input name="${i|h}" value="${data[c][i]|h}">
+                %endif
+        </td>
+</tr>
+%endif
+
 %endfor
 </table>
 

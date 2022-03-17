@@ -72,6 +72,18 @@ class KFormatter(logging.Formatter):
         return textwrap.fill(logging.Formatter.formatException(self, exc_info), initial_indent="  ", subsequent_indent="  ", width=240)
 
 
+# Suppress low level from these outrageously chatty things
+excludeDebug = {
+    'zeep.xsd.schema': 1,
+    'zeep.wsdl.wsdl':  1,
+    'zeep.xsd.visitor': 1,
+    'zeep.transports':1
+}
+
+for i in excludeDebug:
+    logging.getLogger(i).setLevel(logging.INFO)
+
+
 class LoggingHandler(logging.Handler):
     def __init__(self, name, folder, fn, bufferlen=25000,
                  level=30, contextlevel=10, contextbuffer=0,
@@ -151,10 +163,24 @@ class LoggingHandler(logging.Handler):
         except:
             pass
 
+    def filter(self, record) -> bool:
+
+        if record.name in excludeDebug:
+            if record.levelno <= 20:
+                return False
+
+        return super().filter(record)
+
     def handle(self, record):
         """Watch out with this. We are overriding the handle method so we can do our own locking.
         """
+
         rv = self.filter(record)
+
+        if record.name in excludeDebug:
+            if record.levelno <= 20:
+                return False
+
         if rv:
             self.emit(record)
         return rv

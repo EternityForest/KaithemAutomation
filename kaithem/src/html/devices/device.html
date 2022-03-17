@@ -233,6 +233,28 @@ ${manageForm}
 
 %endif
 
+
+
+%if hasattr(obj,'metadata') and obj.metadata:
+<h2><i class="icofont-ui-text-chat"></i>Metadata</h2>
+
+<table border="1" style="width:100%">
+<tr><th>Name</th><th>Value</th></tr>
+
+%for i in obj.metadata:
+<tr>
+        <td>
+                ${i|h}
+        </td>
+        <td>
+        ${obj.metadata[i]|h}
+        </td>
+</tr>
+%endfor
+</table>
+
+%endif
+
 <h2><i class="icofont-chart-flow-2"></i>Tag Points</h2>
 <p class="help">This section lists all the tag points owned.  Controls do not work if
         the tag has been overriden by some high priority claim.

@@ -1112,7 +1112,9 @@ class WebDevices():
             c = copy.deepcopy(d.data)
             c.update(kwargs)
             current = c
+            obj = d
         else:
+            obj = None
             d = getDeviceType(type)
 
         # We don't have pt adapter layer with raw classes
@@ -1128,7 +1130,7 @@ class WebDevices():
                                    intent="step")
 
         return pages.get_template("devices/discoverstep.html").render(
-            data=d, current=current, name=devname)
+            data=d, current=current, name=devname,obj=obj)
 
     @cherrypy.expose
     def createDevice(self, name=None, **kwargs):
@@ -1312,6 +1314,7 @@ def makeDevice(name, data, module=None, resource=None):
                 def __init__(self, name, data, **kw):
                     # We have to call ours first because we need things like the tag points list
                     # to be able to do the things theirs could call
+                    self.metadata = {}
                     Device.__init__(self, name, data, **kw)
                     CrossFrameworkDevice.__init__(self, name, data, **kw)
                     # Ensure we don't lose any data should the base class ever set any new keys

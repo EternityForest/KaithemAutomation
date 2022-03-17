@@ -161,6 +161,11 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.24
+- :bug: Fix missing platformdirs.version
+- :sparkles: NVRChannel discovery for Amcrest cameras, because that's what I've got lying around.
+- :monocle_face: Please be aware: Many major CCTV manufactures are rebrands of just a few firms that may be supporting things you may find morally abhorrent.
+
 ### 0.68.23
 - :zap: JSON RPC performance boost with select polling
 

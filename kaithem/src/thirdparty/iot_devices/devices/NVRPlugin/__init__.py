@@ -29,6 +29,48 @@ class CustomDeviceType(DeviceType):
 path = os.path.dirname( os.path.abspath(__file__))
 
 
+def getRTSPFromOnvif(c):
+    c.create_devicemgmt_service()
+    print(c.devicemgmt.GetDeviceInformation())
+
+    c.create_media_service()
+
+    selection = None
+    cw = 0
+    for p in c.media.GetProfiles():
+
+        # We want to find a profile that has H264/AAC
+        if not 'VideoEncoderConfiguration' in p:
+            continue
+        if not 'Encoding' in p['VideoEncoderConfiguration']:
+            continue
+        
+        if not p['VideoEncoderConfiguration']['Encoding']=='H264':
+            continue
+
+        if 'AudioEncoderConfiguration' in p:
+            if not p['AudioEncoderConfiguration']['Encoding']=="AAC":
+                continue
+
+
+        # We want the best available quality so we are going to look for the widest.
+        if 'Resolution' in p['VideoEncoderConfiguration']:
+            if p['VideoEncoderConfiguration']['Resolution']['Width']< cw:
+                continue
+
+            cw = p['VideoEncoderConfiguration']['Resolution']['Width']
+        selection= p
+
+    # Only do the net request after we know what we want to connect with.
+    resp = c.media.GetStreamUri({
+        'StreamSetup': {'Stream': 'RTP-Unicast', 'Transport': {'Protocol': 'RTSP'}},
+        'ProfileToken': selection.token,
+    })
+
+    return resp.Uri
+
+
+
 objectDetector = [None, None]
 
 # Only one of these should happpen at a time. Because we need to limit how much CPU it can burn.
@@ -205,6 +247,12 @@ httplock = threading.Lock()
 import socket
 
 
+onvifCams = {}
+
+
+def fixAddr(a):
+    return a.split(".")[0]+".local"
+
 def on_service_state_change(zeroconf, service_type, name, state_change):
     with httplock:
         info = zeroconf.get_service_info(service_type, name)
@@ -215,10 +263,20 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                 [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
             if len(httpservices) > 2048:
                 httpservices.pop(0)
+
+            try:
+                if name.startswith("AMC"):
+                    #No username/pw yet, we cannot actually fill this in.
+                    onvifCams[fixAddr(name)]= None
+            except:
+                pass
         else:
             try:
                 httpservices.remove((tuple(sorted(
                     [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
+                
+                if name.startswith("AMC"):
+                    del onvifCams[fixAddr(name)]
             except Exception:
                 logging.exception("???")
 
@@ -354,7 +412,12 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             self.mp3src = self.addElement("queue", max_size_time=10000000)
 
-        elif s.startswith("rtsp://"):
+        elif s.startswith("rtsp://") or self.dev.onvif:
+
+            if self.dev.onvif:
+                s = getRTSPFromOnvif(self.dev.onvif)
+                self.dev.metadata['device.discovered_rtsp_url'] = s
+
             rtsp = self.addElement(
                 "rtspsrc", location=s, latency=100, async_handling=True, user_id=un or None, user_pw=pw or None)
             self.addElement("rtph264depay", connectWhenAvailable="video")
@@ -587,7 +650,7 @@ class NVRChannel(devices.Device):
         # Close the old thread
         self.runWidgetThread = time.monotonic()
         self.putTrashInBuffer()
-        s = 10
+        s = 100
         while s:
             s -= 1
             if self.threadExited:
@@ -1058,7 +1121,31 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.loop_record_length", '5')
 
             self.set_config_default("device.srt_server_port", '0')
+            
+            
+            self.set_config_default("device.source", '')
+            self.set_config_default("device.username", '')
+            self.set_config_default("device.password", '')
 
+
+            # Support ONVIF URLs
+            self.onvif=None
+            if self.config['device.username'] and self.config['device.password']: 
+                try:
+                    from onvif import ONVIFCamera
+                    if self.config['device.source'] and not self.config['device.source'].startswith('rtsp://') and not self.config['device.source']=='webcam':
+                        if not self.config['device.source'].startswith('srt://'):
+                            p = self.config['device.source'].split("://")[-1]
+                            if ':' in p:
+                                port = int(p.split(":")[1])
+                                p=p.split(':')[0]
+                            else:
+                                port = 80
+
+                            self.onvif = ONVIFCamera(p,port,self.config['device.username'], self.config['device.password'])
+                except:
+                    self.print(traceback.format_exc())
+            
             self.process = None
 
             self.lastInferenceTime = 1
@@ -1175,10 +1262,7 @@ class NVRChannel(devices.Device):
             self.set_alarm("Not Running", "running",
                            "value < 0.5", trip_delay=5, auto_ack=False, priority='warning')
 
-            self.set_config_default("device.source", '')
-            self.set_config_default("device.username", '')
-            self.set_config_default("device.password", '')
-
+           
             self.set_config_default("device.fps", '4')
             self.set_config_default("device.barcodes", 'no')
             self.set_config_default("device.object_detection", 'no')
@@ -1255,3 +1339,24 @@ class NVRChannel(devices.Device):
 
     def getManagementForm(self):
         return templateGetter.get_template("manageform.html").render(data=self.data, obj=self)
+
+
+    @classmethod
+    def discover_devices(cls, config= {},current_device=None, intent=None, **kw):
+        # Discover based on the ONVIF cameras.  Let the user fill in username/password.
+        l = {}
+        for i in onvifCams:
+            config2 = config.copy()
+
+            config2.update(
+                {
+                    'type': cls.device_type,
+                    'device.source': i
+                }
+            )
+
+            config2['device.username'] = 'admin'
+            config2['device.password'] = ''
+            l[i] = config2
+
+        return l
