@@ -512,13 +512,12 @@ class Settings():
         pages.postOnly()
 
         jacksettings.set("jackMode", kwargs['jackmode'])
-        jacksettings.set("sharePulse", kwargs['pulsesharing'])
+        jacksettings.set("sharePulse", 'disabled')
         jacksettings.set("jackPeriodSize", max(
             32, int(kwargs['jackperiodsize'])))
         jacksettings.set("jackPeriods", max(2, int(kwargs['jackperiods'])))
         jacksettings.set("jackDevice", kwargs['jackdevice'])
-        jacksettings.set("useAdditionalSoundcards",
-                         kwargs['jackuseadditional'])
+        jacksettings.set("useAdditionalSoundcards","no")
 
         from . import jackmanager
         jackmanager.reloadSettings()

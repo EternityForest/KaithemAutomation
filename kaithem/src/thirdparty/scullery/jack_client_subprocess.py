@@ -83,8 +83,14 @@ class JackClientProxy():
         x = [portToInfo(i).toDict() for i in x]
         return x
 
-    def __init__(self, *a, **k):
-        self.worker = jack.Client("Overseer", no_start_server=True)
+    def init(self, *a, **k):
+        self.worker = jack.Client("Overseer"+str(time.monotonic()), no_start_server=True)
+        jackclient.worker.set_port_connect_callback(onPortConnect)
+        jackclient.worker.set_port_registration_callback(onPortRegistered, only_available=False)
+        jackclient.activate()
+
+    def __init__(self) -> None:
+        self.worker = None
 
     def disconnect(self, f, t):
         global realConnections
@@ -158,6 +164,7 @@ class JackClientProxy():
 jackclient = JackClientProxy()
 
 
+
 def onPortRegistered(port, registered):
     if not port:
         return
@@ -172,10 +179,7 @@ def onPortConnect(a, b, c):
     rpc.call("onPortConnected", [a.is_output, a.name, b.name, c])
 
 
-jackclient.worker.set_port_connect_callback(onPortConnect)
-jackclient.worker.set_port_registration_callback(onPortRegistered, only_available=False)
 rpc = jsonrpyc.RPC(jackclient)
-#jackclient.activate()
 
 import os
 import sys

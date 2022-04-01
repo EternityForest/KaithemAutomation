@@ -574,7 +574,7 @@ class Watchdog(threading.Thread):
                         #It seems that might be fixed, so if possible we go back to slower
                         #polling and select() based response.
                         if rfds:
-                            self.interval=3
+                            self.interval=0.08
                         #We should exit if we detect we have been adopted by pid1
                         if os.getppid()<2:
                             exit(1)

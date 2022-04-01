@@ -329,14 +329,21 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self._soundFuseSetting = v
         self.levelTag.evalContext['soundFuseSetting'] = v
 
-    def finalize(self):
+    def finalize(self,wait=3):
         with self.lock:
             # self.addElement("audioconvert")
             # self.capsfilter2= self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
 
             self.addElement("audiorate")
+
+            # We can connect faster letting gstreamer do the work where possible
+            # and maybe avoid some timeout oddness
+            pattern = "fgfcghfhftyrtw5ew453xvrt"
+            if self.outputs:
+                pattern=self.outputs[0]
+
             self.sink = self.addElement("jackaudiosink", buffer_time=10, latency_time=10, sync=False,
-                                        slave_method=0, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name + "_out", connect=0, blocksize=self.channels * 128)
+                                        slave_method=0, port_pattern=pattern, client_name=self.name + "_out", connect=0, blocksize=self.channels * 128)
 
             # I think It doesn't like it if you start without jack
             if self.usingJack:
@@ -346,10 +353,21 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         break
                 if not jackmanager.getPorts():
                     return
-        self.start()
+        self.start(timeout=wait)
 
     def connect(self, restore=[]):
         self._outputs = []
+
+        # wait till it exists for real
+        for i in range(8):
+            p = [i.name for i in jackmanager.getPorts()]
+            p2 = [i.clientName for i in jackmanager.getPorts()]
+            p = p+p2
+            if (self.name + "_out" in p) and (self.name + "_in") in p:
+                break
+            else:
+                time.sleep(0.5)
+
         for i in self.outputs:
             x = jackmanager.Airwire(
                 self.name + "_out", i, forceCombining=(self.channels == 1))
@@ -364,12 +382,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 try:
                     jackmanager.connect(i[0], j)
                 except Exception:
-                    pass
+                    logging.exception("Failed to conneect airwire")
         for i in self.sendAirwires:
             try:
                 self.sendAirwires[i].connect()
             except Exception:
-                pass
+                logging.exception("Failed to conneect airwire")
 
     def stop(self):
         with self.lock:
@@ -380,6 +398,18 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             for i in self._outputs:
                 i.disconnect()
         gstwrapper.Pipeline.stop(self)
+        
+        # wait till jack catches up
+        for i in range(15):
+            p = [i.name for i in jackmanager.getPorts()]
+            p2 = [i.clientName for i in jackmanager.getPorts()]
+            p = p+p2
+            if (self.name + "_out" in p) or (self.name + "_in") in p:
+                time.sleep(0.5)
+            else:
+                break
+               
+
 
     def backup(self):
         c = []
@@ -751,7 +781,7 @@ class MixingBoard():
         self.channels = {}
         self.channelObjects = {}
         self.lock = threading.RLock()
-        self.running = False
+        self.running = checkIfProcessRunning("jackd")
 
         def f(t, v):
             self.running = True
@@ -806,8 +836,7 @@ class MixingBoard():
             self.api.send(['effectTypes', effectTemplates])
 
             self.api.send(['loadedPreset', self.loadedPreset])
-            self.api.send(['usbalsa', settings.data['usbPeriodSize'], settings.data['usbLatency'],
-                           settings.data['usbQuality'], settings.data['usbPeriods']])
+
             self.sendPresets()
 
             if recorder:
@@ -829,7 +858,16 @@ class MixingBoard():
                 self.channelObjects[name].stop()
             self._createChannel(name, data)
 
-    def _createChannel(self, name, data=channelTemplate):
+    def _createChannel(self, name,data=channelTemplate):
+        for i in range(3):
+            try:
+                self._createChannelAttempt(name,data,wait=(i*3+5))
+                break
+            except Exception:
+                logging.exception("Failed to create channel, retrying")
+                time.sleep(1)
+
+    def _createChannelAttempt(self, name, data=channelTemplate,wait=3):
         "Create a channel given the name and the data for it"
         self.channels[name] = data
         self.api.send(['channels', self.channels])
@@ -861,7 +899,7 @@ class MixingBoard():
             p.fader = None
             p.loadData(data)
             p.addLevelDetector()
-            p.finalize()
+            p.finalize(wait)
             p.connect(restore=backup)
 
 
@@ -1022,15 +1060,6 @@ class MixingBoard():
             self.deletePreset(data[1])
             self.sendPresets()
 
-        if data[0] == 'setUSBAlsa':
-            settings.set("usbPeriodSize", int(data[1]))
-            settings.set("usbLatency", int(data[2]))
-            settings.set("usbQuality", int(data[3]))
-            settings.set("usbPeriods", int(data[4]))
-
-            self.api.send(['usbalsa', data[1], data[2], data[3], data[4]])
-            jackmanager.reloadSettings()
-            killUSBCards()
 
         if data[0] == 'record':
             with self.lock:
@@ -1059,16 +1088,6 @@ class MixingBoard():
                 recorder = None
                 self.api.send(['recordingStatus', "off"])
 
-
-def killUSBCards():
-    try:
-        subprocess.check_call(['killall', 'alsa_in'])
-    except Exception:
-        pass
-    try:
-        subprocess.check_call(['killall', 'alsa_out'])
-    except Exception:
-        pass
 
 
 board = MixingBoard()

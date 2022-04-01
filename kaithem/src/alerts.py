@@ -56,6 +56,10 @@ def setupFile():
         file['all'] = {}
         card = registry.get("system/alerts/soundcard", None)
         file['all']['soundcard'] = card
+        
+    if not 'soundcard' in file['all']:
+        card = registry.get("system/alerts/soundcard", None)
+        file['all']['soundcard'] = card
 
     try:
         persist.save(file, fn, private=True)

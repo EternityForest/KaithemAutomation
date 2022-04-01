@@ -150,7 +150,7 @@ class WebInterface():
                 module[:-4]+"_"+modules_state.getModuleHash(module[:-4])+".zip")
         cherrypy.response.headers['Content-Type'] = 'application/zip'
         try:
-            return modules_state.getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles=not pages.canUserDoThis("/admin/modules.edit"))
+            return modules.getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles=not pages.canUserDoThis("/admin/modules.edit"))
         except Exception:
             logging.exception("Failed to handle zip download request")
             raise

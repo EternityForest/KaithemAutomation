@@ -129,7 +129,7 @@ def recognize_tflite(i, r):
     i = PIL.Image.open(io.BytesIO(i))
     pilimg = i
     i = i.filter(PIL.ImageFilter.GaussianBlur(1))
-    i = PIL.ImageOps.autocontrast(i, cutoff=(0.05, 0.05))
+    i = PIL.ImageOps.autocontrast(i, cutoff=0.05)
 
     if not objectDetector[0]:
         objectDetector[0] = tflite.Interpreter(num_threads=4, model_path=os.path.join(
@@ -828,7 +828,7 @@ class NVRChannel(devices.Device):
         import PIL
         x = PIL.Image.open(io.BytesIO(self.request_data_point("bmp_snapshot")))
         x.thumbnail((320, 240))
-        x = PIL.ImageOps.autocontrast(x, cutoff=(0.1, 0, 25))
+        x = PIL.ImageOps.autocontrast(x, cutoff=0.1)
         with open(os.path.join(self.segmentDir, "thumbnail.jpg"), 'wb') as f:
             x.save(f, 'jpeg')
 

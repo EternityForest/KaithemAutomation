@@ -31,6 +31,8 @@ import select
 import traceback
 import random
 
+import collections
+
 # Util is not used anywhere else
 from . import workers, mnemonics, util
 wordlist = mnemonics.wordlist
@@ -44,6 +46,8 @@ from . import messagebus, iceflow
 
 jackEventHandlingQueue = []
 jackEventHandlingQueueLock = threading.Lock()
+
+
 
 
 
@@ -255,6 +259,7 @@ class JackClientProxy():
         f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"jack_client_subprocess.py")
         self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
         self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin,daemon=True)
+        self.rpc.call("init")
 
     def print(self,s):
         print(s)
@@ -509,6 +514,8 @@ def findReal():
 errlog = []
 
 
+latestAirWireForGivenPair =  weakref.WeakValueDictionary()
+
 class MonoAirwire():
     """Represents a connection that should always exist as long as there
     is a reference to this object. You can also enable and disable it with 
@@ -522,13 +529,33 @@ class MonoAirwire():
         self.to = to
         self.active = True
 
-    def disconnect(self):
+        if isinstance(orig, PortInfo):
+            orig = orig.name
+        if isinstance(to, PortInfo):
+            to = to.name
+        self.tupleid = (orig,to)
+        latestAirWireForGivenPair[self.tupleid] = self
+
+    def disconnect(self,force=True):
         global realConnections
         self.disconnected = True
         try:
             del allConnections[self.orig, self.to]
         except Exception:
             pass
+
+        if not force:
+            # As garbage collection happens at uppredicatble times, 
+            # Don't disconnect if this airwire has been taken over by a new connection between the ports
+            x = None
+            try:
+                x = latestAirWireForGivenPair[self.tupleid]
+            except KeyError:
+                pass
+
+            if x and not x is self:
+                return
+
         try:
             if lock.acquire(timeout=10):
                 try:
@@ -558,9 +585,7 @@ class MonoAirwire():
     def __del__(self):
         # TODO: Is there any possible deadlock risk at all here?
         if self.active:
-            with lock:
-                if isConnected(self.orig, self.to):
-                    disconnect(self.orig, self.to)
+            self.disconnect(False)
 
     def connect(self):
         allConnections[self.orig, self.to] = self
@@ -642,7 +667,7 @@ class MultichannelAirwire(MonoAirwire):
                 else:
                     raise RuntimeError("Getting lock")
 
-    def disconnect(self):
+    def disconnect(self,force=True):
         check_exclude()
 
         if hasattr(self,"noNeedToDisconnect"):
@@ -652,6 +677,18 @@ class MultichannelAirwire(MonoAirwire):
         f, t = self._getEndpoints()
         if not f:
             return
+
+        if not force:
+            # As garbage collection happens at uppredicatble times, 
+            # Don't disconnect if this airwire has been taken over by a new connection between the ports
+            x = None
+            try:
+                x = latestAirWireForGivenPair[self.tupleid]
+            except KeyError:
+                pass
+
+            if x and not x is self:
+                return
 
         if portsListLock.acquire(timeout=10):
             try:
@@ -721,10 +758,22 @@ class CombiningAirwire(MultichannelAirwire):
             finally:
                 lock.release()
 
-    def disconnect(self):
+    def disconnect(self,force=False):
         f, t = self._getEndpoints()
         if not f:
             return
+
+        if not force:
+            # As garbage collection happens at uppredicatble times, 
+            # Don't disconnect if this airwire has been taken over by a new connection between the ports
+            x = None
+            try:
+                x = latestAirWireForGivenPair[self.tupleid]
+            except KeyError:
+                pass
+
+            if x and not x is self:
+                return
 
         if lock.acquire(timeout=10):
             try:
@@ -2181,8 +2230,6 @@ def _checkJackClient(err=True):
                     log.exception("Error creating JACK client")
                 return
 
-        
-            _jackclient.activate()
             _jackclient.get_ports()
             getPorts()
             time.sleep(0.5)
@@ -2345,7 +2392,9 @@ def disconnect(f, t):
 awaiting=[0]
 awaitingLock = threading.Lock()
 
-def connect(f, t):
+def connect(f, t,ts=None):
+    ts = ts or time.monotonic()
+
     global realConnections,_jackclient
     check_exclude()
     with awaitingLock:

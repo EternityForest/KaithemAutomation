@@ -392,7 +392,6 @@ if __name__=='__setup__':
                         if self.port:
                             self.setStatus('disconnected, '+str(e)[:100]+'...',False)
                         self.port=None
-                        print("Attempting reconnect")
                         #I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
                         time.sleep(3)
                         import serial

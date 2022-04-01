@@ -53,8 +53,9 @@ passwords are very strong. This will open a port on all discovered routers if en
 
     <summary>Audo help</summary>
 <p>
-Kaithem can use JACK audio, including automaticallly giving soundcards persistant JACK
-names.  Using this is required for Kaithem's integrated sound mixer to work correctly.  Settings for external usb cards are set via the mixer.
+Kaithem can use JACK audio, Using this is required for Kaithem's integrated sound mixer to work correctly.
+Note that we no longer support managing external USB soundcards. PipeWire does a better job of this than we ever could.
+To use advanced mixing, install PipeWire and use pw-jack to run Kaithem.
 </p>
 
 <p >
@@ -72,8 +73,6 @@ If you have PipeWire running, kaithem will just detect and use that and these se
         <td>
             <select name="jackmode">
                 <option title="Kaithem will ignore JACK" value="off" ${'selected' if  jacksettings.get('jackMode','off')=='off' else ''}>off</option>
-                <option title="Kaithem will start PipeWire if it is not already running" value="pipewire" ${'selected' if jacksettings.get('jackMode','off')=='pipewire' else ''}>PipeWire</option>
-
                 <option title="Kaithem will start and manage jackd" value="manage" ${'selected' if jacksettings.get('jackMode','off')=='manage' else ''}>manage</option>
                 <option title="Kaithem will start and manage jackd in pi compatibility mode" value="dummy" ${'selected' if jacksettings.get('jackMode','off')=='dummy' else ''}>manage in compatibility mode</option>
                 <option title="Kaithem will use an existing jackd/pipewire instance, but can manage USB cards" value="use" ${'selected' if jacksettings.get('jackMode','off')=='use' else ''}>Use Existing</option>
@@ -90,29 +89,6 @@ If you have PipeWire running, kaithem will just detect and use that and these se
     </tr>
 
 
-    <tr>
-        <td>Use Additional Soundcards</td>
-        <td>
-            <select name="jackuseadditional">
-                <option title="Only use primary JACK device" value="off" ${'selected' if  jacksettings.get('useAdditionalSoundcards','on')=='off' else ''}>off</option>
-                <option title="Use all soundcards with alsa_io" value="yes" ${'selected' if jacksettings.get('useAdditionalSoundcards','on') in ('on','yes','true') else ''}>yes</option>
-            </select>
-           
-        </td>
-    </tr>
-
-    <tr>
-        <td>PulseAudio Sharing</td>
-        <td>
-            <select name="pulsesharing">
-                    <option title="Only Kaithem's user" value="off" ${'selected' if  jacksettings.get('sharePulse','off')=='disable' else ''}>off</option>
-                    <option title="Network share with any user on this machine" value="localhost" ${'selected' if  jacksettings.get('sharePulse','disable')=='localhost' else ''}>localhost</option>
-                    <option title="Network share with entire local network" value="network" ${'selected' if jacksettings.get('sharePulse','disable')=='network' else ''}>network</option>
-                    <option title="Run pulse in system-wide mode(May be needed to use Pulse as root)" value="system-wide" ${'selected' if jacksettings.get('sharePulse','disable')=='system-wide' else ''}>system-wide</option>
-                    <option title="Do not use pulseaudio, prevent it from running at all" value="disable" ${'selected' if jacksettings.get('sharePulse','disable')=='disable' else ''}>disable</option>
-                </select>
-        </td>
-    </tr>
     <%
     psize = jacksettings.get('jackPeriodSize',512)
     periods  = jacksettings.get('jackPeriods',3)
@@ -213,7 +189,7 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 <td>Sound file(Critical)</td><td><input name="critsound" value="${alerts.file['critical']['file']}"></input></td>
     </tr>
 <tr>
-<td>Sound Device(All)</td><td><input list="cards" name="soundcard" value="${alerts.file['all']['soundcard']}">
+<td>Sound Device(All)</td><td><input list="cards" name="soundcard" value="${alerts.file['all'].get('soundcard','')}">
     <datalist id="cards">
         <option value=""></option>
         <option value="__disable__""></option>

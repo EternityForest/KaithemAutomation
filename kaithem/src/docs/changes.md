@@ -1,6 +1,23 @@
 Change Log
 ----------
 
+
+### 0.68.25 "Just Use PipeWire"
+
+This release is all about getting rid of the JACKD manager. Instead, you use an external jack server if you have fancy
+mixing. See: https://askubuntu.com/questions/1339765/replacing-pulseaudio-with-pipewire-in-ubuntu-20-04 for info
+on switching to PipeWire.  The next EmberOS will have Pipewire running by default already.
+
+- :coffin: Remove ability for kaithem to manage PipeWire or JACK. That should be done by the system.
+- :coffin: Remove PulseAudio sharing mode. Use Pipewire, manage it yourself, or just don't use Pulse
+- :coffin: JACKD is considered legacy tech and support will be removed as soon as all common Debian platforms easily support PipeWire
+- :coffin: Remove ability to manage USB soundcards. Pipewire does that for us!
+- :bug: Fix object inferrence on versions of the imaging library
+- :bug: Fix downloading modules as ZIP
+- :bug: Fix a bug where an old airwire could get GCed and delete a newer wanted audio link
+- :bug: Fix Select() not working on some systems in JSONRPYC
+
+
 ### 0.68.24
 - :bug: Fix missing platformdirs.version
 - :sparkles: NVRChannel discovery for Amcrest cameras, because that's what I've got lying around.

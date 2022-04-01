@@ -1416,8 +1416,8 @@ effectTemplates_data = {
             "pitch-co-efficient": {
                 "type": "float",
                 "displayName": "Scale",
-                "value": 0,
-                "min": -2,
+                "value": 1,
+                "min": 0.5,
                 "max": 2,
                 "step": 0.01,
                 "sort": 0
@@ -1476,7 +1476,7 @@ effectTemplates_data = {
             "output-attenuation": {
                 "type": "float",
                 "displayName": "Level",
-                "value": 1,
+                "value": 0,
                 "min": -20,
                 "max": 0,
                 "step": 1,

@@ -253,7 +253,7 @@ class websocket(WebSocket):
             "/system/permissions/rmfromuser", self.onPermissionRemoved)
         self.user = '__guest__'
 
-        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
+        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(cherrypy.request.remote.ip):
             self.user = pages.getAcessingUser()
         else:
             self.user = "__guest__"

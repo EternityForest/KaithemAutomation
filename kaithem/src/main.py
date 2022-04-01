@@ -96,6 +96,8 @@ try:
 except Exception:
     pass
 
+def loadJackMixer():
+    from src import jackmixer
 
 logger = logging.getLogger("system")
 logger.setLevel(0)
@@ -866,6 +868,7 @@ def webRoot():
 
 webRoot()
 
+workers.do(loadJackMixer)
 # Wait till everything is set up to start the self test
 
 cherrypy.engine.block()

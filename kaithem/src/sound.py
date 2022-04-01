@@ -590,7 +590,7 @@ class MPVBackend(SoundWrapper):
             if filename:
                 self.player.rpc.call('call', ['play', filename],
                                      block=0.001,
-                                     timeout=3)
+                                     timeout=12)
 
         def __del__(self):
             self.stop()
@@ -655,7 +655,7 @@ class MPVBackend(SoundWrapper):
                     return False
                 try:
                     return self.player.rpc.call('get', ['eof_reached'],
-                                                block=0.001) == False
+                                                block=0.001, timeout=12) == False
                 except:
                     logging.exception(
                         "Error getting playing status, assuming closed")

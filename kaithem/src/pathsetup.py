@@ -45,7 +45,7 @@ def setupCython():
             "Could not set up pyximport. Ensure that Cython is installed if you want to use .pyx files")
 
 
-def setupPath(linuxpackage, force_local=False):
+def setupPath(linuxpackage=None, force_local=False):
     global startupPluginsPath
     # There are some libraries that are actually different for 3 and 2, so we use the appropriate one
     # By changing the pathe to include the proper ones.
