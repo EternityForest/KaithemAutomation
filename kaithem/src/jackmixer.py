@@ -861,7 +861,7 @@ class MixingBoard():
     def _createChannel(self, name,data=channelTemplate):
         for i in range(3):
             try:
-                self._createChannelAttempt(name,data,wait=(i*3+5))
+                self._createChannelAttempt(name,data,wait=(i*3+10))
                 break
             except Exception:
                 logging.exception("Failed to create channel, retrying")

@@ -1260,7 +1260,7 @@ class NVRChannel(devices.Device):
                            "value > 0.5", trip_delay=800, auto_ack=True, priority='debug')
 
             self.set_alarm("Not Running", "running",
-                           "value < 0.5", trip_delay=5, auto_ack=False, priority='warning')
+                           "value < 0.5", trip_delay=90, auto_ack=False, priority='warning')
 
            
             self.set_config_default("device.fps", '4')

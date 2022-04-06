@@ -101,11 +101,11 @@ if psutil:
             if not i in tempTags:
                 #Fix the name
                 tempTags[i] = tagpoints.Tag(tagpoints.normalizeTagName("/system/sensors/temp/"+i,"_"))
-                tempTags[i].setAlarm("temperature", "value>85")
+                tempTags[i].setAlarm("temperature", "value>78")
                 tempTags[i].unit='degC'
                 tempTags[i].max = 150
                 tempTags[i].min= -25
-                tempTags[i].hi = 80
+                tempTags[i].hi = 76
                 tempTags[i].lo = -5
             tempTags[i].value= peak
 

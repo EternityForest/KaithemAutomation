@@ -175,7 +175,7 @@ class Zigbee2MQTT(iot_devices.device.Device):
                                         self.set_alarm(name="LowSignal",
                                                        datapoint=tn,
                                                        expression="value < 8",
-                                                       priority='warning',
+                                                       priority='info',
                                                        trip_delay=60)
 
                                     if j['name'] == 'battery':

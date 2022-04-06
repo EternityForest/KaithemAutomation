@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.68.26
+
+- :wrench: Temperature warning at 76 degrees
+- :wrench: NVRPlugin camera disconnect alarm delay is 90 seconds to reduce false trips
+- :bug: :lock: Remove default read/write permissions for devices, they must now be manually added
+- :lipstick: Read/write permissions for devices have auto-suggest now
 
 ### 0.68.25 "Just Use PipeWire"
 

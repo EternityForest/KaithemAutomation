@@ -995,10 +995,10 @@ def updateDevice(devname, kwargs, saveChanges=True):
             d['kaithem.input_bindings'] = old_bindings
 
         if 'kaithem.read_perms' not in d:
-            d['kaithem.read_perms'] = old_read_perms or '/users/devices.read'
+            d['kaithem.read_perms'] = old_read_perms or ''
 
         if 'kaithem.write_perms' not in d:
-            d['kaithem.write_perms'] = old_write_perms or '/users/devices.write'
+            d['kaithem.write_perms'] = old_write_perms or ''
 
         if parentModule:
             modules_state.ActiveModules[parentModule][

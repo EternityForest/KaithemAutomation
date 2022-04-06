@@ -892,7 +892,7 @@ effectTemplates_data = {
 
             "reverb-time": {
                 "type": "float",
-                "displayName": "Bandwidth",
+                "displayName": "Time",
                 "value": 7.5,
                 "min": 0.1,
                 "max": 30,

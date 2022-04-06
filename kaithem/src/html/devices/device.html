@@ -3,7 +3,7 @@
 import traceback
 import json
 import os
-from src import unitsofmeasure,tagpoints, devices,modules_state
+from src import unitsofmeasure,tagpoints, devices,modules_state,auth
 import urllib.parse
 
 def url(u):
@@ -64,6 +64,14 @@ specialKeys={
         %endfor
 </datalist>
 
+<datalist id="k_perms">
+<option>/users/devices.write</option>
+<option>/users/devices.read</option>
+
+%for i in sorted(auth.Permissions.keys()):
+<option>${i|h}</option>
+%endfor
+</datalist>
 
 <h1>Device Inspector: ${name}
 </h1>
@@ -383,7 +391,7 @@ ${manageForm}
                 <button  type="button"  style="background-color: #333333; color: lightblue;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#333333'])">Sable</button>
                 <button  type="button"  style="background-color: #377cd7;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#377cd7'])">Azure</button>
                 <button  type="button"   style="background-color: #26c061;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#26c061'])">Vert</button>
-                <button  type="button"   style="background-color: #522d5b;  color: lightblue;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#522d5b'])">Purpure</button>               
+                <button  type="button"   style="background-color: #854296;  color: lightblue;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#854296'])">Purpure</button>               
         </div>
         <div  class="buttonbar">
                 <button  type="button"   style="background-color: #85185b;  color: lightblue;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#85185b'])">Murrey</button>
@@ -429,8 +437,8 @@ Currently this is only supported for the newer cross-framework devices.
  </p>
 
 <div class="buttonbar">
-<label>Read:<input name="kaithem.read_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__"></label>
-<label>Write:<input name="kaithem.write_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__"></label>
+<label>Read:<input name="kaithem.read_perms" list="k_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__"></label>
+<label>Write:<input name="kaithem.write_perms" list="k_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__"></label>
 </div>
 </div>
 <hr>
