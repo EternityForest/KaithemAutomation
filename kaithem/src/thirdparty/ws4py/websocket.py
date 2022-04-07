@@ -207,11 +207,11 @@ class WebSocket(object):
         if self.sock:
             try:
                 self.sock.shutdown(socket.SHUT_RDWR)
-            except:
+            except Exception:
                 pass
             try:
                 self.sock.close()
-            except:
+            except Exception:
                 pass
             finally:
                 self.sock = None

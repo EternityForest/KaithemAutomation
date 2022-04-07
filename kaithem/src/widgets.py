@@ -441,6 +441,7 @@ class rawwebsocket(WebSocket):
         messagebus.subscribe(
             "/system/permissions/rmfromuser", self.onPermissionRemoved)
         self.user = '__guest__'
+        x = cherrypy.request.remote.ip
 
         if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
             self.user = pages.getAcessingUser()

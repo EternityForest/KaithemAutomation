@@ -161,6 +161,12 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.27
+- :bug: Avoid useless logging client side errors caused by Firefox not supporting idle status at all
+- :bug: NVRChannel auto reconnect used to never retry again if the very first attempt was a failure.
+- :bug: Avoid rare bug that killed the WS manager thread
+- :bug: Fix plaintest HTTP support for video streams
+
 ### 0.68.26
 
 - :wrench: Temperature warning at 76 degrees

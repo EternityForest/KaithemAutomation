@@ -1323,7 +1323,12 @@ class NVRChannel(devices.Device):
 
             mediaFolders[name] = self
 
-            self.connect(self.config)
+            try:
+                self.connect(self.config)
+            except:
+                self.handleException()
+                self.set_data_point('running', 0)
+                
             self.set_data_point('switch', 1)
 
             # Used to check that things are actually still working.

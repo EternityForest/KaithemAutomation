@@ -135,7 +135,7 @@ class EPollPoller(object):
         try:
             self.poller.unregister(fd)
         except OSError:
-            logging.exception()
+            logging.exception("Err unregistering")
             
     def poll(self):
         """
@@ -369,5 +369,5 @@ class WebSocketManager(threading.Thread):
             if not ws.terminated:
                 try:
                     ws.send(message, binary)
-                except:
+                except Exception:
                     pass

@@ -50,7 +50,7 @@ def saveAllAtExit():
         try:
             i.save()
         except Exception:
-            logging.exception()
+            logging.exception("err")
 import stat
 def chmod_private_try(p, execute=True):
     try:

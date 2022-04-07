@@ -2,16 +2,16 @@
 
 from src import devices,alerts, scheduling,tagpoints,messagebus
 import os,mako,time,threading,logging
+logger = logging.Logger("plugins.kasa")
 
 try:
 	from pyHS100 import SmartPlug, SmartBulb
 except:
-	logger.exception()
+	logger.exception("err")
 	messagebus.postMessage("/system/notifications/errors","Problem loading Kasa support")
 
 from src import widgets
 
-logger = logging.Logger("plugins.kasa")
 
 from mako.lookup import TemplateLookup
 templateGetter = TemplateLookup(os.path.dirname(__file__))
