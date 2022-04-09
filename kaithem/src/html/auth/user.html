@@ -12,15 +12,15 @@ class="specialentry"\
 %endif
 >${username}</span></h2>
 <title>Edit User: ${username}</title>
-<form action="/auth/updateuser/${urlesc(username)}" method="POST" name="user">
+<form action="/auth/updateuser/${urlesc(username)}" method="POST" name="user"  autocomplete="off">
 
 <h3>Basic</h3>
 <div class="sectionbox">
 <p class="warning">For performance reasons, your password is stored hashed with an ordinary cryptographic hash, rather than a password strengthening algorithm.
     Do not use weak or reused passwords on public systems!!!!</p>
-Username:<input required="required" name="username" type="text" value="${username}"></input><br>
-Password(Leave blank=don't change):<input name="password" type="password" value="" autocomplete='off'></input>
-Retype:<input name="password2" type="password" value="" autocomplete='off'></input><br>
+Username:<input required="required" id="un" name="username" type="text" value="${username}"></input><br>
+Password(Leave blank=don't change):<input id="pw" name="password" type="password" value="" autocomplete='off'></input>
+Retype:<input id="retype" name="password2" type="password" value="" autocomplete='off'></input><br>
 <label>Disallow login from IP outside of LAN<input name="lanonly" type="checkbox"
 
 %if auth.getUserSetting(username,"restrict-lan"):
@@ -28,7 +28,17 @@ Retype:<input name="password2" type="password" value="" autocomplete='off'></inp
 %endif
 ></label>
 
-<label>Use Linux system user(of user with same name) password instead<input name="lanonly" type="checkbox"
+<script>
+// Clean up after auto complete that thinks this is a login field.
+setTimeout( function(){
+document.getElementById('retype').value =''
+document.getElementById('pw').value =''
+document.getElementById('un').value = "${username}"
+}, 1200)
+
+</script>
+
+<label>Use Linux system user(of user with same name) password instead<input name="useSystemPassword" type="checkbox"
     %if auth.Users[username].get('password','')=='system':
         checked="yes"
     %endif

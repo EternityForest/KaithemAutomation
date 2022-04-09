@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1644937201354076
+resource-timestamp: 1646871592605909
 resource-type: event
 versions: {}
 
@@ -4092,3 +4092,5 @@ def eventAction():
                     b.guiPush()
                 del b
         lastrendered = module.timefunc()
+    
+    time.sleep(1/60)

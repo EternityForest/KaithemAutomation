@@ -27,8 +27,7 @@ of a valid token"""
 # of not using the filesystem much to save any SD cards.
 
 from typing import Dict, Union
-
-from cv2 import norm
+import copy
 from . import util, directories, modules_state, registry, messagebus
 import json
 import base64
@@ -45,6 +44,35 @@ import threading
 
 lock = threading.RLock()
 
+defaultData = {
+    "groups": {
+        "Administrators": {
+            "permissions": [
+                "__all_permissions__"
+            ]
+        },
+        "Guests": {
+            "permissions": [
+                "/admin/modules.view",
+                "/admin/settings.view",
+                "/admin/mainpage.view"
+            ]
+        }
+    },
+    "users": {
+        "__guest__": {
+            "groups": [
+                "Guests"
+            ],
+            "password": "V+hZrbd22NjvNwvQAfwOAzLrudfX/+SMuddMmetm0Vk=",
+            "salt": "AtTjOSUQyNFoklVv+i8Lbw==",
+            "settings": {
+                "restrict-lan": False
+            },
+            "username": "__guest__"
+        }
+    }
+}
 
 # Python doesn't let us make custom attributes on normal dicts
 class User(dict):
@@ -55,6 +83,9 @@ class User(dict):
 logger = logging.getLogger("system.auth")
 # This maps raw tokens to users
 Tokens: Dict[str, User] = {}
+
+Groups = {}
+Users  = {}
 
 # This maps hashed tokens to users. There's an easy timing attack I'd imagine
 # with looking up tokens literally in a dict.
@@ -272,23 +303,33 @@ def tryToLoadFrom(d):
                 temp = json.load(f)
             finally:
                 f.close()
-            global Users
-            Users = temp['users']
-            global Groups
-            Groups = temp['groups']
-            global Tokens
-            Tokens = {}
-            tokenHashes.clear()
-            for user in Users:
-                # What an unreadable line! It turs all the dicts in Users into User() instances
-                Users[user] = User(Users[user])
-                assignNewToken(user)
-            generateUserPermissions()
+
+            loadFromData(temp)
             return True
         else:
             raise RuntimeError("No complete marker found")
         logger.info("Loaded auth data from " + d)
 
+
+def loadFromData(d):
+    global tokenHashes
+    with lock:
+        temp = copy.deepcopy(d)
+
+        Users.clear()
+        Groups.clear()
+
+        Groups.update(temp['groups'])
+
+        global Tokens
+        Tokens = {}
+        tokenHashes.clear()
+        for user in temp['users']:
+            Users[user] = User(temp['users'][user])
+            assignNewToken(user)
+        generateUserPermissions()
+        return True
+    
 
 data_bad = False
 
@@ -325,7 +366,11 @@ def initializeAuthentication():
                     "/system/notifications/errors", "Could not load old state:\n" + str(e))
                 pass
 
+        if not Groups and not Users:
+            loadFromData(defaultData)
+
         normalUsers = [i for i in Users if not i.startswith('__')]
+
         if not loaded or not normalUsers:
             addFloatingUser()
 
@@ -335,7 +380,6 @@ def generateUserPermissions(username=None):
     with lock:
         # TODO let you do one user at a time
         # Give each user all of the permissions that his or her groups have
-        global Users
         global tokenHashes
 
         for i in Users:
@@ -384,7 +428,16 @@ def addFloatingUser():
     with lock:
         authchanged = True
         if username not in Users:  # stop overwriting attempts
-            Users[username] = User({'username': username, 'groups': ['Administrators'], 'password': 'system', 'restrict-lan': True })
+            Users[username] = User({
+                'username': username, 
+                'groups': ['Administrators'], 
+                'password': 'system', 
+                'settings' : {
+                    'restrict-lan': True 
+                    }
+                })
+
+
             Users[username].limits = {}
             generateUserPermissions()
 
@@ -426,7 +479,7 @@ def userLogin(username, password):
         tryLinuxUser = None
 
     with lock:
-        if username in Users and ('password' in Users[username]['password']):
+        if username in Users and ('password' in Users[username]):
             m = hashlib.sha256()
             m.update(usr_bytes(password, 'utf8'))
             m.update(base64.b64decode(Users[username]['salt'].encode('utf8')))

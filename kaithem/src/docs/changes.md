@@ -7,6 +7,8 @@ Change Log
 - :sparkles: If there are no users, one is created using the login credentials of the Linux user actually running the Kaithem service
 - :sparkles: Any user can be set to use the system authentication.  Using Kaithem's weaker internal login is not suggested.
 - :fire: The internal auth mechanism may be deprecated or modified eventually. Suggest to always use the Linux system auth instead.
+- :bug: Fix bug with changing usernames at the same time as settings
+- :bug: UI for setting Chandler scenes now looks better on mobile
 
 
 

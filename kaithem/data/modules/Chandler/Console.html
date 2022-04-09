@@ -9,8 +9,9 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1645255486036507
+resource-timestamp: 1649538009829977
 resource-type: page
+streaming-response: false
 template-engine: mako
 
 ---
@@ -1062,21 +1063,21 @@ limitedTagsListing=module.limitedTagsListing()
                                     </div>
                                 </div>
                                 <div class="scrollbox">
-                                    <h5>Kaithem Sound Aliases</h5>
+                                    <h5>Sound Outputs</h5>
                                     <p class="help">So long as you plug the same device into the same port(on linux), it will be given the same device alias, although
                                         they will be different if JACK is used.</p>
-                                    <table>
-                                        <tr v-for="i of soundCards">
-                                            <td>{{i}}</td>
-                                            <td>
-                                                <p class="buttonbar">
-                                             <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button>
-                                             <button v-on:click="testSoundCard(i,0,48000)">Test(48k)</button>
-                                             <button v-on:click="testSoundCard(i,0,96000)">Test(96k)</button>
-                                            <button v-on:click="testSoundCard(i,0,44100)">Test(44.1k)</button>
-                                                </p>
-                                        </tr>
-                                    </table>
+                                        <dl>
+                                            <template v-for="i of soundCards">
+                                                <dt>{{i || "UNSET" }}</dt>
+                                                <dd>
+                                                    <p class="buttonbar">
+                                                <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button>
+                                                <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene Default</button>
+                                                <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                                    </p>
+                                                </dd>
+                                            </template>
+                                        </dl>
                                 </div>
                         </div>
 
@@ -1279,20 +1280,20 @@ limitedTagsListing=module.limitedTagsListing()
                                 <button v-on:click="sendev(scenename)">Send</button>
                      </label>
                             <div class="scrollbox" v-if="showSoundControls">
-                                <h5>Kaithem Sound Aliases</h5>
+                                <h5>Sound Outputs</h5>
                                 <p class="help">So long as you plug the same device into the same port(on linux), it will be given the same device alias, although
                                     they will be different if JACK is used.</p>
-                                <table>
-                                    <tr v-for="i of soundCards">
-                                        <td>{{i}}</td>
-                                        <td> <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button></td>
-                                        <td> <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene Default</button></td>
-                                        <td> <button v-on:click="testSoundCard(i,0,48000)">Test(48k)</button></td>
-                                        <td> <button v-on:click="testSoundCard(i,0,96000)">Test(96k)</button></td>
-                                        <td> <button v-on:click="testSoundCard(i,0,44100)">Test(44.1k)</button></td>
-
-                                    </tr>
-                                </table>
+                                    <dl>
+                                        <template v-for="i of soundCards">
+                                            <dt>{{i || "UNSET"}}</dt>
+                                            <dd>
+                                                <p class="buttonbar">
+                                            <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene Default</button>
+                                             <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                                </p>
+                                            </dd>
+                                        </template>
+                                    </dl>
                             </div>
 
                         </div>

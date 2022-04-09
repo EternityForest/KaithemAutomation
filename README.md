@@ -43,6 +43,7 @@ or access the full help via the web interface!
 See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
 
 Since there are initially no users, one is created using the name and password of the Linux user actually running the app.
+This means you must run kaithem as a user that supports logins.
 
 Note that to clone everything properly you must have git-lfs installed and set up, otherwise you won't get the tflite
 data file needed for video recognition.
