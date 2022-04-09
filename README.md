@@ -165,6 +165,14 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.28
+- :lock: :coffin: Default admin:password credentials have been eliminated. 
+- :sparkles: If there are no users, one is created using the login credentials of the Linux user actually running the Kaithem service
+- :sparkles: Any user can be set to use the system authentication.  Using Kaithem's weaker internal login is not suggested.
+- :fire: The internal auth mechanism may be deprecated or modified eventually. Suggest to always use the Linux system auth instead.
+- :bug: Fix bug with changing usernames at the same time as settings
+- :bug: UI for setting Chandler scenes now looks better on mobile
+  
 ### 0.68.27
 - :bug: Avoid useless logging client side errors caused by Firefox not supporting idle status at all
 - :bug: NVRChannel auto reconnect used to never retry again if the very first attempt was a failure.
