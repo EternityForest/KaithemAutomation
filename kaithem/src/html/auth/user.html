@@ -27,6 +27,15 @@ Retype:<input name="password2" type="password" value="" autocomplete='off'></inp
     checked="yes"
 %endif
 ></label>
+
+<label>Use Linux system user(of user with same name) password instead<input name="lanonly" type="checkbox"
+    %if auth.Users[username].get('password','')=='system':
+        checked="yes"
+    %endif
+></label>
+    
+
+
 </br>
     <details>
         <summary>GET request security Warning</summary>

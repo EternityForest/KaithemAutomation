@@ -27,6 +27,8 @@ of a valid token"""
 # of not using the filesystem much to save any SD cards.
 
 from typing import Dict, Union
+
+from cv2 import norm
 from . import util, directories, modules_state, registry, messagebus
 import json
 import base64
@@ -167,13 +169,18 @@ def changeUsername(old, new):
         Users[new]['username'] = new
 
 
-def changePassword(user, newpassword):
+def changePassword(user, newpassword, useSystem=False):
     "Change a user's password"
     global authchanged
     if len(newpassword) > 256:
         raise ValueError("Password cannot be longer than 256 bytes")
+
     with lock:
         authchanged = True
+        if useSystem:
+            Users[user]['password'] = 'system'
+            return
+
         salt = os.urandom(16)
         salt64 = base64.b64encode(salt)
         # Python is a great language. But sometimes I'm like WTF???
@@ -192,14 +199,14 @@ def changePassword(user, newpassword):
         Users[user]['password'] = p
 
 
-def addUser(username, password):
+def addUser(username, password,useSystem=False):
     global authchanged
     with lock:
         authchanged = True
         if username not in Users:  # stop overwriting attempts
             Users[username] = User({'username': username, 'groups': []})
             Users[username].limits = {}
-            changePassword(username, password)
+            changePassword(username, password, useSystem)
 
 
 def removeUser(user):
@@ -255,62 +262,6 @@ def removeUserFromGroup(username, group):
         Users[username]['groups'].remove(group)
         # Regenerate the per-user permissions cache for that user
         generateUserPermissions(username)
-
-
-def promptGenerateUser(username="admin"):
-    with lock:
-        global authchanged, tokenHashes
-        p = "samevscdfghjkl,ljhgfdsfhjmk,.lkjhgfdgnm,kjgfdnmj,kjuytredsfvbnhjmk?P>O:P_O>{:?{|<>/,.(0%(%(*5)))}"
-        p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
-
-        while not p == p2:
-            p = "samejytfdcvbnjytfgvbnmjumjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
-            p2 = "differentkyhgfvbnmjuytrdcxvbkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
-            p = input("Account %s created. Choose password:" % (username))
-            p2 = input("Reenter Password:")
-            if not p == p2:
-                print("password mismatch")
-
-        m = hashlib.sha256()
-        r = os.urandom(16)
-        r64 = base64.b64encode(r).decode("utf-8")
-        m.update(usr_bytes(p, 'utf-8'))
-        m.update(r)
-        pwd = base64.b64encode(m.digest()).decode('utf-8')
-
-        temp = {
-            "groups": {
-                "Administrators": {
-                    "permissions": [
-                        "__all_permissions__"
-                    ]
-                }
-            },
-            "users": {
-                username: {
-                    "groups": [
-                        "Administrators"
-                    ],
-                    "password": pwd,
-                    "username": "admin",
-                    "salt": r64
-                }
-            }
-        }
-        global Users
-        Users = temp['users']
-        global Groups
-        Groups = temp['groups']
-        global Tokens
-        Tokens = {}
-        tokenHashes.clear()
-        for user in Users:
-            # What an unreadable line! It turs all the dicts in Users into User() instances
-            Users[user] = User(Users[user])
-            assignNewToken(user)
-        authchanged = True
-        generateUserPermissions()
-
 
 def tryToLoadFrom(d):
     global tokenHashes
@@ -374,11 +325,9 @@ def initializeAuthentication():
                     "/system/notifications/errors", "Could not load old state:\n" + str(e))
                 pass
 
-        if not loaded:
-            time.sleep(2)
-            promptGenerateUser()
-            messagebus.postMessage(
-                "/system/notifications/warnings", "No valid users file, using command line prompt")
+        normalUsers = [i for i in Users if not i.startswith('__')]
+        if not loaded or not normalUsers:
+            addFloatingUser()
 
 
 def generateUserPermissions(username=None):
@@ -421,10 +370,63 @@ def generateUserPermissions(username=None):
             Users[i].permissions = set(newp)
 
 
+def addFloatingUser():
+    """
+        Add a "floating" admin user, representing the Linux system user actually running the process, using the system
+        login mechanism.
+        
+        The rationale for this is that the system user has full acess to everything anyway.  Restrict to LAN for the obvious reason
+        we might to that on a local system.
+    """
+    global authchanged
+    import getpass
+    username = getpass.getuser()
+    with lock:
+        authchanged = True
+        if username not in Users:  # stop overwriting attempts
+            Users[username] = User({'username': username, 'groups': ['Administrators'], 'password': 'system', 'restrict-lan': True })
+            Users[username].limits = {}
+            generateUserPermissions()
+
+
+
 def userLogin(username, password):
     """return a base64 authentication token on sucess or return False on failure"""
+
+    # The user that we are running as
+
+    try:
+        import pwd
+        import getpass
+
+
+        if username in Users and ('password' in Users[username]) and Users[username]['password']=='system':
+            runningUser = getpass.getuser()
+            if runningUser in(username, 'root'):
+                if pwd.getpwnam(username):
+                    import pam
+                    # Two APIs??
+                    try:
+                        p = pam.authenticate()
+                    except Exception:
+                        p = pam
+                    if p.authenticate(username, password):
+                        with lock:
+                            if not hasattr(Users[username], 'token'):
+                                assignNewToken(username)
+                            return (Users[username].token)
+            
+            return 'failure'
+
+
+    except ImportError:
+        tryLinuxUser = None
+        pass
+    except KeyError:
+        tryLinuxUser = None
+
     with lock:
-        if username in Users:
+        if username in Users and ('password' in Users[username]['password']):
             m = hashlib.sha256()
             m.update(usr_bytes(password, 'utf8'))
             m.update(base64.b64decode(Users[username]['salt'].encode('utf8')))

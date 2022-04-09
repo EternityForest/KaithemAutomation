@@ -42,6 +42,8 @@ or access the full help via the web interface!
 ## Setup
 See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
 
+Since there are initially no users, one is created using the name and password of the Linux user actually running the app.
+
 Note that to clone everything properly you must have git-lfs installed and set up, otherwise you won't get the tflite
 data file needed for video recognition.
 
@@ -98,8 +100,9 @@ Environment="XDG_RUNTIME_DIR=/run/user/1000"
 #This may cause some issues but I think it's a better way to go purely because of
 #The fact that we can use PipeWire instead of managing jack, without any conflicts.
 
-#Also, node red runs as pi, lets stay standard.
-User=pi
+#On desktop-like systems, 1000 is typically the first user(In this case pi)
+#You can also just specify a username directly.
+User=1000
 #Bluetooth scannning and many other things will need this
 #Setting the system time is used for integration with GPS stuff.
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_TIME CAP_SYS_NICE

@@ -9,15 +9,14 @@ import cherrypy
     <h2 style="text-align: center;">Please Log In</h2>
     <section>
     <div style="text-align: center;">
-      <p class="help">The default credentials are admin:password. You can click without filling anything in to use the defaults.  Unless you are on a private
-        network, you should probably change this.  
+      <p class="help">If you have not configured any users, your login credentials are the same as the Linux user this is running under. 
       </p>
       <form method="POST" action="/login/login?go=${target}" name="login"> <p>
         <span style="font-weight: bold;">Username:</span>
-        <input name="username" placeholder="admin"><br>
+        <input name="username"><br>
         <span style="font-weight: bold;">Password:</span>&nbsp;
 		<input name="password" type="password" placeholder="password"></p>
-        <input value="Login as Registered User"type="submit" placeholder="password" title="Leave username and password blank to quickly log in with the default admin/password">
+        <input value="Login as Registered User"type="submit" placeholder="password">
       </form>
 	</div>
 </section>

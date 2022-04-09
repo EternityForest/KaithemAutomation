@@ -24,26 +24,6 @@
                 "restrict-lan": false
             },
             "username": "__guest__"
-        },
-        "admin": {
-            "groups": [
-                "Administrators"
-            ],
-            "password": "oOMHLjGN1OAsWFV+jgx3A+kC4v/7dJQEzVFi8e9f7t4=",
-            "salt": "vEdFFcIh3seoW1tHM34f6A==",
-            "settings": {
-                "allow-cors": false,
-                "email": "myemail@example.com",
-                "mailinglists": [],
-                "restrict-lan": false,
-                "strftime": "%A, %B %d, %Y at %I:%M:%S %p %Z",
-                "tabtospace": true,
-                "telemetry-alerts": false,
-                "timezone": "US/Mountain",
-                "useace": true,
-                "usemonaco": true
-            },
-            "username": "admin"
         }
     }
 }

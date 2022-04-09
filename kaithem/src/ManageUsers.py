@@ -85,7 +85,7 @@ class ManageAuthorization():
         pages.require("/admin/users.edit", noautoreturn=True)
         pages.postOnly()
         # create the new user
-        auth.addUser(kwargs['username'], kwargs['password'])
+        auth.addUser(kwargs['username'], kwargs['password'], useSystem='useSystemPassword' in kwargs)
         # Take the user back to the users page
         messagebus.postMessage('/system/notifications',
                                'New user "' + kwargs['username'] + '" added')
@@ -116,12 +116,21 @@ class ManageAuthorization():
         pages.require("/admin/users.edit", noautoreturn=True)
         pages.postOnly()
 
-        if not kwargs['password'] == kwargs['password2']:
-            raise RuntimeError('passwords must match')
+        useSystem = 'useSystemPassword' in kwargs
+
         user = user.encode("latin-1").decode("utf-8")
         # THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         # BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['username'])
+
+        if not useSystem:
+            if not kwargs['password'] == kwargs['password2']:
+                raise RuntimeError('passwords must match')
+
+            if auth.Users[user].get('password')=='system':
+                if not kwargs['password']:
+                    raise ValueError("Must specify a password to disable the system password feature")
+
 
         # Remove the user from all groups that the checkbox was not checked for
         for i in auth.Users[user]['groups']:
@@ -133,8 +142,10 @@ class ManageAuthorization():
             if i[:5] == 'Group':
                 if kwargs[i] == 'true':
                     auth.addUserToGroup(user, i[5:])
-        if not kwargs['password'] == '':
-            auth.changePassword(user, kwargs['password'])
+
+        if (not kwargs['password'] == '') or useSystem:
+            auth.changePassword(user, kwargs['password'], useSystem=useSystem)
+        
 
         auth.changeUsername(user, kwargs['username'])
         auth.setUserSetting(pages.getAcessingUser(),
