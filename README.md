@@ -126,20 +126,6 @@ WantedBy=multi-user.target
 
 See helpers/debianpackaging/CONTROL for the list
 
-## Installing Object Detection
-
-The NVRChannel plugin uses the full YOLOv3 model, until such a time as I can get a lighter model to work.  It needs these two files:
-https://pjreddie.com/media/files/yolov3.weights
-and 
-https://github.com/arunponnusamy/object-detection-opencv/raw/master/yolov3.cfg
-
-To be in one of several locations.
-
-'/home/USER/.cvlib/object_detection/yolo/yolov3'
-'/usr/share/pjreddie_darknet/yolov3_coco'
-
-Note that if you have ever used the cvlib library it auto downloads in /home/USER/.cvlib/object_detection/yolo/yolov3
-And also, the files are already included in EmberOS.
 
 ### Security
 At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at
