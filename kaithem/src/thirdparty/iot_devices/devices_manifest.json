@@ -27,6 +27,10 @@
         "NVRChannel":{
             "submodule":"devices.NVRPlugin",
             "description": "NVR support for live streaming, recording, and live video analytics"
+        },
+        "PyremoteServer":{
+            "submodule":"devices.PyremoteServer",
+            "description": "MQTT WiFi remote control application(Protocol still alpha)"
         }
     }
 } 

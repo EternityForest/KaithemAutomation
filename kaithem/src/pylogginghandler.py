@@ -34,7 +34,6 @@ from . import messagebus, directories, unitsofmeasure, util
 from .config import config
 
 
-
 configuredHandlers = {}
 
 all_handlers = weakref.WeakValueDictionary()
@@ -58,7 +57,7 @@ def at_exit():
     # This lets us tell a clean shutdown from something like a segfault
     if os.path.exists("/dev/shm"):
         try:
-            with open("/dev/shm/shutdowntime_"+getpass.getuser(), "w") as f:
+            with open("/dev/shm/shutdowntime_" + getpass.getuser(), "w") as f:
                 f.write(str(time.time()))
         except:
             print(traceback.format_exc())
@@ -75,13 +74,25 @@ class KFormatter(logging.Formatter):
 # Suppress low level from these outrageously chatty things
 excludeDebug = {
     'zeep.xsd.schema': 1,
-    'zeep.wsdl.wsdl':  1,
+    'zeep.wsdl.wsdl': 1,
     'zeep.xsd.visitor': 1,
-    'zeep.transports':1
+    'zeep.transports': 1
 }
 
 for i in excludeDebug:
     logging.getLogger(i).setLevel(logging.INFO)
+
+lastRaisedLogFailError = [0]
+
+
+def rateLimitedRaise(e):
+    # This is really bad to just let this error pass most of the time.
+    # But if we don't, a no space left on device thing could be a cascading failure.
+    # I don't even want to print anything lest systemd try to log it and make this situation worse.
+    if lastRaisedLogFailError[0] < (time.time() - 1800):
+        lastRaisedLogFailError[0] = time.time()
+        print(traceback.format_exc())
+        raise e
 
 
 class LoggingHandler(logging.Handler):
@@ -149,7 +160,7 @@ class LoggingHandler(logging.Handler):
 
     def _checkShmFolderChanged(self):
         "Only relevant to shm handlers. Basically we need to move to a new folder if permissions dropped"
-        f = "/dev/shm/kaithemdbglog_"+getpass.getuser()+"/"
+        f = "/dev/shm/kaithemdbglog_" + getpass.getuser() + "/"
         if not f == self.folder:
             self.folder = f
             self.current_file = None
@@ -189,7 +200,7 @@ class LoggingHandler(logging.Handler):
         # We handle all logs that make it to the root logger, and do the filtering ourselves
         if self.doprint:
             print(self.format(record))
-        if not (record.name == self.name or record.name.startswith(self.name+".")) and not self.name == '':
+        if not (record.name == self.name or record.name.startswith(self.name + ".")) and not self.name == '':
             return
         self.callback(record)
         with self.lock:
@@ -206,8 +217,16 @@ class LoggingHandler(logging.Handler):
             try:
                 self.flush()
             except Exception as e:
+                try:
+                    # If it is getting really insane with the space usage due to unforseen bugs, just drop some logs.
+                    if len(self.logbuffer) >= (self.bufferlen * 8):
+                        self.logbuffer = self.logbuffer[-50:]
+                        self.contextbuffer = []
+                except Exception as e:
+                    pass
+
                 print(traceback.format_exc())
-                print("Log flush error "+repr(e))
+                print("Log flush error " + repr(e))
                 #logging.exception("error flushing logs with handler "+repr(self))
 
     def flush(self):
@@ -249,12 +268,23 @@ class LoggingHandler(logging.Handler):
             # fixme in an editor that can unindent
             if True:
                 if not os.path.exists(self.folder):
-                    os.makedirs(self.folder)
+                    try:
+                        os.makedirs(self.folder)
+                    except Exception as e:
+                        # Swap them back so we can flush later, but don't hoard too many
+                        self.logbuffer = logbuffer[-256:]
+                        if self.isShmHandler:
+                            self._checkShmFolderChanged()
+                        # Sometimes the problem is that garbage collection
+                        # Hasn't gotten to a bunch of sockets yet
+                        gc.collect()
+                        rateLimitedRaise(e)
 
                 # Actually dump the log.
                 t = time.time()
                 if not self.current_file:
-                    fn = os.path.join(self.folder, self.fn+"_"+str(t)+ext)
+                    fn = os.path.join(
+                        self.folder, self.fn + "_" + str(t) + ext)
                     self.current_file = fn
                 else:
                     fn = self.current_file
@@ -268,37 +298,43 @@ class LoggingHandler(logging.Handler):
                         if chmodflag:
                             util.chmod_private_try(fn)
                         for i in logbuffer:
-                            b = (i+"\r\n").encode("utf8")
+                            b = (i + "\r\n").encode("utf8")
                             self.bytecounter += len(b)
                             f.write(b)
-                except PermissionError:
+                    # Keep track of how many we have written to the file
+                    self.counter += len(logbuffer)
+                    
+                except PermissionError as e:
                     # Swap them back so we can flush later, but don't hoard too many
-                    if len(logbuffer) < 1024:
-                        self.logbuffer = logbuffer
+                    self.logbuffer = logbuffer[-32:]
+                    self.contextbuffer = []
                     if self.isShmHandler:
                         self._checkShmFolderChanged()
                     # Sometimes the problem is that garbage collection
                     # Hasn't gotten to a bunch of sockets yet
                     gc.collect()
-                    raise
-                except OSError:
-                    # Swap them back so we can flush later, but don't hoard too many
-                    if len(logbuffer) < 1024:
-                        self.logbuffer = logbuffer
-                    if self.isShmHandler:
-                        self._checkShmFolderChanged()
-                    # Sometimes the problem is that garbage collection
-                    # Hasn't gotten to a bunch of sockets yet
-                    gc.collect()
-                    raise
-                except:
-                    # Sometimes the problem is that garbage collection
-                    # Hasn't gotten to a bunch of sockets yet
-                    gc.collect()
-                    raise
+                    rateLimitedRaise(e)
 
-                # Keep track of how many we have written to the file
-                self.counter += len(logbuffer)
+                except OSError as e:
+                    # Swap them back so we can flush later, but don't hoard too many
+                    self.logbuffer = logbuffer[-32:]
+                    self.contextbuffer = []
+                    if self.isShmHandler:
+                        self._checkShmFolderChanged()
+                    # Sometimes the problem is that garbage collection
+                    # Hasn't gotten to a bunch of sockets yet
+                    gc.collect()
+                    rateLimitedRaise(e)
+
+                except Exception as e:
+                    self.contextbuffer = []
+                    self.logbuffer = logbuffer[-32:]
+                    # Sometimes the problem is that garbage collection
+                    # Hasn't gotten to a bunch of sockets yet
+                    gc.collect()
+                    rateLimitedRaise(e)
+
+               
 
                 # If we have filled up one file, we close it, and let the logic
                 # for the next dump decide what to do about it.
@@ -310,7 +346,7 @@ class LoggingHandler(logging.Handler):
 
                 # We really don't want all the logs in one file because of how we delete them
                 # One file at a time.
-                if self.bytecounter > (self.keep/8):
+                if self.bytecounter > (self.keep / 8):
                     self.current_file = None
                     self.counter = 0
                     self.bytecounter = 0
@@ -318,7 +354,7 @@ class LoggingHandler(logging.Handler):
             # Make a list of our log dump files.
             asnumbers = {}
             for i in util.get_files(self.folder):
-                if not re.match(self.fn+r"_[0-9]+(.[0-9]+)?\.log(\..*)?", i):
+                if not re.match(self.fn + r"_[0-9]+(.[0-9]+)?\.log(\..*)?", i):
                     continue
                 try:
                     # Our filename format dictates that the last _ comes before the number and ext
@@ -358,17 +394,17 @@ syslogger = LoggingHandler("system", fn="system" if not config['log-format'] == 
                            compress=config['log-compress'], doprint=False)
 
 # Linux only way of recovering backups even if the
-if os.path.exists("/dev/shm/kaithemdbglog_"+getpass.getuser()):
-    if not os.path.exists("/dev/shm/shutdowntime_"+getpass.getuser()):
+if os.path.exists("/dev/shm/kaithemdbglog_" + getpass.getuser()):
+    if not os.path.exists("/dev/shm/shutdowntime_" + getpass.getuser()):
 
         try:
-            shutil.copytree("/dev/shm/kaithemdbglog_"+getpass.getuser(),
-                            "/dev/shm/kaithemdbglogbackup_"+getpass.getuser())
+            shutil.copytree("/dev/shm/kaithemdbglog_" + getpass.getuser(),
+                            "/dev/shm/kaithemdbglogbackup_" + getpass.getuser())
         except:
             pass
 
         try:
-            shutil.rmtree("/dev/shm/kaithemdbglog_"+getpass.getuser())
+            shutil.rmtree("/dev/shm/kaithemdbglog_" + getpass.getuser())
         except:
             pass
 
@@ -383,7 +419,7 @@ if os.path.exists("/dev/shm/kaithemdbglog_"+getpass.getuser()):
 # We know that there was a problem, and we can report that.
 if os.path.exists("/dev/shm"):
     try:
-        os.remove("/dev/shm/shutdowntime_"+getpass.getuser())
+        os.remove("/dev/shm/shutdowntime_" + getpass.getuser())
     except:
         pass
 
@@ -397,7 +433,7 @@ if os.path.exists("/dev/shm"):
 # and diagnose really odd errors.
 if os.path.exists("/dev/shm"):
     shmhandler = LoggingHandler("", fn="kaithemlog",
-                                folder="/dev/shm/kaithemdbglog_"+getpass.getuser()+"/", level=0,
+                                folder="/dev/shm/kaithemdbglog_" + getpass.getuser() + "/", level=0,
                                 entries_per_file=5000,
                                 bufferlen=0,
                                 keep=10**6,

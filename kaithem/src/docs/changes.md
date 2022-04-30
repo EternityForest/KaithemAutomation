@@ -2,6 +2,10 @@ Change Log
 ----------
 
 
+### 0.68.29
+- :bug: Print less log info and silently drop some records if we are running out of disk space, so as not to worsen the problem by logging it.
+
+
 ### 0.68.28
 - :lock: :coffin: Default admin:password credentials have been eliminated. 
 - :sparkles: If there are no users, one is created using the login credentials of the Linux user actually running the Kaithem service
