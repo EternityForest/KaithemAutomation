@@ -120,6 +120,11 @@ except Exception:
 urlliblogger = logging.getLogger("urllib3.connectionpool")
 urlliblogger.setLevel(logging.INFO)
 
+# Make this not spew debug logs, I'm pretty sure that lib is well tested and
+# Reliable and we don't need to know about every request.
+urlliblogger = logging.getLogger("hbmqtt.broker")
+urlliblogger.setLevel(logging.INFO)
+
 
 # This is a very slightly modified version with better socket cleanup properties
 

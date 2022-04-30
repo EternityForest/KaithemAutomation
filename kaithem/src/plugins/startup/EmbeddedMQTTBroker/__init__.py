@@ -1,20 +1,9 @@
 from mako.lookup import TemplateLookup
-from src import devices, alerts, scheduling, messagebus, workers, directories
-import subprocess
+from src import devices
 import os
-import mako
-import time
 import threading
 import logging
-import weakref
-import base64
-import traceback
-import shutil
-import socket
-import uuid
-import socket
 
-from src import widgets
 
 logger = logging.Logger("plugins.mqttbroker")
 
@@ -36,7 +25,6 @@ class MQTTBroker(devices.Device):
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
 
-
     @asyncio.coroutine
     def broker_coro(self):
         from hbmqtt.broker import Broker
@@ -53,11 +41,11 @@ class MQTTBroker(devices.Device):
                 }
 
         if self.wsAddr:
-            ws ={
-                'type':'ws',
-                'bind':self.wsAddr
+            ws = {
+                'type': 'ws',
+                'bind': self.wsAddr
             }
-            conf['listeners']['ws-1']=ws
+            conf['listeners']['ws-1'] = ws
 
         self.broker = Broker(conf)
         yield from self.broker.start()
@@ -96,10 +84,13 @@ class MQTTBroker(devices.Device):
             self.bind = data['device.bindTo'].strip()
             self.wsAddr = data['device.wsAddr'].strip()
 
-            self.loop.run_until_complete(self.broker_coro())
 
-            self.thread = threading.thread(t=self.get_event_loop().run_forever)
+            def f():
+                self.loop.run_until_complete(self.broker_coro())
+
+            self.thread = threading.Thread(target=f)
             self.thread.start()
+
 
         except Exception:
             self.handleException()

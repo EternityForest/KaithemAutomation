@@ -26,6 +26,7 @@ import yaml
 import os
 import weakref
 import scullery.persist
+from typing import Any
 
 import cherrypy
 from . import unitsofmeasure, workers, sound, messagebus, util, widgets, registry, directories, pages, config, persist, breakpoint, statemachines
@@ -62,13 +63,16 @@ class TagInterface():
         return tagpoints.Tag(k)
 
     def StringTag(self, k):
-        return tagpoints.StringTag(k)
+        t = tagpoints.StringTag(k)
+        return t
 
     def ObjectTag(self, k):
-        return tagpoints.ObjectTag(k)
+        t = tagpoints.ObjectTag(k)
+        return t
 
     def BinaryTag(self, k):
-        return tagpoints.BinaryTag(k)
+        t = tagpoints.BinaryTag(k)
+        return t
 
     def __iter__(self):
         return tagpoints.allTagsAtomic
@@ -84,18 +88,19 @@ class SoundOutput():
 
 
 class Kaithem():
-
     devices = devices.DeviceNamespace()
-
-    tags = TagInterface()
-
     context = threading.local()
+    tags = TagInterface()
+       
 
     def __getattr__(self, name):
         if name in plugins:
-            return pluginInterface(plugins[name])
+            return plugins[name]
         else:
             raise AttributeError(name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        plugins[name] = value
 
     class units():
         convert = unitsofmeasure.convert
@@ -423,7 +428,7 @@ class Kaithem():
                     return (subprocess.check_output('sensors').decode('utf8'))
                 else:
                     return('"sensors" command failed(lm_sensors not available)')
-            except:
+            except Exception:
                 return('sensors call failed')
 
     class registry(object):
@@ -522,7 +527,7 @@ class Kaithem():
                 try:
                     x = [i.name for i in jackmanager.getPorts(
                         is_audio=True, is_input=True)]
-                except:
+                except Exception:
                     print(traceback.format_exc())
                     x = []
 
@@ -536,7 +541,7 @@ class Kaithem():
                     op.append(i)
 
                 return [''] + op
-            except:
+            except Exception:
                 print(traceback.format_exc())
                 return []
 
@@ -639,9 +644,12 @@ class obj():
     pass
 
 
+Kaithem.widget = widgets
+Kaithem.globals = obj()  # this is just a place to stash stuff.
+
+
+# This is a global instance but we are moving away from that
 kaithem = Kaithem()
-kaithem.widget = widgets
-kaithem.globals = obj()  # this is just a place to stash stuff.
 
 if config.config['quotes-file'] == 'default':
     sentences = kaithem.persist.load(

@@ -986,8 +986,12 @@ class NVRChannel(devices.Device):
                         if i['class'] in lookfor:
                             self.lastRecordTrigger = time.monotonic()
                             self.lastObjectDetectionHit = time.monotonic()
+                            if not self.datapoints['record']:
+                                self.print("Record started because of "+i['class'])
+
                             self.set_data_point("record", True, None,
                                                 automated_record_uuid)
+
                 else:
                     self.lastRecordTrigger = time.monotonic()
                     self.set_data_point("record", True, None,
