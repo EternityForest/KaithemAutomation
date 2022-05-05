@@ -15,10 +15,33 @@ import copy
 "devices": {
   "Device":{
     "submodule": ""
-    "description": "Device base clas
+    "description": "Device base class
   }
 }
 """
+
+
+
+def get_alerts(*a,**k):
+    """
+    Return a list of currently active "alerts", if the framework supports such a concept,
+    In an order suitable for display to humans.
+
+    Args:
+        a: 
+            Reserved
+        k: 
+            Reserved
+
+    Returns:
+        A list of dicts, each having, at minimum:
+        
+        priority: 10 debug, 20 info, 30 warning, 40 error, 50 critical
+        name: Freetext nonunique long descriptive name
+        id: Some unique ID
+        state: May be 'active' or 'acknowledged'
+    """
+    return []
 
 #Gonna overwrite these functions insude functions...
 minimum = min

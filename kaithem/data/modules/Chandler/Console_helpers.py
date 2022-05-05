@@ -2,7 +2,7 @@
 ## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new
 __data__="""
 {continual: false, enable: true, once: true, priority: interactive, rate-limit: 0.0,
-  resource-timestamp: 1639337918430298, resource-type: event}
+  resource-timestamp: 1651714038078631, resource-type: event}
 
 """
 
@@ -39,12 +39,31 @@ if __name__=='__setup__':
     
         limitedTagsListing=[]
         for i in tagpoints.allTagsAtomic:
-            if len(limitedTagsListing)>250:
+            if len(limitedTagsListing)>1024:
                 break
             limitedTagsListing.append(i)
         return limitedTagsListing
     
     module.limitedTagsListing=limitedTagsListing
+    
+    
+    
+    def commandTagsListing():
+        #Make a list of all the tags,
+        #Unless there's way too many
+        #Then only list some of them
+    
+        limitedTagsListing=[]
+        t =  tagpoints.allTagsAtomic
+        for i in t:
+            x = t[i]()
+            if x.subtype =='event':
+                if len(limitedTagsListing)>250:
+                    break
+                limitedTagsListing.append(i)
+        return limitedTagsListing
+    
+    module.commandTagsListing=commandTagsListing
 
 def eventAction():
     pass

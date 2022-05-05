@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.68.30
+- :bug: Object tags could get in an invalit state and prevent page load
+- :bug: Correctly detect NVR failure if snapshotting fails
+- :sparkles: Chandler scenes now have a "Command Tag", that allows you to accept shortcut codes from any event tag(Like to Roku Launch button)
 
 ### 0.68.29
 - :bug: Print less log info and silently drop some records if we are running out of disk space, so as not to worsen the problem by logging it.
