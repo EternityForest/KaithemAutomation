@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1649538009829977
+resource-timestamp: 1651715753891664
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -39,6 +39,7 @@ from src import tagpoints
 
 <%
 limitedTagsListing=module.limitedTagsListing()
+commandTagsListing=module.commandTagsListing()
 %>
         <title>Chandler Console</title>
 
@@ -304,6 +305,13 @@ limitedTagsListing=module.limitedTagsListing()
                 %endfor
             </datalist>
 
+
+            <datalist id="commandtagslisting">
+                %for i in commandTagsListing:
+                <option value="${i}"></option>
+                %endfor
+            </datalist>
+            
             <div v-if="showimportexport" class="sectionbox flex-item">
                 <h3>Import/Export controls</h3>
                 <div class="buttonbar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
@@ -736,7 +744,6 @@ limitedTagsListing=module.limitedTagsListing()
                             <thead>
                                 <tr>
                                     <th title="Click the cue name to edit that cue">Cue Name</th>
-                                    <th class="desktop-only">#</th>
                                     <th class="desktop-only">Shortcut</th>
                                     <th class="desktop-only">Fadein</th>
                                     <th class="desktop-only" title="Length, 0 indicates until stopped">Length</th>
@@ -752,12 +759,11 @@ limitedTagsListing=module.limitedTagsListing()
                                     <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)">
                                         <i v-if="cuemeta[editingScene.cue].name==i[1].name" class="icofont-ui-play"></i>
                                         <span v-if="selectedCues[scenename]==i[1].name"><i class="icofont-pencil"></i></span>
-                                        <b>{{i[1].name}}</b>
+                                        <b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b> <b>{{i[1].name}}</b>
                                         <span v-if="i[1].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i class="icofont-law-document"></i></span>
                                         <span v-if="i[1].rules && i[1].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i class="icofont-law-document"></i></span>
                                     </td>
 
-                                    <td class="desktop-only" data-label="Cue #:"><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
 
                                     <td class="desktop-only" data-label="Shortcut:">
                                         <p class="buttonbar">
@@ -1250,6 +1256,10 @@ limitedTagsListing=module.limitedTagsListing()
                            <label v-if="showAdvancedControls" title="Recieve note events from a MIDI input device">MIDI Source:
                             <input list="midiinputs" style="width:25em"  v-on:change="setmidi(scenename,$event.target.value)"
                                 v-model="editingScene.midiSource"></input>
+                        </label>
+
+                        <label title="Recieve shortcut codes from a command-type tag">
+                            Command Tag:<input placeholder="Tagpoint" v-on:change="setcommandtag(scenename,$event.target.value)" v-model="editingScene.commandTag" list="commandtagslisting">
                         </label>
 
                            <label title="You can use this with __random__ to create a shuffle effect.">Default cue advance:
@@ -2607,6 +2617,13 @@ limitedTagsListing=module.limitedTagsListing()
 
                 appData.scenemeta[sc].midiSource = v;
                 api_link.send(['setMidiSource', sc, v]);
+            },
+
+            'setcommandtag': function(sc, v)
+            {
+
+                appData.scenemeta[sc].midiSource = v;
+                api_link.send(['setscenecommandtag', sc, v]);
             },
 
             'setdefaultnext': function(sc, v)

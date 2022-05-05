@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1646871592605909
+resource-timestamp: 1651715643578498
 resource-type: event
 versions: {}
 
@@ -256,6 +256,10 @@ if __name__=='__setup__':
     module.scenes_by_name = weakref.WeakValueDictionary()
     
     
+    
+    
+    
+    
     def gotoCommand(scene="=SCENE", cue=""):
         "Triggers a scene to go to a cue"
     
@@ -430,7 +434,8 @@ if __name__=='__setup__':
     
     class ObjPlugin():
         pass
-    kaithem.chandler = ObjPlugin()
+    k_interface = ObjPlugin()
+    kaithem.chandler = k_interface
     
     module.controlValues = weakref.WeakValueDictionary()
     
@@ -1205,6 +1210,7 @@ if __name__=='__setup__':
                                 'cuelen': scene.cuelen,
                                 'midiSource': scene.midiSource,
                                 'defaultNext': scene.defaultNext,
+                                'commandTag': scene.commandTag,
                                 'soundOutput': scene.soundOutput,
                                 'vars':v,
                                 'timers': scene.runningTimers,
@@ -1255,7 +1261,6 @@ if __name__=='__setup__':
                                 'defaultNext': cue.scene().getAfter(cue.name),
                                 'prev': cue.scene().getParent(cue.name),
                                 'probability': cue.probability,
-                                
                                 'rules': cue.rules,
                                 'reentrant': cue.reentrant,
                                 'inheritRules': cue.inheritRules,
@@ -1843,6 +1848,11 @@ if __name__=='__setup__':
                     module.scenes[msg[1]].soundOutput=msg[2]
                     self.pushMeta(msg[1],keys={'soundOutput'})
     
+                if msg[0] == "setscenecommandtag":
+                    module.scenes[msg[1]].setCommandTag(msg[2])
+    
+                    self.pushMeta(msg[1],keys={'commandTag'})
+    
                 if msg[0] == "setlength":
                     try:
                         v=float(msg[2])
@@ -2254,15 +2264,27 @@ if __name__=='__setup__':
             for i in list(self.v2.keys()):
                 if not i in affect:
                     del self.v2[i]
+    
+    
+    def getAllDeviceTagPoints():
+        o = {}
+        for i in kaithem.devices:
+            o[i] = {}
+            for j in kaithem.devices[i].tagpoints:
+                o[i][j] = [kaithem.devices[i].tagpoints[j].name, kaithem.devices[i].tagpoints[j].subtype]
+    
             
     
-    def shortcutCode(code):
+    def shortcutCode(code, limitScene=None):
         "API to activate a cue by it's shortcut code"
         with module.lock:
             if code in shortcut_codes:
                 for i in shortcut_codes[code]:
                     try:
                         x=i.scene()
+                        if limitScene:
+                            if not x is limitScene:
+                                continue
                         if x:
                             x.go()
                             x.gotoCue(i.name,cause='manual')
@@ -2579,7 +2601,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
-        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='',**ignoredParams):
+        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
         
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2592,6 +2614,10 @@ if __name__=='__setup__':
             disallow_special(name)
             self.lock = threading.RLock()
             self.randomizeModifier=0
+    
+            self.commandTagSubscriptions = []
+            self.commandTag=commandTag
+            self.subscribeCommandTags()
     
             self.notes=notes
             self.midiSource=''
@@ -2828,6 +2854,7 @@ if __name__=='__setup__':
                         'soundOutput': self.soundOutput,
                         'midiSource': self.midiSource,
                         'defaultNext':self.defaultNext,
+                        'commandTag': self.commandTag,
                         'uuid': self.id,
                         'notes': self.notes,
                         'page': self.page,
@@ -3606,6 +3633,43 @@ if __name__=='__setup__':
         
         
     
+        def clearConfiguredTags(self):
+            with module.lock:
+                for i in self.commandTagSubscriptions:
+                    i[0].unsubscribe(i[1])
+                self.commandTagSubscriptions= []
+    
+        def commandTagSubscriber(self):
+            def f(v,t,a):
+                shortcutCode(str(v[0]),self)
+    
+            return f
+            
+        def subscribeCommandTags(self):
+            if not self.commandTag.strip():
+                return
+            with module.lock:
+                for i in [self.commandTag]:
+                    t = kaithem.tags.ObjectTag(i)
+                    s = self.commandTagSubscriber()
+                    self.commandTagSubscriptions.append([t,s])
+                    t.subscribe(s)
+    
+        
+        def setCommandTag(self,st):
+            st=st.strip()
+            
+            self.clearConfiguredTags()
+    
+            self.commandTag= st
+    
+            if st:
+                st = kaithem.tags.ObjectTag(st)
+                if st.subtype and not st.subtype =='event':
+                    raise ValueError("That tag does not have the event subtype")
+                
+    
+    
     
     
         def nextCue(self,t=None,cause='generic'):
@@ -3892,7 +3956,6 @@ if __name__=='__setup__':
     
         def cc(self,ch,n,v):
             self.event("midi.cc:"+str(ch)+"."+str(n),v)
-    
     
         def setMidiSource(self,s):
     

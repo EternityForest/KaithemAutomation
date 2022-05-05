@@ -591,9 +591,13 @@ class NVRChannel(devices.Device):
         if hasattr(self, 'snapshotter'):
             with open("/dev/shm/knvr_buffer/" + self.name + ".bmp","w") as f:
                 os.chmod("/dev/shm/knvr_buffer/" + self.name + ".bmp", 0o700)
+            try:
+                x = self.snapshotter.pullToFile(
+                    "/dev/shm/knvr_buffer/" + self.name + ".bmp")
+            except:
+                self.set_data_point('running', 0)
+                raise
 
-            x = self.snapshotter.pullToFile(
-                "/dev/shm/knvr_buffer/" + self.name + ".bmp")
             if x:
                 with open("/dev/shm/knvr_buffer/" + self.name + ".bmp", 'rb') as f:
                     x = f.read()

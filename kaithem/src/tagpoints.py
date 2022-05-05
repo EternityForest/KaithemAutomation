@@ -2424,7 +2424,12 @@ class _ObjectTagPoint(_TagPoint):
         return value
 
     def filterValue(self, v):
-
+        if isinstance(v, str):
+            v = json.loads(v)
+        else:
+            # test validity
+            json.dumps(v)
+            
         return v
 
     def _debugAdminPush(self, value, timestamp, annotation):
