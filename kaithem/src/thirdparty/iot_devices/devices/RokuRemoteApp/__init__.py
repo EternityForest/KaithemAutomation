@@ -156,9 +156,9 @@ def getLocalIPForRemoteClient(addr):
 class HTTPUServer():
     def __init__(self):
         sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        sock.settimeout(3)
+        sock.settimeout(2)
         sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        addr = ("0.0.0.0",1900)
+        addr = ("",1900)
         sock.bind(addr)
         opt = bytes([239,255,255,250])+bytes([0,0,0,0])
         sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,opt)
@@ -543,12 +543,14 @@ class RokuRemoteApp(device.Device):
                     s._set_headers()
 
                 def do_POST(s):
+                    s._set_headers()
+                    s.wfile.write(b'{}')
+                    
                     if s.path.startswith("/keypress/"):
                         self.set_data_point('keypress',[s.path[len('/keypress/'):], time.monotonic(),None])
                     if s.path.startswith("/launch/"):
                         self.set_data_point('launch',[s.path[len('/launch/'):], time.monotonic(),None])
-
-                    s._set_headers()
+                    
 
 
             def f():

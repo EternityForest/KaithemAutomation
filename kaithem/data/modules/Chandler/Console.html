@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1651715753891664
+resource-timestamp: 1651815129842407
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -406,7 +406,7 @@ commandTagsListing=module.commandTagsListing()
                                 placeholder="Default">
                         </td>
                         <td v-if="v.type=='artnet'">
-                            <input list="artnettargets" v-model="v.interface" title="A destination ip:port in the case of ArtNet. A Pavillion device name prefixed with pavillion:// may be used instead of a hostname. The IP will be obtained from the Device config"
+                            <input list="artnettargets" v-model="v.interface" title="A destination ip:port in the case of ArtNet."
                                 placeholder="Default">
                         </td>
 
@@ -659,7 +659,7 @@ commandTagsListing=module.commandTagsListing()
                     <div v-for="i in formatScenes()" v-if="i" style="position:relative;border:1px solid;" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
                         <div class="buttonbar">
-                        <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;"><i v-if="i[1].syncKey" class="icofont-ui-wifi" style="color:blue;"> </i>
+                        <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;">
 
                     {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
                                  
@@ -725,7 +725,7 @@ commandTagsListing=module.commandTagsListing()
 
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"><i class="icofont-law-document"></i>Cue Logic</button>
-                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
+                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='history'}" v-on:click="scenetab='history'">History</button>
                         <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
                         <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
 
@@ -950,11 +950,17 @@ commandTagsListing=module.commandTagsListing()
                     </textarea>
                         </div>
 
-                        <div v-if="scenetab=='sync'">
-                            <h3>Sync Options</h3>
-                            <p class="help">
-                                The Pavillion protocol is now removed!! Nobody was using this. Stay tuned for MQTT sync at some point.
-                            </p>
+                        <div v-if="scenetab=='history'">
+                            <button v-on:click="refreshhistory(scenename)">Refresh</button>
+                            <h3>Cue History</h3>
+                                <table border="1" v-if="scenemeta[scenename].history">
+                                <tr><th>Cue</th><th>Time</th></tr>
+                                <tr v-for="v,i of scenemeta[scenename].history">
+                                <td>{{v[0]}}</td>
+                                <td>{{(new Date(v[1]*1000)).toLocaleString() }}</td>
+                                </tr>
+
+                                </table>
 
                         </div>
 
@@ -2295,6 +2301,11 @@ commandTagsListing=module.commandTagsListing()
             {
                 return (this.scenecues[sceneid][cuename])
             },
+
+            'refreshhistory': function(sc)
+            {
+                api_link.send(['getcuehistory', sc]);
+            },
             'setCueVal': function(sc, u, ch, val)
             {
                 this.lockedFaders[sc+":"+u+":"+ch]=true;
@@ -2759,7 +2770,10 @@ commandTagsListing=module.commandTagsListing()
             {
                 appData.scenemeta[v[1]].timers=v[2]
             }
-
+            if (c=='cuehistory')
+            {
+                appData.scenemeta[v[1]].history=v[2]
+            }
             if (c == "scenemeta")
             {
                 if (v[2].cue)

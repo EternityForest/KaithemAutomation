@@ -217,7 +217,7 @@ def recognize_tflite(i, r):
             # this aren't doing extreme close ups
             # and the ones that are probably have good lighting
             if ((w < original_image_w / 4) or (confidence > 0.18)) and ((h < (original_image_h / 3)) or (confidence > 0.15)):
-                if (w < (original_image_w / 1.5) or (confidence > 0.32)) and (h < (original_image_h / 1.5) or (confidence > 0.32)):
+                if (w < (original_image_w / 2.5) or (confidence > 0.48)) and (h < (original_image_h / 1.8) or (confidence > 0.48)):
 
                     # If the width of this object is such that more than 2/3d is off of the frame, we had better be very confident
                     # because that seems to be a common pattern of false positives.
@@ -591,19 +591,25 @@ class NVRChannel(devices.Device):
         if hasattr(self, 'snapshotter'):
             with open("/dev/shm/knvr_buffer/" + self.name + ".bmp","w") as f:
                 os.chmod("/dev/shm/knvr_buffer/" + self.name + ".bmp", 0o700)
-            try:
-                x = self.snapshotter.pullToFile(
-                    "/dev/shm/knvr_buffer/" + self.name + ".bmp")
-            except:
-                self.set_data_point('running', 0)
-                raise
+            if self.datapoints['running']:
+                try:
+                    x = self.snapshotter.pullToFile(
+                        "/dev/shm/knvr_buffer/" + self.name + ".bmp")
+                except Exception:
+                    self.set_data_point('running', 0)
+                    if self.process:
+                        try:
+                            self.process.stop()
+                        except Exception:
+                            print(traceback.format_exc())
+                    raise
 
-            if x:
-                with open("/dev/shm/knvr_buffer/" + self.name + ".bmp", 'rb') as f:
-                    x = f.read()
-                os.remove("/dev/shm/knvr_buffer/" + self.name + ".bmp")
+                if x:
+                    with open("/dev/shm/knvr_buffer/" + self.name + ".bmp", 'rb') as f:
+                        x = f.read()
+                    os.remove("/dev/shm/knvr_buffer/" + self.name + ".bmp")
 
-            return x
+                return x
 
     def connect(self, config):
         if self.closed:

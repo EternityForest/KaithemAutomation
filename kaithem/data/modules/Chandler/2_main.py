@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1651715643578498
+resource-timestamp: 1651814926155961
 resource-type: event
 versions: {}
 
@@ -1400,6 +1400,13 @@ if __name__=='__setup__':
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
                     self.pushFixtureAssignmentCode()
                     self.refreshFixtures()
+    
+    
+    
+                if msg[0] == "getcuehistory":
+                    self.link.send(['cuehistory',msg[1], module.scenes[msg[1]].cueHistory ])
+    
+    
     
                 if msg[0] == "rmFixtureAssignment":
                     del self.fixtureAssignments[msg[1]]
@@ -3077,10 +3084,10 @@ if __name__=='__setup__':
         def _parseCueName(self,cue):
             if cue == "__shuffle__":
                 x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
-                for i in list(reversed(self.cueHistory))[:15]:
+                for i in list(reversed(self.cueHistory[-15:])):
                     if len(x)<2:
                         break
-                    elif i in x:
+                    elif i[0] in x:
                         x.remove(i)
                 cue = self.pickRandomCueFromNames(x)
                 
@@ -3093,10 +3100,10 @@ if __name__=='__setup__':
                 if "|" in cue:
                     x = cue.split("|")
                     if random.random()>0.3:
-                        for i in reversed(self.cueHistory):
+                        for i in reversed(self.cueHistory[-15:]):
                             if len(x)<3:
                                 break
-                            elif i in x:
+                            elif i[0] in x:
                                 x.remove(i)
                     cue = self.pickRandomCueFromNames(x)
                     
@@ -3121,10 +3128,10 @@ if __name__=='__setup__':
                         #Eliminate until only two remain, the min to not get stuck in
                         #A fixed pattern.
                         optionsNeeded = 2
-                        for i in reversed(self.cueHistory)[:15]:
+                        for i in reversed(self.cueHistory[-50:]):
                             if len(x)<=optionsNeeded:
                                 break
-                            elif i in x:
+                            elif i[0] in x:
                                 x.remove(i)
                     cue = cue = self.pickRandomCueFromNames(x)
     
@@ -3224,8 +3231,8 @@ if __name__=='__setup__':
                     if not self.enteredCue == entered:
                         return
                     
-                    self.cueHistory.append(cue)
-                    self.cueHistory = self.cueHistory[-100:]
+                    self.cueHistory.append((cue,time.time()))
+                    self.cueHistory = self.cueHistory[-1024:]
                     self.sound_end = 0
     
                     
