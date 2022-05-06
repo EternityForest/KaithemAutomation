@@ -95,7 +95,7 @@ lastramwarn = 0
 lastpageviews = 0
 pageviewsthisminute = 0
 pageviewpublishcountdown = 1
-tenminutepagecount = 0
+nminutepagecount = 0
 
 
 upnpMapping = None
@@ -194,21 +194,21 @@ def logstats():
     global pageviewsthisminute, firstrun, checked
     global pageviewpublishcountdown, lastpageviews
     global MemUseWasTooHigh
-    global lastram, tenminutepagecount
+    global lastram, nminutepagecount
     global lastramwarn
     pass
     # Do the page count
-    tenminutepagecount += pageviewsthisminute
+    nminutepagecount += pageviewsthisminute
 
     pageviewcountsmoother.sample(pageviewsthisminute)
     pageviewsthisminute = 0
 
     # Only log page views every ten minutes
-    if (time.time() > lastpageviews+600) and tenminutepagecount > 0:
+    if (time.time() > lastpageviews+(60*30)) and nminutepagecount > 0:
         logger.info("Requests per minute: " +
-                    str(round(tenminutepagecount/10, 2)))
+                    str(round(nminutepagecount/30, 2)))
         lastpageviews = time.time()
-        tenminutepagecount = 0
+        nminutepagecount = 0
 
     if platform.system() == "Linux":
         try:
@@ -220,14 +220,14 @@ def logstats():
             used = round(((total - (free+cache))/1000.0), 2)
             usedp = round((1-(free+cache)/float(total)), 3)
             total = round(total/1024.0, 2)
-            if (time.time()-lastram > 600) or ((time.time()-lastram > 300) and usedp > 0.8):
+            if (time.time()-lastram > (60*60)) or ((time.time()-lastram > 600) and usedp > 0.8):
                 logger.info("Total ram usage: " + str(round(usedp*100, 1)))
                 lastram = time.time()
 
             if usedp > config['mem-use-warn']:
                 if not MemUseWasTooHigh:
                     MemUseWasTooHigh = True
-                    if (time.time()-lastramwarn > 600):
+                    if (time.time()-lastramwarn > 3600):
                         messagebus.postMessage(
                             "/system/notifications/warnings", "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
                         lastramwarn = time.time()
