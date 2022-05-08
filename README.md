@@ -63,7 +63,7 @@ Several other audio file players may still work, but the only one supported and 
 ## To install all required and optional dependencies 
 
 ```bash
-sudo apt install python3 cython3 build-essential python3-msgpack python3-future apt install python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage
+sudo apt install python3 cython3 build-essential python3-msgpack python3-future apt install python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage python3-evdev python3-xlib
 ```
 
 You will also need Python's tflite_runtime for deep learning image recognition in the NVR.  
@@ -165,6 +165,17 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.30
+- :bug: Object tags could get in an invalit state and prevent page load
+- :bug: Correctly detect NVR failure if snapshotting fails
+- :sparkles: Chandler scenes now have a "Command Tag", that allows you to accept shortcut codes from any event tag(Like to Roku Launch button)
+- Fewer memory usage and page load count logs
+- :sparkles: Chandler scenes now let you view the recent history
+  
+### 0.68.29
+- :bug: Print less log info and silently drop some records if we are running out of disk space, so as not to worsen the problem by logging it.
+
+
 ### 0.68.28
 - :lock: :coffin: Default admin:password credentials have been eliminated. 
 - :sparkles: If there are no users, one is created using the login credentials of the Linux user actually running the Kaithem service
@@ -178,137 +189,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - :bug: NVRChannel auto reconnect used to never retry again if the very first attempt was a failure.
 - :bug: Avoid rare bug that killed the WS manager thread
 - :bug: Fix plaintest HTTP support for video streams
-
-### 0.68.26
-
-- :wrench: Temperature warning at 76 degrees
-- :wrench: NVRPlugin camera disconnect alarm delay is 90 seconds to reduce false trips
-- :bug: :lock: Remove default read/write permissions for devices, they must now be manually added
-- :lipstick: Read/write permissions for devices have auto-suggest now
-
-### 0.68.25 "Just Use PipeWire"
-
-This release is all about getting rid of the JACKD manager. Instead, you use an external jack server if you have fancy
-mixing. See: https://askubuntu.com/questions/1339765/replacing-pulseaudio-with-pipewire-in-ubuntu-20-04 for info
-on switching to PipeWire.  The next EmberOS will have Pipewire running by default already.
-
-- :coffin: Remove ability for kaithem to manage PipeWire or JACK. That should be done by the system.
-- :coffin: Remove PulseAudio sharing mode. Use Pipewire, manage it yourself, or just don't use Pulse
-- :coffin: JACKD is considered legacy tech and support will be removed as soon as all common Debian platforms easily support PipeWire
-- :coffin: Remove ability to manage USB soundcards. Pipewire does that for us!
-- :bug: Fix object inferrence on versions of the imaging library
-- :bug: Fix downloading modules as ZIP
-- :bug: Fix a bug where an old airwire could get GCed and delete a newer wanted audio link
-- :bug: Fix Select() not working on some systems in JSONRPYC
-
-
-### 0.68.24
-- :bug: Fix missing platformdirs.version
-- :sparkles: NVRChannel discovery for Amcrest cameras, because that's what I've got lying around.
-- :monocle_face: Please be aware: Many major CCTV manufactures are rebrands of just a few firms that may be supporting things you may find morally abhorrent.
-
-### 0.68.23
-- :zap: JSON RPC performance boost with select polling
-
-### 0.68.22
-- :sparkles: NVRChannels can now act as open SRT servers
-- :sparkles: NVRChannels can play SRT URLs as long as they are h264/AAC in an MPEG-TS codec.
-- Boost the no-motion detection interval for spotting sneaky people far away.
-- :sparkles: Image frames by Kebinite of OGA
-- :sparkles: New CSS class section class=fancy(BG Image by West of OGA)
-
-### 0.68.21 Security Matters!
-- :coffin: Remove a lot of dead code
-- :coffin: :fire: BREAKING: Remove the entire VirtualResource mechanism. I think it was too complicated to use anyway.
-- As a result, getting a Device object will give a Weak Proxy to the device instead of a VirtualResourceInterface.
-- REMINDER: When accessing a Device, tagpoint, etc, don't keep a reference to somthing a user could update and replace! 
-   access kaithem.devices['foo'] directly rather than making a local reference.
-- Tag Points and the Message Bus are the official ways to do loose coupling, and are much simpler.
-- :bug: Fix inability to create new device inside a module
-- :coffin: Theming, alert tones, and server locations use files in core.settings. Registry data is auto migrated.
-- :sparkles: New kaithem.persist.unsaved dict for user-created files to inform the UI of unsaved changes.
-- :fire: Announce that the registry will be deprecated eventually.  Modules should attempt to move data to files instead.
-- :coffin: Remove mailing list features, as they were very old, unmaintained, and email is a security critical feature.
-- :coffin: Remove kaithem.serial.  It was unmaintained and never production-tested, and not used internally here in a very long time.
-- :coffin: Remove the restart server option.  On newer systems it would sometimes just stop and not restart.
-
-
-
-### 0.68.20
-- :lock:SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.
-- :lock:SECURITY/BREAKING: Now you need a POST request for Chandler's sendevent API
-- :lock: :sparkles:SECURITY: User pages show at a glance whether they accept GET
-- :bug: Fix inability to assign new user-created permissions to users or pages.
-- :sparkles: This file uses GitMoji now! Gitmoji chosen because it is the first Google result.
-
-### 0.68.19
-- SECURITY/SEMI-BREAKING: No CORS requests from any other domain allowed as a user, regardless of permissions needed, unless enabled in user settings.
-- SECURITY: Fix bug where an attack from my.org could be accepted as matching your domain at my.org.fooo.com
-- Fix old code that was looking for YOLOv3.txt
-
-### 0.68.18
-- kaithem.web.serveFile streaming response
-- SECURITY: Beholder no longer allows unauthorized access to camera snapshots
-- Correctly finalize M3U8 files with the end playlist tag
-- 
-### 0.68.17
-- Clean up a process leak with the IceFlow servers
-- 
-### 0.68.16
-- Correctly compute width and height of deteted objects
-
-### 0.68.15
-- kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.
-- Object Detection in NVRChannel!!! You just need opencv and tflite_runtime!! Future cleanup may not need opencv
-- Fix bug where deleting a tag point logger would not save.
-- We use git-lfs now.  If you are missing files it's probably because that isn't set up.
-
-
-### 0.68.14
-- Fix bug where NVRChannel would carry over record sessions and thereby crash and not be able to recover from connection failure
-- Improve nvr time search
-- 
-### 0.68.13
-- NVRChannel can now use scipy for way better performance on erosion operations.
-
-### 0.68.12
-- NVRChannel can now auto reconnect after a network problem.
-
-### 0.68.11
-- Minor tweak to the motion detection algorithm for enhanced resistance to  low level noise.
-- Water ripple filter now uses alpha blending for better realism.
-
-### 0.68.10
-- BREAKING: NVRPlugin no longer uses a sensitivity value. We have a custom detector and we use a threshold value now
-- NVRChannel now reports the raw "level" of motion
-- NVRChannel uses a custom motion algorithm that requires Pillow, based on RMS and erosion.
-- Retriggering recording in NVRChannel before recording is finished will just append to the active recording
-- NVRChannel should no longer crash if you delete a segment dir while it is being written to
-
-
-### 0.68.9
-- Any module page can now be accessed via it's subfolder
-- No more H1 header at the top of most pages, to save screen space
-- Dropdown panel to keep an eye on notofications from any page
-- Manual and motion-activated NVR recording
-- Beholder frontend module for a simplified view of the NVR
-- 
-### 0.68.8
-
-- New Fugit SciFi inspired theme
-- NVRPlugin has been rewritten to give low latency streaming over websockets.  It still doesn't have recording, but likely will.
-- New unreliable mode for tag points to support this kind of media.
-- User telemetry hidden on admin page unless you explicitly press "show"
-- Unlogged realtime only telemetry now includes user idle state if permission has been granted, to check on digital signage and kiosks.
-- Easier selection of the builtin themes
-- Icons switched to the IcoFont for more standardization
-- Improve mobile support
-
-### 0.68.7
-
-- Admin can see battery status of all connected devices if said device supports it
-- Admin can remotely refresh any client page
-- Enabling telemetry alerts for an account will raise an alarm when an associated kiosk device browser hs low battery(Chrome/Chromium only, FF killed the API on others)
 
 
 License Terms
