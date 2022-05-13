@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.68.31
+- :sparkles: Module descriptions on the index page.
+- :sparkles: Module descriptions are now Markdown
+- :coffin: Broken years-old JookBawkse module removed
+  
 ### 0.68.30
 - :bug: Object tags could get in an invalit state and prevent page load
 - :bug: Correctly detect NVR failure if snapshotting fails

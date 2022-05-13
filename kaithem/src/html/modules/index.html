@@ -1,8 +1,17 @@
 <%!
 from src.util import url
 from src import modules, modules_state
+
+def getDesc(m):
+    try:
+        return modules_state.ActiveModules[m]['__description']['text']
+    except:
+        return "No module description found"
+
 %>
 <%include file="/pageheader.html"/>
+<script src="/static/showdown.min.js"></script>
+
 <h2> Modules <sup><a href="/docs#modules">[help]</a></sup></h2>
 <title>Kaithem Modules</title>
 <section>
@@ -19,9 +28,9 @@ from src import modules, modules_state
         <p><b style="font-size: smaller;">${modules_state.moduleshash}</b></p>
     </div>
 <hr>
-<ul>
+<dl>
 %for i in sorted(ActiveModules.keys()):
-<li>\
+<dt>\
 %if i in modules_state.unsaved_changed_obj or i in [j[0] for j in modules_state.unsaved_changed_obj if isinstance(j,tuple)]:
 *\
 %endif
@@ -30,17 +39,27 @@ from src import modules, modules_state
 %if i in modules.external_module_locations:
 [From ${modules.external_module_locations[i]|h}]\
 %endif
-</li>\
+</dt>\
 %except Exception as e:
 <%
 print(e)
 %>
-</li>
-<li>
+</dt>
+<dt>
 ${e|h}
-</li>
+</dt>
 %endtry
+
+<dd id="${i.replace('"','')}">${getDesc(i)|h}</dd>
+
+<script>
+    showdown.setFlavor('github');
+    var c= document.getElementById("${i.replace('"','')}").innerHTML;
+    var converter = new showdown.Converter();
+    document.getElementById("${i.replace('"','')}").innerHTML=converter.makeHtml(c);
+</script>
+
 %endfor
-</ul>
+</dl>
 </section>
 <%include file="/pagefooter.html"/>

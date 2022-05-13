@@ -1,8 +1,7 @@
 resource-timestamp: 1604310181972882
 resource-type: module-description
 text: "Map tile server with storage compatible with KDE Marble's cache. Serves tiles\
-  \ from ~/.local/share/marble/maps/earth/opentopomap, or from /home/pi/.local/share/marble/maps/earth/opentopomap.\r\
-  \n\r\nNote that this does not include any form of permissions at the moment, and\
-  \ serves to absolutely anyone.\r\n\r\nTo download map tiles, install KDE's Marble\
-  \ and browse around, tiles are cached indefinitely.  If you are running EmberOS,\
-  \ ~400MB of map data is already included and this works out-of-the-box."
+  \ to anyone from ~/.local/share/marble/maps/earth/opentopomap, or from /home/pi/.local/share/marble/maps/earth/opentopomap.\r\
+  \n\r\nTo download map tiles, install KDE's [Marble](https://marble.kde.org/) and\
+  \ browse around.  If you are running EmberOS, map data is already included and this\
+  \ works out-of-the-box."
