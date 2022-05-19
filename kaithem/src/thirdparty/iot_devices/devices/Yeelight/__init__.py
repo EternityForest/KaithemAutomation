@@ -127,10 +127,6 @@ class YeelightDevice(iot_devices.device.Device):
 
             return self.datapoints['rssi'] or -75
 
-    @staticmethod
-    def getCreateForm():
-        return templateGetter.get_template("createform.html").render()
-
 
 class YeelightRGB(YeelightDevice):
     device_type = "YeelightRGB"
