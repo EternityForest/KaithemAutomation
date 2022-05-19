@@ -8,7 +8,7 @@
 # Kaithem Automation is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU General Public License for mofre details.
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
@@ -80,7 +80,7 @@ fnToModuleResource = {}
 def new_empty_module():
     return {"__description":
             {"resource-type": "module-description",
-             "text": "Module info here"}}
+             "text": ""}}
 
 
 def new_module_container():
@@ -408,6 +408,24 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                 logger.exception("err loading as html encoded: " + fn)
                 pass
 
+        # Option to encode metadata as special script type
+        elif fn.endswith(".html") and "kaithem.resourcemeta" in d:
+
+            isSpecialEncoded = True
+            try:
+                x = re.search(
+                    r'<script +type=\"kaithem.resourcemeta\">((.|[\n\r])*?)<\/script>', d)
+                data = yaml.load(x.group(1))
+                d = re.sub(
+                    r'<script +type=\"kaithem.resourcemeta\">((.|[\n\r])*?)<\/script>', '', d)
+                data['body'] = d.strip()
+                r = data
+                shouldRemoveExtension = True
+            except Exception:
+                isSpecialEncoded = False
+                wasProblem = True
+                logger.exception("err loading as html encoded: " + fn)
+                pass
         # Markdown and most html files files start with --- and are delimited by ---
         # The first section is YAML and the second is the page body.
         elif fn.endswith(".md") or fn.endswith(".html"):
@@ -1385,11 +1403,11 @@ def newModule(name, location=None):
             else:
                 modules_state.ActiveModules[name] = {"__description":
                                        {"resource-type": "module-description",
-                                        "text": "Module info here"}}
+                                        "text": ""}}
         else:
             modules_state.ActiveModules[name] = {"__description":
                                    {"resource-type": "module-description",
-                                    "text": "Module info here"}}
+                                    "text": ""}}
         modules_state.createRecoveryEntry(
             name, "__description", modules_state.ActiveModules[name]["__description"])
         bookkeeponemodule(name)

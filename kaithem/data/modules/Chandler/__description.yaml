@@ -1,8 +1,3 @@
-resource-timestamp: 1566264981278455
-resource-type: module-description
-text: "Lighting control library and JS virtual light board. Requires numpy.\r\npyserial\
-  \ is required to use enttec DMX adapters.\r\n\r\nNote to developers: this module\
-  \ needs some work on the tight coupling between events. If you change one part of\
-  \ the code at runtime, expect oddities as the old version might not immediately\
-  \ go away.  This isn't enough of an issiue to really impede development though.\r\
-  \n"
+{resource-timestamp: 1566264981278455, resource-type: module-description, text: 'Lighting
+    control library and JS virtual light board. Requires numpy. pyserial is required
+    to use enttec DMX adapters.  See [Help](/pages/Chandler/docs/index)'}
