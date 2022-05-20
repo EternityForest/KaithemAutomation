@@ -32,6 +32,7 @@ specialKeys={
 
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
 <script type="text/javascript" src="/static/js/editTable/editTable.min.js"></script>
+<script src="/static/showdown.min.js"></script>
 
 
 
@@ -108,14 +109,32 @@ specialKeys={
 
 %if hasattr(obj,'description') and obj.description:
 <h3>Description</h3>
-<p>
-        ${str(obj.description)[:8192]|h}
-</p>
+<p id="desc">${str(obj.description)[:8192]|h}</p>
+
+<script>
+        showdown.setFlavor('github');
+        var c= document.getElementById("desc").innerHTML;
+        var converter = new showdown.Converter();
+        document.getElementById("desc").innerHTML=converter.makeHtml(c);
+</script>
+    
 %endif
 
-<ul>
-<li><a href="/devices/devicedocs/${url(name)}">README for this device type</a></li>
-</ul>
+%if hasattr(obj,'readme') and obj.readme:
+<h3>Readme</h3>
+
+<div class="scrollbox" id='readme'>
+${obj.readme|h}
+</div>
+
+<script>
+        showdown.setFlavor('github');
+        var c= document.getElementById("readme").innerHTML;
+        var converter = new showdown.Converter();
+        document.getElementById("readme").innerHTML=converter.makeHtml(c);
+</script>
+%endif
+
 <title>${name|h}</title>
 
 

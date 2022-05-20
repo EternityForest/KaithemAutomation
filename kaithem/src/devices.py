@@ -195,7 +195,8 @@ class Device():
     and names should be globally unique"""
     descriptors = {}
 
-    description = "No description set"
+    description = ""
+    readme=''
     deviceTypeName = "device"
 
     readme = None
@@ -1083,7 +1084,7 @@ class WebDevices():
 
         if x is None:
             x = "No readme found"
-        if x.startswith("/"):
+        if x.startswith("/") or (len(x)< 1024 and os.path.exists(x)):
             with open(x) as f:
                 x = f.read()
 
@@ -1292,6 +1293,7 @@ devicesByModuleAndResource = weakref.WeakValueDictionary()
 
 def makeDevice(name, data, module=None, resource=None):
     err = None
+    desc = ''
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
@@ -1302,6 +1304,11 @@ def makeDevice(name, data, module=None, resource=None):
 
         try:
             dt2 = iot_devices.host.get_class(data)
+            try:
+                desc = iot_devices.host.get_description(data['type'])
+            except Exception:
+                logging.exception("err getting description")
+
             if not dt2:
                 raise ValueError("Couldn't get class")
 
@@ -1312,6 +1319,9 @@ def makeDevice(name, data, module=None, resource=None):
             class ImportedDeviceClass(CrossFrameworkDevice, dt2):
                 # Adapt from the cross-framework spec to the internal spec
                 deviceTypeName = dt2.device_type
+                readme = dt2.readme
+
+                description = desc
                 pass
 
                 def __init__(self, name, data, **kw):

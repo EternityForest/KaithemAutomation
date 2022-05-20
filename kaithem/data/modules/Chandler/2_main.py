@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1651814926155961
+resource-timestamp: 1653016361999988
 resource-type: event
 versions: {}
 
@@ -1438,6 +1438,9 @@ if __name__=='__setup__':
                 if msg[0] == "nextcue":
                     module.scenes[msg[1]].nextCue(cause='manual')
     
+                if msg[0] == "prevcue":
+                    module.scenes[msg[1]].nextCue(cause='manual')
+    
                 if msg[0] == "nextcuebyname":
                     module.scenes_by_name[msg[1]].nextCue(cause='manual')
     
@@ -2284,14 +2287,21 @@ if __name__=='__setup__':
     
     def shortcutCode(code, limitScene=None):
         "API to activate a cue by it's shortcut code"
+        print("SC code "+code)
+        if not limitScene:
+            event("shortcut."+str(code)[:64], None)
+    
         with module.lock:
             if code in shortcut_codes:
                 for i in shortcut_codes[code]:
                     try:
                         x=i.scene()
                         if limitScene:
-                            if not x is limitScene:
+                            if (not x is limitScene) and not (x.name==limitScene):
+                                print('skip '+x.name, limitScene)
                                 continue
+                            x.event("shortcut."+str(code)[:64])
+    
                         if x:
                             x.go()
                             x.gotoCue(i.name,cause='manual')
@@ -2624,7 +2634,6 @@ if __name__=='__setup__':
     
             self.commandTagSubscriptions = []
             self.commandTag=commandTag
-            self.subscribeCommandTags()
     
             self.notes=notes
             self.midiSource=''
@@ -2739,6 +2748,8 @@ if __name__=='__setup__':
             self.active = False
             self.defaultalpha = alpha
             self.name = name
+            
+    
             #self.values = values or {}
             self.canvas = None
             self.backtrack = backtrack
@@ -2847,6 +2858,8 @@ if __name__=='__setup__':
             
             else:
                 self.cueTagClaim.set("__stopped__",annotation="SceneObject")
+    
+            self.subscribeCommandTags()
     
         def toDict(self):
             return{   
@@ -3647,8 +3660,42 @@ if __name__=='__setup__':
                 self.commandTagSubscriptions= []
     
         def commandTagSubscriber(self):
+            sn = self.name
+    
             def f(v,t,a):
-                shortcutCode(str(v[0]),self)
+                v=v[0]
+                        
+                if v.startswith("launch:"):
+                    shortcutCode(str(v[len("launch:"):]),sn)
+                
+                elif v=='Rev':
+                    self.prevCue(cause="ECP")
+    
+                elif v=='Fwd':
+                    self.nextCue(cause="ECP")
+    
+                elif v=="VolumeUp":
+                    self.setAlpha(self.alpha+ 0.07)
+    
+                elif v=="VolumeDown":
+                    self.setAlpha(self.alpha - 0.07)
+    
+                elif v=="VolumeMute":
+                    self.setAlpha(0)
+    
+                elif v=="Play":
+                    if self.active:
+                        self.stop()
+                    else:
+                        self.go()
+    
+                elif v=="VolumeMute":
+                    self.setAlpha(0)
+    
+                if v.startswith('Lit_'):
+                    self.event("button."+v[4:])
+    
+    
     
             return f
             
@@ -3676,7 +3723,7 @@ if __name__=='__setup__':
                     raise ValueError("That tag does not have the event subtype")
                 
     
-    
+                self.subscribeCommandTags()
     
     
         def nextCue(self,t=None,cause='generic'):
@@ -3687,6 +3734,14 @@ if __name__=='__setup__':
                     x= self.getDefaultNext()
                     if x:
                         self.gotoCue(x,t)
+    
+    
+        def prevCue(self, cause="generic"):
+            with module.lock:
+                if len(self.cueHistory)>1:
+                    c = self.cueHistory[-2]
+                    c = c[0]
+                    self.gotoCue(c, cause)
     
         def setupBlendArgs(self):
             if hasattr(self.blendClass,"parameters"):

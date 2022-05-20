@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.68.32
+- :fire: Roku ECP device app improved
+- :sparkles: Chandler scenes understand Roku commands like VolumeUp and Play
+- :sparkles: Better display for readme attribute of devices
+
+
 ### 0.68.31
 - :sparkles: Module descriptions on the index page.
 - :sparkles: Module descriptions are now Markdown

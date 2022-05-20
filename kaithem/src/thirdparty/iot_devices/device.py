@@ -66,6 +66,9 @@ class Device():
     # Iterable of config keys that should be considered secret, and hidden behind asterisks and such.
     config_secrets={}
 
+    # This represents either a long text readme or an absolute path beginning with / to such
+    readme: str =''
+
     def __init__(self, name: str, config: Dict[str, str],**kw):
         """ 
 

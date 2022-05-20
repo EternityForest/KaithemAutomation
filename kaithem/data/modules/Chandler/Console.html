@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1651815129842407
+resource-timestamp: 1653013069072573
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -676,9 +676,9 @@ commandTagsListing=module.commandTagsListing()
                     </div>
                         <p class="buttonbar">
                         <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i>Go!</button>
-                        <button v-on:click="nextcue(i[0])"><i class="icofont-ui-next"></i>Next</button>
+                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
+                        <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
                         <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i>Stop</button>
-                        <button v-on:click="delscene(i[0])"><i class="icofont-ui-delete"></i>Delete</button>
                         </p>
                         <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
                         
@@ -713,6 +713,8 @@ commandTagsListing=module.commandTagsListing()
                 <span v-if="editingScene.blend=='monitor'">Monitor</span>
                 </span> {{editingScene.name}}</span>
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+
                 <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
 
                 </h3>
@@ -2434,6 +2436,10 @@ commandTagsListing=module.commandTagsListing()
             {
                 api_link.send(['nextcue', sc]);
             },
+            'prevcue': function(sc)
+            {
+                api_link.send(['prevcue', sc]);
+            },
 
             'addcue': function(sc, v)
             {
@@ -2633,7 +2639,7 @@ commandTagsListing=module.commandTagsListing()
             'setcommandtag': function(sc, v)
             {
 
-                appData.scenemeta[sc].midiSource = v;
+                appData.scenemeta[sc].commandTag = v;
                 api_link.send(['setscenecommandtag', sc, v]);
             },
 

@@ -46,6 +46,7 @@ def devStatString(d):
 %>
 <script src="/static/widget.js"></script>
 
+<script src="/static/showdown.min.js"></script>
 
 <title>Kaithem Devices</title>
 
@@ -132,6 +133,7 @@ def devStatString(d):
     %for i in devices.builtinDeviceTypes:
     <dt><b>${i|h}</b></dt>
     <dd>${devices.builtinDeviceTypes[i].description|h}</dd>
+
     %endfor
 
 
@@ -144,7 +146,13 @@ def devStatString(d):
 
     %for i in  devices.importedDeviceTypes:
     <dt><b>${i|h} from ${devices.importedDeviceTypes[i].get('importable','unknown module')|h}</b></dt>
-    <dd>${devices.importedDeviceTypes[i].get("description","No description set") or "No description"|h}</dd>
+    <dd id="id_${i.replace('"','')}"> ${devices.importedDeviceTypes[i].get("description","No description set") or "No description"|h}</dd>
+    <script>
+        showdown.setFlavor('github');
+        var c= document.getElementById("id_${i.replace('"','')}").innerHTML;
+        var converter = new showdown.Converter();
+        document.getElementById("id_${i.replace('"','')}").innerHTML=converter.makeHtml(c);
+    </script>
     %endfor
 </dl>
 </div>

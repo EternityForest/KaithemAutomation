@@ -9,8 +9,9 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1640227068421945
+resource-timestamp: 1653013648740912
 resource-type: page
+streaming-response: false
 template-engine: markdown
 
 ---
@@ -258,6 +259,19 @@ A monitor scene is a special scene used in the web UI lightboard to see
 the current state of a set of channels. Whatever channels you add to it
 will be updated in realtime. They only show contributions from layers
 below themselves, and only update while running.
+
+
+### Command Tags
+
+A scene may be bound to a command tag. It must have the event subtype.   It acccepts events in the style of the Roku ECP protocol.
+You can connect in directly to a RokuECPApp device's tag.
+
+Lit_a creates an event button.a (We use button.a to differentiate it from the keyboard)
+
+launch:898 triggers shortcut code 898
+Rev and Fwd go to previous and next
+Play maps to go/stop
+VolumeUp and VolumeDown raise and lower the alpha
 
 
 ### Programmatic access

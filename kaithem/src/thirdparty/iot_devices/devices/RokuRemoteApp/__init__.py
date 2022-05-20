@@ -467,12 +467,16 @@ import asyncio
 
 class RokuRemoteApp(device.Device):
     device_type = 'RokuRemoteApp'
-    description="""
-    Implements an extended version of the Roku ECP protocol.  Does not currently work with most real Roku apps,
-    intended mostly for use with DIY handheld remotes.
+    readme="""
+Implements an extended version of the (https://developer.roku.com/docs/developer-program/debugging/external-control-api.md)[Roku ECP protocol].  Does not currently work with most real Roku apps,
+intended mostly for use with DIY handheld remotes.
 
-    The battery tag represents the most recently connected remote. It should not be given all that much weight.
+We condense everything down to a single "Command" tag.  "Launch" commands are mapped to a string like "launch:78797".
+Keydown commands are mapped to a string containing the exact key name.
+
+The battery tag represents the most recently connected remote that decided to send something. It should not be given all that much weight.
     """
+
     def ssdploop(self):
         while (1):
             s = self.ssdp
@@ -492,11 +496,9 @@ class RokuRemoteApp(device.Device):
         device.Device.__init__(self, name, data)
         self.closed = False
 
-        self.object_data_point("keypress", subtype='event')
-        self.set_data_point('keypress',[None, time.monotonic(),None])
+        self.object_data_point("command", subtype='event')
+        self.set_data_point('command',[None, time.monotonic(),None])
 
-        self.object_data_point("launch", subtype='event')
-        self.set_data_point('launch',[None, time.monotonic(),None])
 
         self.numeric_data_point("battery",min=0,max=100, unit="%")
         self.set_alarm('LowBattery', datapoint='battery', expression='value < 20', priority='warning', release_condition='value > 35')
@@ -547,9 +549,9 @@ class RokuRemoteApp(device.Device):
                     s.wfile.write(b'{}')
                     
                     if s.path.startswith("/keypress/"):
-                        self.set_data_point('keypress',[s.path[len('/keypress/'):], time.monotonic(),None])
+                        self.set_data_point('command',[s.path[len('/keypress/'):], time.monotonic(),None])
                     if s.path.startswith("/launch/"):
-                        self.set_data_point('launch',[s.path[len('/launch/'):], time.monotonic(),None])
+                        self.set_data_point('command',["launch:"+s.path[len('/launch/'):], time.monotonic(),None])
                     
 
 

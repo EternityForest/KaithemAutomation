@@ -30,7 +30,7 @@
         },
         "RokuRemoteApp":{
             "submodule":"devices.RokuRemoteApp",
-            "description": "MQTT WiFi remote control application(Protocol still alpha)"
+            "description": "Allow Roku ECP protocol remotes to discover this server and control a tag point."
         }
     }
 } 
