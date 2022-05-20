@@ -142,7 +142,7 @@ window.onbeforeunload = function(){
         add_actions(editor);
         add_mako_format(editor);
 
-        editor.model.onDidChangeContent((event) => {
+        editor.onDidChangeModelContent((event) => {
         wasChanged=true;
         });
     }

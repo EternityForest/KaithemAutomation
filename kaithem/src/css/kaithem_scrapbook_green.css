@@ -109,6 +109,20 @@ img, video, canvas{
     -webkit-box-shadow: 2px 2px 4px 0px #000000; 
     box-shadow: 2px 2px 4px 0px #000000;
 }
+
+.monaco-editor canvas
+{
+    border-image-width:initial;
+    border-image-outset:initial;
+    border-image-repeat:initial;
+    border-image-source: initial;
+    box-sizing:initial;
+    border-style:initial;
+    border-width: initial;
+    -webkit-box-shadow: initial;
+    box-shadow: initial;
+}
+
 dl {
     padding: 2px;
     margin: 2px;

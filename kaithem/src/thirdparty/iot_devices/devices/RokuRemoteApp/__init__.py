@@ -206,6 +206,8 @@ def make_httpu(d):
     for i in d:
         if not i=='method':
             o+= i+': '+d[i] + "\r\n"
+    o+= '\r\n'
+    
     return o.encode()
 
 def parse_httpu(data):

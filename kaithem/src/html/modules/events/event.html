@@ -143,7 +143,7 @@ else:
         add_actions(setupeditor);
 
 
-                setupeditor.model.onDidChangeContent((event) => {
+                setupeditor.onDidChangeModelContent((event) => {
         wasChanged=true;
         });
     });
@@ -267,7 +267,7 @@ you may need to use the global keyword. You may also need to use the global keyw
         add_actions(actioneditor);
 
    
-        actioneditor.model.onDidChangeContent((event) => {
+        actioneditor.onDidChangeModelContent((event) => {
     wasChanged=true;
     });
 });
