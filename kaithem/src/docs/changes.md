@@ -2,7 +2,7 @@ Change Log
 ----------
 
 ### 0.68.32
-- :fire: Roku ECP device app improved
+- :fire: Roku ECP device app improved. API breaking.
 - :sparkles: Chandler scenes understand Roku commands like VolumeUp and Play
 - :sparkles: Better display for readme attribute of devices
 - :arrow_up: Update the Monaco editor

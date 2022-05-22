@@ -258,20 +258,23 @@ class WebInterface():
                 "/modules/module/"+util.url(kwargs['name']))
 
     @cherrypy.expose
-    def loadlibmodule(self, module):
+    def loadlibmodule(self, module,name=''):
         "Load a module from the library"
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        if module in modules_state.ActiveModules:
+        name  =  name or module
+
+        if name in modules_state.ActiveModules:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
         loadModule(os.path.join(directories.datadir,
-                                "modules", module), module)
+                                "modules", module),name)
+
         modules_state.modulesHaveChanged()
-        modules_state.unsaved_changed_obj[module] = "Loaded from library by user"
-        for i in modules_state.ActiveModules[module]:
-            modules_state.unsaved_changed_obj[module, i] = "Loaded from kibrary by user"
-        modules.bookkeeponemodule(module)
+        modules_state.unsaved_changed_obj[name] = "Loaded from library by user"
+        for i in modules_state.ActiveModules[name]:
+            modules_state.unsaved_changed_obj[name, i] = "Loaded from kibrary by user"
+        modules.bookkeeponemodule(name)
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')
 

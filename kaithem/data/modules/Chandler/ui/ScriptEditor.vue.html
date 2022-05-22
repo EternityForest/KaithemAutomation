@@ -9,8 +9,9 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1640295442081967
+resource-timestamp: 1653080734372362
 resource-type: page
+streaming-response: false
 template-engine: none
 
 ---
@@ -204,7 +205,7 @@ template-engine: none
            this.rules = newVal
         },
         completers: function(newVal) { 
-           this.argcompleters = newVal
+           this.argcompleters = newVal || {}
         }
       },
 
@@ -268,7 +269,7 @@ template-engine: none
                 arr[indexB] = temp;
             },
             rules:this.value,
-            argcompleters: this.completers,
+            argcompleters: (this.completers||{}),
             getPossibleActions: function()
             {
                 var l =[];
