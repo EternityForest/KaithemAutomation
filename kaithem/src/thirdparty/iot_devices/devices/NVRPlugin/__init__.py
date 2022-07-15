@@ -1378,4 +1378,35 @@ class NVRChannel(devices.Device):
             config2['device.password'] = ''
             l[i] = config2
 
+        
+        for i in os.listdir("/dev/"):
+            if i.startswith('video'):
+                config2 = config.copy()
+
+                config2.update(
+                    {
+                        'type': cls.device_type,
+                        'device.source': '/dev/'+i
+                    }
+                )
+
+                config2['device.username'] = ''
+                config2['device.password'] = ''
+                l["Webcam "+i] = config2
+
+
+        config2 = config.copy()
+        config2.update(
+            {
+                'type': cls.device_type,
+                'device.source': 'screen'
+            }
+        )
+
+        config2['device.username'] = ''
+        config2['device.password'] = ''
+        config2['device.fps'] = '4'
+        l["Screen Recording"] = config2
+
+
         return l
