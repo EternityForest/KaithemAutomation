@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+### 0.68.33
+- :bug: Compatibility with older sdmon versions that gave bad JSON
+- :bug: Fix illegal character errors that were blocking showing low disk space alerts
+- :sparkles: Notifications are now posted to the system notifications, if you have plyer
+- :sparkles: NVRChannel autodiscover and list webcams
+
+
 ### 0.68.32
 - :fire: Roku ECP device app improved. API breaking.
 - :sparkles: Chandler scenes understand Roku commands like VolumeUp and Play

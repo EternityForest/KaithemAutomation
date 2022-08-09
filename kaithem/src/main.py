@@ -22,6 +22,7 @@
 
 import os
 import sys
+from types import MethodType
 
 from . import pathsetup
 
@@ -214,6 +215,9 @@ def nop():
 #from . import wifimanager
 
 
+globalMethodRateLimit = [0]
+
+
 def webRoot():
     # We don't want Cherrypy writing temp files for no reason
     cherrypy._cpreqbody.Part.maxrambytes = 64 * 1024
@@ -231,7 +235,14 @@ def webRoot():
             if f.__module__ in newevt.eventsByModuleName:
                 newevt.eventsByModuleName[f.__module__]._handle_exception()
             else:
-                if not hasattr(f, "_kaithemFirstErrorMarker"):
+                if isinstance(f, MethodType):
+                    #Better than nothing to have this global limit instead of no posted errors at all.
+                    if time.monotonic() > globalMethodRateLimit[0]+60*30:
+                        globalMethodRateLimit[0] = time.monotonic()
+                        messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
+                            f) + " from " + str(f.__module__) + " to " + tag.name)
+
+                elif not hasattr(f, "_kaithemFirstErrorMarker"):
                     f._kaithemFirstErrorMarker = True
                     messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
                         f) + " from " + str(f.__module__) + " to " + tag.name)

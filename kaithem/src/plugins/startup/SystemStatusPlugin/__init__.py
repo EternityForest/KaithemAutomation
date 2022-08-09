@@ -14,7 +14,10 @@ def getSDHealth():
     import json
     if os.path.exists("/dev/shm/sdmon_cache_mmcblk0"):
         with open("/dev/shm/sdmon_cache_mmcblk0") as f:
-            d = json.load(f)
+            try:
+                d = json.load(f)
+            except Exception:
+                return None
         if "enduranceRemainLifePercent" in d:
             return d["enduranceRemainLifePercent"]
         elif "healthStatusPercentUsed" in d:
@@ -96,7 +99,7 @@ if psutil:
                         found[id] = True
 
                         if not id in diskAlerts:
-                            diskAlerts[id] = alerts.Alert("Low remaining space: " + id, priority="warning",
+                            diskAlerts[id] = alerts.Alert("Low remaining space on " + id, priority="warning",
                                                           description="This alert may take a while to go away once the root cause is fixed.")
                         try:
                             full = psutil.disk_usage(p.mountpoint).percent

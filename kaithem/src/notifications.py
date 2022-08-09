@@ -14,6 +14,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import weakref
+from . import workers
 from ws4py.websocket import WebSocket
 import time
 import json
@@ -111,6 +112,24 @@ class WI():
         return json.dumps(notificationslog[-int(kwargs['count']):])
 
 
+
+
+def doPlyer(t,m):
+    try:
+        try:
+            from plyer import notification
+        except ImportError:
+            return
+        n=notification
+
+        n.notify(title='Kaithem '+t, message=m[:140], ticker='')
+    except Exception:
+        logger.exception("Could not do the notification")
+
+
+
+epochAndRemaining = [0,15]
+
 def subscriber(topic, message):
     global notificationslog
     notificationslog.append((time.time(), topic, message))
@@ -125,6 +144,22 @@ def subscriber(topic, message):
         logging.exception("Error pushing notifications")
 
     api.send(['notification', [time.time(), topic, message]])
+
+
+    if 'error' in topic or 'warning' in topic:
+
+        # Add allowed notifications at a rate of  under 1 per miniute up to 15 "stored credits"
+        epochAndRemaining[1] = max((time.monotonic()-epochAndRemaining[0])/240 + epochAndRemaining[1], 15)
+        epochAndRemaining[0]=time.monotonic()
+
+        if epochAndRemaining[1] > 1:
+            epochAndRemaining[1] -= 1
+
+            def f():
+                doPlyer(topic.split("/")[-1],message)
+            workers.do(f)
+
+
 
 
 messagebus.subscribe('/system/notifications/#', subscriber)

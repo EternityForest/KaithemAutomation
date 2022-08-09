@@ -279,7 +279,7 @@ class Alert():
 
         for i in illegalCharsInName:
             if i in name:
-                raise ValueError("Illegal char in alert name: "+i)
+                name = name.replace(i,' ')
 
         self.permissions = permissions + ['/users/alerts.view']
         self.ackPermissions = ackPermissions + ['users/alerts.acknowledge']

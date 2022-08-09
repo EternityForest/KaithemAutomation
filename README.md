@@ -126,21 +126,6 @@ WantedBy=multi-user.target
 
 See helpers/debianpackaging/CONTROL for the list
 
-## Installing Object Detection
-
-The NVRChannel plugin uses the full YOLOv3 model, until such a time as I can get a lighter model to work.  It needs these two files:
-https://pjreddie.com/media/files/yolov3.weights
-and 
-https://github.com/arunponnusamy/object-detection-opencv/raw/master/yolov3.cfg
-
-To be in one of several locations.
-
-'/home/USER/.cvlib/object_detection/yolo/yolov3'
-'/usr/share/pjreddie_darknet/yolov3_coco'
-
-Note that if you have ever used the cvlib library it auto downloads in /home/USER/.cvlib/object_detection/yolo/yolov3
-And also, the files are already included in EmberOS.
-
 ### Security
 At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at
 /var/lib/kaithem/ssl/certificate.key that you can replace with a real one if you don't want to go self-signed.
@@ -165,13 +150,18 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.33
+- :bug: Compatibility with older sdmon versions that gave bad JSON
+- :bug: Fix illegal character errors that were blocking showing low disk space alerts
+- :sparkles: Notifications are now posted to the system notifications, if you have plyer
+- :sparkles: NVRChannel autodiscover and list webcams
+
+
 ### 0.68.32
 - :fire: Roku ECP device app improved. API breaking.
 - :sparkles: Chandler scenes understand Roku commands like VolumeUp and Play
 - :sparkles: Better display for readme attribute of devices
 - :arrow_up: Update the Monaco editor
-
-
 
 ### 0.68.31
 - :sparkles: Module descriptions on the index page.
