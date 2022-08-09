@@ -150,13 +150,18 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.33
+- :bug: Compatibility with older sdmon versions that gave bad JSON
+- :bug: Fix illegal character errors that were blocking showing low disk space alerts
+- :sparkles: Notifications are now posted to the system notifications, if you have plyer
+- :sparkles: NVRChannel autodiscover and list webcams
+
+
 ### 0.68.32
 - :fire: Roku ECP device app improved. API breaking.
 - :sparkles: Chandler scenes understand Roku commands like VolumeUp and Play
 - :sparkles: Better display for readme attribute of devices
 - :arrow_up: Update the Monaco editor
-
-
 
 ### 0.68.31
 - :sparkles: Module descriptions on the index page.
