@@ -109,10 +109,10 @@ ${alertsapi.render("alertapi")}
                 <b><span style="font-size:120%;">${i.name}</span></b> is: <span style="font-size:120%">${i.sm.state}</span><br>
 
                 <span class="grey">
-            Priority: ${i.priority}, Zone: ${i.zone},</span> <br><span class="grey">
-            Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)}
+            Priority: ${i.priority}</span> <br><span class="grey">
+            Tripped at: ${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)}
                 ago</b>)<br>
-            Trip Message:<b>${i.tripMessage}</b></span>
+            Trip Message: <b>${i.tripMessage}</b></span>
             </div>
 
 
