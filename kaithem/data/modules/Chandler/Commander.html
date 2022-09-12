@@ -1,0 +1,278 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1662285312694455
+resource-type: page
+streaming-response: false
+template-engine: mako
+
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements. 
+__doc__= ""
+boardname = "default"
+import json
+%>
+        <script src="/static/js/keyboard.min.js"></script>
+
+<title>Chandler Commander</title>
+
+
+        <style>
+            .grey {
+                color: grey;
+                font-size: 70%;
+            }
+            
+            div.hfader {
+                border-style: solid;
+                border-radius: 5px;
+                overflow: auto;
+                border-width: 2px;
+                border-color: rgba(0,0,0,0.1);
+                margin: 3px;
+                float: left;
+                min-width: 15em;
+                min-height: 4em;
+            }
+            
+            div.hfader input {
+                float: right;
+            }
+            
+            div.hfader span.indicator {
+                float: right;
+            }
+            
+            p.scene {
+                border-style: solid;
+                border-width: 1px;
+
+                !important
+            }
+            
+            p.run {
+                !important
+            }
+            
+            div.universe {
+                border-style: solid;
+                border-radius: 5px;
+                float: left;
+                overflow: auto;
+               // border-width: 1px;
+                border-color: grey;
+                margin: 3px;
+                width: 95%;
+                display: inline-block; //background-color: rgba(128, 128, 128, 0.4);
+                !important
+            }
+            
+            div.fixture {
+                border-style: solid;
+                border-radius: 5px;
+                float: left;
+                overflow: auto;
+                border-width: 2px;
+               // border-color: darkgrey;
+                margin: 3px;
+                display: inline-block;
+                //background-color: rgba(128, 128, 128, 0.4);
+               // !important
+            }
+            
+            .indicator {
+                //border-color: black;
+                border-radius: 0.2em;
+                display: inline-block;
+                width: 0.9em;
+                height: 0.9em;
+                border-style: dashed;
+                border-width: 1.5px;
+            }
+            
+            label {
+                display: inline-block;
+                border: 0px;
+                margin: 3px;
+                border-radius: 0px;
+                padding: 0px;
+                border: 0px;
+                margin:3px 8px 3px 8px
+            }
+            label>input{
+                border-radius: 0px;
+                //border: 1px solid rgba(0,0,0,0.3);
+                margin: 0px;
+            }
+            
+            .labelbox {
+                display: flex;
+                flex-wrap: wrap;
+            }
+            
+            .break {
+                flex-basis: 100%;
+                height: 0;
+            }
+            
+            .blinking {
+                animation: blinkingText 1s infinite;
+            }
+            
+            @keyframes blinkingText {
+                0% {
+                    opacity: 0.5;
+                }
+                50% {
+                    opacity: 1;
+                }
+                100% {
+                    opacity: 0.5;
+                }
+            }
+        </style>
+
+        <script src="/static/js/vue2.js"></script>
+        <script src="/static/js/http-vue-loader.js"></script>
+
+
+
+        <script type="text/javascript" src="/static/widget.js"></script>
+
+
+        <div id="app" style="display:flex; flex-wrap:wrap;">
+
+              <div class="sectionbox flex-item" style="overflow: auto;  resize:both;">
+                
+                    <div class="buttonbar">
+                        <h3 title="All currently active scenes and all scenes that were created through the light board are shown">Scenes</h3>
+            <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." aria-label="Shortcut code" placeholder="Shortcut"
+                v-model="sc_code" v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
+                <button v-on:click="shortcut()">Go!</button>
+                </div>
+
+
+                
+                
+                <br/>
+                <div id="scene" style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
+                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;border:1px solid;display:flex-item; ; margin: 0.4em; padding: 0.4em; border: 1px solid;" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                        style="border-style:solid; border-width:1px;">
+                        <div class="buttonbar">
+                        <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;">
+
+                    {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
+                                 
+
+                    <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
+
+
+                    <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                    <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                    </button>
+
+
+                    
+                    </div>                    <b v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</b>
+
+                        <p class="buttonbar">
+                        <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i>Go!</button>
+                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
+                        <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
+                        <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i>Stop</button>
+                        </p>
+
+                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
+                        
+                        <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                        <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
+
+                        <small v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
+
+                    </div>
+                </div>
+
+            </div>
+
+
+              <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
+            <h3> Cues within {{editingScene.name}}
+                <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                </h3>
+                
+
+                <div id="cuesbox">
+
+                    <div  style="display:flex; flex-wrap:wrap; flex-direction: row;">
+          
+                                <div v-for="i in formatCues(1)" v-if="i[1].id" style="display:flex-item; margin: 0.8em; padding: 0.4em; border: 1px solid;" v-bind:class="{'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
+                                    <h4>{{i[1].name}}
+                                    
+                                    <span v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</span>
+                                    </h4>
+                                    <cue-countdown v-if="cuemeta[editingScene.cue].name==i[1].name" :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
+
+
+                                    <button v-on:click="jumptocue(i[1].id)" style="width:12em; height: 4em;">Go</button>
+                                </div>
+            
+                    </div>
+                
+            </div>
+        </div>
+
+        </div>
+
+    <template id="cue-cd">
+                <span>
+        <meter v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
+        v-bind:value="unixtime-scene.enteredCue"></meter>
+        <span v-if="scene.active && cue && cue.length">
+        {{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1 ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
+        <br>
+        </span></span>
+    </template>
+
+    
+        <script src="/static/js/jquery3.js"></script>
+
+        ${module.board.link.render('api_link')}
+
+
+        <script type="text/javascript" src="boardapi.js"></script>
+
+
+        <script>
+        Vue.component('cue-countdown',
+        {
+            template: '#cue-cd',
+            props: ['unixtime', 'cue', 'scene'],
+            data: function()
+            {
+                return ({ 'formatInterval': formatInterval })
+            }
+        })
+
+
+       var appInstance = new Vue(
+        {
+            el: '#app',
+            data: appData,
+            components: {
+                "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
+                "script-editor": httpVueLoader('ui/ScriptEditor.vue'),
+                }
+        })
+        </script>
+
+
+
+           

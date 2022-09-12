@@ -1405,7 +1405,7 @@ class APIWidget(Widget):
                 %(htmlid)s.value = "Waiting..."
                 %(htmlid)s.clean = 0;
                 %(htmlid)s._maxsyncdelay = 250
-                %(htmlid)s.timeSyncInterval = 600*1000;
+                %(htmlid)s.timeSyncInterval = 120*1000;
 
                 %(htmlid)s._timeref = [performance.now()-1000000,%(loadtime)f-1000000]
                 var onTimeResponse = function (val)

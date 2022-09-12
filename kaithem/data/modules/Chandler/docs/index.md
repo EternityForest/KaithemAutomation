@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1653013648740912
+resource-timestamp: 1662981970250736
 resource-type: page
 streaming-response: false
 template-engine: markdown
@@ -170,6 +170,9 @@ Events are handled in a queue, so the first event that fires is always handled f
 
 When the chandler console is in send events mode, every keypress triggers a corresponding "keydown.X" event
 in all scenes. You can then use script bindings or cue logic to respond to these. Key up events trigger a "keyup.X" event.
+
+Whenever at least one scene is active, keyboards directly connected to the server will give "serverkeyup.X" and "serverkeydown.X" events.
+This is to allow the use of bluetooth presentation remotes and the like.
 
 
 #### Tag Points 

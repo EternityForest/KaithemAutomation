@@ -268,7 +268,7 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                 if name.startswith("AMC"):
                     #No username/pw yet, we cannot actually fill this in.
                     onvifCams[fixAddr(name)]= None
-            except:
+            except Exception:
                 pass
         else:
             try:

@@ -1144,6 +1144,19 @@ class _TagPoint():
                                        sync=False), alarmPollFunction,
                                    generatedRecalcFuncWeMustKeepARefTo)
 
+        # Do it with this indirection so that it doesn't do anything
+        # bad with some kind of race when we delete things, and so that it doesn't hold references
+        def recalcPoll():
+            if name in self._alarmGCRefs:
+                try:
+                    x = self._alarmGCRefs[name][0]
+                except KeyError:
+                    return
+                x()
+
+        obj.recalcFunction = recalcPoll
+        
+
         # Store our new modified context.
         obj.context = context
 

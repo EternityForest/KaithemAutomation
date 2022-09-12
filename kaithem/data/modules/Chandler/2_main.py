@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1653016361999988
+resource-timestamp: 1662284681422212
 resource-type: event
 versions: {}
 
@@ -643,13 +643,9 @@ if __name__=='__setup__':
     class DebugScriptContext(ChandlerScriptContext):
         def onVarSet(self,k, v):
             try:
-                if k.startswith("pagevars."):
-                    if isinstance(v, (str, int,float,bool)):
-                        self.sceneObj().pageLink.send(["var", k.split(".",1)[1],v])
-                else:
-                    if not k=="_" and self.sceneObj().rerenderOnVarChange:
-                        self.sceneObj().recalcCueVals()
-                        self.sceneObj().rerender=True
+                if not k=="_" and self.sceneObj().rerenderOnVarChange:
+                    self.sceneObj().recalcCueVals()
+                    self.sceneObj().rerender=True
     
             except:
                 rl_log_exc("Error handling var set notification")
@@ -678,13 +674,7 @@ if __name__=='__setup__':
             except:
                 rl_log_exc("error handling event")
                 print(traceback.format_exc())
-            try:
-                if not e=='poll':
-                    if isinstance(v, (str, int,float,bool)):
-                        self.sceneObj().pageLink.send(["evt", e,v])
-            except:
-                rl_log_exc("error handling event")
-                print(traceback.format_exc())
+    
         
         def onTimerChange(self,timer, run):
             self.sceneObj().runningTimers[timer]=run
@@ -1215,11 +1205,9 @@ if __name__=='__setup__':
                                 'vars':v,
                                 'timers': scene.runningTimers,
                                 'notes': scene.notes,
-                                'page': scene.page,
                                 "mqttServer": scene.mqttServer,
                                 'crossfade': scene.crossfade,
                                 'status': scene.getStatusString()
-    
                         }
             else:
                 data={
@@ -1430,6 +1418,9 @@ if __name__=='__setup__':
                     cues[msg[1]].clone(msg[2])
     
                 if msg[0] == "jumptocue":
+                    if not cues[msg[1]].scene().active:
+                        cues[msg[1]].scene().go()
+                        
                     cues[msg[1]].scene().gotoCue(cues[msg[1]].name,cause='manual')
     
                 if msg[0] == "jumpbyname":
@@ -2629,6 +2620,24 @@ if __name__=='__setup__':
             self.mqttConnection=None
     
             disallow_special(name)
+    
+            # This is used for the remote media triggers feature.
+            self.mediaLink = kaithem.widget.APIWidget("media_link")
+            self.mediaLink.echo = False
+    
+    
+            # The active media file being played through the remote playback mechanism.
+            self.allowMediaUrlRemote  = None
+    
+            def handleMediaLink(u,v):
+                if v[0] == 'ask':                                        
+                    self.mediaLink.send(['volume', self.alpha])
+                    self.mediaLink.send(['mediaURL', self.allowMediaUrlRemote, self.enteredCue])
+    
+                if v[0] == 'error':
+                    self.event("system.error","Web media playback error in remote browser: "+v[1])
+    
+            self.mediaLink.attach(handleMediaLink)
             self.lock = threading.RLock()
             self.randomizeModifier=0
     
@@ -2639,22 +2648,11 @@ if __name__=='__setup__':
             self.midiSource=''
             self.defaultNext=str(defaultNext).strip()
     
-            if page and isinstance(page, str):
-                page = {'html':page,'css':'','js':'','rawhtml':''}
-    
-            self.page=page or {'html':'','css':'','js':'','rawhtml':''}
-    
-            if not 'rawhtml' in self.page:
-                self.page['rawhtml'] = ''
     
     
             self.id = id or uuid.uuid4().hex
     
             
-            #This is for the nice display screens you can embed in pages
-            self.pageLink = kaithem.widget.APIWidget(id=self.id)
-            self.pageLink.require("users.chandler.pageview")
-    
             #TagPoint for managing the current cue
             self.cueTag = kaithem.tags.StringTag("/chandler/scenes/"+name+".cue")
             self.cueTag.expose("users.chandler.admin","users.chandler.admin")
@@ -2688,29 +2686,6 @@ if __name__=='__setup__':
     
     
     
-            def c(u,cmd):
-                if cmd[0]=='getvars':
-                    for v in self.chandlerVars:
-                        if v.startswith("pagevars."):
-                            if isinstance(v, (str, int,float,bool)):
-                                if isinstance(v,str):
-                                    if len(v)>1024*512:
-                                        continue
-                                self.pageLink.send(["var", v.split(".",1)[1],self.chandlerVars[v]])
-                if cmd[0]=='evt':
-                    if not cmd[1].startswith("page."):
-                        raise ValueError("Only events starting with page. can be raised from a scenepage")
-                    self.event(cmd[1],cmd[2])
-    
-                if cmd[0]=="set":
-                    if len(self.chandlerVars)>256:
-                        if isinstance(cmd[2], (str, int,float,bool)):
-                            if isinstance(cmd[2],str):
-                                if len(cmd[2])>512:
-                                    raise ValueError("Max 512 chars for val set from page")
-                            self.ChandlerScriptContext.setVar("pagevars."+cmd[1],cmd[2])
-    
-            self.pageLink.attach(c)
     
             #Used to determine the numbering of added cues
             self.topCueNumber = 0
@@ -2877,7 +2852,6 @@ if __name__=='__setup__':
                         'commandTag': self.commandTag,
                         'uuid': self.id,
                         'notes': self.notes,
-                        'page': self.page,
                         'mqttServer': self.mqttServer,
                         'crossfade': self.crossfade
                     }         
@@ -3166,6 +3140,12 @@ if __name__=='__setup__':
             #Globally raise an error if there's a big horde of cue transitions happening
             doTransitionRateLimit()
     
+            if self.cue:
+                oldSoundOut = self.cue.soundOutput
+            else: oldSoundOut=None
+            if not oldSoundOut:
+                oldSoundOut = self.soundOutput
+    
     
      
             cue = self.evalExpr(cue)
@@ -3314,7 +3294,18 @@ if __name__=='__setup__':
                     self.cue = self.cues[cue]
                     self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
     
-                   
+                    self.allowMediaUrlRemote = None
+    
+                    out = self.cue.soundOutput
+                    if not out:
+                        out = self.soundOutput
+                    if not out:
+                        out = None
+                        
+                    if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
+                        self.mediaLink.send(['volume', self.alpha])
+                        self.mediaLink.send(['mediaURL', None, self.enteredCue])
+    
                     if self.cue.sound and self.active:
     
                         sound = self.cue.sound
@@ -3329,18 +3320,24 @@ if __name__=='__setup__':
                             print(traceback.format_exc())
     
                         if os.path.isfile(sound):
-                            out = self.cue.soundOutput
-                            if not out:
-                                out = self.soundOutput
-                            if not out:
-                                out = None
+    
+    
+                            if not out == "scenewebplayer":
                             
-                            #Always fade in if the face in time set.
-                            #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
-                            if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
-                                playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                #Always fade in if the face in time set.
+                                #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
+                                if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
+                                    playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                else:
+                                    fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                
+    
+                            
                             else:
-                                fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                self.allowMediaUrlRemote= sound
+                                self.mediaLink.send(['volume', self.alpha])
+                                self.mediaLink.send(['mediaURL', sound, self.enteredCue])
+    
     
                             try:
                                 soundMeta = TinyTag.get(sound,image=True)
@@ -3810,17 +3807,6 @@ if __name__=='__setup__':
                 except:
                     pass
     
-        @typechecked
-        def setPage(self,page: str,style:str, script:str,rawhtml:str=''):
-            self.page= {
-                    'html':page,
-                    'css': style,
-                    'js': script,
-                    'rawhtml': rawhtml
-                }
-            self.pageLink.send(['refresh'])
-            self.pushMeta(self.id,keys={'page'})
-    
         
         def mqttStatusEvent(self, value, timestamp, annotation):
             if value=="connected":
@@ -4062,6 +4048,9 @@ if __name__=='__setup__':
                 self.pushMeta(keys={'alpha','dalpha'} )
             else:
                 self.pushMeta(keys={'alpha','dalpha'} )
+    
+            if self.allowMediaUrlRemote:
+                self.mediaLink.send(['volume', val])
     
         
         def addCue(self,name,**kw):

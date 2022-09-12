@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1653082061943777
+resource-timestamp: 1662285134551778
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -251,8 +251,8 @@ commandTagsListing=module.commandTagsListing()
                 
                 <div class="menubar buttonbar">
 
-                            <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><i class="icofont-quill-pen"></i>Save Scenes as the Default</a>
-                            <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><i class="icofont-quill-pen"></i>Save Setup as the Default</a>
+                            <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><i class="icofont-quill-pen"></i>Save Scenes</a>
+                            <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><i class="icofont-quill-pen"></i>Save Setup</a>
                 </div>
 
 
@@ -672,7 +672,7 @@ commandTagsListing=module.commandTagsListing()
                         <button v-on:click="sceneev('button.c',i[0])">C</button>
                         <button v-on:click="sceneev('button.d',i[0])">D</button>
                         </p>
-                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
+                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
                         
                         <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
@@ -713,11 +713,11 @@ commandTagsListing=module.commandTagsListing()
                 
                  <p class="buttonbar">
                         <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i class="icofont-settings"></i>Normal View</button>
-                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'"><i class="icofont-music"></i>Sound View</button>
+                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'"><i class="icofont-music"></i>Media View</button>
                         <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i class="icofont-listing-box"></i>Add/Remove Channels</button>
                         <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'"><i class="icofont-ui-settings"></i>Scene Settings</button>
 
-                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+                        <button v-if="showAdvancedControls && scenetab=='data'" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"><i class="icofont-law-document"></i>Cue Logic</button>
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='history'}" v-on:click="scenetab='history'">History</button>
                         <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
@@ -823,7 +823,8 @@ commandTagsListing=module.commandTagsListing()
                    
 
                 <div v-if="currentcue && scenetab !='blend' && scenetab !='page'">
-                    <h3>Editing Cue: {{currentcue.name}}</h3>
+                    <h3>Editing Cue: {{currentcue.name}}</h3><button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+
 
                     <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
@@ -960,6 +961,8 @@ commandTagsListing=module.commandTagsListing()
 
                         <div v-if="scenetab=='sound'">
                             <div>
+                            <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
+"
                                 <label>Sound:
                             <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                                 v-on:change="setSoundfile(currentcueid,currentcue.sound)">
@@ -967,6 +970,7 @@ commandTagsListing=module.commandTagsListing()
                                 <label>Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
                                 
                                 <datalist id="soundcards">
+                                <option value="scenewebplayer">Play media file in web player</option>
                                 <option v-for="i of soundCards" v-bind:value="i"></option>
                                 <option value="@auto"></option>
                                 <option value="@pulse:hw:0,0"></option>
@@ -980,7 +984,7 @@ commandTagsListing=module.commandTagsListing()
                         </label><br>
 
 
-                        <label>Length relative to sound:
+                        <label>Length relative to media file:
                             <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                         </label>
@@ -1070,9 +1074,19 @@ commandTagsListing=module.commandTagsListing()
                                 </div>
                                 <div class="scrollbox">
                                     <h5>Sound Outputs</h5>
-                                    <p class="help">So long as you plug the same device into the same port(on linux), it will be given the same device alias, although
-                                        they will be different if JACK is used.</p>
+                                    <p class="help">To use play videos, you must use the web remote display feature. Cue videos will play in the browser on connected remote displays.</p>
                                         <dl>
+
+
+                                            <dt>Web Player</dt>
+                                            <dd>
+                                                <p class="buttonbar">
+                                            <button v-on:click="setSoundOutput(currentcueid,' scenewebplayer')">Set for Cue</button>
+                                            <button v-on:click="setSceneSoundOutput(scenename,' scenewebplayer')">Set as Scene Default</button>
+                                                </p>
+                                            </dd>
+
+
                                             <template v-for="i of soundCards">
                                                 <dt>{{i || "UNSET" }}</dt>
                                                 <dd>
@@ -1088,31 +1102,6 @@ commandTagsListing=module.commandTagsListing()
                         </div>
 
 
-
-                        <div v-if="scenetab=='livingnight'">
-                            <h3>LivingNight</h3>
-                            <div style="display:inline-block;">
-                                <p class="help">LivingNight is an algorithm for modifying random properties for better realism, to achieve effects like crickets
-                                    quieting down when someone walks past. This is done with a global set of "attributes" like loudness, darkness, etc,
-                                    that are affected by influences. Attributes can be any arbitrary work you choose. Cues can have any number of influences
-                                    that increase or decrease these attributes.
-                                </p>
-                                <h4>Associations</h4>
-                                <table border=1>
-                                    <tr>
-                                        <th title="Attributes reflect a condition of the virtual world that can be described by a number">Attribute</th>
-                                        <th title="The parameter you want to control based on the attribute">Parameter</th>
-                                        <th title="Positive values increase the parameter when that attribute is strong">Effect Level</th>
-                                    </tr>
-
-                                    <tr v-for="i in currentcue.associations">
-                                        <td>i[0]</td>
-                                        <td>i[1]</td>
-                                        <td>i[2]</td>
-                                        <tr>
-                                </table>
-                            </div>
-                        </div>
 
 
 
@@ -1321,10 +1310,8 @@ commandTagsListing=module.commandTagsListing()
         <template id="cue-cd">
             <span>
     <meter v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
-    v-bind:value="unixtime-scene.enteredCue"></meter><br>
-    <span v-if="scene.active && cue && cue.length">
-     Next cue in: {{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1 ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
-     <br>
+    v-bind:value="unixtime-scene.enteredCue"></meter>
+    <span v-if="scene.active && cue && cue.length">{{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1 ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
      </span></span>
         </template>
 
@@ -1393,117 +1380,8 @@ commandTagsListing=module.commandTagsListing()
         <div>
 
             ${module.board.link.render('api_link')}
-
-            <script src="/static/js/src-min-noconflict/ace.js"></script>
             <script src="/static/js/jquery3.js"></script>
-
-            <script>
-                const VueAceEditor = {
-            //  simplified model handling using `value` prop and `input` event for $emit 
-            props:['value','id','options'],
-
-            //  add dynmic class and id (if not set) based on component tag
-            template:`
-                <div :id="id ? id: $options._componentTag +'-'+ _uid" 
-                    :class="$options._componentTag">
-                    <slot></slot>
-                </div>
-            `,
-
-            watch:{
-                value(){
-                    //This is the forward 
-                    //  update value on external model changes
-                    if(this.oldValue !== this.value){ 
-                        this.oldValue=this.value;
-                        if(this.ivalue !== this.value){
-                            if(!this.locked)
-                            {
-                                this.editor.setValue(this.value, 1);
-                                return;
-                            }
-                        }
-                    }
-                    //We don't accept the change, so we emit an event to change it back
-                    this.$emit('input', this.ivalue);
-                }
-            },
-        
-            mounted(){
-                //  editor
-                this.editor = window.ace.edit(this.$el.id);
-                
-                //  deprecation fix
-                this.editor.$blockScrolling = Infinity;
-                this.locked =0     
-
-                //  ignore doctype warnings
-                const session = this.editor.getSession();
-                session.on("changeAnnotation", () => {
-                    const a = session.getAnnotations();
-                    const b = a.slice(0).filter( (item) => item.text.indexOf('DOC') == -1 );
-                    if(a.length > b.length) session.setAnnotations(b);
-                });
-
-                //  editor options 
-                //  https://github.com/ajaxorg/ace/wiki/Configuring-Ace
-                this.options = this.options || {};
-                
-                //  opinionated option defaults
-                this.options.maxLines = this.options.maxLines || Infinity;
-                this.options.printMargin = this.options.printMargin || false;      
-                this.options.highlightActiveLine = this.options.highlightActiveLine || false;
-
-                //  hide cursor 
-                if(this.options.cursor === 'none' || this.options.cursor === false){
-                    this.editor.renderer.$cursorLayer.element.style.display = 'none';
-                    delete this.options.cursor; 
-                }
-
-                //  add missing mode and theme paths 
-                if(this.options.mode && this.options.mode.indexOf('ace/mode/')===-1) {
-                    this.options.mode = 'ace/mode/'+this.options.mode;
-                }
-                if(this.options.theme && this.options.theme.indexOf('ace/theme/')===-1) {
-                    this.options.theme = 'ace/theme/'+this.options.theme;
-                }
-                this.editor.setOptions(this.options);
-                
-                
-                //  set model value 
-                //  if no model value found – use slot content
-                if(!this.value || this.value === ''){
-                    this.$emit('input', this.editor.getValue());
-                    this.$emit('change', this.editor.getValue());
-                    this.ivalue = this.ivalue = this.oldValue = this.editor.getValue();
-                } else {
-                    this.editor.setValue(this.value, -1);
-                    this.ivalue = this.oldValue = this.value;
-                }        
-                
-                //  editor value changes   
-                this.editor.on('change', () => {
-                    //  oldValue set to prevent internal updates
-                    this.ivalue = this.oldValue = this.editor.getValue();
-                });
-                //  editor value changes   
-                this.editor.on('input', () => {
-                    //  oldValue set to prevent internal updates
-                    this.locked =1;
-                    this.ivalue = this.oldValue = this.editor.getValue();
-                    this.$emit('input', this.ivalue);
-                });
-                 //  editor value changes   
-                this.editor.on('blur', () => {
-                    this.$emit('change', this.ivalue);
-                    this.locked =0;
-                });
-
-            },
-            methods: { editor(){ return this.editor } }
-        };
-            </script>
-
+               
             <script>
                 formatInterval = function(seconds)
         {
@@ -2775,8 +2653,6 @@ commandTagsListing=module.commandTagsListing()
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 "script-editor": httpVueLoader('ui/ScriptEditor.vue'),
-                'vue-ace-editor': VueAceEditor
-
                 },
             computed:
             {

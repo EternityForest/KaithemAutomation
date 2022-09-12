@@ -1,0 +1,37 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: false
+no-navheader: false
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1661218252173721
+resource-type: page
+streaming-response: true
+template-engine: mako
+
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+import mimetypes
+import os
+%>
+
+<%
+__doc__= "#Python Code here runs every page load"
+print(kwargs)
+if module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
+  kaithem.web.serveFile(kwargs['file'],name= os.path.basename(kwargs['file']))
+else:
+  raise RuntimeError("Not allowed to access "+str(kwargs['file']))
+%>
+
+<h2>WebMediaServer</h2>
+<title>WebMediaServer</title>
+
+<div class="sectionbox">
+  Content here
+</div>

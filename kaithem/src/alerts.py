@@ -331,9 +331,12 @@ class Alert():
         self.id = id or str(time.time())
         all[self.id] = self
 
-    def notificationHTML(self):
-        return ""
+        def notificationHTML():
+            return ""
 
+        self.notificationHTML = notificationHTML
+
+        
     def __html_repr__(self):
         return """<small>State machine object at %s<br></small>
             <b>State:</b> %s<br>

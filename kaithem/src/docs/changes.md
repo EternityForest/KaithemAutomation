@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+### 0.68.34
+- :bug: Fix alarms that reference other tagpoints
+- :bug: Fix use of ~ in config file directories
+- :sparkles: Chandler remote media web players
+- :sparkles: Pages that are just JS code, ending in .js, are now properly syntax highlighted
+- :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events
+- :memo: Document the \_\_del\_\_ event cleanup functions
+
 ### 0.68.33
 - :bug: Compatibility with older sdmon versions that gave bad JSON
 - :bug: Fix illegal character errors that were blocking showing low disk space alerts
