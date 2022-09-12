@@ -1,0 +1,211 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1661557805881077
+resource-type: page
+streaming-response: false
+template-engine: mako
+
+---
+<%! 
+#Code Here runs once when page is first rendered. Good place for import statements. 
+%>
+
+<% 
+__doc__="#Python Code here runs every page load" 
+%>
+
+<style>
+  body{
+background-color:  black;
+color: white;
+}
+</style>
+<script src="/static/widget.js"></script>
+
+<p id="p"></p>
+
+
+  <video id="v" style="width: 100%; max-height: 100%" controls></video>
+  <audio id='a'></audio>
+
+
+  ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
+
+<script>
+
+      try{
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      const latency = parseInt(urlParams.get('latency'))
+      }
+      catch(e){
+      const latency = 30
+      }
+
+
+      atypes = ['.ogg', '.m4a', '.mp3', '.opus']
+
+      lastSrc = ''
+
+      allowJumpAnyway = false
+
+function f(v)
+{
+    var a =  document.getElementById('a')
+    var vid = document.getElementById('v')
+
+  
+  if(v[0]=='volume')
+  {
+    a.volume = v[1]
+    vid.volume = v[1]
+  }
+
+  if(v[0]=='mediaURL')
+  {
+    isSound=0
+    
+    if(v[1] == null)
+    {
+      a.pause();
+      vid.pause();
+      vid.style.display='none'
+      a.style.display='none'
+      return
+    }
+    for(i of atypes)
+    {
+      if (v[1].indexOf(i) >-1)
+      {
+        isSound = true;
+      }
+    }
+    
+    
+
+    var m = null
+    
+    if (isSound)
+    {
+      a.controls=true;
+      vid.pause();
+      vid.style.display = 'none'
+      a.style.display=''
+      m= a
+    }
+    else
+    {
+      a.controls=false
+      a.pause()
+      a.style.display='none'
+      vid.style.display = ''
+      try
+      {
+      vid.requestFullscreen();
+      }
+      catch(e)
+      {
+      console.log(e)
+      }
+      m=vid
+    }
+
+    try{
+
+      var x = "WebMediaServer?scene=" + "${kwargs['scene']}" +"&file="+encodeURIComponent(v[1])
+      if( lastSrc != x)
+      {
+        allowJumpAnyway = true
+        lastSrc = x
+        m.src=x
+      }
+      var dt = ((link.now()/1000) - v[2]) - (latency)
+      var delta = dt-m.currentTime
+
+
+      if((Math.abs(delta) < 0.025) && (!allowJumpAnyway))
+      {
+         if(delta>0)
+        {
+            m.playbackRate = 1.003
+        }
+        else if(delta<0)
+        {
+            m.playbackRate = 0.9997
+        }
+      }
+
+      else if((Math.abs(delta) < 0.100) && (!allowJumpAnyway))
+      {
+         if(delta>0)
+        {
+            m.playbackRate = 1.02
+        }
+        else if(delta<0)
+        {
+            m.playbackRate = 0.98
+        }
+      }
+
+      else if((Math.abs(delta) < 0.5) && (!allowJumpAnyway))
+      {
+         if(delta>0)
+        {
+            m.playbackRate = 1.04
+        }
+        else if(delta<0)
+        {
+            m.playbackRate = 0.96
+        }
+      }
+
+
+      else{
+      m.currentTime = dt
+      allowJumpAnyway = false
+      
+      }
+
+      document.getElementById('p').innerText = m.playbackRate + ": " +delta
+
+      if(m.paused)
+      {
+      if(dt< m.duration)
+      {
+      m.play().catch(function (e)
+            {
+              link.send(['error', e.toString()])
+              console.log(e)
+            })
+            }
+            }
+    }
+    catch(e)
+    {
+      link.send(['error', e.toString()])
+      throw e
+    }
+  }
+}
+link.upd=f
+link.timeSyncInterval = 10000
+
+link.send(['ask'])
+
+function f2()
+{
+link.send(['ask'])
+}
+
+setInterval(f2, 1000)
+
+
+</script>
