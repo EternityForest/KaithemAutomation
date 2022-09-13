@@ -60,6 +60,9 @@ ${api.render("api")}
   position: absolute;
 }
 
+.invisible{
+    display: none;
+}
 </style>
 
 
@@ -87,12 +90,18 @@ ${api.render("api")}
                 if (i[1].includes("errors")) {
                     return 'error notification'
                 }
-                else if (i[1].includes("important")) {
+                 if (i[1].includes("important")) {
                     return 'highlight notification'
                 }
-                else if (i[1].includes("warnings")) {
+                 if (i[1].includes("warnings")) {
                     return 'warning notification'
                 }
+
+                if( window.location.search.indexOf('summary')>-1)
+                {
+                    return 'invisible'
+                }
+
                 else{
                     return "notification"
                 }

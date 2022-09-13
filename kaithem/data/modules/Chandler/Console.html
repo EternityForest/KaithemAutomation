@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1662285134551778
+resource-timestamp: 1662986021617959
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -672,8 +672,19 @@ commandTagsListing=module.commandTagsListing()
                         <button v-on:click="sceneev('button.c',i[0])">C</button>
                         <button v-on:click="sceneev('button.d',i[0])">D</button>
                         </p>
+
                         <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
                         
+                        <table border="0">
+
+                            <tr v-for="(v,i) in i[1].timers">
+                                <td>{{i}}</td>
+                                <td style="width:8em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                    {{formatInterval((v-unixtime))}}
+                                </td>
+                                <tr>
+                        </table>
+
                         <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
                  
@@ -1585,12 +1596,12 @@ commandTagsListing=module.commandTagsListing()
                     var c = []
                     var n= a[1]
                     if (n.indexOf('=SCENE')>-1) {
-                        n= this.scenename
+                        n= appData.scenename
                         }
                     else{
-                        for (i in this.scenemeta)
+                        for (i in appData.scenemeta)
                         {
-                            var s = this.scenemeta[i]
+                            var s = appData.scenemeta[i]
                             if (s.name==n)
                             {
                                 n=i
@@ -1600,7 +1611,7 @@ commandTagsListing=module.commandTagsListing()
                         }
 
                     
-                    var x = this.scenecues[i]
+                    var x = appData.scenecues[n]
 
                     if(!x)
                     {
@@ -1609,7 +1620,7 @@ commandTagsListing=module.commandTagsListing()
 
                     for (i in x)
                     {
-                        c.push([this.cuemeta[i].name,''])
+                        c.push([i,''])
                     }
                 }
             },

@@ -8,6 +8,7 @@ Change Log
 - :sparkles: Pages that are just JS code, ending in .js, are now properly syntax highlighted
 - :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events
 - :memo: Document the \_\_del\_\_ event cleanup functions
+- :sparkles: Chandler scenes menus now show any running cue logic timers for the scene
 
 ### 0.68.33
 - :bug: Compatibility with older sdmon versions that gave bad JSON

@@ -8,7 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1662285312694455
+resource-timestamp: 1662986053467875
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -184,13 +184,23 @@ import json
                     </div>                    <b v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</b>
 
                         <p class="buttonbar">
-                        <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i>Go!</button>
-                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
-                        <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
-                        <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i>Stop</button>
+                        <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i></button>
+                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i></button>
+                        <button v-on:click="nextcue(i[0])"><i class="icofont-ui-next"></i></button>
+                        <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i></button>
                         </p>
 
-                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
+                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
+                                                
+                        <table border="0">
+
+                            <tr v-for="(v,i) in i[1].timers">
+                                <td>{{i}}</td>
+                                <td style="width:8em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                    {{formatInterval((v-unixtime))}}
+                                </td>
+                                <tr>
+                        </table>
                         
                         <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
@@ -229,7 +239,27 @@ import json
             </div>
         </div>
 
+     <div style="width:99%;">
+                <div class="scrollbox" style="border:none;" id="eventlogbox">
+                    <div  v-if="i[0].indexOf('err')>-1" v-for="i in evlog.slice().reverse()">
+                        {{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}: 
+                                                        <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
+                                    <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
+                                    <pre v-if="i[4]">{{i[4]}}</pre>
+                                </div>
+                    </div>
+                </div>
+
+    </div>
+
         </div>
+
+        <iframe src="/dropdownpanel?summary=1" width="99%"></iframe>
+
+
+
+
+
 
     <template id="cue-cd">
                 <span>

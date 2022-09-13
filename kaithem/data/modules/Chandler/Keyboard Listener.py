@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1662981829353834
+resource-timestamp: 1662984112671420
 resource-type: event
 versions: {}
 
@@ -18,6 +18,8 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolution
     __doc__=''
+    
+    import traceback
     
     mapping = {
     
@@ -41,25 +43,31 @@ if __name__=='__setup__':
     }
     from pynput import keyboard
     
-    def on_press(key):    
+    def on_press(key):
         try:
-            kaithem.chandler.event("serverkeydown."+key.char)
-        except AttributeError:
-            x = str(key).split('.')[-1]
-            if x in mapping:
-                x = mapping[x]
-            kaithem.chandler.event("serverkeydown."+x)
+            try:
+                kaithem.chandler.event("serverkeydown."+key.char)
+            except AttributeError:
+                x = str(key).split('.')[-1]
+                if x in mapping:
+                    x = mapping[x]
+                kaithem.chandler.event("serverkeydown."+x)
+        except Exception:
+            print(traceback.format_exc())
+    
     
         
-    
-    def on_release(key):    
+    def on_release(key):
         try:
-            kaithem.chandler.event("serverkeyup."+key.char)
-        except AttributeError:
-            x = str(key).split('.')[-1]
-            if x in mapping:
-                x = mapping[x]
-            kaithem.chandler.event("serverkeyup."+x)
+            try:
+                kaithem.chandler.event("serverkeyup."+key.char)
+            except AttributeError:
+                x = str(key).split('.')[-1]
+                if x in mapping:
+                    x = mapping[x]
+                kaithem.chandler.event("serverkeyup."+x)
+        except Exception:
+            print(traceback.format_exc())
     
     
     # ...or, in a non-blocking fashion:
