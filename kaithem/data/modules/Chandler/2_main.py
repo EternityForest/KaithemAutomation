@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1663117702194312
+resource-timestamp: 1663139112549733
 resource-type: event
 versions: {}
 
@@ -3521,8 +3521,20 @@ if __name__=='__setup__':
                 
                 if str(cuelen).startswith('@'):
                     selector = recur.getConstraint(cuelen[1:])
-                    nextruntime = selector.after(datetime.datetime.now(), True)
-                    nextruntime = dt_to_ts(nextruntime, selector.tz)
+                    ref = datetime.datetime.now()
+                    nextruntime = selector.after(ref, True)
+    
+    
+                    # Workaround for "every hour" and the like, which would normally return the start of the current hour,
+                    # But in this case we want the next one.  We don't want exclusive matching all the either as that seems a bit buggy.
+                    if nextruntime <= ref:
+                        nextruntime = selector.after(nextruntime, False)
+                    
+                    
+                    t2 = dt_to_ts(nextruntime, selector.tz)
+    
+                    nextruntime=t2
+    
                     self.cuelen = nextruntime - time.time()
     
                 else:
