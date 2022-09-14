@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1663139112549733
+resource-timestamp: 1663139737552616
 resource-type: event
 versions: {}
 
@@ -3510,14 +3510,14 @@ if __name__=='__setup__':
     
         def recalcRandomizeModifier(self):
             "Recalculate the random variance to apply to the length"
-            self.randomizeModifier =random.triangular(-self.cue.lengthRandomize, +self.cue.lengthRandomize)
+            self.randomizeModifier =random.triangular(-float(self.cue.lengthRandomize), +float(self.cue.lengthRandomize))
     
         def recalcCueLen(self):
                 "Calculate the actual cue len, without changing the randomizeModifier"
                 if not self.active:
                     return
                 cuelen = self.scriptContext.preprocessArgument(self.cue.length)
-                
+                v = 0
                 
                 if str(cuelen).startswith('@'):
                     selector = recur.getConstraint(cuelen[1:])
@@ -3535,8 +3535,8 @@ if __name__=='__setup__':
     
                     nextruntime=t2
     
-                    self.cuelen = nextruntime - time.time()
-    
+                    v = nextruntime - time.time()
+                    
                 else:
                     if self.cue.sound and self.cue.rel_length:
                         path = self.resolveSound(self.cue.sound)
@@ -3544,14 +3544,14 @@ if __name__=='__setup__':
                             #If we are doing crossfading, we have to stop slightly early for
                             #The crossfade to work
                             slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
-                            self.cuelen=  max(0,self.randomizeModifier+slen)
+                            v=  max(0,self.randomizeModifier+slen)
                         except:
                             logging.exception("Error getting length for sound "+str(path))
                             #Default to 4 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
                             self.cuelen = 240
+                            return
     
-                    else: 
-                        self.cuelen = max(0,self.randomizeModifier+cuelen)
+                self.cuelen = max(0,self.randomizeModifier+v)
     
     
         def recalcCueVals(self):

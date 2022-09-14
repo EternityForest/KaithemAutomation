@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663114701046088
+resource-timestamp: 1663140006411960
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -786,14 +786,14 @@ commandTagsListing=module.commandTagsListing()
                                     </td>
 
                                     <td class="desktop-only" data-label="Fade In:">
-                                        <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein"></td>
+                                        <input type="number" v-on:change="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein"></td>
 
                                     <td class="desktop-only" data-label="Length:">
                                         <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em" v-model="i[1].length"></td>
 
                                     <td data-label="Next Cue:">
                                         <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
-                                            v-on:input="setnext(i[1].id,$event.target.value)">
+                                            v-on:change="setnext(i[1].id,$event.target.value)">
                                             <option value="">&gt&gt&gt</option>
                                             <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
                                             <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
@@ -804,14 +804,14 @@ commandTagsListing=module.commandTagsListing()
                                             </select>
 
                                             <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends"
-                                                v-on:input="setnext(i[1].id,$event.target.value)" v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
+                                                v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
                                                 </input>
                                     </td>
 
 
 
                                     <td class="desktop-only" data-label="Randomize">
-                                        <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+                                        <input type="number" v-on:change="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize"></td>
                                     <td class="desktop-only" data-label="Track vals from prev: ">
                                         <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
                                     </td>
@@ -1060,7 +1060,7 @@ commandTagsListing=module.commandTagsListing()
                             <input type="number" v-on:input="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeOut"
                                 title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend"
-                                >{{scenemeta[scenename].bpm?"beats":"s"}}
+                                >
                                 
                         </label><br>
                         
@@ -1069,7 +1069,7 @@ commandTagsListing=module.commandTagsListing()
                             <input type="number" v-on:input="setSoundFadeIn(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeIn"
                                 title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use crossfade to control fading from another sound."
-                                >{{scenemeta[scenename].bpm?"beats":"s"}}
+                                >
                                 
                         </label>
 
@@ -1199,16 +1199,16 @@ commandTagsListing=module.commandTagsListing()
 
                         <label>Fadein:
                             <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
-                                min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
+                                min=0 v-model="currentcue.fadein">
                         </label>
                                 <label>Length:
-                            <input v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
-                                style="width:6em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                            <input v-on:change="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
+                                style="width:6em" min=0></input>
                         </label>
                                 <label>Randomize Length:
                             <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
                                 title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
-                                style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                                style="width:4em" min=0 step=0.25></input>
                         </label>
                                 <div class="break"></div>
                                 <h5 style="flex-basis:100%">Sound</h5>
