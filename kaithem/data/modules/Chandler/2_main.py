@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1662982857002483
+resource-timestamp: 1663117702194312
 resource-type: event
 versions: {}
 
@@ -19,11 +19,30 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolutio n
     __doc__=''
-    import time,random,weakref, os,threading,uuid,logging,traceback,yaml,copy,json,src,collections
+    import time,random,weakref, os,threading,uuid,logging,traceback,yaml,copy,json,src,collections, datetime,pytz
     from decimal import Decimal
     from tinytag import TinyTag
     from typeguard import typechecked
     import urllib
+    
+    
+    import recur
+    
+    
+    def dt_to_ts(dt, tz=None):
+        "Given a datetime in tz, return unix timestamp"
+        if tz:
+            utc = pytz.timezone('UTC')
+            return ((tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1))
+    
+        else:
+            # Local Time
+            ts = time.time()
+            offset = (datetime.datetime.fromtimestamp(ts) -
+                      datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+            return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1))-offset
+    
+    
     
     
     
@@ -1207,6 +1226,10 @@ if __name__=='__setup__':
                                 'defaultNext': scene.defaultNext,
                                 'commandTag': scene.commandTag,
                                 'soundOutput': scene.soundOutput,
+                                'eventButtons': scene.eventButtons,
+                                'displayTags': scene.displayTags,
+                                'displayTagValues': scene.displayTagValues,
+                                'displayTagMeta': scene.displayTagMeta,
                                 'vars':v,
                                 'timers': scene.runningTimers,
                                 'notes': scene.notes,
@@ -1219,7 +1242,7 @@ if __name__=='__setup__':
                                 'alpha':scene.alpha,
                                 'active': scene.isActive(),
                                 'defaultActive': scene.defaultActive,
-                        
+                                'displayTagValues': scene.displayTagValues,
                                 'enteredCue':  scene.enteredCue,
                                 'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
                                 'cuelen': scene.cuelen,
@@ -1459,14 +1482,19 @@ if __name__=='__setup__':
                     cues[msg[1]].soundOutput=msg[2]
                     self.pushCueMeta(msg[1])
     
+    
+    
                 if msg[0] == "setNotes":
                     module.scenes[msg[1]].notes=msg[2]
                     self.pushMeta(msg[1],keys={'notes'})
     
-    
-                if msg[0] == "setPage":
-                    if kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                        module.scenes[msg[1]].setPage(msg[2],msg[3],msg[4],msg[5])
+                if msg[0] == "seteventbuttons":
+                    module.scenes[msg[1]].eventButtons=msg[2]
+                    self.pushMeta(msg[1], keys={'eventButtons'})
+                
+                if msg[0] == "setdisplaytags":
+                    module.scenes[msg[1]].setDisplayTags(msg[2])
+                    self.pushMeta(msg[1], keys={'displayTags'})
     
                 if msg[0] == "setMqttServer":
                     if kaithem.users.checkPermission(user,"/admin/modules.edit"):
@@ -2614,7 +2642,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
-        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
+        soundOutput='', eventButtons=[], displayTags=[], notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
         
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2625,6 +2653,8 @@ if __name__=='__setup__':
             self.mqttConnection=None
     
             disallow_special(name)
+    
+            self.eventButtons = eventButtons[:]
     
             # This is used for the remote media triggers feature.
             self.mediaLink = kaithem.widget.APIWidget("media_link")
@@ -2648,6 +2678,14 @@ if __name__=='__setup__':
     
             self.commandTagSubscriptions = []
             self.commandTag=commandTag
+    
+    
+            self.displayTagSubscriptions = []
+            self.displayTags=[]
+            self.displayTagValues = {}     
+            self.displayTagMeta={}   
+            self.setDisplayTags(displayTags)
+    
     
             self.notes=notes
             self.midiSource=''
@@ -2852,6 +2890,8 @@ if __name__=='__setup__':
                         'blendArgs': self.blendArgs,
                         'backtrack': self.backtrack,
                         'soundOutput': self.soundOutput,
+                        'eventButtons': self.eventButtons,
+                        'displayTags': self.displayTags,
                         'midiSource': self.midiSource,
                         'defaultNext':self.defaultNext,
                         'commandTag': self.commandTag,
@@ -3478,23 +3518,28 @@ if __name__=='__setup__':
                     return
                 cuelen = self.scriptContext.preprocessArgument(self.cue.length)
                 
-                if not isinstance(cuelen,(int, float)):
-                        raise RuntimeError("Invalid cue length, must resolve to int or float")
+                
+                if str(cuelen).startswith('@'):
+                    selector = recur.getConstraint(cuelen[1:])
+                    nextruntime = selector.after(datetime.datetime.now(), True)
+                    nextruntime = dt_to_ts(nextruntime, selector.tz)
+                    self.cuelen = nextruntime - time.time()
     
-                if self.cue.sound and self.cue.rel_length:
-                    path = self.resolveSound(self.cue.sound)
-                    try:
-                        #If we are doing crossfading, we have to stop slightly early for
-                        #The crossfade to work
-                        slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
-                        self.cuelen=  max(0,self.randomizeModifier+slen)
-                    except:
-                        logging.exception("Error getting length for sound "+str(path))
-                        #Default to 4 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
-                        self.cuelen = 240
+                else:
+                    if self.cue.sound and self.cue.rel_length:
+                        path = self.resolveSound(self.cue.sound)
+                        try:
+                            #If we are doing crossfading, we have to stop slightly early for
+                            #The crossfade to work
+                            slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
+                            self.cuelen=  max(0,self.randomizeModifier+slen)
+                        except:
+                            logging.exception("Error getting length for sound "+str(path))
+                            #Default to 4 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
+                            self.cuelen = 240
     
-                else: 
-                    self.cuelen = max(0,self.randomizeModifier+cuelen)
+                    else: 
+                        self.cuelen = max(0,self.randomizeModifier+cuelen)
     
     
         def recalcCueVals(self):
@@ -3654,6 +3699,51 @@ if __name__=='__setup__':
             self.mqttConnection.publish(topic, message, encoding='json')
         
         
+        def clearDisplayTags(self):
+            with module.lock:
+                for i in self.displayTagSubscriptions:
+                    i[0].unsubscribe(i[1])
+                self.displayTagSubscriptions= []
+                self.displayTagValues = {}
+                self.displayTagMeta= {}
+    
+    
+        def displayTagSubscriber(self,n):
+            t = kaithem.tags[n[1]]
+            sn= n[1]
+            self.displayTagMeta[sn] = {}
+            self.displayTagMeta[sn]['min'] = t.min
+            self.displayTagMeta[sn]['max'] = t.max
+            self.displayTagMeta[sn]['hi'] = t.hi
+            self.displayTagMeta[sn]['lo'] = t.lo
+            self.displayTagMeta[sn]['unit'] = t.unit
+            self.displayTagMeta[sn]['subtype'] = t.subtype
+    
+            self.pushMeta(keys=["displayTagMeta"])
+    
+    
+            def f(v,t,a):
+                self.displayTagValues[sn] = v
+                self.pushMeta(keys=["displayTagValues"])
+            
+            t.subscribe(f)
+            self.displayTagValues[sn] = t.value
+            self.pushMeta(keys=["displayTagValues"])
+    
+            return t,f
+    
+    
+        def setDisplayTags(self,dt):
+            dt = dt[:]
+            with module.lock:
+                self.clearDisplayTags()
+                try:
+                    for i in dt:
+                        self.displayTagSubscriptions.append(self.displayTagSubscriber(i))
+                except Exception:
+                    print(traceback.format_exc())
+                self.displayTags = dt
+    
     
         def clearConfiguredTags(self):
             with module.lock:
@@ -3728,6 +3818,10 @@ if __name__=='__setup__':
                 self.subscribeCommandTags()
     
     
+    
+    
+    
+    
         def nextCue(self,t=None,cause='generic'):
             with module.lock:
                 if self.cue.nextCue and ((self.evalExpr(self.cue.nextCue).split("?")[0] in self.cues) or self.cue.nextCue.startswith("__") or "|" in self.cue.nextCue or "*" in self.cue.nextCue):
@@ -3753,6 +3847,9 @@ if __name__=='__setup__':
                     
     
         def go(self,nohandoff=False):
+    
+            self.setDisplayTags(self.displayTags)
+    
             with module.lock:
                 if self in module.activeScenes:
                     return

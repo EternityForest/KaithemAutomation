@@ -206,7 +206,7 @@ class _TagPoint():
         self.alreadyPostedDeadlock: bool = False
 
         # This string is just used to stash some extra info
-        self.subtype = ''
+        self._subtype = ''
 
         # If true, the tag represents an input not meant to be written to except by the owner.
         # It can however still be overridden.  This is just a widget advisory.
@@ -1387,6 +1387,7 @@ class _TagPoint():
 
     @interval.setter
     def interval(self, val):
+
         self._dynConfigValues['interval'] = val
 
         # Config tages priority over code
@@ -1402,6 +1403,17 @@ class _TagPoint():
                                synchronous=True)
         with self.lock:
             self._managePolling()
+
+    @property
+    def subtype(self):
+        return self._subtype
+
+    @subtype.setter
+    def subtype(self, val):
+       self._subtype=val
+       if val=='bool':
+            self.min=0
+            self.max = 1
 
     @property
     def default(self):

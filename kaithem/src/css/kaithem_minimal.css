@@ -125,9 +125,12 @@ body {
 
 td input,
 td select {
-    margin: 2px;
     border: 1px solid;
     box-sizing: border-box;
+    margin: 0px;
+    height: 1.8em;
+    width: auto;
+
 }
 
 td {
@@ -443,6 +446,22 @@ section {
     max-width: 96%;
     overflow-x: auto;
 }
+
+div.card {
+    border-style: solid;
+    background: var(--box-bg);
+    border-width: 1px;
+    border-color:  rgba(36, 30, 30, 0.219);;
+    border-radius: 15px;
+    backdrop-filter: blur(1px);
+    padding-top: 0.2%;
+    padding-bottom: 0.5%;
+    padding-right: 1%;
+    padding-left: 0.5%;
+}
+
+
+
 
 div.sectionbox.flex-item,
 section.flex-item {

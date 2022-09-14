@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1662981970250736
+resource-timestamp: 1663116511624912
 resource-type: page
 streaming-response: false
 template-engine: markdown
@@ -86,14 +86,26 @@ for channels in it. A scene can only have one active cue at at time.
 
 
 Cues have a fade in time that controls how long it takes to fully fade
-in from the last cue. They may also have a length, which can auto-advance to
-the next cue. The length is measured in beats, and the BPM is set per-scene.
+in from the last cue. 
+
+They may also have a length, which can auto-advance to
+the next cue. The length is measured in beats, and the BPM is set per-scene(Defaulting to 60)
 
 Length 0 just stops until something else happens to change the cue.
 
 Newly created cues are numbered by 5, with the first cue at 5, the
 second at 10, etc. You can use decimal cues down to 0.001. A cue's
 number may be changed at any time to move it around.
+
+
+#### Wall Clock Time  
+
+A cue's length field will also accept a time specifier like @Sunday at 1am  or just @5PM
+
+Rather than having a specific length, the length will be calculated so that the cue ends at the next occurance of the time you specify.
+
+This can be used to turn lights on and off at certain times, but also just to create a schedule reminder for your event.
+
 
 #### Autoadvance and loops
 

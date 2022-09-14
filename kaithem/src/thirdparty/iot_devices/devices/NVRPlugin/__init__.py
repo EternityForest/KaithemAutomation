@@ -1253,7 +1253,7 @@ class NVRChannel(devices.Device):
 
             self.numeric_data_point("raw_motion_value",
                                     min=0,
-                                    max=250,
+                                    max=,
                                     writable=False)
 
             self.numeric_data_point("luma_average",

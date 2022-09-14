@@ -7,8 +7,8 @@ mimetype: text/html
 no-header: false
 no-navheader: true
 require-method: [GET, POST]
-require-permissions: []
-resource-timestamp: 1662986053467875
+require-permissions: [users.chandler.admin]
+resource-timestamp: 1663119745147653
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -150,7 +150,7 @@ import json
 
         <div id="app" style="display:flex; flex-wrap:wrap;">
 
-              <div class="sectionbox flex-item" style="overflow: auto;  resize:both;">
+              <div class="sectionbox flex-item" style="overflow: auto; max-width:98vw;">
                 
                     <div class="buttonbar">
                         <h3 title="All currently active scenes and all scenes that were created through the light board are shown">Scenes</h3>
@@ -164,7 +164,7 @@ import json
                 
                 <br/>
                 <div id="scene" style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
-                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;border:1px solid;display:flex-item; ; margin: 0.4em; padding: 0.4em; border: 1px solid;" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;display:flex-item; flex-grow: 1; margin: 0.4em; padding: 0.4em;" v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
                         <div class="buttonbar">
                         <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;">
@@ -181,7 +181,14 @@ import json
 
 
                     
-                    </div>                    <b v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</b>
+                    </div>                    
+                    <div style="display:flex; width: 100%">
+                    <b v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</b>
+                    <b v-if="!(i[1].active && cuemeta[i[1].cue])">Not Running</b>
+                    <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                    <span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span>
+                    </div>
+
 
                         <p class="buttonbar">
                         <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i></button>
@@ -189,23 +196,36 @@ import json
                         <button v-on:click="nextcue(i[0])"><i class="icofont-ui-next"></i></button>
                         <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i></button>
                         </p>
-
-                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
-                                                
-                        <table border="0">
-
-                            <tr v-for="(v,i) in i[1].timers">
-                                <td>{{i}}</td>
-                                <td style="width:8em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
-                                    {{formatInterval((v-unixtime))}}
-                                </td>
-                                <tr>
-                        </table>
                         
-                        <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
-                        <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
+                        <input type="range" style="width: 100%" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
 
-                        <small v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
+                        <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
+                        <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
+                        </p>
+
+
+
+                        <table border="1"  v-if="i[1].displayTags.length > 0">
+                        <tr v-for="v in i[1].displayTags">
+                            <td>{{v[0]}}</td>
+                            <td>
+                                <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min" :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
+                                :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
+
+                                {{i[1].displayTagValues[v[1]]}}</td>
+                        </tr>
+
+
+                        <tr v-for="(v,i) in i[1].timers">
+                            <td>Timer {{i}}</td>
+                            <td style="width:12em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                {{formatInterval((v-unixtime))}}
+                            </td>
+                        <tr>
+
+                        </table>
+                                                
+
 
                     </div>
                 </div>
@@ -213,7 +233,7 @@ import json
             </div>
 
 
-              <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
+              <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; overflow:auto;">
             <h3> Cues within {{editingScene.name}}
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
                 </h3>
@@ -223,15 +243,20 @@ import json
 
                     <div  style="display:flex; flex-wrap:wrap; flex-direction: row;">
           
-                                <div v-for="i in formatCues(1)" v-if="i[1].id" style="display:flex-item; margin: 0.8em; padding: 0.4em; border: 1px solid;" v-bind:class="{'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
-                                    <h4>{{i[1].name}}
+                                <div v-for="i in formatCues(1)" v-if="i[1].id" style="margin: 0.8em; padding: 0.4em;" v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
                                     
-                                    <span v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</span>
-                                    </h4>
-                                    <cue-countdown v-if="cuemeta[editingScene.cue].name==i[1].name" :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
+
+                                    <button v-on:click="jumptocue(i[1].id)" style="width:12em; height: 4em;">                                    
+                                    <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
+                                    {{i[1].name}}</button>
+                                    
+                                    <div  v-if="cuemeta[editingScene.cue].name==i[1].name">
+                                    <cue-countdown :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
+                                    </div>
+
+                                   <div v-if="cuemeta[editingScene.cue].name==i[1].name && (cuemeta[editingScene.cue]&&(cuemeta[editingScene.cue].next||cuemeta[editingScene.cue].defaultnext))">Next Cue: {{(cuemeta[editingScene.cue].next||cuemeta[editingScene.cue].defaultnext).split('?')[0]}}</div>
 
 
-                                    <button v-on:click="jumptocue(i[1].id)" style="width:12em; height: 4em;">Go</button>
                                 </div>
             
                     </div>
@@ -262,13 +287,13 @@ import json
 
 
     <template id="cue-cd">
-                <span>
-        <meter v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
+                <div style="display:inline-flex; flex-grow:1">
+        <meter style="flex-grow: 1;" v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
         v-bind:value="unixtime-scene.enteredCue"></meter>
         <span v-if="scene.active && cue && cue.length">
         {{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1 ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
-        <br>
-        </span></span>
+        </span>
+        </div>
     </template>
 
     

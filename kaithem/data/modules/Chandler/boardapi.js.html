@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1662283995680549
+resource-timestamp: 1663119456957635
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -72,8 +72,7 @@ formatInterval = function(seconds)
 
             var time = "";
 
-            time = hours + "h " + minutes + "m " + seconds + "." +
-                tenths + "s"
+            time =  (minutes+(hours*60)) + ":" + (""+seconds).padStart(2,'0')
             return time;
         }
 
@@ -241,12 +240,12 @@ formatInterval = function(seconds)
                     var c = []
                     var n= a[1]
                     if (n.indexOf('=SCENE')>-1) {
-                        n= this.scenename
+                        n= appData.scenename
                         }
                     else{
-                        for (i in this.scenemeta)
+                        for (i in appData.scenemeta)
                         {
-                            var s = this.scenemeta[i]
+                            var s = appData.scenemeta[i]
                             if (s.name==n)
                             {
                                 n=i
@@ -256,7 +255,7 @@ formatInterval = function(seconds)
                         }
 
                     
-                    var x = this.scenecues[i]
+                    var x = appData.scenecues[n]
 
                     if(!x)
                     {
@@ -265,8 +264,9 @@ formatInterval = function(seconds)
 
                     for (i in x)
                     {
-                        c.push([this.cuemeta[i].name,''])
+                        c.push([i,''])
                     }
+                    return c;
                 }
             },
             
@@ -415,6 +415,19 @@ formatInterval = function(seconds)
                 appData.pushfixture(i)
             },
 
+            'setEventButtons': function(sc, i)
+            {
+
+                api_link.send(['seteventbuttons', sc, i])
+            },
+
+
+            'setDisplayTags': function(sc, i)
+            {
+
+                api_link.send(['setdisplaytags', sc, i])
+            },
+            
             'setSceneNotes': function(sc, i)
             {
 
