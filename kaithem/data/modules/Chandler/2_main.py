@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1663139737552616
+resource-timestamp: 1663140793695155
 resource-type: event
 versions: {}
 
@@ -3117,10 +3117,10 @@ if __name__=='__setup__':
             if cue == "__shuffle__":
                 x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
                 for i in list(reversed(self.cueHistory[-15:])):
-                    if len(x)<2:
+                    if len(x)<3:
                         break
                     elif i[0] in x:
-                        x.remove(i)
+                        x.remove(i[0])
                 cue = self.pickRandomCueFromNames(x)
                 
             elif cue == "__random__":
@@ -3517,7 +3517,7 @@ if __name__=='__setup__':
                 if not self.active:
                     return
                 cuelen = self.scriptContext.preprocessArgument(self.cue.length)
-                v = 0
+                v = cuelen
                 
                 if str(cuelen).startswith('@'):
                     selector = recur.getConstraint(cuelen[1:])
@@ -3551,7 +3551,7 @@ if __name__=='__setup__':
                             self.cuelen = 240
                             return
     
-                self.cuelen = max(0,self.randomizeModifier+v)
+                self.cuelen = max(0,self.randomizeModifier+float(v))
     
     
         def recalcCueVals(self):

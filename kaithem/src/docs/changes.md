@@ -5,6 +5,8 @@ Change Log
 - :bug: Fix alarms that reference other tagpoints
 - :bug: Fix use of ~ in config file directories
 - :bug: Chandler visual bugs
+- :bug: Fix chandler shuffle
+- :bug: Fix length randomize with sound-relative and wall clock lengths
 - :sparkles: Chandler remote media web players
 - :sparkles: Pages that are just JS code, ending in .js, are now properly syntax highlighted
 - :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events
