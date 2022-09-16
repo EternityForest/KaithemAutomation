@@ -41,6 +41,8 @@ enumerate = enumerate
 class BaseEvent():
     def __init__(self):
         self.exact = 0
+        self.schedID = None
+
 
 
 # Event API(not public):
@@ -65,7 +67,6 @@ class Event(BaseEvent):
         self.time = time
         self.errored = False
         self.stopped = False
-        self.schedID = None
 
     def schedule(self):
         scheduler.insert(self)
@@ -121,11 +122,11 @@ def shouldSkip(priority, interval, lateby, lastran):
             return True
 
 
-class RepeatingEvent(BaseEvent):
+class BaseRepeatingEvent(BaseEvent):
     """Does function every interval seconds in real time,
     and stops if you don't keep a reference to function"""
 
-    def __init__(self, function, interval, priority="realtime", phase=0):
+    def __init__(self, function, interval, ):
         BaseEvent.__init__(self)
         self.f = util.universal_weakref(function)
         self.fstr = str(function)
@@ -138,7 +139,6 @@ class RepeatingEvent(BaseEvent):
         self.errored = False
         self.lock = threading.Lock()
         self.lastrun = None
-        self.phaseoffset = (phase % 1) * interval
         # This flag is here to slove a really annoying problem.
         # If you unregister just before the reschedule function acquires the lock,
         # The object just gets rescheduled like nothing happened.
@@ -152,7 +152,7 @@ class RepeatingEvent(BaseEvent):
             if not f:
                 f= self.fstr +"(dead)"
             f = str(f)
-            return "<RepeatingEvent at "+str(id(self)) + f + " every "+str(self.interval)+ "s >"
+            return "<BaseRepeatingEvent at "+str(id(self)) + f + " every "+str(self.interval)+ "s >"
         except Exception:
             print(traceback.format_exc())
             return super().__repr__()
@@ -182,51 +182,8 @@ class RepeatingEvent(BaseEvent):
                 "Tried to schedule something that is still running: " + str(self.f()))
 
     def _schedule(self):
-        """Calculate next runtime and put self into the queue.
-        Currently should only ever be called from the loop in the scheduler."""
-        # We want to schedule to the multiple of local time.
-        # Things on the hour should be on the local hour.
+        raise NotImplementedError()
 
-        # adapted from J.F. Sebastian of Stack Overflow
-        millis = 1288483950000
-        ts = millis * 1e-3
-        # local time == (utc time + utc offset)
-        offset = (datetime.datetime.fromtimestamp(
-            ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds() + self.phaseoffset
-
-        # Convert to local time
-        t = self.lastrun + offset
-        # This is important in the next step. Here we add a fraction of the interval to push times like 59.95 over
-        # otherwise it will schedule it for 60 when clearly a minute in the future should be 120
-        t += self.interval / 2
-        # Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
-        # then subtracting.
-        last = t - (t % self.interval)
-
-        # Get the time after last
-        t = last + self.interval
-        # Convert back to UTC/UNIX and add the phase offset
-        self.time = (t - offset)
-
-        # race mitigation: it could all run, and stuff could happen before we set the flag and never run again because
-        # we said it already did
-
-        # Specific race we are worried about:
-        # We insert
-        # it runs at the same time as error recovery because everything was paused
-        # error rec schedules, to do that it gets lock
-        #It schedules for the past and runs.
-
-        # That run, and our run, both exit because they lack the lock.
-        # Nothing reschedules
-
-        # However, we then set it to True so it can never be resceduled by recovery.
-
-        try:
-            self.scheduled = True
-            scheduler.insert(self, replaces=self.schedID)
-        except Exception:
-            self.scheduled=False
         
 
     def register(self):
@@ -258,14 +215,14 @@ class RepeatingEvent(BaseEvent):
         if time.time()-self.lastrun < (self.interval/3):
             return
 
+        self.lastrun = time.time()
 
 
         # We must have been pulled out of the event queue or we wouldn't be running.
         # If somehow there is another copy, exit and let recovery reschedule us later.
 
 
-        if self.lock.acquire(False):
-            self.lastrun = time.time()
+        if self.lock.acquire(timeout=1):
 
 
             try:
@@ -275,7 +232,7 @@ class RepeatingEvent(BaseEvent):
                 else:
                     f()
                 # self._schedule()
-            except:
+            except Exception:
                 # If we can, try to send the exception back whence it came
                 try:
                     from . import newevt
@@ -318,33 +275,37 @@ class RepeatingEvent(BaseEvent):
                 self.lock.release()
                 del f
                 sys.last_traceback = None
+        else:
+            print(self.lock)
 
 
-class UnsynchronizedRepeatingEvent(RepeatingEvent):
+class UnsynchronizedRepeatingEvent(BaseRepeatingEvent):
     """Represents a repeating event that is not synced to the real time exactly
     """
 
     def __init__(self, *args, **kwargs):
-        RepeatingEvent.__init__(self, *args, **kwargs)
+        BaseRepeatingEvent.__init__(self, *args, **kwargs)
 
     def _schedule(self):
         """Calculate next runtime and put self into the queue. 
         Should only ever be called under lock"""
         if self.scheduled:
             return
-        t = self.lastrun + self.interval
+
+        # Don't alow unlimited amounts of winding up a big queue.
+        t = max((self.lastrun + self.interval), ((time.time()+self.interval)-5))
         self.time = t
         self.scheduled = True
         scheduler.insert(self)
         
 
 
-class RepeatWhileEvent(RepeatingEvent):
+class RepeatWhileEvent(UnsynchronizedRepeatingEvent):
     "Does function every interval seconds, and stops if you don't keep a reference to function"
 
     def __init__(self, function, interval):
         self.ended = False
-        RepeatingEvent.__init__(self, function, interval)
+        UnsynchronizedRepeatingEvent.__init__(self, function, interval)
 
     def _run(self):
         if self.ended:
@@ -409,26 +370,26 @@ class NewScheduler():
             self.thread2.start()
 
     def everySecond(self, f):
-        e = RepeatingEvent(f, 1)
+        e = UnsynchronizedRepeatingEvent(f, 1)
         e.register()
         e.schedule()
         return f
 
     def everyMinute(self, f):
-        e = RepeatingEvent(f, 60)
+        e = UnsynchronizedRepeatingEvent(f, 60)
         e.register()
         e.schedule()
         return f
 
     def everyHour(self, f):
-        e = RepeatingEvent(f, 3600)
+        e = UnsynchronizedRepeatingEvent(f, 3600)
         e.register()
         e.schedule()
         return f
 
     def every(self, f, interval):
         interval = float(interval)
-        e = RepeatingEvent(f, interval)
+        e = UnsynchronizedRepeatingEvent(f, interval)
         e.register()
         e.schedule()
         if isinstance(f, types.MethodType):
@@ -446,10 +407,7 @@ class NewScheduler():
         return e
 
     def scheduleRepeating(self, f, t, sync=True):
-        if sync:
-            e = RepeatingEvent(f, float(t))
-        else:
-            e = UnsynchronizedRepeatingEvent(f, float(t))
+        e = UnsynchronizedRepeatingEvent(f, float(t))
 
         e.register()
         e.schedule()
@@ -559,17 +517,17 @@ lastpost = [0]
 
 def a():
     selftest[0] = time.monotonic()
-    if selftest[1]< time.monotonic()-75:
+    if selftest[1]< time.monotonic()-40:
         if lastpost[0]< time.monotonic()-600:
             lastpost[0]=time.monotonic()
             messagebus.postMessage("/system/notifications/errors", "Something caused a scheduler continual selftest function not to run.")
 
 def b():
     selftest[1] = time.monotonic()
-    if selftest[0]< time.monotonic()-75:
+    if selftest[0]< time.monotonic()-40:
         if lastpost[0]< time.monotonic()-600:
             lastpost[0]=time.monotonic()
             messagebus.postMessage("/system/notifications/errors", "Something caused a scheduler continual selftest function not to run.")
 
-scheduler.every(a,60)
-scheduler.every(b,60)
+scheduler.every(a,20)
+scheduler.every(b,20)

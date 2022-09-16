@@ -7,6 +7,7 @@ Change Log
 - :bug: Chandler visual bugs
 - :bug: Fix chandler shuffle
 - :bug: Fix length randomize with sound-relative and wall clock lengths
+- :bug: Prevent unscheduled event windup
 - :sparkles: Chandler remote media web players
 - :sparkles: Pages that are just JS code, ending in .js, are now properly syntax highlighted
 - :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events

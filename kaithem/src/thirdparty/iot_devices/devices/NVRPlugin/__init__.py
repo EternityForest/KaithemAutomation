@@ -126,6 +126,7 @@ def recognize_tflite(i, r):
     import PIL.ImageFilter
     invoke_time = time.time()
 
+    
     i = PIL.Image.open(io.BytesIO(i))
     pilimg = i
     i = i.filter(PIL.ImageFilter.GaussianBlur(1))

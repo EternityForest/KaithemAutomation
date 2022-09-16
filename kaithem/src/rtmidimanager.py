@@ -119,7 +119,7 @@ def doScan():
                 print("Can't use MIDI:"+str(i))
 
 
-s = scheduling.RepeatingEvent(doScan, 10)
+s = scheduling.UnsynchronizedRepeatingEvent(doScan, 10)
 s.schedule()
 
 
