@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663288190880949
+resource-timestamp: 1663293974223838
 resource-type: page
 streaming-response: false
 template-engine: none
@@ -256,8 +256,16 @@ template-engine: none
                   var t = this.commands[fullCommand[0]].completionTags
                   if(t ==undefined)
                   {
-                      return []
+
+                  try
+                  {
+                        return this.argcompleters['defaultExpressionCompleter'](fullCommand)
+                    return c(fullCommand)
                   }
+                  catch(e)
+                  {
+                  return [];
+                  }                  }
                   t =t[arg]
                   var c = this.argcompleters[t]
 
