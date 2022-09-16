@@ -87,14 +87,21 @@ ${api.render("api")}
         data: {
             notifications: [],
             getClass: function(i) {
+
                 if (i[1].includes("errors")) {
                     return 'error notification'
                 }
                  if (i[1].includes("important")) {
                     return 'highlight notification'
                 }
-                 if (i[1].includes("warnings")) {
+                 if (i[1].includes("warning")) {
                     return 'warning notification'
+                }
+                if (i[2].includes("Alarm") && i[2].includes("is active")) {
+                    return 'notification warning'
+                }
+                if (i[2].includes("Alarm")) {
+                    return 'notification'
                 }
 
                 if( window.location.search.indexOf('summary')>-1)

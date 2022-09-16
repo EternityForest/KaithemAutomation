@@ -1146,7 +1146,7 @@ class _TagPoint():
 
         # Do it with this indirection so that it doesn't do anything
         # bad with some kind of race when we delete things, and so that it doesn't hold references
-        def recalcPoll():
+        def recalcPoll(*a):
             if name in self._alarmGCRefs:
                 try:
                     x = self._alarmGCRefs[name][0]

@@ -55,7 +55,7 @@ class EnhancedConnection(BaseConnection):
 
     def configureAlert(self, alertPriority, alertAck):
         self.statusTag.setAlarm("disconnected", "value != 'connected'",
-                                priority=alertPriority, autoAck="yes" if alertAck else 'no', tripDelay=5)
+                                priority=alertPriority, autoAck="yes" if alertAck else 'no', tripDelay=10)
 
 
 scullery.mqtt.Connection = EnhancedConnection

@@ -17,6 +17,7 @@ Change Log
 - :sparkles: Chandler cue lengths can accept @5PM style time specifiers, no need to use events and rules
 - :sparkles: Chandler no longer displays fractional seconds to reduce visual clutter
 - :sparkles: Chandler Commander view 
+- :sparkles: Get notified if a widget no longer exists that a page you are on is using.
 
 
 ### 0.68.33

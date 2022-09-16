@@ -738,6 +738,23 @@ class Widget():
             except Exception:
                 print("WS Send Error ",traceback.format_exc())
 
+
+    def __del__(self):
+        try:
+            d = json.dumps([[self.uuid]])
+
+            # Yes, I really had a KeyError here. Somehow the dict was replaced with the new version in the middle of iteration
+            # So we use an intermediate value so we know it won't change
+            x = self.subscriptions_atomic
+            for i in x:
+                try:
+                    x[i](d,None)
+                except Exception:
+                    print("WS Send Error ",traceback.format_exc())
+        except Exception:
+            print(traceback.format_exc())
+
+
     def sendTo(self, value, target):
         "Send a value to one subscriber by the connection ID"
         if usingmp:

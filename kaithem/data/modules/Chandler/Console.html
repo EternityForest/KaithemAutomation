@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663140006411960
+resource-timestamp: 1663287287646570
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -638,6 +638,8 @@ commandTagsListing=module.commandTagsListing()
                 <p class="buttonbar">
                 <button v-bind:class="{highlight:showAll==false}" v-on:click="showAll=false" title="Show all active scenes">Show All Active</button>
                 <button v-bind:class="{highlight:showAll}" v-on:click="showAll=true" title="Show all scenes owned by this board">Board</button>
+                <button v-on:click="showPages=!showPages">Toggle Compact</button>
+
                 </p>
                 <br/>
                 <div id="scene" style="overflow: auto; max-height:450px;">
@@ -665,6 +667,7 @@ commandTagsListing=module.commandTagsListing()
                         <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
                         <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i>Stop</button>
                         </p>
+                        <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
                         <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
                         <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
@@ -745,7 +748,6 @@ commandTagsListing=module.commandTagsListing()
                     <input v-model="cuefilter" placeholder="Search Cues" />
                     <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
                                         </p>
-
                 <hr>
 
 
@@ -1321,6 +1323,10 @@ commandTagsListing=module.commandTagsListing()
                                 v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
                         </label>
 
+                           <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
+                            <input style="width:25em" v-on:change="setinfodisplay(scenename,$event.target.value)"
+                                v-model="editingScene.infoDisplay"></input>
+                        </label>
 
                             <hr v-if="editingScene.blend!='normal' & showLightingControls" style="border-style:solid;border-width:1px;border-color:grey;">
                             <p>{{editingScene.blendDesc}}</p>
@@ -2000,4 +2006,10 @@ commandTagsListing=module.commandTagsListing()
 
         //Hack workaround, something is corrupting this to be undefined.
         appData.example_events[3]= ['button.a','A button in scenes sidebar']
+
+%for i in limitedTagsListing:
+    appData.availableTags.push("${i|h}")
+%endfor
+
+
             </script>

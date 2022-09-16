@@ -6,10 +6,11 @@
         border-style: solid;
         border-color:black;
         border-width:2px;
-        max-height: 10em;
+        max-height: 24em;
         overflow: scroll;
         min-width: 8em;
-        z-index:100
+        width: 180%;
+        z-index:1000
     }
     .highlight
     {
@@ -19,16 +20,16 @@
 </style>
 
 <template>
-    <div style="display:inline-block;position:relative;" style="width:0px">
-        <input v-bind:value="value" v-on:input="$emit('input', $event.target.value);focused=true" v-on:change="focused=false;$emit('change',$event.target.value);" v-on:focus="focused=true;">
-        <button title="Show/Hide selector" v-on:click="showmenu=!showmenu;focused=false;" v-bind:class="{'highlight':showmenu}">...</button>
+    <div style="display:inline-block;position:relative; overflow: visible;" style="width:0px">
+        <input style="width:80%" v-bind:value="value" v-on:input="$emit('input', $event.target.value);focused=true" v-on:change="focused=false;$emit('change',$event.target.value);" v-on:focus="focused=true;">
+        <button title="Show/Hide selector" style="width:14%" v-on:click="showmenu=!(showmenu|(focused));focused=false;" v-bind:class="{'highlight':showmenu}">...</button>
         <div v-if="showmenu||(focused)" class="comboboxdropdown">
-            <div  v-for="i in pinned" v-if="(!value) || i[0].includes(value) || i[0].includes(value) || showmenu">
+            <div  v-for="i in pinned" v-if="(!value) || i[0].toLowerCase().includes(value.toLowerCase()) || i[1].toLowerCase().includes(value.toLowerCase()) || showmenu">
                 <button v-on:click="$emit('input',i[0]);$emit('change',i[0]);showmenu=false;focused=false;" tabindex=-1 >{{i[0]}}</button><br>
                 <p>{{i[1]}}</p>
             </div>
 
-            <div  v-for="i in options" v-if="(!value) || i[0].includes(value) || i[0].includes(value) || showmenu">
+            <div  v-for="i in options" v-if="(!value) || i[0].toLowerCase().includes(value.toLowerCase()) || i[1].toLowerCase().includes(value.toLowerCase()) || showmenu">
                 <button v-on:click="$emit('input',i[0]);$emit('change',i[0]);showmenu=false;focused=false;" tabindex=-1 >{{i[0]}}</button><br>
                 <p>{{i[1]}}</p>
             </div>

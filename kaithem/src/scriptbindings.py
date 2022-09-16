@@ -896,6 +896,10 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
             None will silently return and do nothing if the tag does not exist.
             """
+
+            if not tagName[0] == '/':
+                tagName = "/"+tagName
+
             self.needRefreshForTag = {}
 
             tagType = None

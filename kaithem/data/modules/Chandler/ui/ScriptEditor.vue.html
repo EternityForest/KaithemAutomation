@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663118740735886
+resource-timestamp: 1663288190880949
 resource-type: page
 streaming-response: false
 template-engine: none
@@ -58,7 +58,7 @@ template-engine: none
         border-color: black;
         padding: 0.5em;
         border-radius: 5px;
-        overflow:auto;
+        overflow:visible;
         margin-right:4px;
     }
     .rulesbox
@@ -260,12 +260,20 @@ template-engine: none
                   }
                   t =t[arg]
                   var c = this.argcompleters[t]
-                  if (c==undefined)
-                  {
-                      return []
-                  }
 
-                  return c(fullCommand)
+                  try
+                  {
+                    if (c==undefined)
+                    {
+                        return this.argcompleters['defaultExpressionCompleter'](fullCommand)
+                    }
+
+                    return c(fullCommand)
+                  }
+                  catch(e)
+                  {
+                  return [];
+                  }
               },
 
             swapArrayElements:function(arr, indexA, indexB) {

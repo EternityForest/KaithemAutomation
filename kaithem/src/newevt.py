@@ -1365,6 +1365,11 @@ def updateOneEvent(resource, module, o=None):
                 __EventReferences[module, resource] = x
 
             data = modules_state.ActiveModules[module][resource]
+
+            del old
+            
+            # One last run.
+            gc.collect()
         
       
             

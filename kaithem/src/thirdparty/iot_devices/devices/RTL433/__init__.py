@@ -106,7 +106,7 @@ class RTL433Client(devices.Device):
             self.connection.subscribeToStatus(self.onConnectionChange)
             self.set_data_point("mqttStatus",
                                 1 if self.connection.isConnected else 0)
-            self.set_alarm("MQTT Lost","mqttStatus", "value < 0.5", auto_ack=True)
+            self.set_alarm("MQTT Lost","mqttStatus", "value < 0.5", auto_ack=True, trip_delay=10)
 
             topic = data.get("device.mqtttopic", "home/rtl_433")
 

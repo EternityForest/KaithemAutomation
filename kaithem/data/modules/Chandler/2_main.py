@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1663140793695155
+resource-timestamp: 1663287189262535
 resource-type: event
 versions: {}
 
@@ -242,7 +242,20 @@ if __name__=='__setup__':
     
     
     def fnToCueName(fn):
+    
+        isNum = False
+        try:
+            int(fn.split(".")[0])
+            isNum = True
+        except Exception:
+            pass
+        
+        # Nicely Handle stuff of the form "84. trackname"
+        if isNum and len(fn.split("."))> 2:
+            fn=fn.split(".",1)[-1]
+        
         fn=fn.split(".")[0]
+    
         fn=fn.replace("-","_")
         fn=fn.replace("_"," ")
         fn = fn.replace(":"," ")
@@ -306,6 +319,7 @@ if __name__=='__setup__':
     
     gotoCommand.completionTags={"scene":"scenesList","cue":"gotoSceneCuesCompleter"}
     
+    
     def setAlphaCommand(scene="=SCENE", alpha=1):
         "Set the alpha value of a scene"
         module.scenes_by_name[scene].setAlpha(float(alpha))
@@ -330,6 +344,10 @@ if __name__=='__setup__':
     rootContext.commands['setAlpha']=setAlphaCommand
     rootContext.commands['ifCue']=ifCueCommand
     rootContext.commands['sendEvent']=eventCommand
+    
+    rootContext.commands['setTag'].completionTags={"tagName": 'tagPointsCompleter'}
+    
+    
     def sendMqttMessage(topic, message):
         "JSON encodes message, and publishes it to the scene's MQTT server"
         raise RuntimeError("This was supposed to be overridden by a scene specific version")
@@ -1227,6 +1245,7 @@ if __name__=='__setup__':
                                 'commandTag': scene.commandTag,
                                 'soundOutput': scene.soundOutput,
                                 'eventButtons': scene.eventButtons,
+                                'infoDisplay': scene.infoDisplay,
                                 'displayTags': scene.displayTags,
                                 'displayTagValues': scene.displayTagValues,
                                 'displayTagMeta': scene.displayTagMeta,
@@ -1492,6 +1511,10 @@ if __name__=='__setup__':
                     module.scenes[msg[1]].eventButtons=msg[2]
                     self.pushMeta(msg[1], keys={'eventButtons'})
                 
+                if msg[0] == "setinfodisplay":
+                    module.scenes[msg[1]].infoDisplay=msg[2]
+                    self.pushMeta(msg[1], keys={'infoDisplay'})
+    
                 if msg[0] == "setdisplaytags":
                     module.scenes[msg[1]].setDisplayTags(msg[2])
                     self.pushMeta(msg[1], keys={'displayTags'})
@@ -2642,7 +2665,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
-        soundOutput='', eventButtons=[], displayTags=[], notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
+        soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
         
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2655,6 +2678,7 @@ if __name__=='__setup__':
             disallow_special(name)
     
             self.eventButtons = eventButtons[:]
+            self.infoDisplay=infoDisplay
     
             # This is used for the remote media triggers feature.
             self.mediaLink = kaithem.widget.APIWidget("media_link")
@@ -2891,6 +2915,7 @@ if __name__=='__setup__':
                         'backtrack': self.backtrack,
                         'soundOutput': self.soundOutput,
                         'eventButtons': self.eventButtons,
+                        'infoDisplay': self.infoDisplay,
                         'displayTags': self.displayTags,
                         'midiSource': self.midiSource,
                         'defaultNext':self.defaultNext,
@@ -3193,7 +3218,7 @@ if __name__=='__setup__':
     
     
      
-            cue = self.evalExpr(cue)
+            cue = str(self.evalExpr(cue))
     
             if '?' in cue: 
                 cue,args = cue.split("?")
@@ -3721,6 +3746,13 @@ if __name__=='__setup__':
     
     
         def displayTagSubscriber(self,n):
+    
+            t = n[1]
+            if not self.scriptContext.canGetTagpoint(t):
+                raise ValueError("Not allowed tag "+t)
+    
+    
+    
             t = kaithem.tags[n[1]]
             sn= n[1]
             self.displayTagMeta[sn] = {}

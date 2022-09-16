@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663119456957635
+resource-timestamp: 1663288432862796
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -235,6 +235,8 @@ formatInterval = function(seconds)
                  ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
                 ["=isDark()", 'Run if it is civil twilight'], ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'], ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
             
+
+            'availableTags': [],
             'completers':{
                 'gotoSceneCuesCompleter': function(a){
                     var c = []
@@ -265,6 +267,33 @@ formatInterval = function(seconds)
                     for (i in x)
                     {
                         c.push([i,''])
+                    }
+                    return c;
+                },
+
+                'tagPointsCompleter': function(a){
+                    var c=[];
+                    for (i of appData.availableTags)
+                    {
+                        c.push([i,''])
+                    }
+                    return c;
+                },
+
+                'defaultExpressionCompleter': function(a){
+                    var c=[
+
+                        ['1','Literal 1'],
+                        ['0',''],
+                        ['=1+2+3','Spreadsheet-style expression'],
+                        ['=tv("TagName")','Get the value of TagName(0 if nonexistant)'],
+                        ['=stv("TagName")','Get the value of a string tagpoint(empty if nonexistant)'],
+                        ['=random()','Random from 0 to 1'],
+                        ['=SCENE', 'Name of the scene']
+                    ];
+                    for (i of appData.availableTags)
+                    {
+                        c.push(['=tv("'+i+'")',''])
                     }
                     return c;
                 }
@@ -847,7 +876,7 @@ formatInterval = function(seconds)
             'cuemeta': {},
             'availableCommands': {},
             'selectedCues': {},
-
+            'showPages': false,
             //go from cue name to cue id
             //scenecues[sceneuuid][cuename]=cueid
             'scenecues': {},
@@ -1224,6 +1253,12 @@ formatInterval = function(seconds)
 
                 appData.scenemeta[sc].defaultNext = v;
                 api_link.send(['setDefaultNext', sc, v]);
+            },
+            'setinfodisplay': function(sc, v)
+            {
+
+                appData.scenemeta[sc].infoDisplay = v;
+                api_link.send(['setinfodisplay', sc, v]);
             },
             'setpriority': function(sc, v)
             {

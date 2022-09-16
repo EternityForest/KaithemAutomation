@@ -8,7 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663119745147653
+resource-timestamp: 1663195414961167
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -157,6 +157,8 @@ import json
             <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." aria-label="Shortcut code" placeholder="Shortcut"
                 v-model="sc_code" v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
                 <button v-on:click="shortcut()">Go!</button>
+                <button v-on:click="showPages=!showPages">Toggle Compact</button>
+
                 </div>
 
 
@@ -202,6 +204,7 @@ import json
                         <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
                         <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </p>
+                        <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
 
 

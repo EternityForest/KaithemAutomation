@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+from dataclasses import replace
 import threading
 import sys
 import time
@@ -64,6 +65,7 @@ class Event(BaseEvent):
         self.time = time
         self.errored = False
         self.stopped = False
+        self.schedID = None
 
     def schedule(self):
         scheduler.insert(self)
@@ -154,6 +156,7 @@ class RepeatingEvent(BaseEvent):
         except Exception:
             print(traceback.format_exc())
             return super().__repr__()
+
     def schedule(self):
         """Insert self into the scheduler.
         Note for subclassing: The responsibility of this function to check if it is already scheduled, return if so,
@@ -221,8 +224,8 @@ class RepeatingEvent(BaseEvent):
 
         try:
             self.scheduled = True
-            scheduler.insert(self)
-        except:
+            scheduler.insert(self, replaces=self.schedID)
+        except Exception:
             self.scheduled=False
         
 
@@ -255,7 +258,6 @@ class RepeatingEvent(BaseEvent):
         if time.time()-self.lastrun < (self.interval/3):
             return
 
-        self.lastrun = time.time()
 
 
         # We must have been pulled out of the event queue or we wouldn't be running.
@@ -263,6 +265,9 @@ class RepeatingEvent(BaseEvent):
 
 
         if self.lock.acquire(False):
+            self.lastrun = time.time()
+
+
             try:
                 f = self.f()
                 if not f:
@@ -450,10 +455,16 @@ class NewScheduler():
         e.schedule()
         return e
 
-    def insert(self, event):
+    def insert(self, event, replaces=None):
         """Insert something that has a time  and a run
         property that wants its run called at time
         """
+
+        if replaces:
+            try:
+                self.sched.cancel(replaces)
+            except Exception:
+                pass
 
         event.schedID = self.sched.enterabs(event.time,1,event.run)
         #Only very fast events need to use this wake mechanism that burns CPU.
@@ -519,12 +530,14 @@ class NewScheduler():
     def _dorErrorRecovery(self):
         for i in self.repeatingtasks:
             try:
-                if not i.scheduled:
-                    # Give them 30 seconds to finish what they are doing and schedule themselves.
-                    if i.lastrun < time.time() - 30:
+                if not i.scheduled or time.time()-i.lastrun > (i.interval*2):
+                    # Give them 10 seconds to finish what they are doing and schedule themselves.
+                    if i.lastrun < time.time() - 10:
                         # Let's maybe not block the entire scheduling thread
                         # If one event takes a long time to schedule or if it
                         # Is already running and can't schedule yet.
+
+                        #On the off chance it actually IS scheduled, replace whatever was there last.
                         workers.do(i.schedule)
                         logger.debug(
                             "Rescheduled " + str(i) + "using error recovery, could indicate a bug somewhere, or just a long running event.")
