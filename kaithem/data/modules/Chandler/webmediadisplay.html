@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1661557805881077
+resource-timestamp: 1663464839189665
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -30,8 +30,6 @@ color: white;
 </style>
 <script src="/static/widget.js"></script>
 
-<p id="p"></p>
-
 
   <video id="v" style="width: 100%; max-height: 100%" controls></video>
   <audio id='a'></audio>
@@ -41,14 +39,7 @@ color: white;
 
 <script>
 
-      try{
-      const queryString = window.location.search;
-      const urlParams = new URLSearchParams(queryString);
-      const latency = parseInt(urlParams.get('latency'))
-      }
-      catch(e){
-      const latency = 30
-      }
+
 
 
       atypes = ['.ogg', '.m4a', '.mp3', '.opus']
@@ -56,6 +47,12 @@ color: white;
       lastSrc = ''
 
       allowJumpAnyway = false
+
+      // Because of delay in starting a video, play it very slightly faster.
+      // This marks when it has caught up.
+      firstNegative = false
+
+      lastTime = -1
 
 function f(v)
 {
@@ -124,57 +121,66 @@ function f(v)
       if( lastSrc != x)
       {
         allowJumpAnyway = true
+
         lastSrc = x
         m.src=x
       }
-      var dt = ((link.now()/1000) - v[2]) - (latency)
+
+      //detect restart
+      if(lastTime<m.currentTime)
+      {
+              firstNegative = false;
+        m.playbackRate = 1.005;
+      }
+      lastTime = m.currentTime;
+
+            try{
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      var latency = parseInt(urlParams.get('latency')) || 30
+      }
+      catch(e){
+      var latency = 30
+      }
+
+      
+
+      var dt = ((link.now()/1000) - v[2]) - (latency/1000)
       var delta = dt-m.currentTime
 
 
-      if((Math.abs(delta) < 0.025) && (!allowJumpAnyway))
+      if(dt< m.duration)
       {
-         if(delta>0)
+
+        if((!firstNegative) && (Math.abs(delta) < 0.6) && (!allowJumpAnyway))
         {
+        if(delta<0.002){
+          m.playbackRate= 1;
+          firstNegative=true
+          }
+          else{
             m.playbackRate = 1.003
+          }
         }
-        else if(delta<0)
+
+        else if((Math.abs(delta) < 0.6) && (!allowJumpAnyway)) 
         {
-            m.playbackRate = 0.9997
+          if(delta>0)
+          {
+              m.playbackRate += 0.00003
+          }
+          else if(delta<0)
+          {
+              m.playbackRate -= 0.000033
+          }
+        }
+
+
+        else{
+          m.currentTime = dt
+          allowJumpAnyway = false
         }
       }
-
-      else if((Math.abs(delta) < 0.100) && (!allowJumpAnyway))
-      {
-         if(delta>0)
-        {
-            m.playbackRate = 1.02
-        }
-        else if(delta<0)
-        {
-            m.playbackRate = 0.98
-        }
-      }
-
-      else if((Math.abs(delta) < 0.5) && (!allowJumpAnyway))
-      {
-         if(delta>0)
-        {
-            m.playbackRate = 1.04
-        }
-        else if(delta<0)
-        {
-            m.playbackRate = 0.96
-        }
-      }
-
-
-      else{
-      m.currentTime = dt
-      allowJumpAnyway = false
-      
-      }
-
-      document.getElementById('p').innerText = m.playbackRate + ": " +delta
 
       if(m.paused)
       {

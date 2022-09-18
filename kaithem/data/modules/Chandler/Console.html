@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663287287646570
+resource-timestamp: 1663461297588247
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -1029,7 +1029,6 @@ commandTagsListing=module.commandTagsListing()
                         <div v-if="scenetab=='sound'">
                             <div>
                             <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
-"
                                 <label>Sound:
                             <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                                 v-on:change="setSoundfile(currentcueid,currentcue.sound)">

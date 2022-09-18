@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1663287189262535
+resource-timestamp: 1663465164992862
 resource-type: event
 versions: {}
 
@@ -2761,7 +2761,7 @@ if __name__=='__setup__':
             #Place to stash a blend object for new blending mode
             self._blend = None
             self.blendClass = None
-            self.alpha = alpha if defaultActive else 0
+            self.alpha = alpha
             self.crossfade = crossfade
     
             self.cuelen = 0
