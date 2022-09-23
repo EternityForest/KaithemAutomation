@@ -8,7 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663918051171233
+resource-timestamp: 1663918432849440
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -226,7 +226,7 @@ import json
 
                                 <tr v-for="(v,i) in i[1].timers">
                                     <td>Timer {{i}}</td>
-                                    <td style="width:12em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                    <td style="width:12em; font-family:Monospace;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
                                         {{formatInterval((v-unixtime))}}
                                     </td>
                                 <tr>
@@ -270,7 +270,7 @@ import json
                                     <cue-countdown :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
                                     </div>
 
-                                    <div  v-if="i[1].length && (!i[1].rel_len)">
+                                    <div  style="width:12em; font-family:Monospace;" v-if="i[1].length && (!i[1].rel_len)">
                                     {{formatInterval(i[1].length * (editingScene.bpm/60) )}}
                                     </div>
 
@@ -310,7 +310,7 @@ import json
                 <div style="display:inline-flex; flex-grow:1">
         <meter style="flex-grow: 1;" v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
         v-bind:value="unixtime-scene.enteredCue"></meter>
-        <span v-if="scene.active && cue && cue.length">
+        <span style="width:12em; font-family:Monospace;"  v-if="scene.active && cue && cue.length">
         {{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1 ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
         </span>
         </div>
