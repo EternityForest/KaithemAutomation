@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1663465164992862
+resource-timestamp: 1663914568426379
 resource-type: event
 versions: {}
 
@@ -27,6 +27,18 @@ if __name__=='__setup__':
     
     
     import recur
+    
+    def resolveSound(sound):
+        #Allow relative paths
+        if not sound.startswith("/"):
+            for i in getSoundFolders():
+                if os.path.isfile(os.path.join(i,sound)):
+                    sound = os.path.join(i,sound)
+        if not sound.startswith("/"):
+            sound = kaithem.sound.resolveSound(sound)
+        return sound
+    
+    module.resolveSound = resolveSound
     
     
     def dt_to_ts(dt, tz=None):
@@ -1246,6 +1258,7 @@ if __name__=='__setup__':
                                 'soundOutput': scene.soundOutput,
                                 'eventButtons': scene.eventButtons,
                                 'infoDisplay': scene.infoDisplay,
+                                'utility': scene.utility,
                                 'displayTags': scene.displayTags,
                                 'displayTagValues': scene.displayTagValues,
                                 'displayTagMeta': scene.displayTagMeta,
@@ -1514,6 +1527,11 @@ if __name__=='__setup__':
                 if msg[0] == "setinfodisplay":
                     module.scenes[msg[1]].infoDisplay=msg[2]
                     self.pushMeta(msg[1], keys={'infoDisplay'})
+    
+                if msg[0] == "setutility":
+                    module.scenes[msg[1]].utility=msg[2]
+                    self.pushMeta(msg[1], keys={'utility'})
+    
     
                 if msg[0] == "setdisplaytags":
                     module.scenes[msg[1]].setDisplayTags(msg[2])
@@ -2357,6 +2375,8 @@ if __name__=='__setup__':
     
     cues =weakref.WeakValueDictionary()
     
+    module.cuesByID = cues
+    
     cueDefaults = {
     
         "fadein":0,
@@ -2665,7 +2685,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
-        soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
+        soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", utility=False, notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
         
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2679,6 +2699,7 @@ if __name__=='__setup__':
     
             self.eventButtons = eventButtons[:]
             self.infoDisplay=infoDisplay
+            self.utility=bool(utility)
     
             # This is used for the remote media triggers feature.
             self.mediaLink = kaithem.widget.APIWidget("media_link")
@@ -2916,6 +2937,7 @@ if __name__=='__setup__':
                         'soundOutput': self.soundOutput,
                         'eventButtons': self.eventButtons,
                         'infoDisplay': self.infoDisplay,
+                        'utility': self.utility,
                         'displayTags': self.displayTags,
                         'midiSource': self.midiSource,
                         'defaultNext':self.defaultNext,
@@ -3420,7 +3442,9 @@ if __name__=='__setup__':
                                 }
                                 t = soundMeta.get_image()
                             except:
-                                self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
+                                # Not support.
+                                if not sound.endswith('.webm'):
+                                    self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
                                 t=None
                                 currentAudioMetadata={'title':"",'artist':'',"album":'','year':''}
     
@@ -3524,14 +3548,7 @@ if __name__=='__setup__':
                         pass
     
         def resolveSound(self, sound):
-            #Allow relative paths
-            if not sound.startswith("/"):
-                for i in getSoundFolders():
-                    if os.path.isfile(os.path.join(i,sound)):
-                        sound = os.path.join(i,sound)
-            if not sound.startswith("/"):
-                sound = kaithem.sound.resolveSound(sound)
-            return sound
+            return resolveSound(sound)
     
         def recalcRandomizeModifier(self):
             "Recalculate the random variance to apply to the length"
@@ -3572,8 +3589,8 @@ if __name__=='__setup__':
                             v=  max(0,self.randomizeModifier+slen)
                         except:
                             logging.exception("Error getting length for sound "+str(path))
-                            #Default to 4 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
-                            self.cuelen = 240
+                            #Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
+                            self.cuelen = 300
                             return
     
                 self.cuelen = max(0,self.randomizeModifier+float(v))

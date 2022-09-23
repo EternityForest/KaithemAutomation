@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663288432862796
+resource-timestamp: 1663914736210147
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -1259,6 +1259,12 @@ formatInterval = function(seconds)
 
                 appData.scenemeta[sc].infoDisplay = v;
                 api_link.send(['setinfodisplay', sc, v]);
+            },
+            'setutility': function(sc, v)
+            {
+
+                appData.scenemeta[sc].utility = v;
+                api_link.send(['setutility', sc, v]);
             },
             'setpriority': function(sc, v)
             {

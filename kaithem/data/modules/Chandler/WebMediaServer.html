@@ -4,11 +4,11 @@ allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 mimetype: text/html
-no-header: false
-no-navheader: false
-require-method: [GET, POST]
-require-permissions: []
-resource-timestamp: 1661218252173721
+no-header: true
+no-navheader: true
+require-method: [GET]
+require-permissions: [users.chandler.admin]
+resource-timestamp: 1663916895635575
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -18,20 +18,52 @@ template-engine: mako
 #Code Here runs once when page is first rendered. Good place for import statements.
 import mimetypes
 import os
+import base64
+from tinytag import TinyTag
+import io
+try:
+    import vignette
+except:
+  vignette= None
 %>
 
 <%
 __doc__= "#Python Code here runs every page load"
-print(kwargs)
-if module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
-  kaithem.web.serveFile(kwargs['file'],name= os.path.basename(kwargs['file']))
+
+
+
+
+if 'albumArt' in kwargs:
+  sound = module.cuesByID[kwargs['albumArt']].sound  
+  
+
+  if not sound:
+    return ''  
+    
+  sound = module.resolveSound(sound)
+
+  if vignette:
+    t = vignette.try_get_thumbnail(sound)
+    if t:
+      kaithem.web.serveFile(t)
+  
+
+
+  
+  print(sound)
+  soundMeta = TinyTag.get(sound,image=True)
+  t = soundMeta.get_image()
+  if not t:
+    return ""
+  kaithem.web.serveFile(io.BytesIO(t),name= kwargs['albumArt']+".jpg", contenttype="image/jpeg")
+
+
+
+
 else:
-  raise RuntimeError("Not allowed to access "+str(kwargs['file']))
+  if module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
+    kaithem.web.serveFile(kwargs['file'],name= os.path.basename(kwargs['file']))
+  else:
+    raise RuntimeError("Not allowed to access "+str(kwargs['file']))
 %>
 
-<h2>WebMediaServer</h2>
-<title>WebMediaServer</title>
-
-<div class="sectionbox">
-  Content here
-</div>

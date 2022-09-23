@@ -19,6 +19,8 @@ Change Log
 - :sparkles: Chandler no longer displays fractional seconds to reduce visual clutter
 - :sparkles: Chandler Commander view 
 - :sparkles: Get notified if a widget no longer exists that a page you are on is using.
+- :sparkles: Chandler default alpha now 1 by default, goto cue buttons activate scene if not already active.
+- :sparkles: Chandler utility scenes don't have buttons or a slider.  Use for embedding camera feeds in the console, and state machine logic.
 
 
 ### 0.68.33

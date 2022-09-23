@@ -8,7 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663195414961167
+resource-timestamp: 1663916503302328
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -138,6 +138,12 @@ import json
                     opacity: 0.5;
                 }
             }
+
+
+            div.highlight
+            {
+                border: 2px solid;
+            }
         </style>
 
         <script src="/static/js/vue2.js"></script>
@@ -166,69 +172,72 @@ import json
                 
                 <br/>
                 <div id="scene" style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
-                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;display:flex-item; flex-grow: 1; margin: 0.4em; padding: 0.4em;" v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;display:flex-item; flex: 1; margin: 0.4em; padding: 0.4em;" v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
-                        <div class="buttonbar">
-                        <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;">
 
-                    {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
-                                 
+                        <div style="display:flex; height: 100%;">
 
-                    <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
-
-
-                    <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
-                    <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
-                    </button>
-
-
-                    
-                    </div>                    
-                    <div style="display:flex; width: 100%">
-                    <b v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</b>
-                    <b v-if="!(i[1].active && cuemeta[i[1].cue])">Not Running</b>
-                    <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
-                    <span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span>
-                    </div>
-
-
-                        <p class="buttonbar">
-                        <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i></button>
-                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i></button>
-                        <button v-on:click="nextcue(i[0])"><i class="icofont-ui-next"></i></button>
-                        <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i></button>
-                        </p>
-                        
-                        <input type="range" style="width: 100%" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
-
-                        <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
-                        <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
-                        </p>
-                        <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
-
-
-
-                        <table border="1"  v-if="i[1].displayTags.length > 0">
-                        <tr v-for="v in i[1].displayTags">
-                            <td>{{v[0]}}</td>
-                            <td>
-                                <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min" :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
-                                :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
-
-                                {{i[1].displayTagValues[v[1]]}}</td>
-                        </tr>
-
-
-                        <tr v-for="(v,i) in i[1].timers">
-                            <td>Timer {{i}}</td>
-                            <td style="width:12em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
-                                {{formatInterval((v-unixtime))}}
-                            </td>
-                        <tr>
-
-                        </table>
+                            <div style="flex-grow:1; flex-direction: column; display: flex; text-align: center;">                                    
+                                
+                                <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
+                                    {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
                                                 
 
+                                    <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
+
+
+                                    <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                                    <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                                </button>
+
+                                <div style="display:flex; width: 100%">
+                                    <b v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</b>
+                                    <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                                    <span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span>
+                                </div>
+
+
+                                <p v-if="!i[1].utility" class="buttonbar" style="flex-grow: 0.15">
+                                    <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i></button>
+                                    <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i></button>
+                                    <button v-on:click="nextcue(i[0])"><i class="icofont-ui-next"></i></button>
+                                    <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i></button>
+                                </p>
+                                    
+                                <input v-if="!i[1].utility" type="range" style="width: 100%" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
+
+                                <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
+                                <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
+                                </p>
+                                <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
+
+
+
+                                <table border="1"  v-if="i[1].displayTags.length > 0">
+                                <tr v-for="v in i[1].displayTags">
+                                    <td>{{v[0]}}</td>
+                                    <td>
+                                        <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min" :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
+                                        :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
+
+                                        {{i[1].displayTagValues[v[1]]}}</td>
+                                </tr>
+
+
+                                <tr v-for="(v,i) in i[1].timers">
+                                    <td>Timer {{i}}</td>
+                                    <td style="width:12em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                        {{formatInterval((v-unixtime))}}
+                                    </td>
+                                <tr>
+
+                                </table>
+                            </div>
+
+                            <img style="border:none; display:block; margin: 4px; flex-grow:0.2; min-width: 64px; flex-shrink: 50;" onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound" :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
+
+                        </div>
+                        
 
                     </div>
                 </div>
@@ -246,13 +255,17 @@ import json
 
                     <div  style="display:flex; flex-wrap:wrap; flex-direction: row;">
           
-                                <div v-for="i in formatCues(1)" v-if="i[1].id" style="margin: 0.8em; padding: 0.4em;" v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
+                                <div v-for="i in formatCues(1)" v-if="i[1].id" style="margin: 0.8em; padding: 0.4em; display: flex; flex-direction: column;" v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
                                     
 
-                                    <button v-on:click="jumptocue(i[1].id)" style="width:12em; height: 4em;">                                    
+                                    <button v-on:click="jumptocue(i[1].id)" style="width:12em; flex-grow: 1;">                               
                                     <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
-                                    {{i[1].name}}</button>
-                                    
+                                    {{i[1].name}}
+                        
+                                    <img style="max-width: 8em;border:none; display:block; margin: auto;" onerror='this.style.display = "none"' v-if="i[1].sound" :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].id)"></img>
+
+                                    </button>
+
                                     <div  v-if="cuemeta[editingScene.cue].name==i[1].name">
                                     <cue-countdown :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
                                     </div>

@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663461297588247
+resource-timestamp: 1663916783236406
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -645,23 +645,20 @@ commandTagsListing=module.commandTagsListing()
                 <div id="scene" style="overflow: auto; max-height:450px;">
                     <div v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
-                        <div class="buttonbar">
-                        <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;">
+                    <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width: 100%">
 
-                    {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
-                                 
+                        {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
+                                    
 
-                        <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
-                    <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
+                            <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
+                        <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
 
 
-                    <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
-                    <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                        <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                        <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
                     </button>
 
-                    
-                    </div>
-                        <p class="buttonbar">
+                        <p class="buttonbar" v-if="!i[1].utility">
                         <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i>Go!</button>
                         <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
                         <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
@@ -674,7 +671,7 @@ commandTagsListing=module.commandTagsListing()
                         </p>
 
                         
-                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
+                        <input v-if="!i[1].utility" type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
                         
                         <table border="1"  v-if="i[1].displayTags.length > 0">
                         <tr v-for="v in i[1].displayTags">
@@ -727,8 +724,14 @@ commandTagsListing=module.commandTagsListing()
                 <span v-if="editingScene.blend=='monitor'">Monitor</span>
                 </span> {{editingScene.name}}</span>
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-                <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
 
+                <p class="buttonbar">
+                    <button  v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
+                    <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
+                    <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
+                    <button class="stopbutton" v-on:click="stop(scenename)"><i class="icofont-ui-play-stop"></i>Stop</button>
+                    <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+                </p>
                 <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
 
                 </h3>
@@ -916,49 +919,7 @@ commandTagsListing=module.commandTagsListing()
                                 </div>
                             </div>
 
-                            <h3>Event Buttons</h3>
-                            <table border="1">
-                            <tr>
-                                <th>Label</th>
-                                <th>Event to send</th>
-                                <th>Acton</th>
-                            </tr>
-                            <tr v-for="(v,i) in editingScene.eventButtons">
-                                <td><input v-model="v[0]" v-on:change="setEventButtons(scenename, editingScene.eventButtons);"></td>
-                                <td><input v-model="v[1]" v-on:change="setEventButtons(scenename, editingScene.eventButtons);"></td>
-                                <td><button v-on:click="editingScene.eventButtons.splice(i, 1); setEventButtons(scenename, editingScene.eventButtons);">Delete</button>
-                            </tr>
 
-
-                            <tr>
-                                <td></td>
-                                <td></td>
-                                <td><button v-on:click="editingScene.eventButtons.push(['','']); setEventButtons(scenename, editingScene.eventButtons);">Add Button</button>
-                            </tr>
-                            </table>
-
-                            <h3>Display Tags</h3>
-                            <p class="help">Lets you display some tag points in the scene overview</p>
-
-                            <table border="1">
-                            <tr>
-                                <th>Label</th>
-                                <th>Event to send</th>
-                                <th>Acton</th>
-                            </tr>
-                            <tr v-for="(v,i) in editingScene.displayTags">
-                                <td><input v-model="v[0]" v-on:change="setDisplayTags(scenename, editingScene.displayTags);"></td>
-                                <td><input  list="tagslisting" v-model="v[1]" v-on:change="setDisplayTags(scenename, editingScene.displayTags);"></td>
-                                <td><button v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button></td>
-                            </tr>
-
-
-                            <tr>
-                                <td></td>
-                                <td></td>
-                                <td><button v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add Button</button>
-                            </tr>
-                            </table>
 
 
                             <h3>Event Log</h3>
@@ -1253,6 +1214,10 @@ commandTagsListing=module.commandTagsListing()
 
                             <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene Properties</h4>
     
+                            <label>
+                                    <input type="number" max=1 step=0.01 min=0 v-on:input="setalpha(scenename,parseFloat($event.target.value));" v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
+                            </label>
+
                             <label v-if="showLightingControls">Default Alpha:
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.dalpha"></input>
@@ -1327,6 +1292,13 @@ commandTagsListing=module.commandTagsListing()
                                 v-model="editingScene.infoDisplay"></input>
                         </label>
 
+                        <label>Utility Scene(No controls):
+                            <input type="checkbox" v-on:change="setutility(scenename,currentcue.utility)" v-model="currentcue.utility"
+                                title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                        </label>
+
+
+
                             <hr v-if="editingScene.blend!='normal' & showLightingControls" style="border-style:solid;border-width:1px;border-color:grey;">
                             <p>{{editingScene.blendDesc}}</p>
                             <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
@@ -1364,6 +1336,53 @@ commandTagsListing=module.commandTagsListing()
                                         </template>
                                     </dl>
                             </div>
+
+                            
+                             <h3>Event Buttons</h3>
+                            <table border="1">
+                            <tr>
+                                <th>Label</th>
+                                <th>Event to send</th>
+                                <th>Acton</th>
+                            </tr>
+                            <tr v-for="(v,i) in editingScene.eventButtons">
+                                <td><input v-model="v[0]" v-on:change="setEventButtons(scenename, editingScene.eventButtons);"></td>
+                                <td><input v-model="v[1]" v-on:change="setEventButtons(scenename, editingScene.eventButtons);"></td>
+                                <td><button v-on:click="editingScene.eventButtons.splice(i, 1); setEventButtons(scenename, editingScene.eventButtons);">Delete</button>
+                            </tr>
+
+
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><button v-on:click="editingScene.eventButtons.push(['','']); setEventButtons(scenename, editingScene.eventButtons);">Add Button</button>
+                            </tr>
+                            </table>
+
+                            <h3>Display Tags</h3>
+                            <p class="help">Lets you display some tag points in the scene overview</p>
+
+                            <table border="1">
+                            <tr>
+                                <th>Label</th>
+                                <th>Event to send</th>
+                                <th>Acton</th>
+                            </tr>
+                            <tr v-for="(v,i) in editingScene.displayTags">
+                                <td><input v-model="v[0]" v-on:change="setDisplayTags(scenename, editingScene.displayTags);"></td>
+                                <td><input  list="tagslisting" v-model="v[1]" v-on:change="setDisplayTags(scenename, editingScene.displayTags);"></td>
+                                <td><button v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button></td>
+                            </tr>
+
+
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><button v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add Button</button>
+                            </tr>
+                            </table>
+
+
 
                         </div>
                 <div v-if="scenecues[scenename][selectedCues[scenename]]==undefined || cuemeta[scenecues[scenename][selectedCues[scenename]]]==undefined">
