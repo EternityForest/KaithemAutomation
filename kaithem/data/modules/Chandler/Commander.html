@@ -8,7 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663916503302328
+resource-timestamp: 1663918051171233
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -177,7 +177,7 @@ import json
 
                         <div style="display:flex; height: 100%;">
 
-                            <div style="flex-grow:1; flex-direction: column; display: flex; text-align: center;">                                    
+                            <div style="flex-grow:0.9; flex-direction: column; display: flex; text-align: center;">                                    
                                 
                                 <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
                                     {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
@@ -234,7 +234,7 @@ import json
                                 </table>
                             </div>
 
-                            <img style="border:none; display:block; margin: 4px; flex-grow:0.2; min-width: 64px; flex-shrink: 50;" onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound" :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
+                            <img style="border:none; display:block; margin: 4px; flex-grow:0.1; min-width: 64px; flex-shrink: 50;" onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound" :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
 
                         </div>
                         
@@ -268,6 +268,10 @@ import json
 
                                     <div  v-if="cuemeta[editingScene.cue].name==i[1].name">
                                     <cue-countdown :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
+                                    </div>
+
+                                    <div  v-if="i[1].length && (!i[1].rel_len)">
+                                    {{formatInterval(i[1].length * (editingScene.bpm/60) )}}
                                     </div>
 
                                    <div v-if="cuemeta[editingScene.cue].name==i[1].name && (cuemeta[editingScene.cue]&&(cuemeta[editingScene.cue].next||cuemeta[editingScene.cue].defaultnext))">Next Cue: {{(cuemeta[editingScene.cue].next||cuemeta[editingScene.cue].defaultnext).split('?')[0]}}</div>

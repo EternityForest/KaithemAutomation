@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663914736210147
+resource-timestamp: 1663918164796910
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -72,7 +72,7 @@ formatInterval = function(seconds)
 
             var time = "";
 
-            time =  (minutes+(hours*60)) + ":" + (""+seconds).padStart(2,'0')
+            time =  (""+hours).padStart(2,'0') +":"+ (""+minutes).padStart(2,'0') + ":" + (""+seconds).padStart(2,'0')
             return time;
         }
 
