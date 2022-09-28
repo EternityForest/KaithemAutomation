@@ -150,78 +150,33 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.34
+- :bug: Fix alarms that reference other tagpoints
+- :bug: Fix use of ~ in config file directories
+- :bug: Chandler visual bugs
+- :bug: Fix chandler shuffle
+- :bug: Fix length randomize with sound-relative and wall clock lengths
+- :bug: Prevent unscheduled event windup
+- :sparkles: Chandler remote media web players
+- :sparkles: Pages that are just JS code, ending in .js, are now properly syntax highlighted
+- :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events
+- :memo: Document the \_\_del\_\_ event cleanup functions
+- :sparkles: Chandler scenes menus now show any running cue logic timers for the scene
+- :sparkles: Chandler ABCD event buttons gone, replaced by configurable event buttons.
+- :sparkles: Chandler display tags: show tag value meters right in the scene overview.
+- :sparkles: Chandler cue lengths can accept @5PM style time specifiers, no need to use events and rules
+- :sparkles: Chandler no longer displays fractional seconds to reduce visual clutter
+- :sparkles: Chandler Commander view 
+- :sparkles: Get notified if a widget no longer exists that a page you are on is using.
+- :sparkles: Chandler default alpha now 1 by default, goto cue buttons activate scene if not already active.
+- :sparkles: Chandler utility scenes don't have buttons or a slider.  Use for embedding camera feeds in the console, and state machine logic.
+
+
 ### 0.68.33
 - :bug: Compatibility with older sdmon versions that gave bad JSON
 - :bug: Fix illegal character errors that were blocking showing low disk space alerts
 - :sparkles: Notifications are now posted to the system notifications, if you have plyer
 - :sparkles: NVRChannel autodiscover and list webcams
-
-
-### 0.68.32
-- :fire: Roku ECP device app improved. API breaking.
-- :sparkles: Chandler scenes understand Roku commands like VolumeUp and Play
-- :sparkles: Better display for readme attribute of devices
-- :arrow_up: Update the Monaco editor
-
-### 0.68.31
-- :sparkles: Module descriptions on the index page.
-- :sparkles: Module descriptions are now Markdown
-- :coffin: Broken years-old JookBawkse module removed
-- :bug: Un-break  creating new YeelightRGB devices
-
-### 0.68.30
-- :bug: Object tags could get in an invalit state and prevent page load
-- :bug: Correctly detect NVR failure if snapshotting fails
-- :sparkles: Chandler scenes now have a "Command Tag", that allows you to accept shortcut codes from any event tag(Like to Roku Launch button)
-- Fewer memory usage and page load count logs
-- :sparkles: Chandler scenes now let you view the recent history
-
-
-### 0.68.29
-- :bug: Print less log info and silently drop some records if we are running out of disk space, so as not to worsen the problem by logging it.
-
-
-### 0.68.28
-- :lock: :coffin: Default admin:password credentials have been eliminated. 
-- :sparkles: If there are no users, one is created using the login credentials of the Linux user actually running the Kaithem service
-- :sparkles: Any user can be set to use the system authentication.  Using Kaithem's weaker internal login is not suggested.
-- :fire: The internal auth mechanism may be deprecated or modified eventually. Suggest to always use the Linux system auth instead.
-- :bug: Fix bug with changing usernames at the same time as settings
-- :bug: UI for setting Chandler scenes now looks better on mobile
-  
-### 0.68.27
-- :bug: Avoid useless logging client side errors caused by Firefox not supporting idle status at all
-- :bug: NVRChannel auto reconnect used to never retry again if the very first attempt was a failure.
-- :bug: Avoid rare bug that killed the WS manager thread
-- :bug: Fix plaintest HTTP support for video streams
-
-### 0.68.26
-
-- :wrench: Temperature warning at 76 degrees
-- :wrench: NVRPlugin camera disconnect alarm delay is 90 seconds to reduce false trips
-- :bug: :lock: Remove default read/write permissions for devices, they must now be manually added
-- :lipstick: Read/write permissions for devices have auto-suggest now
-
-### 0.68.25 "Just Use PipeWire"
-
-This release is all about getting rid of the JACKD manager. Instead, you use an external jack server if you have fancy
-mixing. See: https://askubuntu.com/questions/1339765/replacing-pulseaudio-with-pipewire-in-ubuntu-20-04 for info
-on switching to PipeWire.  The next EmberOS will have Pipewire running by default already.
-
-- :coffin: Remove ability for kaithem to manage PipeWire or JACK. That should be done by the system.
-- :coffin: Remove PulseAudio sharing mode. Use Pipewire, manage it yourself, or just don't use Pulse
-- :coffin: JACKD is considered legacy tech and support will be removed as soon as all common Debian platforms easily support PipeWire
-- :coffin: Remove ability to manage USB soundcards. Pipewire does that for us!
-- :bug: Fix object inferrence on versions of the imaging library
-- :bug: Fix downloading modules as ZIP
-- :bug: Fix a bug where an old airwire could get GCed and delete a newer wanted audio link
-- :bug: Fix Select() not working on some systems in JSONRPYC
-
-
-### 0.68.24
-- :bug: Fix missing platformdirs.version
-- :sparkles: NVRChannel discovery for Amcrest cameras, because that's what I've got lying around.
-- :monocle_face: Please be aware: Many major CCTV manufactures are rebrands of just a few firms that may be supporting things you may find morally abhorrent.
 
 
 License Terms

@@ -13,7 +13,7 @@ Change Log
 - :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events
 - :memo: Document the \_\_del\_\_ event cleanup functions
 - :sparkles: Chandler scenes menus now show any running cue logic timers for the scene
-- :sparkles: Chandler ABCD event buttons gone, replaced by configurable event buttons.
+- :sparkles: Chandler ABCD event buttons gone, replapced by configurable event buttons.
 - :sparkles: Chandler display tags: show tag value meters right in the scene overview.
 - :sparkles: Chandler cue lengths can accept @5PM style time specifiers, no need to use events and rules
 - :sparkles: Chandler no longer displays fractional seconds to reduce visual clutter
