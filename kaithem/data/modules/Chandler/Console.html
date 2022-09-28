@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663916783236406
+resource-timestamp: 1664334892101875
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -647,7 +647,7 @@ commandTagsListing=module.commandTagsListing()
                         style="border-style:solid; border-width:1px;">
                     <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width: 100%">
 
-                        {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
+                        <span style="font-size: 150%;">{{i[1].name}}:</span><span v-if="i[1].ext" class="grey"> (external)</span>
                                     
 
                             <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
@@ -961,7 +961,7 @@ commandTagsListing=module.commandTagsListing()
                             </table>
 
                             <label v-if="editingScene.blend=='monitor'">Priority:
-                        <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
+                        <input type='number' min=0 max=100 style="width:3em" v-on:change="setpriority(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.priority">
                         </label>
                         </div>
@@ -1006,7 +1006,7 @@ commandTagsListing=module.commandTagsListing()
                                 </datalist>
 
 
-                            <input title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                            <input title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device" v-on:change="setSoundOutput(currentcueid,$event.target.value)"
                                 v-model="cuemeta[currentcueid].soundOutput" placeholder="default" list="soundcards"></input>
                         </label><br>
 
@@ -1019,7 +1019,7 @@ commandTagsListing=module.commandTagsListing()
 
 
                         <label>Fade sound after end(If going to silence):
-                            <input type="number" v-on:input="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
+                            <input type="number" v-on:change="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeOut"
                                 title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend"
                                 >
@@ -1028,7 +1028,7 @@ commandTagsListing=module.commandTagsListing()
                         
 
                         <label>Sound fade in(If silence before):
-                            <input type="number" v-on:input="setSoundFadeIn(currentcueid,$event.target.value)" style="width:3em"
+                            <input type="number" v-on:change="setSoundFadeIn(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeIn"
                                 title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use crossfade to control fading from another sound."
                                 >
@@ -1139,17 +1139,17 @@ commandTagsListing=module.commandTagsListing()
                             <h5>Basic</h5>
                             <div class="labelbox">
                         <label>Number:
-                        <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
+                        <input type="number" title="Cue number" style="width:6em" v-on:change="setnumber(currentcueid,$event.target.value)"
                             min=0 step=0.1 v-model="currentcue.number">
                         </label>
                         
                            <label>Probability:
-                        <input title="Probability this cue is selected in random selections. =expressions allowed" style="width:6em" v-on:input="setprobability(currentcueid,$event.target.value)"
+                        <input title="Probability this cue is selected in random selections. =expressions allowed" style="width:6em" v-on:change="setprobability(currentcueid,$event.target.value)"
                             v-model="currentcue.probability" placeholder="1">
                         </label>
                         
                                 <label>Code:
-                            <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
+                            <input title="Shortcut code used to quickly activate a cue" size="8" v-on:change="setshortcut(currentcueid,$event.target.value)"
                                 v-model="currentcue.shortcut">
                         </label>
                                 <label>Track:
@@ -1160,7 +1160,7 @@ commandTagsListing=module.commandTagsListing()
                                 <label>Reentrant:<input title="If false, dissallow entering cue if it's already running" type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)" v-model="currentcue.reentrant"></label>
 
                         <label>Fadein:
-                            <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
+                            <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.fadein">
                         </label>
                                 <label>Length:
@@ -1168,7 +1168,7 @@ commandTagsListing=module.commandTagsListing()
                                 style="width:6em" min=0></input>
                         </label>
                                 <label>Randomize Length:
-                            <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
+                            <input type="number" v-on:change="setrandomize(currentcueid,$event.target.value)"
                                 title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
                                 style="width:4em" min=0 step=0.25></input>
                         </label>
@@ -1179,7 +1179,7 @@ commandTagsListing=module.commandTagsListing()
                                 style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                         </label>
                                 <label v-if="showSoundControls">Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
-                            <input title="set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                            <input title="set the output device" v-on:change="setSoundOutput(currentcueid,$event.target.value)"
                                 v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
                         </label>
 
@@ -1215,11 +1215,11 @@ commandTagsListing=module.commandTagsListing()
                             <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene Properties</h4>
     
                             <label>
-                                    <input type="number" max=1 step=0.01 min=0 v-on:input="setalpha(scenename,parseFloat($event.target.value));" v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
+                                    <input type="number" max=1 step=0.01 min=0 v-on:change="setalpha(scenename,parseFloat($event.target.value));" v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
                             </label>
 
                             <label v-if="showLightingControls">Default Alpha:
-                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
+                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.dalpha"></input>
                         </label>
                             <label v-if="showLightingControls">Blend Mode:
@@ -1237,11 +1237,11 @@ commandTagsListing=module.commandTagsListing()
                         </label>
 
                             <label>Priority:
-                            <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
+                            <input type='number' min=0 max=100 style="width:3em" v-on:change="setpriority(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.priority">
                         </label>
                             <label>BPM:
-                            <input type='number' min=0 max=100 style="width:5em" v-on:input="setbpm(scenename,parseFloat($event.target.value))"
+                            <input type='number' min=0 max=100 style="width:5em" v-on:change="setbpm(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.bpm">
                         </label>
                             <button v-on:click="tap(scenename)">
@@ -1258,13 +1258,13 @@ commandTagsListing=module.commandTagsListing()
                                 v-model="editingScene.backtrack"></input>
                         </label>
 
-                            <label v-if="showSoundControls"> Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:input="setSceneSoundOutput(scenename,$event.target.value)"
+                            <label v-if="showSoundControls"> Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
                                 v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input></label>
                             </br>
 
                         <label>
                         Crossfade for non-silent Sounds :
-                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setcrossfade(scenename,parseFloat($event.target.value))"
+                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.crossfade"></input>s
                         </label>
         
@@ -1302,7 +1302,7 @@ commandTagsListing=module.commandTagsListing()
                             <hr v-if="editingScene.blend!='normal' & showLightingControls" style="border-style:solid;border-width:1px;border-color:grey;">
                             <p>{{editingScene.blendDesc}}</p>
                             <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
-                            <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]" v-on:input="setblendparam(scenename,k,parseFloat($event.target.value))"
+                            <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]" v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
                                 v-model="editingScene.blendArgs[k]"></input>
 
                         </label><br>

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1663914568426379
+resource-timestamp: 1664334739887292
 resource-type: event
 versions: {}
 
@@ -1395,7 +1395,7 @@ if __name__=='__setup__':
                     self.pushMeta(s.id)
     
                 if msg[0] == "addmonitor":
-                    s = Scene(msg[1].strip(),blend="monitor",priority=100)
+                    s = Scene(msg[1].strip(),blend="monitor",priority=100, active=True)
                     self.scenememory[s.id]=s
                     self.link.send(["newscene",msg[1].strip(),s.id])   
     
