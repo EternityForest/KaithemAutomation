@@ -148,11 +148,11 @@ def paramDefault(p):
     if isinstance(p, str):
 
         # Wrap strings that look like numbers in quotes
-        if not p.strip().startswith("="):
+        if p and not p.strip().startswith("="):
             try:
                 float(p)
                 return("="+"'"+repr(p)+"'")
-            except:
+            except Exception:
                 return("="+repr(p))
 
         # Presever things starting with = unchanged
@@ -896,6 +896,10 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
             None will silently return and do nothing if the tag does not exist.
             """
+
+            if not tagName[0] == '/':
+                tagName = "/"+tagName
+
             self.needRefreshForTag = {}
 
             tagType = None

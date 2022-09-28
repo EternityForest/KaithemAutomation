@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1653082061943777
+resource-timestamp: 1664334892101875
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -251,8 +251,8 @@ commandTagsListing=module.commandTagsListing()
                 
                 <div class="menubar buttonbar">
 
-                            <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><i class="icofont-quill-pen"></i>Save Scenes as the Default</a>
-                            <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><i class="icofont-quill-pen"></i>Save Setup as the Default</a>
+                            <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><i class="icofont-quill-pen"></i>Save Scenes</a>
+                            <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><i class="icofont-quill-pen"></i>Save Setup</a>
                 </div>
 
 
@@ -638,42 +638,61 @@ commandTagsListing=module.commandTagsListing()
                 <p class="buttonbar">
                 <button v-bind:class="{highlight:showAll==false}" v-on:click="showAll=false" title="Show all active scenes">Show All Active</button>
                 <button v-bind:class="{highlight:showAll}" v-on:click="showAll=true" title="Show all scenes owned by this board">Board</button>
+                <button v-on:click="showPages=!showPages">Toggle Compact</button>
+
                 </p>
                 <br/>
                 <div id="scene" style="overflow: auto; max-height:450px;">
-                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;border:1px solid;" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                    <div v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
-                        <div class="buttonbar">
-                        <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold;">
+                    <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width: 100%">
 
-                    {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
-                                 
+                        <span style="font-size: 150%;">{{i[1].name}}:</span><span v-if="i[1].ext" class="grey"> (external)</span>
+                                    
 
-                        <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
-                    <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
+                            <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
+                        <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
 
 
-                    <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
-                    <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                        <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
+                        <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i class="icofont-law-document"></i></span>
                     </button>
 
-                    
-                    </div>
-                        <p class="buttonbar">
+                        <p class="buttonbar" v-if="!i[1].utility">
                         <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i class="icofont-ui-play"></i>Go!</button>
                         <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
                         <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
                         <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i>Stop</button>
                         </p>
+                        <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
-                        <p class="buttonbar">
-                        <button v-on:click="sceneev('button.a',i[0])">A</button>
-                        <button v-on:click="sceneev('button.b',i[0])">B</button>
-                        <button v-on:click="sceneev('button.c',i[0])">C</button>
-                        <button v-on:click="sceneev('button.d',i[0])">D</button>
+                        <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
+                        <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </p>
-                        <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
+
                         
+                        <input v-if="!i[1].utility" type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
+                        
+                        <table border="1"  v-if="i[1].displayTags.length > 0">
+                        <tr v-for="v in i[1].displayTags">
+                            <td>{{v[0]}}</td>
+                            <td>
+                                <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min" :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
+                                :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
+
+                                {{i[1].displayTagValues[v[1]]}}</td>
+                        </tr>
+                        </table> 
+                        <table border="0">
+
+                            <tr v-for="(v,i) in i[1].timers">
+                                <td>{{i}}</td>
+                                <td style="width:8em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                    {{formatInterval((v-unixtime))}}
+                                </td>
+                                <tr>
+                        </table>
+
                         <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
                  
@@ -705,28 +724,33 @@ commandTagsListing=module.commandTagsListing()
                 <span v-if="editingScene.blend=='monitor'">Monitor</span>
                 </span> {{editingScene.name}}</span>
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-                <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
 
+                <p class="buttonbar">
+                    <button  v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
+                    <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
+                    <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
+                    <button class="stopbutton" v-on:click="stop(scenename)"><i class="icofont-ui-play-stop"></i>Stop</button>
+                    <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+                </p>
                 <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
 
                 </h3>
                 
                  <p class="buttonbar">
                         <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i class="icofont-settings"></i>Normal View</button>
-                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'"><i class="icofont-music"></i>Sound View</button>
-                        <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i class="icofont-listing-box"></i>Add/Remove Channels</button>
+                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'"><i class="icofont-music"></i>Media</button>
+                        <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i class="icofont-listing-box"></i>Channels</button>
                         <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'"><i class="icofont-ui-settings"></i>Scene Settings</button>
 
-                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+                        <button v-if="showAdvancedControls && scenetab=='data'" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"><i class="icofont-law-document"></i>Cue Logic</button>
                         <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='history'}" v-on:click="scenetab='history'">History</button>
-                        <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
+                        <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Notes</button>
                         <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
 
                     <input v-model="cuefilter" placeholder="Search Cues" />
                     <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
                                         </p>
-
                 <hr>
 
 
@@ -767,14 +791,14 @@ commandTagsListing=module.commandTagsListing()
                                     </td>
 
                                     <td class="desktop-only" data-label="Fade In:">
-                                        <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein">{{(scenemeta[scenename].bpm&&scenemeta[scenename].bpm!=60)?"beats":"s"}}</td>
+                                        <input type="number" v-on:change="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein"></td>
 
                                     <td class="desktop-only" data-label="Length:">
-                                        <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em" v-model="i[1].length">{{(scenemeta[scenename].bpm&&scenemeta[scenename].bpm!=60)?"beats":"s"}}{{i[1].rel_len ?"+sound":""}}</td>
+                                        <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em" v-model="i[1].length"></td>
 
                                     <td data-label="Next Cue:">
                                         <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
-                                            v-on:input="setnext(i[1].id,$event.target.value)">
+                                            v-on:change="setnext(i[1].id,$event.target.value)">
                                             <option value="">&gt&gt&gt</option>
                                             <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
                                             <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
@@ -785,14 +809,14 @@ commandTagsListing=module.commandTagsListing()
                                             </select>
 
                                             <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends"
-                                                v-on:input="setnext(i[1].id,$event.target.value)" v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
+                                                v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
                                                 </input>
                                     </td>
 
 
 
                                     <td class="desktop-only" data-label="Randomize">
-                                        <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+                                        <input type="number" v-on:change="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize"></td>
                                     <td class="desktop-only" data-label="Track vals from prev: ">
                                         <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
                                     </td>
@@ -823,7 +847,8 @@ commandTagsListing=module.commandTagsListing()
                    
 
                 <div v-if="currentcue && scenetab !='blend' && scenetab !='page'">
-                    <h3>Editing Cue: {{currentcue.name}}</h3>
+                    <h3>Editing Cue: {{currentcue.name}}</h3><button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+
 
                     <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
@@ -893,6 +918,10 @@ commandTagsListing=module.commandTagsListing()
                                     </table>
                                 </div>
                             </div>
+
+
+
+
                             <h3>Event Log</h3>
                              <div class="scrollbox" id="eventlogbox" style="height:6em">
                                 <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}" v-for="i in evlog" v-if="i[0].search(editingScene.name)">{{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}: 
@@ -932,7 +961,7 @@ commandTagsListing=module.commandTagsListing()
                             </table>
 
                             <label v-if="editingScene.blend=='monitor'">Priority:
-                        <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
+                        <input type='number' min=0 max=100 style="width:3em" v-on:change="setpriority(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.priority">
                         </label>
                         </div>
@@ -960,6 +989,7 @@ commandTagsListing=module.commandTagsListing()
 
                         <div v-if="scenetab=='sound'">
                             <div>
+                            <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
                                 <label>Sound:
                             <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                                 v-on:change="setSoundfile(currentcueid,currentcue.sound)">
@@ -967,6 +997,7 @@ commandTagsListing=module.commandTagsListing()
                                 <label>Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
                                 
                                 <datalist id="soundcards">
+                                <option value="scenewebplayer">Play media file in web player</option>
                                 <option v-for="i of soundCards" v-bind:value="i"></option>
                                 <option value="@auto"></option>
                                 <option value="@pulse:hw:0,0"></option>
@@ -975,12 +1006,12 @@ commandTagsListing=module.commandTagsListing()
                                 </datalist>
 
 
-                            <input title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                            <input title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device" v-on:change="setSoundOutput(currentcueid,$event.target.value)"
                                 v-model="cuemeta[currentcueid].soundOutput" placeholder="default" list="soundcards"></input>
                         </label><br>
 
 
-                        <label>Length relative to sound:
+                        <label>Length relative to media file:
                             <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                         </label>
@@ -988,19 +1019,19 @@ commandTagsListing=module.commandTagsListing()
 
 
                         <label>Fade sound after end(If going to silence):
-                            <input type="number" v-on:input="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
+                            <input type="number" v-on:change="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeOut"
                                 title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend"
-                                >{{scenemeta[scenename].bpm?"beats":"s"}}
+                                >
                                 
                         </label><br>
                         
 
                         <label>Sound fade in(If silence before):
-                            <input type="number" v-on:input="setSoundFadeIn(currentcueid,$event.target.value)" style="width:3em"
+                            <input type="number" v-on:change="setSoundFadeIn(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeIn"
                                 title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use crossfade to control fading from another sound."
-                                >{{scenemeta[scenename].bpm?"beats":"s"}}
+                                >
                                 
                         </label>
 
@@ -1070,9 +1101,19 @@ commandTagsListing=module.commandTagsListing()
                                 </div>
                                 <div class="scrollbox">
                                     <h5>Sound Outputs</h5>
-                                    <p class="help">So long as you plug the same device into the same port(on linux), it will be given the same device alias, although
-                                        they will be different if JACK is used.</p>
+                                    <p class="help">To use play videos, you must use the web remote display feature. Cue videos will play in the browser on connected remote displays.</p>
                                         <dl>
+
+
+                                            <dt>Web Player</dt>
+                                            <dd>
+                                                <p class="buttonbar">
+                                            <button v-on:click="setSoundOutput(currentcueid,' scenewebplayer')">Set for Cue</button>
+                                            <button v-on:click="setSceneSoundOutput(scenename,' scenewebplayer')">Set as Scene Default</button>
+                                                </p>
+                                            </dd>
+
+
                                             <template v-for="i of soundCards">
                                                 <dt>{{i || "UNSET" }}</dt>
                                                 <dd>
@@ -1089,31 +1130,6 @@ commandTagsListing=module.commandTagsListing()
 
 
 
-                        <div v-if="scenetab=='livingnight'">
-                            <h3>LivingNight</h3>
-                            <div style="display:inline-block;">
-                                <p class="help">LivingNight is an algorithm for modifying random properties for better realism, to achieve effects like crickets
-                                    quieting down when someone walks past. This is done with a global set of "attributes" like loudness, darkness, etc,
-                                    that are affected by influences. Attributes can be any arbitrary work you choose. Cues can have any number of influences
-                                    that increase or decrease these attributes.
-                                </p>
-                                <h4>Associations</h4>
-                                <table border=1>
-                                    <tr>
-                                        <th title="Attributes reflect a condition of the virtual world that can be described by a number">Attribute</th>
-                                        <th title="The parameter you want to control based on the attribute">Parameter</th>
-                                        <th title="Positive values increase the parameter when that attribute is strong">Effect Level</th>
-                                    </tr>
-
-                                    <tr v-for="i in currentcue.associations">
-                                        <td>i[0]</td>
-                                        <td>i[1]</td>
-                                        <td>i[2]</td>
-                                        <tr>
-                                </table>
-                            </div>
-                        </div>
-
 
 
 
@@ -1123,17 +1139,17 @@ commandTagsListing=module.commandTagsListing()
                             <h5>Basic</h5>
                             <div class="labelbox">
                         <label>Number:
-                        <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
+                        <input type="number" title="Cue number" style="width:6em" v-on:change="setnumber(currentcueid,$event.target.value)"
                             min=0 step=0.1 v-model="currentcue.number">
                         </label>
                         
                            <label>Probability:
-                        <input title="Probability this cue is selected in random selections. =expressions allowed" style="width:6em" v-on:input="setprobability(currentcueid,$event.target.value)"
+                        <input title="Probability this cue is selected in random selections. =expressions allowed" style="width:6em" v-on:change="setprobability(currentcueid,$event.target.value)"
                             v-model="currentcue.probability" placeholder="1">
                         </label>
                         
                                 <label>Code:
-                            <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
+                            <input title="Shortcut code used to quickly activate a cue" size="8" v-on:change="setshortcut(currentcueid,$event.target.value)"
                                 v-model="currentcue.shortcut">
                         </label>
                                 <label>Track:
@@ -1144,17 +1160,17 @@ commandTagsListing=module.commandTagsListing()
                                 <label>Reentrant:<input title="If false, dissallow entering cue if it's already running" type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)" v-model="currentcue.reentrant"></label>
 
                         <label>Fadein:
-                            <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
-                                min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
+                            <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)" style="width:3em"
+                                min=0 v-model="currentcue.fadein">
                         </label>
                                 <label>Length:
-                            <input v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
-                                style="width:6em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                            <input v-on:change="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
+                                style="width:6em" min=0></input>
                         </label>
                                 <label>Randomize Length:
-                            <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
+                            <input type="number" v-on:change="setrandomize(currentcueid,$event.target.value)"
                                 title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
-                                style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                                style="width:4em" min=0 step=0.25></input>
                         </label>
                                 <div class="break"></div>
                                 <h5 style="flex-basis:100%">Sound</h5>
@@ -1163,7 +1179,7 @@ commandTagsListing=module.commandTagsListing()
                                 style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                         </label>
                                 <label v-if="showSoundControls">Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
-                            <input title="set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                            <input title="set the output device" v-on:change="setSoundOutput(currentcueid,$event.target.value)"
                                 v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
                         </label>
 
@@ -1198,8 +1214,12 @@ commandTagsListing=module.commandTagsListing()
 
                             <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene Properties</h4>
     
+                            <label>
+                                    <input type="number" max=1 step=0.01 min=0 v-on:change="setalpha(scenename,parseFloat($event.target.value));" v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
+                            </label>
+
                             <label v-if="showLightingControls">Default Alpha:
-                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
+                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.dalpha"></input>
                         </label>
                             <label v-if="showLightingControls">Blend Mode:
@@ -1217,11 +1237,11 @@ commandTagsListing=module.commandTagsListing()
                         </label>
 
                             <label>Priority:
-                            <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
+                            <input type='number' min=0 max=100 style="width:3em" v-on:change="setpriority(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.priority">
                         </label>
                             <label>BPM:
-                            <input type='number' min=0 max=100 style="width:5em" v-on:input="setbpm(scenename,parseFloat($event.target.value))"
+                            <input type='number' min=0 max=100 style="width:5em" v-on:change="setbpm(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.bpm">
                         </label>
                             <button v-on:click="tap(scenename)">
@@ -1238,13 +1258,13 @@ commandTagsListing=module.commandTagsListing()
                                 v-model="editingScene.backtrack"></input>
                         </label>
 
-                            <label v-if="showSoundControls"> Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:input="setSceneSoundOutput(scenename,$event.target.value)"
+                            <label v-if="showSoundControls"> Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
                                 v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input></label>
                             </br>
 
                         <label>
                         Crossfade for non-silent Sounds :
-                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setcrossfade(scenename,parseFloat($event.target.value))"
+                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.crossfade"></input>s
                         </label>
         
@@ -1267,11 +1287,22 @@ commandTagsListing=module.commandTagsListing()
                                 v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
                         </label>
 
+                           <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
+                            <input style="width:25em" v-on:change="setinfodisplay(scenename,$event.target.value)"
+                                v-model="editingScene.infoDisplay"></input>
+                        </label>
+
+                        <label>Utility Scene(No controls):
+                            <input type="checkbox" v-on:change="setutility(scenename,currentcue.utility)" v-model="currentcue.utility"
+                                title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                        </label>
+
+
 
                             <hr v-if="editingScene.blend!='normal' & showLightingControls" style="border-style:solid;border-width:1px;border-color:grey;">
                             <p>{{editingScene.blendDesc}}</p>
                             <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
-                            <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]" v-on:input="setblendparam(scenename,k,parseFloat($event.target.value))"
+                            <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]" v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
                                 v-model="editingScene.blendArgs[k]"></input>
 
                         </label><br>
@@ -1306,6 +1337,53 @@ commandTagsListing=module.commandTagsListing()
                                     </dl>
                             </div>
 
+                            
+                             <h3>Event Buttons</h3>
+                            <table border="1">
+                            <tr>
+                                <th>Label</th>
+                                <th>Event to send</th>
+                                <th>Acton</th>
+                            </tr>
+                            <tr v-for="(v,i) in editingScene.eventButtons">
+                                <td><input v-model="v[0]" v-on:change="setEventButtons(scenename, editingScene.eventButtons);"></td>
+                                <td><input v-model="v[1]" v-on:change="setEventButtons(scenename, editingScene.eventButtons);"></td>
+                                <td><button v-on:click="editingScene.eventButtons.splice(i, 1); setEventButtons(scenename, editingScene.eventButtons);">Delete</button>
+                            </tr>
+
+
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><button v-on:click="editingScene.eventButtons.push(['','']); setEventButtons(scenename, editingScene.eventButtons);">Add Button</button>
+                            </tr>
+                            </table>
+
+                            <h3>Display Tags</h3>
+                            <p class="help">Lets you display some tag points in the scene overview</p>
+
+                            <table border="1">
+                            <tr>
+                                <th>Label</th>
+                                <th>Event to send</th>
+                                <th>Acton</th>
+                            </tr>
+                            <tr v-for="(v,i) in editingScene.displayTags">
+                                <td><input v-model="v[0]" v-on:change="setDisplayTags(scenename, editingScene.displayTags);"></td>
+                                <td><input  list="tagslisting" v-model="v[1]" v-on:change="setDisplayTags(scenename, editingScene.displayTags);"></td>
+                                <td><button v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button></td>
+                            </tr>
+
+
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><button v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add Button</button>
+                            </tr>
+                            </table>
+
+
+
                         </div>
                 <div v-if="scenecues[scenename][selectedCues[scenename]]==undefined || cuemeta[scenecues[scenename][selectedCues[scenename]]]==undefined">
                     Cue data not found...
@@ -1321,10 +1399,8 @@ commandTagsListing=module.commandTagsListing()
         <template id="cue-cd">
             <span>
     <meter v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
-    v-bind:value="unixtime-scene.enteredCue"></meter><br>
-    <span v-if="scene.active && cue && cue.length">
-     Next cue in: {{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1 ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
-     <br>
+    v-bind:value="unixtime-scene.enteredCue"></meter>
+    <span v-if="scene.active && cue && cue.length">{{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1 ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
      </span></span>
         </template>
 
@@ -1393,135 +1469,9 @@ commandTagsListing=module.commandTagsListing()
         <div>
 
             ${module.board.link.render('api_link')}
-
-            <script src="/static/js/src-min-noconflict/ace.js"></script>
             <script src="/static/js/jquery3.js"></script>
-
+               
             <script>
-                const VueAceEditor = {
-            //  simplified model handling using `value` prop and `input` event for $emit 
-            props:['value','id','options'],
-
-            //  add dynmic class and id (if not set) based on component tag
-            template:`
-                <div :id="id ? id: $options._componentTag +'-'+ _uid" 
-                    :class="$options._componentTag">
-                    <slot></slot>
-                </div>
-            `,
-
-            watch:{
-                value(){
-                    //This is the forward 
-                    //  update value on external model changes
-                    if(this.oldValue !== this.value){ 
-                        this.oldValue=this.value;
-                        if(this.ivalue !== this.value){
-                            if(!this.locked)
-                            {
-                                this.editor.setValue(this.value, 1);
-                                return;
-                            }
-                        }
-                    }
-                    //We don't accept the change, so we emit an event to change it back
-                    this.$emit('input', this.ivalue);
-                }
-            },
-        
-            mounted(){
-                //  editor
-                this.editor = window.ace.edit(this.$el.id);
-                
-                //  deprecation fix
-                this.editor.$blockScrolling = Infinity;
-                this.locked =0     
-
-                //  ignore doctype warnings
-                const session = this.editor.getSession();
-                session.on("changeAnnotation", () => {
-                    const a = session.getAnnotations();
-                    const b = a.slice(0).filter( (item) => item.text.indexOf('DOC') == -1 );
-                    if(a.length > b.length) session.setAnnotations(b);
-                });
-
-                //  editor options 
-                //  https://github.com/ajaxorg/ace/wiki/Configuring-Ace
-                this.options = this.options || {};
-                
-                //  opinionated option defaults
-                this.options.maxLines = this.options.maxLines || Infinity;
-                this.options.printMargin = this.options.printMargin || false;      
-                this.options.highlightActiveLine = this.options.highlightActiveLine || false;
-
-                //  hide cursor 
-                if(this.options.cursor === 'none' || this.options.cursor === false){
-                    this.editor.renderer.$cursorLayer.element.style.display = 'none';
-                    delete this.options.cursor; 
-                }
-
-                //  add missing mode and theme paths 
-                if(this.options.mode && this.options.mode.indexOf('ace/mode/')===-1) {
-                    this.options.mode = 'ace/mode/'+this.options.mode;
-                }
-                if(this.options.theme && this.options.theme.indexOf('ace/theme/')===-1) {
-                    this.options.theme = 'ace/theme/'+this.options.theme;
-                }
-                this.editor.setOptions(this.options);
-                
-                
-                //  set model value 
-                //  if no model value found – use slot content
-                if(!this.value || this.value === ''){
-                    this.$emit('input', this.editor.getValue());
-                    this.$emit('change', this.editor.getValue());
-                    this.ivalue = this.ivalue = this.oldValue = this.editor.getValue();
-                } else {
-                    this.editor.setValue(this.value, -1);
-                    this.ivalue = this.oldValue = this.value;
-                }        
-                
-                //  editor value changes   
-                this.editor.on('change', () => {
-                    //  oldValue set to prevent internal updates
-                    this.ivalue = this.oldValue = this.editor.getValue();
-                });
-                //  editor value changes   
-                this.editor.on('input', () => {
-                    //  oldValue set to prevent internal updates
-                    this.locked =1;
-                    this.ivalue = this.oldValue = this.editor.getValue();
-                    this.$emit('input', this.ivalue);
-                });
-                 //  editor value changes   
-                this.editor.on('blur', () => {
-                    this.$emit('change', this.ivalue);
-                    this.locked =0;
-                });
-
-            },
-            methods: { editor(){ return this.editor } }
-        };
-            </script>
-
-            <script>
-                formatInterval = function(seconds)
-        {
-            var hours = Math.floor(seconds / 3600);
-            var minutes = Math.floor((seconds - (hours * 3600)) /
-                60);
-            var seconds = seconds - (hours * 3600) - (minutes * 60);
-            var tenths = Math.floor((seconds - Math.floor(seconds)) *
-                10);
-            seconds = Math.floor(seconds);
-
-            var time = "";
-
-            time = hours + "h " + minutes + "m " + seconds + "." +
-                tenths + "s"
-            return time;
-        }
-
 
         Vue.component('cue-countdown',
         {
@@ -1616,1167 +1566,20 @@ commandTagsListing=module.commandTagsListing()
         
 
 
-        //# sourceURL=appcode.js 
-        appData = {
-            //Ace code editor
-                htmloptions:{
-                mode:'html',
-                theme: 'tomorrow',
-                fontSize: 11,
-                fontFamily: 'monospace',
-                highlightActiveLine: false,
-                highlightGutterLine: false              
-              }, 
-              cssoptions:{
-                mode:'css',
-                theme: 'tomorrow',
-                fontSize: 11,
-                fontFamily: 'monospace',
-                highlightActiveLine: false,
-                highlightGutterLine: false              
-              },                
-              jsoptions:{
-                mode:'javascript',
-                theme: 'tomorrow',
-                fontSize: 11,
-                fontFamily: 'monospace',
-                highlightActiveLine: false,
-                highlightGutterLine: false              
-              },  
-               mdooptions:{
-                mode:'markdown',
-                theme: 'tomorrow',
-                fontSize: 11,
-                fontFamily: 'monospace',
-                highlightActiveLine: false,
-                highlightGutterLine: false              
-              },  
+        </script>
 
-
-            'eventlogautoscroll': true,
-            //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
-            'formatInterval': formatInterval,
-            'console': console,
-            'sc_code': "",
-            'unixtime': 0,
-            'serports': [],
-            'bindingsListTest':[],
-            'keyboardJS':keyboardJS,
-            //Code view for the fixture assignments
-            'fixturescode': '',
-            //Index by name
-            'fixtureAssignments': {},
-            'newfixname':'',
-            'newfixtype':'',
-            'newfixaddr':'',
-            'newfixuniverse':'',
-            //Fixture error info str
-            'ferrs': '',
-            'fixtures': '',
-            'evfilt': '',
-            'newcueu': '',
-            'newcuevnumber':'',
-            'newscenename':'',
-            'specialvars':[
-                ["_","Output of the previous action"]
-            ],
-
-
-            //The code in the fixture edit as code box
-            'fixturecode':'',
-            'evlog': [
-            ],
-            'soundCards': ${json.dumps([i for i in kaithem.sound.outputs()])},
-            
-            //What universe if any to show the full settings page for
-            'universeFullSettings': false,
+        <script src="boardapi.js"></script>
         
-            'showfixtureassg': false,
-            'fixtureassg': '',
-            'showsoundoptions': false,
-            'showevents': false,
+        <script>
 
-            'example_events': [['now', "Run when script loads"],['cue.exit','When exiting a cue'],['cue.enter','When entering a cue'], ['button.a','A button in scenes sidebar']
-                ['keydown.a',"When a lowercase A is pressed in the Send Events mode"], ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
-                ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'], ['@every 10 seconds', 'Simple repeating trigger'],
-                 ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
-                ["=isDark()", 'Run if it is civil twilight'], ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'], ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
-            
-            'completers':{
-                'gotoSceneCuesCompleter': function(a){
-                    var c = []
-                    var n= a[1]
-                    if (n.indexOf('=SCENE')>-1) {
-                        n= this.scenename
-                        }
-                    else{
-                        for (i in this.scenemeta)
-                        {
-                            var s = this.scenemeta[i]
-                            if (s.name==n)
-                            {
-                                n=i
-                                break
-                            }
-                        }
-                        }
 
-                    
-                    var x = this.scenecues[i]
-
-                    if(!x)
-                    {
-                        return []
-                    }
-
-                    for (i in x)
-                    {
-                        c.push([this.cuemeta[i].name,''])
-                    }
-                }
-            },
-            
-            'showimportexport':false,
-            'evtosend': '',
-            'evtypetosend': 'float',
-            'evval': '',
-            'savedThisSession': false,
-            'useBlankDescriptions': useBlankDescriptions,
-            'saveToDisk': function()
-            {
-                if (this.savedThisSession==false)
-                {
-                    var x =confirm("This saves directly to disk, overwriting the previous default. This message only shows the first save.")
-                    if(!x)
-                    {
-                        return
-                    }
-                    this.savedThisSession=true;
-                }
-                api_link.send(['saveScenes'])
-            },
-            
-            'saveSetup': function()
-            {
-               
-                api_link.send(['saveSetup'])
-            },
-             'saveLibrary': function()
-            {
-               
-                api_link.send(['saveLibrary'])
-            },
-            'sendev': function(where)
-            {
-                api_link.send(['event', appData.evtosend, appData.evval, appData.evtypetosend,where])
-            },
-            
-            'sceneev': function(evt, where)
-            {
-                api_link.send(['event', evt, '', 'str',where])
-            },
-            //For the raw cue data edit thing
-            'cuedatafield': "", 
-            'refreshcuedata':function()
-            {
-                try{
-                scene = this.scenename
-                cueid = this.scenecues[scene][this.selectedCues[scene]]
-
-                this.cuedatafield = jsyaml.safeDump(this
-                .formatCueVals(
-                    this.cuevals[cueid]));
-                }
-                catch
-                    {
-                        
-                    }
-            },
-
-            'del': Vue.delete,
-            'refreshPorts': function()
-            {
-                api_link.send(['getserports'])
-            },
-            'pushSettings': function()
-            {
-                api_link.send(['setconfuniverses', appData.configuredUniverses])
-            },
-
-            'showDMXSetup': false,
-            'showsceneoptions': false,
-            'scenetab': 'cue',
-            'configuredUniverses':
-            {
-                'blah': { 'type': 'enttec', 'interface': 'xyz' }
-            },
-            'gamepad': false,
-            'newuniversename': "",
-            'fixtureClasses': { 'dfjlkdjf': [] },
-            'selectedFixtureClass': '',
-            'showFixtureSetup': false,
-            //The selected dir and [[folders][files]] in that dir, for the
-            //sound file browser
-            'soundfilesdir': '',
-            'soundfileslisting': [
-                [],
-                []
-            ],
-            'setSoundfileDir': function(i)
-            {
-                
-                if(! ((i=='')| (i[0]=='/') ))
-                {
-                    appData.soundfilesdir += i;
-                }
-                else
-                {
-                    appData.soundfilesdir = i;
-                }
-                appData.soundfileslisting = [
-                    [],
-                    []
-                ]
-                api_link.send(['listsoundfolder', i])
-            },
-            'setSoundOutput': function(cueid, i)
-            {
-
-                api_link.send(['setcuesoundoutput', cueid, i])
-            },
-            'setSoundfile': function(cueid, i)
-            {
-
-                api_link.send(['setcuesound', cueid, i])
-            },
-               'setSceneSoundOutput': function(cueid, i)
-            {
-
-                api_link.send(['setscenesoundout', cueid, i])
-            },
-         
-            'newCueFromSound': function(sc, i)
-            {
-
-                api_link.send(['newFromSound', sc, i])
-            },
-            'chTypeChanged': function(i)
-            {
-                if (appData.fixtureClasses[appData.selectedFixtureClass]
-                    [i][1] == 'fine')
-                {
-                    Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-                        [i], 2, i - 1)
-                    Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-                        [i], 3, undefined)
-                }
-                else
-                {
-                    Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-                        [i], 2, null)
-                    Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-                        [i], 3, null)
-
-                }
-                appData.pushfixture(i)
-            },
-
-            'setSceneNotes': function(sc, i)
-            {
-
-                api_link.send(['setNotes', sc, i])
-            },
-            'getValueRange': getValueRange,
-            //Returns new value mapped into the range when user clicks to change the range of a custom val
-            //Given current val, new range info and old range info
-            'mapvaluerange': function(oldv, d, newrange)
-            {
-                for (i of d)
-                {
-                    if (i[2] == newrange)
-                    {
-                        var newd = i
-                        break;
-                    }
-                }
-                var d = appData.getValueRange(d, oldv)
-
-                try
-                {
-                    var asfraction = (oldv - d[0]) / ((d[1] - d[0]) +
-                        1)
-                    return Math.round(asfraction * (newd[1] - newd[
-                        0] + 1) + newd[0])
-                }
-                catch (e)
-                {
-                    return newd[0]
-                }
-            },
-
-            'saveFixtureTypeFromCode': function(fixture, code)
-            {
-                try{
-                    appData.fixtureClasses[fixture]=JSON.parse(code)
-                }
-                catch
-                {
-                    alert("Could not set JSON data. Syntax error?")
-                }
-                appData.pushfixture(fixture)
-
-            },
-
-            'pushfixture': function(i)
-            {
-                api_link.send(['setfixtureclass', i, appData.fixtureClasses[
-                    i]])
-            },
-            'pushfixturescode': function()
-            {
-                api_link.send(['setfixturesfromcode', appData.fixturescode])
-            },
-
-            'setFixtureAssignment': function(i,v)
-            {
-                api_link.send(['setFixtureAssignment',i,v])
-            },
-
-            'rmFixtureAssignment': function(i)
-            {
-                api_link.send(['rmFixtureAssignment',i])
-            },
-
-
-            'addFixtureAssignment': function(name, t, univ,addr)
-            {
-                if(!name)
-                {
-                    return;
-                }
-                var d={
-                    'name':name,
-                    'type':t,
-                    'universe':univ,
-                    'addr':addr
-                }
-
-                api_link.send(['setFixtureAssignment',name,d])
-
-            },
-            'getfixtureassg': function()
-            {
-                api_link.send(['getfixtureassg'])
-            },
-
-            'getChannelCompletions': function(u)
-            {
-                var x =appData.configuredUniverses[u];
-                if (x)
-                {
-                    return useBlankDescriptions(x.channelConfig);
-                }
-            },
-            'showhidefixtures': function()
-            {
-                appData.showFixtureSetup = !  appData.showFixtureSetup
-                appData.getfixtureclasses()
-                appData.selectedFixtureClass = ''
-            },
-            'showhidefixtureassignments': function()
-            {
-                appData.getfixtureclasses()
-                appData.showfixtureassg = ! appData.showfixtureassg;
-                api_link.send(['getfixtureassg']);
-            },
-            'getfixtureclasses': function()
-            {
-                api_link.send(['getfixtureclasses'])
-            },
-            'getfixtureclass': function(i)
-            {
-                if(i=='')
-                {
-                    return;
-                }
-                //Reset the textbox when it changes
-                appData.fixturecode = '';
-                api_link.send(['getfixtureclass', i])
-            },
-
-            'addfixturetype': function()
-            {
-                x = prompt("New Fixture Type Name:",appData.selectedFixtureType)
-                if (x)
-                {
-                    Vue.set(appData.fixtureClasses, x, [])
-                    appData.selectedFixtureType = x
-                    api_link.send(['setfixtureclass', x, appData.fixtureClasses[x]])
-                    api_link.send(['getfixtureclass', x])
-                }
-            },
-            'delfixturetype': function()
-            {
-                x = confirm("Really delete?")
-                if (x)
-                {
-                    Vue.delete(appData.fixtureClasses, appData.selectedFixtureType)
-                    api_link.send(['rmfixtureclass', appData.selectedFixtureType])
-                    appData.selectedFixtureType='';
-                }
-            },
-            'dictView': function(dict, sorts)
-            {
-                //Given a dict  and a list of sort keys sorts,
-                //return a list of [key,value] pairs sorted by the sort 
-                //keys. Earlier sort keys take precendence.
-
-                //Keys starting with ! are interpreted as meanng to sort in descending order
-
-                var o = []
-                Object.keys(dict).forEach(
-                    function(key, index)
-                    {
-                        o.push([key, dict[key]])
-                    })
-
-                var l = []
-                for (var i of sorts)
-                {
-                    //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
-                    //Get rid of the fist char if so
-                    l.push([
-                        i[0] == '!' ? -1 : 1,
-                        i[0] == "!" ? i.slice(1) : i
-                    ])
-                }
-
-                o.sort(function(a, b)
-                {
-                    //For each of the possible soft keys, check if they
-                    //are different. If so, compare and possible reverse the ouptut
-
-                    var d = a[1]
-                    var d2 = b[1]
-                    for (i of l)
-                    {
-                        var key = i[1]
-                        var rev = i[0]
-                        if (!(d[key] == d2[key]))
-                        {
-                            return (d[key] > d2[key] ? 1 :-1) * rev
-                        }
-
-                    }
-                    return 0
-                });
-                return (o)
-            },
-
-            'formatScenes': function()
-            {
-                if (!appData.showAll)
-                {
-                    return appData.dictView(appData.scenemeta, [
-                        '!priority', '!started', 'name'
-                    ]).filter(
-                        function(x)
-                        {
-                            return (x[1].name && x[1].name.includes(
-                                appData.scenefilter))
-                        }).filter(
-                        function(x)
-                        {
-                            return x[1].active
-                        });
-                }
-                else
-                {
-                    return appData.dictView(appData.scenemeta, [
-                        '!priority', 'name'
-                    ]).filter(function(x)
-                    {
-                        return ((!x[1].ext) && ((x[1].name &&
-                            x[
-                                1].name.includes(
-                                appData.scenefilter
-                            ))))
-                    })
-                }
-
-            },
-            'cueNamesBySceneName':function()
-            {
-                var d ={}
-                for (i in appData.scenemeta)
-                {
-                    d[appData.scenemeta[i].name]=[]
-
-                    for (j in appData.scenecues[i])
-                    {
-                        d[appData.scenemeta[i].name].push(j)
-                    }
-                }
-                return d;
-            },
-            'formatCues': function(filt)
-            {
-                z = {}
-                //list cue objects
-                for (i in appData.scenecues[appData.scenename])
-                {
-                    m = appData.cuemeta[appData.scenecues[appData.scenename]
-                        [i]]
-                    if (m !== undefined)
-                    {
-                        if ((!filt) | i.includes(this.cuefilter))
-                        {
-                            z[i] = m
-                        }
-                    }
-                }
-                if(!filt)
-                {
-                    appData.formattedCues = appData.dictView(z, ['number'])
-                    return appData.formattedCues
-                }
-                else
-                {
-                    return appData.dictView(z, ['number'])
-                }
-            },
-
-            'formatCueVals': function(c)
-            {
-                //Return a simplified version of the data in cuevals
-                //Meant for direct display
-                op = {}
-                for( i in c)
-                {
-                    op[i]={}
-                    for (j in c[i])
-                    {
-                        op[i][j]=c[i][j].v
-                    }
-                }
-                return op
-            },
-
-    
-
-            'toggleTransparent': function(cue, u, c, v)
-            {
-                if (v != null)
-                {
-                    appData.setCueValNolock(cue, u, c, null)
-                }
-                else
-                {
-                    appData.setCueValNolock(cie, u, c, null)
-                }
-            },
-            'promptRename' (s)
-            {
-                var x = prompt(
-                    "Enter new name for scene(May break existing references to scene)"
-                )
-
-                if (x != null)
-                {
-
-                    api_link.send(['setscenename', s, x])
-
-                }
-
-            },
-            //If false, only show active scenes
-            'showAll': true,
-            'deleteUniverse': function(u)
-            {
-                console.log(u)
-                Vue.delete(appData.configuredUniverses, u)
-            },
-            //Filter which scenes are shown in the list
-            'scenefilter': '',
-            'cuefilter': '',
-            'soundsearch':'',
-            'soundsearchresults':[],
-            'currentBindingBank': 'default',
-            'localStorage': localStorage,
-            'keybindscript': localStorage.getItem("keybind-script"),
-            'keybindmode': 'edit',
-            'showAddChannels':false,
-            'showLightingControls': true,
-            'showAdvancedControls': true,
-            'showSoundControls': true,
-            //Keep track of what timers are running in a scene
-            'scenetimers':{},
-            //Formatted for display
-            'cuevals': {},
-
-            'fuzzyIncludes'(s, search)
-            {
-                for ( i of search.toLowerCase().split(" "))
-                {
-                    if (!s.toLowerCase().includes(i))
-                    {
-                        return 0;
-                    }
-                }
-                return 1;
-            },
-            'setCueInheritRules': function(c,r)
-            {
-                api_link.send(['setCueInheritRules',c,r])
-            },
-
-            
-            'setCueRules': function(c,r)
-            {
-                api_link.send(['setCueRules',c,r])
-            },
-
-            'doSoundSearch': function(s)
-            {
-                api_link.send( ["searchsounds", s]  )
-            },
-            //l must be a universe dict
-            'groupByFixture': function(l)
-            {
-                //Output buf
-                var o = [];
-                //Fill up this buf, then append to o when the group changes
-                var c = []
-                var x = null;
-
-                for (n in l)
-                {
-                    var i = l[n]
-                    if (appData.chnamelookup(i.u, i.ch))
-                    {
-                        var f = appData.channelNames[i.u][i.ch][0]
-                    }
-                    else
-                    {
-                        var f = i.ch;
-                    }
-
-                    if (f == x)
-                    {
-
-                        c.push(i)
-                    }
-                    else
-                    {
-                        if (x)
-                        {
-                            o.push(c)
-                        }
-                        x = f
-                        c = []
-                        c.push(i)
-                    }
-
-                }
-                if (c)
-                {
-                    o.push(c)
-                }
-                return (o)
-
-            },
-            //Current per scene alpha channel
-            'alphas': {},
-            //Used only for autocompletion, it's a list of all known tracks that we've seen so far.
-            'knownTracks': {},
-            'scenemeta': {},
-            'scenename': null,
-            'editingScene': null,
-            'running_scenes': {},
-            'universes': {},
-            'allScenes': [],
-            'cues': {},
-            'newcuename': '',
-            'cuemeta': {},
-            'availableCommands': {},
-            'selectedCues': {},
-
-            //go from cue name to cue id
-            //scenecues[sceneuuid][cuename]=cueid
-            'scenecues': {},
-            'formattedCues': [],
-            //Indexed by universe then channel number
-            'channelNames': {},
-            //same info as scenevals, indexed hierarchally, as [universe][channel]
-            //Actual objs are shared too so changing one obj change in in the other.
-
-            //We must track faders the user is actively touching so new data doesn't
-            //Annoy you jumping them around
-            'lockedFaders': {},
-
-            'recomputeformattedCues':function()
-            {
-                appData.formatCues(0)
-
-            },
-            'chnamelookup': function(u, c)
-            {
-                if (appData.channelNames[u] == undefined)
-                {
-                    return undefined
-                }
-
-                return appData.channelNames[u][c]
-            },
-            "getcueid": function(sceneid, cuename)
-            {
-                return (this.scenecues[sceneid][cuename])
-            },
-
-            'refreshhistory': function(sc)
-            {
-                api_link.send(['getcuehistory', sc]);
-            },
-            'setCueVal': function(sc, u, ch, val)
-            {
-                this.lockedFaders[sc+":"+u+":"+ch]=true;
-                api_link.send(['scv', sc, u, ch, val]);
-            },
-            'setCueValNolock': function(sc, u, ch, val)
-            {
-                api_link.send(['scv', sc, u, ch, val]);
-            },
-            'unlockCueValFader': function(sc, u, ch)
-            {
-                delete this.lockedFaders[sc+":"+u+":"+ch];
-            },
-
-            'selectcue': function(sc, cue)
-            {
-                this.selectedCues[sc] = cue
-                this.getcuedata(this.scenecues[sc][cue])
-                appData.refreshcuedata()
-
-            },
-            'getallcuemeta': function(sn)
-            {
-                api_link.send(['getallcuemeta', sn]);
-
-            },
-            'cond_getcuemeta': function(b)
-            {
-                if (b)
-                {
-                    api_link.send(['getallcuemeta', this.scenename]);
-                }
-            },
-            'selectscene': function(sc, sn)
-            {
-                this.getcuedata(this.scenecues[sn][this.selectedCues[
-                    sc] || 'default'])
-                this.editingScene = sc;
-                this.scenename = sn;
-                api_link.send(['gsd', sn]);
-                api_link.send(['getallcuemeta', sn]);
-                appData.refreshcuedata()
-                appData.recomputeformattedCues();
-
-
-            },
-            'delscene': function(sc)
-            {
-                var r = confirm("Really delete scene?");
-                if (r == true)
-                {
-                    api_link.send(['del', sc]);
-                }
-            },
-
-            'go': function(sc)
-            {
-
-                api_link.send(['go', sc]);
-            },
-
-            'goByName': function(sn)
-            {
-
-                api_link.send(['gobyname', sn]);
-            },
-
-            'toggleByName': function(sn)
-            {
-
-                api_link.send(['togglebyname', sn]);
-            },
-
-            'stopByName': function(sn)
-            {
-
-                api_link.send(['stopbyname', sn]);
-            },
-
-            'shortcut': function(sc)
-            {
-                api_link.send(['shortcut', appData.sc_code]);
-                appData.sc_code = ''
-
-            },
-
-            'stop': function(sc, sn)
-            {
-                if (appData.scenemeta[sc].ext)
-                {
-                    var x = confirm(
-                        "Really stop external scene? \nIt will dissapear from the scene listing because it is not owned by this light board.\n You may need to re-save an event to start it again."
-                    )
-                }
-                else
-                {
-                   var x = confirm(
-                        "Really stop scene? The cue and all variables will be reset."
-                    )
-                }
-                if (x)
-                {
-                    api_link.send(['stop', sc]);
-                }
-            },
-
-
-            'setalpha': function(sc, v)
-            {
-                appData.lockedFaders[sc]=true;
-                api_link.send(['setalpha', sc, v]);
-                appData.alphas[sc] = v
-            },
-            'unlockAlpha':function(sc)
-            {
-                delete appData.lockedFaders[sc];
-            },
-
-
-            'setfade': function(sc, v)
-            {
-
-                api_link.send(['setfade', sc, v]);
-            },
-            'nextcue': function(sc)
-            {
-                api_link.send(['nextcue', sc]);
-            },
-            'prevcue': function(sc)
-            {
-                api_link.send(['prevcue', sc]);
-            },
-
-            'addcue': function(sc, v)
-            {
-                api_link.send(['addcue', sc, v]);
-                //There's a difference between "not there" undefined and actually set to undefined....
-                if (appData.scenecues[sc][v] == undefined)
-                {
-                    //Placeholder so we can at least show a no cue found message till it arrives
-                    Vue.set(appData.scenecues[sc], v, undefined);
-                    appData.recomputeformattedCues();
-                };
-                setTimeout(function()
-                {
-                    Vue.set(appData.selectedCues,
-                        sc, v)
-                }, 70)
-            },
-
-            'clonecue': function(sc, cue, v)
-            {
-                api_link.send(['clonecue', cue, v]);
-                //There's a difference between "not there" undefined and actually set to undefined....
-                if (appData.scenecues[sc][v] == undefined)
-                {
-                    //Placeholder so we can at least show a no cue found message till it arrives
-                    Vue.set(appData.scenecues[sc], v, undefined);
-                    appData.recomputeformattedCues();
-                };
-                setTimeout(function()
-                {
-                    Vue.set(appData.selectedCues,
-                        sc, v)
-                }, 70)
-
-            },
-            'gotonext': function(currentcueid)
-            {
-                nextcue = appData.cuemeta[currentcueid].next
-
-                cue = nextcue || (appData.cuemeta[currentcueid].defaultnext)
-                if (!cue)
-                {
-                    return
-                }
-                api_link.send(['addcue', appData.scenename, nextcue]);
-                api_link.send(['getcuedata', cue]);
-
-                //There's a difference between "not there" undefined and actually set to undefined....
-                if (appData.scenecues[cue] == undefined)
-                {
-                    //Placeholder so we can at least show a no cue found message till it arrives
-                    set(appData.scenecues[appData.scenename], cue,
-                        undefined);
-                }
-                setTimeout(function()
-                    {
-                        Vue.set(appData.selectedCues,
-                            appData.scenename, cue)
-                    },
-                    30)
-            },
-            'rmcue': function(cue)
-            {
-                appData.selectedCues[appData.scenename] = 'default'
-                api_link.send(['rmcue', cue]);
-            },
-            'jumptocue': function(cue)
-            {
-                api_link.send(['jumptocue', cue]);
-            },
-            'getcuedata': function(c)
-            {
-
-                api_link.send(['getcuedata', c]);
-            },
-            'getcuemeta': function(c)
-            {
-
-                api_link.send(['getcuemeta', c]);
-            },
-            'setnext': function(sc, cue, v)
-            {
-                api_link.send(['setnext', sc, cue, v]);
-            },
-
-            'setprobability': function(sc, cue, v)
-            {
-                api_link.send(['setprobability', sc, cue, v]);
-            },
-            'setcuevaldata': function(cue, v)
-            {
-                api_link.send(['setcuevaldata',cue, jsyaml.safeLoad(v)]);
-            },
-
-
-            'promptsetnumber': function(cue)
-            {
-                api_link.send(['setnumber', cue, Number(prompt(
-                    "Enter new number for this cue:"))]);
-            },
-
-            'setnumber': function(cue, v)
-            {
-                api_link.send(['setnumber', cue, v]);
-            },
-
-            'setfadein': function(cue, v)
-            {
-                api_link.send(['setfadein', cue, v]);
-            },
-
-            'setSoundFadeOut': function(cue, v)
-            {
-                api_link.send(['setSoundFadeOut', cue, v]);
-            },
-
-            'setSoundFadeIn': function(cue, v)
-            {
-                api_link.send(['setSoundFadeIn', cue, v]);
-            },
-
-            'setCueVolume': function(cue, v)
-            {
-                api_link.send(['setCueVolume', cue, v]);
-            },
-            'setCueLoops': function(cue, v)
-            {
-                api_link.send(['setCueLoops', cue, v]);
-            },
-            'setreentrant': function(cue, v)
-            {
-                api_link.send(['setreentrant', cue, v]);
-            },
-            'settrack': function(cue, v)
-            {
-                api_link.send(['settrack', cue, v]);
-            },
-            'setrellen': function(cue, v)
-            {
-                api_link.send(['setrellen', cue, v]);
-            },
-            'setblend': function(sc, v)
-            {
-                api_link.send(['setblend', sc, v]);
-            },
-            'setblendparam': function(sc, k, v)
-            {
-
-                api_link.send(['setblendarg', sc, k, v]);
-            },
-            
-            //Only for things of the form command/property, object/operand, argument/value
-            'apiCommand': function(sc, p,v)
-            {
-
-                api_link.send([p, sc, v]);
-            },
-
-            'setlength': function(sc, v)
-            {
-
-                api_link.send(['setlength', sc, v]);
-            },
-            'setrandomize': function(sc, v)
-            {
-
-                api_link.send(['setrandomize', sc, v]);
-            },
-
-            'setdalpha': function(sc, v)
-            {
-
-                appData.scenemeta[sc].alpha = v;
-                api_link.send(['setdalpha', sc, v]);
-            },
-
-    
-            'setcrossfade': function(sc, v)
-            {
-
-                appData.scenemeta[sc].crossfade = v;
-                api_link.send(['setcrossfade', sc, v]);
-            },
-            'setmqtt': function(sc, v)
-            {
-
-                appData.scenemeta[sc].mqttServer = v;
-                api_link.send(['setMqttServer', sc, v]);
-            },
-            'setmidi': function(sc, v)
-            {
-
-                appData.scenemeta[sc].midiSource = v;
-                api_link.send(['setMidiSource', sc, v]);
-            },
-
-            'setcommandtag': function(sc, v)
-            {
-
-                appData.scenemeta[sc].commandTag = v;
-                api_link.send(['setscenecommandtag', sc, v]);
-            },
-
-            'setdefaultnext': function(sc, v)
-            {
-
-                appData.scenemeta[sc].defaultNext = v;
-                api_link.send(['setDefaultNext', sc, v]);
-            },
-            'setpriority': function(sc, v)
-            {
-                api_link.send(['setpriority', sc, v]);
-            },
-            'setbpm': function(sc, v)
-            {
-                api_link.send(['setbpm', sc, v]);
-            },
-            'tap': function(sc)
-            {
-                api_link.send(['tap', sc, api_link.now() / 1000]);
-            },
-           'testSoundCard': function(sc,c)
-            {
-                api_link.send(['testSoundCard', sc,c]);
-            },
-
-
-            'addScene': function()
-            {
-                api_link.send(['addscene', appData.newscenename]);
-            },
-
-            'addMonitorScene': function()
-            {
-                api_link.send(['addmonitor', appData.newscenename]);
-            },
-
-
-            'addThisFixToCurrentCue': function(fix)
-            {
-                api_link.send(['addcuef', appData.scenecues[
-                        appData.scenename]
-                    [appData.selectedCues[appData.scenename]],
-                    fix
-                ]);
-
-            },
-            'rmFixCue': function(cue,fix)
-            {
-                api_link.send(['rmcuef', cue,fix]);
-
-            },
-
-            'addValToCue': function()
-            {
-                if (!appData.newcueu)
-                {
-                    return
-                }
-                api_link.send(['addcueval', appData.scenecues[
-                        appData.scenename]
-                    [appData.selectedCues[appData.scenename]],
-                    appData.newcueu, appData.newcuevnumber
-                ]);
-                if(parseInt( appData.newcuevnumber) != NaN)
-                {
-                    appData.newcuevnumber = parseInt(appData.newcuevnumber)+1
-                }
-
-            },
-
-            'sortscenes': function()
-            {
-
-                appData.allScenes.sort(function(a, b)
-                {
-                    return a[3] - b[3]
-                })
-            },
-            'editMode': function()
-            {
-                keyboardJS.reset();
-                appData.keybindmode = "edit";
-            },
-            'runMode': function()
-            {
-                rebind(appData.keybindscript);
-                appData.keybindmode = "run";
-            },
-            //https://stackoverflow.com/questions/18082/validate-decimal-numbers-in-javascript-isnumeric
-            'isNumeric': function(input)
-            {
-                var RE = /^-{0,1}\d*\.{0,1}\d+$/;
-                return (RE.test(input));
-            }
-
-        }
-
-
-        var sceneslist = new Vue(
+        var vueapp = new Vue(
         {
             el: '#app',
             data: appData,
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 "script-editor": httpVueLoader('ui/ScriptEditor.vue'),
-                'vue-ace-editor': VueAceEditor
-
                 },
             computed:
             {
@@ -3217,4 +2020,14 @@ commandTagsListing=module.commandTagsListing()
             keyboardJS.bind(null,keyUpHandle)
 
         }
+
+
+        //Hack workaround, something is corrupting this to be undefined.
+        appData.example_events[3]= ['button.a','A button in scenes sidebar']
+
+%for i in limitedTagsListing:
+    appData.availableTags.push("${i|h}")
+%endfor
+
+
             </script>

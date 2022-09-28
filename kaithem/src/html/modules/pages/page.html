@@ -129,7 +129,7 @@ window.onbeforeunload = function(){
 	require(['vs/editor/editor.main'], function() {      
 		editor = monaco.editor.create(document.getElementById('monacobox'), {
 			value: document.getElementById("box").value,
-			language: 'html',
+			language: "${'html' if not name.endswith('js') else 'javascript'}",
             insertSpaces: true,
             renderIndentGuides: true,
 	        fontSize: 14,

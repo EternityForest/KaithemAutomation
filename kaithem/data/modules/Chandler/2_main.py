@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1653016361999988
+resource-timestamp: 1664334739887292
 resource-type: event
 versions: {}
 
@@ -19,11 +19,42 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolutio n
     __doc__=''
-    import time,random,weakref, os,threading,uuid,logging,traceback,yaml,copy,json,src,collections
+    import time,random,weakref, os,threading,uuid,logging,traceback,yaml,copy,json,src,collections, datetime,pytz
     from decimal import Decimal
     from tinytag import TinyTag
     from typeguard import typechecked
     import urllib
+    
+    
+    import recur
+    
+    def resolveSound(sound):
+        #Allow relative paths
+        if not sound.startswith("/"):
+            for i in getSoundFolders():
+                if os.path.isfile(os.path.join(i,sound)):
+                    sound = os.path.join(i,sound)
+        if not sound.startswith("/"):
+            sound = kaithem.sound.resolveSound(sound)
+        return sound
+    
+    module.resolveSound = resolveSound
+    
+    
+    def dt_to_ts(dt, tz=None):
+        "Given a datetime in tz, return unix timestamp"
+        if tz:
+            utc = pytz.timezone('UTC')
+            return ((tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1))
+    
+        else:
+            # Local Time
+            ts = time.time()
+            offset = (datetime.datetime.fromtimestamp(ts) -
+                      datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+            return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1))-offset
+    
+    
     
     
     
@@ -42,8 +73,13 @@ if __name__=='__setup__':
     
     
     def nbr():
-        return(50, '<a href="/pages/Chandler/Console"><i class="icofont-ship-wheel"></i>Chandler</a>')
+        return(50, '<a href="/pages/Chandler/Commander"><i class="icofont-cheer-leader"></i>Chandler</a>')
     kaithem.web.navBarPlugins['chandler']=nbr
+    
+    def nbr2():
+        return(50, '<a href="/pages/Chandler/Console"><i class="icofont-ship-wheel"></i>Chandler Editor</a>')
+    kaithem.web.navBarPlugins['chandler2']=nbr2
+    
     
     logger = logging.getLogger("system.chandler")
     
@@ -218,7 +254,20 @@ if __name__=='__setup__':
     
     
     def fnToCueName(fn):
+    
+        isNum = False
+        try:
+            int(fn.split(".")[0])
+            isNum = True
+        except Exception:
+            pass
+        
+        # Nicely Handle stuff of the form "84. trackname"
+        if isNum and len(fn.split("."))> 2:
+            fn=fn.split(".",1)[-1]
+        
         fn=fn.split(".")[0]
+    
         fn=fn.replace("-","_")
         fn=fn.replace("_"," ")
         fn = fn.replace(":"," ")
@@ -282,6 +331,7 @@ if __name__=='__setup__':
     
     gotoCommand.completionTags={"scene":"scenesList","cue":"gotoSceneCuesCompleter"}
     
+    
     def setAlphaCommand(scene="=SCENE", alpha=1):
         "Set the alpha value of a scene"
         module.scenes_by_name[scene].setAlpha(float(alpha))
@@ -306,6 +356,10 @@ if __name__=='__setup__':
     rootContext.commands['setAlpha']=setAlphaCommand
     rootContext.commands['ifCue']=ifCueCommand
     rootContext.commands['sendEvent']=eventCommand
+    
+    rootContext.commands['setTag'].completionTags={"tagName": 'tagPointsCompleter'}
+    
+    
     def sendMqttMessage(topic, message):
         "JSON encodes message, and publishes it to the scene's MQTT server"
         raise RuntimeError("This was supposed to be overridden by a scene specific version")
@@ -643,13 +697,9 @@ if __name__=='__setup__':
     class DebugScriptContext(ChandlerScriptContext):
         def onVarSet(self,k, v):
             try:
-                if k.startswith("pagevars."):
-                    if isinstance(v, (str, int,float,bool)):
-                        self.sceneObj().pageLink.send(["var", k.split(".",1)[1],v])
-                else:
-                    if not k=="_" and self.sceneObj().rerenderOnVarChange:
-                        self.sceneObj().recalcCueVals()
-                        self.sceneObj().rerender=True
+                if not k=="_" and self.sceneObj().rerenderOnVarChange:
+                    self.sceneObj().recalcCueVals()
+                    self.sceneObj().rerender=True
     
             except:
                 rl_log_exc("Error handling var set notification")
@@ -678,13 +728,7 @@ if __name__=='__setup__':
             except:
                 rl_log_exc("error handling event")
                 print(traceback.format_exc())
-            try:
-                if not e=='poll':
-                    if isinstance(v, (str, int,float,bool)):
-                        self.sceneObj().pageLink.send(["evt", e,v])
-            except:
-                rl_log_exc("error handling event")
-                print(traceback.format_exc())
+    
         
         def onTimerChange(self,timer, run):
             self.sceneObj().runningTimers[timer]=run
@@ -1212,21 +1256,25 @@ if __name__=='__setup__':
                                 'defaultNext': scene.defaultNext,
                                 'commandTag': scene.commandTag,
                                 'soundOutput': scene.soundOutput,
+                                'eventButtons': scene.eventButtons,
+                                'infoDisplay': scene.infoDisplay,
+                                'utility': scene.utility,
+                                'displayTags': scene.displayTags,
+                                'displayTagValues': scene.displayTagValues,
+                                'displayTagMeta': scene.displayTagMeta,
                                 'vars':v,
                                 'timers': scene.runningTimers,
                                 'notes': scene.notes,
-                                'page': scene.page,
                                 "mqttServer": scene.mqttServer,
                                 'crossfade': scene.crossfade,
                                 'status': scene.getStatusString()
-    
                         }
             else:
                 data={
                                 'alpha':scene.alpha,
                                 'active': scene.isActive(),
                                 'defaultActive': scene.defaultActive,
-                        
+                                'displayTagValues': scene.displayTagValues,
                                 'enteredCue':  scene.enteredCue,
                                 'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
                                 'cuelen': scene.cuelen,
@@ -1347,7 +1395,7 @@ if __name__=='__setup__':
                     self.pushMeta(s.id)
     
                 if msg[0] == "addmonitor":
-                    s = Scene(msg[1].strip(),blend="monitor",priority=100)
+                    s = Scene(msg[1].strip(),blend="monitor",priority=100, active=True)
                     self.scenememory[s.id]=s
                     self.link.send(["newscene",msg[1].strip(),s.id])   
     
@@ -1430,6 +1478,9 @@ if __name__=='__setup__':
                     cues[msg[1]].clone(msg[2])
     
                 if msg[0] == "jumptocue":
+                    if not cues[msg[1]].scene().active:
+                        cues[msg[1]].scene().go()
+                        
                     cues[msg[1]].scene().gotoCue(cues[msg[1]].name,cause='manual')
     
                 if msg[0] == "jumpbyname":
@@ -1463,14 +1514,28 @@ if __name__=='__setup__':
                     cues[msg[1]].soundOutput=msg[2]
                     self.pushCueMeta(msg[1])
     
+    
+    
                 if msg[0] == "setNotes":
                     module.scenes[msg[1]].notes=msg[2]
                     self.pushMeta(msg[1],keys={'notes'})
     
+                if msg[0] == "seteventbuttons":
+                    module.scenes[msg[1]].eventButtons=msg[2]
+                    self.pushMeta(msg[1], keys={'eventButtons'})
+                
+                if msg[0] == "setinfodisplay":
+                    module.scenes[msg[1]].infoDisplay=msg[2]
+                    self.pushMeta(msg[1], keys={'infoDisplay'})
     
-                if msg[0] == "setPage":
-                    if kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                        module.scenes[msg[1]].setPage(msg[2],msg[3],msg[4],msg[5])
+                if msg[0] == "setutility":
+                    module.scenes[msg[1]].utility=msg[2]
+                    self.pushMeta(msg[1], keys={'utility'})
+    
+    
+                if msg[0] == "setdisplaytags":
+                    module.scenes[msg[1]].setDisplayTags(msg[2])
+                    self.pushMeta(msg[1], keys={'displayTags'})
     
                 if msg[0] == "setMqttServer":
                     if kaithem.users.checkPermission(user,"/admin/modules.edit"):
@@ -2310,6 +2375,8 @@ if __name__=='__setup__':
     
     cues =weakref.WeakValueDictionary()
     
+    module.cuesByID = cues
+    
     cueDefaults = {
     
         "fadein":0,
@@ -2618,7 +2685,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
-        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
+        soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", utility=False, notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
         
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2629,32 +2696,51 @@ if __name__=='__setup__':
             self.mqttConnection=None
     
             disallow_special(name)
+    
+            self.eventButtons = eventButtons[:]
+            self.infoDisplay=infoDisplay
+            self.utility=bool(utility)
+    
+            # This is used for the remote media triggers feature.
+            self.mediaLink = kaithem.widget.APIWidget("media_link")
+            self.mediaLink.echo = False
+    
+    
+            # The active media file being played through the remote playback mechanism.
+            self.allowMediaUrlRemote  = None
+    
+            def handleMediaLink(u,v):
+                if v[0] == 'ask':                                        
+                    self.mediaLink.send(['volume', self.alpha])
+                    self.mediaLink.send(['mediaURL', self.allowMediaUrlRemote, self.enteredCue])
+    
+                if v[0] == 'error':
+                    self.event("system.error","Web media playback error in remote browser: "+v[1])
+    
+            self.mediaLink.attach(handleMediaLink)
             self.lock = threading.RLock()
             self.randomizeModifier=0
     
             self.commandTagSubscriptions = []
             self.commandTag=commandTag
     
+    
+            self.displayTagSubscriptions = []
+            self.displayTags=[]
+            self.displayTagValues = {}     
+            self.displayTagMeta={}   
+            self.setDisplayTags(displayTags)
+    
+    
             self.notes=notes
             self.midiSource=''
             self.defaultNext=str(defaultNext).strip()
     
-            if page and isinstance(page, str):
-                page = {'html':page,'css':'','js':'','rawhtml':''}
-    
-            self.page=page or {'html':'','css':'','js':'','rawhtml':''}
-    
-            if not 'rawhtml' in self.page:
-                self.page['rawhtml'] = ''
     
     
             self.id = id or uuid.uuid4().hex
     
             
-            #This is for the nice display screens you can embed in pages
-            self.pageLink = kaithem.widget.APIWidget(id=self.id)
-            self.pageLink.require("users.chandler.pageview")
-    
             #TagPoint for managing the current cue
             self.cueTag = kaithem.tags.StringTag("/chandler/scenes/"+name+".cue")
             self.cueTag.expose("users.chandler.admin","users.chandler.admin")
@@ -2688,29 +2774,6 @@ if __name__=='__setup__':
     
     
     
-            def c(u,cmd):
-                if cmd[0]=='getvars':
-                    for v in self.chandlerVars:
-                        if v.startswith("pagevars."):
-                            if isinstance(v, (str, int,float,bool)):
-                                if isinstance(v,str):
-                                    if len(v)>1024*512:
-                                        continue
-                                self.pageLink.send(["var", v.split(".",1)[1],self.chandlerVars[v]])
-                if cmd[0]=='evt':
-                    if not cmd[1].startswith("page."):
-                        raise ValueError("Only events starting with page. can be raised from a scenepage")
-                    self.event(cmd[1],cmd[2])
-    
-                if cmd[0]=="set":
-                    if len(self.chandlerVars)>256:
-                        if isinstance(cmd[2], (str, int,float,bool)):
-                            if isinstance(cmd[2],str):
-                                if len(cmd[2])>512:
-                                    raise ValueError("Max 512 chars for val set from page")
-                            self.ChandlerScriptContext.setVar("pagevars."+cmd[1],cmd[2])
-    
-            self.pageLink.attach(c)
     
             #Used to determine the numbering of added cues
             self.topCueNumber = 0
@@ -2719,7 +2782,7 @@ if __name__=='__setup__':
             #Place to stash a blend object for new blending mode
             self._blend = None
             self.blendClass = None
-            self.alpha = alpha if defaultActive else 0
+            self.alpha = alpha
             self.crossfade = crossfade
     
             self.cuelen = 0
@@ -2872,12 +2935,15 @@ if __name__=='__setup__':
                         'blendArgs': self.blendArgs,
                         'backtrack': self.backtrack,
                         'soundOutput': self.soundOutput,
+                        'eventButtons': self.eventButtons,
+                        'infoDisplay': self.infoDisplay,
+                        'utility': self.utility,
+                        'displayTags': self.displayTags,
                         'midiSource': self.midiSource,
                         'defaultNext':self.defaultNext,
                         'commandTag': self.commandTag,
                         'uuid': self.id,
                         'notes': self.notes,
-                        'page': self.page,
                         'mqttServer': self.mqttServer,
                         'crossfade': self.crossfade
                     }         
@@ -3098,10 +3164,10 @@ if __name__=='__setup__':
             if cue == "__shuffle__":
                 x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
                 for i in list(reversed(self.cueHistory[-15:])):
-                    if len(x)<2:
+                    if len(x)<3:
                         break
                     elif i[0] in x:
-                        x.remove(i)
+                        x.remove(i[0])
                 cue = self.pickRandomCueFromNames(x)
                 
             elif cue == "__random__":
@@ -3166,9 +3232,15 @@ if __name__=='__setup__':
             #Globally raise an error if there's a big horde of cue transitions happening
             doTransitionRateLimit()
     
+            if self.cue:
+                oldSoundOut = self.cue.soundOutput
+            else: oldSoundOut=None
+            if not oldSoundOut:
+                oldSoundOut = self.soundOutput
+    
     
      
-            cue = self.evalExpr(cue)
+            cue = str(self.evalExpr(cue))
     
             if '?' in cue: 
                 cue,args = cue.split("?")
@@ -3314,7 +3386,18 @@ if __name__=='__setup__':
                     self.cue = self.cues[cue]
                     self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
     
-                   
+                    self.allowMediaUrlRemote = None
+    
+                    out = self.cue.soundOutput
+                    if not out:
+                        out = self.soundOutput
+                    if not out:
+                        out = None
+                        
+                    if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
+                        self.mediaLink.send(['volume', self.alpha])
+                        self.mediaLink.send(['mediaURL', None, self.enteredCue])
+    
                     if self.cue.sound and self.active:
     
                         sound = self.cue.sound
@@ -3329,18 +3412,24 @@ if __name__=='__setup__':
                             print(traceback.format_exc())
     
                         if os.path.isfile(sound):
-                            out = self.cue.soundOutput
-                            if not out:
-                                out = self.soundOutput
-                            if not out:
-                                out = None
+    
+    
+                            if not out == "scenewebplayer":
                             
-                            #Always fade in if the face in time set.
-                            #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
-                            if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
-                                playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                #Always fade in if the face in time set.
+                                #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
+                                if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
+                                    playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                else:
+                                    fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                
+    
+                            
                             else:
-                                fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
+                                self.allowMediaUrlRemote= sound
+                                self.mediaLink.send(['volume', self.alpha])
+                                self.mediaLink.send(['mediaURL', sound, self.enteredCue])
+    
     
                             try:
                                 soundMeta = TinyTag.get(sound,image=True)
@@ -3353,7 +3442,9 @@ if __name__=='__setup__':
                                 }
                                 t = soundMeta.get_image()
                             except:
-                                self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
+                                # Not support.
+                                if not sound.endswith('.webm'):
+                                    self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
                                 t=None
                                 currentAudioMetadata={'title':"",'artist':'',"album":'','year':''}
     
@@ -3457,42 +3548,52 @@ if __name__=='__setup__':
                         pass
     
         def resolveSound(self, sound):
-            #Allow relative paths
-            if not sound.startswith("/"):
-                for i in getSoundFolders():
-                    if os.path.isfile(os.path.join(i,sound)):
-                        sound = os.path.join(i,sound)
-            if not sound.startswith("/"):
-                sound = kaithem.sound.resolveSound(sound)
-            return sound
+            return resolveSound(sound)
     
         def recalcRandomizeModifier(self):
             "Recalculate the random variance to apply to the length"
-            self.randomizeModifier =random.triangular(-self.cue.lengthRandomize, +self.cue.lengthRandomize)
+            self.randomizeModifier =random.triangular(-float(self.cue.lengthRandomize), +float(self.cue.lengthRandomize))
     
         def recalcCueLen(self):
                 "Calculate the actual cue len, without changing the randomizeModifier"
                 if not self.active:
                     return
                 cuelen = self.scriptContext.preprocessArgument(self.cue.length)
+                v = cuelen
                 
-                if not isinstance(cuelen,(int, float)):
-                        raise RuntimeError("Invalid cue length, must resolve to int or float")
+                if str(cuelen).startswith('@'):
+                    selector = recur.getConstraint(cuelen[1:])
+                    ref = datetime.datetime.now()
+                    nextruntime = selector.after(ref, True)
     
-                if self.cue.sound and self.cue.rel_length:
-                    path = self.resolveSound(self.cue.sound)
-                    try:
-                        #If we are doing crossfading, we have to stop slightly early for
-                        #The crossfade to work
-                        slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
-                        self.cuelen=  max(0,self.randomizeModifier+slen)
-                    except:
-                        logging.exception("Error getting length for sound "+str(path))
-                        #Default to 4 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
-                        self.cuelen = 240
     
-                else: 
-                    self.cuelen = max(0,self.randomizeModifier+cuelen)
+                    # Workaround for "every hour" and the like, which would normally return the start of the current hour,
+                    # But in this case we want the next one.  We don't want exclusive matching all the either as that seems a bit buggy.
+                    if nextruntime <= ref:
+                        nextruntime = selector.after(nextruntime, False)
+                    
+                    
+                    t2 = dt_to_ts(nextruntime, selector.tz)
+    
+                    nextruntime=t2
+    
+                    v = nextruntime - time.time()
+                    
+                else:
+                    if self.cue.sound and self.cue.rel_length:
+                        path = self.resolveSound(self.cue.sound)
+                        try:
+                            #If we are doing crossfading, we have to stop slightly early for
+                            #The crossfade to work
+                            slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
+                            v=  max(0,self.randomizeModifier+slen)
+                        except:
+                            logging.exception("Error getting length for sound "+str(path))
+                            #Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
+                            self.cuelen = 300
+                            return
+    
+                self.cuelen = max(0,self.randomizeModifier+float(v))
     
     
         def recalcCueVals(self):
@@ -3652,6 +3753,58 @@ if __name__=='__setup__':
             self.mqttConnection.publish(topic, message, encoding='json')
         
         
+        def clearDisplayTags(self):
+            with module.lock:
+                for i in self.displayTagSubscriptions:
+                    i[0].unsubscribe(i[1])
+                self.displayTagSubscriptions= []
+                self.displayTagValues = {}
+                self.displayTagMeta= {}
+    
+    
+        def displayTagSubscriber(self,n):
+    
+            t = n[1]
+            if not self.scriptContext.canGetTagpoint(t):
+                raise ValueError("Not allowed tag "+t)
+    
+    
+    
+            t = kaithem.tags[n[1]]
+            sn= n[1]
+            self.displayTagMeta[sn] = {}
+            self.displayTagMeta[sn]['min'] = t.min
+            self.displayTagMeta[sn]['max'] = t.max
+            self.displayTagMeta[sn]['hi'] = t.hi
+            self.displayTagMeta[sn]['lo'] = t.lo
+            self.displayTagMeta[sn]['unit'] = t.unit
+            self.displayTagMeta[sn]['subtype'] = t.subtype
+    
+            self.pushMeta(keys=["displayTagMeta"])
+    
+    
+            def f(v,t,a):
+                self.displayTagValues[sn] = v
+                self.pushMeta(keys=["displayTagValues"])
+            
+            t.subscribe(f)
+            self.displayTagValues[sn] = t.value
+            self.pushMeta(keys=["displayTagValues"])
+    
+            return t,f
+    
+    
+        def setDisplayTags(self,dt):
+            dt = dt[:]
+            with module.lock:
+                self.clearDisplayTags()
+                try:
+                    for i in dt:
+                        self.displayTagSubscriptions.append(self.displayTagSubscriber(i))
+                except Exception:
+                    print(traceback.format_exc())
+                self.displayTags = dt
+    
     
         def clearConfiguredTags(self):
             with module.lock:
@@ -3726,6 +3879,10 @@ if __name__=='__setup__':
                 self.subscribeCommandTags()
     
     
+    
+    
+    
+    
         def nextCue(self,t=None,cause='generic'):
             with module.lock:
                 if self.cue.nextCue and ((self.evalExpr(self.cue.nextCue).split("?")[0] in self.cues) or self.cue.nextCue.startswith("__") or "|" in self.cue.nextCue or "*" in self.cue.nextCue):
@@ -3751,6 +3908,9 @@ if __name__=='__setup__':
                     
     
         def go(self,nohandoff=False):
+    
+            self.setDisplayTags(self.displayTags)
+    
             with module.lock:
                 if self in module.activeScenes:
                     return
@@ -3809,17 +3969,6 @@ if __name__=='__setup__':
                         rerenderUniverse(i)
                 except:
                     pass
-    
-        @typechecked
-        def setPage(self,page: str,style:str, script:str,rawhtml:str=''):
-            self.page= {
-                    'html':page,
-                    'css': style,
-                    'js': script,
-                    'rawhtml': rawhtml
-                }
-            self.pageLink.send(['refresh'])
-            self.pushMeta(self.id,keys={'page'})
     
         
         def mqttStatusEvent(self, value, timestamp, annotation):
@@ -4062,6 +4211,9 @@ if __name__=='__setup__':
                 self.pushMeta(keys={'alpha','dalpha'} )
             else:
                 self.pushMeta(keys={'alpha','dalpha'} )
+    
+            if self.allowMediaUrlRemote:
+                self.mediaLink.send(['volume', val])
     
         
         def addCue(self,name,**kw):

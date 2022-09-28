@@ -60,10 +60,12 @@ ${api.render("api")}
   position: absolute;
 }
 
+.invisible{
+    display: none;
+}
 </style>
 
 
-<h2> System Notifications</h2>
 <div id="app" style="width: 100%;">
     
         <transition-group name="notificationstg" tag="div">
@@ -85,15 +87,28 @@ ${api.render("api")}
         data: {
             notifications: [],
             getClass: function(i) {
+
                 if (i[1].includes("errors")) {
                     return 'error notification'
                 }
-                else if (i[1].includes("important")) {
+                 if (i[1].includes("important")) {
                     return 'highlight notification'
                 }
-                else if (i[1].includes("warnings")) {
+                 if (i[1].includes("warning")) {
                     return 'warning notification'
                 }
+                if (i[2].includes("Alarm") && i[2].includes("is active")) {
+                    return 'notification warning'
+                }
+                if (i[2].includes("Alarm")) {
+                    return 'notification'
+                }
+
+                if( window.location.search.indexOf('summary')>-1)
+                {
+                    return 'invisible'
+                }
+
                 else{
                     return "notification"
                 }

@@ -206,7 +206,7 @@ class _TagPoint():
         self.alreadyPostedDeadlock: bool = False
 
         # This string is just used to stash some extra info
-        self.subtype = ''
+        self._subtype = ''
 
         # If true, the tag represents an input not meant to be written to except by the owner.
         # It can however still be overridden.  This is just a widget advisory.
@@ -1144,6 +1144,19 @@ class _TagPoint():
                                        sync=False), alarmPollFunction,
                                    generatedRecalcFuncWeMustKeepARefTo)
 
+        # Do it with this indirection so that it doesn't do anything
+        # bad with some kind of race when we delete things, and so that it doesn't hold references
+        def recalcPoll(*a):
+            if name in self._alarmGCRefs:
+                try:
+                    x = self._alarmGCRefs[name][0]
+                except KeyError:
+                    return
+                x()
+
+        obj.recalcFunction = recalcPoll
+        
+
         # Store our new modified context.
         obj.context = context
 
@@ -1374,6 +1387,7 @@ class _TagPoint():
 
     @interval.setter
     def interval(self, val):
+
         self._dynConfigValues['interval'] = val
 
         # Config tages priority over code
@@ -1389,6 +1403,17 @@ class _TagPoint():
                                synchronous=True)
         with self.lock:
             self._managePolling()
+
+    @property
+    def subtype(self):
+        return self._subtype
+
+    @subtype.setter
+    def subtype(self, val):
+       self._subtype=val
+       if val=='bool':
+            self.min=0
+            self.max = 1
 
     @property
     def default(self):

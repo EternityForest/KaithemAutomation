@@ -89,6 +89,9 @@ modules that are generated on the fly. The setup code runs directly
 inside the module, whilst the trigger and action are used to generate
 two functions.
 
+
+If there is a \_\_del\_\_() in the event setup it is called to clean up the event when it is deleted or modified.
+
 <span id="trigger"></span>
 
 ### Availible Trigger Expressions

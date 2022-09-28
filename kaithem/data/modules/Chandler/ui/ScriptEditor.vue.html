@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1653080734372362
+resource-timestamp: 1663293974223838
 resource-type: page
 streaming-response: false
 template-engine: none
@@ -24,7 +24,7 @@ template-engine: none
         background-color: white;
         padding: 1em;
         font-weight: bold;
-        height: 100%;
+        align-self: stretch;
         border-radius: 1.5em;
     }
     .action {
@@ -34,8 +34,9 @@ template-engine: none
         background-color: white;
         padding: 1em;
         font-weight: bold;
-        height: 100%;
+        align-self: stretch;
         border-radius:0px;
+        height: 100%;
     }
     
     .selected {
@@ -57,7 +58,7 @@ template-engine: none
         border-color: black;
         padding: 0.5em;
         border-radius: 5px;
-        overflow:auto;
+        overflow:visible;
         margin-right:4px;
     }
     .rulesbox
@@ -140,9 +141,9 @@ template-engine: none
                     {{i[0]}}
                     <p class="small">Occurs</p>
                 </button>
-                            <span style="align-self:center;color:grey; font-size:200%;font-weight:bolder; overflow:hidden;flex-shrink=8">&gt</span>
+                            <i class="icofont-arrow-right" style="align-self:center; text-align:center;"></i>
 
-                            <div v-for="j in i[1]" style="align-self:stretch;">
+                            <div v-for="j in i[1]" style="align-self:stretch; display:inline-flex;">
                                 <button v-bind:class="{action:1,selected:(selectedBinding==i&selectedCommand==j)}" v-on:click="selectedCommandIndex=i[1].indexOf(j);selectedBindingIndex=rules.indexOf(i)">
                         
                                     <div v-if="j[0]=='set'">
@@ -161,7 +162,7 @@ template-engine: none
 
                                     <div style="min-width:8em;max-width:30em;overflow:hidden" v-if="(!(j[0] in specialCommands)) && ((commands[j[0]]))">
 
-                                        <b>{{j[0]}}</b>}<br>
+                                        <b>{{j[0]}}</b><br>
                                         <table popif="commands[j[0]].summaryTemplate.length==0" border=1 style="width:100%">
                                             <tr v-for="i in commands[j[0]].args.keys()">
                                                 <td>{{commands[j[0]].args[i][0]}}</td>
@@ -176,13 +177,17 @@ template-engine: none
                                     {{j}}
                                     </div>
                             </button>
-                                <span style="align-self:center;color:grey; font-size:200%;font-weight:bolder; overflow:hidden;flex-shrink=8">&gt</span>    
+                                                            <i class="icofont-arrow-right" style="align-self:center; text-align:center;"></i>
+    
+                            </div>
+                            <div style="align-self:stretch;">
+
+                            <button class="action" style="align-self:stretch;" v-on:click="i[1].push(['pass']);$emit('input',rules)">Add Action</button>
                             </div>
 
-                            <button class="action" style="align-self:center;" v-on:click="i[1].push(['pass']);$emit('input',rules)">Add Action</button>
                         </div>
                     </div>
-                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="rules.push(['change_this',[]]);$emit('input',rules);">Add Rule</button>
+                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="rules.push(['cue.enter',[]]);$emit('input',rules);">Add Rule</button>
 
                 </div>
 
@@ -251,16 +256,32 @@ template-engine: none
                   var t = this.commands[fullCommand[0]].completionTags
                   if(t ==undefined)
                   {
-                      return []
+
+                  try
+                  {
+                        return this.argcompleters['defaultExpressionCompleter'](fullCommand)
+                    return c(fullCommand)
                   }
+                  catch(e)
+                  {
+                  return [];
+                  }                  }
                   t =t[arg]
                   var c = this.argcompleters[t]
-                  if (c==undefined)
-                  {
-                      return []
-                  }
 
-                  return c(fullCommand)
+                  try
+                  {
+                    if (c==undefined)
+                    {
+                        return this.argcompleters['defaultExpressionCompleter'](fullCommand)
+                    }
+
+                    return c(fullCommand)
+                  }
+                  catch(e)
+                  {
+                  return [];
+                  }
               },
 
             swapArrayElements:function(arr, indexA, indexB) {

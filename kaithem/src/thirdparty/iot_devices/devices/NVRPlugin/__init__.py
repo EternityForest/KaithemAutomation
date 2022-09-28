@@ -126,6 +126,7 @@ def recognize_tflite(i, r):
     import PIL.ImageFilter
     invoke_time = time.time()
 
+    
     i = PIL.Image.open(io.BytesIO(i))
     pilimg = i
     i = i.filter(PIL.ImageFilter.GaussianBlur(1))
@@ -268,7 +269,7 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                 if name.startswith("AMC"):
                     #No username/pw yet, we cannot actually fill this in.
                     onvifCams[fixAddr(name)]= None
-            except:
+            except Exception:
                 pass
         else:
             try:
@@ -1253,7 +1254,7 @@ class NVRChannel(devices.Device):
 
             self.numeric_data_point("raw_motion_value",
                                     min=0,
-                                    max=250,
+                                    max=10,
                                     writable=False)
 
             self.numeric_data_point("luma_average",

@@ -55,6 +55,7 @@ if battery:
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged
+    acPowerTag.subtype='bool'
     acPowerTag.setAlarm(
         "runningOnBattery", "(not value) and (tv('/system/power/batteryLevel')< 80)", priority='info')
 

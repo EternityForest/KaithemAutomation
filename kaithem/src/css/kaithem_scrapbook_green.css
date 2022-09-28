@@ -181,12 +181,7 @@ th {
     background-color: #0000001a;
 }
 
-td input,
-td select {
-    margin: 0px;
-    height: 1.8em;
-    width: 100%;
-}
+
 
 pre {
     margin: 0.2em;
@@ -211,6 +206,22 @@ section {
     padding-right: 1%;
     padding-left: 0.5%;
 }
+
+
+div.card {
+    border-style: solid;
+    background: bl var(--box-bg);
+    border-width: 1px;
+    border-radius: 15px;
+    backdrop-filter: blur(1px);
+    border-color: #00000011;
+    padding-top: 0.2%;
+    padding-bottom: 0.5%;
+    padding-right: 1%;
+    padding-left: 0.5%;
+    box-shadow: 2px 2px 8px -3px rgba(43, 39, 85, 0.4)
+}
+
 
 section.fancy{
     border-image-slice:20 20 20 20;

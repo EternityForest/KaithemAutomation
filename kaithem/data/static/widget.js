@@ -278,7 +278,12 @@ Copyright (c) 2015 Yusuke Kawasaki
 					for (var n = 0; n < resp.length; n++) {
 						i = resp[n]
 						for (j in apiobj.serverMsgCallbacks[i[0]]) {
-							apiobj.serverMsgCallbacks[i[0]][j](resp[n][1]);
+							if (resp[n].length > 1) {
+								apiobj.serverMsgCallbacks[i[0]][j](resp[n][1]);
+							}
+							else {
+								alert("A widget used by this page no longer exists on the server.  Try refreshing later.")
+							}
 						}
 					}
 				}

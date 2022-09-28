@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1580363502005859
+resource-timestamp: 1663194379714258
 resource-type: event
 versions: {}
 
@@ -35,11 +35,9 @@ if __name__=='__setup__':
     
     def maketimefunc():
         global timefunc
-        if module.config['netTime']:
-            timefunc = kaithem.time.lantime
-        else:
-            timefunc = time.time
+        timefunc = time.time
         module.maketimefunc = maketimefunc
+        
     maketimefunc()
     module.timefunc = timefunc
 

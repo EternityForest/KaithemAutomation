@@ -23,6 +23,7 @@ import os
 import pwd
 import getpass
 import shutil
+import ssl
 from .config import config
 from os import environ
 
@@ -75,10 +76,12 @@ mixerdir = os.path.join(vardir, 'system.mixer')
 
 moduledir = os.path.join(vardir, 'modules')
 htmldir = os.path.join(dn, 'html')
-if not config['ssl-dir'].startswith("/"):
-    ssldir = os.path.join(vardir, config['ssl-dir'])
+
+ssldir = os.path.expanduser(config['ssl-dir'])
+if not ssldir.startswith("/"):
+    ssldir = os.path.join(vardir, ssldir)
 else:
-    ssldir = os.path.join(config['ssl-dir'])
+    ssldir = os.path.join(ssldir)
 
 
 def recreate():
@@ -89,7 +92,7 @@ def recreate():
         vardir = getRootAndroidDir()
     else:
         vd = os.path.normpath(os.path.join(dn, '..'))
-        vardir = os.path.join(vd, config['site-data-dir'])
+        vardir = os.path.join(vd, os.path.expanduser(config['site-data-dir']))
 
     usersdir = os.path.join(vardir, 'users')
     logdir = os.path.join(
@@ -98,7 +101,14 @@ def recreate():
     moduledir = os.path.join(vardir, 'modules')
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     htmldir = os.path.join(dn, 'html')
-    ssldir = os.path.join(vardir, config['ssl-dir'])
+
+    
+
+    ssldir = os.path.expanduser(config['ssl-dir'])
+    if not ssldir.startswith("/"):
+        ssldir = os.path.join(vardir, ssldir)
+    else:
+        ssldir = os.path.join(ssldir)
 
 
 def chownIf(f, usr):

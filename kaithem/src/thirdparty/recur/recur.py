@@ -571,7 +571,7 @@ class yearly(BaseConstraint):
         align = align.year if align else 0
 
         dt2 = dt - datetime.timedelta(days= aligndt.day-1,hours=aligndt.hour,minutes=aligndt.minute, seconds=aligndt.second, microseconds=aligndt.microsecond)
-        dt2 = dt2.monthdelta(dt2, -(aligndt.month-1))
+        dt2 = monthdelta(dt2, -(aligndt.month-1))
         dt_offset = dt.year - (align%(self.interval))
 
         if inclusive and (dt_offset) % self.interval == 0:

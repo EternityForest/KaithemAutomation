@@ -60,7 +60,13 @@ plugins = weakref.WeakValueDictionary()
 
 class TagInterface():
     def __getitem__(self, k):
-        return tagpoints.Tag(k)
+        try:
+            x = tagpoints.allTagsAtomic[k]()
+            if not x:
+                return tagpoints.Tag(k)
+            return x
+        except KeyError:
+            return tagpoints.Tag(k)
 
     def StringTag(self, k):
         t = tagpoints.StringTag(k)

@@ -1,6 +1,28 @@
 Change Log
 ----------
 
+### 0.68.34
+- :bug: Fix alarms that reference other tagpoints
+- :bug: Fix use of ~ in config file directories
+- :bug: Chandler visual bugs
+- :bug: Fix chandler shuffle
+- :bug: Fix length randomize with sound-relative and wall clock lengths
+- :bug: Prevent unscheduled event windup
+- :sparkles: Chandler remote media web players
+- :sparkles: Pages that are just JS code, ending in .js, are now properly syntax highlighted
+- :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events
+- :memo: Document the \_\_del\_\_ event cleanup functions
+- :sparkles: Chandler scenes menus now show any running cue logic timers for the scene
+- :sparkles: Chandler ABCD event buttons gone, replapced by configurable event buttons.
+- :sparkles: Chandler display tags: show tag value meters right in the scene overview.
+- :sparkles: Chandler cue lengths can accept @5PM style time specifiers, no need to use events and rules
+- :sparkles: Chandler no longer displays fractional seconds to reduce visual clutter
+- :sparkles: Chandler Commander view 
+- :sparkles: Get notified if a widget no longer exists that a page you are on is using.
+- :sparkles: Chandler default alpha now 1 by default, goto cue buttons activate scene if not already active.
+- :sparkles: Chandler utility scenes don't have buttons or a slider.  Use for embedding camera feeds in the console, and state machine logic.
+
+
 ### 0.68.33
 - :bug: Compatibility with older sdmon versions that gave bad JSON
 - :bug: Fix illegal character errors that were blocking showing low disk space alerts

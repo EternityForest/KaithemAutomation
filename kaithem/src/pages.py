@@ -25,9 +25,9 @@ import threading
 import time
 import logging
 import os
+import mimetypes
 from . import auth, config
 from . import directories, util
-
 from mako import exceptions
 
 
@@ -287,6 +287,11 @@ def serveFile(path, contenttype="", name=None):
     "Skip the rendering of the current page and Serve a static file instead."
     if name == None:
         name = path
+    if not contenttype:
+        c= mimetypes.guess_type(path, strict=True)
+        if c[0]:
+            contenttype = c[0]
+            
     # Give it some text for when someone decides to call it from the wrong place
     e = ServeFileInsteadOfRenderingPageException(
         "If you see this exception, it means someone tried to serve a file from somewhere that was not a page.")

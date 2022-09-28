@@ -9,7 +9,9 @@
 <%
 info = sys._current_frames()
 %>
-%for i in sorted(threading.enumerate(),key=lambda d:d.name):
+%for i in sorted(threading.enumerate(),key=lambda d:(d.name, d.name.startswith('CP Server Thread'))):
+
+
 %if "Main" in i.name:
 <dt class="specialentry">
 %else:

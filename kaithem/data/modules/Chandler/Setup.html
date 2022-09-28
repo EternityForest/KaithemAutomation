@@ -9,8 +9,9 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [/admin/modules.edit, users.chandler.admin]
-resource-timestamp: 1580360886964294
+resource-timestamp: 1663194419820648
 resource-type: page
+streaming-response: false
 template-engine: mako
 
 ---
@@ -22,14 +23,10 @@ __doc__= ""
 if request.method=="POST" and 'folders' in kwargs:
     module.config['soundFolders'] =  [i.strip() for i in kwargs['folders'].split('\n') if i]
 
-if request.method=="POST":
-    module.config['netTime'] = 'nettime' in kwargs
-    module.maketimefunc()
 
 
 if request.method=="POST":
     module.config['allowAllTags'] = 'allTags' in kwargs
-    module.maketimefunc()
 
 
 %>
@@ -42,13 +39,6 @@ if request.method=="POST":
     <p class="help">Auto-discover an NTP server for lighting control using MDNS. Note that every kaithem instance acts as an NTP server as well. Changing this with running scenes may
         cause odd behaviour, but shouldn't cause a crash. If no NTP server is found, uses system time as normal. This is a global setting for the entire lighting subsystem.
     </p>
-        <label><input name="nettime" type="checkbox"
-        %if module.config.get("netTime",False):
-        checked="1"
-        %endif
-        
-        >Use LAN Consenseus time</label><br>
-
 
         <label><input name="allTags" type="checkbox"
         %if module.config.get("allowAllTags",False):
