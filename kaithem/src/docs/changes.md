@@ -2,6 +2,9 @@ Change Log
 ----------
 
 ### 0.68.34
+- :sparkles: Mixer channels have a mute button
+  
+### 0.68.34
 - :bug: Fix alarms that reference other tagpoints
 - :bug: Fix use of ~ in config file directories
 - :bug: Chandler visual bugs

@@ -308,6 +308,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.faderTag.hi = 3
         self.faderTag.unit = 'dB'
 
+
+        self.mute = False
+
         self.effectParamTags = {}
 
         self.usingJack = True
@@ -470,6 +473,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.sends.append(e2)
 
     def loadData(self, d):
+
+        self.mute = d.get('mute', False)
+
+
         for i in d['effects']:
             if d.get('bypass', False):
                 continue
@@ -725,16 +732,24 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def _faderTagHandler(self, level, t, a):
         # Note: We don't set the configured data fader level here.
         if self.fader:
-            if level > -60:
-                self.fader.set_property('volume', 10**(float(level) / 20))
-            else:
+            if self.mute:
                 self.fader.set_property('volume', 0)
+            else:
+                if level > -60:
+                    self.fader.set_property('volume', 10**(float(level) / 20))
+                else:
+                    self.fader.set_property('volume', 0)
 
         self.board.api.send(['fader', self.name, level])
 
     def setFader(self, level):
         # Let the _faderTagHandler handle it.
         self.faderTag.value = level
+
+    def setMute(self, m):
+        self.mute = m
+        self._faderTagHandler(self.faderTag.value, 0, 0)
+        self.board.api.send(['mute', self.name, self.mute])
 
 
 class ChannelInterface():
@@ -1007,6 +1022,13 @@ class MixingBoard():
             if not self.running:
                 return
             self.channelObjects[data[1]].setInput(data[2])
+
+        if data[0] == 'setMute':
+            self.channels[data[1]]['mute'] = bool(data[2])
+            if not self.running:
+                return
+            self.channelObjects[data[1]].setMute(data[2])
+
 
         if data[0] == 'setOutput':
             self.channels[data[1]]['output'] = data[2]

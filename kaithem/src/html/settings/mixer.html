@@ -270,6 +270,14 @@ import os
           <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
             orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;"
             v-bind:title="channel.fader">
+
+            <button v-on:click="setMute(channelname, !channel.mute)" title="Mute channel"
+            type="checkbox" style="width: 1em;"> 
+            <i v-if="channel.mute" class="icofont-ui-mute" style="color: red; background-color:black"></i>
+            <i v-if="!channel.mute" class="icofont-ui-mute"></i>
+
+            </button>
+
           </div>
 
         <div class="buttonbar"><meter style="flex-grow: 2;" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><p
@@ -357,11 +365,6 @@ import os
         midiinports: [],
         midioutports: [],
 
-        usblatency: 384,
-        usbsize: 128,
-        usbquality: 0,
-        usbperiods: 3,
-
         recordName: "mixer_",
         recordChannels: 2,
         recordStatus:"",
@@ -427,6 +430,10 @@ import os
           api.send(['setFader', channel, value]);
         },
 
+        setMute: function (channel, value) {
+          api.send(['setMute', channel, value]);
+        },
+
         setOutput: function (channel, value) {
           api.send(['setOutput', channel, value]);
         },
@@ -435,9 +442,6 @@ import os
           api.send(['setFuse', channel, value]);
         },
 
-        setUSBSettings: function () {
-          api.send(['setUSBAlsa', this.usbsize, this.usblatency, this.usbquality, this.usbperiods]);
-        },
         setParam: function (channel, effect, param, value) {
           api.send(['setParam', channel, effect, param, value]);
         },
@@ -550,12 +554,11 @@ import os
       if (msg[0] == "fader") {
         app.$data.channels[msg[1]].fader = msg[2];
       }
-      if (msg[0] == "usbalsa") {
-        app.usbsize = msg[1]
-        app.usblatency = msg[2]
-        app.usbquality = msg[3]
-        app.usbperiods = msg[4]
+
+      if (msg[0] == "mute") {
+        app.$data.channels[msg[1]].mute = msg[2];
       }
+
     };
     gapi.upd = api.upd;
 
