@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1664334892101875
+resource-timestamp: 1665178623598473
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -1365,7 +1365,7 @@ commandTagsListing=module.commandTagsListing()
                             <table border="1">
                             <tr>
                                 <th>Label</th>
-                                <th>Event to send</th>
+                                <th>Tag to display</th>
                                 <th>Acton</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.displayTags">
@@ -1378,7 +1378,7 @@ commandTagsListing=module.commandTagsListing()
                             <tr>
                                 <td></td>
                                 <td></td>
-                                <td><button v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add Button</button>
+                                <td><button v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add Tag</button>
                             </tr>
                             </table>
 
