@@ -1,0 +1,68 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method: [GET]
+require-permissions: []
+resource-timestamp: 1647222064610263
+resource-type: page
+streaming-response: false
+template-engine: mako
+
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+import json
+import datetime
+%>
+
+<%
+__doc__= "#Python Code here runs every page load"
+%>
+
+<style>
+    iframe {
+        width: 100%;
+        height: 70vh;
+        border: none;
+        margin: 2px;
+    }
+    body{
+    background-color: black;
+    }
+
+</style>
+
+<script src="/static/js/vue3.js"></script>
+
+<div id="videowall" style="display: flex; flex-wrap: wrap;height: 100vh;">
+    <template v-for="v,i in viewSlots">
+        <div v-if="viewSlots[i]" style="min-width:49%; max-width:99%; max-height:49%; flex-grow: 2; background-color: black;">
+            <iframe :src="viewSlots[i]" style="overflow: auto; width: 100%; height:100%;">
+            </iframe>
+        </div>
+    </template>
+</div>
+
+
+
+
+<script>
+    appData = {
+        viewSlots: ${json.loads(kwargs.get('viewslots', '["", "", "", ""]')) },
+    }
+
+
+    app = Vue.createApp(
+    {
+        data()
+        {
+            return appData
+        }
+    }).mount('#videowall')
+
+</script>

@@ -6,9 +6,9 @@ auto-reload-interval: 5.0
 mimetype: text/html
 no-header: false
 no-navheader: false
-require-method: [GET, POST]
+require-method: [GET]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1646352852865893
+resource-timestamp: 1665178676456165
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -37,7 +37,7 @@ __doc__= "#Python Code here runs every page load"
         <h2><i class="icofont-castle"></i>Beholder NVR</h2>
         <title>Beholder NVR</title>
 
-            <div id="app" class="sectionbox">
+            <div id="app" class="sectionbox" style="max-width: 100vw;">
               <datalist id="cameras">
                   <option v-for="v,i of cameraUrls">{{i}}</option>
               </datalist>
@@ -80,7 +80,8 @@ __doc__= "#Python Code here runs every page load"
                       </table>
 
                       <h4>Link to this wall</h4>
-                      <a :href="'?viewslots='+encodeURIComponent(JSON.stringify(viewSlots))">Wall</a>
+                      <a :href="'?viewslots='+encodeURIComponent(JSON.stringify(viewSlots))">This editor page</a>
+                      <a :href="'fswall?viewslots='+encodeURIComponent(JSON.stringify(viewSlots))">Just the wall</a>
 
                     </div>
                     
@@ -104,6 +105,7 @@ __doc__= "#Python Code here runs every page load"
                           <li v-for="v,i of cameraUrls"><a v-on:click="setRTPlayback(cameraUrls[i],i)">{{i}}</a></li>
                       </ul>
 
+                      <h3>Live View</h3>
                       <table>
                         <tr>
                           <td>Enable Effects</td>
@@ -131,14 +133,14 @@ __doc__= "#Python Code here runs every page load"
                         </tr>
                       </table>
                       
-                      <h3>Embeddable Viewer Code for wall builder</h3>
+                      <h4>Embeddable Viewer Code for wall builder</h4>
                   
                       <details><summary>Help</summary>
-                        Copy and paste this into a wall builder slot. 
+                        Copy and paste this into a wall builder slot, or anywhere else you'd like to to embed a camera feed.
                         </details>
-                        <pre>{{makeFullRtPlaybackUrl() }}</pre>
+                        <pre>/pages/Beholder/{{makeFullRtPlaybackUrl() }}</pre>
 
-                      <h3>Fullscreen Link</h3>
+                      <h4>Fullscreen Link</h4>
                       <p><a :href="makeFullRtPlaybackUrl()+'&fs=1'">Link</a></p>
                   
                       <h3>JPEG Snapshot</h3>
@@ -208,7 +210,7 @@ __doc__= "#Python Code here runs every page load"
         rtPlaybackUrl: '',
         selectedRTCam:'',
         showClipThumbnails: false,
-        viewSlots: ${kwargs.get('viewslots',['','','',''])},
+        viewSlots: ${json.loads(kwargs.get('viewslots', '["", "", "", ""]')) },
         rtplayerFilm:0,
         rtplayerCRT:0,
         rtplayerBlur:0,

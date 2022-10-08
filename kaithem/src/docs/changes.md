@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.68.35
+- :sparkles: Mixer channels have a mute button
+- :sparkles: Simple dark theme
+
+
 ### 0.68.34
 - :bug: Fix alarms that reference other tagpoints
 - :bug: Fix use of ~ in config file directories
