@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### 0.68.34
+### 0.68.35
 - :sparkles: Mixer channels have a mute button
 - :sparkles: Simple dark theme
 
