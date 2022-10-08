@@ -1,0 +1,64 @@
+@import "kaithem_minimal.css";
+
+/* Using a string */
+
+@import "kaithem_fuge_icons.css";
+
+/* Using a string */
+
+html {
+    background: linear-gradient( 177deg, #2e3131 0%,#1e2524 100%);
+    background-size: cover, unset;
+    background-repeat: repeat, repeat;
+    min-height: 100vh;
+    padding: 0px;
+    margin: 0px;
+    box-sizing: border-box;
+}
+
+ ::selection {
+    background: rgba(119, 88, 206, 0.431);
+    color: rgb(245, 242, 239);
+}
+
+ ::-moz-selection {
+    background: rgba(0, 0, 250, 0.25);
+}
+
+body {
+    color:rgb(202, 202, 201);
+    border-color: rgb(155, 153, 153);
+    --box-bg: rgba(0, 0, 0, 0.6);
+}
+
+section, div.sectionbox, button, textarea, input, div.buttonbar, p.buttonbar{
+background-color: #2c302f;
+color: rgb(180 178 177);
+}
+
+button{
+    border-radius: 2em;
+}
+
+a:link , a:visited ,a:hover, a:active {
+    color: rgb(201, 190, 201);
+}
+
+.buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button), 
+.buttonbar> form > :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button)
+{
+    border: none;
+}
+
+.error,
+.danger {
+    text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
+}
+
+.warning {
+    background-color: rgba(255, 255, 0, 0.6);
+}
+
+.highlight{
+    background-color: #78dba479 !important;
+}
