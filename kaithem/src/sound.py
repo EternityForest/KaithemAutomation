@@ -146,8 +146,8 @@ class SoundWrapper(object):
     def resume(self, handle="PRIMARY"):
         pass
 
-    def fadeTo(self, handle="PRIMARY"):
-        self.playSound(self, handle)
+    def fadeTo(self, handle="PRIMARY", **kw):
+        self.playSound(self, handle, **kw)
 
     def preload(self, filename):
         pass
@@ -540,7 +540,7 @@ class MPVBackend(SoundWrapper):
     # If the object is destroyed it destroys the process stopping the sound
     # It also abstracts checking if its playing or not.
     class MPVSoundContainer(object):
-        def __init__(self, filename, vol, finalGain, output, loop):
+        def __init__(self, filename, vol, finalGain, output, loop, start=0):
             self.lock = threading.RLock()
 
             if output == "__disable__":
@@ -553,6 +553,7 @@ class MPVBackend(SoundWrapper):
                 else:
                     self.player = RemoteMPV()
 
+
             #Avoid somewhat slow RPC calls if we can
             if (not hasattr(self.player,
                             'isConfigured')) or (not self.player.isConfigured):
@@ -563,6 +564,9 @@ class MPVBackend(SoundWrapper):
                 self.player.rpc.call('set', ['jack_name', cname])
                 self.player.rpc.call('set', ['gapless_audio', 'weak'])
                 self.player.isConfigured = True
+
+            if start:
+                self.player.rpc.call('seek', [str(start), 'absolute'])
 
             #Due to memory leaks, these have a limited lifespan
             self.player.usesCounter += 1
@@ -704,7 +708,7 @@ class MPVBackend(SoundWrapper):
                   volume=1,
                   finalGain=None,
                   output='',
-                  loop=1):
+                  loop=1, start=0):
 
         # Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
@@ -712,7 +716,7 @@ class MPVBackend(SoundWrapper):
         fn = soundPath(filename, extraPaths)
         # Play the sound with a background process and keep a reference to it
         self.runningSounds[handle] = self.MPVSoundContainer(
-            fn, volume, finalGain, output, loop)
+            fn, volume, finalGain, output, loop, start=start)
 
     def stopSound(self, handle="PRIMARY"):
         # Delete the sound player reference object and its destructor will stop the sound

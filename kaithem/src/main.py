@@ -20,10 +20,11 @@
 
 
 
+import hashlib
 import os
 import sys
 from types import MethodType
-
+import base64
 from . import pathsetup
 
 # Minimal path setup, to be able to even find the rest
@@ -676,15 +677,18 @@ def webRoot():
         'request.error_response': cpexception,
         'log.screen': config['cherrypy-log-stdout'],
         'server.socket_host': bindto,
-        'server.socket_port': config['https-port'],
-        'server.ssl_module': 'builtin',
-        'server.ssl_certificate': os.path.join(directories.ssldir, 'certificate.cert'),
-        'server.ssl_private_key': os.path.join(directories.ssldir, 'certificate.key'),
-        'server.thread_pool': config['https-thread-pool'],
         'engine.autoreload.frequency': 5,
         'engine.autoreload.on': False,
         'tools.allow_upload.on': True,
-        'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(), "web.maxbytes") or 64 * 1024,
+        'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(), "web.maxbytes") or 64 * 1024
+    }
+
+    https_config = {
+        'server.ssl_module': 'builtin',
+        'server.ssl_certificate': os.path.join(directories.ssldir, 'certificate.cert'),
+        'server.ssl_private_key': os.path.join(directories.ssldir, 'certificate.key'),
+        'server.socket_port': config['https-port'],
+        'server.thread_pool': config['https-thread-pool']
     }
 
     wscfg = {'tools.websocket.on': True,
@@ -805,6 +809,9 @@ def webRoot():
     server2.subscribe()
 
     cherrypy.config.update(site_config)
+    cherrypy.config.update(https_config)
+
+
     cherrypy.tools.pageloadnotify = cherrypy.Tool(
         'on_start_resource', pageloadnotify)
     cherrypy.config['tools.pageloadnotify.on'] = True
@@ -824,6 +831,18 @@ def webRoot():
     if time.time() < util.min_time:
         messagebus.postMessage('/system/notifications/errors',
                                "System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.")
+
+    if not os.path.exists(os.path.join(directories.ssldir, 'certificate.key')):
+        cherrypy.server.unsubscribe()
+        messagebus.postMessage('/system/notifications',
+                               "You do not have an SSL certificate set up. HTTPS is not enabled.")
+    else:
+        md5 = '8ktdhtaiwhwav2st5kjqaa=='
+        with open(os.path.join(directories.ssldir, 'certificate.key')) as f:
+            d = f.read()
+        if base64.b64encode(hashlib.md5(d.encode()).digest()).lower().decode() == md5:
+            messagebus.postMessage('/system/notifications',
+                               "You are using the included demo SSL keys. These are not secure, do not use outside private network or VPN")
 
     cherrypy.engine.start()
 

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1664334739887292
+resource-timestamp: 1666931402024994
 resource-type: event
 versions: {}
 
@@ -220,6 +220,8 @@ if __name__=='__setup__':
     def mapUniverse(u):
         if not u.startswith("@"):
             return u
+            
+        u = u.split('[')[0]
         
         try:
             x = module.fixtures[u[1:]]()
@@ -230,6 +232,18 @@ if __name__=='__setup__':
         return x.universe
     
     def mapChannel(u,c):
+        index = 1
+    
+    
+        if isinstance(c,str):
+            if c.startswith("__"):
+                return None
+            # Handle the notation for repeating fixtures
+            if '[' in c:
+                c, index = c.split('[')
+                index  = int(index.split(']')[0].strip())
+    
+        
         if not u.startswith("@"):
             if isinstance(c,str):
                 universe=getUniverse(u)
@@ -238,19 +252,23 @@ if __name__=='__setup__':
                     if not c:
                         return None
                     else:
-                        return u,c
+                        return u,int(c)
             else:
-                return u,c
+                return u,int(c)
+    
         try:
             f = module.fixtures[u[1:]]()
             if not f:
                 return None
+    
         except KeyError:
             return None
         x=f.assignment
         if not x:
             return
-        return x[0], x[1]+f.nameToOffset[c]
+    
+        # Index advance @fixture[5] means assume @fixture is the first of 5 identical fixtures and you want #5
+        return x[0], int(x[1]+f.nameToOffset[c] +((index-1)*len(f.channels)))
     
     
     def fnToCueName(fn):
@@ -1301,8 +1319,10 @@ if __name__=='__setup__':
                                 'id':cueid,
                                 'sound': cue.sound,
                                 'soundOutput': cue.soundOutput,
+                                'soundStartPosition': cue.soundStartPosition,
                                 'rel_len': cue.rel_length,
                                 'track': cue.track,
+                                'notes': cue.notes,
                                 'scene': cue.scene().id,
                                 'shortcut': cue.shortcut,
                                 'number': cue.number/1000.0,
@@ -1573,7 +1593,7 @@ if __name__=='__setup__':
                     else:
                         val = 0
                     # Allow number:name format, but we only want the name
-                    cues[msg[1]].setValue(msg[2],msg[3].split(":")[-1],val)
+                    cues[msg[1]].setValue(msg[2],str(msg[3]).split(":")[-1],val)
     
                 if msg[0] == "setcuevaldata":
                     
@@ -1596,7 +1616,12 @@ if __name__=='__setup__':
                 if msg[0] == "addcuef":
                     cue = cues[msg[1]]
     
-                    x = module.fixtures[msg[2]]()
+                    # Can add a length and start point to the cue.
+                    #index = int(msg[3])
+                    length = int(msg[4])
+    
+                    #Get rid of any index part, treat it like it's part of the same fixture.
+                    x = module.fixtures[msg[2].split('[')[0]]()
                     #Add every non-unused channel.  Fixtures
                     #Are stored as if they are their own universe, starting with an @ sign.
                     #Channels are stored by name and not by number.
@@ -1608,6 +1633,23 @@ if __name__=='__setup__':
                                 val = 0
                             #i[0] is the name of the channel
                             cue.setValue("@"+msg[2],i[0],val)
+    
+    
+                    if length >1:
+                        #Set the length as if it were a ficture property
+                        cue.setValue("@"+msg[2],"__length__",length)
+                        cue.setValue("@"+msg[2],"__spacing__",0)
+    
+    
+                        # The __dest__ channels represet the color at the end of the channel
+                        for i in x.channels:
+                            if not i[1]=="unused":
+                                if hasattr(cue.scene().blendClass,'default_channel_value'):
+                                    val = cue.scene().blendClass.default_channel_value
+                                else:
+                                    val = 0
+                                #i[0] is the name of the channel
+                                cue.setValue("@"+msg[2],"__dest__."+str(i[0]),val)
     
                     self.link.send(["cuedata",msg[1],cue.values])
     
@@ -1718,8 +1760,18 @@ if __name__=='__setup__':
                             ch=int(ch)
                         except:
                             pass
-                    cues[msg[1]].setValue(msg[2],ch,msg[4])
-                    self.link.send(["scv",msg[1],msg[2],ch,msg[4]])
+    
+                    v = msg[4]
+    
+                    if isinstance(v, str):
+                        try:
+                            v=float(v)
+                        except:
+                            pass
+    
+    
+                    cues[msg[1]].setValue(msg[2],ch,v)
+                    self.link.send(["scv",msg[1],msg[2],ch,v])
     
                 if msg[0] == "setMidiSource":
                     module.scenes[msg[1]].setMidiSource(msg[2])
@@ -1893,8 +1945,13 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
     
                 if msg[0]=="setcuesoundoutput":
-                    cues[msg[1]].soundOutput=msg[2]
+                    cues[msg[1]].soundOutput=msg[2].strip()
                     self.pushCueMeta(msg[1])
+    
+                if msg[0]=="setcuesoundstartposition":
+                    cues[msg[1]].soundStartPosition=float(msg[2].strip())
+                    self.pushCueMeta(msg[1])
+    
     
                 # if msg[0]=="setlninfluences":
                 #     cues[msg[1]].setLivingNightInfluences(msg[2])
@@ -1908,6 +1965,10 @@ if __name__=='__setup__':
     
                 if msg[0] == "settrack":
                     cues[msg[1]].setTrack(msg[2])
+                    self.pushCueMeta(msg[1])
+    
+                if msg[0] == "setcuenotes":
+                    cues[msg[1]].notes= msg[2].strip()
                     self.pushCueMeta(msg[1])
     
     
@@ -2386,7 +2447,9 @@ if __name__=='__setup__':
         "track": True,
         "nextCue": '',
         "sound": "",
+        'notes':'',
         "soundOutput": '',
+        "soundStartPosition": 0,
         "rel_length": False,
         "lengthRandomize": 0,
         'inheritRules':'',
@@ -2402,11 +2465,11 @@ if __name__=='__setup__':
     class Cue():
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
-        'nextCue','track','shortcut','number','inherit','sound','rel_length',
-        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
+        'nextCue','track','notes', 'shortcut','number','inherit','sound','rel_length',
+        'soundOutput','soundStartPosition', 'onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
         '__weakref__']
-        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='',soundOutput='',rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,soundLoops=0,namedForSound=False,probability='',**kw):
+        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='',soundOutput='', soundStartPosition=0, rel_length=False, id=None,number=None,
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0, notes='', soundFadeOut=0,inheritRules='',soundVolume=1,soundLoops=0,namedForSound=False,probability='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
@@ -2421,6 +2484,7 @@ if __name__=='__setup__':
             self.soundLoops = soundLoops
             self.namedForSound=namedForSound
             self.probability=probability
+            self.notes = ''
     
             ##Rules created via the GUI logic editor
             self.rules = rules or []
@@ -2458,6 +2522,7 @@ if __name__=='__setup__':
             self.shortcut= None
             self.sound = sound or ''
             self.soundOutput = soundOutput or ''
+            self.soundStartPosition = soundStartPosition
     
             #Used for the livingnight algorithm
             #Aspect, value tuples
@@ -2489,7 +2554,9 @@ if __name__=='__setup__':
     
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-                "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'probability':self.probability, 'rules':self.rules,
+                "nextCue":self.nextCue,"track":self.track, 'notes':self.notes, "number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,
+                'soundStartPosition': self.soundStartPosition,
+                'rel_length':self.rel_length, 'probability':self.probability, 'rules':self.rules,
                 'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, "soundLoops":self.soundLoops,'namedForSound':self.namedForSound
                 }
     
@@ -2598,7 +2665,13 @@ if __name__=='__setup__':
     
         def setValue(self,universe,channel,value):
             disallow_special(universe, allow="_@.")
-            if isinstance(channel,int):
+    
+            try:
+                value = float(value)
+            except:
+                pass
+                
+            if isinstance(channel,(int,float)):
                 pass
             elif isinstance(channel,str):
     
@@ -2609,7 +2682,7 @@ if __name__=='__setup__':
                 #If it looks like an int, cast it even if it's a string,
                 #We get a lot of raw user input that looks like that.
                 try:
-                    channel=int(channel)
+                    channel=float(channel)
                 except:
                     pass
             else:
@@ -2631,7 +2704,6 @@ if __name__=='__setup__':
                 if universe =="__variables__":
                     self.scene().scriptContext.setVar(channel,self.scene().evalExpr(value))
     
-                self.scene().rerender = True
                 reset = False
                 if not (value is None):
                     if not universe in self.values:
@@ -2671,6 +2743,14 @@ if __name__=='__setup__':
     
                         #The FadeCanvas needs to know about this change
                         self.scene().render(force_repaint=True)
+    
+    
+                self.scene().rerender = True
+    
+                # Range effects need the full recalc
+                if universe in self.values and "__length__" in self.values[universe]:
+                    self.scene().recalcCueVals()
+    
     
                 #For blend modes that don't like it when you
                 #change the list of values without resetting
@@ -3374,94 +3454,95 @@ if __name__=='__setup__':
                     else:
                         self.cuePointer = self.cues_ordered.index(self.cues[cue])
     
-                    
-                    #Don't stop audio of we're about to crossfade to the next track
-                    if not(self.crossfade and self.cues[cue].sound):
-                        if self.cue.soundFadeOut:
-                           fadeSound(None, length=self.cue.soundFadeOut, handle=str(self.id))
-                        else:
-                            stopSound(str(self.id))
-    
-                                
-                    self.cue = self.cues[cue]
-                    self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
-    
-                    self.allowMediaUrlRemote = None
-    
-                    out = self.cue.soundOutput
-                    if not out:
-                        out = self.soundOutput
-                    if not out:
-                        out = None
-                        
-                    if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
-                        self.mediaLink.send(['volume', self.alpha])
-                        self.mediaLink.send(['mediaURL', None, self.enteredCue])
-    
-                    if self.cue.sound and self.active:
-    
-                        sound = self.cue.sound
-                        try:
-                            self.cueVolume = min(5, max(0,float(self.evalExpr(self.cue.soundVolume))))
-                        except:
-                            self.event("script.error", self.name+" in cueVolume eval:\n"+traceback.format_exc())
-                            self.cueVolume=1
-                        try:
-                            sound = self.resolveSound(sound)
-                        except:
-                            print(traceback.format_exc())
-    
-                        if os.path.isfile(sound):
-    
-    
-                            if not out == "scenewebplayer":
-                            
-                                #Always fade in if the face in time set.
-                                #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
-                                if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
-                                    playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
-                                else:
-                                    fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
-                                
-    
-                            
+                    if not self.cues[cue].sound== "__keep__":
+                        #Don't stop audio of we're about to crossfade to the next track
+                        if not(self.crossfade and self.cues[cue].sound):
+                            if self.cue.soundFadeOut:
+                                fadeSound(None, length=self.cue.soundFadeOut, handle=str(self.id))
                             else:
-                                self.allowMediaUrlRemote= sound
-                                self.mediaLink.send(['volume', self.alpha])
-                                self.mediaLink.send(['mediaURL', sound, self.enteredCue])
+                                stopSound(str(self.id))
     
+                                    
+                        self.cue = self.cues[cue]
+                        self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
     
+                        self.allowMediaUrlRemote = None
+    
+                        out = self.cue.soundOutput
+                        if not out:
+                            out = self.soundOutput
+                        if not out:
+                            out = None
+                            
+                        if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
+                            self.mediaLink.send(['volume', self.alpha])
+                            self.mediaLink.send(['mediaURL', None, self.enteredCue])
+    
+                        if self.cue.sound and self.active:
+    
+                            sound = self.cue.sound
                             try:
-                                soundMeta = TinyTag.get(sound,image=True)
-                                
-                                currentAudioMetadata = {
-                                    "title": soundMeta.title or 'Unknown',
-                                    "artist": soundMeta.artist or 'Unknown',
-                                    "album": soundMeta.album or 'Unknown',
-                                    "year": soundMeta.year or  'Unknown'
-                                }
-                                t = soundMeta.get_image()
+                                self.cueVolume = min(5, max(0,float(self.evalExpr(self.cue.soundVolume))))
                             except:
-                                # Not support.
-                                if not sound.endswith('.webm'):
-                                    self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
-                                t=None
-                                currentAudioMetadata={'title':"",'artist':'',"album":'','year':''}
+                                self.event("script.error", self.name+" in cueVolume eval:\n"+traceback.format_exc())
+                                self.cueVolume=1
+                            try:
+                                sound = self.resolveSound(sound)
+                            except:
+                                print(traceback.format_exc())
+    
+                            if os.path.isfile(sound):
+    
+    
+                                if not out == "scenewebplayer":
+                                
+                                    #Always fade in if the face in time set.
+                                    #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
+                                    if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
+                                        playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops, start=self.cue.soundStartPosition)
+                                    else:
+                                        fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops,
+                                         start=self.cue.soundStartPosition)
+                                    
+    
+                                
+                                else:
+                                    self.allowMediaUrlRemote= sound
+                                    self.mediaLink.send(['volume', self.alpha])
+                                    self.mediaLink.send(['mediaURL', sound, self.enteredCue])
+    
+    
+                                try:
+                                    soundMeta = TinyTag.get(sound,image=True)
+                                    
+                                    currentAudioMetadata = {
+                                        "title": soundMeta.title or 'Unknown',
+                                        "artist": soundMeta.artist or 'Unknown',
+                                        "album": soundMeta.album or 'Unknown',
+                                        "year": soundMeta.year or  'Unknown'
+                                    }
+                                    t = soundMeta.get_image()
+                                except:
+                                    # Not support.
+                                    if not sound.endswith('.webm'):
+                                        self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
+                                    t=None
+                                    currentAudioMetadata={'title':"",'artist':'',"album":'','year':''}
     
     
     
-                            self.cueInfoTag.value={
-                                "audio.meta": currentAudioMetadata
-                            }
+                                self.cueInfoTag.value={
+                                    "audio.meta": currentAudioMetadata
+                                }
     
-                            
-                            if t and len(t)< 3*10**6:
-                                self.albumArtTag.value = "data:image/jpeg;base64,"+base64.b64encode(t).decode()
+                                
+                                if t and len(t)< 3*10**6:
+                                    self.albumArtTag.value = "data:image/jpeg;base64,"+base64.b64encode(t).decode()
+                                else:
+                                    self.albumArtTag.value=""
+                                
                             else:
-                                self.albumArtTag.value=""
-                            
-                        else:
-                            self.event("error", "File does not exist: "+sound)
+                                self.event("error", "File does not exist: "+sound)
                     
                     self.recalcRandomizeModifier()
                     self.recalcCueLen()
@@ -3559,7 +3640,7 @@ if __name__=='__setup__':
                 if not self.active:
                     return
                 cuelen = self.scriptContext.preprocessArgument(self.cue.length)
-                v = cuelen
+                v = cuelen or 0
                 
                 if str(cuelen).startswith('@'):
                     selector = recur.getConstraint(cuelen[1:])
@@ -3611,6 +3692,30 @@ if __name__=='__setup__':
                 if not universe:
                     continue
     
+                fixture = None
+                try:
+                    f = module.fixtures[i[1:]]()
+                    if  f:
+                        fixture = f
+                except KeyError:
+                    pass
+    
+    
+                chCount = 0
+    
+                if fixture:
+                    chCount = len(fixture.channels)
+    
+                if '__length__' in cuex.values[i]:
+                    repeats = int(cuex.values[i]['__length__'])
+                else:
+                    repeats = 1
+    
+                if '__spacing__' in cuex.values[i]:
+                    chCount = int(cuex.values[i]['__spacing__'])
+    
+                
+    
                 uobj = getUniverse(universe)
     
                 if not uobj:
@@ -3625,22 +3730,40 @@ if __name__=='__setup__':
                     self.affect.append(universe)
     
                 self.rerenderOnVarChange=False
-                    
+    
+                dest = {}
+    
                 for j in cuex.values[i]:
-                    cuev = cuex.values[i][j]
-                    x = mapChannel(i, j)
-                    if x:
-                        universe, channel = x[0],x[1]
+                    if isinstance(j,str) and j.startswith("__dest__."):
+                        dest[j[9:]] = self.evalExpr( cuex.values[i][j] if not cuex.values[i][j]==None else 0)
+            
+                for idx in range(repeats):
+                    for j in cuex.values[i]:
+                        if isinstance(j,str) and j.startswith("__"):
+                            continue
     
-                        try:
-                            self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev==None else 0
-                            self.cue_cached_vals_as_arrays[universe][channel] = self.evalExpr(cuev if not cuev==None else 0)
-                        except:
-                            print("err", traceback.format_exc())
-                            self.event("script.error", self.name+" cue "+cuex.name+" Val " +str((universe,channel))+"\n"+traceback.format_exc())
+                        cuev = cuex.values[i][j]
     
-                    if isinstance(cuev, str) and cuev.startswith("="):
-                        self.rerenderOnVarChange = True
+                        evaled = self.evalExpr(cuev if not cuev==None else 0)
+    
+                        #Do the blend thing
+                        if j in dest:
+                            divider = idx/repeats
+                            evaled = (evaled*(1-divider)) + (dest[j]*divider)
+    
+    
+                        x = mapChannel(i, j)
+                        if x:
+                            universe, channel = x[0],x[1]
+                            try:
+                                self.cue_cached_alphas_as_arrays[universe][channel + (idx*chCount)] = 1.0 if not cuev==None else 0
+                                self.cue_cached_vals_as_arrays[universe][channel + (idx*chCount)] = evaled
+                            except:
+                                print("err", traceback.format_exc())
+                                self.event("script.error", self.name+" cue "+cuex.name+" Val " +str((universe,channel))+"\n"+traceback.format_exc())
+    
+                        if isinstance(cuev, str) and cuev.startswith("="):
+                            self.rerenderOnVarChange = True
     
     
         def refreshRules(self,rulesFrom=None):
@@ -4284,30 +4407,34 @@ if __name__=='__setup__':
             #Bugfix is in order!
             #self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
     
+    
+    
+    
+            # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
+            if force_repaint or (not self.fadeInCompleted):
+                self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
+                if fadePosition >= 1:
+                    #We no longer affect universes from the previous cue we are fading from
+                    
+                    #But we *do* still keep tracked and backtracked values.
+                    self.affect = []
+                    for i in self.cue_cached_vals_as_arrays:
+                        u = mapUniverse(i)
+                        if u and u in module.universes:
+                            if not u in self.affect:
+                                self.affect.append(u)
+    
+                    #Remove unused universes from the cue
+                    self.canvas.clean(self.cue_cached_vals_as_arrays)
+                    self.fadeInCompleted = True
+                    self.rerender=True
+    
+    
             if self.cuelen and(module.timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
                 #rel_length cues end after the sound in a totally different part of code
                 #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
                 #Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-                self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3),cause='auto')
-            else:
-                if force_repaint or (not self.fadeInCompleted):
-                    self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
-                    if fadePosition >= 1:
-                        #We no longer affect universes from the previous cue we are fading from
-                        
-                        #But we *do* still keep tracked and backtracked values.
-                        self.affect = []
-                        for i in self.cue_cached_vals_as_arrays:
-                            u = mapUniverse(i)
-                            if u and u in module.universes:
-                                if not u in self.affect:
-                                    self.affect.append(u)
-    
-                        #Remove unused universes from the cue
-                        self.canvas.clean(self.cue_cached_vals_as_arrays)
-                        self.fadeInCompleted = True
-                        self.rerender=True
-            
+                self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3),cause='auto')        
           
         def updateMonitorValues(self):
             if self.blend == "monitor":

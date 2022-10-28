@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1640231707529073
+resource-timestamp: 1666925918041761
 resource-type: event
 versions: {}
 
@@ -65,14 +65,14 @@ if __name__=='__setup__':
     
     
     
-    def makeBlankArray(l):
-        x = [0]* l
+    def makeBlankArray(l, v=0):
+        x = [v]* l
         return numpy.array(x,dtype="f4")
         
     class flicker_blendmode(BlendMode):
         "Blend mode based on physical model flickering"
         parameters = {"gustiness": ("Gustiness","number","",0.2),
-                        "lowpass": ("Lowpass","number","",0.2),
+                        "lowpass": ("Lowpass","number","",0.06),
                         "topple_chance": ("Windiness","number","",0.1),
                         "agility": ("Flame agility","number","",0.15),
                         "group": ("Group","number","Groups of this many channels flicker together, e.g. to make RGB look right",3),
@@ -103,8 +103,8 @@ if __name__=='__setup__':
     
             if not u in self.heights:
                 if uobj:
-                    self.heights[u] = makeBlankArray(len(uobj.values))
-                    self.heights_lp[u] = makeBlankArray(len(uobj.values))
+                    self.heights[u] = makeBlankArray(len(uobj.values), 1)
+                    self.heights_lp[u] = makeBlankArray(len(uobj.values), 1)
                     self.last_per[u]=module.timefunc()-(1/60)
                     
                 else:

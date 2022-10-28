@@ -8,7 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663920113745479
+resource-timestamp: 1666157616088065
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -276,6 +276,7 @@ import json
 
                                    <div v-if="cuemeta[editingScene.cue].name==i[1].name && (cuemeta[editingScene.cue]&&(cuemeta[editingScene.cue].next||cuemeta[editingScene.cue].defaultnext))">Next Cue: {{(cuemeta[editingScene.cue].next||cuemeta[editingScene.cue].defaultnext).split('?')[0]}}</div>
 
+                                <div v-if="i[1].notes.length>0" style="max-width: 10em;">({{i[1].notes}})</div>
 
                                 </div>
             
