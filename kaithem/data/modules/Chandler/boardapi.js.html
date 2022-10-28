@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663918164796910
+resource-timestamp: 1666927954223214
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -406,6 +406,12 @@ formatInterval = function(seconds)
             {
 
                 api_link.send(['setcuesoundoutput', cueid, i])
+            },
+
+            'setCueSoundStart': function(cueid, i)
+            {
+
+                api_link.send(['setcuesoundstartposition', cueid, i])
             },
             'setSoundfile': function(cueid, i)
             {
@@ -816,51 +822,7 @@ formatInterval = function(seconds)
             {
                 api_link.send( ["searchsounds", s]  )
             },
-            //l must be a universe dict
-            'groupByFixture': function(l)
-            {
-                //Output buf
-                var o = [];
-                //Fill up this buf, then append to o when the group changes
-                var c = []
-                var x = null;
 
-                for (n in l)
-                {
-                    var i = l[n]
-                    if (appData.chnamelookup(i.u, i.ch))
-                    {
-                        var f = appData.channelNames[i.u][i.ch][0]
-                    }
-                    else
-                    {
-                        var f = i.ch;
-                    }
-
-                    if (f == x)
-                    {
-
-                        c.push(i)
-                    }
-                    else
-                    {
-                        if (x)
-                        {
-                            o.push(c)
-                        }
-                        x = f
-                        c = []
-                        c.push(i)
-                    }
-
-                }
-                if (c)
-                {
-                    o.push(c)
-                }
-                return (o)
-
-            },
             //Current per scene alpha channel
             'alphas': {},
             //Used only for autocompletion, it's a list of all known tracks that we've seen so far.
@@ -1182,6 +1144,12 @@ formatInterval = function(seconds)
             {
                 api_link.send(['settrack', cue, v]);
             },
+
+            'setcuenotes': function(cue, v)
+            {
+                api_link.send(['setcuenotes', cue, v]);
+            },
+
             'setrellen': function(cue, v)
             {
                 api_link.send(['setrellen', cue, v]);
@@ -1288,6 +1256,7 @@ formatInterval = function(seconds)
             {
                 api_link.send(['addscene', appData.newscenename]);
             },
+            'prompt': prompt,
 
             'addMonitorScene': function()
             {
@@ -1295,12 +1264,29 @@ formatInterval = function(seconds)
             },
 
 
-            'addThisFixToCurrentCue': function(fix)
+            'addRangeEffect': function(fix)
             {
+                appData.addThisFixToCurrentCue(fix,
+                    prompt("Bulb # offset(2 represents the first identical fixture after this one, etc)", 1), 
+                prompt("Range effect length(# of identical fixtures)"))
+            },
+
+            'addThisFixToCurrentCue': function(fix, idx, len)
+            {        
+                //Idx and len are for adding range patters to an array of identical fixtures.
+                //Otherwise they should be one        
+                idx = parseInt(idx)
+                
+                if(idx != 1)
+                {
+                    fix = fix+"["+idx+"]"
+
+                }
+
                 api_link.send(['addcuef', appData.scenecues[
                         appData.scenename]
                     [appData.selectedCues[appData.scenename]],
-                    fix
+                    fix, idx, len
                 ]);
 
             },
