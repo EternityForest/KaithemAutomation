@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1666931402024994
+resource-timestamp: 1667865194376230
 resource-type: event
 versions: {}
 
@@ -1619,6 +1619,7 @@ if __name__=='__setup__':
                     # Can add a length and start point to the cue.
                     #index = int(msg[3])
                     length = int(msg[4])
+                    spacing = int(msg[5])
     
                     #Get rid of any index part, treat it like it's part of the same fixture.
                     x = module.fixtures[msg[2].split('[')[0]]()
@@ -1638,7 +1639,7 @@ if __name__=='__setup__':
                     if length >1:
                         #Set the length as if it were a ficture property
                         cue.setValue("@"+msg[2],"__length__",length)
-                        cue.setValue("@"+msg[2],"__spacing__",0)
+                        cue.setValue("@"+msg[2],"__spacing__",spacing)
     
     
                         # The __dest__ channels represet the color at the end of the channel
@@ -2724,12 +2725,24 @@ if __name__=='__setup__':
                 self.pushoneval(universe,channel,value)
                 
                     
-                x = mapChannel(universe, channel)
-                if x:
-                    universe, channel = x[0],x[1]
+                unmappeduniverse = universe
     
-                    if self.scene().cue==self and self.scene().isActive():
-                        self.scene().rerender=True    
+                x = mapChannel(universe, channel)
+    
+                if self.scene().cue==self and self.scene().isActive():
+                    self.scene().rerender=True
+    
+                    #If we change something in a pattern effect we just do a full recalc since those are complicated.
+                    if unmappeduniverse in self.values and '__length__' in self.values[unmappeduniverse]:
+                        self.scene().cueValsToNumpyCache(self, False)
+    
+                        #The FadeCanvas needs to know about this change
+                        self.scene().render(force_repaint=True)
+                        
+                    # Otherwise if we are changing a simple mapped channel we optimize
+                    elif x:
+                        universe, channel = x[0],x[1]
+    
                         if (not universe in self.scene().cue_cached_alphas_as_arrays) and not value is None:
                             uobj = getUniverse(universe)
                             if uobj:
@@ -2746,10 +2759,6 @@ if __name__=='__setup__':
     
     
                 self.scene().rerender = True
-    
-                # Range effects need the full recalc
-                if universe in self.values and "__length__" in self.values[universe]:
-                    self.scene().recalcCueVals()
     
     
                 #For blend modes that don't like it when you
@@ -3748,7 +3757,8 @@ if __name__=='__setup__':
     
                         #Do the blend thing
                         if j in dest:
-                            divider = idx/repeats
+                            #Repeats is a count, idx is zero based, we want diveder to be 1 on the last index of the set
+                            divider = idx/(max(repeats-1,1))
                             evaled = (evaled*(1-divider)) + (dest[j]*divider)
     
     

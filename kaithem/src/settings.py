@@ -230,7 +230,8 @@ class Settings():
 
             if 'youtubedl' in kwargs:
                 pages.postOnly()
-                subprocess.check_call([ytdl, '--format', 'bestaudio', kwargs['youtubedl']], cwd=dir)
+                subprocess.check_call([ytdl, '--format', 'bestaudio', "--extract-audio", "--audio-format",
+                    "mp3", "--audio-quality", "2", "--embed-thumbnail", "--add-metadata",  kwargs['youtubedl']], cwd=dir)
 
             if 'youtubedlvid' in kwargs:
                 pages.postOnly()
