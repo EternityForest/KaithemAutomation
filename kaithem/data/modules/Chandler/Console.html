@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1666930309854858
+resource-timestamp: 1667862142583930
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -956,7 +956,7 @@ commandTagsListing=module.commandTagsListing()
                             <table>
                                 <tr v-for="(v,i) in fixtures">
                                     <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
-                                    <td><button v-on:click="addThisFixToCurrentCue(i,1,1)"><i class="icofont-ui-add"></i>Add</button></td>
+                                    <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i class="icofont-ui-add"></i>Add</button></td>
                                     <td><button v-on:click="addRangeEffect(i)"><i class="icofont-ui-add"></i>Add Range Effect</button></td>
                                 </tr>
                             </table>

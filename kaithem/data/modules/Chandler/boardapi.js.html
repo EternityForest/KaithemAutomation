@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1666927954223214
+resource-timestamp: 1667862220352622
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -1268,10 +1268,11 @@ formatInterval = function(seconds)
             {
                 appData.addThisFixToCurrentCue(fix,
                     prompt("Bulb # offset(2 represents the first identical fixture after this one, etc)", 1), 
-                prompt("Range effect length(# of identical fixtures)"))
+                prompt("Range effect length(# of identical fixtures to cover with pattern)"),
+                prompt("Channel spacing between first channel of successive fixtures(If fix #1 is on DMX1 and fix #2 is on 11, spacing is 10). 0 if spacing equals fixture channel count."))
             },
 
-            'addThisFixToCurrentCue': function(fix, idx, len)
+            'addThisFixToCurrentCue': function(fix, idx, len, spacing)
             {        
                 //Idx and len are for adding range patters to an array of identical fixtures.
                 //Otherwise they should be one        
@@ -1286,7 +1287,7 @@ formatInterval = function(seconds)
                 api_link.send(['addcuef', appData.scenecues[
                         appData.scenename]
                     [appData.selectedCues[appData.scenename]],
-                    fix, idx, len
+                    fix, idx, len, spacing
                 ]);
 
             },
