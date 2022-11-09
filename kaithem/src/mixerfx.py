@@ -1356,16 +1356,16 @@ effectTemplates_data = {
                 "options": [["16k", 16000],["32k", 32000], ["48k", 48000], ['64k', 64000], ["128k", 128000], ["192k", 192000]],
                 "sort": 0
             },
-            "postSupport.1.localaddress": {
+            "postSupport.0.localaddress": {
                 "displayName": "Host",
                 "type": "string",
                 "value": '0.0.0.0',
                 "sort": 0
             },
-            "postSupport.1.localport": {
-                "displayName": "Host",
-                "type": "string",
-                "value": '7001',
+            "postSupport.0.localport": {
+                "displayName": "Port",
+                "type": "string.int",
+                "value": 7001,
                 "sort": 0
             },
         },
@@ -1376,7 +1376,7 @@ effectTemplates_data = {
             {"gstElement": "audioconvert", "gstSetup": {}},
         ],
         "postSupportElements": [
-            {"gstElement": "srtsink", "gstSetup": {"mode":2, "wait-for-connection": False}},
+            {"gstElement": "srtsink", "gstSetup": {"mode":2}},
         ]
     },
 
@@ -1394,7 +1394,7 @@ effectTemplates_data = {
                 "sort": 0
             },
         },
-        "gstSetup": {"mode":1, "wait-for-connection": False},
+        "gstSetup": {"mode":1},
         "sidechain": True,
         "silenceMainChain": False,
         "preSupportElements": [
