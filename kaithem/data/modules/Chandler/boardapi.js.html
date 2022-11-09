@@ -8,7 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1667862220352622
+resource-timestamp: 1668035718039225
 resource-type: page
 streaming-response: true
 template-engine: mako
@@ -238,6 +238,25 @@ formatInterval = function(seconds)
 
             'availableTags': [],
             'completers':{
+
+                'gotoSceneNamesCompleter': function(a){
+                    var c = []
+                
+                    
+                    var x = appData.scenemeta
+
+                    if(!x)
+                    {
+                        return []
+                    }
+
+                    for (i in x)
+                    {
+                        c.push([x[i].name,''])
+                    }
+                    return c;
+                },
+
                 'gotoSceneCuesCompleter': function(a){
                     var c = []
                     var n= a[1]

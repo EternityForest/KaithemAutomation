@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1667865194376230
+resource-timestamp: 1668035647172005
 resource-type: event
 versions: {}
 
@@ -347,7 +347,7 @@ if __name__=='__setup__':
         module.scenes_by_name[scene].gotoCue(cue,cause=newcause)
         return True
     
-    gotoCommand.completionTags={"scene":"scenesList","cue":"gotoSceneCuesCompleter"}
+    gotoCommand.completionTags={"scene":"gotoSceneNamesCompleter","cue":"gotoSceneCuesCompleter"}
     
     
     def setAlphaCommand(scene="=SCENE", alpha=1):

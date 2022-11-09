@@ -2,9 +2,9 @@ Change Log
 ----------
 
 ### 0.68.36
-- :sparkles: Builtin video downloader does not use incompatible webm
-- :sparkles: Chandler supports gradient effects over multiple identica fixture
-
+- :sparkles: Builtin video downloader does not use the largely incompatible webm
+- :sparkles: Chandler supports gradient effects over multiple identical fixtures
+- :sparkles: Chandler scenes list for the goto action block has a dropdown.
 
 ### 0.68.35
 - :sparkles: Mixer channels have a mute button
