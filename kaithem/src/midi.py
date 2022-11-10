@@ -17,7 +17,6 @@
 from scullery.fluidsynth import *
 from . import directories
 import os
-import yaml
 import logging
 import weakref
 

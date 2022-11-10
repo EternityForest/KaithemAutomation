@@ -26,6 +26,8 @@ import re
 #Whatever it used to be was way too high and causingh seg faults if you mess up
 sys.setrecursionlimit(256)
 
+ collections.abc.Hashable
+
 
 # Python 3.7 doesn't support the samesite attribute, which we need.
 try:
