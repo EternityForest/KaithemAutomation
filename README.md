@@ -150,6 +150,12 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.36
+- :sparkles: Builtin video downloader does not use the largely incompatible webm
+- :sparkles: Chandler supports gradient effects over multiple identical fixtures
+- :sparkles: Chandler scenes list for the goto action block has a dropdown.
+- :sparkles: Chandler sound file browser has a refresh button
+  
 ### 0.68.35
 - :sparkles: Mixer channels have a mute button
 - :sparkles: Simple dark theme
