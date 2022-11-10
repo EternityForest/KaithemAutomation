@@ -91,22 +91,19 @@ properties:
         properties:
             realtime:
                 type: number
-                required: yes
             interactive:
                 type: number
-                required: yes
             high:
                 type: number
-                required: yes
             medium:
                 type: number
-                required: yes
             low:
                 type: number
-                required: yes
             verylow:
                 type: number
-                required: yes
+
+        required: ['realtime', 'interactive', 'high', 'medium', 'low', 'verylow']
+
         additionalProperties: no
 
     error-backoff:
@@ -114,22 +111,18 @@ properties:
         properties:
             realtime:
                 type: number
-                required: yes
             interactive:
                 type: number
-                required: yes
             high:
                 type: number
-                required: yes
             medium:
                 type: number
-                required: yes
             low:
                 type: number
-                required: yes
             verylow:
                 type: number
-                required: yes
+
+        required: ['realtime', 'interactive', 'high', 'medium', 'low', 'verylow']
         additionalProperties: no
 
     audio-backends:
@@ -137,12 +130,12 @@ properties:
         uniqueItems: yes
         items:
             enum:
-                -mpg123
-                -sox
-                -mplayer
-                -madplay
-                -mpv
-                -gstreamer
+                - mpg123
+                - sox
+                - mplayer
+                - madplay
+                - mpv
+                - gstreamer
 
     audio-paths:
         type: array
@@ -189,17 +182,17 @@ properties:
     log-format:
         type: string
         enum:
-            -tiny
-            -normal
-            -pretty
-            -none
+            - tiny
+            - normal
+            - pretty
+            - none
 
     log-compress:
         type: string
         enum:
-            -none
-            -gzip
-            -bz2
+            - none
+            - gzip
+            - bz2
 
     errors-to-keep:
         type: integer

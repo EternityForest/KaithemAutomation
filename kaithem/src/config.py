@@ -19,7 +19,7 @@ import yaml
 import argparse
 import sys
 import os
-import validictory
+import jsonschema    
 import logging
 logger = logging.getLogger('system')
 
@@ -101,12 +101,12 @@ def reload():
     global config
     c = load()
     with open(os.path.join(_dn, "config-schema.yaml")) as f:
-        validictory.validate(c, yaml.load(f))
+        jsonschema.validate(c, yaml.load(f))
     config.update(c)
 
 
 c = load()
 with open(os.path.join(_dn, "config-schema.yaml")) as f:
-    validictory.validate(c, yaml.load(f))
+    jsonschema.validate(c, yaml.load(f))
 config = c
 del c

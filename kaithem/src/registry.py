@@ -23,7 +23,7 @@ import copy
 import traceback
 import shutil
 import yaml
-import validictory
+
 import sqlite3
 import sys
 import logging
@@ -335,7 +335,7 @@ class PersistanceArea():
             if not key in f['keys']:
                 f['keys'][key] = {}
             if 'schema' in f['keys'][key]:
-                validictory.validate(value, f['keys'][key]['schema'])
+                pass#jsonschema.validate(value, f['keys'][key]['schema'])
             f['keys'][key]['data'] = copy.deepcopy(value)
             if not _noRecoveryRecord:
                 createRecoveryEntry(key, value, 0)
@@ -420,7 +420,7 @@ def setschema(key, schema):
             f['keys'] = {}
         if not key in f['keys']:
             f['keys'][key] = {}
-        validictory.SchemaValidator(schema)
+        pass#jsonschema.SchemaValidator(schema)
         f['keys'][key]['schema'] = copy.deepcopy(schema)
 
 
