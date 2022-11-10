@@ -9,7 +9,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1667862142583930
+resource-timestamp: 1668113177099071
 resource-type: page
 streaming-response: false
 template-engine: mako
@@ -1089,6 +1089,7 @@ commandTagsListing=module.commandTagsListing()
 
                                         <ul>
                                             <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
+                                            <li v-on:click="setSoundfileDir(soundfilesdir)"><a><i class="icofont-refresh"></i>Refresh</a></li>
                                             <li v-if="soundfilesdir"  v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')"><a>..</a></li>
                                             <li  v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]"><a>{{i[1] || i[0]}}</a></li>
                                         </ul>
