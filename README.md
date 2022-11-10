@@ -150,6 +150,12 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.37
+- :coffin: Schema validation removed from registry as the registry is deprecated anyway
+- :coffin: Remove the validictory module, it doesn't work in new python
+- :sparkles: Use the jsonschema module for config validation
+
+
 ### 0.68.36
 - :sparkles: Builtin video downloader does not use the largely incompatible webm
 - :sparkles: Chandler supports gradient effects over multiple identical fixtures
