@@ -125,7 +125,7 @@ class SoundWrapper(object):
         except KeyError:
             return False
 
-    def setVolume(self, channel="PRIMARY"):
+    def setVolume(self, vol, channel="PRIMARY"):
         pass
 
     def setEQ(self, channel="PRIMARY"):
@@ -882,11 +882,19 @@ for i in ['mpv'] + list(config['audio-backends']):
         if util.which(i) or l[i].testAvailable():
             backend = l[i]()
             break
-    except:
+    except Exception:
         messagebus.postMessage(
             "/system/notifications/errors",
             "Failed to initialize audio backend " + i +
             " may be able to use fallback:\n" + traceback.format_exc())
+
+try:
+    if backend.backendname =="Dummy Sound Driver(No real sound player found)":
+        messagebus.postMessage(
+            "/system/notifications/errors",
+           "Using adummy sound backend. Suggest installing MPV if you want sound")
+except Exception:
+    print(traceback.format_exc())
 
 
 def stopAllSounds():

@@ -110,7 +110,7 @@ img, video, canvas{
     box-shadow: 2px 2px 4px 0px #000000;
 }
 
-.monaco-editor canvas
+.monaco-editor canvas, .ac-container img
 {
     border-image-width:initial;
     border-image-outset:initial;
@@ -433,6 +433,10 @@ a.button {
     display: inline-block;
 }
 
+
+button:active, a.button:active {
+    background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+}
 
 /* A span meant to look like a pre*/
 
