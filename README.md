@@ -153,6 +153,7 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ### 0.68.37
 - :coffin: Schema validation removed from registry as the registry is deprecated anyway
 - :coffin: Remove the validictory module, it doesn't work in new python
+- :coffin: Remove the DrayerDB plugin as per the Decustomization philosophy
 - :sparkles: Use the jsonschema module for config validation
 
 

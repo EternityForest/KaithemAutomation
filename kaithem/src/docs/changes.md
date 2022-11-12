@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.68.38
+- :arrow_up: Update tinytag
+
+
 ### 0.68.37
 - :coffin: Schema validation removed from registry as the registry is deprecated anyway
 - :coffin: Remove the validictory module, it doesn't work in new python
