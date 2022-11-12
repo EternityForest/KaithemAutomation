@@ -150,6 +150,10 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.38
+- :arrow_up: Update tinytag
+
+
 ### 0.68.37
 - :coffin: Schema validation removed from registry as the registry is deprecated anyway
 - :coffin: Remove the validictory module, it doesn't work in new python
