@@ -21,8 +21,7 @@ import copy
 """
 
 
-
-def get_alerts(*a,**k):
+def get_alerts(*a, **k):
     """
     Return a list of currently active "alerts", if the framework supports such a concept,
     In an order suitable for display to humans.
@@ -35,7 +34,7 @@ def get_alerts(*a,**k):
 
     Returns:
         A list of dicts, each having, at minimum:
-        
+
         priority: 10 debug, 20 info, 30 warning, 40 error, 50 critical
         name: Freetext nonunique long descriptive name
         id: Some unique ID
@@ -43,36 +42,40 @@ def get_alerts(*a,**k):
     """
     return []
 
-#Gonna overwrite these functions insude functions...
+
+# Gonna overwrite these functions insude functions...
 minimum = min
 maximum = max
+
 
 class Device():
     """represents exactly one "device".   
     should not be used to represent an interface to a large collection, use
     one instance per device.
-    
+
 
     Note that this is meant to be subclassed twice.  Once by the actual driver, and again by the 
     host application, to detemine how to handle calls made by the driver.
 
     """
 
-
     # this name must be the same as the name of the device itself
-    device_type: str="Device"
-    default_config={}
+    device_type: str = "Device"
+    default_config = {}
 
     # Iterable of config keys that should be considered secret, and hidden behind asterisks and such.
-    config_secrets={}
+    config_secrets = {}
 
     # This represents either a long text readme or an absolute path beginning with / to such
-    readme: str =''
+    readme: str = ''
 
-    def __init__(self, name: str, config: Dict[str, str],**kw):
+    def __init__(self, name: str, config: Dict[str, str], **kw):
         """ 
 
         Attributes:
+
+            title:
+                Taken from config['title'] if possible, otherwise it is the name.
 
             config:
                 The current configuration of the device
@@ -85,23 +88,23 @@ class Device():
 
                 description:
                     Free text
-                    
+
                 type:
                     Values may be
 
                     bool:
                         'yes', 'true', or 'enable' should represent true, with yes being preferred
-                    
+
                     local_fs_path:
                         String is a path on the same folder as the device
         Args:
             name: must be a special char free string.  
                 It may contain slashes, for compatibility with hosts using that for heirarchy
-       
+
             config: must contain a name field, and must contain a type field matching the device type name.
                 All other fields must be optional, and a blank unconfigured device should be creatable.  
                 The device should set it's own missing fields for use as a template 
-                
+
                 Options starting with temp. are reserved for device specific things that should not actually be saved.
                 Options endning with __ are used to add additional fields with special meaning.  Don't use these!
 
@@ -109,11 +112,22 @@ class Device():
                 All your device-specific options should begin with device.
         """
 
-        config=copy.deepcopy(config)
+        config = copy.deepcopy(config)
 
-        if config.get("type",self.device_type) != self.device_type:
-            raise ValueError("This config does not match this class type:"+str((config['type'], self,type)))
-    
+        if config.get("type", self.device_type) != self.device_type:
+            raise ValueError(
+                "This config does not match this class type:" + str((config['type'], self, type)))
+
+        # here is where we keep track of our list of sub-devices for each device.
+        # Sub-devices will always have a name like ParentDevice.ChildDevice
+        self.subdevices: Dict[str, Device] = {}
+
+        # allows us to show large amounts of data that do not warrent a datapoint, as it is unlikely anyone
+        # would want to show them in a main listing, and nobody wants to see them clutter up anything
+        # or slow down the system when they change.  Putting data here should have no side effects.
+        self.metadata: Dict[str, Any] = {}
+
+        self.title: str = self.config.get('title', '').strip() or name
 
         # Raise error on bad data.
         json.dumps(config)
@@ -123,41 +137,71 @@ class Device():
         self.datapoints = {}
 
         # Used to store properties about config keys
-        self.config_properties: Dict[str, Dict[str:Any]]= {}
+        self.config_properties: Dict[str, Dict[str, Any]] = {}
 
-        #Functions that can be called to explicitly request a data point
-        #That return the new value
+        # Functions that can be called to explicitly request a data point
+        # That return the new value
         self.__datapoint_getters: Dict[str, Callable] = {}
 
         for i in self.default_config:
             if not i in self.config:
-                self.set_config_option(i,self.default_config[i])
+                self.set_config_option(i, self.default_config[i])
 
-        self.name=name
+        self.name = name
         if 'name' in self.config:
-            if not self.config['name']== name:
+            if not self.config['name'] == name:
                 raise ValueError("Nonmatching name")
-            name=self.name = config['name']
+            name = self.name = config['name']
         else:
             self.set_config_option('name', name)
-        
+
+    def create_subdevice(self, cls, name: str, config: Dict, *a, **k) -> object:
+        """
+            Args:
+                cls: The class used to make the device
+                name: The base name of the device.  The full name will be parent.basename
+                config: The config as would be passed to any other device
+
+            Returns:
+                The device object
+
+
+            Allows a device to create it's own subdevices. 
+
+            The host implementation must take the class, make whatever subclass is needed based on it,
+            Then instantiate it as if the other parameters were given straight to the device.
+
+            When the device is closed, the host must clean up all subdevices before cleaning up the master device.
+            The host will put the device object into the parent device's subdevice dict.
+
+            The host will rename the device to reflect that it is a subdevice.  It's full name will be parent.basename.
+
+            The host will allow configuration of the device like any other device.  It will override whatever config that you give this function
+            with the user config.
+
+            However the entry in self.subdevices will always be exactly as given to this function, referred to as the base name
+
+            The host will add is_subdevice=True to the config dict.
+        """
+
+        raise NotImplementedError("This host does not support subdevices")
 
     @staticmethod
-    def discover_devices(config:Dict[str, str] = {}, current_device: Optional[object]=None, intent="", **kwargs) -> Dict[str, Dict]:
+    def discover_devices(config: Dict[str, str] = {}, current_device: Optional[object] = None, intent="", **kwargs) -> Dict[str, Dict]:
         """ 
         Discover a set of suggested configs that could be used to build a new device.        
-        
+
         Not required to be implemented and may just return {}  
 
         ***********************
         Discovered suggestions MUST NOT have any passwords or secrets if the suggestion would cause them to be tried somewhere
         other than what the user provided them for, unless the protocol does not actually reveal the secrets to the server.
-        
+
         You do not want to autosuggest trying the same credentials at bad.com that the user gave for example.com.
 
-    
+
         The suggested UI semantics for discover commands is "Add a similar device" and "Reconfigure this device".
-        
+
         Reconfiguration should always be available as the user might always want to take an existing device object and
         swap out the actual physical device it connects to.
 
@@ -173,7 +217,7 @@ class Device():
 
             kwargs: is reserved for further hints on what kinds of devices should be discovered.
 
-        
+
             intent: may be a hint as to what kind of config you are looking for.  
                 If it is "new", that means the host wants to add another
                 similar device.  If it is "replace", the host wants to keep the same config 
@@ -185,11 +229,11 @@ class Device():
         Returns:
             A dict of device data dicts that could be used to create a new device, indexed by a descriptive name.
 
-    
-        
+
+
         UI:
 
-      
+
 
         """
 
@@ -201,23 +245,23 @@ class Device():
         own persistent values at runtime, perhaps in response to a websocket message.
 
         __init__ will automatically set the state when passed the config dict, you don't have to do that part.
-        
+
         this is used by the device itself to set it's own persistent values at runtime, perhaps in response to a websocket message.
 
-        
+
         the host is responsible for subclassing this and actually saving the data somehow, should that feature be needed.
         """
 
-        if not isinstance(key,str):
+        if not isinstance(key, str):
             raise TypeError("Key must be str")
 
         value = str(value)
-        if len(value)>8192:
-            logging.error("Excessively long param for "+key+" starting with "+value[:128])
+        if len(value) > 8192:
+            logging.error("Excessively long param for " +
+                          key + " starting with " + value[:128])
 
         # Auto strip the values to clean them up
         self.config[key] = value.strip()
-
 
     def set_config_default(self, key: str, value: str):
         """sets an option in self.config if it does not exist or is blank.        
@@ -225,8 +269,7 @@ class Device():
         """
 
         if not key in self.config or not self.config[key].strip():
-            self.set_config_option(key,value.strip())
-
+            self.set_config_option(key, value.strip())
 
     def print(self, s: str, title: str = ""):
         """used by the device to print to the hosts live device message feed, if such a thing should happen to exist"""
@@ -249,13 +292,14 @@ class Device():
                            lo: Optional[float] = None,
                            description: str = "",
                            unit: str = '',
-                           handler:  Optional[Callable[[float,float,Any], Any]] = None,
+                           handler: Optional[Callable[[
+                               float, float, Any], Any]] = None,
                            interval: float = 0,
-                           subtype: str='',
+                           subtype: str = '',
                            writable=True,
                            **kwargs):
         """Register a new numeric data point with the given properties. 
-        
+
         Handler will be called when it changes.
         self.datapoints[name] will start out with tha value of None
 
@@ -274,7 +318,7 @@ class Device():
             description: Free text
 
             unit: A unit of measure, such as "degC" or "MPH"
-            
+
             handler: A function taking the value,timestamp, and annotation on changes
 
             interval :annotates the default data rate the point will produce, for use in setting default poll
@@ -288,21 +332,33 @@ class Device():
         """
 
         if min is None:
-            min = -10**24
+            minval: float = -10**24
+        else:
+            minval = min
 
         if max is None:
-            max = 10**24
+            maxval: float = 10**24
+        else:
+            maxval = max
 
         self.datapoints[name] = None
 
-        def onChangeAttempt(v: Optional[float], t, a):
-            if v is None:
+        def onChangeAttempt(v1: Optional[float], t, a):
+            if v1 is None:
                 return
-            if callable(v):
-                v = v()
+            if callable(v1):
+                v1 = v1()
+
+            if v1 is not None:
+                v: float = v1
+            else:
+                return
+
             v = float(v)
-            v = minimum(max, v)
-            v = maximum(min, v)
+
+            v = minimum(maxval, v)
+            v = maximum(minval, v)
+
             t = t or time.monotonic()
 
             if self.datapoints[name] == v:
@@ -310,7 +366,7 @@ class Device():
 
             self.datapoints[name] = v
 
-            #Handler used by the device
+            # Handler used by the device
             if handler:
                 handler(v, t, a)
 
@@ -318,18 +374,18 @@ class Device():
 
         self.__datapointhandlers[name] = onChangeAttempt
 
-
     def string_data_point(self,
-                           name: str,
-                           description: str = "",
-                           unit: str = '',
-                           handler: Optional[Callable[[str,float,Any], Any]] = None,
-                           interval: float = 0,
-                           writable=True,
-                           subtype: str='',
-                           **kwargs):
+                          name: str,
+                          description: str = "",
+                          unit: str = '',
+                          handler: Optional[Callable[[
+                              str, float, Any], Any]] = None,
+                          interval: float = 0,
+                          writable=True,
+                          subtype: str = '',
+                          **kwargs):
         """Register a new string data point with the given properties. 
-        
+
         Handler will be called when it changes.
         self.datapoints[name] will start out with tha value of None
 
@@ -341,12 +397,12 @@ class Device():
 
         Args:
             description: Free text
-            
+
             handler: A function taking the value,timestamp, and annotation on changes
 
             interval: annotates the default data rate the point will produce, for use in setting default poll
                 rates by the host if the host wants to poll.  
-                
+
                 It does not mean the host SHOULD poll this, 
                 it only suggest a rate to poll at if the host has an interest in this data.
 
@@ -371,7 +427,7 @@ class Device():
 
             self.datapoints[name] = v
 
-            #Handler used by the device
+            # Handler used by the device
             if handler:
                 handler(v, t, a)
 
@@ -379,19 +435,19 @@ class Device():
 
         self.__datapointhandlers[name] = onChangeAttempt
 
-
     def object_data_point(self,
-                           name: str,
-                           description: str = "",
-                           unit: str = '',
-                           handler: Optional[Callable[[Dict,float,Any], Any]] = None,
-                           interval: float = 0,
-                            writable=True,
-                            subtype: str='',
-                           **kwargs):
+                          name: str,
+                          description: str = "",
+                          unit: str = '',
+                          handler: Optional[Callable[[
+                              Dict, float, Any], Any]] = None,
+                          interval: float = 0,
+                          writable=True,
+                          subtype: str = '',
+                          **kwargs):
         """Register a new object data point with the given properties.   Here "object"
         means a JSON-like object.
-        
+
         Handler will be called when it changes.
         self.datapoints[name] will start out with tha value of None
 
@@ -402,7 +458,7 @@ class Device():
 
         Args:
             description: Free text
-            
+
             handler: A function taking the value,timestamp, and annotation on changes
 
             interval :annotates the default data rate the point will produce, for use in setting default poll
@@ -418,9 +474,12 @@ class Device():
 
         self.datapoints[name] = None
 
-        def onChangeAttempt(v: Optional[str], t, a):
-            if v is None:
+        def onChangeAttempt(v1: Optional[object], t, a):
+            if v1 is None:
                 return
+
+            v: object = v1
+
             if callable(v):
                 v = v()
 
@@ -437,7 +496,7 @@ class Device():
 
             self.datapoints[name] = v
 
-            #Handler used by the device
+            # Handler used by the device
             if handler:
                 handler(v, t, a)
 
@@ -445,18 +504,17 @@ class Device():
 
         self.__datapointhandlers[name] = onChangeAttempt
 
-
-
     def bytestream_data_point(self,
-                           name: str,
-                           description: str = "",
-                           unit: str = '',
-                           handler: Optional[Callable[[Dict,float,Any], Any]] = None,
-                            writable=True,
-                           **kwargs):
+                              name: str,
+                              description: str = "",
+                              unit: str = '',
+                              handler: Optional[Callable[[
+                                  Dict, float, Any], Any]] = None,
+                              writable=True,
+                              **kwargs):
         """register a new bytestream data point with the given properties. handler will be called when it changes.
         only meant to be called from within __init__.
-        
+
         Bytestream data points do not store data, they only push it through.
 
         Despite the name, buffers of bytes may not be broken up or combined, this is buffer oriented,
@@ -464,11 +522,11 @@ class Device():
 
         self.datapoints[name] = None
 
-        def onChangeAttempt(v: Optional[str], t, a):
+        def onChangeAttempt(v: Optional[bytes], t, a):
             t = t or time.monotonic()
             self.datapoints[name] = v
 
-            #Handler used by the device
+            # Handler used by the device
             if handler:
                 handler(v, t, a)
 
@@ -476,11 +534,9 @@ class Device():
 
         self.__datapointhandlers[name] = onChangeAttempt
 
-
-    def push_bytes(self,name:str,value:bytes):
+    def push_bytes(self, name: str, value: bytes):
         """Same as set_data_point but for bytestream data"""
         self.set_data_point(name, value)
-
 
     def set_data_point(self,
                        name: str,
@@ -489,37 +545,35 @@ class Device():
                        annotation: Optional[float] = None):
         """
         Set a data point of the device. may be called by the device itself or by user code. 
-        
+
         This is the primary api and we try to funnel as much as absolutely possible into it.
-        
+
         things like button presses that are not actually "data points" can be represented as things like
         (button_event_name, timestamp) tuples in object_tags.
-        
+
         things like autodiscovered ui can be done just by adding more descriptive metadata to a data point.
-        
+
         Args:
             name: The data point to set
 
             value: The literal value (Use set_data_point_getter for a callable which will return such)
 
-            timestamp: if present is a time.monotonic() time.  
+            timestamp: if present is a time.monotonic() time.
 
             annotation: is an arbitrary object meant to be compared for identity,
                 for various uses, such as loop prevention when dealting with network sync, when you need to know where a value came from.
 
 
         This must be thread safe, but the change detection could glitch out and discard if you go from A to B and back to A again.
-        
+
         When there is multiple writers you will want to aither do your own lock or ensure that you use unique values, 
         like with an event counter.
-        
-        """
 
+        """
 
         self.__datapointhandlers[name](value, timestamp, annotation)
 
-    
-    def set_data_point_getter(self,name:str, getter: Callable):
+    def set_data_point_getter(self, name: str, getter: Callable):
         """Set the Getter of a datapoint, making it into an on-request point.
         The callable may return either the new value, or None if it has no new data.
         """
@@ -533,46 +587,46 @@ class Device():
         """Rather than just passively read, actively request a data point's new value.
 
         Meant to be called by external host code.
-        
+
         """
         if name in self.__datapoint_getters:
             x = self.__datapoint_getters[name]()
-            if not x is None:
+            if x is not None:
                 # there has been a change! Maybe!  call a handler
-                self.__datapointhandlers[name](x, time.monotonic(), "From getter")
+                self.__datapointhandlers[name](
+                    x, time.monotonic(), "From getter")
                 self.datapoints[name] = x
                 return x
 
         return self.datapoints[name]
 
-    def set_alarm(self, name:str, datapoint:str, 
-            expression:str, priority:str="info" ,
-            trip_delay:float=0, auto_ack:bool=False,
-             release_condition:Optional[str]=None, **kw):
+    def set_alarm(self, name: str, datapoint: str,
+                  expression: str, priority: str = "info",
+                  trip_delay: float = 0, auto_ack: bool = False,
+                  release_condition: Optional[str] = None, **kw):
         """ declare an alarm on a certain data point.   this means we should consider the data point to be in an
             alarm state whenever the expression is true.  
-            
+
             used by the device itself to tell the host what it considers to be an alarm condition.
-            
+
             the expression must look like "value > 90", where the operator can be any of the common comparision operators.
-            
+
             you may set the trip delay to require it to stay tripped for a certain time,
             polling during that time and resettig if it is not tripped.
-            
+
             the alarm remains in the alarm state till the release condition is met, by default it's just when the trip
             condition is inactive.  at which point it will need to be acknowledged by the user.
-            
-            
+
+
             these alarms should be considered "presets" that the user can override if possible.   
             by default this function could just be a no-op, it's here because of kaithem_automation's alarm support,
             but many applications may be better off with full manual alarming.  
-            
+
             in kaithem the expression is arbitrary, but for this lowest common denominator definition it's likely best to
             limit it to easily semantically parsible strings.
-        
+
         """
         pass
-
 
     def close(self):
         "Release all resources and clean up"
@@ -583,27 +637,25 @@ class Device():
         may be used to delete any files automatically created.
         """
 
-
     # optional ui integration features
     # these are here so that device drivers can device fully custom u_is.
 
-
-    def on_ui_message(self,msg:Union[float, int, str, bool, None, dict, list],**kw):
+    def on_ui_message(self, msg: Union[float, int, str, bool, None, dict, list], **kw):
         """recieve a json message from the ui page.  the host is responsible for providing a send_ui_message(msg)
         function to the manage and create forms, and a set_ui_message_callback(f) function.
-        
+
         these messages are not directed at anyone in particular, have no semantics, and will be recieved by all
         manage forms including yourself.  they are only meant for very tiny amounts of general interest data and fast commands.
-        
+
         this lowest common denominator approach is to ensure that the ui can be fully served over mqtt if desired.
 
         The host page should provide a single JS function send_ui_message(m) to send this message.
 
         Manage forms should stay with Vanilla JS as much as possible, or else use an iframe.
-    
+
         """
 
-    def send_ui_message(self, msg:Union[float, int, str, bool, None, dict, list]):
+    def send_ui_message(self, msg: Union[float, int, str, bool, None, dict, list]):
         """
         send a message to everyone including yourself.  
         The host page should provide a function set_ui_message_handler(f)
@@ -613,10 +665,10 @@ class Device():
     def get_management_form(self,) -> Optional[str]:
         """must return a snippet of html suitable for insertion into a form tag, but not the form tag itself.
         the host application is responsible for implementing the post target, the authentication, etc.
-        
+
         when the user posts the form, the config options will be used to first close the device, then build 
         a completely new device.
-        
+
         the host is responsible for the name and type parts of config, and everything other than the device.* keys.
         """
 
@@ -624,7 +676,7 @@ class Device():
     def get_create_form(cls, **kwargs) -> Optional[str]:
         """must return a snippet of html used the same way as get_management_form, but for creating brand new devices"""
 
-    def handle_web_request(self,relpath,params,method,**kwargs):
+    def handle_web_request(self, relpath, params, method, **kwargs):
         """To be called by the framework.  Security must be handled by the framework.
            Frameworks may implement separate read and write permissions that apply separately
            to GET and other requests.
@@ -633,8 +685,9 @@ class Device():
         """
         return "No web content here"
 
-    def web_serve_file(self,path,filename=None,mime=None):
+    def web_serve_file(self, path, filename=None, mime=None):
         """
         From within your web handler, you can return the result of this to serve that file
         """
-        raise NotImplementedError("This host framework does not support this feature")
+        raise NotImplementedError(
+            "This host framework does not support this feature")

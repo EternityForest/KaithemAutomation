@@ -57,12 +57,12 @@ def devStatString(d):
     This section provides an easy way to configure devices supported
     by Kaithem's remote device abstraction layer.
 </p>
-<dl>
 
-%for i in sorted(deviceData.keys()):
+
+<%def name="device(i,title='')">
     <dt> 
         <div class="buttonbar">
-            <a href="device/${url(i)}/manage"><i class="icofont-pencil"></i>${i|h}
+            <a href="device/${url(i)}/manage"><i class="icofont-pencil"></i>${title or i|h}
 
             %if len(deviceData[i]().errors):
             <span style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
@@ -90,10 +90,35 @@ def devStatString(d):
     <h4>Status</h4>
     <div style="display: flex;">${h}</div>
     %endif
+
+    %if hasattr(deviceData[i](), 'subdevices') and deviceData[i]().subdevices:
+    <div>
+        <dl>
+            %for j in deviceData[i]().subdevices:
+            ${device(deviceData[i]().subdevices[j].name,title=j)}
+            %endfor
+        </dl>
+    </div>
+    %endif
+
 </dd>
+</%def>
+
+<dl>
+
+%for i in sorted(deviceData.keys()):
+%if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
+${device(i)}
+%endif
 
 %endfor
 </dl>
+
+
+
+
+
+
 
 %if devices.getZombies():
 <h2>Zombie Devices</h2>

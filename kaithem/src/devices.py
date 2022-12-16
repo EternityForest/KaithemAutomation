@@ -67,6 +67,7 @@ dbgd = weakref.WeakValueDictionary()
 unsaved_changes = {}
 
 
+
 class DeviceResourceType():
     def onload(self, module, name, value):
         with modules_state.modulesLock:
@@ -248,25 +249,28 @@ class Device():
 
     def setDataKey(self, key, val):
         "Lets a device set it's own persistent stored data"
+            
         with modules_state.modulesLock:
             self.config[key] = val
-            if self.parentModule:
-                modules_state.ActiveModules[self.parentModule][
-                    self.parentResource]['device'][key] = str(val)
-                modules_state.unsaved_changed_obj[
-                    self.parentModule, self.parentResource] = "Device changed"
-                modules_state.createRecoveryEntry(
-                    self.parentModule, self.parentResource,
+
+            if not self.config.get("is_ephemeral", False):
+                if self.parentModule:
                     modules_state.ActiveModules[self.parentModule][
-                        self.parentResource])
-                modules_state.modulesHaveChanged()
-            else:
-                # This might not be stored in the master lists, and yet it might not be connected to
-                # the parentModule, because of legacy API reasons.
-                # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
-                if self.name in device_data:
-                    device_data[self.name][key] = str(val)
-                    unsaved_changes[self.name] = True
+                        self.parentResource]['device'][key] = str(val)
+                    modules_state.unsaved_changed_obj[
+                        self.parentModule, self.parentResource] = "Device changed"
+                    modules_state.createRecoveryEntry(
+                        self.parentModule, self.parentResource,
+                        modules_state.ActiveModules[self.parentModule][
+                            self.parentResource])
+                    modules_state.modulesHaveChanged()
+                else:
+                    # This might not be stored in the master lists, and yet it might not be connected to
+                    # the parentModule, because of legacy API reasons.
+                    # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
+                    if self.name in device_data:
+                        device_data[self.name][key] = str(val)
+                        unsaved_changes[self.name] = True
 
     def setObject(self, key, val):
         # Store data
@@ -557,6 +561,38 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     _noSetAlarmPriority = True
 
     _isCrossFramework = True
+
+
+    def create_subdevice(self, cls, name: str, config: Dict, *a, **k):
+        """
+            Allows a device to create it's own subdevices.             
+        """
+
+        originalName = name
+
+        name= self.name+'.'+name
+
+        config = copy.deepcopy(config)
+        config['name'] = name
+        config['is_subdevice'] = True
+
+        # Mix in the config for the data
+        try:
+            if name in device_data:
+                config.update(device_data[name])
+        except KeyError:
+            logging.exception('Probably a race condition. Can probably ignore this one.')
+
+        m = makeDevice(name=name, data=config, cls=cls)
+        m._kaithem_is_subdevice = True
+
+        with modules_state.modulesLock:
+            self.subdevices[originalName] = m
+            remote_devices[name] = m
+            global remote_devices_atomic
+            remote_devices_atomic = wrcopy(remote_devices)
+        return m
+
 
     def webHandler(self, *path, **kwargs):
         """
@@ -1291,9 +1327,17 @@ class DeviceTypeLookup():
 devicesByModuleAndResource = weakref.WeakValueDictionary()
 
 
-def makeDevice(name, data, module=None, resource=None):
+def makeDevice(name, data, module=None, resource=None, cls = None):
     err = None
     desc = ''
+
+    data = copy.deepcopy(data)
+
+    if cls:
+        data['name'] = name
+        data['type'] = cls.device_type
+
+
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
@@ -1303,7 +1347,7 @@ def makeDevice(name, data, module=None, resource=None):
     else:
 
         try:
-            dt2 = iot_devices.host.get_class(data)
+            dt2 = cls or iot_devices.host.get_class(data)
             try:
                 desc = iot_devices.host.get_description(data['type'])
             except Exception:
@@ -1334,6 +1378,22 @@ def makeDevice(name, data, module=None, resource=None):
                     dt2.__init__(self, name, self.config, **kw)
 
                 def close(self, *a, **k):
+                    with modules_state.modulesLock:
+                        for i in self.subdevices:
+                            self.subdevices[i].close()
+                            if self.subdevices[i].name in remote_devices:
+                                del remote_devices[self.subdevices[i].name]
+                            del self.subdevices[i]
+
+                        global remote_devices_atomic
+                        remote_devices_atomic = wrcopy(remote_devices)
+
+                    gc.collect()
+                    time.sleep(0.01)
+                    gc.collect()
+                    time.sleep(0.03)
+                    gc.collect()
+
                     dt2.close(self, *a, **k)
                     # Our internal device close.  The plugin should call the iot_devices close itself
                     Device.close(self, *a, **k)
@@ -1508,6 +1568,9 @@ def createDevicesFromData():
     global remote_devices_atomic
     for i in device_data:
 
+        if device_data[i].get('is_subdevice',False):
+            continue
+
         # We can call this again to reload unsupported devices.
         if i in remote_devices and not remote_devices[
                 i].deviceTypeName == "unsupported":
@@ -1517,7 +1580,7 @@ def createDevicesFromData():
             # No module or resource here
             remote_devices[i] = makeDevice(i, device_data[i])
             syslogger.info("Created device from config: " + i)
-        except:
+        except Exception:
             messagebus.postMessage(
                 "/system/notifications/errors",
                 "Error creating device: " + i + "\n" + traceback.format_exc())
@@ -1579,7 +1642,7 @@ def init_devices():
             for i in toLoad:
                 try:
                     loadDeviceType(*i)
-                except:
+                except Exception:
                     messagebus.postMessage(
                         "/system/notifications/errors",
                         "Error with device driver :" + i[1] + "\n" +
@@ -1587,7 +1650,7 @@ def init_devices():
 
         else:
             os.mkdir(driversLocation)
-    except:
+    except Exception:
         messagebus.postMessage(
             "/system/notifications/errors",
             "Error with device drivers:\n" + traceback.format_exc(chain=True))
