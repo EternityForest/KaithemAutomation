@@ -31,6 +31,12 @@
         "RokuRemoteApp":{
             "submodule":"devices.RokuRemoteApp",
             "description": "Allow Roku ECP protocol remotes to discover this server and control a tag point."
+        },
+
+        "YoLinkService":{
+            "submodule":"devices.YoLink",
+            "description": "Access all devices on a YoLink cloud account. NOTE: YoLink has no local API yet, internet dependant."
         }
+
     }
 } 

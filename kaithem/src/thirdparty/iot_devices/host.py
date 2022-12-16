@@ -112,5 +112,14 @@ def get_description(t:str) -> str:
     if not t in _known_device_types:
         discover()
 
-    return  _known_device_types[t].get("description",t)
+    try:
+        return  _known_device_types[t].get("description",t)
+    except KeyError:
+        return "No description"
 
+
+def register_subdevice(parent: object, child: object):
+    """
+    A device can create other devices.  This lets a host do something with them.
+    """
+    pass

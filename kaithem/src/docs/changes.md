@@ -1,6 +1,8 @@
 Change Log
 ----------
 
+### 0.68.39
+- :bug: Make it so tag subscribers never fire at all if the timestamp is zero.
 
 ### 0.68.38
 - :arrow_up: Update tinytag

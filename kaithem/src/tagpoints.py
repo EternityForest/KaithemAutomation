@@ -2017,7 +2017,8 @@ class _TagPoint():
                     self.lastValue = self.processValue(val)
                 # No need to push is listening
                 if (self.subscribers or self.handler):
-                    self._push()
+                    if timestamp:
+                        self._push()
         finally:
             self.lock.release()
 
