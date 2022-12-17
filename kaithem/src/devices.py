@@ -202,6 +202,9 @@ class Device():
 
     readme = None
 
+    #Placeholder not meant to be used as the kaithem specific device api is deprecated
+    subdevices = {}
+
     # We are renaming data to config for clarity.
     # This is the legacy alias.
     @property
@@ -570,7 +573,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
         originalName = name
 
-        name= self.name+'.'+name
+        name = self.name+'.'+name
 
         config = copy.deepcopy(config)
         config['name'] = name
@@ -584,9 +587,11 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             logging.exception('Probably a race condition. Can probably ignore this one.')
 
         m = makeDevice(name=name, data=config, cls=cls)
+        
         m._kaithem_is_subdevice = True
 
         with modules_state.modulesLock:
+            device_data[name] = config
             self.subdevices[originalName] = m
             remote_devices[name] = m
             global remote_devices_atomic
@@ -1255,10 +1260,26 @@ class WebDevices():
         name = kwargs['name']
         with modules_state.modulesLock:
             x = remote_devices[name]
+            k = []
+            for i in x.subdevices:
+                k.append.subdevices[i].name
+
             x.close()
             gc.collect()
             x.onDelete()
             gc.collect()
+
+            for i in k:
+                try:
+                    del remote_devices[i]
+                except KeyError:
+                    pass
+                try:
+                    del device_data[i]
+                except KeyError:
+                    pass
+
+    
             try:
                 del remote_devices[name]
             except KeyError:
@@ -1379,7 +1400,7 @@ def makeDevice(name, data, module=None, resource=None, cls = None):
 
                 def close(self, *a, **k):
                     with modules_state.modulesLock:
-                        for i in self.subdevices:
+                        for i in list(self.subdevices.keys()):
                             self.subdevices[i].close()
                             if self.subdevices[i].name in remote_devices:
                                 del remote_devices[self.subdevices[i].name]
@@ -1566,7 +1587,7 @@ def loadDeviceType(root, i):
 
 def createDevicesFromData():
     global remote_devices_atomic
-    for i in device_data:
+    for i in list(device_data.keys()):
 
         if device_data[i].get('is_subdevice',False):
             continue

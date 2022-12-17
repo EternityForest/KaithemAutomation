@@ -28,7 +28,14 @@ def devStatString(d):
             s.append(d.tagPoints['running'].meterWidget.render(label="Running"))
         if 'record' in d.tagPoints:
             s.append(d.tagPoints['record'].meterWidget.render(label="Recording"))
-
+        if 'temperature' in d.tagPoints:
+            s.append(d.tagPoints['temperature'].meterWidget.render(label="Temperature"))
+        if 'humidity' in d.tagPoints:
+            s.append(d.tagPoints['humidity'].meterWidget.render(label="Humidity"))
+        if 'battery' in d.tagPoints:
+            s.append(d.tagPoints['battery'].meterWidget.render(label="Battery"))
+        if 'open' in d.tagPoints:
+            s.append(d.tagPoints['open'].meterWidget.render(label="Open"))
 
 
             
