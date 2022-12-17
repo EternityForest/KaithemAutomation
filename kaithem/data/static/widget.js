@@ -419,7 +419,8 @@ Copyright (c) 2015 Yusuke Kawasaki
 		});
 	}
 	catch (e) {
-		console.log(e)
+		//No logging, FF would spam a bunch of logs
+		//console.log(e)
 	}
 
 	setTimeout(__kwidget_doBattery, 60)
