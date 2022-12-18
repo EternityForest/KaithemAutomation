@@ -22,6 +22,11 @@ def devStatString(d):
 
         if 'rssi' in d.tagPoints:
             s.append(d.tagPoints['rssi'].meterWidget.render(label="RSSI"))
+        if 'battery' in d.tagPoints:
+            s.append(d.tagPoints['battery'].meterWidget.render(label="Battery"))
+        if 'powered' in d.tagPoints:
+            s.append(d.tagPoints['powered'].meterWidget.render(label="Powered"))
+
         if 'switch' in d.tagPoints:
             s.append(d.tagPoints['switch'].meterWidget.render(label="Switch"))
         if 'running' in d.tagPoints:
@@ -32,11 +37,15 @@ def devStatString(d):
             s.append(d.tagPoints['temperature'].meterWidget.render(label="Temperature"))
         if 'humidity' in d.tagPoints:
             s.append(d.tagPoints['humidity'].meterWidget.render(label="Humidity"))
-        if 'battery' in d.tagPoints:
-            s.append(d.tagPoints['battery'].meterWidget.render(label="Battery"))
+
         if 'open' in d.tagPoints:
             s.append(d.tagPoints['open'].meterWidget.render(label="Open"))
 
+        if 'on' in d.tagPoints:
+            s.append(d.tagPoints['on'].meterWidget.render(label="On"))
+
+        if 'leak' in d.tagPoints:
+            s.append(d.tagPoints['leak'].meterWidget.render(label="Leak"))
 
             
     except Exception as e:
@@ -55,6 +64,14 @@ def devStatString(d):
 
 <script src="/static/showdown.min.js"></script>
 
+
+<script>
+    function req(n){
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("POST",n, true);
+        xhttp.send();
+    }
+</script>
 <title>Kaithem Devices</title>
 
 <h2>Devices</h2>
@@ -66,61 +83,100 @@ def devStatString(d):
 </p>
 
 
-<%def name="device(i,title='')">
-    <dt> 
+<%def name="device(i,title='', devObj = None)">
+<%
+
+devObj = devObj or deviceData[i]()
+%>
+
+%if hasattr(devObj, 'subdevices') and devObj.subdevices:
+<hr style="width: 100%;">
+%endif
+<div class="sectionbox" style="border: 1px solid; margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
+        
+    <div class="buttonbar">
+        <h3>
+            <a href="device/${url(i)}/manage">${title or i|h}
+
+                %if len(devObj.errors):
+                <span style="color: ${'red' if len(devObj.errors) else 'inherit' };">
+                    ${(str(len(devObj.errors))+" errors")}
+                </span>  
+                %endif
+            </a>
+        </h3>
+          
+
+        %if 'switch' in devObj.tagpoints:
+            <button onclick="req('toggletarget/${url(i)}')"><i class="icofont-light-bulb"></i>Toggle</button>
+        %endif
+
+        %if 'start' in devObj.tagpoints and devObj.tagpoints['start'].subtype=='trigger':
+        <button onclick="req('triggertarget/${url(i)}/start')"><i class="icofont-light-bulb"></i>Start</button>
+        %endif
+
+        %if 'stop' in devObj.tagpoints and devObj.tagpoints['stop'].subtype=='trigger':
+        <button onclick="req('triggertarget/${url(i)}/stop')"><i class="icofont-light-bulb"></i>Stop</button>
+        %endif
+
+        <a href="deleteDevice/${url(i)}" class="button" style="flex-grow:0"><i class="icofont-ui-delete"></i></a>
+
+    </div>
+
+        <small>
+            ${devObj.deviceTypeName}
+            %if  devObj.deviceTypeName =='unsupported':
+            (${devObj.data.get('type','UndefinedType')})
+            %endif
+        </small>
+      
+        %if 'color' in devObj.tagpoints and devObj.tagpoints['color'].subtype=='color':
+
         <div class="buttonbar">
-            <a href="device/${url(i)}/manage"><i class="icofont-pencil"></i>${title or i|h}
-
-            %if len(deviceData[i]().errors):
-            <span style="color: ${'red' if len(deviceData[i]().errors) else 'inherit' };">
-                ${(str(len(deviceData[i]().errors))+" errors")}
-            </span>
-</a>
-            %endif
-            <a href="deleteDevice/${url(i)}" class="button" style="flex-grow: 0.1;"><i class="icofont-ui-delete"></i>Delete</a>
-
+            <button  type="button"   style="background-color: #fafafa;" onclick="req('settarget/${url(i)}/color?value=%23fafafa')">Argent</button>
+            <button  type="button"   style="background-color: #ffe066;" onclick="req('settarget/${url(i)}/color?value=%23ffe066')">Or</button>
+            <button  type="button"   style="background-color: #f0dc82;" onclick="req('settarget/${url(i)}/color?value=%23f0dc82')">Buff</button>
+            <button  type="button"   style="background-color: #7c1c05;  color: lightblue;"" onclick="req('settarget/${url(i)}/color?value=%237c1c05')">Copper</button>
         </div>
-    </dt>
-    <dd>
+        <div class="buttonbar">
+                <button  type="button"  style="background-color: #d7374a;"  onclick="req('settarget/${url(i)}/color?value=%23d7374a')">Gules</button>
+                <button  type="button"  style="background-color: #333333; color: lightblue;"  onclick="req('settarget/${url(i)}/color?value=%23333333')">Sable</button>
+                <button  type="button"  style="background-color: #377cd7;"  onclick="req('settarget/${url(i)}/color?value=%23377cd7')">Azure</button>
+                <button  type="button"   style="background-color: #26c061;" onclick="req('settarget/${url(i)}/color?value=%2326c061')">Vert</button>
+                <button  type="button"   style="background-color: #854296;  color: lightblue;" onclick="req('settarget/${url(i)}/color?value=%23854296')">Purpure</button>               
+        </div>
 
-    <h4>Type</h4>
-            ${deviceData[i]().deviceTypeName}
-            %if  deviceData[i]().deviceTypeName =='unsupported':
-            (${deviceData[i]().data.get('type','UndefinedType')})
-            %endif
-    <h4>Action</h4>
-
+        %endif
     <%
-    h=devStatString(deviceData[i]())
+    h=devStatString(devObj)
     %>
     %if h:
     <h4>Status</h4>
-    <div style="display: flex;">${h}</div>
+    <div style="display: flex; flex-wrap: wrap;">${h}</div>
     %endif
 
-    %if hasattr(deviceData[i](), 'subdevices') and deviceData[i]().subdevices:
-    <div>
-        <dl>
-            %for j in deviceData[i]().subdevices:
-            ${device(deviceData[i]().subdevices[j].name,title=j)}
-            %endfor
-        </dl>
+
     </div>
-    %endif
 
-</dd>
+%if hasattr(devObj, 'subdevices') and devObj.subdevices:
+%for j in devObj.subdevices:
+${device(devObj.subdevices[j].name,title=j, devObj=devObj.subdevices[j])}
+%endfor
+<hr style="width: 100%;">
+%endif
+
+
 </%def>
 
-<dl>
 
+<div style="display: flex; flex-wrap: wrap; flex-direction: row;">
 %for i in sorted(deviceData.keys()):
 %if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
 ${device(i)}
 %endif
 
 %endfor
-</dl>
-
+</div>
 
 
 

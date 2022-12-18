@@ -64,8 +64,8 @@ class RTL433Client(devices.Device):
         else:
             self.set_data_point("mqttStatus", 0)
 
-    def __init__(self, name, data):
-        devices.Device.__init__(self, name, data)
+    def __init__(self, name, data, **kw):
+        devices.Device.__init__(self, name, data, **kw)
 
         try:
             self.set_config_default('device.interval', '300')

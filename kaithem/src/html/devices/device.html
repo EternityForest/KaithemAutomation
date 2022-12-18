@@ -14,6 +14,7 @@ specialKeys={
 
         'subclass',
         'name',
+        'title',
         'type',
         'is_subdevice'
 }
@@ -98,7 +99,20 @@ specialKeys={
 </tr>
 <tr>
         <td>Device Name</td>
-        <td><input name="name" value="${name|h}"></td>
+        <td><input name="name" value="${name|h}"  
+        %if hasattr(obj,"_kaithem_is_subdevice"):
+        disabled
+        %endif        
+        ></td>
+</tr>
+
+<tr>
+        <td>Device Title(Blank=use name)</td>
+        <td><input name="title" value="${data.get('title','')|h}"  
+        %if hasattr(obj,"_kaithem_is_subdevice"):
+        disabled
+        %endif        
+        ></td>
 </tr>
 
 </table>
@@ -197,7 +211,6 @@ ${manageForm}
                 <select name="${i|h}">
                         <option>False/Off</option>
                         <option ${'selected' if obj.config[i].lower().strip() in ('true','yes','on','enable','active','enabled' ) else '' } value="true">True/On</option>
-                        
                 </select>
                 %else:
                         %if obj.config_properties.get(i,{}).get("secret",False):
@@ -292,8 +305,10 @@ ${manageForm}
 
         triggerCounters = {}
 </script>
+<div style="display: flex; flex-wrap: wrap; flex-direction: row;">
 %for i in obj.tagPoints:
 %try:
+
 <div class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
 <h3 style="font-size: 140%;"><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></h3>
 
@@ -394,7 +409,6 @@ ${manageForm}
                         %if callable(obj.tagPoints[i].activeClaim().value):
                         <button type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
                         %else:
-                        <button title="Tag does not support refresh" disabled type="button" onclick="_generic_ws_channel.send(['refresh', '${i|h}'])">Refresh</button>
                         %endif
                 </div>
         %endif
@@ -423,8 +437,6 @@ ${manageForm}
         </div>
         %endif
 
-
-
         %endif
 </div>
 %except:
@@ -436,6 +448,9 @@ ${manageForm}
 </div>
 %endtry
 %endfor
+
+</div>
+
 
 <h2>Messages</h2>
 <p class="help">
@@ -472,7 +487,6 @@ Currently this is only supported for the newer cross-framework devices.
 
 ${obj._admin_ws_channel.render("_admin_ws_channel")}
 ${obj._generic_ws_channel.render("_generic_ws_channel")}
-
 <script>
 
 

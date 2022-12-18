@@ -377,6 +377,12 @@ class _TagPoint():
                 d = d.data.copy()
             self.setConfigData(d)
 
+
+    @property
+    def meterWidget(self):
+        "Hack to get around code that calls meterWidget but that should have been able to handle span widgets. Will look bad but not break"
+        return self.spanWidget
+
     # In reality value, timestamp, annotation are all stored together as a tuple
 
     @property

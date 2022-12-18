@@ -1125,8 +1125,8 @@ class NVRChannel(devices.Device):
         self.set_data_point("barcode", {
                             'barcode_type': t, "barcode_data": d, "wallclock": time.time(), "quality": q})
 
-    def __init__(self, name, data):
-        devices.Device.__init__(self, name, data)
+    def __init__(self, name, data, **kw):
+        devices.Device.__init__(self, name, data, **kw)
         try:
             self.runWidgetThread = True
             self.threadExited = True

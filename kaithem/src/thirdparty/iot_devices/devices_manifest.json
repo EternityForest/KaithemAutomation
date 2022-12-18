@@ -1,7 +1,7 @@
 {
     "devices":{
-        "RandomDevice": {
-            "submodule":"devices.random",
+        "DemoDevice": {
+            "submodule":"devices.demo",
             "description" : "Just a demo device that makes pseudorandom numbers on request"
             },
 

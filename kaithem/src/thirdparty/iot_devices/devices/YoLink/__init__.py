@@ -166,11 +166,11 @@ class YoLinkDevice(device.Device):
     def __init__(self, name: str, config: Dict[str, str], **kw):
         super().__init__(name, config, **kw)
         self.numeric_data_point("rssi", min=-120, max=8,
-                                lo=-98, writable=False, default=-120)
+                                lo=-100, writable=False, default=-99)
 
 
         # Set a very long trip delay because of the slow updates
-        self.set_alarm('Low Signal', 'rssi', 'value < -110', trip_delay=(3600*6) if self.has_battery else (3600*4.5), auto_ack=True)
+        self.set_alarm('Low Signal', 'rssi', 'value < -99', trip_delay=(3600*6) if self.has_battery else (3600*4.5), auto_ack=True)
 
         if self.has_battery:
             self.numeric_data_point(
@@ -302,15 +302,15 @@ class YoLinkSiren(YoLinkDevice):
             "on", min=0, max=1, subtype='bool', writable=False)
 
         self.numeric_data_point(
-            "usb_power", min=0, max=1, lo=0, subtype='bool')
+            "powered", min=0, max=1, lo=0, subtype='bool', writable=False)
 
-        self.numeric_data_point("trigger", subtype='trigger',
+        self.numeric_data_point("start", subtype='trigger',
                                 description="Trigger a momentary siren", handler=self.doSiren)
 
-        self.numeric_data_point("cancel", subtype='trigger',
+        self.numeric_data_point("stop", subtype='trigger',
                                 description="Stop an active siren", handler=self.stopSiren)
 
-        self.set_alarm('PowerFail', 'usb_power', 'value < 1',
+        self.set_alarm('PowerFail', 'powered', 'value < 1',
                        priority='error')
 
         self.set_alarm('Siren "+name+" is on', 'on', 'value > 0',
@@ -351,7 +351,7 @@ class YoLinkSiren(YoLinkDevice):
             return
 
         usb = 1 if (data['data']['powerSupply'] == 'usb') else 0
-        self.set_data_point('usb_power', usb)
+        self.set_data_point('powered', usb)
 
 
 class YoLinkTemperatureSensor(YoLinkDevice):
@@ -366,11 +366,12 @@ class YoLinkTemperatureSensor(YoLinkDevice):
             "humidity", min=0, max=100, unit='%', writable=False)
 
         self.set_alarm("Extreme high temperature", "temperature", "value > 85", priority="critical")
-
         self.set_alarm("Very high humidity", "humidity", "value > 90", priority="info", auto_ack=True)
 
 
     def onData(self, data):
+        YoLinkDevice.onData(self, data)
+
         t = get_from_state_or_data(data, 'temperature')
         if t is None:
             return
@@ -497,8 +498,8 @@ class YoLinkService(device.Device):
                     connectRateLimit.limit()
                     self.initialConnection()
 
-    def __init__(self, name, data):
-        device.Device.__init__(self, name, data)
+    def __init__(self, name, data, **kw):
+        device.Device.__init__(self, name, data, **kw)
         self.shouldRun = False
         try:
             self.set_config_default("device.user_id", "")

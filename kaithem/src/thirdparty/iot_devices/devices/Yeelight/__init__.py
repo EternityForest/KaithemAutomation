@@ -89,9 +89,9 @@ def makeFlusher(wr):
     t.start()
 
 class YeelightDevice(iot_devices.device.Device):
-    def __init__(self, name, data):
+    def __init__(self, name, data, **kw):
         self.lock = threading.Lock()
-        iot_devices.device.Device.__init__(self, name, data)
+        iot_devices.device.Device.__init__(self, name, data, **kw)
 
         self.numeric_data_point("rssi",writable=False)
         self.set_alarm("Low Signal", 'rssi', "value < -90")
