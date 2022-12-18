@@ -996,7 +996,7 @@ class Meter(Widget):
 
                 for i in units.split("|"):
                     if s:
-                        s += " | "
+                        s += "/"
                     # Si abbreviations and symbols work with prefixes
                     if i in siUnits:
                         s += unitsofmeasure.siFormatNumber(
@@ -1007,7 +1007,7 @@ class Meter(Widget):
                         # We're just hardcoding this for now
                         s += str(round(convert(v, unit, i), 2)) + i
 
-                return s
+                return s.replace("degC","C").replace("degF", "F")
             else:
                 return str(round(v, 3))
         except Exception as e:
@@ -1043,6 +1043,38 @@ class Meter(Widget):
         </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
                          max=self.k['max'], high=self.k['high_warn'], low=self.k['low_warn'], label=label, unit=unit, valuestr=self.formatForUser(self.value[0], unit)))
 
+
+
+
+    def render_compact(self, unit='', label=None):
+        label = label or self.defaultLabel
+        return ("""
+        <div style="display: inline">
+        <script type="text/javascript">
+        var upd = function(val)
+        {{
+            document.getElementById("{uuid}_m").value=val[0];
+            document.getElementById("{uuid}").className=val[1]+" numericpv";
+            document.getElementById("{uuid}").innerHTML=val[2]+'<span style="color:grey">{unit}</span>';
+
+            if(val[3])
+            {{
+                document.getElementById("{uuid}_m").high = val[3].high;
+                document.getElementById("{uuid}_m").low = val[3].low;
+                document.getElementById("{uuid}_m").min = val[3].min;
+                document.getElementById("{uuid}_m").max = val[3].max;
+            }}
+        }}
+        kaithemapi.subscribe('{uuid}',upd);
+        </script>
+        <div style="display: inline">
+        <span class="numericpv" id="{uuid}" style=" margin:0px;">
+        {valuestr}
+        </span><br>
+        <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}" style="width: 100%"></meter>
+        </div>
+        </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
+                         max=self.k['max'], high=self.k['high_warn'], low=self.k['low_warn'], label=label, unit=unit, valuestr=self.formatForUser(self.value[0], unit)))
 
 class Button(Widget):
 

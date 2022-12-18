@@ -7,8 +7,8 @@ class ConfigurableAlarm(device.Device):
     """
     device_type = "ConfigurableAlarm"
 
-    def __init__(self, name, data):
-        device.Device.__init__(self, name, data)
+    def __init__(self, name, data, **kw):
+        device.Device.__init__(self, name, data, **kw)
 
         self.set_config_default("device.alarm_name", "alarm")
         self.set_config_default("device.priority", "warning")

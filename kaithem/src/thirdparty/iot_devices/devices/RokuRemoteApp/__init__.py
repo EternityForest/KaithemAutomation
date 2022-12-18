@@ -350,8 +350,8 @@ class PyremoteServer(device.Device):
         device.Device.close(self)
 
 
-    def __init__(self, name, data):
-        device.Device.__init__(self, name, data)
+    def __init__(self, name, data, **kw):
+        device.Device.__init__(self, name, data, **kw)
         self.closed = False
 
         try:

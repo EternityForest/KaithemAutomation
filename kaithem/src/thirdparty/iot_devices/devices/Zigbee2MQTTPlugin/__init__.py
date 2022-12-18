@@ -36,8 +36,8 @@ class Zigbee2MQTT(iot_devices.device.Device):
             "time": t
         })
 
-    def __init__(self, name, data):
-        iot_devices.device.Device.__init__(self, name, data)
+    def __init__(self, name, data, **kw):
+        iot_devices.device.Device.__init__(self, name, data, **kw)
         self.devicesData = []
 
         self.knownDevices = {}

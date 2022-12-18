@@ -69,8 +69,10 @@ class Device():
     # This represents either a long text readme or an absolute path beginning with / to such
     readme: str = ''
 
-    def __init__(self, name: str, config: Dict[str, str], **kw):
+    def __init__(self, name: str, config: Dict[str, str], subdevice_config=None, **kw):
         """ 
+
+        The base class __init__ does nothing if called a second time, to simplify the complex inheritance
 
         Attributes:
 
@@ -97,6 +99,12 @@ class Device():
 
                     local_fs_path:
                         String is a path on the same folder as the device
+
+            subdevice_config:
+                A dict indexed by subdevice name(Either just the child name or the full parent) containing extra config override dicts to be applied
+                when this device creates subdevices.
+
+
         Args:
             name: must be a special char free string.  
                 It may contain slashes, for compatibility with hosts using that for heirarchy
@@ -110,50 +118,65 @@ class Device():
 
 
                 All your device-specific options should begin with device.
+
+                Subdevice configuration must have is_subdevice: True in save files so the host does not try to create it by itself.
         """
 
-        config = copy.deepcopy(config)
+        # Due to complex inheritance patterns, this could be called more than once
+        if not hasattr(self, "__initial_setup"):
 
-        if config.get("type", self.device_type) != self.device_type:
-            raise ValueError(
-                "This config does not match this class type:" + str((config['type'], self, type)))
 
-        # here is where we keep track of our list of sub-devices for each device.
-        # Sub-devices will always have a name like ParentDevice.ChildDevice
-        self.subdevices: Dict[str, Device] = {}
+            config = copy.deepcopy(config)
 
-        # allows us to show large amounts of data that do not warrent a datapoint, as it is unlikely anyone
-        # would want to show them in a main listing, and nobody wants to see them clutter up anything
-        # or slow down the system when they change.  Putting data here should have no side effects.
-        self.metadata: Dict[str, Any] = {}
+            if config.get("type", self.device_type) != self.device_type:
+                raise ValueError(
+                    "This config does not match this class type:" + str((config['type'], self, type)))
 
-        self.title: str = self.config.get('title', '').strip() or name
+            if subdevice_config and not callable(subdevice_config):
+                raise ValueError("subdevice_config must be callable")
 
-        # Raise error on bad data.
-        json.dumps(config)
+            self._subdevice_config = subdevice_config
 
-        self.config: Dict[str, str] = config
-        self.__datapointhandlers: Dict[str, Callable] = {}
-        self.datapoints = {}
+            # here is where we keep track of our list of sub-devices for each device.
+            # Sub-devices will always have a name like ParentDevice.ChildDevice
+            self.subdevices: Dict[str, Device] = {}
 
-        # Used to store properties about config keys
-        self.config_properties: Dict[str, Dict[str, Any]] = {}
+            # allows us to show large amounts of data that do not warrent a datapoint, as it is unlikely anyone
+            # would want to show them in a main listing, and nobody wants to see them clutter up anything
+            # or slow down the system when they change.  Putting data here should have no side effects.
+            self.metadata: Dict[str, Any] = {}
 
-        # Functions that can be called to explicitly request a data point
-        # That return the new value
-        self.__datapoint_getters: Dict[str, Callable] = {}
 
-        for i in self.default_config:
-            if not i in self.config:
-                self.set_config_option(i, self.default_config[i])
+            # Raise error on bad data.
+            json.dumps(config)
 
-        self.name = name
-        if 'name' in self.config:
-            if not self.config['name'] == name:
-                raise ValueError("Nonmatching name")
-            name = self.name = config['name']
-        else:
-            self.set_config_option('name', name)
+            self.config: Dict[str, str] = config
+
+            self.title: str = self.config.get('title', '').strip() or name
+
+            self.__datapointhandlers: Dict[str, Callable] = {}
+            self.datapoints = {}
+
+            # Used to store properties about config keys
+            self.config_properties: Dict[str, Dict[str, Any]] = {}
+
+            # Functions that can be called to explicitly request a data point
+            # That return the new value
+            self.__datapoint_getters: Dict[str, Callable] = {}
+
+            for i in self.default_config:
+                if not i in self.config:
+                    self.set_config_option(i, self.default_config[i])
+
+            self.name = name
+            if 'name' in self.config:
+                if not self.config['name'] == name:
+                    raise ValueError("Nonmatching name")
+                name = self.name = config['name']
+            else:
+                self.set_config_option('name', name)
+
+            self.__initial_setup = True
 
     def create_subdevice(self, cls, name: str, config: Dict, *a, **k) -> object:
         """
@@ -184,7 +207,26 @@ class Device():
             The host will add is_subdevice=True to the config dict.
         """
 
-        raise NotImplementedError("This host does not support subdevices")
+        if self.config.get("is_subdevice", False):
+            raise RuntimeError("A subdevice cannot create it's own subdevices, because it would make the class inheritance more confusing")
+
+        fn = self.name + "." + name
+        config = copy.deepcopy(config)
+
+        config['name'] = fn
+        config['is_subdevice'] = True
+        config['type'] = cls.device_type
+
+        if self._subdevice_config:
+            c = self._subdevice_config(name)
+            config.update(c)
+
+        k = copy.copy(k)
+
+        sd = cls(fn, config,*a,**k)
+
+        self.subdevices[name] = sd
+        return sd
 
     @staticmethod
     def discover_devices(config: Dict[str, str] = {}, current_device: Optional[object] = None, intent="", **kwargs) -> Dict[str, Dict]:
@@ -250,6 +292,8 @@ class Device():
 
 
         the host is responsible for subclassing this and actually saving the data somehow, should that feature be needed.
+
+        The device may subclass this to respond to realtime config changes.
         """
 
         if not isinstance(key, str):
@@ -630,12 +674,21 @@ class Device():
 
     def close(self):
         "Release all resources and clean up"
+        for i in list[self.subdevices.keys()]:
+            self.subdevices[i].close()
+            del self.subdevices[i]
 
     def on_delete(self):
         """
         release all persistent resources, used by the host app to tell the user the device is being permanently deleted.
         may be used to delete any files automatically created.
         """
+
+    def update_config(self, config: Dict[str, Any]):
+        "Update the config dynamically at runtime. May be subclassed by the device."
+        for i in config:
+            if not self.config.get(i, None) == config[i]:
+                self.set_config_option(i, config[i]) 
 
     # optional ui integration features
     # these are here so that device drivers can device fully custom u_is.
