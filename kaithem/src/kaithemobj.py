@@ -25,8 +25,14 @@ import json
 import yaml
 import os
 import weakref
+import datetime
 import scullery.persist
 from typing import Any
+
+try:
+    import holidays
+except Exception:
+    print("Error importing holidays")
 
 import cherrypy
 from . import unitsofmeasure, workers, sound, messagebus, util, widgets, registry, directories, pages, config, persist, breakpoint, statemachines
@@ -201,6 +207,31 @@ class Kaithem():
     #kaithemobj.kaithem.resource = ResourceAPI()
 
     class time(object):
+
+        # @staticmethod
+        # def checkHoliday(name, zones=None):
+        #     "Return true if the named holiday is happening in any listed zone.  Defaults to server config zone."
+
+        #     if not zones:
+        #         l = geolocation.getLocation()['country']
+        #         if not l:
+        #             return False
+        #         zones = [l]
+            
+        #     else:
+        #         for i in zones:
+        #             h = holidays.country_holidays(i)
+                        
+        #             try:
+        #                 h = h[datetime.datetime.now()]
+        #             except KeyError:
+        #                 False
+
+        #             try:
+        #                 if name.replace("'",'').replace(' ','').lower() in h.replace("'",'').replace(' ','').lower():
+        #                     return True
+        #             except Exception:
+        #                 pass
 
         @staticmethod
         def lantime():

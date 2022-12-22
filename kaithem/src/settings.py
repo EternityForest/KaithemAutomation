@@ -482,7 +482,8 @@ class Settings():
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         from . import geolocation
-        geolocation.setDefaultLocation(float(kwargs['lat']), float(kwargs['lon']), kwargs['city'])
+        geolocation.setDefaultLocation(float(kwargs['lat']), float(kwargs['lon']), kwargs['city'], 
+            country=kwargs['country'], region=kwargs['region'],timezone=kwargs['timezone'])
 
         messagebus.postMessage(
             "/system/settings/changedelocation", pages.getAcessingUser())
@@ -537,7 +538,7 @@ class Settings():
         pages.postOnly()
         from src import geolocation
         l = geolocation.ip_geolocate()
-        geolocation.setDefaultLocation(l['lat'], l['lon'],l['city'])
+        geolocation.setDefaultLocation(l['lat'], l['lon'], l['city'], l['timezone'], l['regionName'], l['countryCode'])
         messagebus.postMessage(
             "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')

@@ -146,21 +146,40 @@ If you have PipeWire running, kaithem will just detect and use that and these se
 <h2>Server Location</h2>
 <section>
 <p class="help">
-This is mostly used for astronomical calculations. Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
+This is mostly used for astronomical calculations. All are optional.
+Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
 </p>
 <form method="POST" action="/settings/changesettingstarget">
 <table border=1>
 <tr>
 <tr>
-<td>City</td>
-<td><input name="city" value="${location['city']}".></td>
+
+<td>Country Code</td>
+    <td><input name="country" value="${location['countryCode']}".></td>
 </tr>
+
+<tr>
+    <td>Region</td>
+    <td><input name="region" value="${location['regionName']}".></td>
+</tr>
+
+<tr>
+    <td>Timezone</td>
+    <td><input name="timezone" value="${location['timezone']}".></td>
+</tr>
+
+
+<tr>
+    <td>City</td>
+    <td><input name="city" value="${location['city']}".></td>
+</tr>
+
 <td>Lattitude</td>
-<td><input name="lat" value="${location['lat']}".></td>
+    <td><input name="lat" value="${location['lat']}".></td>
 </tr>
 <tr>
 <td>Longitude</td>
-<td><input name="lon" value="${location['lon']}".></td>
+    <td><input name="lon" value="${location['lon']}".></td>
 </tr>
 </table>
 <input type="submit" >

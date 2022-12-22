@@ -25,8 +25,7 @@ def ip_geolocate():
     # Block for a bit if its been less than a second since the last time we did this
     u = urlopen("http://ip-api.com/json", timeout=60)
     try:
-        return(json.loads(u.read().decode('utf8')))
-
+        return (json.loads(u.read().decode('utf8')))
     finally:
         u.close()
 
@@ -42,9 +41,19 @@ else:
 lat = registry.get("system/location/lat", None)
 lon = registry.get("system/location/lon", None)
 
+country = None
+city = None
+region = None
+tz = None
+
 if 'default' in file:
     lat = file['default'].get('lat', None)
     lon = file['default'].get('lon', None)
+    country = file['default'].get('countryCode', None)
+    region = file['default'].get('regionName', None)
+    city = file['default'].get('city', None)
+    tz = file['default'].get('timezone', None)
+
 
 if not lat or not lon:
     try:
@@ -52,24 +61,30 @@ if not lat or not lon:
         messagebus.postMessage("/system/notifications/important",
                                "Got server location by IP geolocation.  You can change this in settings.")
         file['default'] = l
-    except:
+    except Exception:
         # The location called "default" is to be the main one.
         file['default'] = {
             'lat': lat,
             'lon': lon,
-            'city': ''
+            'city': city,
+            'timezone': tz,
+            'countryCode': country,
+            "region": region
         }
 else:
     # The location called "default" is to be the main one.
     file['default'] = {
         'lat': lat,
         'lon': lon,
-        'city': ''
+        'city': '',
+        'timezone': tz,
+        'countryCode': country,
+        "regionName": region
     }
 
 try:
     persist.save(file, fn, private=True)
-except:
+except Exception:
     logging.exception("Save fail")
 
 
@@ -77,17 +92,29 @@ def getCoords():
     return file['default']['lat'], file['default']['lon']
 
 
-def getLocation(l):
+def getLocation(l='default'):
     file['default']=file.get('default',{})
     file['default']['lat'] = file['default'].get('lat',None)
     file['default']['lon'] = file['default'].get('lon',None)
     file['default']['city'] = file['default'].get('city','')
+    file['default']['timezone'] = file['default'].get('timezone','')
+    file['default']['regionName'] = file['default'].get('regionName','')
+    file['default']['countryCode'] = file['default'].get('countryCode','')
 
-    return file['default']
+    return file[l]
 
-def setDefaultLocation(lat, lon, city=''):
+def setDefaultLocation(lat, lon, city='',timezone='', region='', country=''):
+    if len(country)>2:
+        raise RuntimeError("not a valid ISO country code")
+    country = country.upper()
+
+    file['default'].clear()
+    
     file['default']['lat'] = float(lat)
     file['default']['lon'] = float(lon)
     file['default']['city'] = str(city)
+    file['default']['timezone'] = str(timezone)
+    file['default']['countryCode'] = str(country)
+    file['default']['regionName'] = str(region)
 
     persist.save(file, fn, private=True)

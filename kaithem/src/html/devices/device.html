@@ -76,8 +76,9 @@ specialKeys={
 %endfor
 </datalist>
 
-<h1>Device Inspector: ${name}
+<h1>Device Inspector: ${obj.title}
 </h1>
+
 <div class="sectionbox">
 <form method="post" action="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">
         <button type="submit">Search for auto-setup configurations</button>
@@ -109,9 +110,6 @@ specialKeys={
 <tr>
         <td>Device Title(Blank=use name)</td>
         <td><input name="title" value="${data.get('title','')|h}"  
-        %if hasattr(obj,"_kaithem_is_subdevice"):
-        disabled
-        %endif        
         ></td>
 </tr>
 

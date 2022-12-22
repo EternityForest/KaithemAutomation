@@ -4,6 +4,11 @@ Change Log
 ### 0.68.39
 - :bug: Make it so tag subscribers never fire at all if the timestamp is zero.
 - :sparkles: Support for YoLink devices via the(unencrypted) cloud API
+- :lipstick: Devices page much simpler and cleaner
+- :lipstick: Devices page has one-click control of smart plugs, bulbs, and YoLink sirens.
+- :lipstick: More compact temperature meter widgets
+- :coffin: Remove the SculleryMQTT plugin as it was very complex and confusing.  Shared MQTT connections are no longer recommended.
+
 
 ### 0.68.38
 - :arrow_up: Update tinytag

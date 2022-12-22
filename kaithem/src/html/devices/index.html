@@ -95,8 +95,15 @@ devObj = devObj or deviceData[i]()
 <div class="sectionbox" style="border: 1px solid; margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         
     <div class="buttonbar">
-        <h3>
-            <a href="device/${url(i)}/manage">${title or i|h}
+        <h3
+            title="${devObj.deviceTypeName}"
+
+            %if hasattr(devObj, 'subdevices') and devObj.subdevices:
+            class="highlight specialentry"
+            %endif
+
+        >
+            <a href="device/${url(i)}/manage">${devObj.title|h}
 
                 %if len(devObj.errors):
                 <span style="color: ${'red' if len(devObj.errors) else 'inherit' };">
@@ -104,6 +111,13 @@ devObj = devObj or deviceData[i]()
                 </span>  
                 %endif
             </a>
+
+            %if devObj.deviceTypeName == 'UnusedSubdevice':
+            (Not found)
+            %endif
+
+            
+
         </h3>
           
 
@@ -119,17 +133,12 @@ devObj = devObj or deviceData[i]()
         <button onclick="req('triggertarget/${url(i)}/stop')"><i class="icofont-light-bulb"></i>Stop</button>
         %endif
 
+        %if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
         <a href="deleteDevice/${url(i)}" class="button" style="flex-grow:0"><i class="icofont-ui-delete"></i></a>
+        %endif
+
 
     </div>
-
-        <small>
-            ${devObj.deviceTypeName}
-            %if  devObj.deviceTypeName =='unsupported':
-            (${devObj.data.get('type','UndefinedType')})
-            %endif
-        </small>
-      
         %if 'color' in devObj.tagpoints and devObj.tagpoints['color'].subtype=='color':
 
         <div class="buttonbar">
@@ -146,12 +155,20 @@ devObj = devObj or deviceData[i]()
                 <button  type="button"   style="background-color: #854296;  color: lightblue;" onclick="req('settarget/${url(i)}/color?value=%23854296')">Purpure</button>               
         </div>
 
+        <div class="buttonbar">
+            <button  type="button" onclick="req('dimtarget/${url(i)}/color?value=0.1')">10%</button>
+            <button  type="button" onclick="req('dimtarget/${url(i)}/color?value=0.2')">20%</button>
+            <button  type="button" onclick="req('dimtarget/${url(i)}/color?value=0.5')">50%</button>
+            <button  type="button" onclick="req('dimtarget/${url(i)}/color?value=1.0')">100%</button>
+
+        </div>
+
+
         %endif
     <%
     h=devStatString(devObj)
     %>
     %if h:
-    <h4>Status</h4>
     <div style="display: flex; flex-wrap: wrap;">${h}</div>
     %endif
 
@@ -160,7 +177,7 @@ devObj = devObj or deviceData[i]()
 
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
 %for j in devObj.subdevices:
-${device(devObj.subdevices[j].name,title=j, devObj=devObj.subdevices[j])}
+${device(devObj.subdevices[j].name, devObj=devObj.subdevices[j])}
 %endfor
 <hr style="width: 100%;">
 %endif
