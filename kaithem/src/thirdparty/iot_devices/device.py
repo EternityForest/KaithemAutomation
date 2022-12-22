@@ -207,14 +207,11 @@ class Device():
             The host will add is_subdevice=True to the config dict.
         """
 
-        if self.config.get("is_subdevice", False):
-            raise RuntimeError("A subdevice cannot create it's own subdevices, because it would make the class inheritance more confusing")
-
         fn = self.name + "." + name
         config = copy.deepcopy(config)
 
         config['name'] = fn
-        config['is_subdevice'] = True
+        config['is_subdevice'] = 'true'
         config['type'] = cls.device_type
 
         if self._subdevice_config:
@@ -300,6 +297,7 @@ class Device():
             raise TypeError("Key must be str")
 
         value = str(value)
+        
         if len(value) > 8192:
             logging.error("Excessively long param for " +
                           key + " starting with " + value[:128])
@@ -674,7 +672,7 @@ class Device():
 
     def close(self):
         "Release all resources and clean up"
-        for i in list[self.subdevices.keys()]:
+        for i in list(self.subdevices.keys()):
             self.subdevices[i].close()
             del self.subdevices[i]
 
@@ -685,10 +683,13 @@ class Device():
         """
 
     def update_config(self, config: Dict[str, Any]):
-        "Update the config dynamically at runtime. May be subclassed by the device."
+        "Update the config dynamically at runtime. May be subclassed by the device, not the host.  Uses set_config_option to notify the host."
         for i in config:
             if not self.config.get(i, None) == config[i]:
-                self.set_config_option(i, config[i]) 
+                self.set_config_option(i, config[i])
+
+        self.title = self.config.get('title', '').strip() or self.name
+
 
     # optional ui integration features
     # these are here so that device drivers can device fully custom u_is.

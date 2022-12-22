@@ -900,6 +900,7 @@ class _TagPoint():
                 if x and not isConfigured:
                     # Alarms have to have a reference to the config data
                     x._tag_config_ref = d
+                    x.tagpoint_name = self.name
                     return x
 
     def clearDynamicAlarms(self):

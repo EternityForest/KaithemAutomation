@@ -83,6 +83,7 @@ class YoLinkMQTTClient(object):
         self.client = mqtt.Client(client_id=str(__name__ + str(client_id)),
                                   clean_session=True, userdata=None,
                                   protocol=mqtt.MQTTv311, transport="tcp")
+        self.client.reconnect_delay_set(60, 30*60)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
@@ -121,10 +122,14 @@ class YoLinkMQTTClient(object):
             self.client.subscribe(self.topic2)
 
             self.parent.connected = True
+            self.parent.set_data_point("connected", 1)
             self.parent.print("Connected to MQTT")
 
         else:
             self.parent.handle_error(traceback.format_exc())
+    
+    def on_disconnect(self, *a,**k):
+        self.parent.set_data_point("connected", 0)
 
 
 def listify(d):
@@ -488,15 +493,20 @@ class YoLinkService(device.Device):
 
     def retryLoop(self):
         while self.shouldRun:
-            if self.initialConnectionDone:
-                return
+            try:
+                if self.initialConnectionDone:
+                    time.sleep(60*10)
+                    continue
 
-            time.sleep(60)
 
-            with self.connectLock:
-                if not self.initialConnectionDone:
-                    connectRateLimit.limit()
-                    self.initialConnection()
+                time.sleep(60*10)
+
+                with self.connectLock:
+                    if not self.initialConnectionDone:
+                        connectRateLimit.limit()
+                        self.initialConnection()
+            except Exception:
+                self.handle_error(traceback.format_exc())
 
     def __init__(self, name, data, **kw):
         device.Device.__init__(self, name, data, **kw)
@@ -504,6 +514,9 @@ class YoLinkService(device.Device):
         try:
             self.set_config_default("device.user_id", "")
             self.set_config_default("device.key", "")
+
+            self.numeric_data_point("connected",subtype="bool", writable=False)
+            self.set_alarm("Disconnected from YoLink API", 'connected', "value < 1", priority="warning", trip_delay=25)
 
             self.dowlinkRateLimit = RateLimiter(60, 60 * 10)
 
