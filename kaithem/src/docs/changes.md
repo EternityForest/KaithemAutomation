@@ -17,6 +17,10 @@ Change Log
 - :coffin: BREAKING: You will need to re-set up UPnP if you were using it
 - :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately.
 - :bug: Fix zombie devices staying around after deletion
+- :coffin: Deprecate thin wrappers kaithem.time.year() kaithem.time.month() kaithem.time.dayofweek() kaithem.time.\[minute\|second\|hour\]() 
+- :coffin: Deprecate thin wrappers kaithem.time.isdst() kaithem.time.day() kaithem.time.accuracy()
+- :memo: Sound documentation
+- :memo: Announce that kaithem.mqtt will no longer use shared connection optimization at some point in the future
 
 ### 0.68.38
 - :arrow_up: Update tinytag

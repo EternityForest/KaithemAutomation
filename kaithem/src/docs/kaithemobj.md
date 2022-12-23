@@ -459,39 +459,6 @@ Format a time in seconds since the epoch according to the user's
 preference. When called outside of a page, format according to the
 default
 
-#### kaithem.time.year()
-
-Return current year in server's time zone as an integer .
-
-#### kaithem.time.month()
-
-Return current month in the server's time zone. s month object, which
-can be printed like a string, but can be intelligently
-compared(January="Jan"=="January"==0) Month objects do not support
-comparisions besides equality, however they can be cast to integers.
-Jan=0
-
-#### kaithem.time.dayofweek()
-
-Returns a day-of-week object in the server's time zone.that inherits
-from string and prints as an uppercase full name(like 'Tuesday'), but
-can be intelligently compared(DoW=='tue','Tue,'Tuesday','tu',1,'1',etc).
-When usig numbers, monday is 0. Again, only equality comparisions, but
-you can cast to int.
-
-#### kaithem.time.\[minute\|second\|hour\]()
-
-All of these functions perform as expected(e.g. minute() returns a
-number between 0 and 59). hour() uses 24 hour server local time
-
-#### kaithem.time.isdst()
-
-Return true is daylight savings time is in effect where the server is.
-
-#### kaithem.time.day()
-
-Returns the day of the month in the server's time zone.
-
 #### kaithem.time.moonPhase()
 
 Returns the current moon phase as a float number:
@@ -552,14 +519,6 @@ given lat-lon location. For more info see the [wiki
 article.](http://en.wikipedia.org/wiki/Rahukaalam) If no coordinates are
 supplied, the server location configured in the settings page is used.
 If no location is configured, an error is raised.
-
-#### kaithem.time.accuracy()
-
-Get a conservative estimate(offset plus root delay plus root dispersion)
-of the maximum error of the system clock in seconds using pool.ntp.org
-Only polls NTP at most every 600 seconds. If the server is unreachable,
-uses the cached value, plus 100ppm of the time since the server was
-checked. If the server was never reachable, use the value of 30 years.
 
 ### kaithem.sys
 
@@ -662,7 +621,7 @@ so it only makes sense if fading to silence).
 Fading is perceptually linear.
 
 
-#### kaithem.sound.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False,extraPaths=\[\])
+#### kaithem.sound.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, output=None,fs=False,extraPaths=\[\])
 
 If you have a backend installed, play the file, otherwise do
 nothing. The handle parameter lets you name the new sound instance to
@@ -680,8 +639,6 @@ asking for "Music/foo.wav" will look for a file resource called media/Music/foo.
 Searching is not recursive, but relative paths work. If searching for "foo/bar" in
 "/baz", it will look for "/baz/foo/bar".
 
-
-
 If you want to search paths for relative files other than the default
 abd the ones in the config, add them to extraPaths.
 
@@ -696,27 +653,6 @@ other players.
 On the recommended gstreamer backend, output is a jack client or port if JACK is running, otherwise 
 it is an alsa  device. The special string @auto(the default) autoselects an appropriate output.
 
-##### mplayer specific
-
-output must be a string that selects an
-output device. A typical value on linx would be pulse::n where n is the
-pulse sink index, see mplayer's -ao option for more details.
-
-eq is mplayer specific and does nothing with other backends.
-eq if present can take the value 'party' causing the EQ to be set to
-allow easier conversation.
-
-With the mplayer backend, if you give it a video file, it will likely
-open a window and play it. Passing fs=True may allow you to play
-fullscreen, but any use of this "hidden feature" is very experimental.
-results may be undefined if you attempt to play a video in an
-environment that does not support it. All the features that work with
-audio should also work with video.
-
-
-#### Gstreamer Specific
-
-The loop attribute can be set to a number of times to loop.  To loop forever, just use 999999999 or some other crazy number.
 
 #### kaithem.sound.builtinSounds
 
