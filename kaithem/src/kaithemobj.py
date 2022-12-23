@@ -35,7 +35,7 @@ except Exception:
     print("Error importing holidays")
 
 import cherrypy
-from . import unitsofmeasure, workers, sound, messagebus, util, widgets, registry, directories, pages, config, persist, breakpoint, statemachines
+from . import unitsofmeasure, workers, sound, messagebus, util, widgets, directories, pages, config, persist, breakpoint, statemachines
 from . import devices, alerts, midi, gpio, theming
 
 from . import version_info
@@ -468,22 +468,6 @@ class Kaithem():
             except Exception:
                 return('sensors call failed')
 
-    class registry(object):
-        @staticmethod
-        def set(key, value):
-            registry.set(key, value)
-
-        @staticmethod
-        def setschema(key, schema):
-            registry.setschema(key, schema)
-
-        @staticmethod
-        def delete(key):
-            registry.delete(key)
-
-        @staticmethod
-        def get(*args, **kwargs):
-            return registry.get(*args, **kwargs)
 
     class states(object):
         StateMachine = statemachines.StateMachine

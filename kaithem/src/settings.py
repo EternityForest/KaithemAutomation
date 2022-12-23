@@ -26,7 +26,7 @@ import traceback
 import zipfile
 import threading
 from cherrypy.lib.static import serve_file
-from . import pages, util, messagebus, config, auth, registry, kaithemobj, config, weblogin, systasks, gpio, directories, persist
+from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 
 
 jacksettingsfile = os.path.join(

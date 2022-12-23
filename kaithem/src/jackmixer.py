@@ -23,7 +23,7 @@ import subprocess
 import os
 
 
-from . import widgets, messagebus, util, registry, tagpoints, persist, directories, alerts, workers
+from . import widgets, messagebus, util, tagpoints, persist, directories, alerts, workers
 from . import jackmanager, gstwrapper, mixerfx
 
 import threading
@@ -865,7 +865,7 @@ class MixingBoard():
                  for i in os.listdir(presetsDir) if i.endswith('.yaml')]
         else:
             x = []
-        self.api.send(['presets', registry.ls("/system.mixer/presets/") + x])
+        self.api.send(['presets', x])
 
     def createChannel(self, name, data={}):
         with self.lock:
@@ -954,16 +954,11 @@ class MixingBoard():
             util.disallowSpecialChars(presetName)
             persist.save(self.channels, os.path.join(
                 presetsDir, presetName + ".yaml"))
-            try:
-                # Remove legacy way of saving
-                registry.delete("/system.mixer/presets/" + presetName)
-            except KeyError:
-                pass
+
             self.loadedPreset = presetName
             self.api.send(['loadedPreset', self.loadedPreset])
 
     def deletePreset(self, presetName):
-        registry.delete("/system.mixer/presets/" + presetName)
         if os.path.exists(os.path.join(presetsDir, presetName + ".yaml")):
             os.remove(os.path.join(presetsDir, presetName + ".yaml"))
 

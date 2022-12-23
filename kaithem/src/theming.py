@@ -14,7 +14,6 @@ else:
     file = {}
 
 if not 'web' in file:
-    # Legacy registry stuff.
     file['web'] = {}
     css = ''
 

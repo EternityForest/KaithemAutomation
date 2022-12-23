@@ -285,9 +285,7 @@ def webRoot():
 
     from . import ManageUsers
     from . import newevt
-    from . import registry
     from . import persist
-    persist.registry=registry
     from . import modules
     from . import modules_interface
     from . import settings

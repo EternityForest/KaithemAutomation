@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util,notifications,pages,modules,modules_state,registry,theming,devices,persist
+from src import auth,util,notifications,pages,modules,modules_state,theming,devices,persist
 import scullery.persist
 import cherrypy,socket,base64
 %>
@@ -150,9 +150,6 @@ import cherrypy,socket,base64
           <span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
           %endif
 
-          %if not registry.is_clean:
-          <span title="The kaithem registry has unsaved changes">*</span>
-          %endif
 
           %if  persist.dirty:
           <span title="The there are persistance files with unsaved changes">*</span>

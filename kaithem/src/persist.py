@@ -21,8 +21,6 @@ from pwd import getpwuid, getpwnam
 from scullery.persist import *
 from scullery.messagebus import subscribe, postMessage
 
-registry=None
-
 import weakref
 import threading
 import logging
@@ -95,7 +93,6 @@ class SharedStateFile():
         except:
             print(traceback.format_exc())
         self.filename = filename
-        self.legacy_registry_key_mappings = {}
         self.lock = threading.RLock()
         self.noFileForEmpty = False
         self.private=True
@@ -103,16 +100,7 @@ class SharedStateFile():
         if save_topic:
             subscribe(save_topic, self.save)
 
-    def setupDefaults(self, defaults={}, legacy_registry_key_mappings={}):
-        self.legacy_registry_key_mappings.update(legacy_registry_key_mappings)
-
-        # Legacy Kaithem feature
-        if registry:
-            for i in legacy_registry_key_mappings:
-                km = legacy_registry_key_mappings[i]
-                if not i in self.data:
-                    self.set(i,registry.get(km, defaults[i]))
-
+    def setupDefaults(self, defaults={}):
         for i in defaults:
             if not i in self.data:
                 self.set(i, defaults[i])
@@ -148,12 +136,6 @@ class SharedStateFile():
                 return
             self.data[key] = value
 
-            if registry:
-                if key in self.legacy_registry_key_mappings:
-                    try:
-                        registry.delete(self.legacy_registry_key_mappings[key])
-                    except:
-                        pass
 
             dirty[self.filename] = self
 
@@ -181,12 +163,6 @@ class SharedStateFile():
             except KeyError:
                 pass
 
-            if registry:
-                if key in self.legacy_registry_key_mappings:
-                    try:
-                        registry.delete(self.legacy_registry_key_mappings[key])
-                    except:
-                        pass
             dirty[self.filename] = self
             if self.recoveryFile:
                 save(self.data, self.recoveryFile,private=True)
@@ -232,14 +208,14 @@ class SharedStateFile():
 
 allFiles = weakref.WeakValueDictionary()
 
-def getStateFile(fn, defaults={}, legacy={}, deleteEmptyFiles=None) -> SharedStateFile:
+def getStateFile(fn, defaults={}, deleteEmptyFiles=None) -> SharedStateFile:
     with stateFileLock:
         if fn in allFiles:
             s = allFiles[fn]
         else:
             s = SharedStateFile(fn)
 
-        s.setupDefaults(defaults, legacy)
+        s.setupDefaults(defaults)
         if not (deleteEmptyFiles is None):
             s.noFileForEmpty = deleteEmptyFiles
     return s

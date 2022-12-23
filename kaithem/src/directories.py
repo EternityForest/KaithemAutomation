@@ -68,7 +68,6 @@ else:
 moduledatadir = os.path.join(vardir, 'moduledata')
 
 usersdir = os.path.join(vardir, 'users')
-regdir = os.path.join(vardir, 'registry')
 
 
 mixerdir = os.path.join(vardir, 'system.mixer')
@@ -97,7 +96,6 @@ def recreate():
     usersdir = os.path.join(vardir, 'users')
     logdir = os.path.join(
         vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
-    regdir = os.path.join(vardir, 'registry')
     moduledir = os.path.join(vardir, 'modules')
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     htmldir = os.path.join(dn, 'html')

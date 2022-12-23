@@ -28,7 +28,7 @@ of a valid token"""
 
 from typing import Dict, Union
 import copy
-from . import util, directories, modules_state, registry, messagebus
+from . import util, directories, modules_state, messagebus
 import json
 import base64
 import os

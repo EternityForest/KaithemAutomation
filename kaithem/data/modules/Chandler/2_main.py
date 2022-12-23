@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1668035647172005
+resource-timestamp: 1671835326382166
 resource-type: event
 versions: {}
 
@@ -77,9 +77,8 @@ if __name__=='__setup__':
     kaithem.web.navBarPlugins['chandler']=nbr
     
     def nbr2():
-        return(50, '<a href="/pages/Chandler/Console"><i class="icofont-ship-wheel"></i>Chandler Editor</a>')
+        return(50, '<a href="/pages/Chandler/Console"><i class="icofont-pencil"></i>Editor</a>')
     kaithem.web.navBarPlugins['chandler2']=nbr2
-    
     
     logger = logging.getLogger("system.chandler")
     
@@ -802,7 +801,7 @@ if __name__=='__setup__':
             self.link.attach(self.onmsg)
             self.lock = threading.RLock()
             
-            self.configuredUniverses = kaithem.registry.get("lighting/universes",{})
+            self.configuredUniverses = {}
     
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "universes")
             if os.path.isdir(saveLocation):
@@ -814,7 +813,6 @@ if __name__=='__setup__':
             self.universeObjs = {}
     
             self.fixtureClasses= copy.deepcopy(module.genericFixtureClasses)
-            self.fixtureClasses.update(kaithem.registry.get("lighting/fixturetypes",{}))
     
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixturetypes")
             if os.path.isdir(saveLocation):
@@ -828,7 +826,6 @@ if __name__=='__setup__':
             self.fixtures ={}
             
     
-            self.fixtureAssignments = kaithem.registry.get("lighting/fixtures",{})
     
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixtures")
             if os.path.isdir(saveLocation):
@@ -850,8 +847,7 @@ if __name__=='__setup__':
                 print(traceback.format_exc(6))
     
     
-            #Old legacy scenes
-            d = kaithem.registry.get("lighting/scenes",{})
+            d = {}
     
     
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "scenes")
@@ -1190,12 +1186,7 @@ if __name__=='__setup__':
                 if os.path.isfile(fn) and i.endswith(".yaml"):
                     if not i in saved:
                         os.remove(fn)
-            try:
-                #Remove the registry entry for the legacy way of saving things.
-                if legacyKey:                
-                    kaithem.registry.delete(legacyKey)
-            except KeyError:
-                pass
+    
         
     
     
@@ -1393,11 +1384,7 @@ if __name__=='__setup__':
                         os.makedirs(saveLocation,mode=0o755)
     
                     kaithem.persist.save(module.config, os.path.join(saveLocation,"config.yaml"))
-                    try:
-                        kaithem.registry.delete("lighting/soundfolders")
-                        kaithem.registry.delete("lighting/nettime")
-                    except KeyError:
-                        pass
+    
                 if msg[0] == "saveSetupPreset":
                     self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses",noRm=True)
                     self.saveAsFiles(os.path.join('setups',msg[1],'universes'),self.configuredUniverses)
