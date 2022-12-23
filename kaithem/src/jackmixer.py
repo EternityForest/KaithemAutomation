@@ -967,7 +967,7 @@ class MixingBoard():
         if os.path.exists(os.path.join(presetsDir, presetName + ".yaml")):
             os.remove(os.path.join(presetsDir, presetName + ".yaml"))
 
-    def loadPreset(self, presetName):
+    def loadPreset(self, presetName: str):
         with self.lock:
             x = list(self.channels)
             for i in x:
@@ -977,9 +977,7 @@ class MixingBoard():
                 self._loadData(persist.load(
                     os.path.join(presetsDir, presetName + ".yaml")))
             else:
-                x = registry.get("/system.mixer/presets/" + presetName, None)
-                if x:
-                    self._loadData(x)
+                logging.error("No such preset "+ str(presetName))
 
             self.loadedPreset = presetName
             self.api.send(['loadedPreset', self.loadedPreset])

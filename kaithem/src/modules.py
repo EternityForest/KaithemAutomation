@@ -24,26 +24,24 @@ import os
 import json
 import traceback
 import copy
-import hashlib
 import logging
 import gc
 import re
 import weakref
-import sqlite3
 import ast
 import cherrypy
 import yaml
 from . import auth, pages, directories, util, newevt, kaithemobj
 from . import usrpages, messagebus
-from .modules_state import  modulesLock, scopes, additionalTypes, fileResourceAbsPaths
+from .modules_state import modulesLock, scopes, additionalTypes, fileResourceAbsPaths, external_module_locations, saveResource
+from .modules_state import saveModule, parseTarget, getModuleFn, getResourceFn, serializeResource, safeFnChars
+
 from . import modules_state
 import urllib.parse
 
 logger = logging.getLogger("system")
 
-# / is there because we just forbid use of that char for anything but dirs,
-# So there is no confusion
-safeFnChars = "~@*&()-_=+/ '"
+
 
 try:
     import fcntl
@@ -87,16 +85,8 @@ def new_module_container():
     return {}
 
 
-
 from io import BytesIO as StringIO
 from typing import Optional
-
-
-
-# This lets us have some modules saved outside the var dir.
-external_module_locations = {}
-
-
 
 
 def getInitialWhitespace(s):
@@ -154,7 +144,6 @@ def readStringFromSource(s, var):
             for t in i.targets:
                 if t.id == var:
                     return i.value.s
-
 
 
 def loadAllCustomResourceTypes():
@@ -237,7 +226,6 @@ class InternalFileRef(ResourceObject):
         return fileResourceAbsPaths[self.module, self.resource]
 
 
-
 class ModuleObject(object):
     """
     These are the objects acessible as 'module' within pages, events, etc.
@@ -280,20 +268,22 @@ class ModuleObject(object):
 
         def f():
             with modulesLock:
-                if not isinstance(value,dict):
-                    messagebus.postMessage("/system/notifications/errors","VirtualResource is removed. Can't add "+name + ' to '+module)
+                if not isinstance(value, dict):
+                    messagebus.postMessage(
+                        "/system/notifications/errors", "VirtualResource is removed. Can't add " + name + ' to ' + module)
                     return
+
                 if not 'resource-type' in value:
                     raise ValueError("Supplied dict has no resource-type")
+
                 resourcetype = value['resource-type']
                 # Raise an exception on anything non-serializable or without a resource-type,
                 # As those could break something.
                 json.dumps({name: value})
-                modules_state.unsaved_changed_obj[(
-                    module, name)] = "User code inserted or modified module"
+
                 # Insert the new item into the global modules thing
                 modules_state.ActiveModules[module][name] = value
-                modules_state.createRecoveryEntry(module, name, value)
+
                 modules_state.modulesHaveChanged()
 
                 # Make sure we recognize the resource-type, or else we can't load it.
@@ -315,6 +305,8 @@ class ModuleObject(object):
                 else:
                     additionalTypes[resourcetype].onload(
                         module, name, value)
+
+                saveResource(module, name, value)
 
         modules_state.runWithModulesLock(f)
 
@@ -415,12 +407,18 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
             try:
                 x = re.search(
                     r'<script +type=\"kaithem.resourcemeta\">((.|[\n\r])*?)<\/script>', d)
-                data = yaml.load(x.group(1))
-                d = re.sub(
-                    r'<script +type=\"kaithem.resourcemeta\">((.|[\n\r])*?)<\/script>', '', d)
-                data['body'] = d.strip()
-                r = data
-                shouldRemoveExtension = True
+                if x:
+                    data = yaml.load(x.group(1))
+                    d = re.sub(
+                        r'<script +type=\"kaithem.resourcemeta\">((.|[\n\r])*?)<\/script>', '', d)
+                    data['body'] = d.strip()
+                    r = data
+                    shouldRemoveExtension = True
+                else:
+                    isSpecialEncoded = False
+                    wasProblem = True
+                    logger.exception("err loading as html encoded: " + fn)
+
             except Exception:
                 isSpecialEncoded = False
                 wasProblem = True
@@ -492,208 +490,21 @@ def indent(s, prefix='    '):
     return '\n'.join(s)
 
 
-def serializeResource(obj):
-    "Returns the raw data, plus the proper file extension"
-
-    r = copy.deepcopy(obj)
-    # This is a ram only thing that tells us where it is saved
-    if 'resource-loadedfrom' in r:
-        del r['resource-loadedfrom']
-
-    ext = ''
-    if r['resource-type'] == 'page':
-        if r.get('template-engine', '') == 'markdown':
-            b = r['body']
-            del r['body']
-            d = "---\n" + yaml.dump(r) + "\n---\n" + b
-            ext = ".md"
-        else:
-            b = r['body']
-            del r['body']
-            d = "---\n" + yaml.dump(r) + "\n---\n" + b
-            ext = ".html"
-
-    elif r['resource-type'] == 'event':
-        d = newevt.toPyFile(r)
-        ext = ".py"
-
-    else:
-        d = yaml.dump(r)
-        ext = ".yaml"
-    return (d, ext)
-
-
-def saveResource2(obj, fn: str):
-
-    # Don't save VResources
-    if isinstance(obj, weakref.ref):
-        # logger.debug("Did not save resource because it is virtual")
-        return
-    # logger.debug("Saving resource to "+str(fn))
-
-    d, ext = serializeResource(obj)
-
-    fn += ext
-
-    if os.path.exists(fn):
-        try:
-            # Check for sameness, avoid useless write
-            with open(fn, "rb") as f:
-                x = f.read().decode('utf8')
-                if x == d:
-                    return fn
-        except Exception:
-            logger.exception("err, continuing")
-
-    util.ensure_dir(fn)
-    data = d.encode("utf-8")
-
-    # Check if anything is actually new
-    if os.path.isfile(fn):
-        with open(fn, "rb") as f:
-            if f.read() == data:
-                obj['resource-loadedfrom'] = fn
-                return fn
-
-    with open(fn, "wb") as f:
-        util.chmod_private_try(fn, execute=False)
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-
-    # logger.debug("saved resource to file " + fn)
-    obj['resource-loadedfrom'] = fn
-    return fn
-
-
-def saveAll():
-    """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
-    This function writes to data after backing up to a timestamp dir and deleting old timestamp dirs"""
-
-    # This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught
-    with modulesLock:
-        if not modules_state.unsaved_changed_obj:
-            return False
-        logger.info("Begin saving all modules")
-        if time.time() > util.min_time:
-            t = time.time()
-        else:
-            t = int(util.min_time) + 1.234
-
-        if os.path.isdir(os.path.join(directories.moduledir, str("data"))):
-            # Copy the data found in data to a new directory named after the current time. Don't copy completion marker
-            shutil.copytree(os.path.join(directories.moduledir, str("data")), os.path.join(directories.moduledir, str(t)),
-                            ignore=shutil.ignore_patterns("__COMPLETE__"))
-            # Add completion marker at the end
-            with open(os.path.join(directories.moduledir, str(t), '__COMPLETE__'), "w") as x:
-                util.chmod_private_try(os.path.join(
-                    directories.moduledir, str(t), '__COMPLETE__'), execute=False)
-                x.write("This file certifies this folder as valid")
-                x.flush()
-                os.fsync(x.fileno())
-
-        # This dumps the contents of the active modules in ram to a directory named data"""
-        saveModules(os.path.join(directories.moduledir, "data"))
-        # We only want 1 backup(for now at least) so clean up old ones.
-        util.deleteAllButHighestNumberedNDirectories(directories.moduledir, 2)
-        return True
-
-
-def loadRecoveryDbInfo(completeFileTimestamp=0):
-    with modulesLock:
-        if modules_state.enable_sqlite_backup:
-            recoveryDb = sqlite3.connect(modules_state.recoveryDbPath)
-
-            with recoveryDb:
-                c = modules_state.recoveryDb.cursor()
-                c.execute("select * from change")
-                for i in c:
-                    # Older than what we have now, ignore, the state was saved
-                    # After this entry was created
-                    if not i['time'] / 1000000 > completeFileTimestamp:
-                        continue
-                    modules_state.unsaved_changed_obj[i['module'],
-                                        i['resource']] = "Recovered from RAM"
-                    if i['flag'] == 0:
-                        if not i['module'] in modules_state.ActiveModules:
-                            modules_state.ActiveModules[i['module']] = {}
-                            scopes[i['module']] = ModuleObject(i['module'])
-
-                        r = json.loads(i['value'])
-                        if not 'resource-type' in r:
-                            continue
-                        modules_state.ActiveModules[i['module']
-                                                    ][i['resource']] = r
-
-                        if r['resource-type'] == "internal-fileref":
-                            if not i['module'] in external_module_locations:
-                                t = parseTarget((r['target']), i['module'])
-                                newpath = os.path.join(
-                                    directories.vardir, "modules", 'data', i['module'], "__filedata__", url(t, safeFnChars))
-                            else:
-                                d = external_module_locations[i['module']]
-                                t = parseTarget(
-                                    (r['target']), i['module'], True)
-                                newpath = os.path.join(
-                                    d, "__filedata__", url(t, safeFnChars))
-                            fileResourceAbsPaths[i['module'],
-                                                 i['resource']] = newpath
-
-                    else:
-                        if not i['module'] in modules_state.ActiveModules:
-                            continue
-                        if i['resource'] in modules_state.ActiveModules[i['module']]:
-                            del modules_state.ActiveModules[i['module']
-                                                            ][i['resource']]
-                        if not modules_state.ActiveModules[i['module']]:
-                            del modules_state.ActiveModules[i['module']]
-            recoveryDb.close()
-
-
 def initModules():
     global external_module_locations
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
     Then start with an empty list of modules. Should normally be called once at startup."""
 
     if not os.path.isdir(directories.moduledir):
-        return
+        os.makedirs(directories.moduledir)
+        
     if not util.get_immediate_subdirectories(directories.moduledir):
         return
     try:
         # __COMPLETE__ is a special file we write to the dump directory to show it as valid
         possibledir = os.path.join(directories.moduledir, "data")
-        if os.path.isdir(possibledir) and '''__COMPLETE__''' in util.get_files(possibledir):
+        if os.path.isdir(possibledir):
             loadModules(possibledir)
-            # we found the latest good ActiveModules dump! so we break the loop
-        else:
-            messagebus.postMessage("/system/notifications/errors",
-                                   "Modules folder appears corrupted, falling back to latest backup version")
-            for i in range(0, 15):
-                # Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-                name = util.getHighestNumberedTimeDirectory(
-                    directories.moduledir, i)
-                possibledir = os.path.join(directories.moduledir, name)
-
-                if '''__COMPLETE__''' in util.get_files(possibledir):
-                    loadModules(possibledir)
-                # we found the latest good ActiveModules dump! so we break the loop
-                    break
-                else:
-                    # If there was no flag indicating that this was an actual complete dump as opposed
-                    # To an interruption, rename it and try again
-                    try:
-                        shutil.copytree(possibledir, os.path.join(
-                            directories.moduledir, name + "INCOMPLETE"))
-                        # It would be best if we didn't rename or get rid of the data directory because that's where
-                        # manual tools might be working.
-                        if not possibledir == os.path.join(directories.moduledir, "data"):
-                            shutil.rmtree(possibledir)
-                    except Exception:
-                        logger.exception(
-                            "Failed to rename corrupted data. This is normal if kaithem's var dir is not currently writable.")
-
-        loadRecoveryDbInfo(completeFileTimestamp=os.stat(
-            os.path.join(possibledir, '__COMPLETE__')).st_mtime)
 
     except Exception:
         messagebus.postMessage("/system/notifications/errors",
@@ -705,176 +516,6 @@ def initModules():
     usrpages.getPagesFromModules()
     modules_state.moduleshash = modules_state.hashModules()
     logger.info("Initialized modules")
-
-
-def saveModule(module, dir: str, modulename: Optional[str] = None, ignore_func=None):
-    """Returns a list of saved module,resource tuples and the saved resource.
-    ignore_func if present must take an abs path and return true if that path should be
-    left alone. It's meant for external modules and version control systems.
-    """
-    # Iterate over all of the resources in a module and save them as json files
-    # under the URL url module name for the filename.
-    logger.debug("Saving module " + str(modulename))
-    saved = []
-
-    moduleFilenames = {}
-    try:
-        # Make sure there is a directory at where/module/
-        util.ensure_dir2(os.path.join(dir))
-        util.chmod_private_try(dir)
-        for resource in module:
-            # Open a file at /where/module/resource
-            fn = os.path.join(dir, urllib.parse.quote(resource, safe=" /"))
-            # Make a json file there and prettyprint it
-            r = module[resource]
-
-            # Allow non-saved virtual resources
-            if not hasattr(r, "ephemeral") or r.ephemeral == False:
-                moduleFilenames[saveResource2(r, fn)] = True
-
-            saved.append((modulename, resource))
-
-            if r['resource-type'] == "internal-fileref":
-                # store them directly in the module data in a special folder.
-
-                # Basically, we want to always copy the current "loaded" version over.
-                currentFileLocation = fileResourceAbsPaths[modulename, resource]
-                # Handle broken targets if a file was manually deleted
-                if os.path.isfile(currentFileLocation):
-                    t = parseTarget(r['target'], modulename, True)
-                    newpath = os.path.join(
-                        dir, "__filedata__", url(t, safeFnChars))
-                    if not newpath == currentFileLocation:
-                        util.ensure_dir(newpath)
-                        # Storage is cheap enough I guess, might as well copy instead of move for now. Maybe
-                        # change it?
-                        shutil.copyfile(currentFileLocation, newpath)
-                        fileResourceAbsPaths[modulename, resource] = newpath
-                # broken target
-                else:
-                    logger.error(
-                        "File reference resource has nonexistant target, igonring.")
-
-        # Now we iterate over the existing resource files in the filesystem and delete those that correspond to
-        # resources that have been deleted in the ActiveModules workspace thing.
-        # If there were no resources in module, and we never made a dir, don't do anything.
-        if os.path.isdir(dir):
-            for j in util.get_files(dir):
-                p = os.path.join(dir, j)
-                if ignore_func and ignore_func(p):
-                    continue
-                if p not in moduleFilenames:
-                    os.remove(p)
-                    # Remove them from the list of unsaved changed things.
-
-                    if p in fnToModuleResource and fnToModuleResource[p] in modules_state.unsaved_changed_obj:
-                        saved.append(fnToModuleResource[p])
-                        del fnToModuleResource[p]
-        saved.append(modulename)
-        return saved
-    except Exception:
-        raise
-
-
-def saveToRam():
-    # Command line arguments plus file location should be good enough to
-    # tell instances apart on one machine
-    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)
-    uniqueInstanceId = hashlib.sha1(
-        uniqueInstanceId.encode("utf8")).hexdigest()[:24]
-    if os.path.exists("/dev/shm/"):
-        saveModules(os.path.join("/dev/shm/kaithem_" + util.getUser() +
-                                 "/" + uniqueInstanceId, "modulesbackup"), markSaved=False)
-
-
-def saveModules(where: str, markSaved=True):
-    """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
-    # List to keep track of saved modules and resources
-    saved = []
-    with modulesLock:
-        xxx = modules_state.unsaved_changed_obj.copy()
-        try:
-            util.ensure_dir2(os.path.join(where))
-            util.chmod_private_try(os.path.join(where))
-            # If there is a complete marker, remove it before we get started. This marks
-            # things as incomplete and then when loading it will use the old version
-            # when done saving we put the complete marker back.
-            if os.path.isfile(os.path.join(where, '__COMPLETE__')):
-                os.remove(os.path.join(where, '__COMPLETE__'))
-
-            # do the saving
-            for i in [i for i in modules_state.ActiveModules if not i in external_module_locations]:
-                saved.extend(saveModule(modules_state.ActiveModules[i], os.path.join(
-                    where, url(i, " ")), modulename=i))
-
-            for i in [i for i in modules_state.ActiveModules if i in external_module_locations]:
-                try:
-                    saved.extend(saveModule(
-                        modules_state.ActiveModules[i], external_module_locations[i], modulename=i, ignore_func=detect_ignorable))
-                except Exception:
-                    try:
-                        logger.exception(
-                            "Failed to save external module to" + str(external_module_locations[i]))
-                    except Exception:
-                        print(traceback.format_exc())
-                    messagebus.postMessage(
-                        "/system/notifications/errors", 'Failed to save external module:' + traceback.format_exc(8))
-
-            for i in util.get_immediate_subdirectories(where):
-                # Look in the modules directory, and if the module folder is not in ActiveModules\
-                # We assume the user deleted the module so we should delete the save file for it.
-                # Note that we URL url file names for the module filenames and foldernames.
-
-                # We also delete things that are in the "external_module_locations" because they have been moved there. Unless it happens to point here!
-                if util.unurl(i) not in modules_state.ActiveModules or (((util.unurl(i) in external_module_locations) and not external_module_locations[util.unurl(i)] == os.path.join(where, i))):
-                    shutil.rmtree(os.path.join(where, i))
-                    saved.append(util.unurl(i))
-
-            # Delete the .location pointer files to modules that have been deleted from ActiveModules
-            for i in util.get_files(where):
-                if i.endswith(".location") and not i[:-9] in modules_state.ActiveModules:
-                    os.remove(os.path.join(where, i))
-
-            for i in external_module_locations:
-                if not os.path.isfile(os.path.join(where, "__" + url(i, " ") + ".location")):
-                    with open(os.path.join(where, "__" + url(i, " ") + ".location"), "w+") as f:
-                        if not f.read() == external_module_locations[i]:
-                            f.seek(0)
-                            f.write(external_module_locations[i])
-                            f.flush()
-                            os.fsync(f.fileno())
-
-            # This is kind of a hack to deal with deleted external modules
-            for i in xxx:
-                if isinstance(i, str):
-                    saved.append(i)
-
-            with open(os.path.join(where, '__COMPLETE__'), 'w') as f:
-                util.chmod_private_try(os.path.join(
-                    where, '__COMPLETE__'), execute=False)
-                f.write(
-                    "By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
-                f.flush()
-                os.fsync(f.fileno())
-
-            # mark things that get created and deleted before ever saving so they don't persist in the unsaved list.
-            # note that we skip things beginning with __ because that is reserved and migh not even represent a module.
-            for i in modules_state.unsaved_changed_obj:
-                if isinstance(i, tuple) and len(i) > 1 and (not i[0].startswith("__")) and ((not i[0] in modules_state.ActiveModules) or (not i[1] in modules_state.ActiveModules[i[0]])):
-                    saved.append(i)
-                else:
-                    if isinstance(i, str) and not i.startswith("__") and not i in modules_state.ActiveModules:
-                        saved.append(i)
-
-            if markSaved:
-                # Now that we know the dump is actually valid, we remove those entries from the unsaved list for real
-                for i in saved:
-                    if i in modules_state.unsaved_changed_obj:
-                        del modules_state.unsaved_changed_obj[i]
-            modules_state.purgeSqliteBackup()
-
-        except Exception:
-            raise
 
 
 def loadModules(modulesdir: str):
@@ -1095,6 +736,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                 fn = os.path.join(folder, relfn)
                 if "/__filedata__/" in fn or fn.endswith("/__filedata__"):
                     continue
+                
                 # Create a directory resource for the dirrctory
                 module[util.unurl(relfn)] = {"resource-type": "directory"}
 
@@ -1123,12 +765,6 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
         # bookkeeponemodule(name)
 
 
-def parseTarget(t, module, in_ext=False):
-    if t.startswith("$MODULERESOURCES/"):
-        t = t[len('$MODULERESOURCES/'):]
-    return t
-
-
 def getModuleAsYamlZip(module, noFiles=True):
     incompleteError = False
     with modulesLock:
@@ -1142,7 +778,8 @@ def getModuleAsYamlZip(module, noFiles=True):
             if not isinstance(modules_state.ActiveModules[module][resource], dict):
                 continue
             # AFAIK Zip files fake the directories with naming conventions
-            s, ext = serializeResource(modules_state.ActiveModules[module][resource])
+            s, ext = serializeResource(
+                modules_state.ActiveModules[module][resource])
             z.writestr(url(module, " ") + '/' +
                        url(resource, safeFnChars) + ext, s)
             if modules_state.ActiveModules[module][resource]['resource-type'] == "internal-fileref":
@@ -1259,9 +896,6 @@ def load_modules_from_zip(f, replace=False):
             for i in new_modules:
                 modules_state.ActiveModules[i] = new_modules[i]
 
-                for j in modules_state.ActiveModules[i]:
-                    modules_state.createRecoveryEntry(
-                        i, j, modules_state.ActiveModules[i][j])
                 messagebus.postMessage("/system/notifications", "User " +
                                        pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
                 bookkeeponemodule(i)
@@ -1269,20 +903,16 @@ def load_modules_from_zip(f, replace=False):
             for i in new_modules:
                 if i in backup:
                     modules_state.ActiveModules[i] = backup[i]
-                    for j in modules_state.ActiveModules[i]:
-                        modules_state.createRecoveryEntry(
-                            i, j, modules_state.ActiveModules[i][j])
+
                     messagebus.postMessage("/system/notifications", "User " + pages.getAcessingUser(
                     ) + " uploaded module" + i + " from a zip file, but initializing failed. Reverting to old version.")
                     bookkeeponemodule(i)
             raise
         fileResourceAbsPaths.update(newfrpaths)
-
+        
         modules_state.modulesHaveChanged()
         for i in new_modules:
-            modules_state.unsaved_changed_obj[i] = "Changed or created by zip upload"
-            for j in new_modules[i]:
-                modules_state.unsaved_changed_obj[i, j] = "Changed or created by zip upload"
+            saveModule(modules_state.ActiveModules[i], i)
 
     z.close()
     return new_modules.keys()
@@ -1342,25 +972,32 @@ def mvResource(module, resource, toModule, toResource):
         usrpages.removeOnePage(module, resource)
         usrpages.updateOnePage(toResource, toModule)
         return
-    # Mark the old as deleted and the new as created in the recovery database
-    modules_state.createRecoveryEntry(module, resource, None)
-    modules_state.createRecoveryEntry(toModule, toResource)
+
+    o = modules_state.ActiveModules[toModule][toResource]
+    os.makedirs(os.path.dirname(getResourceFn(toModule, toResource, o)))
+    shutil.move(getResourceFn(module, resource, o),
+                getResourceFn(toModule, toResource, o))
 
 
 def rmResource(module, resource, message="Resource Deleted"):
     "Delete one resource by name, message is an optional message explaining the change"
-    modules_state.modulesHaveChanged()
-    modules_state.unsaved_changed_obj[(module, resource)] = message
-
     with modulesLock:
         r = modules_state.ActiveModules[module].pop(resource)
-        modules_state.createRecoveryEntry(module, resource, None)
+        modules_state.modulesHaveChanged()
     try:
         if r['resource-type'] == 'page':
             usrpages.removeOnePage(module, resource)
 
         elif r['resource-type'] == 'event':
             newevt.removeOneEvent(module, resource)
+
+        elif r['resource-type'] == 'directory':
+
+            # Directories are special, they can have the extra data file
+            fn = getResourceFn(module, resource, r) + '.yaml'
+
+            if os.path.exists(fn):
+                os.remove(fn)
 
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules()  # sync auth's list of permissions
@@ -1376,6 +1013,12 @@ def rmResource(module, resource, message="Resource Deleted"):
 
         else:
             additionalTypes[r['resource-type']].ondelete(module, resource, r)
+
+        fn = getResourceFn(module, resource, r)
+
+        if os.path.exists(fn):
+            os.remove(fn)
+
     except Exception:
         messagebus.postMessage("/system/modules/errors/unloading",
                                "Error deleting resource: " + str((module, resource)))
@@ -1383,8 +1026,6 @@ def rmResource(module, resource, message="Resource Deleted"):
 
 def newModule(name, location=None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
-    modules_state.modulesHaveChanged()
-    modules_state.unsaved_changed_obj[name] = "Module Created"
 
     # If there is no module by that name, create a blank template and the scope obj
     with modulesLock:
@@ -1402,29 +1043,30 @@ def newModule(name, location=None):
                 loadModule(location, name)
             else:
                 modules_state.ActiveModules[name] = {"__description":
-                                       {"resource-type": "module-description",
-                                        "text": ""}}
+                                                     {"resource-type": "module-description",
+                                                      "text": ""}}
         else:
             modules_state.ActiveModules[name] = {"__description":
-                                   {"resource-type": "module-description",
-                                    "text": ""}}
-        modules_state.createRecoveryEntry(
-            name, "__description", modules_state.ActiveModules[name]["__description"])
+                                                 {"resource-type": "module-description",
+                                                  "text": ""}}
+
         bookkeeponemodule(name)
         # Go directly to the newly created module
         messagebus.postMessage("/system/notifications", "User " +
                                pages.getAcessingUser() + " Created Module " + name)
         messagebus.postMessage(
             "/system/modules/new", {'user': pages.getAcessingUser(), 'module': name})
+        
+        modules_state.modulesHaveChanged()
+        saveModule(modules_state.ActiveModules[name], name)
 
 
 def rmModule(module, message="deleted"):
-    modules_state.modulesHaveChanged()
-    modules_state.unsaved_changed_obj[module] = message
+
     with modulesLock:
         x = modules_state.ActiveModules.pop(module)
         j = {i: copy.deepcopy(x[i])
-             for i in x if not(isinstance(x[i], weakref.ref))}
+             for i in x if not (isinstance(x[i], weakref.ref))}
         scopes.pop(module)
 
     # Delete any custom resource types hanging around.
@@ -1436,15 +1078,23 @@ def rmModule(module, message="deleted"):
             except Exception:
                 messagebus.postMessage(
                     "/system/modules/errors/unloading", "Error deleting resource: " + str(module, k))
-        modules_state.createRecoveryEntry(module, k, None)
+
     # Get rid of any lingering cached events
     newevt.removeModuleEvents(module)
     # Get rid of any permissions defined in the modules.
     auth.importPermissionsFromModules()
     usrpages.removeModulePages(module)
+
     with modulesLock:
         if module in external_module_locations:
             del external_module_locations[module]
+
+    fn = getModuleFn(module)
+
+    if os.path.exists(fn):
+        shutil.rmtree(fn)
+
+    modules_state.modulesHaveChanged()
     # Get rid of any garbage cycles associated with the event.
     gc.collect()
     messagebus.postMessage("/system/modules/unloaded", module)
@@ -1454,4 +1104,3 @@ def rmModule(module, message="deleted"):
 
 class KaithemEvent(dict):
     pass
-

@@ -453,7 +453,8 @@ class WebInterface():
 
                     def insertResource(r):
                         modules_state.ActiveModules[root][escapedName] = r
-                        modules_state.createRecoveryEntry(root, escapedName, r)
+                        modules.saveResource(root, kwargs['name'], r)
+
                     # END BLOCK OF COPY PASTED CODE.
 
                     insertResource({'resource-type': 'internal-fileref', 'target': "$MODULERESOURCES/"+url(
@@ -595,10 +596,11 @@ def addResourceTarget(module, type, name, kwargs, path):
     modules_state.unsaved_changed_obj[(root, escapedName)
                         ] = "Resource added by" + pages.getAcessingUser()
 
+
     def insertResource(r):
         r['resource-timestamp'] = int(time.time()*1000000)
         modules_state.ActiveModules[root][escapedName] = r
-        modules_state.createRecoveryEntry(module, escapedName, r)
+        modules.saveResource(root, name, r)
 
     with modules_state.modulesLock:
         # Check if a resource by that name is already there
@@ -745,7 +747,7 @@ def resourceUpdateTarget(module, resource, kwargs):
         if t == 'permission':
             resourceobj['description'] = kwargs['description']
             # has its own lock
-            modules_state.createRecoveryEntry(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj)
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         elif t == 'internal-fileref':
@@ -764,15 +766,8 @@ def resourceUpdateTarget(module, resource, kwargs):
                     if kwargs[i] == 'true':
                         resourceobj['require-permissions'].append(i[10:])
 
-            modules_state.createRecoveryEntry(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj)
             usrpages.updateOnePage(resource, module)
-
-        elif t == "k4dprog_sq":
-            resourceobj['code'] = kwargs['code']
-            resourceobj['device'] = kwargs['device']
-            resourceobj['prgid'] = kwargs['prgid']
-            modules_state.createRecoveryEntry(module, resource, resourceobj)
-            devices.updateProgram(module, resource, resourceobj)
 
         elif t == 'event':
             evt = None
@@ -816,7 +811,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                         r2.pop("versions")
 
                     resourceobj['versions']['__draft__'] = copy.deepcopy(r2)
-                    modules_state.createRecoveryEntry(
+                    modules.saveResource(
                         module, resource, resourceobj)
 
                     messagebus.postMessage("system/errors/misc/failedeventupdate",
@@ -855,7 +850,7 @@ def resourceUpdateTarget(module, resource, kwargs):
             except:
                 pass
 
-            modules_state.createRecoveryEntry(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj)
 
             # if the test compile fails, evt will be None and the function will look up the old one in the modules database
             # And compile that. Otherwise, we avoid having to double-compile.
@@ -896,11 +891,11 @@ def resourceUpdateTarget(module, resource, kwargs):
                     if kwargs[i] == 'true':
                         resourceobj['require-permissions'].append(i[10:])
 
-            modules_state.createRecoveryEntry(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj)
             usrpages.updateOnePage(resource, module)
 
         else:
-            modules_state.createRecoveryEntry(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj)
             additionalTypes[resourceobj['resource-type']
                             ].update(module, resource, kwargs)
 

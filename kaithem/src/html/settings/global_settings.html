@@ -6,6 +6,12 @@ import yaml,os
 jacksettingsfile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
 jacksettings = persist.getStateFile(jacksettingsfile)
 
+
+upnpsettingsfile = os.path.join(
+    directories.vardir, "core.settings", "upnpsettings.yaml")
+
+upnpsettingsfile = persist.getStateFile(upnpsettingsfile)
+
 location = geolocation.getLocation('default')
 
 %>
@@ -37,7 +43,7 @@ passwords are very strong. This will open a port on all discovered routers if en
 <table border=1>
 <tr>
 <td>HTTPS WAN Port(0 to disable forwarding)</td>
-<td><input name="exposeport" value="${registry.get('/system/upnp/expose_https_wan_port',0)}".></td>
+<td><input name="exposeport" value="${upnpsettingsfile.get('wan_port',0)}".></td>
 </tr>
 </table>
 <input type="submit" >

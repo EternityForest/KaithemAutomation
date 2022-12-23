@@ -38,8 +38,8 @@ else:
     file = {}
 
 # Legacy registry stuff.
-lat = registry.get("system/location/lat", None)
-lon = registry.get("system/location/lon", None)
+lat = None
+lon = None
 
 country = None
 city = None

@@ -596,21 +596,6 @@ management system.
 Returns True is the specified use has the given permission and False
 otherwise. Also returns False if the user does not exist.
 
-### kaithem.registry
-
-The kaithem registry is a persistance store for small amounts of
-configuration data. It does not get saved to disk until the server state
-is saved, or a configured autosave occurs. Use of this is deprecated.  APIs remain as they were, for now.
-
-Use Python's configparse, YAML, or the kaithem.persist namespace in your own folder in the vardir instead.
-
-Kaithem.persist is suggested as it protects from unecessesarily rewriting a file.
-
-If you would like to only save when the user explicity uses global save, listen on the /system/save message topic.
-
-When you have dirty data, use kaithem.persist.unsaved to create a notification.
-
-
 
 ### kaithem.midi
 This namespace deals with MIDI.
@@ -1085,8 +1070,6 @@ expanded if expand is set to true.
 Each module should in general have it's own subfolder in this data
 directory unless the data will be shared between modules
 
-Note that you may want to use the registry instead to save SD card wear
-by keeping changes in RAM until explicitly saved.
 
 To store things directly in the vardir, use kaithem.misc.vardir
 to find it.
