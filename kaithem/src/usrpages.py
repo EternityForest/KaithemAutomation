@@ -139,10 +139,12 @@ class CompiledPageAPIObject():
         if not isinstance(c, str):
             raise RuntimeError("Content must be a string")
         modules_state.modulesHaveChanged()
-        modules_state.unsavedChanges[(self.page.module, self.page.resourceName)] = "Resource modified by" + \
-            pages.getAcessingUser()+" via self-modifying content feature"
+
+
         self.page.resource['body'] = c
         self.page.refreshFromResource()
+
+        modules_state.saveResource(self.page.module, self.page.resourceName, self.page.resource)
 
     def getContent(self):
         return self.page.resource['body']

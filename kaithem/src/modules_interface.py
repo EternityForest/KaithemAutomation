@@ -169,11 +169,7 @@ class WebInterface():
         pages.postOnly()
         modules_state.modulesHaveChanged()
         for i in load_modules_from_zip(modulesfile.file, replace='replace' in kwargs):
-            modules_state.unsaved_changed_obj[i] = "Module uploaded by" + \
-                pages.getAcessingUser()
-            for j in modules_state.ActiveModules[i]:
-                modules_state.unsaved_changed_obj[i, j] = "Resource is part of module uploaded by" + \
-                    pages.getAcessingUser()
+            pass
 
         messagebus.postMessage("/system/modules/uploaded",
                                {'user': pages.getAcessingUser()})
@@ -742,6 +738,8 @@ def resourceUpdateTarget(module, resource, kwargs):
     modules_state.modulesHaveChanged()
     modules_state.unsaved_changed_obj[(module, resource)
                         ] = "Resource modified by" + pages.getAcessingUser()
+
+    compiled_object = None
                         
     with modules_state.modulesLock:
         t = modules_state.ActiveModules[module][resource]['resource-type']
@@ -752,7 +750,6 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj['description'] = kwargs['description']
             # has its own lock
             modules.saveResource(module, resource, resourceobj, newname)
-            auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         elif t == 'internal-fileref':
             resourceobj['serve'] = 'serve' in kwargs
@@ -771,10 +768,9 @@ def resourceUpdateTarget(module, resource, kwargs):
                         resourceobj['require-permissions'].append(i[10:])
 
             modules.saveResource(module, resource, resourceobj, newname)
-            usrpages.updateOnePage(resource, module)
 
         elif t == 'event':
-            evt = None
+            compiled_object = None
             # Test compile, throw error on fail.
 
             if 'tabtospace' in kwargs:
@@ -804,8 +800,8 @@ def resourceUpdateTarget(module, resource, kwargs):
                     newevt.removeOneEvent(module, resource)
                     # Leave a delay so that effects of cleanup can fully propagate.
                     time.sleep(0.08)
-                    # UMake event from resource, but use our substitute modified dict
-                    evt = newevt. make_event_from_resource(
+                    # Make event from resource, but use our substitute modified dict
+                    compiled_object = newevt. make_event_from_resource(
                         module, resource, r2)
 
                 except Exception as e:
@@ -855,10 +851,6 @@ def resourceUpdateTarget(module, resource, kwargs):
                 pass
 
             modules.saveResource(module, resource, resourceobj, newname)
-
-            # if the test compile fails, evt will be None and the function will look up the old one in the modules database
-            # And compile that. Otherwise, we avoid having to double-compile.
-            newevt.updateOneEvent(resource, module, evt)
             resourceobj = r2
 
         elif t == 'page':
@@ -896,17 +888,17 @@ def resourceUpdateTarget(module, resource, kwargs):
                         resourceobj['require-permissions'].append(i[10:])
 
             modules.saveResource(module, resource, resourceobj, newname)
-            usrpages.updateOnePage(resource, module)
 
         else:
             modules.saveResource(module, resource, resourceobj, newname)
-            additionalTypes[resourceobj['resource-type']
-                            ].update(module, resource, kwargs)
 
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
                 # Just handles the internal stuff
                 mvResource(module, resource, module, kwargs['name'])
+
+        # We can pass a compiled object for things like events that would otherwise have to have a test compile then the real compile
+        modules.handleResourceChange(module, kwargs['name'], compiled_object)
 
     messagebus.postMessage("/system/notifications", "User " + pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)

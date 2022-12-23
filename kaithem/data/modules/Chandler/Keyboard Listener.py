@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1671818395151401
+resource-timestamp: 1671836834260840
 resource-type: event
 versions: {}
 
@@ -46,7 +46,7 @@ if __name__=='__setup__':
     def on_press(key):
         try:
             try:
-                if key.char is None:
+                if key.char is not None:
                     kaithem.chandler.event("serverkeydown."+key.char)
                 raise AttributeError("?")
             except AttributeError:
@@ -62,7 +62,7 @@ if __name__=='__setup__':
     def on_release(key):
         try:
             try:
-                if key.char is None:
+                if key.char is not None:
                     kaithem.chandler.event("serverkeyup."+key.char)
                 raise AttributeError("?")
             except AttributeError:

@@ -48,7 +48,7 @@ tagpoints.exposedTags.keys()})
                 saveToKaithem = function () {
                     var d = freeboard.serialize();
                     $.post(window.location.pathname, { 'bd': JSON.stringify(d) }).done(function () {
-                        alert("Page has been modified! Save Kaithem's server state to make changes permanent.")
+                        alert("Page has been modified!")
                         var foo = freeboard.unsaved
                         for (var prop in foo) {
                             if (foo.hasOwnProperty(prop)) {
