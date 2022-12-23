@@ -8,6 +8,7 @@ Change Log
 - :lipstick: Devices page has one-click control of smart plugs, bulbs, and YoLink sirens.
 - :lipstick: More compact temperature meter widgets
 - :coffin: Remove the SculleryMQTT plugin as it was very complex and confusing.  Shared MQTT connections are no longer recommended.
+- :coffin: Nuisiance print statement removal
 
 
 ### 0.68.38
