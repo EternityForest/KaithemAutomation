@@ -736,7 +736,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                 fn = os.path.join(folder, relfn)
                 if "/__filedata__/" in fn or fn.endswith("/__filedata__"):
                     continue
-                
+
                 # Create a directory resource for the dirrctory
                 module[util.unurl(relfn)] = {"resource-type": "directory"}
 
@@ -975,8 +975,11 @@ def mvResource(module, resource, toModule, toResource):
 
     o = modules_state.ActiveModules[toModule][toResource]
     os.makedirs(os.path.dirname(getResourceFn(toModule, toResource, o)))
-    shutil.move(getResourceFn(module, resource, o),
-                getResourceFn(toModule, toResource, o))
+
+    # Don't move if the file is already saved under the right name
+    if os.path.exists(getResourceFn(module, resource, o)):
+        shutil.move(getResourceFn(module, resource, o),
+                    getResourceFn(toModule, toResource, o))
 
 
 def rmResource(module, resource, message="Resource Deleted"):

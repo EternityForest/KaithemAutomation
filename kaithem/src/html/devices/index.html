@@ -2,7 +2,7 @@
 
 <%! 
 from src import devices,modules_state
-import os
+import os, gc
 from src import directories
 import urllib.parse
 
@@ -196,19 +196,30 @@ ${device(i)}
 </div>
 
 
+<%
+d =  devices.getZombies()
+%>
 
 
 
-
-%if devices.getZombies():
+%if d:
 <h2>Zombie Devices</h2>
-%for i in sorted(devices.getZombies()):
-<h3>${i}</h3>
+%for i in sorted(d):
+<h3>${i[0]|h}</h3>
+<pre>
+    ${gc.get_referrers(i[1])|h}
+    ${gc.get_referrers(gc.get_referrers(i[1])[0])}
+</pre>
 <p>
 
 </p>
 %endfor
 %endif
+
+<%
+del d
+%>
+
 
 <datalist id="deviceTypes">
     %for i in devices.builtinDeviceTypes:

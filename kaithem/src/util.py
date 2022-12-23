@@ -150,8 +150,6 @@ def SaveAllState():
 
             if auth.dumpDatabase():
                 x = True
-            if registry.sync():
-                x = True
 
             from . import directories
             messagelogging.saveLogList()

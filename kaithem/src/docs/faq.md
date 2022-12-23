@@ -20,10 +20,6 @@ Kaithem won't mess with your .git folder should you choose to use git.
 
 
 
-Registry configuration is stored similarly, if you want to version control that too. It is stored in readable YAML, so git will handle it nicely.
-
-
-
 ### JACK Audio doesn't work or sounds bad
 
 You may  need threadirqs. Check that kaithem's user can
@@ -60,11 +56,6 @@ usermod -a -G video kaithem
 usermod -a -G uucp kaithem
 ```
 
-### I Restarted Kaithem, but all my changes are still there?
-
-Yup! On Linux, Kaithem uses /dev/shm ramdisks to store changes without saving to disk until the next save.
-
-These go away when the system loses power, so be sure to actually save or set up autosave.
 
 ### Where does Kaithem store data?
 
@@ -119,11 +110,6 @@ simple and easy to read format. YAML example:
 NOTE: Kaithem will **only** load the configuration file on startup and
 you must reload kaithem for the changes to take effect.
 
-### My message bus data is not being saved to the log files! Help!
-
-Kaithem only saves topics to the hard drive if they are in the list of
-things to save. Go to the logging page and select the channels you are
-interested in. 
 
 ### What is with these security certificate errors?
 
@@ -161,107 +147,12 @@ better off creating a page with the appropriate permissions, and using
 You don't have permission to access that page. If you are admin, go to
 the authorization page and give yourself that permission.
 
-### I am not using flash memory, and would like to set up autosave
-
-By default, Kaithem tries to avoid automatic disk writes. This is to
-avoid wearing out low-cost flash storage on devices such as the RasPi.
-However, if you would like to configure the server to save the state on
-an interval, you can set the
-
-    autosave-state
-
-option in the configuration to an interval specified like "1 hour" or "1
-day" or 1 day 3 minutes.
-
-Valid units are second,minute,hour,day,week,month,year. Autosaving will
-not happen more than onceper minute no matter the setting and if data is
-unchanged disk will be untouched. A "month" when used as a length of
-time, is a year/12.
-
-**autosave-state does not touch log files. Use autosave-log for that.
-It's semantics are the same.**
-
-In addition to periodic saves, you might want to consider setting
-
-    save-before-shutdown
-
-to
-
-    yes
-
-This will tell the server to save everything including log dumps before
-shutting down.
 
 ### I would like to back up the code that I wrote in Kaithem
 
 At the moment, the easiest way to do this is just to make a copy of the
 folder where your variable data is kept. See "How do I use version control"
 for more info.
-
-### How exactly does logging work?
-
-Logging is now disabled by default. To enable it, set log-format to
-'normal' in the configuration. We now use python's standard logging
-module. You can view all output of the root logger from the logging
-page, but only log output from the logger named "system" at INFO and
-above will be logged to file, to avoid issues with libraries that spam
-large amounts to the log files.
-
-A disadvantage of python's logging module is that you cannot really
-delete a logger in an officially supported way. As loggers are
-reasonably lightweight this should not be an issue, but don't create
-huge amounts of loggers.
-
-Until a better solution is implemented, Using one or two loggers per
-module will likely not cause any problems.
-
-In general, traffic to kaithem's system log should remain low. HTTP
-acesses, normal things that happen more than once a minute, etc should
-not be logged there. Even when errors are occuring, only the first few
-in a minute should be logged.
-
-Try not to create too much traffic on the root logger either in normal
-use. Posting a debug message to root for every error is fine, because
-normally there should not be dozens of errors a second. But don't just
-spam it all the time, the root logger's debug output should be readable
-and reasonably understandable in real time.
-
-    keep-log-files
-
-configuration option deterimines how much space log files will consume
-before the oldest are deleted. The default is
-
-    256m
-
-or 256 Megabytes. You can use the suffixes k,m,and g, and if you don't
-supply a suffix, the number will be interpreted as bytes(!)
-
-Log files are kept in ram until manually dumped, automatically dumped by
-the autosave-logs timer, or the total number of log entries exceeds the
-log-buffer value in the config, at which point they are dumped to
-logging/dumps in the kaithem vardir. It is 25000 by default. Set it to 1
-to write all logs immediately to the file, but only if you are using a
-hard disk or high endurance SSD.
-
-log-dump-size determines how many entries to log to each file before
-starting a new one. It is also 25000 by default.
-
-Logs can also be compressed with the option
-
-    log-compress
-
-This option can take any of:
-
--   none
--   gzip
--   bz2
-
-Compressed files will have the extension
-
-    .json.gz or .json.bz2
-
-The old JSON direct logging of message bus topics is no longer
-supported.
 
 ### Can I customize Kaithem's appearance for my specific deployment?
 
@@ -522,8 +413,3 @@ Internally, the setup code is run once during the 'test compile', then
 once when actually creating the event. The object created in the test
 compile is deteted, so all deleters are honored. Your setup setions
 should be retry tolerant anyway, but this issue may be fixed later
-
-### I need better data reliability than simple autosave
-
-Then you should probably use sqlite, which is built into python, or
-another transactional database.

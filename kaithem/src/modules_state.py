@@ -175,10 +175,17 @@ def writeResource(obj, fn: str):
 
 
 
-def saveResource(m, r, resourceData):
+def saveResource(m, r, resourceData, name=None):
     modulename, resource = m, r
+    name = name or resource
+
     # Open a file at /where/module/resource
     fn = getResourceFn(modulename, resource, resourceData)
+    newfn = getResourceFn(modulename, name, resourceData)
+
+    if not newfn == fn:
+        if os.path.exists(newfn):
+            raise ValueError("File exists: "+ newfn)
 
     if resourceData['resource-type'] == "directory":
         d = copy.deepcopy(resourceData)
@@ -192,6 +199,9 @@ def saveResource(m, r, resourceData):
     # Allow non-saved virtual resources
     if not hasattr(resourceData, "ephemeral") or resourceData.ephemeral == False:
         writeResource(resourceData, fn)
+    
+    if not newfn == fn:
+        shutil.move(fn, newfn)
 
 
     if resourceData['resource-type'] == "internal-fileref":

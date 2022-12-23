@@ -65,8 +65,6 @@ syslogger = logging.getLogger("system.devices")
 
 dbgd = weakref.WeakValueDictionary()
 
-unsaved_changes = {}
-
 
 class DeviceResourceType():
     def onload(self, module, name, value):
@@ -120,14 +118,14 @@ additionalTypes['device'] = drt
 
 def getZombies():
     x = []
+    v = remote_devices.values()
     for i in dbgd:
-        if not dbgd[i] in remote_devices.values():
-            x.append(i)
+        if not dbgd[i] in v:
+            x.append((i, dbgd[i]))
     return x
 
 
-def saveAsFiles():
-    global unsaved_changes
+def saveDevice(d):
     sd = device_data
     saveLocation = os.path.join(directories.vardir, "devices")
     if not os.path.exists(saveLocation):
@@ -136,21 +134,14 @@ def saveAsFiles():
     saved = {}
     # Lock used to prevent conflict, saving over each other with nonsense data.
     with modules_state.modulesLock:
-        for i in sd:
+        if d in sd:
             saved[i + ".yaml"] = True
-            persist.save(sd[i], os.path.join(saveLocation, i + ".yaml"))
+            persist.save(sd[d], os.path.join(saveLocation, d + ".yaml"))
 
-        # Delete everything not in folder
-        for i in os.listdir(saveLocation):
-            fn = os.path.join(saveLocation, i)
-            if os.path.isfile(fn) and i.endswith(".yaml"):
-                if i not in saved:
-                    os.remove(fn)
-        unsaved_changes = {}
-
-
-messagebus.subscribe("/system/save", saveAsFiles)
-
+        if d not in sd:
+            fn = os.path.join(saveLocation, d+".yaml")
+            if os.path.isfile(fn):
+                os.remove(fn)
 
 def wrcopy(x):
     return {i: weakref.ref(x[i]) for i in x}
@@ -275,7 +266,7 @@ class Device():
                     # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
                     if self.name in device_data:
                         device_data[self.name][key] = v
-                        unsaved_changes[self.name] = True
+                        saveDevice(self.name)
 
     def setObject(self, key, val):
         # Store data
@@ -1020,7 +1011,6 @@ def updateDevice(devname, kwargs, saveChanges=True):
     if hasattr(raw_dt, "validateData"):
         raw_dt.validateData(kwargs)
 
-    unsaved_changes[devname] = True
     old_bindings = {}
     old_read_perms = {}
     old_write_perms = {}
@@ -1062,11 +1052,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
                 modules_state.unsaved_changed_obj[
                     parentModule, parentResource] = "Device Changed or renamed"
                 modules_state.saveResource(
-                    parentModule, parentResource, None)
-
-                # Forbid moving to new module for now, specifically we don't want to move to nonexistent
-                name = parentModule + "/" + name.split("/", 1)[-1]
-                parentResource = name.split("/", 1)[-1]
+                    parentModule, parentResource,  name.split("/", 1)[-1], name)
 
         else:
             raise RuntimeError("No such device to update")
@@ -1109,8 +1095,8 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
         else:
             # Allow name changing via data, we save under new, not the old name
-            device_data[name] = d2
-            unsaved_changes[kwargs['name']] = True
+            device_data[name] = d
+            saveDevice(name)
 
         if not subdevice:
             remote_devices[name] = makeDevice(name, kwargs, parentModule,
@@ -1124,9 +1110,11 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
             configureInputBindings(remote_devices[name])
 
+
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
         messagebus.postMessage("/devices/added/", name)
+
 
 
 class WebDevices():
@@ -1270,7 +1258,7 @@ class WebDevices():
                     for i in kwargs if not i.startswith('temp.')
                 }
                 device_data[name] = d
-                unsaved_changes[name] = True
+                
 
             if name in remote_devices:
                 remote_devices[name].close()
@@ -1278,6 +1266,8 @@ class WebDevices():
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
             messagebus.postMessage("/devices/added/", name)
+
+        saveDevice(name)
 
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -1418,11 +1408,14 @@ class WebDevices():
                     x.parentResource]
 
                 modules_state.modulesHaveChanged()
-                
+
                 fn = modules_state.getResourceFn(x.parentModule, x.parentResource, r)
 
                 if os.path.exists(fn):
                     os.remove(fn)
+                    
+            # no zombie reference
+            del x
 
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
@@ -1433,7 +1426,8 @@ class WebDevices():
             time.sleep(0.2)
             gc.collect()
 
-            unsaved_changes[name] = True
+
+            saveDevice(name)
             messagebus.postMessage("/devices/removed/", name)
 
         raise cherrypy.HTTPRedirect("/devices")

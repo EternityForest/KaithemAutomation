@@ -12,7 +12,7 @@ Change Log
 - :coffin: Remove fallback to legacy registry stuff
 - :sparkles: UPnP saved in a file, not the registry
 - :coffin: BREAKING: You will need to re-set up UPnP if you were using it
-- :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately
+- :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately.
 
 
 ### 0.68.38
