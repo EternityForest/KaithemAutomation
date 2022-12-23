@@ -734,11 +734,15 @@ def permissionEditPage(module, resource):
 
 # The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module, resource, kwargs):
+
+    newname = kwargs['name']
+
     pages.require("/admin/modules.edit", noautoreturn=True)
     pages.postOnly()
     modules_state.modulesHaveChanged()
     modules_state.unsaved_changed_obj[(module, resource)
                         ] = "Resource modified by" + pages.getAcessingUser()
+                        
     with modules_state.modulesLock:
         t = modules_state.ActiveModules[module][resource]['resource-type']
         resourceobj = modules_state.ActiveModules[module][resource]
@@ -747,7 +751,7 @@ def resourceUpdateTarget(module, resource, kwargs):
         if t == 'permission':
             resourceobj['description'] = kwargs['description']
             # has its own lock
-            modules.saveResource(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj, newname)
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         elif t == 'internal-fileref':
@@ -766,7 +770,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                     if kwargs[i] == 'true':
                         resourceobj['require-permissions'].append(i[10:])
 
-            modules.saveResource(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj, newname)
             usrpages.updateOnePage(resource, module)
 
         elif t == 'event':
@@ -812,7 +816,7 @@ def resourceUpdateTarget(module, resource, kwargs):
 
                     resourceobj['versions']['__draft__'] = copy.deepcopy(r2)
                     modules.saveResource(
-                        module, resource, resourceobj)
+                        module, resource, resourceobj, newname)
 
                     messagebus.postMessage("system/errors/misc/failedeventupdate",
                                            "In: " + module + " "+resource + "\n" + traceback.format_exc(4))
@@ -850,7 +854,7 @@ def resourceUpdateTarget(module, resource, kwargs):
             except:
                 pass
 
-            modules.saveResource(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj, newname)
 
             # if the test compile fails, evt will be None and the function will look up the old one in the modules database
             # And compile that. Otherwise, we avoid having to double-compile.
@@ -891,16 +895,17 @@ def resourceUpdateTarget(module, resource, kwargs):
                     if kwargs[i] == 'true':
                         resourceobj['require-permissions'].append(i[10:])
 
-            modules.saveResource(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj, newname)
             usrpages.updateOnePage(resource, module)
 
         else:
-            modules.saveResource(module, resource, resourceobj)
+            modules.saveResource(module, resource, resourceobj, newname)
             additionalTypes[resourceobj['resource-type']
                             ].update(module, resource, kwargs)
 
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
+                # Just handles the internal stuff
                 mvResource(module, resource, module, kwargs['name'])
 
     messagebus.postMessage("/system/notifications", "User " + pages.getAcessingUser() + " modified resource " +

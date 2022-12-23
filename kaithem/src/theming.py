@@ -30,11 +30,6 @@ def saveTheme(*a,**k):
     persist.save(file, fn, private=True)
     persist.unsavedFiles.pop(fn,"")
 
-def setDirty():
-    persist.unsavedFiles[fn]="Theme changed"
-
 
 def getCSSTheme():
     return file['web']['csstheme'] or config['theme-url']
-
-messagebus.subscribe("/system/save", saveTheme)

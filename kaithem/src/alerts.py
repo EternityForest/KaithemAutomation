@@ -28,21 +28,6 @@ def saveSettings(*a,**k):
     persist.save(file, fn, private=True)
     persist.unsavedFiles.pop(fn,"")
 
-def settingsDirty():
-    persist.unsavedFiles[fn]="Alert settings changed"
-
-messagebus.subscribe("/system/save", saveSettings)
-
-
-
-
-
-
-
-
-
-
-
 
 
 # This is a dict of all alerts that have not yet been acknowledged.

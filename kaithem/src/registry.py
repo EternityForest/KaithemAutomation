@@ -362,6 +362,10 @@ def delete(key):
         k = f['keys']
         del k[key]
 
+        # Sync right away, we no longer have code to sync later
+
+        sync()
+
 
 def exists(key):
     if key in cache:

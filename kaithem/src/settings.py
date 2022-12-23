@@ -463,7 +463,7 @@ class Settings():
         alerts.file['error']['file'] = kwargs['errorsound']
         alerts.file['critical']['file'] = kwargs['critsound']
         alerts.file['all']['soundcard'] = kwargs['soundcard']
-        alerts.settingsDirty()
+        alerts.saveSettings()
 
         raise cherrypy.HTTPRedirect('/settings/system')
 
@@ -495,7 +495,7 @@ class Settings():
         pages.postOnly()
         from . import theming
         theming.file['web']['csstheme'] = kwargs['cssfile']
-        theming.setDirty()
+        theming.saveTheme()
         raise cherrypy.HTTPRedirect('/settings/theming')
 
     @cherrypy.expose
