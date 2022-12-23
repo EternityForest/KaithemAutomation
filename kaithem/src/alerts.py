@@ -1,4 +1,4 @@
-from src import statemachines, widgets, registry, scheduling, workers, pages, messagebus, unitsofmeasure, auth
+from src import statemachines, widgets, scheduling, workers, pages, messagebus, unitsofmeasure, auth
 from typeguard import typechecked
 from typing import Union
 import logging

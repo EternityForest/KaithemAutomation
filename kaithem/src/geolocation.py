@@ -15,7 +15,7 @@
 
 import logging
 import os
-from src import directories, registry, messagebus
+from src import directories, messagebus
 from scullery import persist
 from urllib.request import urlopen
 import time
@@ -37,7 +37,6 @@ if os.path.exists(fn):
 else:
     file = {}
 
-# Legacy registry stuff.
 lat = None
 lon = None
 

@@ -1,7 +1,8 @@
 Change Log
 ----------
 
-### 0.68.39
+### 0.68.39 Fresh and Free! Closer to 1.0
+
 - :bug: Make it so tag subscribers never fire at all if the timestamp is zero.
 - :sparkles: Support for YoLink devices via the(unencrypted) cloud API
 - :lipstick: Devices page much simpler and cleaner
@@ -10,10 +11,12 @@ Change Log
 - :coffin: Remove the SculleryMQTT plugin as it was very complex and confusing.  Shared MQTT connections are no longer recommended.
 - :coffin: Nuisiance print statement removal
 - :coffin: Remove fallback to legacy registry stuff
+- :coffin: BREAKING: Completely remove the registry. You will need to update Chandler to the new included version.
+
 - :sparkles: UPnP saved in a file, not the registry
 - :coffin: BREAKING: You will need to re-set up UPnP if you were using it
 - :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately.
-
+- :bug: Fix zombie devices staying around after deletion
 
 ### 0.68.38
 - :arrow_up: Update tinytag

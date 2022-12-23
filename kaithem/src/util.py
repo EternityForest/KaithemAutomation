@@ -141,7 +141,7 @@ def url(string, safe=''):
 
 def SaveAllState():
     # fix circular import by putting it here
-    from . import auth, modules, messagelogging, messagebus, registry, pylogginghandler
+    from . import auth, modules, messagelogging, messagebus, pylogginghandler
     with savelock:
         try:
             x = False
@@ -165,12 +165,11 @@ def SaveAllState():
 
 def SaveAllStateExceptLogs():
     # fix circular import
-    from . import auth, modules, messagelogging, messagebus, registry
+    from . import auth, modules, messagelogging, messagebus
     with savelock:
         try:
             x = False
             x = x or auth.dumpDatabase()
-            x = x or registry.sync()
             messagelogging.saveLogList()
             if x:
                 # Send the message only if something was actually saved.

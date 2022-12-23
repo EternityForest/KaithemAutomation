@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1663194379714258
+resource-timestamp: 1671835407677572
 resource-type: event
 versions: {}
 
@@ -23,12 +23,13 @@ if __name__=='__setup__':
     
     
     module.config ={
-        'soundFolders':kaithem.registry.get("lighting/soundfolders",[]),
-        'allowAllTags':False,
-        'netTime':kaithem.registry.get("lighting/nettime",False)
+        'soundFolders': [],
+        'allowAllTags': False,
+        'netTime': False
     }
     
     saveLocation = os.path.join(kaithem.misc.vardir,"chandler")
+    
     if  os.path.exists( os.path.join(saveLocation,"config.yaml")):
         module.config.update(kaithem.persist.load(os.path.join(saveLocation,"config.yaml")))
     
