@@ -40,14 +40,19 @@ ethernetClaim = ethernet.claim(-1, "NetworkManager", 70)
 #Because that would probably mean it is using wifi as a fallback and should still have ethernet.
 wifi.setAlarm("NoWiredNetwork", "(value>-1) and (value < 1) and not (tv('/system/wifiStrength') or (value > -1))", autoAck='yes')
 
+getAllDevicesAttempted = []
+
 def getConnectionStatus():
 
     d = {}
     import NetworkManager
-    try:
-        devs = NetworkManager.NetworkManager.GetAllDevices()
-        print("Err getting devices, using fallback")
-    except:
+    if not getAllDevicesAttempted[0]:
+        try:
+            devs = NetworkManager.NetworkManager.GetAllDevices()
+        except Exception:
+            getAllDevicesAttempted[0] = 1
+            devs = NetworkManager.NetworkManager.GetDevices()
+    else:
         devs = NetworkManager.NetworkManager.GetDevices()
 
     strongest = 0
