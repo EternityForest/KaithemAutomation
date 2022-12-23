@@ -264,7 +264,7 @@ class Device():
                         self.parentResource]['device'][key] = v
                     modules_state.unsaved_changed_obj[
                         self.parentModule, self.parentResource] = "Device changed"
-                    modules_state.createRecoveryEntry(
+                    modules_state.saveResource(
                         self.parentModule, self.parentResource,
                         modules_state.ActiveModules[self.parentModule][
                             self.parentResource])
@@ -290,7 +290,7 @@ class Device():
                     self.parentResource]['device'][key] = val
                 modules_state.unsaved_changed_obj[
                     self.parentModule, self.parentResource] = "Device changed"
-                modules_state.createRecoveryEntry(
+                modules_state.saveResource(
                     self.parentModule, self.parentResource,
                     modules_state.ActiveModules[self.parentModule][
                         self.parentResource])
@@ -1061,7 +1061,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
                     parentResource]
                 modules_state.unsaved_changed_obj[
                     parentModule, parentResource] = "Device Changed or renamed"
-                modules_state.createRecoveryEntry(
+                modules_state.saveResource(
                     parentModule, parentResource, None)
 
                 # Forbid moving to new module for now, specifically we don't want to move to nonexistent
@@ -1100,7 +1100,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
             }
             modules_state.unsaved_changed_obj[parentModule,
                                               parentResource] = "Device changed"
-            modules_state.createRecoveryEntry(
+            modules_state.saveResource(
                 parentModule, parentResource, {
                     'resource-type': 'device',
                     "device": d
@@ -1411,13 +1411,19 @@ class WebDevices():
                 pass
 
             if x.parentModule:
+                r  = modules_state.ActiveModules[x.parentModule][
+                    x.parentResource]
+
                 del modules_state.ActiveModules[x.parentModule][
                     x.parentResource]
-                modules_state.unsaved_changed_obj[
-                    x.parentModule, x.parentResource] = "Device deleted"
-                modules_state.createRecoveryEntry(
-                    x.parentModule, x.parentResource, None)
+
                 modules_state.modulesHaveChanged()
+                
+                fn = modules_state.getResourceFn(x.parentModule, x.parentResource, r)
+
+                if os.path.exists(fn):
+                    os.remove(fn)
+
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
             # Gotta be aggressive about ref cycle breaking!
@@ -1590,7 +1596,7 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
             }
             modules_state.unsaved_changed_obj[d.parentModule,
                                               d.parentResource] = "Device changed"
-            modules_state.createRecoveryEntry(
+            modules_state.saveResource(
                 d.parentModule, d.parentResource, {
                     'resource-type': 'device',
                     "device": d.config

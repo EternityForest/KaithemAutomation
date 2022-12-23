@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import config,registry,sound
+from src import config,registry,sound, theming
 import yaml
 %>
 
@@ -13,7 +13,7 @@ import yaml
 <section>
 <form method="post" action="/settings/settheming">
 <label>CSS Themefile(Empty for configured default): 
-    <input list="l" value="${registry.get('/system.theming/csstheme','')}" name="cssfile"></label>
+    <input list="l" value="${theming.file['web']['csstheme']}" name="cssfile"></label>
 <input type="submit">
 </form>
 </section>

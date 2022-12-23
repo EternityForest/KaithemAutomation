@@ -9,7 +9,9 @@ http-port : 8002
 
 
 #Local port on which to provide access to Drayer services
+# DEPRECATED
 drayer-port: 7009
+
 
 
 #Public port on which to accept incoming P2P connections.
@@ -72,7 +74,7 @@ autosave-state: 30 minutes
 #Sprinklers that never shut down or something.
 wait-for-workers : 60
 
-#If this is yes, the server will try to save all persistant state before it shuts down.
+#If this is yes, the server will try to save all unsaved persistant state it can before it shuts down.
 #This includes dumping logs to file.
 save-before-shutdown: no
 
@@ -103,10 +105,10 @@ audio-backends:
     - sox
     - mpg123
     - madplay
-    - mpv #Not actually  supported
+    - mpv
 
 #How many times to retry loading an event before marking it as a failure and moving on
-max-load-attempts: 6
+max-load-attempts: 3
 
 #allow websocket connections? This is now the only non-deprecated widget interface
 enable-websockets: true
@@ -233,8 +235,7 @@ favicon-ico: img/favicon.png
 #Used for the quotes in the login screen
 #Must be a YAML file containing a list of strings.
 quotes-file: default
+
 #####################MISC#######################################################
-#This really isn't used for anything except showing on the about box
-#Plus it involves a call to an external server. It will add extra time to startup.
-#Why did I even add this feature?
+
 get-public-ip: no

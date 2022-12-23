@@ -9,11 +9,14 @@ Change Log
 - :lipstick: More compact temperature meter widgets
 - :coffin: Remove the SculleryMQTT plugin as it was very complex and confusing.  Shared MQTT connections are no longer recommended.
 - :coffin: Nuisiance print statement removal
+- :coffin: Remove fallback to legacy registry stuff
+- :sparkles: UPnP saved in a file, not the registry
+- :coffin: BREAKING: You will need to re-set up UPnP if you were using it
+- :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately
 
 
 ### 0.68.38
 - :arrow_up: Update tinytag
-
 
 ### 0.68.37
 - :coffin: Schema validation removed from registry as the registry is deprecated anyway
@@ -158,8 +161,8 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 
 
 ### 0.68.20
-- :lock:SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.
-- :lock:SECURITY/BREAKING: Now you need a POST request for Chandler's sendevent API
+- :lock: SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.
+- :lock: SECURITY/BREAKING: Now you need a POST request for Chandler's sendevent API
 - :lock: :sparkles:SECURITY: User pages show at a glance whether they accept GET
 - :bug: Fix inability to assign new user-created permissions to users or pages.
 - :sparkles: This file uses GitMoji now! Gitmoji chosen because it is the first Google result.

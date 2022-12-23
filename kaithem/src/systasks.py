@@ -101,10 +101,18 @@ nminutepagecount = 0
 upnpMapping = None
 syslogger = logging.getLogger("system")
 
+import os
+from . import persist, directories
+
 
 def doUPnP():
     global upnpMapping
-    p = kaithem.registry.get("/system/upnp/expose_https_wan_port", None)
+    upnpsettingsfile = os.path.join(
+        directories.vardir, "core.settings", "upnpsettings.yaml")
+
+    upnpsettings = persist.getStateFile(upnpsettingsfile)
+    p = upnpsettings.get('wan_port', 0)
+
     if p:
         try:
             lp = config['https-port']

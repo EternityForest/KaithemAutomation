@@ -33,6 +33,10 @@ jacksettingsfile = os.path.join(
     directories.mixerdir, "jacksettings.yaml")
 jacksettings = persist.getStateFile(jacksettingsfile)
 
+upnpsettingsfile = os.path.join(
+    directories.vardir, "core.settings", "upnpsettings.yaml")
+
+upnpsettings = persist.getStateFile(upnpsettingsfile)
 
 NULL = 0
 
@@ -67,7 +71,7 @@ def ctype_async_raise(thread_obj, exception):
 
 def validate_upload():
     # Allow large uploads for admin users, otherwise only allow 64k
-    return 64*1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024*1024*8192*4
+    return 64 * 1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024 * 1024 * 8192 * 4
 
 
 syslogger = logging.getLogger("system")
@@ -96,7 +100,7 @@ class Settings():
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
-    def threads(self,*a,**k):
+    def threads(self, *a, **k):
         """Return a page showing all of kaithem's current running threads"""
         pages.require("/admin/settings.view", noautoreturn=True)
         return pages.get_template("settings/threads.html").render()
@@ -112,24 +116,24 @@ class Settings():
         raise cherrypy.HTTPRedirect("/settings/threads")
 
     @cherrypy.expose
-    def mixer(self,*a,**k):
+    def mixer(self, *a, **k):
         pages.require("/users/mixer.edit",)
         return pages.get_template("settings/mixer.html").render()
 
     @cherrypy.expose
-    def wifi(self,*a,**k):
+    def wifi(self, *a, **k):
         """Return a page showing the wifi config"""
         pages.require("/admin/settings.edit",)
         return pages.get_template("settings/wifi.html").render()
 
     @cherrypy.expose
-    def mdns(self,*a,**k):
+    def mdns(self, *a, **k):
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
 
     @cherrypy.expose
-    def upnp(self,*a,**k):
+    def upnp(self, *a, **k):
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/upnp.html").render()
@@ -162,7 +166,6 @@ class Settings():
 
         raise cherrypy.HTTPRedirect("/settings")
 
-
     @cherrypy.expose
     def updateytdl(self, *args, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
@@ -172,8 +175,8 @@ class Settings():
             try:
                 subprocess.check_call(["yt-dlp", '-U'])
             except:
-                subprocess.check_call(["pip3", "install", "--upgrade", "yt-dlp"])
-      
+                subprocess.check_call(
+                    ["pip3", "install", "--upgrade", "yt-dlp"])
 
         raise cherrypy.HTTPRedirect("/settings")
 
@@ -223,15 +226,14 @@ class Settings():
                             f.close()
 
             if util.which("yt-dlp"):
-                ytdl= "yt-dlp"
+                ytdl = "yt-dlp"
             else:
-                ytdl="youtube-dl"
-
+                ytdl = "youtube-dl"
 
             if 'youtubedl' in kwargs:
                 pages.postOnly()
                 subprocess.check_call([ytdl, '--format', 'bestaudio', "--extract-audio", "--audio-format",
-                    "mp3", "--audio-quality", "2", "--embed-thumbnail", "--add-metadata",  kwargs['youtubedl']], cwd=dir)
+                                       "mp3", "--audio-quality", "2", "--embed-thumbnail", "--add-metadata", kwargs['youtubedl']], cwd=dir)
 
             if 'youtubedlvid' in kwargs:
                 pages.postOnly()
@@ -242,9 +244,7 @@ class Settings():
             else:
                 return serve_file(dir)
         except:
-            return(traceback.format_exc())
-
-
+            return (traceback.format_exc())
 
     @cherrypy.expose
     def hlsplayer(self, *args, **kwargs):
@@ -254,7 +254,7 @@ class Settings():
             dir = os.path.join('/', *args)
             return pages.get_template("settings/hlsplayer.html").render(play=dir)
         except:
-            return(traceback.format_exc())
+            return (traceback.format_exc())
 
     @cherrypy.expose
     def cnfdel(self, *args, **kwargs):
@@ -262,20 +262,17 @@ class Settings():
         path = os.path.join('/', *args)
         return pages.get_template("settings/cnfdel.html").render(path=path)
 
-
     @cherrypy.expose
     def broadcast(self, **kwargs):
         pages.require("/admin/settings.edit")
         return pages.get_template("settings/broadcast.html").render()
 
     @cherrypy.expose
-    def snackbar(self,msg,duration):
+    def snackbar(self, msg, duration):
         pages.require("/admin/settings.edit")
         pages.postOnly()
         kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
         return pages.get_template("settings/broadcast.html").render()
-    
-
 
     @cherrypy.expose
     def console(self, **kwargs):
@@ -310,7 +307,7 @@ class Settings():
             try:
                 time.sleep(0.1)
                 t = p.communicate(b'')
-                x += t[0]+t[1]
+                x += t[0] + t[1]
                 p.kill()
                 p.stdout.close()
                 p.stderr.close()
@@ -332,10 +329,9 @@ class Settings():
         return pages.get_template("settings/util/imgmap.html").render()
 
     @cherrypy.expose
-    def leaflet(self,*a,**k):
+    def leaflet(self, *a, **k):
         pages.require("/admin/mainpage.view")
         return pages.get_template("settings/util/leaflet.html").render()
-
 
     @cherrypy.expose
     def refreshuserpage(self, target):
@@ -346,7 +342,6 @@ class Settings():
         from src import widgets
         widgets.sendTo("__FORCEREFRESH__", '', target)
         raise cherrypy.HTTPRedirect("/settings/account")
-
 
     @cherrypy.expose
     def changeprefs(self, **kwargs):
@@ -373,7 +368,6 @@ class Settings():
         auth.setUserSetting(pages.getAcessingUser(),
                             'allow-cors', 'allowcors' in kwargs)
 
-                            
         raise cherrypy.HTTPRedirect("/settings/account")
 
     @cherrypy.expose
@@ -397,7 +391,7 @@ class Settings():
         u = auth.whoHasToken(t)
         if len(kwargs['new']) > 100:
             raise RuntimeError("Limit 100 chars for password")
-        auth.resist_timing_attack((u+kwargs['old']).encode('utf8'))
+        auth.resist_timing_attack((u + kwargs['old']).encode('utf8'))
         if not auth.userLogin(u, kwargs['old']) == "failure":
             if kwargs['new'] == kwargs['new2']:
                 auth.changePassword(u, kwargs['new'])
@@ -409,7 +403,6 @@ class Settings():
             "/system/auth/user/selfchangedepassword", pages.getAcessingUser())
 
         raise cherrypy.HTTPRedirect("/")
-
 
     @cherrypy.expose
     def system(self):
@@ -433,9 +426,6 @@ class Settings():
         util.SaveAllState()
         raise cherrypy.HTTPRedirect('/')
 
-      
-
-
     @cherrypy.expose
     def clearerrors(self):
         pages.require("/admin/settings.edit")
@@ -451,8 +441,8 @@ class Settings():
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         t = float(kwargs['time'])
-        subprocess.call(["date", "-s", 
-                         time.strftime("%Y%m%d%H%M%S", time.gmtime(t-0.05)), "+%Y%m%d%H%M%S",])
+        subprocess.call(["date", "-s",
+                         time.strftime("%Y%m%d%H%M%S", time.gmtime(t - 0.05)), "+%Y%m%d%H%M%S", ])
         try:
             subprocess.call(["hwclock", "--systohc"])
         except:
@@ -466,13 +456,13 @@ class Settings():
         pages.postOnly()
         from . import alerts
 
-        alerts.file['warning']['interval']= float(kwargs['warningbeeptime'])
-        alerts.file['error']['interval']= float(kwargs['errorbeeptime'])
-        alerts.file['critical']['interval']= float(kwargs['critbeeptime'])
-        alerts.file['warning']['file']= kwargs['warningsound']
-        alerts.file['error']['file']= kwargs['errorsound']
-        alerts.file['critical']['file']= kwargs['critsound']
-        alerts.file['all']['soundcard']= kwargs['soundcard']
+        alerts.file['warning']['interval'] = float(kwargs['warningbeeptime'])
+        alerts.file['error']['interval'] = float(kwargs['errorbeeptime'])
+        alerts.file['critical']['interval'] = float(kwargs['critbeeptime'])
+        alerts.file['warning']['file'] = kwargs['warningsound']
+        alerts.file['error']['file'] = kwargs['errorsound']
+        alerts.file['critical']['file'] = kwargs['critsound']
+        alerts.file['all']['soundcard'] = kwargs['soundcard']
         alerts.settingsDirty()
 
         raise cherrypy.HTTPRedirect('/settings/system')
@@ -482,8 +472,8 @@ class Settings():
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         from . import geolocation
-        geolocation.setDefaultLocation(float(kwargs['lat']), float(kwargs['lon']), kwargs['city'], 
-            country=kwargs['country'], region=kwargs['region'],timezone=kwargs['timezone'])
+        geolocation.setDefaultLocation(float(kwargs['lat']), float(kwargs['lon']), kwargs['city'],
+                                       country=kwargs['country'], region=kwargs['region'], timezone=kwargs['timezone'])
 
         messagebus.postMessage(
             "/system/settings/changedelocation", pages.getAcessingUser())
@@ -494,8 +484,8 @@ class Settings():
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
 
-        registry.set("/system/upnp/expose_https_wan_port",
-                     int(kwargs['exposeport']))
+        upnpsettings.set("wan_port", int(kwargs['exposeport']))
+
         systasks.doUPnP()
         raise cherrypy.HTTPRedirect('/settings/system')
 
@@ -519,11 +509,11 @@ class Settings():
             32, int(kwargs['jackperiodsize'])))
         jacksettings.set("jackPeriods", max(2, int(kwargs['jackperiods'])))
         jacksettings.set("jackDevice", kwargs['jackdevice'])
-        jacksettings.set("useAdditionalSoundcards","no")
+        jacksettings.set("useAdditionalSoundcards", "no")
 
         from . import jackmanager
         jackmanager.reloadSettings()
-        if jacksettings.get("jackMode", None) in("manage", "use",'dummy','pipewire'):
+        if jacksettings.get("jackMode", None) in ("manage", "use", 'dummy', 'pipewire'):
             try:
                 jackmanager.startManaging()
             except:
@@ -538,7 +528,8 @@ class Settings():
         pages.postOnly()
         from src import geolocation
         l = geolocation.ip_geolocate()
-        geolocation.setDefaultLocation(l['lat'], l['lon'], l['city'], l['timezone'], l['regionName'], l['countryCode'])
+        geolocation.setDefaultLocation(
+            l['lat'], l['lon'], l['city'], l['timezone'], l['regionName'], l['countryCode'])
         messagebus.postMessage(
             "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
@@ -594,7 +585,7 @@ class Settings():
 
         @cherrypy.expose
         def stop():
-            pages.require("/admin/settings.edit",  noautoreturn=True)
+            pages.require("/admin/settings.edit", noautoreturn=True)
             pages.postOnly()
             import yappi
             if yappi.is_running():
@@ -603,7 +594,7 @@ class Settings():
 
         @cherrypy.expose
         def clear():
-            pages.require("/admin/settings.edit",  noautoreturn=True)
+            pages.require("/admin/settings.edit", noautoreturn=True)
             pages.postOnly()
             import yappi
             yappi.clear_stats()

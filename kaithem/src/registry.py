@@ -90,19 +90,6 @@ def purgeSqliteBackup():
             logging.exception("err deleting old recovery records")
 
 
-def createRecoveryEntry(key, value, flag):
-    valuej = json.dumps(value)
-    if enable_sqlite_backup:
-        if not os.path.exists(recoveryDbPath):
-            util.ensure_dir(recoveryDbPath)
-        recoveryDb = sqlite3.connect(recoveryDbPath)
-        with recoveryDb:
-            recoveryDb.execute("delete from change where key=?", (key,))
-            recoveryDb.execute("insert into change values (?,?,?,?)", (
-                key, valuej, flag, int(time.time()*1000000)
-            ))
-        recoveryDb.commit()
-        recoveryDb.close()
 
 
 # Global cache for system registry
@@ -337,8 +324,7 @@ class PersistanceArea():
             if 'schema' in f['keys'][key]:
                 pass#jsonschema.validate(value, f['keys'][key]['schema'])
             f['keys'][key]['data'] = copy.deepcopy(value)
-            if not _noRecoveryRecord:
-                createRecoveryEntry(key, value, 0)
+
 
 
 reglock = threading.RLock()
@@ -375,7 +361,6 @@ def delete(key):
             return False
         k = f['keys']
         del k[key]
-        createRecoveryEntry(key, None, 1)
 
 
 def exists(key):

@@ -148,8 +148,6 @@ def SaveAllState():
 
             messagebus.postMessage("/system/save", None, synchronous=True)
 
-            if modules.saveAll():
-                x = True
             if auth.dumpDatabase():
                 x = True
             if registry.sync():
@@ -174,7 +172,6 @@ def SaveAllStateExceptLogs():
         try:
             x = False
             x = x or auth.dumpDatabase()
-            x = x or modules.saveAll()
             x = x or registry.sync()
             messagelogging.saveLogList()
             if x:
@@ -274,6 +271,27 @@ def deleteAllButHighestNumberedNDirectories(where, N):
 
     for i in sorted(asnumbers.keys())[0:-N]:
         shutil.rmtree(os.path.join(where, asnumbers[i]))
+
+
+
+def deleteOldStuffAndEmptyDirectories(where, age):
+    torm = []
+
+    for b, d, f in os.walk(where, topdown=False):
+        for i in f:
+            if os.stat(f).st_mtime < time.time() - age:
+                torm.append(os.path.join(b, i))
+
+    for i in torm:
+        os.remove(i)
+
+    for b, d, f in os.walk(where, topdown=False):
+        for i in d:
+            if not os.listdir(i):
+                torm.append(os.path.join(b, i))
+
+    for i in torm:
+        os.remove(i)
 
 
 def disallowSpecialChars(s, allow=""):

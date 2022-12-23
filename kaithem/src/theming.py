@@ -1,5 +1,4 @@
 from src.config import config
-from src import registry
 from src import directories
 from scullery import persist
 from scullery import messagebus
@@ -17,13 +16,13 @@ else:
 if not 'web' in file:
     # Legacy registry stuff.
     file['web'] = {}
-    css = registry.get("/system.theming/csstheme", "")
+    css = ''
 
     file['web']['csstheme'] = css
 
     try:
         persist.save(file, fn, private=True)
-    except:
+    except Exception:
         logging.exception("Save fail")
 
 

@@ -10,7 +10,6 @@ logger = logging.getLogger("system.alerts")
 lock = threading.RLock()
 
 
-from src import registry
 from src import directories
 from scullery import persist
 from scullery import messagebus
@@ -24,49 +23,6 @@ if os.path.exists(fn):
     file = persist.load(fn)
 else:
     file = {}
-
-def setupFile():
-    "Set up some config defaults"
-    if not 'warning' in file:
-        # Legacy registry stuff.
-        file['warning'] = {}
-        interval = registry.get("system/alerts/warning/soundinterval", 60*30)
-        sfile = registry.get("system/alerts/warning/soundfile", "error.ogg")
-        file['warning']['interval'] = interval
-        file['warning']['file'] = sfile
-
-    if not 'error' in file:
-        # Legacy registry stuff.
-        file['error'] = {}
-        interval = registry.get("system/alerts/warning/soundinterval", 60*5)
-        sfile = registry.get("system/alerts/warning/soundfile", "error.ogg")
-        file['error']['interval'] = interval
-        file['error']['file'] = sfile
-
-    if not 'critical' in file:
-        # Legacy registry stuff.
-        file['critical'] = {}
-        interval = registry.get("system/alerts/warning/soundinterval", 12)
-        sfile = registry.get("system/alerts/warning/soundfile", "error.ogg")
-        file['critical']['interval'] = interval
-        file['critical']['file'] = sfile
-
-    if not 'all' in file:
-        # Legacy registry stuff.
-        file['all'] = {}
-        card = registry.get("system/alerts/soundcard", None)
-        file['all']['soundcard'] = card
-        
-    if not 'soundcard' in file['all']:
-        card = registry.get("system/alerts/soundcard", None)
-        file['all']['soundcard'] = card
-
-    try:
-        persist.save(file, fn, private=True)
-    except Exception:
-        logging.exception("Save fail")
-
-setupFile()
 
 def saveSettings(*a,**k):
     persist.save(file, fn, private=True)

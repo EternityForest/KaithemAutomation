@@ -16,18 +16,30 @@
 # This file is just for keeping track of state info that would otherwise cause circular issues.
 from typing import Any, Dict
 import weakref
-import sqlite3
+import urllib
 import os
 import sys
 import hashlib
 import json
 import time
 import shutil
+import yaml
 import logging
+import copy
 from threading import RLock
-from src import util, config
+from src import util, config, directories
+from . import resource_serialization
+from .util import url, unurl
+
+# / is there because we just forbid use of that char for anything but dirs,
+# So there is no confusion
+safeFnChars = "~@*&()-_=+/ '"
 
 logger = logging.getLogger("system")
+
+# This lets us have some modules saved outside the var dir.
+external_module_locations = {}
+
 
 # Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
 # That is a function which takes 3 arguments, module and resource, and the current resource arg,
@@ -67,70 +79,186 @@ fileResourceAbsPaths : Dict[tuple, str] = {}
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
 
-
-if os.path.exists("/dev/shm"):
-    selectedUser = config.config['run-as-user'] if util.getUser(
-    ) == 'root' else util.getUser()
-
-    uniqueInstanceId = ",".join(
-        sys.argv) + os.path.normpath(__file__)+selectedUser
-    uniqueInstanceId = hashlib.sha1(
-        uniqueInstanceId.encode("utf8")).hexdigest()[:24]
-    enable_sqlite_backup = True
-    recoveryDbPath = os.path.join(
-        "/dev/shm/kaithem_"+selectedUser+"/", uniqueInstanceId, "modulesbackup")
-    util.ensure_dir(recoveryDbPath)
-    recoveryDb = sqlite3.connect(recoveryDbPath)
-    util.chmod_private_try(recoveryDbPath)
-
-    # Chown to the user we are actually going to be running as
-    if util.getUser() == 'root':
-        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,
-                                  uniqueInstanceId, "modulesbackup"), selectedUser)
-        shutil.chown(os.path.join("/dev/shm/kaithem_" +
-                                  selectedUser, uniqueInstanceId), selectedUser)
-        shutil.chown(os.path.join(
-            "/dev/shm/kaithem_"+selectedUser), selectedUser)
-
-    recoveryDb.row_factory = sqlite3.Row
-    # If flag is 1, that means the resource has been deleted. All this is, is key value storage of
-    # Unsaved changes to the modules. When you save, you clear everything before deleting the __complete__
-    # Marker.
-
-    # When we load kaithem, we can check if this database has newer data than anything in the modules and resources.
-    # Time is of course used to detect that. We use the system time. We just have to trust that the system
-    # Time won't go significantly backwards. Combined with the fact manual editing is probably not happening on
-    # RTCless systems, none of this persists after reboots, and we normally delete these records when saving for real,
-    # There is very little change that old data ever overwrites newer data.
-    with recoveryDb:
-        recoveryDb.execute(
-            "CREATE TABLE IF NOT EXISTS change (module TEXT, resource TEXT, value TEXT, flag INTEGER, time INTEGER)")
-else:
-    enable_sqlite_backup = False
+def parseTarget(t, module, in_ext=False):
+    if t.startswith("$MODULERESOURCES/"):
+        t = t[len('$MODULERESOURCES/'):]
+    return t
 
 
-def purgeSqliteBackup():
-    if enable_sqlite_backup:
-        recoveryDb = sqlite3.connect(recoveryDbPath)
-        with recoveryDb:
-            recoveryDb.execute("delete from change")
-        recoveryDb.commit()
+
+def getExt(r):
+
+    if r['resource-type'] == 'directory':
+        return ''
+
+    elif r['resource-type'] == 'page':
+        if r.get('template-engine', '') == 'markdown':
+            return ".md"
+        else:
+            return ".html"
+
+    elif r['resource-type'] == 'event':
+        return ".py"
+
+    else:
+        return ".yaml"
 
 
-def createRecoveryEntry(module, resource, value):
-    valuej = json.dumps(value)
-    if enable_sqlite_backup:
-        if not os.path.exists(recoveryDbPath):
-            util.ensure_dir(recoveryDbPath)
-        recoveryDb = sqlite3.connect(recoveryDbPath)
-        with recoveryDb:
-            recoveryDb.execute(
-                "delete from change where module=? and resource=?", (module, resource))
-            recoveryDb.execute("insert into change values (?,?,?,?,?)", (
-                module, resource, valuej if value else '', 0 if (
-                    value is not None) else 1, int(time.time()*1000000)
-            ))
-        recoveryDb.commit()
+def serializeResource(obj):
+    "Returns the raw data, plus the proper file extension"
+
+    r = copy.deepcopy(obj)
+    # This is a ram only thing that tells us where it is saved
+    if 'resource-loadedfrom' in r:
+        del r['resource-loadedfrom']
+
+    ext = ''
+    if r['resource-type'] == 'page':
+        if r.get('template-engine', '') == 'markdown':
+            b = r['body']
+            del r['body']
+            d = "---\n" + yaml.dump(r) + "\n---\n" + b
+        else:
+            b = r['body']
+            del r['body']
+            d = "---\n" + yaml.dump(r) + "\n---\n" + b
+
+    elif r['resource-type'] == 'event':
+        d = resource_serialization.toPyFile(r)
+
+    else:
+        d = yaml.dump(r)
+    return (d, getExt(obj))
+
+
+def writeResource(obj, fn: str):
+
+    # Don't save VResources
+    if isinstance(obj, weakref.ref):
+        # logger.debug("Did not save resource because it is virtual")
+        return
+    # logger.debug("Saving resource to "+str(fn))
+
+    d, ext = serializeResource(obj)
+
+    fn
+
+    if os.path.exists(fn):
+        try:
+            # Check for sameness, avoid useless write
+            with open(fn, "rb") as f:
+                x = f.read().decode('utf8')
+                if x == d:
+                    return fn
+        except Exception:
+            logger.exception("err, continuing")
+
+    util.ensure_dir(fn)
+    data = d.encode("utf-8")
+
+    # Check if anything is actually new
+    if os.path.isfile(fn):
+        with open(fn, "rb") as f:
+            if f.read() == data:
+                obj['resource-loadedfrom'] = fn
+                return fn
+
+    with open(fn, "wb") as f:
+        util.chmod_private_try(fn, execute=False)
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+
+    # logger.debug("saved resource to file " + fn)
+    obj['resource-loadedfrom'] = fn
+    return fn
+
+
+
+def saveResource(m, r, resourceData):
+    modulename, resource = m, r
+    # Open a file at /where/module/resource
+    fn = getResourceFn(modulename, resource, resourceData)
+
+    if resourceData['resource-type'] == "directory":
+        d = copy.deepcopy(resourceData)
+        d.pop('resource-type',None)
+
+        # As the folder on disk is enough to create the resource internally, we don't need to clutter
+        # the FS with this if there is no extra data
+        if not d:
+            return
+
+    # Allow non-saved virtual resources
+    if not hasattr(resourceData, "ephemeral") or resourceData.ephemeral == False:
+        writeResource(resourceData, fn)
+
+
+    if resourceData['resource-type'] == "internal-fileref":
+        # store them directly in the module data in a special folder.
+
+        # Basically, we want to always copy the current "loaded" version over.
+        currentFileLocation = fileResourceAbsPaths[modulename, resource]
+        # Handle broken targets if a file was manually deleted
+        if os.path.isfile(currentFileLocation):
+            t = parseTarget(resourceData['target'], modulename, True)
+            newpath = os.path.join(
+                dir, "__filedata__", url(t, safeFnChars))
+            if not newpath == currentFileLocation:
+                util.ensure_dir(newpath)
+                # Storage is cheap enough I guess, might as well copy instead of move for now. Maybe
+                # change it?
+                shutil.copyfile(currentFileLocation, newpath)
+                fileResourceAbsPaths[modulename, resource] = newpath
+        # broken target
+        else:
+            logger.error(
+                "File reference resource has nonexistant target, igonring.")
+
+
+
+
+def getResourceFn(m, r, o):
+    dir = os.path.join(directories.moduledir, "data")
+    return os.path.join(dir, m, urllib.parse.quote(r, safe=" /"))+getExt(o)
+
+
+def getModuleFn(m):
+    dir = os.path.join(directories.moduledir, "data")
+    return os.path.join(dir, m)
+
+
+def saveModule(module, modulename: str):
+    """Returns a list of saved module,resource tuples and the saved resource.
+    ignore_func if present must take an abs path and return true if that path should be
+    left alone. It's meant for external modules and version control systems.
+    """
+    # Iterate over all of the resources in a module and save them as json files
+    # under the URL url module name for the filename.
+    logger.debug("Saving module " + str(modulename))
+    saved = []
+
+    # do the saving
+    if modulename not in external_module_locations:
+        dir = os.path.join(directories.moduledir, "data", modulename)
+    else:
+        dir = external_module_locations[modulename]
+
+    if not modulename:
+        raise RuntimeError("Something wrong")
+
+    try:
+        # Make sure there is a directory at where/module/
+        util.ensure_dir2(os.path.join(dir))
+        util.chmod_private_try(dir)
+        for resource in module:
+            r = module[resource]
+            saveResource(modulename, resource, resourceData=r)
+
+        saved.append(modulename)
+        return saved
+    except Exception:
+        raise
 
 
 class ResourceType():
