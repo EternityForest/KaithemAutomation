@@ -923,6 +923,8 @@ def bookkeeponemodule(module, update=False):
     let the rest of the system know the module is there."""
     if module not in scopes:
         scopes[module] = ModuleObject(module)
+
+    # This does NOT use handleResourceChange because it has optimizations to do stuff one module at a time not one event at a time.    
     for i in modules_state.ActiveModules[module]:
 
         if modules_state.ActiveModules[module][i]['resource-type'] == 'page':
@@ -1107,3 +1109,29 @@ def rmModule(module, message="deleted"):
 
 class KaithemEvent(dict):
     pass
+
+
+def handleResourceChange(module, resource, obj=None):
+    modules_state.modulesHaveChanged()
+                        
+    with modules_state.modulesLock:
+        t = modules_state.ActiveModules[module][resource]['resource-type']
+        resourceobj = modules_state.ActiveModules[module][resource]
+
+        if t == 'permission':
+            auth.importPermissionsFromModules()  # sync auth's list of permissions
+
+        elif t == 'internal-fileref':
+            usrpages.updateOnePage(resource, module)
+
+        elif t == 'event':
+            # if the test compile fails, evt will be None and the function will look up the old one in the modules database
+            # And compile that. Otherwise, we avoid having to double-compile.
+            newevt.updateOneEvent(resource, module, obj)
+
+        elif t == 'page':
+            usrpages.updateOnePage(resource, module)
+
+        else:
+            additionalTypes[resourceobj['resource-type']
+                            ].update(module, resource, {})
