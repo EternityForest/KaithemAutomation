@@ -85,9 +85,8 @@ temp_p+= i+'/'
     <a class="button createbutton" href="/modules/module/${url(name)}/addresource/${i|u}/${url('/'.join(path))}">${modules.additionalTypes[i].createButton|h}</a>
     %endif
     %endfor
-    %if external_module_locations.get(name,""):
-    <a class="button savebutton" href="/modules/savemodule/${name}">Save Module</a>
-    %endif
+
+
     <form style="display:inline-flex;" action="/modules/search/${url(name)}"><p><i class="icofont-ui-search"></p></i><input size=8 name="search" placeholder="Search this module"/><input  type=submit value="search"/></form>
     </div>
     
