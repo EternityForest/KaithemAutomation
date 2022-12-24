@@ -21,6 +21,7 @@ Change Log
 - :coffin: Deprecate thin wrappers kaithem.time.isdst() kaithem.time.day() kaithem.time.accuracy()
 - :memo: Sound documentation
 - :memo: Announce that kaithem.mqtt will no longer use shared connection optimization at some point in the future
+- :sparkles: Ability to go back to the previous version of a page or an event. Only 1 level of history is saved, and only until the server  restarts
 
 ### 0.68.38
 - :arrow_up: Update tinytag

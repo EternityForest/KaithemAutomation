@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import newevt,unitsofmeasure,pages,auth,modules_state,pages,widgets,scheduling
+from src import newevt,unitsofmeasure,pages,auth,modules_state,pages,widgets,scheduling, modules_interface
 from collections import defaultdict
 import traceback,time
 from src.config import config
@@ -34,14 +34,28 @@ using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingU
 %if not (module,name) in newevt.EventReferences:
 <span class="error">Event not active, An error prevented this event from loading.</span>
 %endif
-%if not version == '__live__':
+%if version == '__draft__':
 <p class="warning">This is an unsaved recovered draft version, that could not load because of errors.
 not the actual version that is loaded on the server. Please correct any errors and try saving again,
 or go to the working copy and save that to delete this draft.</p>
 <p class="menubar">
 <a class="button" href="/modules/module/${url(module)}/resource/${url(name)}/__live__">Go to Live Version</a>
-<p>
+</p>
 %endif
+
+%if (module,name) in modules_interface.prev_versions:
+%if not version == '__old__':
+<p class="menubar">
+<a class="button" href="/modules/module/${url(module)}/resource/${url(name)}/__old__">Go to previous version</a>
+</p>
+%else:
+<p class="menubar">
+    <a class="button" href="/modules/module/${url(module)}/resource/${url(name)}">Go to current version</a>
+</p>
+%endif
+%endif
+
+
 <section style="min-width: 80%;">
     <p class=pathnav>Path:
         <%
