@@ -34,6 +34,8 @@ syslog = logging.getLogger("system")
 searchable = {'event': ['setup', 'trigger', 'action'], 'page': ['body']}
 
 
+prev_versions = {}
+
 def validate_upload():
     # Allow 4gb uploads for admin users, otherwise only allow 64k
     return 64*1024 if not pages.canUserDoThis("/admin/modules.edit") else 1024*1024*4096
@@ -246,9 +248,7 @@ class WebInterface():
                                 "modules", module),name)
 
         modules_state.modulesHaveChanged()
-        modules_state.unsaved_changed_obj[name] = "Loaded from library by user"
-        for i in modules_state.ActiveModules[name]:
-            modules_state.unsaved_changed_obj[name, i] = "Loaded from kibrary by user"
+
         modules.bookkeeponemodule(name)
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')
@@ -423,8 +423,7 @@ class WebInterface():
                     x = util.split_escape(module, "/", "\\")
                     escapedName = "/".join(x[1:]+[escapedName])
                     root = x[0]
-                    unsaved_changed_obj[(
-                        root, escapedName)] = "Resource added by" + pages.getAcessingUser()
+
 
                     def insertResource(r):
                         modules_state.ActiveModules[root][escapedName] = r
@@ -476,14 +475,6 @@ class WebInterface():
                 pages.postOnly()
                 modules_state.modulesHaveChanged()
                 with modules_state.modulesLock:
-                    if not kwargs['name'] == root:
-                        modules_state.unsaved_changed_obj[kwargs['name']] = "New name of module. " + \
-                            pages.getAcessingUser() + " old name was "+root
-                        modules_state.unsaved_changed_obj[root] = "Old name of module that was renamed by " + \
-                            pages.getAcessingUser()+" new name is " + \
-                            kwargs['name']
-                    else:
-                        modules_state.unsaved_changed_obj[root] = "Module metadata changed"
 
                     if "location" in kwargs and kwargs['location']:
                         external_module_locations[kwargs['name']
@@ -568,9 +559,6 @@ def addResourceTarget(module, type, name, kwargs, path):
     x = util.split_escape(module, "/", "\\")
     escapedName = "/".join(x[1:]+[escapedName])
     root = x[0]
-    modules_state.unsaved_changed_obj[(root, escapedName)
-                        ] = "Resource added by" + pages.getAcessingUser()
-
 
     def insertResource(r):
         r['resource-timestamp'] = int(time.time()*1000000)
@@ -640,6 +628,8 @@ def addResourceTarget(module, type, name, kwargs, path):
         # Take the user straight to the resource page
         raise cherrypy.HTTPRedirect(
             "/modules/module/"+util.url(module)+'/resource/'+util.url(escapedName))
+
+
 
 
 # show a edit page for a resource. No side effect here so it only requires the view permission
@@ -715,8 +705,6 @@ def resourceUpdateTarget(module, resource, kwargs):
     pages.require("/admin/modules.edit", noautoreturn=True)
     pages.postOnly()
     modules_state.modulesHaveChanged()
-    modules_state.unsaved_changed_obj[(module, resource)
-                        ] = "Resource modified by" + pages.getAcessingUser()
 
     compiled_object = None
                         
