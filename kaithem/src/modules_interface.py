@@ -23,6 +23,7 @@ import mimetypes
 import cherrypy
 from . import auth, pages, directories, util, newevt, usrpages, messagebus, scheduling, devices
 from .modules import *
+from .modules import external_module_locations
 from src import modules
 from src import modules_state
 from src.config import config
@@ -424,7 +425,6 @@ class WebInterface():
                     escapedName = "/".join(x[1:]+[escapedName])
                     root = x[0]
 
-
                     def insertResource(r):
                         modules_state.ActiveModules[root][escapedName] = r
                         modules.saveResource(root, kwargs['name'], r)
@@ -638,7 +638,11 @@ def resourceEditPage(module, resource, version='default', kwargs={}):
     cherrypy.response.headers['X-Frame-Options']='SAMEORIGIN'
     with modules_state.modulesLock:
         resourceinquestion = modules_state.ActiveModules[module][resource]
-        if version == '__default__':
+
+        if version == '__old__':
+            resourceinquestion = prev_versions[(module, resource)]
+
+        elif version == '__default__':
             try:
                 resourceinquestion = modules_state.ActiveModules[module][resource]['versions']['__draft__']
                 version = '__draft__'
@@ -648,7 +652,7 @@ def resourceEditPage(module, resource, version='default', kwargs={}):
         else:
             version = '__live__'
 
-        if not 'resource-type' in resourceinquestion:
+        if 'resource-type' not in resourceinquestion:
             logging.warning("No resource type found for "+resource)
             return
 
@@ -681,7 +685,7 @@ def resourceEditPage(module, resource, version='default', kwargs={}):
                 requiredpermissions = []
 
             return pages.get_template("modules/pages/page.html").render(module=module, name=resource, kwargs=kwargs,
-                                                                        page=modules_state.ActiveModules[module][resource], requiredpermissions=requiredpermissions)
+                                                                        page=resourceinquestion, requiredpermissions=requiredpermissions)
 
         if resourceinquestion['resource-type'] == 'directory':
             pages.require("/admin/modules.view")
@@ -709,8 +713,11 @@ def resourceUpdateTarget(module, resource, kwargs):
     compiled_object = None
                         
     with modules_state.modulesLock:
-        t = modules_state.ActiveModules[module][resource]['resource-type']
         resourceobj = modules_state.ActiveModules[module][resource]
+
+        old_resource = copy.deepcopy(resourceobj)
+
+        t = resourceobj['resource-type']
         resourceobj['resource-timestamp'] = int(time.time()*1000000)
 
         if t == 'permission':
@@ -866,6 +873,8 @@ def resourceUpdateTarget(module, resource, kwargs):
 
         # We can pass a compiled object for things like events that would otherwise have to have a test compile then the real compile
         modules.handleResourceChange(module, kwargs['name'], compiled_object)
+
+        prev_versions[(module, resource)] = old_resource
 
     messagebus.postMessage("/system/notifications", "User " + pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)
