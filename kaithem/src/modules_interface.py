@@ -192,27 +192,6 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         return pages.get_template("modules/new.html").render()
 
-    @cherrypy.expose
-    def savemodule(self, module):
-        pages.require("/admin/modules.edit")
-        return pages.get_template("modules/savemodule.html").render(m=module)
-
-    @cherrypy.expose
-    def savemoduletarget(self, module):
-        with modules_state.modulesLock:
-            pages.require("/admin/modules.edit")
-            pages.postOnly()
-            s = modules.saveModule(
-                modules_state.ActiveModules[module], external_module_locations[module], module)
-            if not os.path.isfile(os.path.join(directories.moduledir, "data", "__"+url(module)+".location")):
-                with open(os.path.join(directories.moduledir, "data", "__"+url(module)+".location"), "w") as f:
-                    f.write(external_module_locations[module])
-            for i in s:
-                if i in modules_state.unsaved_changed_obj:
-                    del modules_state.unsaved_changed_obj[i]
-
-        raise cherrypy.HTTPRedirect("/modules")
-
     # @cherrypy.expose
     # def manual_run(self,module, resource):
         # These modules handle their own permissions
