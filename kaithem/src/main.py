@@ -166,14 +166,6 @@ except Exception:
     logger.exception("Error loading plugins")
 
 
-#Making drayer a standard, always-available part of Kaithem.
-#This doesn't mean we actually do anything with it, we don't expose
-#the service to the world till requested.
-try:
-    from . import drayer
-    drayer.loadDrayerSetup()
-except:
-    logger.exception("Error loading DrayerDB Local Node")
 
 devices.init_devices()
 
@@ -696,17 +688,6 @@ def webRoot():
                 'tools.websocket.handler_cls': widgets.rawwebsocket}
 
 
-    try:
-        from hardline import ws4py_drayer
-        wscfg3={'tools.websocket.on': True,
-                'tools.websocket.handler_cls': ws4py_drayer.DrayerAPIWebSocket}
-        root.drayer_api = ws4py_drayer.WebInterface()
-    except Exception as e:
-        wscfg3={}
-        logging.exception("Could not load the Drayer WS API")
-        messagebus.postMessage("/system/notifications/errors", "Drayer Server API disabled due to loading error, see logs")
-
-
 
     cnf = {
         '/static':
@@ -747,7 +728,6 @@ def webRoot():
             {
                 'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
                 "tools.addheader.on": True
-
             },
         '/pages':
             {
@@ -755,11 +735,8 @@ def webRoot():
                 'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(), "web.maxbytes") or 64 * 1024,
                 'request.dispatch': cherrypy.dispatch.MethodDispatcher()
             },
-
         '/widgets/ws': wscfg,
         '/widgets/wsraw': wscfg_raw,
-        '/drayer_api': wscfg3
-
     }
 
     if not config['favicon-png'] == "default":
