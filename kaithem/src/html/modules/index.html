@@ -31,9 +31,6 @@ def getDesc(m):
 <dl>
 %for i in sorted(ActiveModules.keys()):
 <dt>\
-%if i in modules_state.unsaved_changed_obj or i in [j[0] for j in modules_state.unsaved_changed_obj if isinstance(j,tuple)]:
-*\
-%endif
 %try:
 <a href="/modules/module/${url(i)}#resources" title="MD5: ${modules_state.getModuleHash(i)}">${i}</a>\
 %if i in modules.external_module_locations:

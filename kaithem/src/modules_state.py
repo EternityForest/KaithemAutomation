@@ -389,12 +389,6 @@ class HierarchyDict():
 # Lets just store the entire list of modules as a huge dict for now at least
 ActiveModules : Dict[str, Dict] = {}
 
-
-# This must be set to true by anything that changes the modules
-# it's o the code knows to save everything is it has been changed.
-unsaved_changed_obj : Dict[tuple,str]= {}
-
-
 moduleshash = "000000000000000000000000"
 modulehashes = {}
 modulewordhashes = {}

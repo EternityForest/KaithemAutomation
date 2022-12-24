@@ -253,8 +253,7 @@ class Device():
                 if self.parentModule:
                     modules_state.ActiveModules[self.parentModule][
                         self.parentResource]['device'][key] = v
-                    modules_state.unsaved_changed_obj[
-                        self.parentModule, self.parentResource] = "Device changed"
+
                     modules_state.saveResource(
                         self.parentModule, self.parentResource,
                         modules_state.ActiveModules[self.parentModule][
@@ -279,8 +278,6 @@ class Device():
                 from src import modules_state
                 modules_state.ActiveModules[self.parentModule][
                     self.parentResource]['device'][key] = val
-                modules_state.unsaved_changed_obj[
-                    self.parentModule, self.parentResource] = "Device changed"
                 modules_state.saveResource(
                     self.parentModule, self.parentResource,
                     modules_state.ActiveModules[self.parentModule][
@@ -1049,8 +1046,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
             else:
                 del modules_state.ActiveModules[parentModule][
                     parentResource]
-                modules_state.unsaved_changed_obj[
-                    parentModule, parentResource] = "Device Changed or renamed"
+
                 modules_state.saveResource(
                     parentModule, parentResource,  name.split("/", 1)[-1], name)
 
@@ -1084,8 +1080,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
                     'resource-type': 'device',
                     "device": d
             }
-            modules_state.unsaved_changed_obj[parentModule,
-                                              parentResource] = "Device changed"
+
             modules_state.saveResource(
                 parentModule, parentResource, {
                     'resource-type': 'device',
@@ -1248,7 +1243,6 @@ class WebDevices():
                     'resource-type': 'device',
                     'device': d
                 }
-                modules_state.unsaved_changed_obj[m, r] = "Device changed"
                 modules_state.modulesHaveChanged()
             else:
                 if not name:
@@ -1588,8 +1582,7 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
                     'resource-type': 'device',
                     'device': d.config
             }
-            modules_state.unsaved_changed_obj[d.parentModule,
-                                              d.parentResource] = "Device changed"
+
             modules_state.saveResource(
                 d.parentModule, d.parentResource, {
                     'resource-type': 'device',

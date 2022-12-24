@@ -163,9 +163,7 @@ continue
     <h3>
 <a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
     <i class="icofont-flag-alt-1"></i><b>\
-%if (name,i) in modules_state.unsaved_changed_obj:
-*\
-%endif
+
 
 ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	       %if not module[i].get('enable',"True"):
@@ -235,9 +233,6 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	  <dt>
         <div class="buttonbar style="display:inline-flex">
 
-          %if (name,i) in modules_state.unsaved_changed_obj:
-          *\
-          %endif
 <h3>
           <a href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
             <i class="icofont-page"></i><b\
@@ -277,9 +272,6 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
   <h3>
     
 <a href="/modules/module/${url(name)}/resource/${url(i)}">    <i class="icofont-key"></i>\
-  %if (name,i) in modules_state.unsaved_changed_obj:
-  *\
-  %endif
   ${util.split_escape(i,'/','\\')[-1]|h}</a>
   </h3>
   
@@ -293,9 +285,6 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
        <dt>\
         <div class="buttonbar style="display:inline-flex">
 
-    %if (name,i) in modules_state.unsaved_changed_obj:
-    *\
-    %endif
     <h3>
     <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
     </h3>
@@ -318,9 +307,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 %if module[i]['resource-type'] == 'device':
 
      <dt>\
-  %if (name,i) in modules_state.unsaved_changed_obj:
-  *\
-  %endif
+
   <div class="buttonbar">
       <h3>
   <a class="deviceslink" href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
@@ -336,9 +323,6 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
     %if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref','device'] and not i.startswith("__"):
 
            <dt><span></span>\
-        %if (name,i) in modules_state.unsaved_changed_obj:
-        *\
-        %endif
         <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
         <dt>
 
@@ -347,9 +331,6 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 %if module[i]['resource-type'] == 'directory':
 
       <dt>
-    %if (name,i) in modules_state.unsaved_changed_obj or [True for j in modules_state.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
-    *\
-    %endif
 <div class="buttonbar">
 <h3>
     <a href="/modules/module/${url(name)}/resource/${url(i)}#resources"><i class="icofont-document-folder"></i><b></b>${util.split_escape(i,'/')[-1]|h}</b></a>
