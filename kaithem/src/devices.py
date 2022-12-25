@@ -131,11 +131,9 @@ def saveDevice(d):
     if not os.path.exists(saveLocation):
         os.mkdir(saveLocation)
 
-    saved = {}
     # Lock used to prevent conflict, saving over each other with nonsense data.
     with modules_state.modulesLock:
         if d in sd:
-            saved[i + ".yaml"] = True
             persist.save(sd[d], os.path.join(saveLocation, d + ".yaml"))
 
         if d not in sd:
