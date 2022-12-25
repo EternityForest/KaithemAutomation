@@ -22,7 +22,23 @@ fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
 if os.path.exists(fn):
     file = persist.load(fn)
 else:
-    file = {}
+    file = {
+            "all": {
+                "soundcard": "__disable__"
+            },
+            "critical": {
+                "file": "error.ogg",
+                "interval": 36.0
+            },
+            "error": {
+                "file": "",
+                "interval": 3600.0
+            },
+            "warning": {
+                "file": "",
+                "interval": 3600.0
+            }
+        }
 
 def saveSettings(*a,**k):
     persist.save(file, fn, private=True)
@@ -112,7 +128,7 @@ def calcNextBeep():
 def alarmBeep():
     if time.time() > nextbeep:
         calcNextBeep()
-        s = sfile
+        s = (sfile or '').strip()
         beepDevice = file['all']['soundcard']
         if beepDevice == "__disable__":
             return
@@ -122,7 +138,7 @@ def alarmBeep():
                 from . import sound
                 sound.playSound(
                     s, handle="kaithem_sys_main_alarm", output=beepDevice)
-            except:
+            except Exception:
                 logger.exception("ERROR PLAYING ALERT SOUND")
 
 
