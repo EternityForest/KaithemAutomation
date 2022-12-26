@@ -150,6 +150,31 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.39 Fresh and Free! Closer to 1.0
+
+- :bug: Make it so tag subscribers never fire at all if the timestamp is zero.
+- :bug: Suppress unneccesary PIL.Image debug logs
+- :sparkles: Support for YoLink devices via the(unencrypted) cloud API
+- :lipstick: Devices page much simpler and cleaner
+- :lipstick: Devices page has one-click control of smart plugs, bulbs, and YoLink sirens.
+- :lipstick: More compact temperature meter widgets
+- :coffin: Remove the SculleryMQTT plugin as it was very complex and confusing.  Shared MQTT connections are no longer recommended.
+- :coffin: Nuisiance print statement removal
+- :coffin: Remove fallback to legacy registry stuff
+- :coffin: BREAKING: Completely remove the registry. You will need to update Chandler to the new included version.
+- :sparkles: UPnP saved in a file, not the registry
+- :coffin: BREAKING: You will need to re-set up UPnP if you were using it
+- :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately.
+- :bug: Fix zombie devices staying around after deletion
+- :coffin: Deprecate thin wrappers kaithem.time.year() kaithem.time.month() kaithem.time.dayofweek() kaithem.time.\[minute\|second\|hour\]() 
+- :coffin: Deprecate thin wrappers kaithem.time.isdst() kaithem.time.day() kaithem.time.accuracy()
+- :memo: Sound documentation
+- :memo: Announce that kaithem.mqtt will no longer use shared connection optimization at some point in the future
+- :sparkles: Ability to go back to the previous version of a page or an event. Only 1 level of history is saved, and only until the server  restarts
+- :coffin: BREAKING: Completely remove hardlinep2p/drayer
+- :bug: IPv6 localhost glitches
+
+
 ### 0.68.38
 - :arrow_up: Update tinytag
 
