@@ -25,46 +25,38 @@ import argparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
-x = """
+x = """<?xml version="1.0" encoding="UTF-8" ?>
 <root xmlns="urn:schemas-upnp-org:device-1-0">
 <specVersion>
-<major>1</major>
-<minor>0</minor>
+    <major>1</major>
+    <minor>0</minor>
 </specVersion>
 <device>
-<deviceType>urn:roku-com:device:player:1-0</deviceType>
-<friendlyName>XXX</friendlyName>
-<manufacturer>Roku</manufacturer>
-<manufacturerURL>http://www.roku.com/</manufacturerURL>
-<modelDescription>Roku Streaming Player Network Media</modelDescription>
-<modelName>Roku 3</modelName>
-<modelNumber>4200X</modelNumber>
-<modelURL>http://www.roku.com/</modelURL>
-<serialNumber>4124D2088862</serialNumber>
-<UDN>uuid:04042114-0801-105b-801e-ac3a7a3c1e67</UDN>
-<serviceList>
-<service>
-<serviceType>urn:roku-com:service:ecp:1</serviceType>
-<serviceId>urn:roku-com:serviceId:ecp1-0</serviceId>
-<controlURL/>
-<eventSubURL/>
-<SCPDURL>ecp_SCPD.xml</SCPDURL>
-</service>
-<service>
-<serviceType>urn:dial-multiscreen-org:service:dial:1</serviceType>
-<serviceId>urn:dial-multiscreen-org:serviceId:dial1-0</serviceId>
-<controlURL/>
-<eventSubURL/>
-<SCPDURL>dial_SCPD.xml</SCPDURL>
-</service>
-</serviceList>
+    <deviceType>urn:roku-com:device:player:1-0</deviceType>
+    <friendlyName>FN</friendlyName>
+    <manufacturer>naimo84</manufacturer>
+    <manufacturerURL>https://github.com/naimo84/</manufacturerURL>
+    <modelDescription>Node Red - fake Roku player</modelDescription>
+    <modelName>fakeroku</modelName>
+    <modelNumber>4200X</modelNumber>
+    <modelURL>https://github.com/naimo84/node-red-contrib-fakeroku</modelURL>
+    <serialNumber>XXXX</serialNumber>
+    <UDN>uuid:roku:ecp:XXXX</UDN>
+    <serviceList>
+    <service>
+        <serviceType>urn:roku-com:service:ecp:1</serviceType>
+        <serviceId>urn:roku-com:serviceId:ecp1-0</serviceId>
+        <controlURL/>
+        <eventSubURL/>
+        <SCPDURL>ecp_SCPD.xml</SCPDURL>
+    </service>
+    </serviceList>
 </device>
-</root>\r\n\r\n
-"""
+</root>"""
 
 
-def ssdpxml(n):
-    return x.replace("XXX", n)
+def ssdpxml(name,uuid):
+    return x.replace("FN", name).replace('XXXX',uuid.replace('-','').upper())
 
 
 logger = logging.Logger("plugins.pyremote")
@@ -242,8 +234,7 @@ def tzget():
 
 
 def fakeroku(name):
-    return """
-    <device-info>
+    return """<device-info>
     <serial-number>X004000B231</serial-number>
     <device-id>S00820BB231</device-id>
     <vendor-name>Roku</vendor-name>
@@ -306,8 +297,7 @@ def fakeroku(name):
     <trc-version>3.0</trc-version>
     <trc-channel-version>4.2.3</trc-channel-version>
     <davinci-version>2.8.20</davinci-version>
-    </device-info>
-    """
+    </device-info>"""
 
 
 import logging
@@ -337,11 +327,15 @@ The battery tag represents the most recently connected remote that decided to se
     def close(self):
         self.ssdp = None
         self.bind = None
+        if self.httpd:
+            self.httpd.shutdown()
+            self.httpd = None
         device.Device.close(self)
 
     def __init__(self, name, data):
         device.Device.__init__(self, name, data)
         self.closed = False
+        self.httpd = None
 
         self.object_data_point("command", subtype='event')
         self.set_data_point('command', [None, time.monotonic(), None])
@@ -351,8 +345,8 @@ The battery tag represents the most recently connected remote that decided to se
                        priority='warning', release_condition='value > 35')
 
         try:
-            self.set_config_default("device.serial", "X004000B231")
-            self.set_config_default("device.usn", "uuid:roku:ecp:P0A070000007")
+            self.set_config_default("device.serial", "P0A070000007")
+            self.set_config_default("device.uuid",str(uuid.uuid4()))
             self.set_config_default(
                 "device.bind", "0.0.0.0:" + str(find_free_port()))
 
@@ -368,7 +362,7 @@ The battery tag represents the most recently connected remote that decided to se
 
             self.ssdp = HTTPUServer()
             self.ssdp.services = {'roku:ecp': {'Location': "http://" + self.bind.replace('0.0.0.0', 'localhost'),
-                                               'USN': 'uuid:roku:ecp:' + self.config['device.usn'],
+                                               'USN': 'uuid:roku:ecp:'+self.config['device.uuid'].replace('-','').upper(),
                                                'Cache-Control': 'max-age=3600'
                                                }}
 
@@ -379,19 +373,36 @@ The battery tag represents the most recently connected remote that decided to se
                     s.end_headers()
 
                 def do_GET(s):
-                    if not s.path.endswith('.png'):
-                        s._set_headers()
-                    else:
+                    if not s.path.endswith('.png'):                               
+                        s.send_response(200)
+                        s.send_header('Content-Type', 'text/xml; charset=utf-8');
+                        s.end_headers()
+                    else:                        
                         s.send_response(200)
                         s.send_header("Content-type", "image/png")
                         s.end_headers()
         
+                    if s.path=='/query/apps':
+                        x="""<apps>
+                        <app id="11">Roku Channel Store</app>
+                        <app id="12">Netflix</app>
+                        <app id="13">Amazon Video on Demand</app>
+                        <app id="837">YouTube</app>
+                        <app id="2016">Crackle</app>
+                        <app id="3423">Rdio</app>
+                        <app id="21952">Blockbuster</app>
+                        <app id="31012">MGO</app>  
+                        <app id="43594">CinemaNow</app>
+                        <app id="46041">Sling TV</app>
+                        <app id="50025">GooglePlay</app>
+                        </apps>""".encode()
+                        x.wfile.write(x.encode())
 
                     if s.path == '/query/device-info':
                         s.wfile.write(fakeroku(self.name).encode())
 
                     elif s.path == "/":
-                        s.wfile.write(ssdpxml(self.name).encode())
+                        s.wfile.write(ssdpxml(self.name, self.config['device.uuid']).encode())
 
                     elif s.path == '/unixtime':
                         s.wfile.write(str(time.time()).encode())
@@ -417,8 +428,8 @@ The battery tag represents the most recently connected remote that decided to se
             def f():
                 try:
                     ip, port = self.bind.split(':')
-                    httpd = HTTPServer((ip, int(port)), S)
-                    httpd.serve_forever()
+                    self.httpd = HTTPServer((ip, int(port)), S)
+                    self.httpd.serve_forever()
                 except Exception:
                     self.handle_exception()
 
