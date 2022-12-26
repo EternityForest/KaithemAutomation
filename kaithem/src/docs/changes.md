@@ -23,6 +23,7 @@ Change Log
 - :memo: Announce that kaithem.mqtt will no longer use shared connection optimization at some point in the future
 - :sparkles: Ability to go back to the previous version of a page or an event. Only 1 level of history is saved, and only until the server  restarts
 - :coffin: BREAKING: Completely remove hardlinep2p/drayer
+- :bug: IPv6 localhost glitches
 
 
 ### 0.68.38
