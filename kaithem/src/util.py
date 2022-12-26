@@ -127,10 +127,10 @@ def open_private_text_write(p):
     try:
         x = os.open('/path/to/file', os.O_RDWR | os.O_CREAT, 0o0600)
         return os.fdopen(x, 'w')
-    except:
+    except Exception:
         try:
             os.close(x)
-        except:
+        except Exception:
             pass
         return open(p, 'w')
 
@@ -154,9 +154,6 @@ def SaveAllState():
             from . import directories
             messagelogging.saveLogList()
             pylogginghandler.syslogger.flush()
-            # Always send the message, because there is almost always going to be at least some log entries saved
-            messagebus.postMessage(
-                "/system/notifications/important", "Global server state was saved to disk")
             return x
         except Exception as e:
             messagebus.postMessage(
