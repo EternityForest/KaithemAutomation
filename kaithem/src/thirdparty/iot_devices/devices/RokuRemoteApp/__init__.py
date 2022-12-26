@@ -42,6 +42,15 @@ x = """<?xml version="1.0" encoding="UTF-8" ?>
     <modelURL>https://github.com/naimo84/node-red-contrib-fakeroku</modelURL>
     <serialNumber>XXXX</serialNumber>
     <UDN>uuid:roku:ecp:XXXX</UDN>
+    <iconList>
+        <icon>
+            <mimetype>image/png</mimetype>
+            <width>360</width>
+            <height>219</height>
+            <depth>8</depth>
+            <url>device-image.png</url>
+        </icon>
+    </iconList>
     <serviceList>
     <service>
         <serviceType>urn:roku-com:service:ecp:1</serviceType>
@@ -167,6 +176,9 @@ class HTTPUServer():
                 s['ST'] = s.get('ST', i)
 
                 s['Location'] = s['Location'].replace(
+                    'localhost', getLocalIPForRemoteClient(a))
+                
+                s['LOCATION'] = s['LOCATION'].replace(
                     'localhost', getLocalIPForRemoteClient(a))
                 if not 'USN' in s:
                     s['USN'] = 'uuid:' + getUID() + "::" + s['ST']
@@ -362,6 +374,7 @@ The battery tag represents the most recently connected remote that decided to se
 
             self.ssdp = HTTPUServer()
             self.ssdp.services = {'roku:ecp': {'Location': "http://" + self.bind.replace('0.0.0.0', 'localhost'),
+                                                'LOCATION': "http://" + self.bind.replace('0.0.0.0', 'localhost'),
                                                'USN': 'uuid:roku:ecp:'+self.config['device.uuid'].replace('-','').upper(),
                                                'Cache-Control': 'max-age=3600'
                                                }}
@@ -375,7 +388,7 @@ The battery tag represents the most recently connected remote that decided to se
                 def do_GET(s):
                     if not s.path.endswith('.png'):                               
                         s.send_response(200)
-                        s.send_header('Content-Type', 'text/xml; charset=utf-8');
+                        s.send_header('Content-Type', 'text/xml; charset=utf-8')
                         s.end_headers()
                     else:                        
                         s.send_response(200)

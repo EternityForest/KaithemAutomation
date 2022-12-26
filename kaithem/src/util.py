@@ -514,8 +514,14 @@ def is_private_ip(ip):
             return True
 
         return False
-    else:
-        raise ValueError("This function doesn't support IPv6")
+
+    if ip=='::1':
+        return True
+
+    elif ip.startswith('fc') or ip.startswith('fd') or ip.startswith('fe80'):
+        return True
+
+    return False
 
 
 srepr = reprlib.Repr()
