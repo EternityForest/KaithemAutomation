@@ -72,6 +72,16 @@ python3 -m pip install tflite-runtime  will do it on linux.
 You don't need a model! A version of efficientdet-lite0 is included.  Accuracy should be better than the bare
 model itself as we use heuristics to reduce false positives.
 
+## Tflite-runtime may be missing on mint 21 and similar distros
+
+Until Google updates things, you may need to do 
+```bash
+sudo pip3 install https://github.com/hjonnala/snippets/blob/main/wheels/python3.10/tflite_runtime-2.5.0.post1-cp310-cp310-linux_x86_64.whl?raw=true
+```
+
+instead.
+
+
 ### Systemd service
 
 Ajdust as needed  to point to your paths and users.  Or just use emberos.
