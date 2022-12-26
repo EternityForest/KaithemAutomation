@@ -55,6 +55,8 @@ tweaks.installThreadLogging()
 # Thhese happpen early so we cab start logging stuff soon
 from . import messagelogging
 from . import pylogginghandler
+
+
 from . import notifications
 
 
@@ -101,8 +103,13 @@ except Exception:
 def loadJackMixer():
     from src import jackmixer
 
+
+rlogger = logging.getLogger()
+rlogger.setLevel(logging.INFO)
+
 logger = logging.getLogger("system")
-logger.setLevel(0)
+logger.setLevel(logging.INFO)
+
 
 # Dump stuff to stderr when we get a segfault
 try:
@@ -119,20 +126,23 @@ except Exception:
 
 # Make this not spew debug logs, I'm pretty sure that lib is well tested and
 # Reliable and we don't need to know about every request.
-urlliblogger = logging.getLogger("urllib3.connectionpool")
-urlliblogger.setLevel(logging.INFO)
+logs = logging.getLogger("urllib3.connectionpool")
+logs.setLevel(logging.INFO)
 
 # Make this not spew debug logs, I'm pretty sure that lib is well tested and
 # Reliable and we don't need to know about every request.
-urlliblogger = logging.getLogger("hbmqtt.broker")
-urlliblogger.setLevel(logging.WARNING)
-urlliblogger = logging.getLogger("hbmqtt.client")
-urlliblogger.setLevel(logging.WARNING)
+logs = logging.getLogger("hbmqtt.broker")
+logs.setLevel(logging.WARNING)
+logs = logging.getLogger("hbmqtt.client")
+logs.setLevel(logging.WARNING)
 
-urlliblogger = logging.getLogger("transitions.core")
-urlliblogger.setLevel(logging.WARNING)
-urlliblogger = logging.getLogger("hbmqtt.mqtt.protocol.handler")
-urlliblogger.setLevel(logging.INFO)
+logs = logging.getLogger("transitions.core")
+logs.setLevel(logging.WARNING)
+logs = logging.getLogger("hbmqtt.mqtt.protocol.handler")
+logs.setLevel(logging.INFO)
+
+logs = logging.getLogger("PIL.Image")
+logs.setLevel(logging.WARNING)
 
 # This is a very slightly modified version with better socket cleanup properties
 

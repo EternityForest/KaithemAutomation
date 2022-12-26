@@ -31,8 +31,6 @@ path = os.path.dirname( os.path.abspath(__file__))
 
 def getRTSPFromOnvif(c):
     c.create_devicemgmt_service()
-    print(c.devicemgmt.GetDeviceInformation())
-
     c.create_media_service()
 
     selection = None
@@ -645,10 +643,8 @@ class NVRChannel(devices.Device):
         # the currently being recorded segment
         self.stoprecordingafternextsegment = 0
 
-        try:
+        if os.path.exists:
             shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
-        except Exception:
-            pass
 
         os.makedirs("/dev/shm/knvr_buffer/" + self.name)
 
