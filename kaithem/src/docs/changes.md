@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+
+### 0.68.40
+- :bug: Don't spam notifications from inactive alerts
+- :bug: Use nmcli for wifi status instead of outdated dbus
+- :bug: Fix settings and theming page not loading
+
+
+
 ### 0.68.39 Fresh and Free! Closer to 1.0
 
 - :bug: Make it so tag subscribers never fire at all if the timestamp is zero.

@@ -3,7 +3,7 @@ import uuid
 import weakref
 import logging
 
-from .import widgets, scheduling, tagpoints
+from .import widgets, scheduling, tagpoints, workers
 
 by_uuid = weakref.WeakValueDictionary()
 
@@ -43,61 +43,31 @@ wifi.setAlarm("NoWiredNetwork", "(value>-1) and (value < 1) and not (tv('/system
 getAllDevicesAttempted = [0]
 
 def getConnectionStatus():
-
-    d = {}
-    import NetworkManager
-    if not getAllDevicesAttempted[0]:
-        try:
-            devs = NetworkManager.NetworkManager.GetAllDevices()
-        except Exception:
-            getAllDevicesAttempted[0] = 1
-            devs = NetworkManager.NetworkManager.GetDevices()
-    else:
-        devs = NetworkManager.NetworkManager.GetDevices()
-
+    import nmcli
+    nmcli.disable_use_sudo()
+    
     strongest = 0
     eth = 0
-    for device in devs:
-        try:
-            if device.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
-                ap = device.ActiveAccessPoint
-                if ap:
-                    # 2=WiFi STA
-                    d[device.Udi] = (ap.Ssid, 100 if (
-                        not device.Mode == 2) else ap.Strength, modes.get(device.Mode, "UNKNOWN"))
-
-                    if device.Mode == 2:
-                        s = ap.Strength
-                        if s > strongest:
-                            strongest = s
-
-                else:
-                    d[device.Udi] = ("", 0, "DISCONNECTED")
-
-            elif device.DeviceType == NetworkManager.NM_DEVICE_TYPE_ETHERNET:
-                if device.State == NetworkManager.NM_DEVICE_STATE_DISCONNECTED:
-                    d[device.Udi] = (device.Interface, 0, "DISCONNECTED")
-
-                if device.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
-                    d[device.Udi] = (device.Interface, 0, "CONNECTED")
-                    eth=1
-
-                else:
-                    d[device.Udi] = (device.Interface, 0, "UNKNOWN")
-
-            else:
-                d[device.Udi] = ("NOT_WIFI", 100, "UNKNOWN")
-        except:
-            logging.exception("Err in wifi manager")
 
 
+    for dev in nmcli.device.wifi():
+        if dev.in_use:
+            s = dev.signal
+            if s>strongest:
+                strongest = s
+
+    for dev in nmcli.device.status():
+        if dev.device_type == 'ethernet':
+            if dev.connection:
+                eth = 1
+
+        
     #Don't overwrite "never connected" with a 0
     if (wifi.value>-1) or strongest:
         wifiClaim.set(strongest)
 
     if (ethernet.value>-1) or eth:
         ethernetClaim.set(eth)
-    return d
 
 
 def handleMessage(u, v):
@@ -105,22 +75,25 @@ def handleMessage(u, v):
         api.send(['status', getConnectionStatus()])
 
 
-@scheduling.scheduler.everyMinute
-def worker():
+try:
+    import nmcli
 
-    # Don't bother if not configured
-    try:
-        import NetworkManager
-    except:
-        log.exception(
-            "Could not import NetworkManager. Network management disabled.")
-        return
+    from . import util
+    if not util.which('nmcli'):
+        raise RuntimeError("nmcli binary not founfd")
 
-    try:
-        api.send(['status', getConnectionStatus()])
-    except:
-        log.exception("Error in WifiManager")
+    @scheduling.scheduler.everyMinute
+    def worker():
+        try:
+            api.send(['status', getConnectionStatus()])
+        except Exception:
+            log.exception("Error in WifiManager")
 
+    workers.do(getConnectionStatus())
+
+except Exception:
+    log.exception(
+        "Could not use NetworkManager client. Network management disabled.")
 
 api = widgets.APIWidget()
 api.require("/admin/settings.edit")

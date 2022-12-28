@@ -1,7 +1,9 @@
+
+
 # NetworkManager - a library to make interacting with the NetworkManager daemon
 # easier.
 #
-# (C)2011-2017 Dennis Kaarsemaker
+# (C)2011-2021 Dennis Kaarsemaker
 # License: zlib
 
 import copy
@@ -258,7 +260,7 @@ class NMDbusInterface(object):
     @property
     def proxy(self):
         if not self._proxy:
-            self._proxy = dbus.SystemBus().get_object(self.dbus_service, self.object_path)
+            self._proxy = dbus.SystemBus().get_object(self.dbus_service, self.object_path, follow_name_owner_changes=True)
             self._proxy.created = time.time()
         elif self._proxy.created < self.last_disconnect:
             if self.is_transient:
@@ -389,8 +391,13 @@ def device_class(typ):
         NM_DEVICE_TYPE_PPP: PPP,
         NM_DEVICE_TYPE_OVS_INTERFACE: OvsIf,
         NM_DEVICE_TYPE_OVS_PORT: OvsPort,
-        NM_DEVICE_TYPE_OVS_BRIDGE: OvsBridge
-    }.get(typ,Generic)
+        NM_DEVICE_TYPE_OVS_BRIDGE: OvsBridge,
+        NM_DEVICE_TYPE_WPAN: Wpan,
+        NM_DEVICE_TYPE_6LOWPAN: SixLoWpan,
+        NM_DEVICE_TYPE_WIREGUARD: WireGuard,
+        NM_DEVICE_TYPE_VRF: Vrf,
+        NM_DEVICE_TYPE_WIFI_P2P: WifiP2p,
+    }[typ]
 
 class Adsl(Device): pass
 class Bluetooth(Device): pass
@@ -416,6 +423,11 @@ class PPP(Device): pass
 class OvsIf(Device): pass
 class OvsPort(Device): pass
 class OvsBridge(Device): pass
+class Wpan(Device): pass
+class SixLoWpan(Device): pass
+class WireGuard(Device): pass
+class WifiP2p(Device): pass
+class Vrf(Device): pass
 
 class NSP(TransientNMDbusInterface):
     interface_names = ['org.freedesktop.NetworkManager.Wimax.NSP']
@@ -504,6 +516,12 @@ class fixups(object):
                     settings['ipv4']['address-data'] = dbus.Array(
                         settings['ipv4']['address-data'],
                         signature=dbus.Signature('a{sv}'))
+                if 'route-data' in settings['ipv4']:
+                    for item in settings['ipv4']['route-data']:
+                        item['prefix'] = dbus.UInt32(item['prefix'])
+                    settings['ipv4']['route-data'] = dbus.Array(
+                        settings['ipv4']['route-data'],
+                        signature=dbus.Signature('a{sv}'))
                 if 'addresses' in settings['ipv4']:
                     settings['ipv4']['addresses'] = [fixups.addrconf_to_dbus(addr,socket.AF_INET) for addr in settings['ipv4']['addresses']]
                 if 'routes' in settings['ipv4']:
@@ -511,6 +529,18 @@ class fixups(object):
                 if 'dns' in settings['ipv4']:
                     settings['ipv4']['dns'] = [fixups.addr_to_dbus(addr,socket.AF_INET) for addr in settings['ipv4']['dns']]
             if 'ipv6' in settings:
+                if 'address-data' in settings['ipv6']:
+                    for item in settings['ipv6']['address-data']:
+                        item['prefix'] = dbus.UInt32(item['prefix'])
+                    settings['ipv6']['address-data'] = dbus.Array(
+                        settings['ipv6']['address-data'],
+                        signature=dbus.Signature('a{sv}'))
+                if 'route-data' in settings['ipv6']:
+                    for item in settings['ipv6']['route-data']:
+                        item['prefix'] = dbus.UInt32(item['prefix'])
+                    settings['ipv6']['route-data'] = dbus.Array(
+                        settings['ipv6']['route-data'],
+                        signature=dbus.Signature('a{sv}'))
                 if 'addresses' in settings['ipv6']:
                     settings['ipv6']['addresses'] = [fixups.addrconf_to_dbus(addr,socket.AF_INET6) for addr in settings['ipv6']['addresses']]
                 if 'routes' in settings['ipv6']:
@@ -740,6 +770,7 @@ del xml_cache
 
 # Constants below are generated with makeconstants.py. Do not edit manually.
 NM_CAPABILITY_TEAM = 1
+NM_CAPABILITY_OVS = 2
 NM_STATE_UNKNOWN = 0
 NM_STATE_ASLEEP = 10
 NM_STATE_DISCONNECTED = 20
@@ -780,6 +811,11 @@ NM_DEVICE_TYPE_PPP = 23
 NM_DEVICE_TYPE_OVS_INTERFACE = 24
 NM_DEVICE_TYPE_OVS_PORT = 25
 NM_DEVICE_TYPE_OVS_BRIDGE = 26
+NM_DEVICE_TYPE_WPAN = 27
+NM_DEVICE_TYPE_6LOWPAN = 28
+NM_DEVICE_TYPE_WIREGUARD = 29
+NM_DEVICE_TYPE_WIFI_P2P = 30
+NM_DEVICE_TYPE_VRF = 31
 NM_DEVICE_CAP_NONE = 0
 NM_DEVICE_CAP_NM_SUPPORTED = 1
 NM_DEVICE_CAP_CARRIER_DETECT = 2
@@ -797,6 +833,8 @@ NM_WIFI_DEVICE_CAP_ADHOC = 128
 NM_WIFI_DEVICE_CAP_FREQ_VALID = 256
 NM_WIFI_DEVICE_CAP_FREQ_2GHZ = 512
 NM_WIFI_DEVICE_CAP_FREQ_5GHZ = 1024
+NM_WIFI_DEVICE_CAP_MESH = 4096
+NM_WIFI_DEVICE_CAP_IBSS_RSN = 8192
 NM_802_11_AP_FLAGS_NONE = 0
 NM_802_11_AP_FLAGS_PRIVACY = 1
 NM_802_11_AP_FLAGS_WPS = 2
@@ -813,10 +851,14 @@ NM_802_11_AP_SEC_GROUP_TKIP = 64
 NM_802_11_AP_SEC_GROUP_CCMP = 128
 NM_802_11_AP_SEC_KEY_MGMT_PSK = 256
 NM_802_11_AP_SEC_KEY_MGMT_802_1X = 512
+NM_802_11_AP_SEC_KEY_MGMT_SAE = 1024
+NM_802_11_AP_SEC_KEY_MGMT_OWE = 2048
+NM_802_11_AP_SEC_KEY_MGMT_OWE_TM = 4096
 NM_802_11_MODE_UNKNOWN = 0
 NM_802_11_MODE_ADHOC = 1
 NM_802_11_MODE_INFRA = 2
 NM_802_11_MODE_AP = 3
+NM_802_11_MODE_MESH = 4
 NM_BT_CAPABILITY_NONE = 0
 NM_BT_CAPABILITY_DUN = 1
 NM_BT_CAPABILITY_NAP = 2
@@ -908,11 +950,17 @@ NM_DEVICE_STATE_REASON_PARENT_MANAGED_CHANGED = 62
 NM_DEVICE_STATE_REASON_OVSDB_FAILED = 63
 NM_DEVICE_STATE_REASON_IP_ADDRESS_DUPLICATE = 64
 NM_DEVICE_STATE_REASON_IP_METHOD_UNSUPPORTED = 65
+NM_DEVICE_STATE_REASON_SRIOV_CONFIGURATION_FAILED = 66
+NM_DEVICE_STATE_REASON_PEER_NOT_FOUND = 67
 NM_METERED_UNKNOWN = 0
 NM_METERED_YES = 1
 NM_METERED_NO = 2
 NM_METERED_GUESS_YES = 3
 NM_METERED_GUESS_NO = 4
+NM_CONNECTION_MULTI_CONNECT_DEFAULT = 0
+NM_CONNECTION_MULTI_CONNECT_SINGLE = 1
+NM_CONNECTION_MULTI_CONNECT_MANUAL_MULTIPLE = 2
+NM_CONNECTION_MULTI_CONNECT_MULTIPLE = 3
 NM_ACTIVE_CONNECTION_STATE_UNKNOWN = 0
 NM_ACTIVE_CONNECTION_STATE_ACTIVATING = 1
 NM_ACTIVE_CONNECTION_STATE_ACTIVATED = 2
@@ -950,14 +998,22 @@ NM_IP_TUNNEL_MODE_IP6IP6 = 6
 NM_IP_TUNNEL_MODE_IPIP6 = 7
 NM_IP_TUNNEL_MODE_IP6GRE = 8
 NM_IP_TUNNEL_MODE_VTI6 = 9
+NM_IP_TUNNEL_MODE_GRETAP = 10
+NM_IP_TUNNEL_MODE_IP6GRETAP = 11
 NM_CHECKPOINT_CREATE_FLAG_NONE = 0
 NM_CHECKPOINT_CREATE_FLAG_DESTROY_ALL = 1
 NM_CHECKPOINT_CREATE_FLAG_DELETE_NEW_CONNECTIONS = 2
 NM_CHECKPOINT_CREATE_FLAG_DISCONNECT_NEW_DEVICES = 4
+NM_CHECKPOINT_CREATE_FLAG_ALLOW_OVERLAPPING = 8
 NM_ROLLBACK_RESULT_OK = 0
 NM_ROLLBACK_RESULT_ERR_NO_DEVICE = 1
 NM_ROLLBACK_RESULT_ERR_DEVICE_UNMANAGED = 2
 NM_ROLLBACK_RESULT_ERR_FAILED = 3
+NM_SETTINGS_CONNECTION_FLAG_NONE = 0
+NM_SETTINGS_CONNECTION_FLAG_UNSAVED = 1
+NM_SETTINGS_CONNECTION_FLAG_NM_GENERATED = 2
+NM_SETTINGS_CONNECTION_FLAG_VOLATILE = 4
+NM_SETTINGS_CONNECTION_FLAG_EXTERNAL = 8
 NM_ACTIVATION_STATE_FLAG_NONE = 0
 NM_ACTIVATION_STATE_FLAG_IS_MASTER = 1
 NM_ACTIVATION_STATE_FLAG_IS_SLAVE = 2
@@ -965,6 +1021,12 @@ NM_ACTIVATION_STATE_FLAG_LAYER2_READY = 4
 NM_ACTIVATION_STATE_FLAG_IP4_READY = 8
 NM_ACTIVATION_STATE_FLAG_IP6_READY = 16
 NM_ACTIVATION_STATE_FLAG_MASTER_HAS_SLAVES = 32
+NM_ACTIVATION_STATE_FLAG_LIFETIME_BOUND_TO_PROFILE_VISIBILITY = 64
+NM_ACTIVATION_STATE_FLAG_EXTERNAL = 128
+NM_SETTINGS_ADD_CONNECTION2_FLAG_NONE = 0
+NM_SETTINGS_ADD_CONNECTION2_FLAG_TO_DISK = 1
+NM_SETTINGS_ADD_CONNECTION2_FLAG_IN_MEMORY = 2
+NM_SETTINGS_ADD_CONNECTION2_FLAG_BLOCK_AUTOCONNECT = 32
 NM_SETTINGS_UPDATE2_FLAG_NONE = 0
 NM_SETTINGS_UPDATE2_FLAG_TO_DISK = 1
 NM_SETTINGS_UPDATE2_FLAG_IN_MEMORY = 2
@@ -972,6 +1034,42 @@ NM_SETTINGS_UPDATE2_FLAG_IN_MEMORY_DETACHED = 4
 NM_SETTINGS_UPDATE2_FLAG_IN_MEMORY_ONLY = 8
 NM_SETTINGS_UPDATE2_FLAG_VOLATILE = 16
 NM_SETTINGS_UPDATE2_FLAG_BLOCK_AUTOCONNECT = 32
+NM_SETTINGS_UPDATE2_FLAG_NO_REAPPLY = 64
+NM_TERNARY_DEFAULT = -1
+NM_TERNARY_FALSE = 0
+NM_TERNARY_TRUE = 1
+NM_MANAGER_RELOAD_FLAG_NONE = 0
+NM_MANAGER_RELOAD_FLAG_CONF = 1
+NM_MANAGER_RELOAD_FLAG_DNS_RC = 2
+NM_MANAGER_RELOAD_FLAG_DNS_FULL = 4
+NM_MANAGER_RELOAD_FLAG_ALL = 7
+NM_DEVICE_INTERFACE_FLAG_NONE = 0
+NM_DEVICE_INTERFACE_FLAG_UP = 1
+NM_DEVICE_INTERFACE_FLAG_LOWER_UP = 2
+NM_DEVICE_INTERFACE_FLAG_CARRIER = 65536
+NM_CLIENT_PERMISSION_NONE = 0
+NM_CLIENT_PERMISSION_ENABLE_DISABLE_NETWORK = 1
+NM_CLIENT_PERMISSION_ENABLE_DISABLE_WIFI = 2
+NM_CLIENT_PERMISSION_ENABLE_DISABLE_WWAN = 3
+NM_CLIENT_PERMISSION_ENABLE_DISABLE_WIMAX = 4
+NM_CLIENT_PERMISSION_SLEEP_WAKE = 5
+NM_CLIENT_PERMISSION_NETWORK_CONTROL = 6
+NM_CLIENT_PERMISSION_WIFI_SHARE_PROTECTED = 7
+NM_CLIENT_PERMISSION_WIFI_SHARE_OPEN = 8
+NM_CLIENT_PERMISSION_SETTINGS_MODIFY_SYSTEM = 9
+NM_CLIENT_PERMISSION_SETTINGS_MODIFY_OWN = 10
+NM_CLIENT_PERMISSION_SETTINGS_MODIFY_HOSTNAME = 11
+NM_CLIENT_PERMISSION_SETTINGS_MODIFY_GLOBAL_DNS = 12
+NM_CLIENT_PERMISSION_RELOAD = 13
+NM_CLIENT_PERMISSION_CHECKPOINT_ROLLBACK = 14
+NM_CLIENT_PERMISSION_ENABLE_DISABLE_STATISTICS = 15
+NM_CLIENT_PERMISSION_ENABLE_DISABLE_CONNECTIVITY_CHECK = 16
+NM_CLIENT_PERMISSION_WIFI_SCAN = 17
+NM_CLIENT_PERMISSION_LAST = 17
+NM_CLIENT_PERMISSION_RESULT_UNKNOWN = 0
+NM_CLIENT_PERMISSION_RESULT_YES = 1
+NM_CLIENT_PERMISSION_RESULT_AUTH = 2
+NM_CLIENT_PERMISSION_RESULT_NO = 3
 NM_VPN_SERVICE_STATE_UNKNOWN = 0
 NM_VPN_SERVICE_STATE_INIT = 1
 NM_VPN_SERVICE_STATE_SHUTDOWN = 2

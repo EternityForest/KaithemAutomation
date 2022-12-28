@@ -424,8 +424,9 @@ class Alert():
 
     def _onClear(self):
         if self.priority in ("error", "critical", "warning"):
-            messagebus.postMessage(
-                "/system/notifications", "Alarm "+self.name+" condition cleared, waiting for ACK")
+            if self.sm.state == 'active':
+                messagebus.postMessage(
+                    "/system/notifications", "Alarm "+self.name+" condition cleared, waiting for ACK")
 
         logger.info("Alarm "+self.name + " cleared")
         api.send(['shouldRefresh'])
