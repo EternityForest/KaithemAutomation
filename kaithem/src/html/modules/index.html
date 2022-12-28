@@ -4,9 +4,12 @@ from src import modules, modules_state
 
 def getDesc(m):
     try:
-        return modules_state.ActiveModules[m]['__description']['text']
+        d =  modules_state.ActiveModules[m]['__description']['text']
+        if d=='Module info here':
+            return ''
+        return d
     except:
-        return "No module description found"
+        return ""
 
 %>
 <%include file="/pageheader.html"/>
@@ -22,11 +25,10 @@ def getDesc(m):
     <a class="button" href="/modules/deletemodule"><i class="icofont-ui-delete"></i>Delete</a>
     <a class="button" href="/modules/upload"><i class="icofont-upload"></i>Upload</a>
     <a href="/modules/library"><i class="icofont-library"></i>Library</a>
+    <p style="font-size: smaller;">${modules_state.moduleshash}</p>
     <form style="display:inline-flex;" action="/modules/search/__all__"><input name="search" size="4" placeholder="Search all modules"/><input type=submit value="search"/></form>
     </div>
-    <div class="buttonbar">
-        <p><b style="font-size: smaller;">${modules_state.moduleshash}</b></p>
-    </div>
+
 <hr>
 <dl>
 %for i in sorted(ActiveModules.keys()):
