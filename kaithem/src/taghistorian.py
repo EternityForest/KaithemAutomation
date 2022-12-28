@@ -336,6 +336,15 @@ class TagHistorian():
             newfile = False
 
         self.history = sqlite3.Connection(file)
+
+        try:
+            self.history.execute(
+                "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
+        except Exception:
+            shutil.move(file, file+".error_archived")
+            newfile = True
+            self.history = sqlite3.Connection(file)
+
         self.history.row_factory = sqlite3.Row
         self.filename =file
 
@@ -344,6 +353,7 @@ class TagHistorian():
         self.lock = threading.RLock()
         self.children = {}
 
+        
         self.history.execute(
             "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
         self.history.execute(

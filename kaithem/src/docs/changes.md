@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.68.41
+
+- :bug: Remove SG1 plugin, the last deployment is gone and there doesn't seem to be much interest in the protocol.
+- :sparkles: If the SQLite tag history DB gets corrupted, archive it and start a new one.
+
 
 ### 0.68.40
 - :bug: Don't spam notifications from inactive alerts
