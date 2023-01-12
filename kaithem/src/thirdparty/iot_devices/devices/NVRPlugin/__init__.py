@@ -592,8 +592,16 @@ class NVRChannel(devices.Device):
                 os.chmod("/dev/shm/knvr_buffer/" + self.name + ".bmp", 0o700)
             if self.datapoints['running']:
                 try:
+
+                    # Use a temp file to make it an atomic operation
+                    fn = "/dev/shm/knvr_buffer/" + self.name + ".bmp"
+                    tmpfn ="/dev/shm/knvr_buffer/" + self.name + str(time.time()) + ".bmp"
+
                     x = self.snapshotter.pullToFile(
-                        "/dev/shm/knvr_buffer/" + self.name + ".bmp")
+                       tmpfn)
+
+                    shutil.move(tmpfn, fn)
+                    
                 except Exception:
                     self.set_data_point('running', 0)
                     if self.process:
