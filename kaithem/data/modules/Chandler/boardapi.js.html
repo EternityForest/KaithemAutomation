@@ -3,14 +3,15 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
-code: "jsvars = {\r\n    'KaithemSoundCards' : [i for i in kaithem.sound.outputs()]\r\
-  \n}"
+code: "limitedTagsListing=module.limitedTagsListing()\r\ncommandTagsListing=module.commandTagsListing()\r\
+  \n\r\n\r\njsvars = {\r\n    'KaithemSoundCards' : [i for i in kaithem.sound.outputs()],\r\
+  \n    'availableTags':limitedTagsListing\r\n}"
 mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1674894498009288
+resource-timestamp: 1674894865891099
 resource-type: page
 setupcode: "import json\r\n"
 streaming-response: true
@@ -215,7 +216,7 @@ appData = {
     ["=isDark()", 'Run if it is civil twilight'], ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'], ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
 
 
-    'availableTags': [],
+    'availableTags': availableTags,
     'completers': {
 
         'gotoSceneNamesCompleter': function (a) {
