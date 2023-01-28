@@ -116,9 +116,9 @@ onsubmit="document.getElementById('box').value = editor.getValue();document.getE
 
 
 <p class="help">
-The page handler and setup are python code. If, in the setup or handler, your create an dict called 'jsvars',
+The page handler and setup are python code. If, in the setup or handler, your create an dict called '__jsvars__',
 then this any keys in it will become global JS variables accessible in your page.  This is done by adding a script
-to the rendered page.  You can also add datalists like datalists= {'listid': [{'option':'OptionName', 'value': "Value"}]}
+to the rendered page.  You can also add datalists like __datalists__= {'listid': [{'option':'OptionName', 'value': "Value"}]}
 </p>
 
     
