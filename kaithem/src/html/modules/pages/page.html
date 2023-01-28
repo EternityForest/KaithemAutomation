@@ -114,6 +114,13 @@ onsubmit="document.getElementById('box').value = editor.getValue();document.getE
     Please see cherrypy's documentation for more info.
 </p>
 
+
+<p class="help">
+The page handler and setup are python code. If, in the setup or handler, your create an dict called 'jsvars',
+then this any keys in it will become global JS variables accessible in your page.  This is done by adding a script
+to the rendered page. 
+</p>
+
     
 %else:
 <p class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</p>
@@ -557,5 +564,7 @@ Saving this module will cause it to be immediately acessable from the web.
 
 
 %endif
+
+
 
 <%include file="/pagefooter.html"/>
