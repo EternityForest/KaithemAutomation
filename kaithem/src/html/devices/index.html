@@ -87,12 +87,18 @@ def devStatString(d):
 <%
 
 devObj = devObj or deviceData[i]()
+
+if devObj.deviceTypeName == 'UnusedSubdevice':
+    greyout  = "opacity: 70%;"
+else:
+    greyout = ''
+
 %>
 
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
 <hr style="width: 100%;">
 %endif
-<div class="sectionbox" style="border: 1px solid; margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
+<div class="sectionbox" style="${greyout}border: 1px solid; margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         
     <div class="buttonbar">
         <h3

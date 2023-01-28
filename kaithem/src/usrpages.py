@@ -219,12 +219,14 @@ class CompiledPage():
                     if resource['auto-reload']:
                         header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
 
+
+
                 if not ('no-header' in resource) or not (resource['no-header']):
                     footer = util.readfile(os.path.join(
                         directories.htmldir, 'pagefooter.html'))
                 else:
                     footer = ""
-                templatesource = header + template + footer
+
 
                 self.d = {'kaithem': self.kaithemobj.kaithem,
                           'page': self.localAPI, 'print': self.new_print}
@@ -232,8 +234,21 @@ class CompiledPage():
                     self.d['module'] = modules_state.scopes[m]
 
                 if not 'template-engine' in resource or resource['template-engine'] == 'mako':
+
+
+                    # Add in the separate code
+
+                    if 'setupcode' in resource:
+                        header+="\n<%!\n" + resource['setupcode'] + "\n%>\n"
+
+                    if 'code' in resource:
+                        header+="\n<%\n" + resource['code'] + "\n%>\n"
+
+                    templatesource = header + template + footer
+
                     self.template = mako.template.Template(
                         templatesource, uri="Template"+m+'_'+r)
+
 
                 elif resource['template-engine'] == 'markdown':
                     header = mako.template.Template(

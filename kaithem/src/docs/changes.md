@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.68.42
+- :lipstick: Chandler always shows all scenes, no separate "This board" and "All active"
+- :sparkles: We now have a separate setup and handler code area for pages.  Inline code will continue to work as before.
+
+
 ### 0.68.41
 
 - :bug: Remove SG1 plugin, the last deployment is gone and there doesn't seem to be much interest in the protocol.

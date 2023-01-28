@@ -834,7 +834,21 @@ def resourceUpdateTarget(module, resource, kwargs):
             else:
                 body = kwargs['body']
 
+            if 'tabtospace' in kwargs:
+                code = kwargs['code'].replace("\t", "    ")
+            else:
+                code = kwargs['code']
+
+            if 'tabtospace' in kwargs:
+                setupcode = kwargs['setupcode'].replace("\t", "    ")
+            else:
+                setupcode = kwargs['setupcode']
+
+
             resourceobj['body'] = body
+            resourceobj['code'] = code
+            resourceobj['setupcode'] = setupcode
+
             resourceobj['mimetype'] = kwargs['mimetype']
             resourceobj['template-engine'] = kwargs['template-engine']
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
