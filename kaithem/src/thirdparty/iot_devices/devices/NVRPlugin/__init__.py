@@ -476,6 +476,33 @@ class Pipeline(iceflow.GstreamerPipeline):
 import iot_devices.device as devices
 
 
+class NVRChannelRegion(devices.Device):
+    """
+        Subdevice used to configure one sub-region of motion detection
+    """
+    device_type = "NVRChannelRegion"
+    def __init__(self,name, data, **kw):
+        devices.Device.__init__(self, name, data, **kw)
+        self.set_data_point("raw_motion_value", 0)
+        self.set_data_point("motion_detected", 0)
+
+        self.set_config_default('device.motion_threshold', 0.08)
+
+
+    def processImage(self, img):
+        pass
+
+
+    def onMotionValue(self, v):
+        self.set_data_point("raw_motion_value", v)
+        self.motion(v > float(self.config.get(
+            'device.motion_threshold', 0.08)))
+
+    def motion(self, v):
+        self.set_data_point("motion_detected", v)
+
+
+
 class NVRChannel(devices.Device):
     device_type = 'NVRChannel'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
@@ -738,6 +765,24 @@ class NVRChannel(devices.Device):
         if self.config.get('device.barcodes', '').lower() in ("yes", "true", "detect", "enable", "on"):
             self.process.addElement("zbar")
             self.print("Barcode detection enabled")
+
+        # Handle region data of the form foo=x,y,w,h; 
+        regions = {}
+        x = self.config['device.regions']
+        if x:
+            x = x.split(";")
+
+            for i in x:
+                if not '=' in x:
+                    continue
+
+                n, d = i.split("=")
+                n=n.strip()
+                regions[n] = [int(i.strip()) for i in d.split(',')]
+
+            for i in regions:
+                x = self.create_subdevice(NVRChannelRegion, i, {})
+                x.region = regions[i]
 
 
         # Not a real GST element. The iceflow backend hardcodes this motion/presense detection
@@ -1147,6 +1192,10 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.password", '')
 
 
+            # Region data is in the format like regionName=0.3,0.3,0.4,0.2;
+            # X, Y, W, H as fraction of image dimension
+            self.set_config_default("device.regions", '')
+
             # Support ONVIF URLs
             self.onvif=None
             if self.config['device.username'] and self.config['device.password']: 
@@ -1336,6 +1385,11 @@ class NVRChannel(devices.Device):
             self.config_properties['device.storage_dir'] = {
                 'type': 'local_fs_dir'
             }
+
+            self.config_properties['device.regions'] = {
+                'type': 'region_list'
+            }
+
 
             self.streamLock = threading.RLock()
             self.lastStart = 0

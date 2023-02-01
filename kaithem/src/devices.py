@@ -484,11 +484,34 @@ class Device():
                         logging.exception(
                             "Could not unsub. Maybe was never created.")
 
+
+
+            for i in self.tagPoints:
+                t = self.tagPoints[i]
+
+                if hasattr(t, "_kOutputBindings"):
+                    for i in t._kOutputBindings:
+                        try:
+                            t.unsubscribe[i]
+                        except Exception:
+                            logging.exception(
+                                "Could not unsub. Maybe was never created.")
+
+                t._kOutputBindings = []
+
             # Be defensive about ref cycles.
             try:
                 del self._kBindings
             except Exception:
                 pass
+
+
+            # Be defensive about ref cycles.
+            try:
+                del self._kRevBindings
+            except Exception:
+                pass
+
 
             try:
                 del self.tagPoints
@@ -687,6 +710,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.default = default
             t.interval = interval
             t.subtype = subtype
+            t.writable = writable
 
             def f(v, t, a):
                 self.datapoints[name] = v
@@ -706,7 +730,11 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t, immediate=True)
+                self._kBindings[name].subscribe(t, immediate=(not t.subtype == 'trigger'))
+
+            x = {i[0]: i[1] for i in self.config.get('kaithem.output_bindings',[])}
+            if name in x:
+                doOutputBinding(t, x[name],'Set by device: '+ self.name)
 
             messagebus.postMessage("/system/tags/configured", t.name)
 
@@ -733,6 +761,8 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.default = default
             t.interval = interval
             t.subtype = subtype
+            t.writable = writable
+
 
             def f(v, t, a):
                 self.datapoints[name] = v
@@ -752,7 +782,12 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t, immediate=True)
+                self._kBindings[name].subscribe(t, immediate=(not t.subtype == 'trigger'))
+
+
+            x = {i[0]: i[1] for i in self.config.get('kaithem.output_bindings',[])}
+            if name in x:
+                doOutputBinding(t, x[name],'Set by device: '+ self.name)
 
             messagebus.postMessage("/system/tags/configured", t.name)
 
@@ -779,6 +814,8 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             t.description = description
             t.interval = interval
+            t.writable = writable
+
 
             def f(v, t, a):
                 self.datapoints[name] = v
@@ -798,7 +835,13 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t, immediate=True)
+                self._kBindings[name].subscribe(t, immediate=(not t.subtype == 'trigger'))
+
+            x = {i[0]: i[1] for i in self.config.get('kaithem.output_bindings',[])}
+            if name in x:
+                doOutputBinding(t, x[name],'Set by device: '+ self.name)
+
+
             messagebus.postMessage("/system/tags/configured", t.name)
 
     def bytestream_data_point(self,
@@ -839,7 +882,13 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
-                self._kBindings[name].subscribe(t, immediate=True)
+                self._kBindings[name].subscribe(t, immediate=(not t.subtype == 'trigger'))
+
+            x = {i[0]: i[1] for i in self.config.get('kaithem.output_bindings',[])}
+            if name in x:
+                doOutputBinding(t, x[name],'Set by device: '+ self.name)
+
+
             messagebus.postMessage("/system/tags/configured", t.name)
 
     def push_bytes(self, name, value,):
@@ -1002,6 +1051,13 @@ def updateDevice(devname, kwargs, saveChanges=True):
             i for i in json.loads(ib) if i[0] or i[2]
         ]
 
+    ib = kwargs.pop("temp.kaithem.outputbindings", None)
+    if ib:
+        # Delete empty. We may need empty thanks to very very annoying ui lib bugs
+        kwargs['kaithem.output_bindings'] = [
+            i for i in json.loads(ib) if i[0] or i[1]
+        ]
+
     raw_dt = getDeviceType(kwargs['type'])
     if hasattr(raw_dt, "validateData"):
         raw_dt.validateData(kwargs)
@@ -1026,6 +1082,9 @@ def updateDevice(devname, kwargs, saveChanges=True):
             parentResource = remote_devices[devname].parentResource
             old_bindings = remote_devices[devname].config.get(
                 "kaithem.input_bindings", [])
+
+            old_obindings = remote_devices[devname].config.get(
+                "kaithem.output_bindings", [])
 
             old_read_perms = remote_devices[devname].config.get(
                 "kaithem.read_perms", [])
@@ -1065,6 +1124,11 @@ def updateDevice(devname, kwargs, saveChanges=True):
         # allow forms that don't have the whole binding widget
         if 'kaithem.input_bindings' not in d:
             d['kaithem.input_bindings'] = old_bindings
+
+
+        if 'kaithem.output_bindings' not in d:
+            d['kaithem.output_bindings'] = old_obindings
+
 
         if 'kaithem.read_perms' not in d:
             d['kaithem.read_perms'] = old_read_perms or ''
@@ -1596,6 +1660,24 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
     return d
 
 
+
+def doOutputBinding(tag, dest, annotation):
+    if not hasattr(tag, '_kOutputBindings'):
+        tag._kOutputBindings = []
+    
+    def f(v, t, a ):
+        if dest in tagpoints.allTagsAtomic:
+
+            d = tagpoints.allTagsAtomic[dest]
+
+            # For triggers, don't copy the raw value, increase the destination's value by 1.
+            if d.subtype == 'trigger':
+                v = d.value + 1
+
+            d(v, t, annotation)
+
+    tag._kOutputBindings.append[f]
+
 def configureInputBindings(d):
     data = d.config
     needSet = 0
@@ -1624,15 +1706,57 @@ def configureInputBindings(d):
                 logging.exception(
                     "Could not unsub. Maybe was never created.")
 
+
+
+    for i in d.tagPoints:
+        t = d.tagPoints[i]
+
+        if hasattr(t, "_kOutputBindings"):
+            for i in t._kOutputBindings:
+                try:
+                    t.unsubscribe[i]
+                except Exception:
+                    logging.exception(
+                        "Could not unsub. Maybe was never created.")
+
+        t._kOutputBindings = []
+
+
     for i in data.get("kaithem.input_bindings", []):
         if not i[0].strip():
             continue
 
-        if i[1] == 'numeric' or i[1] == 'number':
+        # Can always do this later
+        if i[0] in d.tagPoints:
+           # Do the setter right away if the tag has data
+            doOutputBinding(d.tagPoints[i[0]], i[1], "Set by device: " + d.name)
+        
+        else:
+            if not hasattr(d, "_isCrossFramework"):
+                d.handleError(
+                    "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
+                )
+
+    for i in data.get("kaithem.output_bindings", []):
+        if not i[0].strip():
+            continue
+
+        if i[0] in d.tagPoints:
+            t = d.tagPoints[i[0]]
+
+        else:
+            if not hasattr(d, "_isCrossFramework"):
+                d.handleError(
+                    "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
+                )
+
+        if t.type == 'numeric' or t.type == 'number':
             t = tagpoints.Tag(i[2])
-        if i[1] == 'string':
+
+        if t.type == 'string':
             t = tagpoints.StringTag(i[2])
-        if i[1] == 'object':
+
+        if t.type == 'object':
             t = tagpoints.ObjectTag(i[2])
 
         d._kBindings[i[0]] = t
@@ -1640,12 +1764,15 @@ def configureInputBindings(d):
         # Can always do this later
         if i[0] in d.tagPoints:
             # Do the setter right away if the tag has data
-            t.subscribe(d.tagPoints[i[0]], immediate=True)
+            t.subscribe(d.tagPoints[i[0]], immediate=(not t.subtype == 'trigger'))
         else:
             if not hasattr(d, "_isCrossFramework"):
                 d.handleError(
                     "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
                 )
+
+
+
 
     if needSet:
         # Set the data if we auto-filled the type

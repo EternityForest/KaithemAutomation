@@ -2,6 +2,9 @@ Change Log
 ----------
 
 ### 0.68.42
+
+This release is all about making the custom HTML pages more maintainable.
+
 - :lipstick: Chandler always shows all scenes, no separate "This board" and "All active"
 - :sparkles: We now have a separate setup and handler code area for pages.  Inline code will continue to work as before.
 - :sparkles: Special variables \_\_jsvars\_\_ and \_\_datalists\_\_ to directly add stuff to pages. 

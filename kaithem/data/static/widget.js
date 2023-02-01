@@ -282,7 +282,11 @@ Copyright (c) 2015 Yusuke Kawasaki
 								apiobj.serverMsgCallbacks[i[0]][j](resp[n][1]);
 							}
 							else {
-								alert("A widget used by this page no longer exists on the server.  Try refreshing later.")
+								if (this.alreadyPostedAlertOnce) { }
+								else {
+									this.alreadyPostedAlertOnce=true
+									alert("A widget used by this page no longer exists on the server.  Try refreshing later.")
+								}
 							}
 						}
 					}

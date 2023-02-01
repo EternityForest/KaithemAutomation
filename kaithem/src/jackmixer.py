@@ -258,6 +258,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.levelTag.max = 3
         self.levelTag.hi = -3
         self.levelTag.unit = 'dB'
+        self.levelTag.writable = False
 
         # Set default
         self.levelTag.value = -90

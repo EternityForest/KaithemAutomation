@@ -32,6 +32,10 @@ specialKeys={
 <script type="text/javascript" src="/static/widget.js"></script>
 <script type="text/javascript" src="/static/js/mpegts.js"></script>
 
+<link href="/static/js/croppr/croppr.css" rel="stylesheet"/>
+<script type="text/javascript" src="/static/js/croppr/croppr.js"></script>
+
+
 <script type="text/javascript" src="/static/js/jquery3.js"></script>
 <script type="text/javascript" src="/static/js/editTable/editTable.min.js"></script>
 <script src="/static/showdown.min.js"></script>
@@ -60,6 +64,15 @@ specialKeys={
         <option>${i|h}</option>
         %endfor
 </datalist>
+
+<datalist id="k_tags_writable">
+        %for i in tagpoints.allTagsAtomic:
+        %if tagpoints.allTagsAtomic[i]().writable:
+        <option>${i|h}</option>
+        %endif
+        %endfor
+</datalist>
+
 
 <datalist id="k_tlocal">
         %for i in obj.tagPoints:
@@ -168,6 +181,21 @@ ${obj.readme|h}
 ${json.dumps(data.get('kaithem.input_bindings',[])) or '[]'|h}
 </textarea>
 
+
+
+<h2><i class="icofont-link"></i>Output Bindings</h2>
+
+<p class="help">An output binding is just a command that the destination tag should change whenever the source tag does. 
+        The source tag is one that is owned by this device.
+</p>
+
+<textarea name="temp.kaithem.outputbindings" id="bindings2" style="display: none">
+${json.dumps(data.get('kaithem.output_bindings',[])) or '[]'|h}
+</textarea>
+
+
+
+
 <h2><i class="icofont-ui-settings"></i>Settings</h2>
 
 
@@ -212,9 +240,9 @@ ${manageForm}
                 </select>
                 %else:
                         %if obj.config_properties.get(i,{}).get("secret",False):
-                        <input name="${i|h}" value="${obj.config[i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
+                        <input name="${i|h}" id="proprty_${i|h}" value="${obj.config[i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
                         %else:
-                        <input name="${i|h}" value="${obj.config[i]|h}">
+                        <input name="${i|h}"  id="proprty_${i|h}" value="${obj.config[i]|h}">
                         %endif
 
                 %endif
@@ -307,6 +335,12 @@ ${manageForm}
 %for i in obj.tagPoints:
 %try:
 
+<style>
+        .croppr-imageClipped, .croppr-image
+        {
+                border: none;
+        }
+</style>
 <div class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
 <h3 style="font-size: 140%;"><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></h3>
 
@@ -322,11 +356,113 @@ ${manageForm}
         %elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts' and obj.tagPoints[i].dataSourceWidget:
         <video style="width: 100%" muted controls></video>
         <canvas id="canvas" style="display: none; width: 100%"></canvas>
+        <img id="img" style="display: none; width: 100%; border: none;">
+
+        <div class="buttonbar" id="Regions">
+
+        </div>
+
+        <script>
+
+                // rdata = "test=0.1,0.6, 0.5,0.5;"
+                // rdata = rdata.split(";")
+
+                // videoSelectedRegions = {}
+
+                // selectedButton = null;
+
+                // try{
+                // for(i of rdata)
+                // {
+                //         i = i.split('=')
+                //         n = i[0].trim()
+                //         i = i[1].split(",")
+                //         videoSelectedRegions[n] = [parseFloat(i[0]), parseFloat(i[1]), parseFloat(i[2]), parseFloat(i[3])]
+
+                //         button = document.createElement("button")
+                //         button.innerHTML = n
+                //         button.id = "regbutton_"+n
+                //         button.type='button'
+                //         button.onclick = function(e)
+                //         {
+                //                 var r = videoSelectedRegions[e.target.innerHTML]
+                //                 cropInstance.moveTo(r[0], r[1])
+                //                 cropInstance.resizeTo(r[2],r[3])
+                //                 e.target.class = 'highlight'
+                //                 if(selectedButton)
+                //                 {
+                //                  selectedButton.style=''
+                //                 }
+                //         }
+                // }
+                // }
+                // catch
+                // {
+
+                // }
+
+                cropInstance = null
+
+                function gotoRegionEdit()
+                {
+                        if(cropInstance)
+                        {
+                                cropInstance.destroy();
+                                cropInstance=null;
+                                return;
+                        }
+                var v = document.querySelector('video')
+
+                var canvas = document.createElement('canvas');
+                canvas.width = v.videoWidth;
+                canvas.height = v.videoHeight;
+                canvas.style="border: none";
+                var ctx = canvas.getContext('2d');
+
+
+                //draw image to canvas. scale to target dimensions
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                document.querySelector('video').style="border: none; width: 100%; "
+
+                //convert to desired file format
+                var dataURI = canvas.toDataURL('image/jpeg'); // can also use 'image/png'
+
+                document.querySelector('#img').src = dataURI
+                document.querySelector('video').style="display: none; width: 100%"
+                document.querySelector('#img').style=""
+
+                cropInstance = new Croppr("#img", {
+                // ...options
+                });
+        }
+        
+                function setRegion()
+                {
+                        var x = document.getElementById("property_device.regions")
+                        if(x)
+                        {
+                                var p = prompt("Name for region");
+                                v = cropInstance.getValue('ratio')
+                                x.value += p+'='+v['x']+','+v['y']+','+v['width']+','+v['height']+';'
+                        }
+                }
+
+        
+
+        </script>
 
         <h4>Controls</h4>
+        <p class="help">
+                The regions property is a semicolon separated list, looking like "name=x,y,w,h;".  To delete a region,
+                just delete it's entry in the regions box.  A proper deletion feature coming soon.
 
+        </p>
         <div class="buttonbar">
                 <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
+                <button type="button" onclick="gotoRegionEdit()">Region Editor</button>
+                <button type="button" onclick="setRegion()">Add Selected Region</button>
+
         </div>
  
         <script> 
@@ -545,6 +681,48 @@ var mytable = $('#bindings').editTable({
 });
 
 mytable.loadData(${json.dumps(data.get('kaithem.input_bindings',[])+ [['','','']])})
+
+
+var mytable2 = $('#bindings2').editTable({
+    data: [['','']],           // Fill the table with a js array (this is overridden by the textarea content if not empty)
+    tableClass: 'inputtable',   // Table class, for styling
+    jsonData: false,        // Fill the table with json data (this will override data property)
+    headerCols: ['Device Point(Source)','External Point(dest)'],      // Fix columns number and names (array of column names)
+    maxRows: 999,           // Max number of rows which can be added
+    first_row: true,        // First row should be highlighted?
+    row_template: false,    // An array of column types set in field_templates
+    field_templates: {
+        'tag' : {
+            html: '<input list="k_tags_writable" />',
+            getValue: function (input) {
+                return $(input).val();
+            },
+            setValue: function (input, value) {
+                //I hate ths
+                return $('<input list="k_tags" value="'+value+'"/>')
+            }
+        },
+        'local' : {
+            html: '<input list="k_tlocal"/>',
+            getValue: function (input) {
+                return $(input).val()
+            },
+            setValue: function (input, value) {
+                return $('<input list="k_tlocal" value="'+value+'"/>')
+            }
+        }
+    },
+    row_template: ['local', 'tag'],
+
+    // Validate fields
+    validate_field: function (col_id, value, col_type, $element) {
+        return true;
+    }
+});
+
+mytable2.loadData(${json.dumps(data.get('kaithem.output_bindings',[])+ [['','']])})
+
+
 </script>
 
 

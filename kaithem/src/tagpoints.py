@@ -273,6 +273,9 @@ class _TagPoint():
 
         self.poller: Union[None, Callable] = None
 
+        # The "Owner" of a tag can use this to say if anyone else should write it
+        self.writable = True
+
         # Do we have anything set via the config page that would override the code-set mqtt stuff?
         self.hasMQTTConfig: bool = False
         self.mqttClaim: typing.Optional[Claim] = None

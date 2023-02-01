@@ -256,6 +256,9 @@ def do(func, args=[]):
         A function of 0 arguments to be ran in the background in another thread immediatly,
     """
 
+    if not callable(func):
+        raise ValueError("Non callable value")
+        
     _append((func, args))
 
     for i in wakeupHandles:
