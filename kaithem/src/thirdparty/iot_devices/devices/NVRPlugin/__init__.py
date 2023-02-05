@@ -679,7 +679,11 @@ class NVRChannel(devices.Device):
         self.stoprecordingafternextsegment = 0
 
         if os.path.exists:
-            shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
+            # Race condition retry
+            try:
+                shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
+            except Exception:
+                shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
 
         os.makedirs("/dev/shm/knvr_buffer/" + self.name)
 

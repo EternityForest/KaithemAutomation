@@ -240,9 +240,9 @@ ${manageForm}
                 </select>
                 %else:
                         %if obj.config_properties.get(i,{}).get("secret",False):
-                        <input name="${i|h}" id="proprty_${i|h}" value="${obj.config[i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
+                        <input name="${i|h}" id="property_${i|h}" value="${obj.config[i]|h}" type="password" onfocus="this.type='text'"  onblur="this.type='password'">
                         %else:
-                        <input name="${i|h}"  id="proprty_${i|h}" value="${obj.config[i]|h}">
+                        <input name="${i|h}"  id="property_${i|h}" value="${obj.config[i]|h}" style="width: 100%;">
                         %endif
 
                 %endif
@@ -358,59 +358,125 @@ ${manageForm}
         <canvas id="canvas" style="display: none; width: 100%"></canvas>
         <img id="img" style="display: none; width: 100%; border: none;">
 
-        <div class="buttonbar" id="Regions">
+        <h4>Regions</h4>
+        <div class="buttonbar" id="regions">
+        </div>
+
+        <div class="buttonbar">
+                <button type="button" onclick="gotoRegionEdit(false)">Region Editor</button>
+                <button type="button" onclick="setRegion()">New Region</button>
+                <button type="button" onclick="deleteRegion()">Delete selected region</button>
 
         </div>
 
         <script>
+                rdata = "test=0.1,0.6, 0.5,0.5;"
 
-                // rdata = "test=0.1,0.6, 0.5,0.5;"
-                // rdata = rdata.split(";")
+                var x = document.getElementById("property_device.regions")
+                if(x)
+                {
+                        rdata = x.value;
+                }
 
-                // videoSelectedRegions = {}
+                selectedRegion = ''
 
-                // selectedButton = null;
+                function deselectInactiveRegions()
+                {
+                        var x = document.getElementById("regions")
+                        for (i of x.childNodes)
+                        {
+                                i.style = ''
+                        }
+                }
 
-                // try{
-                // for(i of rdata)
-                // {
-                //         i = i.split('=')
-                //         n = i[0].trim()
-                //         i = i[1].split(",")
-                //         videoSelectedRegions[n] = [parseFloat(i[0]), parseFloat(i[1]), parseFloat(i[2]), parseFloat(i[3])]
 
-                //         button = document.createElement("button")
-                //         button.innerHTML = n
-                //         button.id = "regbutton_"+n
-                //         button.type='button'
-                //         button.onclick = function(e)
-                //         {
-                //                 var r = videoSelectedRegions[e.target.innerHTML]
-                //                 cropInstance.moveTo(r[0], r[1])
-                //                 cropInstance.resizeTo(r[2],r[3])
-                //                 e.target.class = 'highlight'
-                //                 if(selectedButton)
-                //                 {
-                //                  selectedButton.style=''
-                //                 }
-                //         }
-                // }
-                // }
-                // catch
-                // {
 
-                // }
+                rdata = rdata.split(";")
+
+                videoSelectedRegions = {}
+
+                selectedButton = null;
+
+                try{
+                for(i of rdata)
+                {
+                        if(i=='')
+                        {
+                                continue;
+                        }
+                        i = i.split('=')
+                        n = i[0].trim()
+                        i = i[1].split(",")
+                        videoSelectedRegions[n] = {x:parseFloat(i[0]), y: parseFloat(i[1]), width: parseFloat(i[2]), height:parseFloat(i[3])}
+
+
+                }
+                }
+                catch(e)
+                {
+                        console.log(e)
+                }
+
+                function redrawRegionBar()
+                {
+                        var x = document.getElementById("regions")
+                        x.innerHTML = '';
+
+                        for(i in videoSelectedRegions)
+                        {
+                                if(i=='')
+                                {
+                                        continue;
+                                }
+                                r = videoSelectedRegions[i]
+                                button = document.createElement("button")
+                                button.innerHTML = i
+                                button.id = "regbutton_"+i
+                                button.type='button'
+                                if(i==selectedRegion)
+                                {
+                                        button.style='font-weight: bold;'
+                
+                                }
+                                button.onclick = function(e)
+                                {
+                                        selectedRegion = e.target.innerHTML
+                                        gotoRegionEdit(true);
+                                        var r = videoSelectedRegions[e.target.innerHTML]
+
+                                        // Fighting with the lib.  The rder and timing seems to matter
+
+                                
+                                        setTimeout(() =>{
+                                        cropInstance.reset()
+                                        cropInstance.moveTo(r.x * cropInstance.cropperEl.clientWidth , r.y *cropInstance.cropperEl.clientHeight )
+                                        cropInstance.resizeTo(r.width * cropInstance.cropperEl.clientWidth ,r.height * cropInstance.cropperEl.clientHeight,[0,0])
+                                        },10)
+                                        deselectInactiveRegions()
+                                        e.target.style='font-weight: bold'
+                                }
+                                x.appendChild(button)
+                        }
+                }
+                redrawRegionBar();
 
                 cropInstance = null
 
-                function gotoRegionEdit()
+                function gotoRegionEdit(force)
                 {
-                        if(cropInstance)
+                        if(cropInstance && force)
+                        {
+                                // already open so return
+                                return
+                        }
+
+                        if(cropInstance && (!force))
                         {
                                 cropInstance.destroy();
                                 cropInstance=null;
                                 return;
                         }
+
                 var v = document.querySelector('video')
 
                 var canvas = document.createElement('canvas');
@@ -432,22 +498,67 @@ ${manageForm}
                 document.querySelector('video').style="display: none; width: 100%"
                 document.querySelector('#img').style=""
 
-                cropInstance = new Croppr("#img", {
-                // ...options
+                cropInstance = new Croppr( document.querySelector('#img'), {
+                        startSize: [30, 30],
+                        returnMode: 'ratio',
+                        onCropMove: function(data) {
+                                var data = cropInstance.getValue('ratio')
+                                videoSelectedRegions[selectedRegion] = data;
+                                setRegions();
+                        }
                 });
+                //cropInstance.initialize(document.querySelector('#img'))
+
+
+                // store info there
+                var v = document.querySelector('video')
+                cropInstance.width = v.videoWidth;
+                cropInstance.height = v.videoHeight;
         }
         
-                function setRegion()
+        function deleteRegion()
+        {
+                delete videoSelectedRegions[selectedRegion];
+                selectedRegion = '';
+                deselectInactiveRegions();
+                redrawRegionBar()
+        }
+
+        function setRegion()
+        {
+                var x = document.getElementById("property_device.regions")
+                if(x)
                 {
-                        var x = document.getElementById("property_device.regions")
-                        if(x)
+                        var x = prompt("Name for region");
+                        if(!x)
                         {
-                                var p = prompt("Name for region");
-                                v = cropInstance.getValue('ratio')
-                                x.value += p+'='+v['x']+','+v['y']+','+v['width']+','+v['height']+';'
+                                return;
+                        }
+                        x= x.replace(' ','').replace('/','').replace('.','').replace(",",'').replace(';','').replace('$','')
+                        selectedRegion = x
+                        videoSelectedRegions[selectedRegion] = cropInstance.getValue('ratio');
+                }
+                setRegions();
+                redrawRegionBar();
+        }
+
+        function setRegions()
+        {
+                // Given our data cache set the text representation of the region list
+                var x = document.getElementById("property_device.regions")
+                if(x)
+                {
+                        x.value = ''
+                        for(i in videoSelectedRegions)
+                        {
+                                if(i)
+                                {
+                                        var v =  cropInstance.getValue('ratio');
+                                        x.value += i+'='+v['x']+','+v['y']+','+v['width']+','+v['height']+';'
+                                }
                         }
                 }
-
+        }
         
 
         </script>
@@ -460,9 +571,6 @@ ${manageForm}
         </p>
         <div class="buttonbar">
                 <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
-                <button type="button" onclick="gotoRegionEdit()">Region Editor</button>
-                <button type="button" onclick="setRegion()">Add Selected Region</button>
-
         </div>
  
         <script> 

@@ -139,6 +139,9 @@ class PresenceDetector():
         r = {}
 
         x = self.capture.pull()
+        if x is None:
+            print("Capture returned none")
+            return None
 
         w = x.width
         h = x.height
@@ -587,6 +590,8 @@ class GStreamerPipeline():
     def loopCallback(self):
         if self._pilmotiondetector:
             x = self._pilmotiondetector.poll()
+            if x is None:
+                return
             rpc[0]("onPresenceValue", [x])
 
     def addPresenceDetector(self, resolution, connectToOutput=None, regions=None):
