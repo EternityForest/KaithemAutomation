@@ -153,9 +153,12 @@ class PresenceDetector():
 
         for i in self.masks:
             m = self.masks[i]
-            # Crop region is specified as a fraction, convert to pixels
-            i2 = x.crop(int(m[0] * w), int(m[1] * h),
-                        int(m[2] * w), int(m[3] * h))
+            # Crop region is specified as a fraction, convert to pixels and points instead of fraction y,x,w,h
+            i2 = x.crop((int(m[0] * w),
+                         int(m[1] * h),
+                        int(m[0] * w) + int(m[2] * w), 
+                        int(m[1] * h) + int(m[3] * h))
+                        )
             r[i] = self.regions[i].poll(i2)
         return r
 

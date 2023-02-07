@@ -104,7 +104,11 @@ specialKeys={
 <p>This device is part of a module, rather than the global devices list.</p>
 <input name="module" disabled value="${obj.parentModule|h}"><input name="module" disabled value="${obj.parentResource|h}">
 %endif
+
+<details>
+<summary>
 <h2>Basic</h2>
+</summary>
 <table border="1"  style="width:100%">
 
 <tr>
@@ -128,11 +132,14 @@ specialKeys={
 
 </table>
 
-
+</details>
 
 <input type="hidden" name="type" value="${data.get('type','')}">
-<h2><i class="icofont-question-circle"></i>Help</h2>
 
+<details>
+        <summary>
+<h2><i class="icofont-question-circle"></i>Help</h2>
+</summary>
 %if hasattr(obj,'description') and obj.description:
 <h3>Description</h3>
 <p id="desc">${str(obj.description)[:8192]|h}</p>
@@ -160,11 +167,16 @@ ${obj.readme|h}
         document.getElementById("readme").innerHTML=converter.makeHtml(c);
 </script>
 %endif
+</details>
+
 
 <title>${name|h}</title>
 
+<details>
 
+<summary>
 <h2><i class="icofont-link"></i>Bindings</h2>
+</summary>
 
 <p class="help">A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
         all of these devices are one way. The device will be updated when the tag point changes.  For the local point, 
@@ -194,11 +206,14 @@ ${json.dumps(data.get('kaithem.output_bindings',[])) or '[]'|h}
 </textarea>
 
 
+</details>
 
 
+<details>
+
+<summary>
 <h2><i class="icofont-ui-settings"></i>Settings</h2>
-
-
+</summary>
 
 %try:
 <%
@@ -259,8 +274,35 @@ ${manageForm}
 </table>
 %endif
 
+
+<h3>Permissions</h3>
+<div>
+<p class="help">
+Set a default for all tag points exposed by this device.  You can further refine this in the tag points manager.
+It is preferable to do things at the device-level, as devices can be bundle into modules, and you don't have to handle
+settings individually for every tag.  Leave blank to disable.  These are used to make data points show up in the 
+</p>
+
+<p class="help">
+Currently this is only supported for the newer cross-framework devices.
+ </p>
+
+<div class="buttonbar">
+<label>Read:<input name="kaithem.read_perms" list="k_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__"></label>
+<label>Write:<input name="kaithem.write_perms" list="k_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__"></label>
+</div>
+
+</div>
+
+</details>
+
+
 %if obj.alerts:
+
+<details>
+<summary>
 <h2><i class="icofont-ui-text-chat"></i>Alerts</h2>
+</summary>
 <p class="help">This section lists all alerts supported by the device.
 </p>
 <p class="help">For new device types, the alarms will likely be configured via the corresponding
@@ -299,12 +341,14 @@ ${manageForm}
 </table>
 
 %endif
-
+</details>
 
 
 %if hasattr(obj,'metadata') and obj.metadata:
+<details>
+<summary>
 <h2><i class="icofont-ui-text-chat"></i>Metadata</h2>
-
+</summary>
 <table border="1" style="width:100%">
 <tr><th>Name</th><th>Value</th></tr>
 
@@ -321,6 +365,7 @@ ${manageForm}
 </table>
 
 %endif
+</details>
 
 <h2><i class="icofont-chart-flow-2"></i>Tag Points</h2>
 <p class="help">This section lists all the tag points owned.  Controls do not work if
@@ -553,7 +598,7 @@ ${manageForm}
                         {
                                 if(i)
                                 {
-                                        var v =  cropInstance.getValue('ratio');
+                                        var v =  videoSelectedRegions[i]
                                         x.value += i+'='+v['x']+','+v['y']+','+v['width']+','+v['height']+';'
                                 }
                         }
@@ -701,23 +746,8 @@ ${manageForm}
 </p>
 ${obj.logWindow.render()}
 
-<h2>Permissions</h2>
-<div>
-<p class="help">
-Set a default for all tag points exposed by this device.  You can further refine this in the tag points manager.
-It is preferable to do things at the device-level, as devices can be bundle into modules, and you don't have to handle
-settings individually for every tag.  Leave blank to disable.  These are used to make data points show up in the 
-</p>
 
-<p class="help">
-Currently this is only supported for the newer cross-framework devices.
- </p>
 
-<div class="buttonbar">
-<label>Read:<input name="kaithem.read_perms" list="k_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__"></label>
-<label>Write:<input name="kaithem.write_perms" list="k_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__"></label>
-</div>
-</div>
 <hr>
 <input type="submit" value="Save settings">
 

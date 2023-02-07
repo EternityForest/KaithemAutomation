@@ -18,13 +18,6 @@ templateGetter = TemplateLookup(os.path.dirname(__file__))
 from datetime import datetime
 from datetime import timezone
 
-defaultSubclassCode = """
-class CustomDeviceType(DeviceType):
-    def onIncomingCall(self,number):
-        # Uncomment to accept all incoming calls
-        # self.accept()
-        pass
-"""
 
 path = os.path.dirname( os.path.abspath(__file__))
 
@@ -231,7 +224,7 @@ def recognize_tflite(i, r):
         else:
             pass  # print(v,"reject low xy")
 
-    return {'objects': retval, 'x-inferencetime': t}
+    return {'objects': retval, 'x-inferencetime': t, 'x-imagesize': [original_image_w,original_image_h]}
 
 
 automated_record_uuid = '76241b9c-5b08-4828-9358-37c6a25dd823'
@@ -483,10 +476,28 @@ class NVRChannelRegion(devices.Device):
     device_type = "NVRChannelRegion"
     def __init__(self,name, data, **kw):
         devices.Device.__init__(self, name, data, **kw)
-        self.set_data_point("raw_motion_value", 0)
-        self.set_data_point("motion_detected", 0)
+        self.numeric_data_point("motion_detected",
+                        min=0,
+                        max=1,
+                        subtype='bool',
+                        writable=False)
 
-        self.set_config_default('device.motion_threshold', 0.08)
+        self.numeric_data_point("raw_motion_value",
+                                min=0,
+                                max=10,
+                                writable=False)
+
+        self.object_data_point("barcode",
+                            writable=False)
+
+        self.object_data_point("contained_objects",
+                                    writable=False)
+
+        # self.object_data_point("overlapping_objects",
+        #                             writable=False)
+
+
+        self.set_config_default('device.motion_threshold', '0.08')
 
 
     def processImage(self, img):
@@ -498,6 +509,52 @@ class NVRChannelRegion(devices.Device):
         self.motion(v > float(self.config.get(
             'device.motion_threshold', 0.08)))
 
+    def isRectangleContained(self, d, overallsize):
+        x = d['x']/overallsize[0]
+        y = d['y']/overallsize[1]
+        w = d['w']/overallsize[0]
+        h = d['h']/overallsize[1]
+
+
+        # Opper right corner in rectangle
+        if self.x <= x <= self.x + self.width:
+            if self.y <= y <= self.y + self.height:
+                # Lower right corner
+                if self.x <= x+w <= self.x + self.width:
+                    if self.y <= y+h <= self.y + self.height:
+                        return True
+
+    def isRectangleOverlapping(self, d):
+        R1 = [d['x'], d['y'], d['x'] + d['width'], d['y']+d['width']]
+        R2 = [self.x, self.y, self.x+ self.width, self.y+self.width]
+
+        if (R1[0]>=R2[2]) or (R1[2]<=R2[0]) or (R1[3]<=R2[1]) or (R1[1]>=R2[3]):
+            return False
+        return True
+
+
+    def onObjects(self, o):
+        # Filter by the objects that are contained within the rectangle
+        op = {'objects': []}
+        #oop = {'objects': []}
+
+        for i in o['objects']:
+            if 'x' in i:
+                if self.isRectangleContained(i, o['x-imagesize']):
+                    op['objects'].append(i)
+        self.set_data_point('contained_objects', op)
+
+
+        # for i in o['objects']:
+        #     if 'x' in i:
+        #         if self.isRectangleOverlapping(i):
+        #             oop['objects'].append(i)
+
+
+        # self.set_data_point('overlapping_objects', oop)
+
+        
+
     def motion(self, v):
         self.set_data_point("motion_detected", v)
 
@@ -506,7 +563,6 @@ class NVRChannelRegion(devices.Device):
 class NVRChannel(devices.Device):
     device_type = 'NVRChannel'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
-    defaultSubclassCode = defaultSubclassCode
 
     def putTrashInBuffer(self):
         "Force a wake up of a thread sitting around waiting for the pipe"
@@ -678,7 +734,7 @@ class NVRChannel(devices.Device):
         # the currently being recorded segment
         self.stoprecordingafternextsegment = 0
 
-        if os.path.exists:
+        if os.path.exists("/dev/shm/knvr_buffer/" + self.name):
             # Race condition retry
             try:
                 shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
@@ -770,27 +826,9 @@ class NVRChannel(devices.Device):
             self.process.addElement("zbar")
             self.print("Barcode detection enabled")
 
-        # Handle region data of the form foo=x,y,w,h; 
-        regions = {}
-        x = self.config['device.regions']
-        if x:
-            x = x.split(";")
-
-            for i in x:
-                if not '=' in x:
-                    continue
-
-                n, d = i.split("=")
-                n=n.strip()
-                regions[n] = [int(i.strip()) for i in d.split(',')]
-
-            for i in regions:
-                x = self.create_subdevice(NVRChannelRegion, i, {})
-                x.region = regions[i]
-
 
         # Not a real GST element. The iceflow backend hardcodes this motion/presense detection
-        self.process.addPresenceDetector((640, 480))
+        self.process.addPresenceDetector((640, 480), regions=self.regions)
 
         self.process.mcb = self.motion
         self.process.bcb = self.barcode
@@ -1079,6 +1117,16 @@ class NVRChannel(devices.Device):
 
     def presencevalue(self, v):
         "Takes a raw presence value. Unfortunately it seems we need to do our own motion detection."
+
+        if isinstance(v, dict):
+            for i in v:
+                # Empty string is entire image
+                if i:
+                    self.subdevices[i].onMotionValue(v[i])
+
+            # Get the overall motion number
+            v = v['']
+
         self.set_data_point("raw_motion_value", v)
 
         self.motion(v > float(self.config.get(
@@ -1150,6 +1198,8 @@ class NVRChannel(devices.Device):
                             self.oldRelevantObjectCount = relevantObjects
 
                             self.set_data_point("detected_objects", o)
+                            for i in self.subdevices:
+                                self.subdevices[i].onObjects(o)
                             # We are going to redo this.
                             # We do it in both places.
                             # Imagine you detect a person but no motion, but then later see motion, 
@@ -1199,6 +1249,33 @@ class NVRChannel(devices.Device):
             # Region data is in the format like regionName=0.3,0.3,0.4,0.2;
             # X, Y, W, H as fraction of image dimension
             self.set_config_default("device.regions", '')
+
+            # Handle region data of the form foo=x,y,w,h; 
+            regions = {}
+            x = self.config['device.regions']
+            if x:
+                x = x.split(";")
+
+                for i in x:
+                    if not '=' in i:
+                        continue
+
+                    n, d = i.split("=")
+                    n=n.strip()
+                    regions[n] = [float(i.strip()) for i in d.split(',')]
+
+                for i in regions:
+                    x = self.create_subdevice(NVRChannelRegion, i, {})
+                    i = regions[i]
+                    x.x = i[0]
+                    x.y = i[1]
+                    x.width = i[2]
+                    x.height = i[3]
+
+                    x.region = i
+
+            self.regions = regions
+
 
             # Support ONVIF URLs
             self.onvif=None

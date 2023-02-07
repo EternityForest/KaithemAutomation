@@ -558,6 +558,7 @@ class Device():
 class UnsupportedDevice(Device):
     description = "This device does not have support, or else the support is not loaded."
     deviceTypeName = "unsupported"
+    device_type = 'unsupported'
 
     def warn(self):
         self.handleError("This device type has no support.")
@@ -619,7 +620,9 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in remote_devices_atomic:
                 n = remote_devices_atomic.get(name, None)
                 if n:
-                    if not n.device_type == 'UnusedSubdevice':
+                    n = n()
+                if n:
+                    if not n.device_type in ['UnusedSubdevice','unsupported']:
                         raise RuntimeError("Subdevice name is already in use")
                     remote_devices.pop(name)
                     remote_devices_atomic = wrcopy(remote_devices)
@@ -630,7 +633,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
         with modules_state.modulesLock:
             c2 = copy.deepcopy(config)
-            c2.pop('type')
+            c2.pop('type', cls.device_type)
             device_data[name] = config
             self.subdevices[originalName] = m
             remote_devices[name] = m
