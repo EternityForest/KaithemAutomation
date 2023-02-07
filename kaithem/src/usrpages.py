@@ -240,17 +240,18 @@ class CompiledPage():
 
                     usejson = False
 
-                    if 'setupcode' in resource:
+                    if 'setupcode' in resource and resource['setupcode'].strip():
                         header+="\n<%!\n" + resource['setupcode'] + "\n%>\n"
                         usejson = True
 
-                    if 'code' in resource:
+                    if 'code' in resource and resource['code'].strip():
                         header+="\n<%\n" + resource['code'] + "\n%>\n"
                         usejson = True
 
                     if usejson:
                         header+="\n<%!\nimport json\n%>\n"
 
+        
                         # Don't embed a script if this *is* already a script
                         if not self.resourceName.endswith(".js"):
                             header+= '<script>\n'

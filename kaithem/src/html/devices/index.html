@@ -178,7 +178,12 @@ else:
     <div style="display: flex; flex-wrap: wrap;">${h}</div>
     %endif
 
-
+    %if devObj.config.get('description',''):
+    <p>
+        ${devObj.config.get('description')|h}
+    </p>
+    %endif
+    
     </div>
 
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
@@ -187,6 +192,7 @@ ${device(devObj.subdevices[j].name, devObj=devObj.subdevices[j])}
 %endfor
 <hr style="width: 100%;">
 %endif
+
 
 
 </%def>

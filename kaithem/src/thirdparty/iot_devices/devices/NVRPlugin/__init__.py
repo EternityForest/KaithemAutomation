@@ -487,9 +487,6 @@ class NVRChannelRegion(devices.Device):
                                 max=10,
                                 writable=False)
 
-        self.object_data_point("barcode",
-                            writable=False)
-
         self.object_data_point("contained_objects",
                                     writable=False)
 
@@ -926,6 +923,16 @@ class NVRChannel(devices.Device):
                 f.write("#EXT-X-ALLOW-CACHE:NO\r\n")
                 f.write("#EXT-X-TARGETDURATION:5\r\n")
 
+                s = []
+                x = self.datapoints['detected_objects']
+                if 'objects' in x:
+                    for i in x['objects']:
+                        if 'class' in i:
+                            if not i['class'] in s:
+                                s.append(i['class'])
+
+                f.write("#EXTALB:" + ','.join(s) + "\r\n")
+
         # Capture a tiny preview snapshot
         import PIL
         x = PIL.Image.open(io.BytesIO(self.request_data_point("bmp_snapshot")))
@@ -1121,7 +1128,7 @@ class NVRChannel(devices.Device):
         if isinstance(v, dict):
             for i in v:
                 # Empty string is entire image
-                if i:
+                if i and i in self.subdevices:
                     self.subdevices[i].onMotionValue(v[i])
 
             # Get the overall motion number

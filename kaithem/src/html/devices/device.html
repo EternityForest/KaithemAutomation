@@ -16,7 +16,9 @@ specialKeys={
         'name',
         'title',
         'type',
-        'is_subdevice'
+        'is_subdevice',
+        'description',
+        'notes'
 }
 %>
 
@@ -93,10 +95,12 @@ specialKeys={
 </h1>
 
 <div class="sectionbox">
+
+%if not hasattr(obj,'_kaithem_is_subdevice'):
 <form method="post" action="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">
         <button type="submit">Search for auto-setup configurations</button>
 </form>
-
+%endif
 <form method="POST" action="/devices/updateDevice/${url(name)}">
 
 %if obj.parentModule:
@@ -132,6 +136,19 @@ specialKeys={
 
 </table>
 
+<h3>Description</h3>
+
+<textarea name="description">${data.get('description','')}</textarea>
+</details>
+
+<details>
+        <summary>
+        <h2>Notes</h2>
+        </summary>
+        <p class="help">The notes do not show up in the main devices list. Use it to make your devices more self-describing without
+                cluttering the overview page.
+        </p>
+        <textarea name="notes">${data.get('notes','')}</textarea>
 </details>
 
 <input type="hidden" name="type" value="${data.get('type','')}">
@@ -141,7 +158,7 @@ specialKeys={
 <h2><i class="icofont-question-circle"></i>Help</h2>
 </summary>
 %if hasattr(obj,'description') and obj.description:
-<h3>Description</h3>
+
 <p id="desc">${str(obj.description)[:8192]|h}</p>
 
 <script>
@@ -175,7 +192,7 @@ ${obj.readme|h}
 <details>
 
 <summary>
-<h2><i class="icofont-link"></i>Bindings</h2>
+<h2><i class="icofont-link"></i>Bindings(${len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[])) })</h2>
 </summary>
 
 <p class="help">A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 

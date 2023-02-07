@@ -3,13 +3,16 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
+code: ''
 mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1645699475417792
+resource-timestamp: 1675751279621439
 resource-type: page
+setupcode: ''
+streaming-response: false
 template-engine: mako
 
 ---
@@ -19,6 +22,7 @@ import json
 import os
 import datetime
 import traceback
+import re
 %>
 
 <%
@@ -91,7 +95,24 @@ for t in dirs:
       if  (parse(k)>starttime and (parse(k)-starttime).total_seconds() < ((24*3600)+60))  or((not enough) and parse(k)>starttime):
         if not os.path.isfile(os.path.join(k2, "playlist.m3u8")):
           continue
-        result.append((k, os.path.join(t[1],'recordings',j,k), t[1]))
+        
+        fn =  os.path.join(t[1],'recordings',j,k)
+        title = ''
+
+        try:
+          regex = '^#EXTALB:(.*)$'
+          with open(os.path.join(k2, "playlist.m3u8")) as f:
+            fd = f.read()
+          
+          x = re.search(regex, fd, re.MULTILINE)
+          if x:
+            title = x.group(1)
+
+        except Exception as e:
+          print(e)
+
+        
+        result.append((k,fn, t[1], title))
 
         if len(result)>500:
           enough=1

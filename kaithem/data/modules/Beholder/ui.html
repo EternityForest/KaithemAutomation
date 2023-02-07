@@ -3,13 +3,15 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
+code: ''
 mimetype: text/html
 no-header: false
 no-navheader: false
 require-method: [GET]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1665178676456165
+resource-timestamp: 1675750898769122
 resource-type: page
+setupcode: ''
 streaming-response: false
 template-engine: mako
 
@@ -169,7 +171,9 @@ __doc__= "#Python Code here runs every page load"
                     <div style="min-width:12vw; max-height: 25em; overflow-y: scroll;">
                       <dl>
                           <template v-for="i,v of fileSet">
-                          <dt><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8',i)">{{new Date(Date.parse(i[0])).toLocaleString()}} @ {{i[2]}}</a></dt>
+                          <dt><a v-on:click="setPlayback('player/'+i[1]+'/playlist.m3u8',i)">{{new Date(Date.parse(i[0])).toLocaleString()}} @ {{i[2]}}</a>
+                          {{i[3]}}
+                          </dt>
                           <dd>
                             <img :src="'serve/' + i[1]+'/thumbnail.jpg'" v-if="showClipThumbnails"></img>
                           </dd>

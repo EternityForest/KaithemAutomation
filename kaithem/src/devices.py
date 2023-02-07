@@ -423,7 +423,11 @@ class Device():
     @property
     def tagpoints(self):
         "This property is because it's not really obvious which spelling should be used"
-        return self.tagPoints
+        try:
+            return self.tagPoints
+        except AttributeError:
+            # Defence against erroneous devices
+            return {}
 
     @tagpoints.setter
     def tagpoints(self, v):
@@ -485,19 +489,19 @@ class Device():
                             "Could not unsub. Maybe was never created.")
 
 
+            if hasattr(self, "tagPoints"):
+                for i in self.tagPoints:
+                    t = self.tagPoints[i]
 
-            for i in self.tagPoints:
-                t = self.tagPoints[i]
+                    if hasattr(t, "_kOutputBindings"):
+                        for i in t._kOutputBindings:
+                            try:
+                                t.unsubscribe[i]
+                            except Exception:
+                                logging.exception(
+                                    "Could not unsub. Maybe was never created.")
 
-                if hasattr(t, "_kOutputBindings"):
-                    for i in t._kOutputBindings:
-                        try:
-                            t.unsubscribe[i]
-                        except Exception:
-                            logging.exception(
-                                "Could not unsub. Maybe was never created.")
-
-                t._kOutputBindings = []
+                    t._kOutputBindings = []
 
             # Be defensive about ref cycles.
             try:
@@ -1106,9 +1110,6 @@ def updateDevice(devname, kwargs, saveChanges=True):
             else:
                 del modules_state.ActiveModules[parentModule][
                     parentResource]
-
-                modules_state.saveResource(
-                    parentModule, parentResource,  name.split("/", 1)[-1], name)
 
         else:
             raise RuntimeError("No such device to update")
