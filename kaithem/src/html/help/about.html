@@ -469,15 +469,18 @@ ${kaithemobj.kaithem.sys.sensors()|h}
 </pre>
             <%
 def module_version(m):
-    if hasattr(m,"__version__"):
-        return m.__version__
-    if hasattr(m,"version"):
-        if isinstance(m.version, (str,int,float,tuple)):
-            return m.version
-    if hasattr(m,"VERSION"):
-        return m.VERSION
-    if hasattr(m,"__VERSION__"):
-        return m.__VERSION__
+    try:
+        if hasattr(m,"__version__"):
+            return m.__version__
+        if hasattr(m,"version"):
+            if isinstance(m.version, (str,int,float,tuple)):
+                return m.version
+        if hasattr(m,"VERSION"):
+            return m.VERSION
+        if hasattr(m,"__VERSION__"):
+            return m.__VERSION__
+    except Exception as e:
+        return None
     return None
 %>
 
