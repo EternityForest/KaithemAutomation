@@ -374,6 +374,7 @@ class _TagPoint():
 
         if self.name.startswith("="):
             self.exprClaim = createGetterFromExpression(self.name, self)
+            self.writable = False
         with lock:
             d: Any = configTagData.get(self.name, {})
             if hasattr(d, 'data'):
