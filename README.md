@@ -159,6 +159,26 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.68.42
+
+This release is all about making the custom HTML pages more maintainable.
+
+- :lipstick: Chandler always shows all scenes, no separate "This board" and "All active"
+- :sparkles: We now have a separate setup and handler code area for pages.  Inline code will continue to work as before.
+- :sparkles: Special variables \_\_jsvars\_\_ and \_\_datalists\_\_ to directly add stuff to pages. 
+- :bug: Fix devices in modules
+- :lipstick: Use accordion sections on device pages
+- :sparkles: Devices now have a configurable description field, to make them more self-documenting.
+- :coffin: Anything to do with managing the JACK server is gone. Pipewire needed for live mixing.
+- :bug: Fix newly added modules imported from the library not being immediately saved
+- :coffin: Remove chandler code view for fixtures.
+- :bug: Remove some more nuisance alerts
+
+### 0.68.41
+
+- :bug: Remove SG1 plugin, the last deployment is gone and there doesn't seem to be much interest in the protocol.
+- :sparkles: If the SQLite tag history DB gets corrupted, archive it and start a new one.
+
 
 
 ### 0.68.40

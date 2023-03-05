@@ -1281,21 +1281,6 @@ def shortHash(x, num=8, separator=""):
     return b[:num]
 
 
-def cleanup():
-    import subprocess
-    try:
-        print("Killing jack process")
-        jackp.kill()
-    except Exception:
-        pass
-    with lock:
-        for i in alsa_in_instances:
-            alsa_in_instances[i].terminate()
-        for i in alsa_out_instances:
-            alsa_out_instances[i].terminate()
-
-
-atexit.register(cleanup)
 
 jackShouldBeRunning = False
 

@@ -4,14 +4,14 @@ allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 code: "limitedTagsListing=module.limitedTagsListing()\r\ncommandTagsListing=module.commandTagsListing()\r\
-  \n\r\n\r\njsvars = {\r\n    'KaithemSoundCards' : [i for i in kaithem.sound.outputs()],\r\
+  \n\r\n\r\n__jsvars__ = {\r\n    'KaithemSoundCards' : [i for i in kaithem.sound.outputs()],\r\
   \n    'availableTags':limitedTagsListing\r\n}"
 mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1674894865891099
+resource-timestamp: 1675751645012299
 resource-type: page
 setupcode: "import json\r\n"
 streaming-response: true

@@ -1184,8 +1184,11 @@ class NVRChannel(devices.Device):
                             # Only the latest should get through, or we would queue up a problem.
                             if self.obj_rec_wait_timestamp > obj_rec_wait:
                                 return
-                            o = recognize_tflite(
-                                self.request_data_point("bmp_snapshot"), self)
+
+                            x = self.request_data_point("bmp_snapshot")
+                            if not x:
+                                return
+                            o = recognize_tflite(x, self)
                             self.lastDidObjectRecognition = time.monotonic()
                             self.lastObjectSet = o
 

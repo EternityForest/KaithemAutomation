@@ -29,9 +29,7 @@ from cherrypy.lib.static import serve_file
 from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 
 
-jacksettingsfile = os.path.join(
-    directories.mixerdir, "jacksettings.yaml")
-jacksettings = persist.getStateFile(jacksettingsfile)
+
 
 upnpsettingsfile = os.path.join(
     directories.vardir, "core.settings", "upnpsettings.yaml")
@@ -498,29 +496,6 @@ class Settings():
         theming.saveTheme()
         raise cherrypy.HTTPRedirect('/settings/theming')
 
-    @cherrypy.expose
-    def changejacksettingstarget(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
-        pages.postOnly()
-
-        jacksettings.set("jackMode", kwargs['jackmode'])
-        jacksettings.set("sharePulse", 'disabled')
-        jacksettings.set("jackPeriodSize", max(
-            32, int(kwargs['jackperiodsize'])))
-        jacksettings.set("jackPeriods", max(2, int(kwargs['jackperiods'])))
-        jacksettings.set("jackDevice", kwargs['jackdevice'])
-        jacksettings.set("useAdditionalSoundcards", "no")
-
-        from . import jackmanager
-        jackmanager.reloadSettings()
-        if jacksettings.get("jackMode", None) in ("manage", "use", 'dummy', 'pipewire'):
-            try:
-                jackmanager.startManaging()
-            except:
-                syslogger.exception("Error managing JACK")
-        else:
-            jackmanager.stopManaging()
-        raise cherrypy.HTTPRedirect('/settings/system')
 
     @cherrypy.expose
     def ip_geolocate(self, **kwargs):

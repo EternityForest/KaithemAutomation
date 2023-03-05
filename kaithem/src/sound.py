@@ -939,26 +939,3 @@ readySound = backend.readySound
 preload = backend.preload
 
 isStartDone = []
-if jackmanager.settings.get('jackMode',
-                            None) in ("manage", "use", 'dummy', 'pipewire'):
-
-    def f():
-        try:
-            logging.debug("Initializing JACK")
-            jackmanager.reloadSettings()
-            jackmanager.startManaging()
-
-        except:
-            log.exception("Error managing JACK")
-        try:
-            isStartDone.append(True)
-        except:
-            pass
-
-    workers.do(f)
-    # Wait up to 5 seconds
-    t = time.monotonic()
-    while (time.monotonic() - t) < 5:
-        if len(isStartDone):
-            break
-        time.sleep(0.1)

@@ -59,6 +59,8 @@ _active = {}
 all = weakref.WeakValueDictionary()
 
 priorities = {
+     None: 0,
+    'none': 0,
     'debug': 10,
     'info': 20,
     'warning': 30,
@@ -142,19 +144,6 @@ def alarmBeep():
                 logger.exception("ERROR PLAYING ALERT SOUND")
 
 
-def highestUnacknowledged():
-    # Pre check outside lock for efficiency.
-    if not unacknowledged:
-        return
-    with lock:
-        l = 'debug'
-        for i in unacknowledged.values():
-            i = i()
-            if i:
-                if (priorities[i.priority] if not i.sm.state == "error" else 40) > priorities[l]:
-                    l = i.priority
-        return l
-
 
 def _highestUnacknowledged(excludeSilent=False):
     # Pre check outside lock for efficiency.
@@ -167,10 +156,16 @@ def _highestUnacknowledged(excludeSilent=False):
             if excludeSilent:
                 if i.silent:
                     continue
-            # Handle the priority upgrading. Error alarms act like error priority
-            if (priorities[i.priority] if not i.sm.state == "error" else priorities["error"]) > priorities[l]:
+
+
+            if (priorities[i.priority] > priorities[l]):
                 l = i.priority
     return l
+
+
+def sendMessage():
+    x = _highestUnacknowledged
+    messagebus.postMessage("/system/alerts/level", x)
 
 
 def cleanup():
@@ -364,6 +359,7 @@ class Alert():
 
         if self.priority in ("info"):
             messagebus.postMessage("/system/notifications", "Alarm "+self.name+" is active")
+        sendMessage()
         
 
     def _onAck(self):
@@ -375,6 +371,7 @@ class Alert():
             unacknowledged = _unacknowledged.copy()
         calcNextBeep()
         api.send(['shouldRefresh'])
+        sendMessage()
 
 
     def _onNormal(self):
@@ -395,6 +392,7 @@ class Alert():
             active = _active.copy()
         calcNextBeep()
         api.send(['shouldRefresh'])
+        sendMessage()
 
 
     def _onTrip(self):
@@ -430,11 +428,13 @@ class Alert():
 
         logger.info("Alarm "+self.name + " cleared")
         api.send(['shouldRefresh'])
+        sendMessage()
 
     def __del__(self):
         self.acknowledge("<DELETED>")
         self.clear()
         cleanup()
+        sendMessage()
 
     def acknowledge(self, by="unknown", notes=""):
         notes = notes[:64]

@@ -38,12 +38,8 @@ log = logging.getLogger("system.mixer")
 
 presetsDir = os.path.join(directories.mixerdir, "presets")
 
-settingsFile = os.path.join(
-    directories.mixerdir, "jacksettings.yaml")
-
 
 recorder = None
-settings = persist.getStateFile(settingsFile)
 
 # Try to import a cython extension that only works on Linux
 try:

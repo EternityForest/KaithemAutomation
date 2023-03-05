@@ -252,6 +252,7 @@ class WebInterface():
 
         modules.bookkeeponemodule(name)
         auth.importPermissionsFromModules()
+        saveModule(modules_state.ActiveModules[name], name)
         raise cherrypy.HTTPRedirect('/modules')
 
     @cherrypy.expose

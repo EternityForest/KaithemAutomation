@@ -84,6 +84,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 		var x = {
 
 			toSend: [],
+			enableWidgetGoneAlert: true,
 			lastDidSnackbarError: 0,
 			first_error: 1,
 			serverMsgCallbacks: {
@@ -284,8 +285,10 @@ Copyright (c) 2015 Yusuke Kawasaki
 							else {
 								if (this.alreadyPostedAlertOnce) { }
 								else {
-									this.alreadyPostedAlertOnce=true
-									alert("A widget used by this page no longer exists on the server.  Try refreshing later.")
+									this.alreadyPostedAlertOnce = true
+									if (this.enableWidgetGoneAlert) {
+										alert("A widget used by this page no longer exists on the server.  Try refreshing later.")
+									}
 								}
 							}
 						}

@@ -11,8 +11,10 @@ This release is all about making the custom HTML pages more maintainable.
 - :bug: Fix devices in modules
 - :lipstick: Use accordion sections on device pages
 - :sparkles: Devices now have a configurable description field, to make them more self-documenting.
-
-
+- :coffin: Anything to do with managing the JACK server is gone. Pipewire needed for live mixing.
+- :bug: Fix newly added modules imported from the library not being immediately saved
+- :coffin: Remove chandler code view for fixtures.
+- :bug: Remove some more nuisance alerts
 
 ### 0.68.41
 

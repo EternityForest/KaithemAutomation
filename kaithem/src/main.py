@@ -87,7 +87,7 @@ __version__ = version_info.__version__
 __version_info__ = version_info.__version_info__
 
 from .import tagpoints
-from src import kaithemobj
+from . import kaithemobj
 from . import wifimanager
 
 
@@ -110,6 +110,8 @@ rlogger.setLevel(logging.INFO)
 logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
 
+logger = logging.getLogger("ws4py")
+logger.setLevel(logging.WARNING)
 
 # Dump stuff to stderr when we get a segfault
 try:

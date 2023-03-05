@@ -372,7 +372,7 @@ This section the most recent errors that ocurred while executing the event or tr
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
-<input type="submit" value="Save Changes" onclick="wasChanged=false"></input>
+<input type="submit" value="Save Changes" onclick="wasChanged=false; kaithemapi.this.enableWidgetGoneAlert=false"></input>
 <label><input type="checkbox"  name="tabtospace"
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
         checked="yes"

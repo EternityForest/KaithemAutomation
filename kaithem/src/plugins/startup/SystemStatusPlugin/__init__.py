@@ -54,7 +54,7 @@ if battery:
     batteryTime.setAlarm("lowBatteryTimeRemaining", "value < 60*15")
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
-    acPowerTag.value = battery.power_plugged
+    acPowerTag.value = battery.power_plugged or 0
     acPowerTag.subtype='bool'
     acPowerTag.setAlarm(
         "runningOnBattery", "(not value) and (tv('/system/power/batteryLevel')< 80)", priority='info')
@@ -104,9 +104,10 @@ if psutil:
                                                           description="This alert may take a while to go away once the root cause is fixed.")
                         try:
                             full = psutil.disk_usage(p.mountpoint).percent
+                            space = psutil.disk_usage(p.mountpoint).free
                         except OSError:
                             continue
-                        if full > 90:
+                        if (full > 90 and space < (10**9*50)) or full > 95:
                             diskAlerts[id].trip()
                         if full < 80:
                             diskAlerts[id].release()
@@ -150,7 +151,7 @@ if psutil:
 
         battery = psutil.sensors_battery()
         if battery:
-            acPowerTag.value = battery.power_plugged
+            acPowerTag.value = battery.power_plugged or 0
             batteryTag.value = battery.percent
             batteryTime.value = battery.secsleft if battery.secsleft > 0 else 9999999
     doPsutil()

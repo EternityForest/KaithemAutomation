@@ -1,9 +1,11 @@
 import logging
-from src import kaithemobj, tagpoints
+from src import kaithemobj, tagpoints, alerts,messagebus
 import traceback
 import time
 import json
 import os
+
+
 
 def civilTwilight():
     try:
@@ -21,6 +23,19 @@ twilightTag.max = 1
 twilightTag.interval = 60
 twilightTag.description = "Unless overridden, 1 if dark, else 0, -1 if no location is set"
 twilightTag.value = civilTwilight
+
+
+alertTag = tagpoints.Tag("/system/alerts.level")
+alertTag.description= "The level of the highest priority alert that is currently not acknowledged"
+alertTag.writable = False
+alertTag.min = 0
+alertTag.max = alerts.priorities['critical']
+
+def atm(t,v):
+    alertTag.value = alerts.priorities[v]
+
+messagebus.subscribe("/system/alerts/level",atm)
+alertTag.value =  alerts.priorities[alerts._highestUnacknowledged()]
 
 
 def night():

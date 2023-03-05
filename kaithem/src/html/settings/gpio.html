@@ -72,7 +72,7 @@
     <table border="1">
        <thead>
             <tr>
-                <th>Pin</th>
+                <th>Name</th>
                 <th title="If the pin is active, NOT the raw val">Current State</th>
                 <th>Comment</th>
                 <th>Mocked</th>
@@ -84,12 +84,15 @@
        <tr v-for="i in dictView(inputs, ['p'])">
            <td data-label="Pin:" class="pin"><b>{{i[0]}}</b></td>
            <td data-label="Active:" title="If the pin is active, NOT the raw voltage input">
-            <img src="/zipstatic/img/icons/fugue.zip/light-bulb.png" v-if="i[1].v">
-            <img src="/zipstatic/img/icons/fugue.zip/light-bulb-off.png" v-if="!i[1].v">
+            <i class="icofont-light-bulb" v-if="i[1].v"></i>
+            
             {{i[1].v ? 'active':"inactive"}}</td>
-           <td data-label="Comment:">"{{i[1].c}}"</td>
-           <td data-label="Mocked:"><img src="/zipstatic/img/icons/fugue.zip/wrench.png" v-if="i[1].m">
-            <img src="/zipstatic/img/icons/fugue.zip/leaf.png" v-if="!i[1].m">
+           <td data-label="Comment:">{{i[1].c}}</td>
+           <td data-label="Mocked:">
+            <i class="icofont-wrench" v-if="i[1].m"></i>
+
+            <i class="icofont-leaf" v-if="!i[1].m"></i>
+
             {{i[1].m ? 'Mocked':"Live"}}
            </td>
            <td data-label="Active High?:" title="Is the pin active when the voltage is high?">{{i[1].a_s}}</td>
@@ -111,7 +114,7 @@
    <table border="1">
     <thead>
       <tr>
-          <th>Pin</th>
+          <th>Name</th>
           <th title="If the pin is active, NOT the raw val">Current State</th>
           <th>Comment</th>
           <th>Overridden</th>
@@ -123,12 +126,13 @@
       <tr v-for="i in dictView(outputs, ['p'])">
           <td data-label="Pin:" class="pin"><b>{{i[0]}}</b></td>
           <td data-label="Active:" title="If the pin is active, NOT the raw voltage input">
-           <img src="/zipstatic/img/icons/fugue.zip/light-bulb.png" v-if="i[1].v">
-           <img src="/zipstatic/img/icons/fugue.zip/light-bulb-off.png" v-if="!i[1].v">
+            <i class="icofont-light-bulb" v-if="i[1].v"></i>
            {{i[1].v ? 'active':"inactive"}}</td>
-          <td data-label="Comment:">"{{i[1].c}}"</td>
-          <td data-label="Overridden:"><img src="/zipstatic/img/icons/fugue.zip/wrench.png" v-if="i[1].m">
-           <img src="/zipstatic/img/icons/fugue.zip/leaf.png" v-if="!i[1].m">
+          <td data-label="Comment:">{{i[1].c}}</td>
+          <td data-label="Overridden:">
+            
+            <i class="icofont-wrench" v-if="i[1].m"></i>
+            <i class="icofont-leaf" v-if="!i[1].m"></i>
            {{i[1].m ? 'Overridden':"Live"}}
           </td>
           <td data-label="Active high?:" title="Does the active state cause a high output voltage?">{{i[1].a_s}}</td>

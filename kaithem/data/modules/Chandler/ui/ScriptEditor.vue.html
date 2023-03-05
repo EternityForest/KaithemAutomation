@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663293974223838
+resource-timestamp: 1674540383549570
 resource-type: page
 streaming-response: false
 template-engine: none
@@ -187,7 +187,7 @@ template-engine: none
 
                         </div>
                     </div>
-                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="rules.push(['cue.enter',[]]);$emit('input',rules);">Add Rule</button>
+                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="rules.push(['cue.enter',[['goto','=SCENE','']]]);$emit('input',rules);">Add Rule</button>
 
                 </div>
 

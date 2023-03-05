@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1671835326382166
+resource-timestamp: 1677996328608705
 resource-type: event
 versions: {}
 
@@ -328,6 +328,10 @@ if __name__=='__setup__':
     
     def gotoCommand(scene="=SCENE", cue=""):
         "Triggers a scene to go to a cue"
+    
+        # Ignore empty
+        if not cue.strip():
+            return
     
         #Track layers of recursion
         newcause = 'script.0'
@@ -1357,9 +1361,7 @@ if __name__=='__setup__':
             while x:
                 self.link.send(["scenecues",scene,{i:(s.cues[i].id,s.cues[i].number/1000.0) for i in x[:100] }])
                 x = x[100:]
-        def pushFixtureAssignmentCode(self):
-            d = [[i['name'],i['type'],i['universe'],i['addr']] for i in self.fixtureAssignments.values()]
-            self.link.send(['fixtureascode','\n'.join([', '.join(i) for  i in d])]  )
+    
             
         def _onmsg(self,user,msg):
             #Adds a light to a scene
@@ -1443,17 +1445,9 @@ if __name__=='__setup__':
                     del self.fixtureClasses[msg[1]]
                     self.refreshFixtures()
     
-                if msg[0] == "setfixturesfromcode":
-                    self.fixtureAssignments = fixturesFromOldListStyle([[j.strip() for j in i.split(',')] for i in msg[1].split("\n") if len(i)])
-                    self.link.send(['fixtureAssignments', self.fixtureAssignments])
-                    self.pushFixtureAssignmentCode()
-                    self.refreshFixtures()
-    
-    
                 if msg[0] == "setFixtureAssignment":
                     self.fixtureAssignments[msg[1]]=msg[2]
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
-                    self.pushFixtureAssignmentCode()
                     self.refreshFixtures()
     
     
@@ -1467,7 +1461,6 @@ if __name__=='__setup__':
                     del self.fixtureAssignments[msg[1]]
     
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
-                    self.pushFixtureAssignmentCode()
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
     
                     
@@ -1478,7 +1471,6 @@ if __name__=='__setup__':
     
                 if msg[0] == "getfixtureassg":
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
-                    self.pushFixtureAssignmentCode()
                     self.pushfixtures()
                     
                 if msg[0] == "clonecue":

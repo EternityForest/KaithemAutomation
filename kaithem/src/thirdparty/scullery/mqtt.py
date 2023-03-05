@@ -541,7 +541,7 @@ class Connection():
         # Extra data is mostly used for unsubscription
         self.subscribeWrappers[x] = (function, wrapper, topic, internalTopic)
 
-        logging.debug("MQTT subscribe to " + topic + " at " + self.server)
+        #logging.debug("MQTT subscribe to " + topic + " at " + self.server)
         # Ref to f exists as long as the original does because it's kept in subscribeWrappers
         messagebus.subscribe(internalTopic, wrapper)
 

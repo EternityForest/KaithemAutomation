@@ -22,27 +22,6 @@ __doc__ = ''
 # This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
 
 from . import persist, directories
-settingsFile = os.path.join(
-    directories.mixerdir, "jacksettings.yaml")
-
-
-legacy_keys = {
-    "usbPeriodSize": "/system/sound/jackusbperiod",
-    "usbLatency": "/system/sound/jackusblatency",
-    "jackPeriodSize": "/system/sound/jackperiodsize",
-    "jackPeriods": "/system/sound/jackperiods"
-
-}
-
-default = {
-    "usbPeriodSize": 2048,
-    "usbPeriods": 3,
-    "usbLatency": -1,
-    "jackPeriods": 3,
-    "jackPeriodSize": 512,
-    "usbQuality": 0,
-    "jackMode": "off",
-}
 
 
 def onFail():
@@ -59,12 +38,6 @@ def onStart():
 scullery.jacktools.onJackFailure = onFail
 scullery.jacktools.onJackStart = onStart
 
-
-settings = persist.getStateFile(settingsFile, default, legacy_keys)
-
-settingsFile = os.path.join(
-    directories.mixerdir, "jacksettings.yaml")
-settings = persist.getStateFile(settingsFile)
 
 
 def checkIfProcessRunning(processName):
@@ -101,40 +74,20 @@ if checkIfProcessRunning("pipewire"):
 def reloadSettings():
     global pipewireprocess1, pipewireprocess2
 
-    scullery.jacktools.usbPeriodSize = settings.get("usbPeriodSize", -1)
-    scullery.jacktools.usbLatency = settings.get("usbLatency", -1)
-    scullery.jacktools.usbPeriods = settings.get("usbPeriods", -1)
-    scullery.jacktools.usbQuality = settings.get("usbQuality", 0)
-
-    scullery.jacktools.periodSize = settings.get("jackPeriodSize", 512)
-    scullery.jacktools.jackPeriods = max(settings.get("jackPeriods", 3), 3)
-    scullery.jacktools.sharePulse = 'disable'
-    scullery.jacktools.jackDevice = settings.get("jackDevice", "hw:0,0")
-
-    if not (checkIfProcessRunning("pipewire") or settings.get("jackMode", None) == "pipewire"):
-        scullery.jacktools.useAdditionalSoundcards = "no"
-    else:
-        # Let pipewire do it all for us!!
-        scullery.jacktools.useAdditionalSoundcards = "no"
-
-    scullery.jacktools.usePulse = settings.get("sharePulse", None) != "disable"
-
+    # Let pipewire do it all for us!!
+    scullery.jacktools.useAdditionalSoundcards = "no"
+    scullery.jacktools.usePulse = True
     scullery.jacktools.dummy = False
 
-    if checkIfProcessRunning("pipewire") or settings.get("jackMode", None) == "use":
-        scullery.jacktools.manageJackProcess = False
+    scullery.jacktools.manageJackProcess = False
 
-    if settings.get("jackMode", None) == "use":
-        if checkIfProcessRunning("jackd"):
-            messagebus.postMessage("/system/jack/started", "External JACK")
-            jackWasRuning[0] = 1
+    if checkIfProcessRunning("jackd"):
+        messagebus.postMessage("/system/jack/started", "External JACK")
+        jackWasRuning[0] = 1
 
-    elif settings.get("jackMode", None) == "manage":
-        scullery.jacktools.manageJackProcess = True
-
-    elif settings.get("jackMode", None) == "dummy":
-        scullery.jacktools.manageJackProcess = True
-        scullery.jacktools.dummy = True
+    elif checkIfProcessRunning("pipewire"):
+        messagebus.postMessage("/system/jack/started", "External JACK")
+        jackWasRuning[0] = 1
 
 
 scullery.jacktools.settingsReloader = reloadSettings
