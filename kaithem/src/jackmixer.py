@@ -792,6 +792,7 @@ class MixingBoard():
         self.api.attach(self.f)
         self.channels = {}
         self.channelObjects = {}
+        self.channelAlerts = {}
         self.lock = threading.RLock()
         self.running = checkIfProcessRunning("jackd")
 
@@ -871,11 +872,16 @@ class MixingBoard():
             self._createChannel(name, data)
 
     def _createChannel(self, name,data=channelTemplate):
+        if not name in self.channelAlerts:
+            self.channelAlerts[name] = alerts.Alert("Mixer channel "+name, priority='error', tripDelay=15, autoAck=True)
+
         for i in range(3):
             try:
-                self._createChannelAttempt(name,data,wait=(i*3+10))
+                self._createChannelAttempt(name, data,wait=(i*3+10))
+                self.channelAlerts[name].release()
                 break
             except Exception:
+                self.channelAlerts[name].trip("Failed to load channel")
                 logging.exception("Failed to create channel, retrying")
                 time.sleep(1)
 
@@ -922,6 +928,8 @@ class MixingBoard():
     def _deleteChannel(self, name):
         if name in self.channels:
             del self.channels[name]
+        if name in self.channelAlerts:
+            del self.channelAlerts[name]
         if name in self.channelObjects:
             self.channelObjects[name].stop()
             del self.channelObjects[name]

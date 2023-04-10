@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.68.43
+- :bug: Remove notification for tripped->normal transition
+- :sparkles: Show tripped alerts on main page
+
 ### 0.68.42
 
 This release is all about making the custom HTML pages more maintainable.

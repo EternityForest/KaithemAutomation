@@ -56,6 +56,11 @@ _unacknowledged = {}
 active = {}
 _active = {}
 
+
+# Added on trip, removed on normal
+tripped = {}
+_tripped = {}
+
 all = weakref.WeakValueDictionary()
 
 priorities = {
@@ -376,16 +381,21 @@ class Alert():
 
     def _onNormal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
-        global unacknowledged, active
-        if self.priority in ("info","warning", "error", "critical"):
-            messagebus.postMessage(
-                "/system/notifications", "Alarm "+self.name+" returned to normal")
+        global unacknowledged, active, tripped
+        if not self.sm.prevState == 'tripped':
+            if self.priority in ("info","warning", "error", "critical"):
+                messagebus.postMessage(
+                    "/system/notifications", "Alarm "+self.name+" returned to normal")
        
         with lock:
             cleanup()
             if self.id in _unacknowledged:
                 del _unacknowledged[self.id]
             unacknowledged = _unacknowledged.copy()
+
+            if self.id in _tripped:
+                del _tripped[self.id]
+            tripped = _tripped.copy()
 
             if self.id in _active:
                 del _active[self.id]
@@ -396,6 +406,14 @@ class Alert():
 
 
     def _onTrip(self):
+        global tripped
+
+        with lock:
+            cleanup()
+            _tripped[self.id] = weakref.ref(self)
+            tripped = _tripped.copy()
+
+
         if self.priority in ("error", "critical"):
             logger.error("Alarm "+self.name + " tripped:\n "+self.tripMessage)
         if self.priority in ("warning"):
