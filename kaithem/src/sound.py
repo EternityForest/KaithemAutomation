@@ -128,6 +128,10 @@ class SoundWrapper(object):
     def setVolume(self, vol, channel="PRIMARY"):
         pass
 
+
+    def setSpeed(self, speed, channel="PRIMARY",*a,**kw):
+        pass
+
     def setEQ(self, channel="PRIMARY"):
         pass
 
@@ -540,11 +544,14 @@ class MPVBackend(SoundWrapper):
     # If the object is destroyed it destroys the process stopping the sound
     # It also abstracts checking if its playing or not.
     class MPVSoundContainer(object):
-        def __init__(self, filename, vol, finalGain, output, loop, start=0):
+        def __init__(self, filename, vol, finalGain, output, loop, start=0, speed=1):
             self.lock = threading.RLock()
 
             if output == "__disable__":
                 return
+
+
+            self.alreadySetCorrection = False
 
             #I think this leaks memory when created and destroyed repeatedly
             with objectPoolLock:
@@ -564,6 +571,11 @@ class MPVBackend(SoundWrapper):
                 self.player.rpc.call('set', ['jack_name', cname])
                 self.player.rpc.call('set', ['gapless_audio', 'weak'])
                 self.player.isConfigured = True
+
+
+            if not speed == 1:
+                self.player.rpc.call('set',['audio_pitch_correction', False], block=0.001)
+                self.player.rpc.call('set',['speed', speed], block=0.001)
 
             if start:
                 self.player.rpc.call('seek', [str(start), 'absolute'])
@@ -686,6 +698,15 @@ class MPVBackend(SoundWrapper):
                 self.player.rpc.call('set', ['volume', volume * 100],
                                      block=0.001)
 
+
+        def setSpeed(self, speed):
+            with self.lock:
+                if not self.alreadySetCorrection:
+                    self.player.rpc.call('set',['audio_pitch_correction', False], block=0.001)
+                    self.alreadySetCorrection=True
+                self.player.rpc.call('set',['speed', speed], block=0.001)
+
+
         def getVol(self):
             with self.lock:
                 return self.player.rpc.call('get', ['volume'], block=0.001)
@@ -708,7 +729,7 @@ class MPVBackend(SoundWrapper):
                   volume=1,
                   finalGain=None,
                   output='',
-                  loop=1, start=0):
+                  loop=1, start=0, speed=1, **kw):
 
         # Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
@@ -716,7 +737,7 @@ class MPVBackend(SoundWrapper):
         fn = soundPath(filename, extraPaths)
         # Play the sound with a background process and keep a reference to it
         self.runningSounds[handle] = self.MPVSoundContainer(
-            fn, volume, finalGain, output, loop, start=start)
+            fn, volume, finalGain, output, loop, start=start, speed=speed)
 
     def stopSound(self, handle="PRIMARY"):
         # Delete the sound player reference object and its destructor will stop the sound
@@ -755,6 +776,13 @@ class MPVBackend(SoundWrapper):
         except KeyError:
             pass
 
+    def setSpeed(self, speed, channel="PRIMARY",*a,**kw):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].setSpeed(speed)
+        except KeyError:
+            pass
+
     def seek(self, position, channel="PRIMARY"):
         "Return true if a sound is playing on channel"
         try:
@@ -790,10 +818,14 @@ class MPVBackend(SoundWrapper):
                handle="PRIMARY",
                output='',
                volume=1,
+               windup=0,
+               winddown=0,
+               speed=1,
                **kwargs):
+
         x = self.runningSounds.pop(handle, None)
 
-        if x and not length:
+        if x and not (length or winddown):
             x.stop()
 
         k = kwargs.copy()
@@ -801,16 +833,22 @@ class MPVBackend(SoundWrapper):
 
         # Allow fading to silence
         if file:
+
+            sspeed = speed
+            if windup:
+                sspeed = 0.1
+
             self.playSound(file,
                            handle=handle,
                            volume=0,
                            output=output,
                            finalGain=volume,
-                           loop=kwargs.get('loop', 1))
+                           loop=kwargs.get('loop', 1),
+                           speed=sspeed)
 
         #if not x:
         #    return
-        if not length:
+        if not (length or winddown):
             return
 
         def f():
@@ -821,19 +859,39 @@ class MPVBackend(SoundWrapper):
                 v = 0
 
             targetVol = 1
-            while time.monotonic() - t < length:
-                ratio = max(0, min(1, ((time.monotonic() - t) / length)))
+            while time.monotonic() - t < max(length, winddown, windup):
+
+
+                if max(length, winddown):
+                    foratio = max(0, min(1, ((time.monotonic() - t) / max(length, winddown))))
+                else:
+                    foratio = 1
+
+                if length:
+                    firatio = max(0, min(1, ((time.monotonic() - t) / length)))
+                else:
+                    firatio = 1
 
                 tr = time.monotonic()
 
                 if x:
-                    x.setVol(max(0, v * (1 - ratio)))
+                    x.setVol(max(0, v * (1 - foratio)))
+
+                    if winddown:
+                        wdratio = max(0, min(1, ((time.monotonic() - t) / winddown)))
+                        x.setSpeed(max(0.1, v * (1 - wdratio)))
+
 
                 if file and (handle in self.runningSounds):
                     targetVol = self.runningSounds[handle].finalGain
-                    self.setVolume(min(1, targetVol * ratio),
+                    self.setVolume(min(1, targetVol * firatio),
                                    handle,
                                    final=False)
+                
+                    if windup:
+                        wuratio = max(0, min(1, ((time.monotonic() - t) / windup)))
+                        self.setSpeed(max(0.1, min(1, wuratio*speed)),
+                                    handle)
 
                 #Don't overwhelm the backend with commands
                 time.sleep(max(1 / 48.0, time.monotonic() - tr))

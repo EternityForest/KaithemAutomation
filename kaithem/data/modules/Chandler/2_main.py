@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1677996328608705
+resource-timestamp: 1685929394978726
 resource-type: event
 versions: {}
 
@@ -1315,6 +1315,9 @@ if __name__=='__setup__':
                                 'sound': cue.sound,
                                 'soundOutput': cue.soundOutput,
                                 'soundStartPosition': cue.soundStartPosition,
+                                'mediaSpeed': cue.mediaSpeed,
+                                'mediaWindup': cue.mediaWindup,
+                                'mediaWinddown': cue.mediaWinddown,
                                 'rel_len': cue.rel_length,
                                 'track': cue.track,
                                 'notes': cue.notes,
@@ -1932,6 +1935,17 @@ if __name__=='__setup__':
                     cues[msg[1]].soundStartPosition=float(msg[2].strip())
                     self.pushCueMeta(msg[1])
     
+                if msg[0]=="setcuemediaspeed":
+                    cues[msg[1]].mediaSpeed=float(msg[2].strip())
+                    self.pushCueMeta(msg[1])
+    
+                if msg[0]=="setcuemediawindup":
+                    cues[msg[1]].mediaWindup=float(msg[2].strip())
+                    self.pushCueMeta(msg[1])
+    
+                if msg[0]=="setcuemediawinddown":
+                    cues[msg[1]].mediaWinddown=float(msg[2].strip())
+                    self.pushCueMeta(msg[1])
     
                 # if msg[0]=="setlninfluences":
                 #     cues[msg[1]].setLivingNightInfluences(msg[2])
@@ -2430,6 +2444,9 @@ if __name__=='__setup__':
         'notes':'',
         "soundOutput": '',
         "soundStartPosition": 0,
+        "mediaSpeed": 1,
+        "mediaWindup": 0,
+        "mediaWinddown": 1,
         "rel_length": False,
         "lengthRandomize": 0,
         'inheritRules':'',
@@ -2446,9 +2463,9 @@ if __name__=='__setup__':
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
         'nextCue','track','notes', 'shortcut','number','inherit','sound','rel_length',
-        'soundOutput','soundStartPosition', 'onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
+        'soundOutput','soundStartPosition','mediaSpeed', "mediaWindup", "mediaWinddown", 'onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
         '__weakref__']
-        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='',soundOutput='', soundStartPosition=0, rel_length=False, id=None,number=None,
+        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='',soundOutput='', soundStartPosition=0, mediaSpeed=1, mediaWindup=0, mediaWinddown=0, rel_length=False, id=None,number=None,
             lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0, notes='', soundFadeOut=0,inheritRules='',soundVolume=1,soundLoops=0,namedForSound=False,probability='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
@@ -2503,6 +2520,9 @@ if __name__=='__setup__':
             self.sound = sound or ''
             self.soundOutput = soundOutput or ''
             self.soundStartPosition = soundStartPosition
+            self.mediaSpeed = mediaSpeed
+            self.mediaWindup = mediaWindup
+            self.mediaWinddown = mediaWinddown
     
             #Used for the livingnight algorithm
             #Aspect, value tuples
@@ -2535,7 +2555,7 @@ if __name__=='__setup__':
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
                 "nextCue":self.nextCue,"track":self.track, 'notes':self.notes, "number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,
-                'soundStartPosition': self.soundStartPosition,
+                'soundStartPosition': self.soundStartPosition,'mediaSpeed': self.mediaSpeed, 'mediaWindup': self.mediaWindup, 'mediaWinddown': self.mediaWinddown,
                 'rel_length':self.rel_length, 'probability':self.probability, 'rules':self.rules,
                 'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, "soundLoops":self.soundLoops,'namedForSound':self.namedForSound
                 }
@@ -2544,7 +2564,7 @@ if __name__=='__setup__':
                 if x['shortcut']==number_to_shortcut(self.number):
                     del x['shortcut']
                 for i in cueDefaults:
-                    if x[i]==cueDefaults[i]:
+                    if str(x[i])==str(cueDefaults[i]):
                         del x[i]
                 return x
     
@@ -3445,8 +3465,8 @@ if __name__=='__setup__':
                     if not self.cues[cue].sound== "__keep__":
                         #Don't stop audio of we're about to crossfade to the next track
                         if not(self.crossfade and self.cues[cue].sound):
-                            if self.cue.soundFadeOut:
-                                fadeSound(None, length=self.cue.soundFadeOut, handle=str(self.id))
+                            if self.cue.soundFadeOut or self.cue.mediaWinddown:
+                                fadeSound(None, length=self.cue.soundFadeOut, handle=str(self.id), winddown= self.cue.mediaWinddown)
                             else:
                                 stopSound(str(self.id))
     
@@ -3486,11 +3506,12 @@ if __name__=='__setup__':
                                 
                                     #Always fade in if the face in time set.
                                     #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
-                                    if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
-                                        playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops, start=self.cue.soundStartPosition)
+                                    if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn or self.cue.mediaWindup):
+                                        spd = self.scriptContext.preprocessArgument(self.cue.mediaSpeed)
+                                        playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops, start=self.cue.soundStartPosition, speed=spd)
                                     else:
                                         fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops,
-                                         start=self.cue.soundStartPosition)
+                                         start=self.cue.soundStartPosition, windup= self.cue.mediaWindup, winddown= self.cue.mediaWinddown)
                                     
     
                                 

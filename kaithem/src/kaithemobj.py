@@ -35,8 +35,23 @@ except Exception:
     print("Error importing holidays")
 
 import cherrypy
-from . import unitsofmeasure, workers, sound, messagebus, util, widgets, directories, pages, config, persist, breakpoint, statemachines
-from . import devices, alerts, midi, gpio, theming
+from . import unitsofmeasure
+from . import workers
+from . import sound
+from . import messagebus
+from . import util
+from . import widgets
+from . import directories
+from . import pages
+from . import config
+from . import persist
+from . import breakpoint
+from . import statemachines
+from . import devices
+from . import alerts
+from . import midi
+from . import gpio
+from . import theming
 
 from . import version_info
 
