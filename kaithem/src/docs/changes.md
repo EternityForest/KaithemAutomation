@@ -6,7 +6,8 @@ Change Log
 - :sparkles: Show tripped alerts on main page
 - :sparkles: Thread start/stop logging now shows thread ID
 - :sparkles: Chandler cue media speed, windup, and winddown, to simulate the record player spinup/down or "evil dying robot" effect.
-- 
+- :bug: Fix temperature alerts chattering on and off if near threshold
+
 ### 0.68.42
 
 This release is all about making the custom HTML pages more maintainable.

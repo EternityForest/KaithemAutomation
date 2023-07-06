@@ -141,7 +141,9 @@ if psutil:
                 # Fix the name
                 tempTags[i] = tagpoints.Tag(
                     tagpoints.normalizeTagName("/system/sensors/temp/" + i, "_"))
-                tempTags[i].setAlarm("temperature", "value>78")
+                tempTags[i].setAlarm("temperature", "value>78", releaseCondition="value<65")
+                tempTags[i].setAlarm("lowtemperature", "value<5")
+
                 tempTags[i].unit = 'degC'
                 tempTags[i].max = 150
                 tempTags[i].min = -25
