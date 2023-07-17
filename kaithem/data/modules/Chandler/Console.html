@@ -17,7 +17,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1685928934968515
+resource-timestamp: 1689583971412925
 resource-type: page
 setupcode: "#Code Here runs once when page is first rendered. Good place for import\
   \ statements. \r\n__doc__= \"\"\r\nboardname = \"default\"\r\nimport json\r\nfrom\
@@ -464,17 +464,13 @@ template-engine: mako
         <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
             :options="useBlankDescriptions(fixtureClasses)"></combo-box>
         <button v-on:click="addfixturetype"><i class="icofont-ui-add"></i>Add fixture type</button>
+        <a class="button" href="/pages/Chandler/UseOPZDMX">Import from OP-Z format library</a>
 
         <div v-if="selectedFixtureClass">
 
             <button v-on:click="delfixturetype"><i class="icofont-trash"></i>Delete Fixture Type</button>
 
             <button>Rename</button>
-            <h4>Edit as Code</h4>
-            <button title="Update the textbox with the current fixture data(reload)" v-on:click="fixturecode=JSON.stringify(fixtureClasses[selectedFixtureClass]);$event.target.rows=15;">Fixture > Code(reload)</button>
-            <button title="Update the fixture data with the code in the textbox" v-on:click="saveFixtureTypeFromCode(selectedFixtureClass,fixturecode);">Code > Fixture(save)</button>
-            <br>
-            <textarea v-model="fixturecode" rows=1 columns=40></textarea>
             <h3>Channels in Fixture Type</h3>
             <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
                 <h4>{{i}}.</h4>
@@ -493,6 +489,7 @@ template-engine: mako
                         <option>custom</option>
                         <option>fine</option>
                         <option>unused</option>
+                        <option>fixed</option>
 
                     </select>
                 </label>
@@ -502,6 +499,12 @@ template-engine: mako
                     <input v-on:change="pushfixture(selectedFixtureClass)" title="The corresponding coarse channel for this fine channel"
                         min=0 max=64 type="number" v-model="fixtureClasses[selectedFixtureClass][i][2]">
                 </label>
+
+                <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fixed'">
+                    Fixed Value:
+                    <input v-on:change="pushfixture(selectedFixtureClass)" title="The fixed DMX channel value"
+                        min=0 max=256 type="number" v-model="fixtureClasses[selectedFixtureClass][i][2]">
+                </label>          
 
                 <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
                     <p class="Help">
@@ -537,7 +540,7 @@ template-engine: mako
                     <button v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName']);pushfixture(selectedFixtureClass)">Add Range</button>
                 </div>
             </div>
-            <button v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red']);pushfixture(selectedFixtureClass);">Add Channel</button>
+            <button v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red',0]);pushfixture(selectedFixtureClass);">Add Channel</button>
         </div>
     </div>
 
@@ -1544,6 +1547,7 @@ template-engine: mako
                 <span v-if="chinfo&&chinfo[2]=='custom'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
                 <span v-if="chinfo&&chinfo[2]=='intensity'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
                 <span v-if="chinfo&&chinfo[2]=='white'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
+                <span v-if="chinfo&&chinfo[2]=='fog'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
 
                 <span v-if="chinfo&&chinfo==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
 

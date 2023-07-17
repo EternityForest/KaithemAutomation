@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1685929394978726
+resource-timestamp: 1689583011176667
 resource-type: event
 versions: {}
 
@@ -593,6 +593,8 @@ if __name__=='__setup__':
                 dim
                 custom
                 fine
+                fog
+                hue
     
                 The name must be unique per-fixture.
                 If a channel has the type "fine" it will be interpreted as the fine value of
@@ -782,6 +784,73 @@ if __name__=='__setup__':
     
     class ChandlerConsole():
         "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
+    
+        def loadProject(self):
+            
+            for i in self.scenememory:
+                self.scenememory[i].stop()
+                self.scenememory[i].close()
+            self.scenememory = {}
+    
+            for i in self.configuredUniverses:
+                self.configuredUniverses[i].close()
+    
+            self.configuredUniverses = {}
+            self.fixtureClasses = {}
+            self.fixtureAssignments = {}
+            
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "universes")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.configuredUniverses[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+    
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixturetypes")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.fixtureClasses[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixtures")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.fixtureAssignments[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+            #This used to be a list of [name, fixturetype, startAddress] triples
+            if not isinstance(self.fixtureAssignments,dict):
+                self.fixtureAssignments = fixturesFromOldListStyle(self.fixtureAssignments)
+            try:
+                self.createUniverses(self.configuredUniverses)
+            except Exception:
+                logger.exception("Error creating universes")
+                print(traceback.format_exc(6))
+    
+    
+            d = {}
+    
+    
+    
+    
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "scenes")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+    
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        d[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+            self.loadDict(d)
+    
+            if self.link:
+                self.link.send(['refreshPage', self.fixtureAssignments])
+    
+                
+    
         def __init__(self, count=65536):
     
             self.newDataFunctions = []
@@ -806,63 +875,17 @@ if __name__=='__setup__':
             self.lock = threading.RLock()
             
             self.configuredUniverses = {}
-    
-            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "universes")
-            if os.path.isdir(saveLocation):
-                for i in os.listdir(saveLocation):
-                    fn = os.path.join(saveLocation,i)
-                    if os.path.isfile(fn) and fn.endswith(".yaml"):
-                        self.configuredUniverses[i[:-len('.yaml')]] = kaithem.persist.load(fn)
-    
-            self.universeObjs = {}
-    
-            self.fixtureClasses= copy.deepcopy(module.genericFixtureClasses)
-    
-            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixturetypes")
-            if os.path.isdir(saveLocation):
-                for i in os.listdir(saveLocation):
-                    fn = os.path.join(saveLocation,i)
-                    if os.path.isfile(fn) and fn.endswith(".yaml"):
-                        self.fixtureClasses[i[:-len('.yaml')]] = kaithem.persist.load(fn)
-    
-    
             self.fixtureAssignments = {}
             self.fixtures ={}
             
     
-    
-            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixtures")
-            if os.path.isdir(saveLocation):
-                for i in os.listdir(saveLocation):
-                    fn = os.path.join(saveLocation,i)
-                    if os.path.isfile(fn) and fn.endswith(".yaml"):
-                        self.fixtureAssignments[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+            self.universeObjs = {}
+            self.fixtureClasses= copy.deepcopy(module.genericFixtureClasses)
     
     
+            self.loadProject()
     
     
-            #This used to be a list of [name, fixturetype, startAddress] triples
-            if not isinstance(self.fixtureAssignments,dict):
-                self.fixtureAssignments = fixturesFromOldListStyle(self.fixtureAssignments)
-            try:
-                self.createUniverses(self.configuredUniverses)
-            except Exception:
-                logger.exception("Error creating universes")
-                print(traceback.format_exc(6))
-    
-    
-            d = {}
-    
-    
-            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "scenes")
-            if os.path.isdir(saveLocation):
-                for i in os.listdir(saveLocation):
-                    fn = os.path.join(saveLocation,i)
-    
-                    if os.path.isfile(fn) and fn.endswith(".yaml"):
-                        d[i[:-len('.yaml')]] = kaithem.persist.load(fn)
-    
-            self.loadDict(d)
             self.refreshFixtures()
             def f(self,*dummy):
                 self.link.send(['soundoutputs',[i for i in kaithem.sound.outputs()]])
@@ -1436,11 +1459,35 @@ if __name__=='__setup__':
                 if msg[0] == "setfixtureclass":
                     l =[]
                     for i in msg[2]:
-                        if i[1] not in ['custom', 'fine']:
+                        if i[1] not in ['custom', 'fine', 'fixed']:
                             l.append(i[:2])
                         else:
                             l.append(i)
                     self.fixtureClasses[msg[1]] =l
+                    self.refreshFixtures()
+    
+    
+                if msg[0] == "setfixtureclassopz":
+                    x = []
+    
+                    for i in msg[2]['channels']:
+                        if i in ('red', 'green', 'blue','intensity',"white","fog"):
+                            x.append([i,i])
+    
+                        elif i.isnumeric:
+                            x.append(['fixed', 'fixed', i])
+    
+                        elif i== 'color':
+                            x.append(['hue', 'hue'])
+                    
+    
+                    l =[]
+                    for i in x:
+                        if i[1] not in ['custom', 'fine', 'fixed']:
+                            l.append(i[:2])
+                        else:
+                            l.append(i)
+                    self.fixtureClasses[msg[1].replace("-"," ").replace("/"," ")] =l
                     self.refreshFixtures()
     
     
@@ -1609,7 +1656,7 @@ if __name__=='__setup__':
                     #Are stored as if they are their own universe, starting with an @ sign.
                     #Channels are stored by name and not by number.
                     for i in x.channels:
-                        if not i[1]=="unused":
+                        if not i[1] in ("unused","fixed"):
                             if hasattr(cue.scene().blendClass,'default_channel_value'):
                                 val = cue.scene().blendClass.default_channel_value
                             else:
@@ -1626,7 +1673,7 @@ if __name__=='__setup__':
     
                         # The __dest__ channels represet the color at the end of the channel
                         for i in x.channels:
-                            if not i[1]=="unused":
+                            if not i[1] in ("unused","fixed"):
                                 if hasattr(cue.scene().blendClass,'default_channel_value'):
                                     val = cue.scene().blendClass.default_channel_value
                                 else:
