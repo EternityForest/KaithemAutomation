@@ -2150,8 +2150,6 @@ Libraries used in plugins
   - [kevie at
     openclipart.org](https://openclipart.org/detail/1337/large-barrel)
   - [Hack](http://sourcefoundry.org/hack/)(Font for source code)
-  - [iconicss](https://viglino.github.io/iconicss/?icon=circle&page=license)(Another
-    icon pack)
   - [Font Awesome](https://fontawesome.com/)(More icons)
   - [Fuge Icons](http://p.yusukekamiyamane.com/) by Yusuke Kamiyamane.
     Licensed under a Creative Commons Attribution 3.0 License.

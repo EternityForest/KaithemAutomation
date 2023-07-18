@@ -3,14 +3,17 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
+code: ''
 dont-show-in-index: false
 mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1566264981238447
+resource-timestamp: 1689719106145103
 resource-type: page
+setupcode: ''
+streaming-response: false
 template-engine: mako
 
 ---
@@ -21,7 +24,7 @@ var t = `
 
             <b style="font-size: 150%;" v-if="chnamelookup(uname,h[0].ch)">{{uname}}:{{channelNames[uname][h[0].ch][0]}}</b>
             <button v-if="chnamelookup(uname,h[0].ch)" v-on:click="rmFixCue(channelNames[uname][h[0].ch][0])">
-              <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png">
+              <i class="icofont-ui-remove"></i>
             </button>
 
 
