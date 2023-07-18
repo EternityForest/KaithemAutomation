@@ -10,6 +10,17 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
+import os
+
+def package_files(directory, ext=''):
+    paths = []
+    for (path, directories, filenames) in os.walk(directory):
+        for filename in filenames:
+            if filename.endswith(ext):
+                paths.append(os.path.join('..', path, filename))
+    return paths
+
+extra_files = package_files('kaithem/data/')+package_files('kaithem/src/','html')+package_files('kaithem/src/','js')+package_files('kaithem/src/','css')
 setup(
     name="kaithem",
     version="0.68.42",
@@ -20,7 +31,7 @@ setup(
     keywords="automation",
     url="https://github.com/EternityForest/KaithemAutomation",
     packages=find_packages(),
-    package_data={'': ['kaithem/data/*', '**/*.txt', '**/*.yaml','**/*.html','**/*.md','**/*.json','**/*.js','**/*.css','**/*.vue','**/*.webp','**/*.png','**/*.jpg','**/*.toml','**/*.svg', '**/*.opus','**/*.mp3']},
+    package_data={'': extra_files+[ '**/*.txt', '**/*.yaml','**/*.html','**/*.md','**/*.json','**/*.js','**/*.css','**/*.vue','**/*.webp','**/*.png','**/*.jpg','**/*.toml','**/*.svg', '**/*.opus','**/*.mp3']},
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 3 - Alpha",
