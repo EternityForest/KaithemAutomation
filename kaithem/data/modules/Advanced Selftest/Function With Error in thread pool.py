@@ -12,7 +12,7 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolution
     __doc__='This event should have an error associated with it.  If it does not, report an bugge!'
-    from src import workers
+    from kaithem.src import workers
     
     def raise_an_exception():
         raise RuntimeError("This exception raised to test what happens when a function in the thread pool errors")

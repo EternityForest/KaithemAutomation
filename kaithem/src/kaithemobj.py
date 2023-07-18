@@ -114,11 +114,13 @@ class SoundOutput():
     pass
 
 
+from . import scriptbindings
+
 class Kaithem():
     devices = devices.DeviceNamespace()
     context = threading.local()
     tags = TagInterface()
-       
+    chandlerscript = scriptbindings
 
     def __getattr__(self, name):
         if name in plugins:
@@ -217,6 +219,9 @@ class Kaithem():
         effwords = util.eff_wordlist
 
         vardir = directories.vardir
+        datadir = directories.datadir
+
+
 
     # In modules.py, we insert a resource API object.
     #kaithemobj.kaithem.resource = ResourceAPI()

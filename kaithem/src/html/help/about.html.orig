@@ -12,15 +12,15 @@
     import threading
 
     import kaithem
-    from src import unitsofmeasure
-    from src import newevt
-    from src import systasks
-    from src import sound
-    from src import usrpages
-    from src import util
-    from src import kaithemobj
-    from src import workers
-    from src.config import config
+    from kaithem.src import unitsofmeasure
+    from kaithem.src import newevt
+    from kaithem.src import systasks
+    from kaithem.src import sound
+    from kaithem.src import usrpages
+    from kaithem.src import util
+    from kaithem.src import kaithemobj
+    from kaithem.src import workers
+    from kaithem.src.config import config
     if os.name != "nt":
         import fcntl
         import struct

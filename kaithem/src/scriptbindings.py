@@ -78,7 +78,7 @@ import math
 from .scheduling import scheduler
 import datetime
 from types import MethodType
-from . import tagpoints, util, workers
+from . import tagpoints, workers
 import simpleeval
 
 simpleeval.MAX_POWER = 1024
@@ -203,6 +203,58 @@ def millis():
     return time.monotonic()*1000
 
 
+
+# TODO separate the standard library stuff from this file?
+from . import astrallibwrapper as sky
+from . import geolocation
+
+def isDay(lat=None, lon=None):
+    if lat is None:
+        if lon is None:
+            lat, lon = geolocation.getCoords()
+
+        if lat is None or lon is None:
+            raise RuntimeError(
+                "No server location set, fix this in system settings")
+    return (sky.isDay(lat, lon))
+
+
+def isNight(lat=None, lon=None):
+    if lat is None:
+        if lon is None:
+            lat, lon = geolocation.getCoords()
+
+        if lat is None or lon is None:
+            raise RuntimeError(
+                "No server location set, fix this in system settings")
+    return (sky.isNight(lat, lon))
+
+
+def isLight(lat=None, lon=None):
+    if lat is None:
+        if lon is None:
+            lat, lon = geolocation.getCoords()
+
+        if lat is None or lon is None:
+            raise RuntimeError(
+                "No server location set, fix this in system settings")
+    return (sky.isLight(lat, lon))
+
+
+def isDark(lat=None, lon=None):
+    if lon is None:
+        lat, lon = geolocation.getCoords()
+
+    else:
+        raise ValueError("You set lon, but not lst?")
+    if lat is None or lon is None:
+        raise RuntimeError(
+            "No server location set, fix this in system settings")
+
+    return (sky.isDark(lat, lon))
+
+
+
 globalUsrFunctions = {
     "unixtime": time.time,
     "millis": millis,
@@ -215,6 +267,11 @@ globalUsrFunctions = {
     "sin": math.sin,
     "cos": math.cos,
     "sqrt": safesqrt,
+
+    "isDark": isDark,
+    "isNight": isNight,
+    "isLight":isLight,
+    "isDay": isDay
 }
 
 globalConstants = {
@@ -809,20 +866,11 @@ class BaseChandlerScriptContext():
             self.tagClaims = {}
 
 
-from .kaithemobj import kaithem
 
-def lorem():
-    "Returns a randomly selected quote"
-    return kaithem.misc.lorem()
 
-globalUsrFunctions.update(
-    { 
-        "isDark": kaithem.time.isDark,
-        "isNight": kaithem.time.isNight,
-        "isLight": kaithem.time.isLight,
-        "isDay": kaithem.time.isDay
-    }
-)
+
+
+
 
 class ChandlerScriptContext(BaseChandlerScriptContext):
     tagDefaultPrefix = '/sandbox/'

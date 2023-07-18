@@ -1,5 +1,5 @@
 import threading
-from src import util, alerts, scheduling, tagpoints, messagebus
+from kaithem.src import util, alerts, scheduling, tagpoints, messagebus
 import subprocess
 import logging
 

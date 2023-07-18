@@ -1,5 +1,5 @@
 from mako.lookup import TemplateLookup
-from src import devices, alerts, scheduling, messagebus, workers
+from kaithem.src import devices, alerts, scheduling, messagebus, workers
 from scullery import iceflow, workers
 import os
 import mako
@@ -11,7 +11,7 @@ import base64
 import traceback
 import shutil
 
-from src import widgets
+from kaithem.src import widgets
 
 logger = logging.Logger("plugins.pikeypad")
 

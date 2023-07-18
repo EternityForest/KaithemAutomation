@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1689583011176667
+resource-timestamp: 1689718221532883
 resource-type: event
 versions: {}
 
@@ -19,7 +19,7 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolutio n
     __doc__=''
-    import time,random,weakref, os,threading,uuid,logging,traceback,yaml,copy,json,src,collections, datetime,pytz
+    import time,random,weakref, os,threading,uuid,logging,traceback,yaml,copy,json,collections, datetime,pytz
     from decimal import Decimal
     from tinytag import TinyTag
     from typeguard import typechecked
@@ -154,11 +154,8 @@ if __name__=='__setup__':
     
     allowedCueNameSpecials = '_~.'
     
-    from src.scriptbindings import ChandlerScriptContext,getFunctionInfo
-    import src.scriptbindings as scripting
     
-    
-    rootContext = ChandlerScriptContext()
+    rootContext = kaithem.chandlerscript.ChandlerScriptContext()
     fixtureslock = threading.RLock()
     module.fixtures ={}
     
@@ -335,8 +332,8 @@ if __name__=='__setup__':
     
         #Track layers of recursion
         newcause = 'script.0'
-        if scripting.contextInfo.event[0] in ('cue.enter', 'cue.exit'):
-            cause = scripting.contextInfo.event[1][1]
+        if kaithem.chandlerscript.contextInfo.event[0] in ('cue.enter', 'cue.exit'):
+            cause = kaithem.chandlerscript.contextInfo.event[1][1]
             #Nast hack, but i don't thing we need more layers and parsing might be slower.
             if cause == 'script.0':
                 newcause = 'script.1'
@@ -472,13 +469,13 @@ if __name__=='__setup__':
         "path:displayname dict"
         soundfolders = {i.strip():i.strip() for i in module.config['soundFolders']}
     
-        soundfolders[os.path.join(src.directories.datadir,"sounds")] = 'Builtin'
+        soundfolders[os.path.join(kaithem.misc.datadir,"sounds")] = 'Builtin'
         soundfolders[musicLocation] = "Chandler music folder"
         for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
             soundfolders[i]=i
     
-        for i in os.listdir( os.path.join(src.directories.vardir,"modules",'data')):
-            soundfolders[os.path.join(src.directories.vardir,"modules",'data',i,"__filedata__",'media')]= "Module:"+i+"/media"
+        for i in os.listdir( os.path.join(kaithem.misc.vardir,"modules",'data')):
+            soundfolders[os.path.join(kaithem.misc.vardir,"modules",'data',i,"__filedata__",'media')]= "Module:"+i+"/media"
         return soundfolders
     
     
@@ -717,7 +714,7 @@ if __name__=='__setup__':
         return {i[0]:{'name':i[0],'type':i[1],'universe':i[2],'addr':i[3]} for i in l if len(i)==4}
     
     
-    class DebugScriptContext(ChandlerScriptContext):
+    class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         def onVarSet(self,k, v):
             try:
                 if not k=="_" and self.sceneObj().rerenderOnVarChange:
@@ -744,7 +741,7 @@ if __name__=='__setup__':
                 print(traceback.format_exc())
     
         def event(self,e,v=None):
-            ChandlerScriptContext.event(self,e,v)
+            kaithem.chandlerscript.ChandlerScriptContext.event(self,e,v)
             try:
                 for i in module.boards:
                     i().pushEv(e, self.sceneName,module.timefunc(),value=v)
@@ -1442,7 +1439,7 @@ if __name__=='__setup__':
                     l = {}
                     for i in c:
                         f = c[i]
-                        l[i]=getFunctionInfo(f)
+                        l[i]=kaithem.chandlerscript.getFunctionInfo(f)
                     self.link.send(["commands",l])   
     
     
@@ -3563,6 +3560,7 @@ if __name__=='__setup__':
     
                                 
                                 else:
+                                    print(sound)
                                     self.allowMediaUrlRemote= sound
                                     self.mediaLink.send(['volume', self.alpha])
                                     self.mediaLink.send(['mediaURL', sound, self.enteredCue])
@@ -3578,9 +3576,9 @@ if __name__=='__setup__':
                                         "year": soundMeta.year or  'Unknown'
                                     }
                                     t = soundMeta.get_image()
-                                except:
-                                    # Not support.
-                                    if not sound.endswith('.webm'):
+                                except Exception:
+                                    # Not support, but it might just be an unsupported type. if mp3, its a real error, we should alert
+                                    if sound.endswith('.mp3'):
                                         self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
                                     t=None
                                     currentAudioMetadata={'title':"",'artist':'',"album":'','year':''}
@@ -3719,16 +3717,19 @@ if __name__=='__setup__':
                 else:
                     if self.cue.sound and self.cue.rel_length:
                         path = self.resolveSound(self.cue.sound)
-                        try:
-                            #If we are doing crossfading, we have to stop slightly early for
-                            #The crossfade to work
-                            slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
-                            v=  max(0,self.randomizeModifier+slen)
-                        except:
-                            logging.exception("Error getting length for sound "+str(path))
-                            #Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
-                            self.cuelen = 300
-                            return
+                        if path.endswith(".png") or path.endswith(".jpg") or path.endswith(".webp") or path.endswith(".png") or path.endswith(".heif") or path.endswith(".tiff") or path.endswith(".gif") or path.endswith(".svg"):
+                            v= 0
+                        else:
+                            try:
+                                #If we are doing crossfading, we have to stop slightly early for
+                                #The crossfade to work
+                                slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
+                                v=  max(0,self.randomizeModifier+slen)
+                            except Exception:
+                                logging.exception("Error getting length for sound "+str(path))
+                                #Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
+                                self.cuelen = 300
+                                return
     
                 self.cuelen = max(0,self.randomizeModifier+float(v))
     

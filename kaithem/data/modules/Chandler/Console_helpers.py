@@ -31,7 +31,7 @@ if __name__=='__setup__':
     module.listRtmidi = listRtmidi
     
     
-    from src import tagpoints
+    from kaithem.src import tagpoints
     def limitedTagsListing():
         #Make a list of all the tags,
         #Unless there's way too many

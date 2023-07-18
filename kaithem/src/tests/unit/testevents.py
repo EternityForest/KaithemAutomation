@@ -1,5 +1,5 @@
 import common
-from src import newevt,messagebus,modules_state
+from kaithem.src import newevt,messagebus,modules_state
 import time
 
 modules_state.scopes['x'] = {}

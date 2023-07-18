@@ -1,6 +1,6 @@
 <%!
-from src.util import url,split_escape
-from src import pages
+from kaithem.src.util import url,split_escape
+from kaithem.src import pages
 %>
 <%include file="/pageheader.html"/>
 <h2>Permission ${split_escape(permission,'/','\\')[-1] | h} in Module ${module | h}</h2>

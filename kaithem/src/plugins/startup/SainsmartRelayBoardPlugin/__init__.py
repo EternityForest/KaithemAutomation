@@ -1,5 +1,5 @@
 from mako.lookup import TemplateLookup
-from src import devices, alerts, scheduling, messagebus, workers, tagpoints
+from kaithem.src import devices, alerts, scheduling, messagebus, workers, tagpoints
 from scullery import workers
 import scullery
 import os
@@ -12,7 +12,7 @@ import base64
 import traceback
 import shutil
 
-from src import widgets
+from kaithem.src import widgets
 
 logger = logging.Logger("plugins.sainsmart")
 

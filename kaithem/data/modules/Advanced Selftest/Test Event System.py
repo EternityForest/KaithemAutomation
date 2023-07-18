@@ -12,7 +12,7 @@ if __name__=='__setup__':
     #This code runs once when the foot loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolution
     __doc__=''
-    from src import newevt,messagebus,modules_state
+    from kaithem.src import newevt,messagebus,modules_state
     import time,traceback
     
     running_tests=[]

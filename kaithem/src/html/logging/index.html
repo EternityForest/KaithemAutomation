@@ -1,12 +1,12 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import messagelogging
-from src import messagebus
-from src.unitsofmeasure import formatTimeInterval,strftime
+from kaithem.src import messagelogging
+from kaithem.src import messagebus
+from kaithem.src.unitsofmeasure import formatTimeInterval,strftime
 import time
 import cherrypy
-from src.util import url,saferepr
-from src.config import config
+from kaithem.src.util import url,saferepr
+from kaithem.src.config import config
 
 def dump(j):
     return saferepr(j)

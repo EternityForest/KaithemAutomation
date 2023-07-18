@@ -1,10 +1,10 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import messagelogging
+from kaithem.src import messagelogging
 import time,itertools,math
-from src.unitsofmeasure import formatTimeInterval,strftime
-from src.util import url,saferepr
-from src.config import config
+from kaithem.src.unitsofmeasure import formatTimeInterval,strftime
+from kaithem.src.util import url,saferepr
+from kaithem.src.config import config
 def dump(j):
     return saferepr(j)
 def getEntries(p,page = 1):

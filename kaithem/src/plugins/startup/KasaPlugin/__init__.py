@@ -1,6 +1,6 @@
 #Plugin that manages TP-Link Kasa devices.
 
-from src import devices,alerts, scheduling,tagpoints,messagebus
+from kaithem.src import devices,alerts, scheduling,tagpoints,messagebus
 import os,mako,time,threading,logging
 logger = logging.Logger("plugins.kasa")
 
@@ -10,7 +10,7 @@ except:
 	logger.exception("err")
 	messagebus.postMessage("/system/notifications/errors","Problem loading Kasa support")
 
-from src import widgets
+from kaithem.src import widgets
 
 
 from mako.lookup import TemplateLookup

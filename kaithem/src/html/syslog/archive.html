@@ -1,9 +1,9 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import messagelogging
+from kaithem.src import messagelogging
 import time
-from src.util import url
-from src.config import config
+from kaithem.src.util import url
+from kaithem.src.config import config
 def formattime(x):
     return time.strftime(config['time-format'],time.localtime(x))
 %>

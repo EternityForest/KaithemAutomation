@@ -34,7 +34,7 @@ class ServiceApp(App):
                 self.service = service
         else:
             def f():
-                from src import main            
+                from kaithem.src import main            
             t = threading.Thread(target=f,daemon=True)
             t.start()
 

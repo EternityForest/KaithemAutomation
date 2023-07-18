@@ -1,5 +1,5 @@
 from mako.lookup import TemplateLookup
-from src import devices, alerts, scheduling, messagebus, workers
+from kaithem.src import devices, alerts, scheduling, messagebus, workers
 import subprocess
 import os
 import mako
@@ -13,7 +13,7 @@ import shutil
 import socket
 import uuid
 
-from src import widgets
+from kaithem.src import widgets
 
 logger = logging.Logger("plugins.dlnarender")
 

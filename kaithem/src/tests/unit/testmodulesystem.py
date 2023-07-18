@@ -1,9 +1,9 @@
 import common
-from src import modules
-from src import pages
-from src import auth
+from kaithem.src import modules
+from kaithem.src import pages
+from kaithem.src import auth
 import cherrypy,time
-from src.kaithemobj import kaithem
+from kaithem.src.kaithemobj import kaithem
 
 #Disable the stuff that depends on the internet/browsers/cookies/etc
 oldrequire = pages.require
@@ -18,7 +18,7 @@ class BSException(Exception):
 oldredirect = cherrypy.HTTPRedirect
 cherrypy.HTTPRedirect = BSException
 
-from src.modules import ActiveModules
+from kaithem.src.modules import ActiveModules
 wb = modules.WebInterface()
 
 ######################################################################################

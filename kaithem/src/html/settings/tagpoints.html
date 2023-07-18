@@ -2,11 +2,11 @@
 <%include file="/pageheader.html"/>
 
 <%!
-from src import tagpoints
+from kaithem.src import tagpoints
 import gc
 
 import os,cherrypy
-from src import directories
+from kaithem.src import directories
 tagsLocation = os.path.join(directories.vardir,"tags")
 
 def paginate(l,n):

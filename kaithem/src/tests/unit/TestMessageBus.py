@@ -1,6 +1,6 @@
 from common import fail,suceed
-from src.messagebus import *
-from src import messagebus
+from kaithem.src.messagebus import *
+from kaithem.src import messagebus
 
 tester = {}
 

@@ -1,7 +1,7 @@
 import time,logging,weakref
 
 def test():
-    from src import messagebus
+    from kaithem.src import messagebus
     succeed = [0]
     def f(m,v):
         succeed[0]= 1

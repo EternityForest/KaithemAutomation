@@ -1,8 +1,8 @@
 import logging
 import time,threading,os
 import weakref
-from src import messagebus
-from src import tagpoints
+from kaithem.src import messagebus
+from kaithem.src import tagpoints
 
 from collections import OrderedDict
 from weakref import WeakValueDictionary
@@ -10,7 +10,7 @@ lock = threading.Lock()
 
 tags = weakref.WeakValueDictionary()
 
-from src import kaithemobj
+from kaithem.src import kaithemobj
 
 
 
@@ -45,7 +45,7 @@ class CustomDeviceType(DeviceType):
     pass
 """
 
-from src import devices
+from kaithem.src import devices
 import json
 import uuid
 

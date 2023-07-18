@@ -1,7 +1,7 @@
 
 
 def testTags():
-    from src import tagpoints
+    from kaithem.src import tagpoints
     import time
     import gc
 

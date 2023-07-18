@@ -276,7 +276,7 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
 # Not common enough to waste CPU all the time on
 #browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
 try:
-    from src.util import zeroconf as zcinstance
+    from kaithem.src.util import zeroconf as zcinstance
 except Exception:
     import zeroconf
     zcinstance = zeroconf.Zeroconf()
@@ -622,6 +622,16 @@ class NVRChannel(devices.Device):
                     b = b''
         self.threadExited = True
 
+
+    def checkThread(self):
+        #Has to be at top othherwise other threads wait and get same val.... and we have multiple...
+        initialValue = self.runWidgetThread
+
+        while self.runWidgetThread and (self.runWidgetThread == initialValue):
+            self.check()
+            time.sleep(3)
+
+
     def close(self):
         self.closed = True
 
@@ -654,12 +664,7 @@ class NVRChannel(devices.Device):
             shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
         except Exception:
             pass
-
-        try:
-            self.checker.unregister()
-        except Exception:
-            logger.exception("Unregistering")
-
+        
     def __del__(self):
         self.close()
 
@@ -1500,8 +1505,9 @@ class NVRChannel(devices.Device):
             self.lastPushedWSData = time.monotonic()
 
             self.check()
-            from src import scheduling
-            self.checker = scheduling.scheduler.every(self.check, 3)
+            self.checkthread = threading.Thread(
+                target=self.checkthread, daemon=True, name="NVR checker"+self.name)
+            self.checkthread.start()
 
         except Exception:
             self.handleException()

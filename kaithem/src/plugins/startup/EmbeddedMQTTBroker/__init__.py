@@ -1,5 +1,5 @@
 from mako.lookup import TemplateLookup
-from src import devices
+from kaithem.src import devices
 import os
 import threading
 import logging

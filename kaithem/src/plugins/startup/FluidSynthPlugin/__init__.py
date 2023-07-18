@@ -1,5 +1,5 @@
 from mako.lookup import TemplateLookup
-from src import devices, alerts, scheduling, messagebus, workers
+from kaithem.src import devices, alerts, scheduling, messagebus, workers
 from scullery import iceflow, workers
 import scullery
 import os
@@ -12,7 +12,7 @@ import base64
 import traceback
 import shutil
 
-from src import widgets,jackmanager
+from kaithem.src import widgets,jackmanager
 
 logger = logging.Logger("plugins.fluidsynth")
 
