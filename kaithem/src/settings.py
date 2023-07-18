@@ -337,7 +337,7 @@ class Settings():
         pages.require("/users/settings.edit")
         pages.postOnly()
 
-        from src import widgets
+        from . import widgets
         widgets.sendTo("__FORCEREFRESH__", '', target)
         raise cherrypy.HTTPRedirect("/settings/account")
 
@@ -501,7 +501,7 @@ class Settings():
     def ip_geolocate(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        from src import geolocation
+        from . import geolocation
         l = geolocation.ip_geolocate()
         geolocation.setDefaultLocation(
             l['lat'], l['lon'], l['city'], l['timezone'], l['regionName'], l['countryCode'])

@@ -106,7 +106,7 @@ except Exception:
     pass
 
 def loadJackMixer():
-    from src import jackmixer
+    from . import jackmixer
 
 
 rlogger = logging.getLogger()
@@ -218,7 +218,7 @@ signal.signal(signal.SIGUSR1, dumpThreads)
 
 
 #Enable the auto MIDI tagpoint/message bus features.
-from src import rtmidimanager
+from . import rtmidimanager
 
 def nop():
     pass

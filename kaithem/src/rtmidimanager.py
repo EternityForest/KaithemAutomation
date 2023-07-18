@@ -1,7 +1,7 @@
 
-from src import tagpoints
+from . import tagpoints
 from scullery import messagebus
-from src import scheduling
+from . import scheduling
 import traceback
 
 allInputs = {}

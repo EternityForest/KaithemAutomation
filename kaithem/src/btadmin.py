@@ -1,5 +1,5 @@
 import logging
-from src import messagebus, pages
+from . import messagebus, pages
 import time
 import cherrypy
 

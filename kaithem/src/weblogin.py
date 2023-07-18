@@ -19,7 +19,7 @@ import collections
 import threading
 import logging
 import base64
-from . import pages, auth, util, messagebus
+from . import pages, auth, util, messagebus, kaithemobj
 
 
 logger = logging.getLogger("system.auth")
@@ -74,7 +74,7 @@ class LoginScreen():
             x = cherrypy.request.remote.ip
             if not pages.isHTTPAllowed(x):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
-        return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
+        return pages.get_template("login.html").render(target=kwargs.get("go", "/"),kaithemobj=kaithemobj)
 
     @cherrypy.expose
     def login(self, **kwargs):

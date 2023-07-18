@@ -47,19 +47,24 @@ def getRootAndroidDir():
 
     return os.path.join(user_services_dir, "var")
 
-if "/usr/lib" in dn:
-    vardir = "/var/lib/kaithem"
-    datadir = "/usr/share/kaithem"
-    logdir = "/var/log/kaithem"
 
-elif 'ANDROID_ARGUMENT' in environ:
+if 'ANDROID_ARGUMENT' in environ:
     vardir = getRootAndroidDir()
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     logdir = os.path.join(
         vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
 else:
+
     vardir = os.path.normpath(os.path.join(dn, '..'))
     vardir = os.path.join(vardir, os.path.expanduser(config['site-data-dir']))
+
+    # These non writable paths indicate we should do stuff differently because we are installed with setuptools
+    # most likely
+    if vardir.startswith('/usr') or vardir.startswith('/nix'):
+        vardir = os.path.expanduser("~/kaithem")
+
+
+
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     logdir = os.path.join(
         vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())

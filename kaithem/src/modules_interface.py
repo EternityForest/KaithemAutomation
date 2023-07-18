@@ -24,9 +24,9 @@ import cherrypy
 from . import auth, pages, directories, util, newevt, usrpages, messagebus, scheduling, devices
 from .modules import *
 from .modules import external_module_locations
-from src import modules
-from src import modules_state
-from src.config import config
+from . import modules
+from . import modules_state
+from .config import config
 from cherrypy.lib.static import serve_file
 
 import logging
@@ -59,7 +59,7 @@ def searchModules(search, max_results=100, start=0, mstart=0):
 
 def searchDevices(search):
     p = []
-    from src import devices
+    from . import devices
     for i in devices.device_data:
         if search in json.dumps(devices.device_data[i]) or search in i:
             p.append(i)
@@ -68,7 +68,7 @@ def searchDevices(search):
 
 def searchTags(search):
     p = []
-    from src import tagpoints
+    from . import tagpoints
     for i in tagpoints.configTagData:
         if search in json.dumps(tagpoints.configTagData[i].data) or search in i:
             p.append(i)
@@ -609,7 +609,7 @@ def addResourceTarget(module, type, name, kwargs, path):
             newevt.updateOneEvent(escapedName, root)
 
         elif type == 'page':
-            from src import pageresourcetemplates
+            from . import pageresourcetemplates
             template = kwargs['template']
             basename = util.split_escape(name, '/', '\\')[-1]
             insertResource(pageresourcetemplates.templates[template](basename))

@@ -20,6 +20,7 @@ setup(
     keywords="automation",
     url="https://github.com/EternityForest/KaithemAutomation",
     packages=find_packages(),
+    package_data={'': ['kaithem/data/*', '**/*.txt', '**/*.yaml','**/*.html','**/*.md','**/*.json','**/*.js','**/*.css','**/*.vue','**/*.webp','**/*.png','**/*.jpg','**/*.toml','**/*.svg', '**/*.opus','**/*.mp3']},
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 3 - Alpha",

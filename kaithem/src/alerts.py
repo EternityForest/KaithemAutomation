@@ -1,4 +1,4 @@
-from src import statemachines, widgets, scheduling, workers, pages, messagebus, unitsofmeasure, auth
+from . import statemachines, widgets, scheduling, workers, pages, messagebus, unitsofmeasure, auth
 from typeguard import typechecked
 from typing import Union
 import logging
@@ -10,7 +10,7 @@ logger = logging.getLogger("system.alerts")
 lock = threading.RLock()
 
 
-from src import directories
+from . import directories
 from scullery import persist
 from scullery import messagebus
 

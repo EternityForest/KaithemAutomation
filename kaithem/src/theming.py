@@ -1,5 +1,5 @@
-from src.config import config
-from src import directories
+from .config import config
+from . import directories
 from scullery import persist
 from scullery import messagebus
 

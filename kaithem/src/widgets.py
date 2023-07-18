@@ -33,7 +33,7 @@ import socket
 import copy
 import collections
 from . import auth, pages, unitsofmeasure, util, messagebus
-from src.config import config
+from .config import config
 
 logger = logging.getLogger("system.widgets")
 
@@ -263,7 +263,7 @@ class websocket(WebSocket):
         self.usedPermissions = collections.defaultdict(lambda: 0)
 
         if auth.getUserSetting(self.user, "telemetry-alerts"):
-            from src import alerts
+            from . import alerts
             if not self.user in userBatteryAlerts:
                 userBatteryAlerts[self.user]= alerts.Alert(
                     "Low battery on client browser device for: " + self.user, priority="warning")

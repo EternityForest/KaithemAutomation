@@ -42,7 +42,7 @@ import iot_devices.device
 
 
 from .modules_state import additionalTypes
-from src import modules_state
+from . import modules_state
 
 remote_devices: Dict[str, object] = {}
 remote_devices_atomic = {}
@@ -273,7 +273,7 @@ class Device():
         with modules_state.modulesLock:
             self.config[key] = val
             if self.parentModule:
-                from src import modules_state
+                from . import modules_state
                 modules_state.ActiveModules[self.parentModule][
                     self.parentResource]['device'][key] = val
                 modules_state.saveResource(
@@ -1213,7 +1213,7 @@ class WebDevices():
                 merged.update(device_data[name])
 
             if obj.parentModule:
-                from src import modules_state
+                from . import modules_state
                 merged.update(modules_state.ActiveModules[
                     obj.parentModule][obj.parentResource]['device'])
 

@@ -50,11 +50,7 @@ def my_represent_scalar(self, tag, value, style=None):
 
 yaml.representer.BaseRepresenter.represent_scalar = my_represent_scalar
 
-# detect linux.
-if os.path.realpath(__file__).startswith('/usr/'):
-    _dn = "/usr/share/kaithem"
-else:
-    _dn = os.path.join(os.path.dirname(
+_dn = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "..", "data")
 
 #################################################################

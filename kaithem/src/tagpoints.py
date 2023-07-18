@@ -1826,7 +1826,7 @@ class _TagPoint():
                         )
                     # If we can, try to send the exception back whence it came
                     try:
-                        from src import newevt
+                        from . import newevt
                         if hasattr(activeClaimValue, "__module__"):
                             if activeClaimValue.__module__ in newevt.eventsByModuleName:
                                 newevt.eventsByModuleName[

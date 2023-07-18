@@ -511,7 +511,7 @@ class BaseEvent():
         # A place to put errors
         self.errors = []
 
-        from src import widgets
+        from . import widgets
         self.logWindow = widgets.ScrollingWindow(2500)
 
     def __repr__(self):
@@ -1344,7 +1344,7 @@ def updateOneEvent(resource, module, o=None):
 
         retryDeviceCreation()
 
-        from src import codechecks
+        from . import codechecks
         data = toPyFile(data)
         e = codechecks.check(data, resource+".py")
         data = data.splitlines()

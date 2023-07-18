@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-from src import config as cfg
+from . import config as cfg
 from mako.template import Template
 from mako.lookup import TemplateLookup
 import cherrypy

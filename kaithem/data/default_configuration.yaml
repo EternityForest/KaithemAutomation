@@ -33,7 +33,8 @@ webui-servicename: default
 ssl-dir : ssl
 
 #The directory in which to store persistant state such as users,groups,modules,settings,etc
-#Relative to kaithem/ or use an absolute path
+#Relative to kaithem/ or use an absolute path.
+# gets auto-overridden to ~/kaithem if we detect that it is in a path under /usr or /nix
 site-data-dir: var
 
 #How many threads to allocate for the worker thread pool

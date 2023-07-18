@@ -113,7 +113,7 @@ def installThreadLogging():
                 except Exception as e:
                     threadlogger.exception(
                         "Thread stopping due to exception: "+self.name +  " with ID: " +  str(threading.current_thread().ident))
-                    from src import messagebus
+                    from . import messagebus
                     messagebus.postMessage("/system/notifications/errors","Thread: " + self.name + " with ID: " + str(threading.current_thread().ident) + " stopped due to exception ")
                     raise e
         # Rename thread so debugging works

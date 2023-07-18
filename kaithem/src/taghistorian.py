@@ -1,4 +1,4 @@
-from src import directories, messagebus, scheduling
+from . import directories, messagebus, scheduling
 import os
 import weakref
 import time

@@ -27,7 +27,7 @@ import yaml
 import logging
 import copy
 from threading import RLock
-from src import util, config, directories
+from . import util, config, directories
 from . import resource_serialization
 from .util import url, unurl
 

@@ -15,7 +15,7 @@
 
 import logging
 import os
-from src import directories, messagebus
+from . import directories, messagebus
 from scullery import persist
 from urllib.request import urlopen
 import time

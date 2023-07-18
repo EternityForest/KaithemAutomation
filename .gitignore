@@ -2,3 +2,6 @@
 .mypy_cache/*
 kaithem/var/
 ! kaithem/var/modules/data/Examples
+build/**
+kaithem.egg-info*
+dist/**

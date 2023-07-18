@@ -1,5 +1,5 @@
 
-
+"""
 Validators Adapter. The common interface for all validators.
 """
 
