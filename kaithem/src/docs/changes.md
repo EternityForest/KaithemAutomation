@@ -8,6 +8,7 @@ Change Log
 - :sparkles: Chandler cue media speed, windup, and winddown, to simulate the record player spinup/down or "evil dying robot" effect.
 - :bug: Fix temperature alerts chattering on and off if near threshold
 - :coffin: Remove code view for Chandler fixture types
+- :sparkles: Can now import OP-Z fixture definitions in Chandler
 
 ### 0.68.42
 

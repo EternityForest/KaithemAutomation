@@ -19,6 +19,15 @@
 #
 
 
+# Hack to keep pyyaml working till we find a better way
+try:
+    import collections.abc
+    collections.Hashable = collections.abc.Hashable
+    collections.Callable = collections.abc.Callable
+    collections.MutableMapping = collections.abc.MutableMapping
+except Exception:
+    pass
+
 
 import hashlib
 import os
@@ -29,11 +38,7 @@ from . import pathsetup
 
 # Minimal path setup, to be able to even find the rest
 x = os.path.abspath(__file__)
-# This is ow we detect if we are running in "unzip+run mode" or installed on linux.
-# If we are installed, then src is found in /usr/lib/kaithem
-if x.startswith('/usr/bin'):
-    x = "/usr/lib/kaithem"
-    sys.path = [x] + sys.path
+
 
 
 # Enable importing stuff directly from ./thirdparty,

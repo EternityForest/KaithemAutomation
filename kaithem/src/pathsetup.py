@@ -25,7 +25,7 @@ logger = logging.getLogger("system")
 def setupCython():
     # TODO do we want unique instance ids so two apps can be on one user?
     # Does that ever happen? Do they even need separate dirs?
-    from src import config, util
+    from . import config, util
 
     if config.config['run-as-user'] == 'root':
         d = "/dev/shm/kaithem_pyx_"+util.getUser()
