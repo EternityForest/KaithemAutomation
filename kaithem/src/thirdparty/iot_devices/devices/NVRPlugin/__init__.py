@@ -664,7 +664,7 @@ class NVRChannel(devices.Device):
             shutil.rmtree("/dev/shm/knvr_buffer/" + self.name)
         except Exception:
             pass
-        
+
     def __del__(self):
         self.close()
 
@@ -1505,9 +1505,9 @@ class NVRChannel(devices.Device):
             self.lastPushedWSData = time.monotonic()
 
             self.check()
-            self.checkthread = threading.Thread(
-                target=self.checkthread, daemon=True, name="NVR checker"+self.name)
-            self.checkthread.start()
+            self.checkthreadobj = threading.Thread(
+                target=self.checkThread, daemon=True, name="NVR checker"+self.name)
+            self.checkthreadobj.start()
 
         except Exception:
             self.handleException()

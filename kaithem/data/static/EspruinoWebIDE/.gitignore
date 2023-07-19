@@ -1,7 +1,0 @@
-.project
-.settings
-*~
-Thumbs.db
-node_modules
-extras/svg
-EspruinoWebIDE.zip

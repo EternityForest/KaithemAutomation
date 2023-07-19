@@ -11,6 +11,8 @@ Change Log
 - :sparkles: Can now import OP-Z fixture definitions in Chandler
 -  :coffin: MAJOR BREAKING: You now run kaithem by running dev_run.py.
 -  :coffin: MAJOR BREAKING: You must update Chandler to the new version in the library
+-  :coffin: EspruinoHub removed
+-  :coffin: Icons other than icofont are gone
 
 ### 0.68.42
 
