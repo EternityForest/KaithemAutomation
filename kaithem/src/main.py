@@ -519,32 +519,6 @@ def webRoot():
                             return '\r\n'.join(d) + '\r\n'
 
         @cherrypy.expose
-        def zipstatic(self, *path, **data):
-            """
-            take everything but the last path element, use it as a path relative to static dir
-            open as a zip, use the last as filename in the zip, return it.
-            """
-            if ".." in path:
-                return
-            try:
-                if path in zipcache:
-                    zipcache.move_to_end(path)
-                    return zipcache[path]
-            except:
-                print("err in cache for zip")
-            cherrypy.response.headers['Cache-Control'] = "max-age=28800"
-
-            m = mimetypes.guess_type(path[-1])
-            cherrypy.response.headers['Content-Type'] = m[0]
-            p = os.path.join(ddn, 'static', *path[:-1])
-            with zipfile.ZipFile(p) as f:
-                d = f.read(path[-1])
-            zipcache[path] = d
-            if len(zipcache) > 64:
-                zipcache.pop(last=False)
-            return d
-
-        @cherrypy.expose
         def pagelisting(self, *path, **data):
             # Pagelisting knows to only show pages if you have permissions
             return pages.get_template('pagelisting.html').render_unicode(modules=modules.ActiveModules)
