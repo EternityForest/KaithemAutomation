@@ -65,8 +65,6 @@ def setupPath(linuxpackage=None, force_local=False):
     whatHasTheSrcFolder = x
     x = os.path.join(x, 'src')
 
-    # Avoid having to rename six.py by treating it's folder as a special case.
-    sys.path = [os.path.join(x, 'thirdparty', 'six')] + sys.path
 
     sys.path = [os.path.join(x, 'plugins', 'ondemand')] + sys.path
     sys.path = [os.path.join(x, 'plugins', 'startup')] + sys.path
