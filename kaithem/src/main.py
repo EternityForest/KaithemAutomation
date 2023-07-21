@@ -25,6 +25,7 @@ try:
     collections.Hashable = collections.abc.Hashable
     collections.Callable = collections.abc.Callable
     collections.MutableMapping = collections.abc.MutableMapping
+    collections.Mapping = collections.abc.Mapping
 except Exception:
     pass
 

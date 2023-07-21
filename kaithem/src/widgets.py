@@ -12,9 +12,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-from multiprocessing.dummy import connection
 from typing import Callable
-from numpy import byte
 from typeguard import typechecked
 from .unitsofmeasure import convert, unitTypes
 import ws4py.messaging
