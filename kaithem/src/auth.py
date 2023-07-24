@@ -474,7 +474,7 @@ def userLogin(username, password):
 
     except ImportError:
         tryLinuxUser = None
-        pass
+        print("PAM IMPORT FAIL")
     except KeyError:
         tryLinuxUser = None
 

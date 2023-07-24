@@ -42,5 +42,24 @@ setup(
         'console_scripts': [
             'kaithem = kaithem:start',                  
         ],              
-    }
+    },
+
+    install_requires=[
+   'numpy',
+   'Pillow',
+   'tflite-runtime',
+   'JACK-Client',
+   'netifaces',
+   'toml',
+   'evdev',
+   'psutil',
+   'setproctitle',
+   'python-rtmidi',
+   'pyserial',
+   'msgpack',
+   'scipy',
+   'scikit-image',
+   'paho-mqtt',
+   'python-pam'
+]
 )
