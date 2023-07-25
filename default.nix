@@ -15,9 +15,11 @@ buildPythonApplication {
     gst_all_1.gst-plugins-bad
     gst_all_1.gst-plugins-ugly
     gst_all_1.gst-libav
-
     mpv
     networkmanager
+    jack2
+    libjack2
+
     python310Packages.numpy
     python310Packages.python-rtmidi
     python310Packages.pillow
@@ -69,6 +71,8 @@ buildPythonApplication {
         # Specify dependencies
         pkgs.python310Packages.numpy
         pkgs.python310Packages.cffi
+        libjack2
+        jack2
       ];
     }
   )
@@ -79,11 +83,16 @@ buildPythonApplication {
   doCheck = false;
   src = ./.;
 
+  #ldconfig from iconv is required to make _find_path in Python Ctypes work
   postFixup = ''
   wrapProgram $out/bin/kaithem \
     --set PATH ${lib.makeBinPath (with pkgs; [
       mpv
       networkmanager
+      iconv
+      coreutils
+      bash
+      binutils_nogold
     ])}
 '';
 
