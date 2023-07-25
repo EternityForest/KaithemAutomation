@@ -46,7 +46,9 @@ if not "#EXT-X-ENDLIST" in f:
     with open(os.path.join(clip), "a+") as f:
         f.write("\r\n#EXT-X-ENDLIST\r\n")
 
-p = subprocess.Popen(["ffmpeg", "-i", clip, "-bsf:a", "aac_adtstoasc", "-vcodec", "copy", "-c", "copy", "-crf", "50", '-movflags', 'frag_keyframe+empty_moov', '-f', 'mp4', "pipe:1"], stdout=subprocess.PIPE)
+env = {}
+env.update(os.environ)
+p = subprocess.Popen(["ffmpeg", "-i", clip, "-bsf:a", "aac_adtstoasc", "-vcodec", "copy", "-c", "copy", "-crf", "50", '-movflags', 'frag_keyframe+empty_moov', '-f', 'mp4', "pipe:1"], stdout=subprocess.PIPE, env=env)
 
 kaithem.web.serveFile(p.stdout, "video/mp4", path[1]+".mp4" )
 %>

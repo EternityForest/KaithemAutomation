@@ -279,11 +279,14 @@ class Settings():
         if 'script' in kwargs:
             pages.postOnly()
             x = ''
+            env = {}
+            env.update(os.environ)
+
             if util.which("bash"):
-                p = subprocess.Popen("bash -i", universal_newlines=True, shell=True,
+                p = subprocess.Popen("bash -i", universal_newlines=True, shell=True, env=env,
                                      stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen("sh -i", universal_newlines=True, shell=True,
+                p = subprocess.Popen("sh -i", universal_newlines=True, shell=True, env=env,
                                      stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Windows 3.2

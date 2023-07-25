@@ -257,7 +257,10 @@ class JackClientProxy():
         from reap import Popen
         self.ended=False
         f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"jack_client_subprocess.py")
-        self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+        env = {}
+        env.update(os.environ)
+
+        self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
         self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin,daemon=True)
         self.rpc.call("init")
 

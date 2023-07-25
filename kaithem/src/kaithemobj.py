@@ -460,7 +460,9 @@ class Kaithem():
     class sys(object):
         @staticmethod
         def shellex(cmd):
-            return (subprocess.check_output(cmd, shell=True))
+            env = {}
+            env.update(os.environ)
+            return (subprocess.check_output(cmd, shell=True, env=env))
 
         @staticmethod
         def shellexbg(cmd):
