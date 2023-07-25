@@ -1,4 +1,27 @@
 { pkgs ? import <nixpkgs> {} }:
+let
+jack =      with pkgs.python310Packages; (
+    buildPythonPackage rec {
+      pname = "JACK-Client";
+      version = "0.5.4";
+      format="wheel";
+
+      src = pkgs.fetchurl {
+        url="https://files.pythonhosted.org/packages/17/41/de1269065ff0d1bda143cc91b245aef3165d9259e27904a4a59eab081e0b/JACK_Client-0.5.4-py3-none-any.whl";
+        sha256 = "sha256-UsphZEONO3+M/azl9vqzxyJP5jAi78hccCmGLUNbznM=";
+      };
+      doCheck = false;
+            propagatedBuildInputs = [
+        # Specify dependencies
+        pkgs.python310Packages.numpy
+        pkgs.python310Packages.cffi
+        pkgs.libjack2
+        pkgs.jack2
+      ];
+    }
+  );
+in
+
 with pkgs.python310Packages;
 buildPythonApplication {
   pname = "kaithem";
@@ -56,26 +79,7 @@ buildPythonApplication {
     }
   )
 
-      (
-    buildPythonPackage rec {
-      pname = "JACK-Client";
-      version = "0.5.4";
-      format="wheel";
-
-      src = fetchurl {
-        url="https://files.pythonhosted.org/packages/17/41/de1269065ff0d1bda143cc91b245aef3165d9259e27904a4a59eab081e0b/JACK_Client-0.5.4-py3-none-any.whl";
-        sha256 = "sha256-UsphZEONO3+M/azl9vqzxyJP5jAi78hccCmGLUNbznM=";
-      };
-      doCheck = false;
-            propagatedBuildInputs = [
-        # Specify dependencies
-        pkgs.python310Packages.numpy
-        pkgs.python310Packages.cffi
-        libjack2
-        jack2
-      ];
-    }
-  )
+  jack
 
 
 
@@ -94,6 +98,7 @@ buildPythonApplication {
       bash
       binutils_nogold
     ])}
+
 '';
 
 }
