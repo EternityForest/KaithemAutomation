@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {} }:
 let
-jack =      with pkgs.python310Packages; (
+pyjack =      with pkgs.python310Packages; (
     buildPythonPackage rec {
       pname = "JACK-Client";
       version = "0.5.4";
@@ -23,7 +23,7 @@ jack =      with pkgs.python310Packages; (
 in
 
 with pkgs.python310Packages;
-buildPythonApplication {
+(buildPythonApplication {
   pname = "kaithem";
   version = "0.64.3";
 
@@ -38,12 +38,14 @@ buildPythonApplication {
     gst_all_1.gst-plugins-bad
     gst_all_1.gst-plugins-ugly
     gst_all_1.gst-libav
-    mpv
-    networkmanager
+    python310Packages.gst-python
     jack2
     libjack2
-
+    pyjack
     python310Packages.numpy
+
+    mpv
+    networkmanager
     python310Packages.python-rtmidi
     python310Packages.pillow
     python310Packages.paho-mqtt
@@ -79,8 +81,6 @@ buildPythonApplication {
     }
   )
 
-  jack
-
 
 
   ];
@@ -96,9 +96,27 @@ buildPythonApplication {
       iconv
       coreutils
       bash
+      busybox
       binutils_nogold
+      (python311.withPackages(ps: with ps; [ pyjack]))
     ])}
 
-'';
+      wrapProgram $out/bin/kaithem._jackmanager_server \
+    --set PATH ${lib.makeBinPath (with pkgs; [
+      iconv
+      coreutils
+      bash
+      busybox
+      binutils_nogold
+      ])}
 
-}
+    wrapProgram $out/bin/kaithem._iceflow_server \
+      --set PATH ${lib.makeBinPath (with pkgs; [
+        iconv
+        coreutils
+        bash
+        busybox
+        binutils_nogold
+        ])}
+'';
+})

@@ -40,7 +40,9 @@ setup(
     ],
     entry_points = {
         'console_scripts': [
-            'kaithem = kaithem:start',                  
+            'kaithem = kaithem:start',
+            'kaithem._jackmanager_server = kaithem.src.thirdparty.scullery.jack_client_subprocess:main',
+            'kaithem._iceflow_server = kaithem.src.thirdparty.scullery.iceflow_server:main'                 
         ],              
     },
 

@@ -3,7 +3,7 @@ _didPatch = False
 import jack
 import re
 import time
-import jsonrpyc
+from . import jsonrpyc
 import traceback
 import weakref
 portInfoByID = weakref.WeakValueDictionary()
@@ -161,7 +161,6 @@ class JackClientProxy():
                 lock.release()
 
 
-jackclient = JackClientProxy()
 
 
 
@@ -178,25 +177,36 @@ def onPortRegistered(port, registered):
 def onPortConnect(a, b, c):
     rpc.call("onPortConnected", [a.is_output, a.name, b.name, c])
 
+jackclient = None
+rpc = None
 
-rpc = jsonrpyc.RPC(jackclient)
-
-import os
-import sys
-
-ppid = os.getppid()
+def main():
+    global jackclient
+    global rpc
+    jackclient = JackClientProxy()
 
 
-#https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python
-def check_pid(pid):        
-    """ Check For the existence of a unix pid. """
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    else:
-        return True
-while 1:
-    time.sleep(10)
-    if not check_pid(ppid):
-        sys.exit()
+    rpc = jsonrpyc.RPC(jackclient)
+
+    import os
+    import sys
+
+    ppid = os.getppid()
+
+
+    #https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python
+    def check_pid(pid):        
+        """ Check For the existence of a unix pid. """
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
+    while 1:
+        time.sleep(10)
+        if not check_pid(ppid):
+            sys.exit()
+
+if __name__ == '__main__':
+    main()

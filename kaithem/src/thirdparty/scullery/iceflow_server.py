@@ -69,7 +69,7 @@ pipes = weakref.WeakValueDictionary()
 log = logging.getLogger("IceFlow_gst")
 
 
-import jsonrpyc
+from . import jsonrpyc
 
 
 class PresenceDetectorRegion():
@@ -1262,15 +1262,19 @@ class GStreamerPipeline():
             if self.pipeline.get_state(1000_000_000)[1] == Gst.State.PLAYING:
                 return True
 
+def main():
 
-gstp = GStreamerPipeline()
-rpc[0] = jsonrpyc.RPC(target=gstp)
+    gstp = GStreamerPipeline()
+    rpc[0] = jsonrpyc.RPC(target=gstp)
 
 
-# def print(*a):
-#     rpc[0]("print", [str(a)])
+    # def print(*a):
+    #     rpc[0]("print", [str(a)])
 
-while not rpc[0].threadStopped:
-    time.sleep(10)
-    if not check_pid(ppid):
-        sys.exit()
+    while not rpc[0].threadStopped:
+        time.sleep(10)
+        if not check_pid(ppid):
+            sys.exit()
+
+if __name__ == '__main__':
+    main()

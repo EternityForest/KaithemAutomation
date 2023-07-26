@@ -11,6 +11,39 @@ import os
 
 import base64
 
+import functools
+import sys
+import os
+@functools.cache
+def which(program):
+    "Check if a program is installed like you would do with UNIX's which command."
+
+    # Because in windows, the actual executable name has .exe while the command name does not.
+    if sys.platform == "win32" and not program.endswith(".exe"):
+        program += ".exe"
+
+    # Find out if path represents a file that the current user can execute.
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    # If the input was a direct path to an executable, return it
+    if fpath:
+        if is_exe(program):
+            return program
+
+    # Else search the path for the file.
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    # If we got this far in execution, we assume the file is not there and return None
+    return None
+
+
 #Can't pass GST elements, have to pass IDs
 class eprox():
     def __init__(self,parent,id) -> None:
@@ -162,7 +195,11 @@ class GStreamerPipeline():
 
 
         self.rpc=None
-        self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
+        if which("kaithem._iceflow_server"):
+            self.worker = Popen(["kaithem._iceflow_server"], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
+        else:
+            self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
+
         self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin,daemon=True)
 
     def print(self,s):

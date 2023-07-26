@@ -18,7 +18,7 @@ __doc__ = ''
 import weakref
 import threading
 import base64
-
+import functools
 import os
 import re
 import time
@@ -30,8 +30,38 @@ import atexit
 import select
 import traceback
 import random
+import sys
 
 import collections
+
+@functools.cache
+def which(program):
+    "Check if a program is installed like you would do with UNIX's which command."
+
+    # Because in windows, the actual executable name has .exe while the command name does not.
+    if sys.platform == "win32" and not program.endswith(".exe"):
+        program += ".exe"
+
+    # Find out if path represents a file that the current user can execute.
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    # If the input was a direct path to an executable, return it
+    if fpath:
+        if is_exe(program):
+            return program
+
+    # Else search the path for the file.
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    # If we got this far in execution, we assume the file is not there and return None
+    return None
 
 # Util is not used anywhere else
 from . import workers, mnemonics, util
@@ -260,7 +290,14 @@ class JackClientProxy():
         env = {}
         env.update(os.environ)
 
-        self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
+        # Always use installed version.
+        # TODO this will cause using the old one
+        # if the new one isn't there, but is needed
+        # for nixos et al compatibility
+        if which("kaithem._jackmanager_server"):
+            self.worker = Popen(["kaithem._jackmanager_server"], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
+        else:
+            self.worker = Popen(["python3", f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
         self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin,daemon=True)
         self.rpc.call("init")
 
@@ -401,7 +438,7 @@ def setupPulse():
     if not usePulse:
         return
 
-    if not util.which("pulseaudio"):
+    if not which("pulseaudio"):
         logging.error("Pulseaudio requested but not installed")
         return
 
