@@ -376,58 +376,63 @@ Copyright (c) 2015 Yusuke Kawasaki
 	KWidget_setValue = function (a, b) { kaithemapi.setValue(a, b) }
 	KWidget_sendValue = function (a, b) { kaithemapi.sendValue(a, b) }
 	__kwidget_doBattery = function () {
+		if (navigator.userAgent.indexOf("Firefox") == -1) {
+
+			try {
+				navigator.getBattery().then(function (battery) {
+					KWidget_sendValue("__BATTERY__", { 'level': battery.level, 'charging': battery.charging })
+				});
+			}
+			catch (e) {
+				console.log(e)
+			}
+
+			try {
+				if ('AmbientLightSensor' in window) {
+					const sensor = new AmbientLightSensor();
+					sensor.addEventListener('reading', event => {
+						KWidget_sendValue("__SENSORS__", { 'ambientLight': sensor.illuminance })
+					});
+				}
+			}
+			catch {
+				console.log(e);
+			}
+		}
+	}
+
+	if (navigator.userAgent.indexOf("Firefox") == -1) {
 		try {
-			navigator.getBattery().then(function (battery) {
-				KWidget_sendValue("__BATTERY__", { 'level': battery.level, 'charging': battery.charging })
+			navigator.permissions.query({ name: 'idle-detection' }).then(async function (result) {
+				if (result.state === 'granted') {
+					try {
+						const controller = new AbortController();
+						const signal = controller.signal;
+
+						const idleDetector = new IdleDetector();
+						idleDetector.addEventListener('change', () => {
+							const userState = idleDetector.userState;
+							const screenState = idleDetector.screenState;
+							KWidget_sendValue("__USERIDLE__", { 'userState': userState, 'screenState': screenState })
+
+						});
+
+						await idleDetector.start({
+							threshold: 240000,
+							signal,
+						});
+					} catch (err) {
+						// Deal with initialization errors like permission denied,
+						// running outside of top-level frame, etc.
+						console.error(err.name, err.message);
+					}
+				}
 			});
 		}
 		catch (e) {
-			console.log(e)
+			//No logging, FF would spam a bunch of logs
+			//console.log(e)
 		}
-
-		try {
-			if ('AmbientLightSensor' in window) {
-				const sensor = new AmbientLightSensor();
-				sensor.addEventListener('reading', event => {
-					KWidget_sendValue("__SENSORS__", { 'ambientLight': sensor.illuminance })
-				});
-			}
-		}
-		catch {
-			console.log(e);
-		}
-	}
-
-	try {
-		navigator.permissions.query({ name: 'idle-detection' }).then(async function (result) {
-			if (result.state === 'granted') {
-				try {
-					const controller = new AbortController();
-					const signal = controller.signal;
-
-					const idleDetector = new IdleDetector();
-					idleDetector.addEventListener('change', () => {
-						const userState = idleDetector.userState;
-						const screenState = idleDetector.screenState;
-						KWidget_sendValue("__USERIDLE__", { 'userState': userState, 'screenState': screenState })
-
-					});
-
-					await idleDetector.start({
-						threshold: 240000,
-						signal,
-					});
-				} catch (err) {
-					// Deal with initialization errors like permission denied,
-					// running outside of top-level frame, etc.
-					console.error(err.name, err.message);
-				}
-			}
-		});
-	}
-	catch (e) {
-		//No logging, FF would spam a bunch of logs
-		//console.log(e)
 	}
 
 	setTimeout(__kwidget_doBattery, 60)
