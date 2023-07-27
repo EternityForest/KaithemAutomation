@@ -118,7 +118,7 @@ def calcNextBeep():
 
     elif x >= 40 and x < 50:
         nextbeep = file['error']['interval'] + time.time() +(random.random()*3)
-        sfile =  file['eror']['file']
+        sfile =  file['error']['file']
         
     elif x >= 50:
         nextbeep = file['critical']['interval'] + time.time() +(random.random()*3)
@@ -169,7 +169,7 @@ def _highestUnacknowledged(excludeSilent=False):
 
 
 def sendMessage():
-    x = _highestUnacknowledged
+    x = _highestUnacknowledged()
     messagebus.postMessage("/system/alerts/level", x)
 
 

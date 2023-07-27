@@ -223,7 +223,7 @@ class Recorder(gstwrapper.Pipeline):
     def __init__(self, name="krecorder", channels=2, pattern="mixer_"):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
-        self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
+        self.src = self.addElement("jackaudiosrc",
                                    port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name="krecorder", connect=0, slave_method=0)
         self.capsfilter = self.addElement(
             "capsfilter", caps="audio/x-raw,channels=" + str(channels))
@@ -275,8 +275,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         if not input or not input.startswith("rtplisten://"):
 
-            self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
-                                       port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name + "_in", connect=0, slave_method=0)
+            self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,  do_timestamp=True, low_latency=True,
+                                       port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name + "_in", connect=0, slave_method=2)
             self.capsfilter = self.addElement(
                 "capsfilter", caps="audio/x-raw,channels=" + str(channels))
         else:
@@ -342,8 +342,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self.outputs:
                 pattern=self.outputs[0]
 
-            self.sink = self.addElement("jackaudiosink", buffer_time=10, latency_time=10, sync=False,
-                                        slave_method=0, port_pattern=pattern, client_name=self.name + "_out", connect=0, blocksize=self.channels * 128)
+            
+            self.sink = self.addElement("jackaudiosink", buffer_time=10, latency_time=10, sync=False, low_latency=True,
+                                        slave_method=2, port_pattern=pattern, client_name=self.name + "_out", connect=0, blocksize=self.channels * 128)
 
             # I think It doesn't like it if you start without jack
             if self.usingJack:
@@ -784,6 +785,8 @@ def checkIfProcessRunning(processName):
 
 lastAutoReload = [0]
 
+actionLockout = {}
+
 
 class MixingBoard():
     def __init__(self, *args, **kwargs):
@@ -794,6 +797,7 @@ class MixingBoard():
         self.channelObjects = {}
         self.channelAlerts = {}
         self.lock = threading.RLock()
+        self.channelStatus = {}
         self.running = checkIfProcessRunning("jackd")
 
         def f(t, v):
@@ -824,10 +828,11 @@ class MixingBoard():
             log.info("Creating mixer channel " + i)
             try:
                 self._createChannel(i, self.channels[i])
-            except Exception:
+            except Exception as e:
                 messagebus.postMessage(
                     "/system/notifications/errors", "Failed to create mixer channel " + i + " see logs.")
                 log.exception("Could not create channel " + i)
+                self.pushStatus(i, "error "+str(e))
 
     def sendState(self):
         with self.lock:
@@ -846,9 +851,14 @@ class MixingBoard():
             self.api.send(['midioutports', {i: {} for i in midiOutPorts}])
 
             self.api.send(['channels', self.channels])
+
+            for i in self.channels:
+                self.pushStatus(i)
+
             self.api.send(['effectTypes', effectTemplates])
 
             self.api.send(['loadedPreset', self.loadedPreset])
+
 
             self.sendPresets()
 
@@ -856,6 +866,7 @@ class MixingBoard():
                 self.api.send(['recordingStatus', "recording"])
             else:
                 self.api.send(['recordingStatus', "off"])
+
 
     def sendPresets(self):
         if os.path.isdir(presetsDir):
@@ -872,23 +883,34 @@ class MixingBoard():
             self._createChannel(name, data)
 
     def _createChannel(self, name,data=channelTemplate):
+
+        self.pushStatus(name, "loading")
+
         if not name in self.channelAlerts:
             self.channelAlerts[name] = alerts.Alert("Mixer channel "+name, priority='error', tripDelay=15, autoAck=True)
 
         for i in range(3):
             try:
-                self._createChannelAttempt(name, data,wait=(i*3+10))
+                self._createChannelAttempt(name, data, wait=(3**i + 4))
                 self.channelAlerts[name].release()
                 break
-            except Exception:
+            except Exception as e:
                 self.channelAlerts[name].trip("Failed to load channel")
                 logging.exception("Failed to create channel, retrying")
+                self.pushStatus(name, "failed " +str(e))
                 time.sleep(1)
+        
+        self.pushStatus(name, "running")
+
 
     def _createChannelAttempt(self, name, data=channelTemplate,wait=3):
         "Create a channel given the name and the data for it"
         self.channels[name] = data
         self.api.send(['channels', self.channels])
+        for i in self.channels:
+            self.pushStatus(i)
+        self.pushStatus(name,'loading')
+
         if not self.running:
             if not checkIfProcessRunning("pipewire"):
                 return
@@ -898,12 +920,17 @@ class MixingBoard():
         if 'type' not in data or data['type'] == "audio":
             backup = []
             if name in self.channelObjects:
+                self.pushStatus(name,'stopping old')
+
                 backup = self.channelObjects[name].backup()
                 try:
                     self.channelObjects[name].stop()
+                    time.sleep(1)
                 except Exception:
                     log.exception(
                         "Error stopping old channel with that name, continuing")
+            
+            self.pushStatus(name,'loading')
 
             time.sleep(0.01)
             time.sleep(0.01)
@@ -919,6 +946,7 @@ class MixingBoard():
             p.addLevelDetector()
             p.finalize(wait)
             p.connect(restore=backup)
+            self.pushStatus(name,'running')
 
 
     def deleteChannel(self, name):
@@ -934,9 +962,19 @@ class MixingBoard():
             self.channelObjects[name].stop()
             del self.channelObjects[name]
         self.api.send(['channels', self.channels])
+        for i in self.channels:
+            self.pushStatus(i)
 
     def pushLevel(self, cn, d):
         self.api.send(['lv', cn, round(d, 2)])
+
+    def pushStatus(self, cn, s=None):
+        if s:
+            self.channelStatus[cn] = s
+        else:
+            s = self.channelStatus.get(cn, "not running")
+
+        self.api.send(['status', cn, s])
 
     def setFader(self, channel, level):
         "Set the fader of a given channel to the given level"
@@ -983,131 +1021,139 @@ class MixingBoard():
             self.api.send(['loadedPreset', self.loadedPreset])
 
     def f(self, user, data):
-        global recorder
+        def f2():
+            global recorder
+            if data[0] == 'refresh':
+                self.sendState()
 
-        if data[0] == 'refresh':
-            self.sendState()
+            if data[0] == 'test':
+                from . import sound
+                sound.oggSoundTest(output=data[1])
 
-        if data[0] == 'test':
-            from . import sound
-            sound.oggSoundTest(output=data[1])
+            if data[0] == 'addChannel':
+                # No overwrite
+                if data[1] in self.channels:
+                    return
+                # No empty names
+                if not data[1]:
+                    return
+                util.disallowSpecialChars(data[1])
+                c = copy.deepcopy(channelTemplate)
+                c['channels'] = data[2]
+                self.createChannel(data[1], c)
 
-        if data[0] == 'addChannel':
-            # No overwrite
-            if data[1] in self.channels:
-                return
-            # No empty names
-            if not data[1]:
-                return
-            util.disallowSpecialChars(data[1])
-            c = copy.deepcopy(channelTemplate)
-            c['channels'] = data[2]
-            self.createChannel(data[1], c)
+            if data[0] == 'setEffects':
+                "Directly set the effects data of a channel"
+                with self.lock:
+                    self.channels[data[1]]['effects'] = data[2]
+                    self.api.send(['channels', self.channels])
+                    for i in self.channels:
+                        self.pushStatus(i)
+                    self._createChannel(data[1], self.channels[data[1]])
 
-        if data[0] == 'setEffects':
-            "Directly set the effects data of a channel"
-            with self.lock:
-                self.channels[data[1]]['effects'] = data[2]
-                self.api.send(['channels', self.channels])
-                self._createChannel(data[1], self.channels[data[1]])
+            if data[0] == 'setFuse':
+                self.channels[data[1]]['soundFuse'] = float(data[2])
+                self.channelObjects[data[1]].soundFuseSetting = float(data[2])
 
-        if data[0] == 'setFuse':
-            self.channels[data[1]]['soundFuse'] = float(data[2])
-            self.channelObjects[data[1]].soundFuseSetting = float(data[2])
+            if data[0] == 'setInput':
+                self.channels[data[1]]['input'] = data[2]
+                if not self.running:
+                    return
+                self.channelObjects[data[1]].setInput(data[2])
 
-        if data[0] == 'setInput':
-            self.channels[data[1]]['input'] = data[2]
-            if not self.running:
-                return
-            self.channelObjects[data[1]].setInput(data[2])
-
-        if data[0] == 'setMute':
-            self.channels[data[1]]['mute'] = bool(data[2])
-            if not self.running:
-                return
-            self.channelObjects[data[1]].setMute(data[2])
-
-
-        if data[0] == 'setOutput':
-            self.channels[data[1]]['output'] = data[2]
-
-            if not self.running:
-                return
-            self.channelObjects[data[1]].setOutputs(data[2].split(","))
-
-        if data[0] == 'setFader':
-            "Directly set the effects data of a channel"
-            self.setFader(data[1], data[2])
-
-        if data[0] == 'setParam':
-            "Directly set the effects data of a channel. Packet is channel, effectID, paramname, val"
-
-            for i in self.channels[data[1]]['effects']:
-                if i['id'] == data[2]:
-                    i['params'][data[3]]['value'] = data[4]
-            if not self.running:
-                return
-            self.channelObjects[data[1]].setEffectParam(
-                data[2], data[3], data[4])
-            self.api.send(['param', data[1], data[2], data[3], data[4]])
-
-            if[data[3]] == "bypass":
-                self._createChannel(data[1], self.channels[data[1]])
-
-        if data[0] == 'addEffect':
-            with self.lock:
-                fx = copy.deepcopy(effectTemplates[data[2]])
-
-                fx['id'] = str(uuid.uuid4())
-                self.channels[data[1]]['effects'].append(fx)
-                self.api.send(['channels', self.channels])
-                self._createChannel(data[1], self.channels[data[1]])
-
-        if data[0] == 'refreshChannel':
-            self._createChannel(data[1], self.channels[data[1]])
-
-        if data[0] == 'rmChannel':
-            self.deleteChannel(data[1])
-
-        if data[0] == 'savePreset':
-            self.savePreset(data[1])
-            self.sendPresets()
-
-        if data[0] == 'loadPreset':
-            self.loadPreset(data[1])
-
-        if data[0] == 'deletePreset':
-            self.deletePreset(data[1])
-            self.sendPresets()
+            if data[0] == 'setMute':
+                self.channels[data[1]]['mute'] = bool(data[2])
+                if not self.running:
+                    return
+                self.channelObjects[data[1]].setMute(data[2])
 
 
-        if data[0] == 'record':
-            with self.lock:
-                if not recorder:
+            if data[0] == 'setOutput':
+                self.channels[data[1]]['output'] = data[2]
+
+                if not self.running:
+                    return
+                self.channelObjects[data[1]].setOutputs(data[2].split(","))
+
+            if data[0] == 'setFader':
+                "Directly set the effects data of a channel"
+                self.setFader(data[1], data[2])
+
+            if data[0] == 'setParam':
+                "Directly set the effects data of a channel. Packet is channel, effectID, paramname, val"
+
+                for i in self.channels[data[1]]['effects']:
+                    if i['id'] == data[2]:
+                        i['params'][data[3]]['value'] = data[4]
+                if not self.running:
+                    return
+                self.channelObjects[data[1]].setEffectParam(
+                    data[2], data[3], data[4])
+                self.api.send(['param', data[1], data[2], data[3], data[4]])
+
+                if[data[3]] == "bypass":
+                    self._createChannel(data[1], self.channels[data[1]])
+
+            if data[0] == 'addEffect':
+                with self.lock:
+                    fx = copy.deepcopy(effectTemplates[data[2]])
+
+                    fx['id'] = str(uuid.uuid4())
+                    self.channels[data[1]]['effects'].append(fx)
+                    self.api.send(['channels', self.channels])
+                    for i in self.channels:
+                        self.pushStatus(i)
+                    self._createChannel(data[1], self.channels[data[1]])
+
+            if data[0] == 'refreshChannel':
+                # disallow spamming
+                if not actionLockout.get(data[1],0) > time.monotonic() -10:
+                    actionLockout[data[1]] = time.monotonic()
+                    self._createChannel(data[1], self.channels[data[1]])
+                    actionLockout.pop(data[1],None)
+
+            if data[0] == 'rmChannel':
+                self.deleteChannel(data[1])
+
+            if data[0] == 'savePreset':
+                self.savePreset(data[1])
+                self.sendPresets()
+
+            if data[0] == 'loadPreset':
+                self.loadPreset(data[1])
+
+            if data[0] == 'deletePreset':
+                self.deletePreset(data[1])
+                self.sendPresets()
+
+
+            if data[0] == 'record':
+                with self.lock:
+                    if not recorder:
+                        try:
+                            recorder = Recorder(
+                                pattern=data[1], channels=int(data[2]))
+                            recorder.start()
+                        except Exception as e:
+                            self.api.send(['recordingStatus', str(e)])
+                            raise
+
+                    self.api.send(['recordingStatus', "recording"])
+
+            if data[0] == 'stopRecord':
+                with self.lock:
                     try:
-                        recorder = Recorder(
-                            pattern=data[1], channels=int(data[2]))
-                        recorder.start()
-                    except Exception as e:
-                        self.api.send(['recordingStatus', str(e)])
-                        raise
+                        recorder.sendEOS()
+                    except Exception:
+                        pass
 
-                self.api.send(['recordingStatus', "recording"])
-
-        if data[0] == 'stopRecord':
-            with self.lock:
-                try:
-                    recorder.sendEOS()
-                except Exception:
-                    pass
-
-                try:
-                    recorder.stop()
-                except Exception:
-                    pass
-                recorder = None
-                self.api.send(['recordingStatus', "off"])
-
+                    try:
+                        recorder.stop()
+                    except Exception:
+                        pass
+                    recorder = None
+                    self.api.send(['recordingStatus', "off"])
+        workers.do(f2)
 
 
 board = MixingBoard()

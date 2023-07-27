@@ -37,6 +37,7 @@ lock = threading.RLock()
 Gst = None
 jackChannels = {}
 
+stopflag =[0]
 
 # Overridden later
 print = print
@@ -69,8 +70,12 @@ pipes = weakref.WeakValueDictionary()
 log = logging.getLogger("IceFlow_gst")
 
 
-from . import jsonrpyc
-
+# This is NixOS compatibility stuff, we could be running as an output from setup.py
+# Or we could be running directly with python3 file.py
+try:
+    from . import jsonrpyc
+except ImportError:
+    import jsonrpyc
 
 class PresenceDetectorRegion():
     def __init__(self):
@@ -808,7 +813,7 @@ class GStreamerPipeline():
 
     def _waitForState(self, s, timeout=10):
         t = time.monotonic()
-        i = 0.001
+        i = 0.01
         while not self.pipeline.get_state(1000_000_000)[1] == s:
             if time.monotonic() - t > timeout:
                 raise RuntimeError("Timeout, pipeline still in: ",
@@ -864,6 +869,7 @@ class GStreamerPipeline():
 
             with self.seeklock:
                 self.pipeline.set_state(Gst.State.PLAYING)
+
             self._waitForState(Gst.State.PLAYING, timeout)
 
             self.running = True
@@ -1017,8 +1023,7 @@ class GStreamerPipeline():
 
                     self._stopped = True
         finally:
-            import sys
-            sys.exit()
+           stopflag[0]=1
 
     def addPILCapture(self, resolution=None, connectToOutput=None, buffer=1, method=1):
         "Return a video capture object.  Now that we use BG threads this is just used to save snapshots to file"
@@ -1261,8 +1266,12 @@ class GStreamerPipeline():
                 return True
             if self.pipeline.get_state(1000_000_000)[1] == Gst.State.PLAYING:
                 return True
+            
+
+gstp = None
 
 def main():
+    global gstp
 
     gstp = GStreamerPipeline()
     rpc[0] = jsonrpyc.RPC(target=gstp)
@@ -1273,7 +1282,7 @@ def main():
 
     while not rpc[0].threadStopped:
         time.sleep(10)
-        if not check_pid(ppid):
+        if (not check_pid(ppid)) or stopflag[0]:
             sys.exit()
 
 if __name__ == '__main__':

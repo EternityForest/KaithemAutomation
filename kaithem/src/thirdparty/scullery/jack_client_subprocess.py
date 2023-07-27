@@ -3,7 +3,15 @@ _didPatch = False
 import jack
 import re
 import time
-from . import jsonrpyc
+
+# This is NixOS compatibility stuff, we could be running as an output from setup.py
+# Or we could be running directly with python3 file.py
+try:
+    from . import jsonrpyc
+except ImportError:
+    import jsonrpyc
+
+
 import traceback
 import weakref
 portInfoByID = weakref.WeakValueDictionary()

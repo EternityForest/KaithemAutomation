@@ -89,7 +89,7 @@ import os
       <h3>Audio ports</h3>
       <h4>Outputs(Sinks)</h4>
       <table>
-        <tr v-for="v,i in outports">
+        <tr v-for="v,i in inports">
           <td>{{i}}</td>
         </tr>
       </table>
@@ -158,8 +158,11 @@ import os
         
         
         <div v-if="channel.type=='audio' || !channel.type">
-          <h3>{{channelname}}({{channel.channels}}) 
-          </h3>
+          <div>
+            <h3 style="display: inline-block;">{{channelname}}({{channel.channels}}) 
+            </h3>
+            <small>{{channelStatus[channelname]}}</small>
+          </div>
           <div class="menubar buttonbar">
             <button v-on:click="confirmDelete(channelname)">Delete</button>
             <button v-on:click="ding(channelname)">Ding</button>
@@ -368,6 +371,7 @@ import os
         recordName: "mixer_",
         recordChannels: 2,
         recordStatus:"",
+        channelStatus:{},
 
         ding: function (c) {
             api.send(['test', c+"_in"]);
@@ -548,6 +552,13 @@ import os
         if(app.$data.channels[msg[1]])
         {
           app.$data.channels[msg[1]].level = msg[2];
+        }
+      }
+
+      if (msg[0] == "status") {
+        if(app.$data.channels[msg[1]])
+        {
+          Vue.set(app.$data.channelStatus,msg[1],msg[2])
         }
       }
 

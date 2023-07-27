@@ -308,7 +308,7 @@ class Pipeline(iceflow.GstreamerPipeline):
     def onAppsinkData(self, *a, **k):
         self.dev.onAppsinkData(*a, **k)
 
-    def getGstreamerSourceData(self, s, cfg, un, pw):
+    def getGstreamerSourceData(self, s, cfg, un, pw, doJackAudio=False):
         self.config = cfg
         self.h264source = self.mp3src = False
         self.syncFile = False
@@ -420,12 +420,22 @@ class Pipeline(iceflow.GstreamerPipeline):
 
             self.addElement("decodebin", connectToOutput=rtsp,
                             connectWhenAvailable="audio", async_handling=True)
+
+            if doJackAudio:
+                rawaudiotee = self.addElement('tee',connectWhenAvailable="audio")
+
             self.addElement("audioconvert")
             self.addElement("audiorate")
             self.addElement("voaacenc")
             self.addElement("aacparse")
 
             self.mp3src = self.addElement("queue", max_size_time=10000000)
+
+            if doJackAudio:
+                self.addElement("queue",max_size_time=100_000_000,leaky=2, connectWhenAvailable="audio", connectToOutput=rawaudiotee)
+                self.sink = self.addElement("jackaudiosink", buffer_time=10, latency_time=10, sync=False, provide_clock=False,
+                                            slave_method=0, port_pattern="ghjkcsrc", client_name=self.dev.name + "_out", connect=0, blocksize=512)
+
 
         elif s.startswith("srt://"):
             rtsp = self.addElement(
@@ -763,13 +773,13 @@ class NVRChannel(devices.Device):
         else:
             self.print("COULD NOT STOP OLD THREAD")
 
-        # Exec is needed so we can kill it
-        # self.process = reap.Popen("exec gst-launch-1.0 -q "+getGstreamerSourceData(self.data.get('device.source','')) +"! ",shell=True)
+ 
         self.process = Pipeline()
         self.process.dev = self
 
+        j = False#self.config['device.jack_output'].lower() in ('yes', 'true', 'enable', 'enabled')
         self.process.getGstreamerSourceData(
-            self.config.get('device.source', ''), self.config, self.config.get('device.username', ''), self.config.get('device.password', ''))
+            self.config.get('device.source', ''), self.config, self.config.get('device.username', ''), self.config.get('device.password', ''), doJackAudio=j)
 
         x = self.process.addElement(
             "queue", connectToOutput=self.process.h264source, max_size_time=10000000)
@@ -930,7 +940,7 @@ class NVRChannel(devices.Device):
 
                 s = []
                 x = self.datapoints['detected_objects']
-                if 'objects' in x:
+                if x and 'objects' in x:
                     for i in x['objects']:
                         if 'class' in i:
                             if not i['class'] in s:
@@ -1259,6 +1269,9 @@ class NVRChannel(devices.Device):
             self.set_config_default("device.source", '')
             self.set_config_default("device.username", '')
             self.set_config_default("device.password", '')
+            # If this is true, we send the camera audio to JACK if possible
+            # self.set_config_default("device.jack_output", 'no')
+
 
 
             # Region data is in the format like regionName=0.3,0.3,0.4,0.2;

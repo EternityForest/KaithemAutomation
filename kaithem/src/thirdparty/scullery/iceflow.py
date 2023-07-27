@@ -68,7 +68,7 @@ class GStreamerPipeline():
             raise RuntimeError("This process is already dead")
         def f(*a,**k):
             try:
-                return self.rpc.call(attr,args=a,kwargs=k,block=0.001)
+                return self.rpc.call(attr,args=a,kwargs=k, block=0.001, timeout=15)
             except Exception:
                 self.worker.kill()
                 workers.do(self.worker.wait)
@@ -106,7 +106,7 @@ class GStreamerPipeline():
 
         if 'connectToOutput' in k and isinstance(k['connectToOutput'],(list,tuple)):
             k['connectToOutput'] = [(i.id if isinstance(i, eprox) else i) for i in k['connectToOutput'] ]
-        return eprox(self,self.rpc.call("addElementRemote",args=a,kwargs=k,block=0.0001))
+        return eprox(self,self.rpc.call("addElementRemote",args=a,kwargs=k,block=0.0001,timeout=5))
 
     def setProperty(self,*a,maxWait=10,**k):
 
@@ -160,7 +160,7 @@ class GStreamerPipeline():
             self.ended=True
             return
         try:
-            x=self.rpc.call("stop")
+            x=self.rpc.call("stop",block=0.01,timeout=10)
             self.rpc.stopFlag=True
             self.worker.kill()
 
@@ -171,7 +171,7 @@ class GStreamerPipeline():
             raise
 
     def addJackMixerSendElements(self, *a,**k):
-       a,b= self.rpc.call('addJackMixerSendElements',args=a,kwargs=k,block=0.0001)
+       a,b= self.rpc.call('addJackMixerSendElements',args=a,kwargs=k,block=0.0001,timeout=10)
        return(eprox(self,a),eprox(self,b))
 
     def __init__(self, *a,**k):

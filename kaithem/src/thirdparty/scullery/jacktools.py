@@ -501,6 +501,8 @@ def _ensureConnections(*a, **k):
         for i in x:
             try:
                 allConnections[i].reconnect()
+            except KeyError:
+                pass
             except Exception:
                 print(traceback.format_exc())
     except Exception:
@@ -2216,16 +2218,20 @@ def _checkJack():
 
 postedCheck = False
 
+firstConnect = False
 
 def _checkJackClient(err=True):
-    global _jackclient, realConnections,postedCheck
+    global _jackclient, realConnections,postedCheck,firstConnect
     import jack
     if lock.acquire(timeout=10):
         try:
 
             t = _jackclient.get_ports()
+
             if not t:
-                raise RuntimeError("JACK Server not started or client not connected, will try connect ")
+                if firstConnect:
+                    raise RuntimeError("JACK Server not started or client not connected, will try connect ")
+                firstConnect = True
 
             if not postedCheck:
                 postedCheck=True
@@ -2234,7 +2240,11 @@ def _checkJackClient(err=True):
             return True
         except Exception:
             postedCheck=False
-            print(traceback.format_exc())
+            
+            if firstConnect:
+                print(traceback.format_exc())
+                firstConnect = True
+                
             print("Remaking client")
             try:
                 _jackclient.close()

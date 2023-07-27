@@ -363,7 +363,6 @@ class RPC(object):
         try:
             obj = json.loads(line)
         except Exception:
-
             print("Bad JSON",line)
             #What if we just didn't?
             return
