@@ -635,21 +635,20 @@ class NVRChannel(devices.Device):
 
     def checkThread(self):
         #Has to be at top othherwise other threads wait and get same val.... and we have multiple...
-        initialValue = self.runWidgetThread
+        initialValue = self.runCheckThread
 
-        while self.runWidgetThread and (self.runWidgetThread == initialValue):
+        while self.runCheckThread and (self.runCheckThread == initialValue):
             self.check()
             time.sleep(3)
 
 
     def close(self):
         self.closed = True
-
         try:
             self.process.stop()
         except Exception:
             print(traceback.format_exc())
-
+        self.runCheckThread = False
         self.runWidgetThread = False
         try:
             self.putTrashInBuffer()
@@ -1257,6 +1256,8 @@ class NVRChannel(devices.Device):
         devices.Device.__init__(self, name, data, **kw)
         try:
             self.runWidgetThread = True
+            self.runCheckThread = time.monotonic()
+
             self.threadExited = True
             self.closed = False
             self.set_config_default("device.storage_dir", '~/NVR')
