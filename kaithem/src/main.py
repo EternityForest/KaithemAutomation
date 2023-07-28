@@ -41,7 +41,6 @@ from . import pathsetup
 x = os.path.abspath(__file__)
 
 
-
 # Enable importing stuff directly from ./thirdparty,
 # Since we include lots of dependancies that would normally be provided by the system.
 # This must be done before CherryPy
@@ -97,14 +96,13 @@ from . import kaithemobj
 from . import wifimanager
 
 
-
-
 # Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
     pthreading.monkey_patch()
 except Exception:
     pass
+
 
 def loadJackMixer():
     from . import jackmixer
@@ -184,7 +182,6 @@ except Exception:
     logger.exception("Error loading plugins")
 
 
-
 devices.init_devices()
 
 
@@ -217,9 +214,9 @@ signal.signal(signal.SIGQUIT, sigquit)
 signal.signal(signal.SIGUSR1, dumpThreads)
 
 
-
-#Enable the auto MIDI tagpoint/message bus features.
+# Enable the auto MIDI tagpoint/message bus features.
 from . import rtmidimanager
+
 
 def nop():
     pass
@@ -247,8 +244,8 @@ def webRoot():
                 newevt.eventsByModuleName[f.__module__]._handle_exception()
             else:
                 if isinstance(f, MethodType):
-                    #Better than nothing to have this global limit instead of no posted errors at all.
-                    if time.monotonic() > globalMethodRateLimit[0]+60*30:
+                    # Better than nothing to have this global limit instead of no posted errors at all.
+                    if time.monotonic() > globalMethodRateLimit[0] + 60 * 30:
                         globalMethodRateLimit[0] = time.monotonic()
                         messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
                             f) + " from " + str(f.__module__) + " to " + tag.name)
@@ -448,16 +445,18 @@ def webRoot():
 
         @cherrypy.expose
         def index(self, *path, **data):
+            r = settings.redirects.get('/', {}).get('url', '')
+            if r and not path and not cherrypy.url().endswith("/index") or cherrypy.url().endswith("/index/"):
+                raise cherrypy.HTTPRedirect(r)
+
             pages.require("/admin/mainpage.view")
             cherrypy.response.cookie['LastSawMainPage'] = time.time()
             return pages.get_template('index.html').render(api=notifications.api, alertsapi=alerts.api)
-        
+
         @cherrypy.expose
         def dropdownpanel(self, *path, **data):
             pages.require("/admin/mainpage.view")
             return pages.get_template('dropdownpanel.html').render(api=notifications.api, alertsapi=alerts.api)
-        
-        
 
         # @cherrypy.expose
         # def alerts(self, *path, **data):
@@ -474,7 +473,7 @@ def webRoot():
             if "new_strtag" in data:
                 pages.postOnly()
                 return pages.get_template('settings/tagpoint.html').render(new_strtag=data['new_strtag'], tagname=data['new_strtag'], show_advanced=True)
-            
+
             if data:
                 pages.postOnly()
 
@@ -482,7 +481,7 @@ def webRoot():
                 if not path[0] in tagpoints.allTags:
                     raise ValueError("This tag does not exist")
                 return pages.get_template('settings/tagpoint.html').render(tagName=path[0], data=data, show_advanced=show_advanced)
-            else:                    
+            else:
                 return pages.get_template('settings/tagpoints.html').render(data=data)
 
         @cherrypy.expose
@@ -537,7 +536,7 @@ def webRoot():
                         0]
 
                     with open(p, "rb") as f:
-                        return(f.read())
+                        return (f.read())
                 return pages.get_template('help/' + path[0] + '.html').render(path=path, data=data)
             return pages.get_template('help/help.html').render()
 
@@ -615,7 +614,7 @@ def webRoot():
 
     import zipfile
 
-    from . import devices,btadmin
+    from . import devices, btadmin
 
     # There are lots of other objects ad classes represeting subfolders of the website so we attatch them
     root = webapproot()
@@ -674,12 +673,10 @@ def webRoot():
     }
 
     wscfg = {'tools.websocket.on': True,
-                'tools.websocket.handler_cls': widgets.websocket}
+             'tools.websocket.handler_cls': widgets.websocket}
 
     wscfg_raw = {'tools.websocket.on': True,
-                'tools.websocket.handler_cls': widgets.rawwebsocket}
-
-
+                 'tools.websocket.handler_cls': widgets.rawwebsocket}
 
     cnf = {
         '/static':
@@ -688,7 +685,7 @@ def webRoot():
              "tools.sessions.on": False,
              "tools.addheader.on": True,
              'tools.expires.on': True,
-             'tools.expires.secs': 3600+48  # expire in 48 hours
+             'tools.expires.secs': 3600 + 48  # expire in 48 hours
              },
 
         '/static/js':
@@ -778,7 +775,6 @@ def webRoot():
     cherrypy.config.update(site_config)
     cherrypy.config.update(https_config)
 
-
     cherrypy.tools.pageloadnotify = cherrypy.Tool(
         'on_start_resource', pageloadnotify)
     cherrypy.config['tools.pageloadnotify.on'] = True
@@ -809,7 +805,7 @@ def webRoot():
             d = f.read()
         if base64.b64encode(hashlib.md5(d.encode()).digest()).lower().decode() == md5:
             messagebus.postMessage('/system/notifications',
-                               "You are using the included demo SSL keys. These are not secure, do not use outside private network or VPN")
+                                   "You are using the included demo SSL keys. These are not secure, do not use outside private network or VPN")
 
     cherrypy.engine.start()
 

@@ -36,6 +36,7 @@ from mako import exceptions
 errors = {}
 
 
+
 def markdownToSelfRenderingHTML(content, title):
     """Return self-rendering page body for markdown string"""
 

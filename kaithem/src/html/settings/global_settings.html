@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 <%!
-from kaithem.src import config,sound,persist,directories,geolocation,alerts
+from kaithem.src import config,sound,persist,directories,geolocation,alerts,settings
 import yaml,os
 
 jacksettingsfile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
@@ -50,6 +50,23 @@ passwords are very strong. This will open a port on all discovered routers if en
 </form>
 </section>
 
+
+
+<h2>Alternate Homepage</h2>
+<section>
+<p class="help">
+This lets you make the root go to a different page.  Use /index to access the normal homepage.
+</p>
+<form method="POST" action="/settings/changeredirecttarget">
+<table border=1>
+<tr>
+<td>URL to redirect / to</td>
+<td><input name="url" value="${settings.redirects.get('/',{}).get('url','')}".></td>
+</tr>
+</table>
+<input type="submit" >
+</form>
+</section>
 
 
 <h2>Server Location</h2>

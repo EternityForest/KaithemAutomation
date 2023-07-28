@@ -31,10 +31,29 @@ from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogi
 
 
 
+
+
 upnpsettingsfile = os.path.join(
     directories.vardir, "core.settings", "upnpsettings.yaml")
 
 upnpsettings = persist.getStateFile(upnpsettingsfile)
+
+
+
+redirectsfn = os.path.join(directories.vardir, "core.settings", "httpredirects.toml")
+
+if os.path.exists(redirectsfn):
+    redirects = persist.load(redirectsfn)
+else:
+    redirects = {
+            "/": {
+                "url": ""
+            }
+        }
+
+def setRedirect(url):
+    redirects['/']['url'] = url
+    persist.save(redirects, redirectsfn, private=True)
 
 NULL = 0
 
@@ -489,6 +508,15 @@ class Settings():
 
         systasks.doUPnP()
         raise cherrypy.HTTPRedirect('/settings/system')
+
+
+    @cherrypy.expose
+    def changeredirecttarget(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
+        setRedirect(kwargs['url'])
+        raise cherrypy.HTTPRedirect('/settings/system')
+    
 
     @cherrypy.expose
     def settheming(self, **kwargs):

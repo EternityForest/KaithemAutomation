@@ -8,11 +8,13 @@ Change Log
 - :sparkles: Chandler cue media speed, windup, and winddown, to simulate the record player spinup/down or "evil dying robot" effect.
 - :bug: Fix temperature alerts chattering on and off if near threshold
 - :coffin: Remove code view for Chandler fixture types
-- :sparkles: Can now import OP-Z fixture definitions in Chandler
+- :sparkles: Can now import OP-Z fixture definitions from a file in Chandler(you can select which ones out of the file to import)
 -  :coffin: MAJOR BREAKING: You now run kaithem by running dev_run.py.
 -  :coffin: MAJOR BREAKING: You must update Chandler to the new version in the library
 -  :coffin: EspruinoHub removed
 -  :coffin: Icons other than icofont are gone
+-  :sparkles: Should work on Python3.11
+-  :sparkles: Can now configure / to redirect to some other page.  Use /index directly to get to the real home.
 
 ### 0.68.42
 
