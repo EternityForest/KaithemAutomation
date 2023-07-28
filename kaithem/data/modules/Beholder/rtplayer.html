@@ -3,13 +3,15 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
+code: ''
 mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.nvr.view]
-resource-timestamp: 1647228202445315
+resource-timestamp: 1690502472006620
 resource-type: page
+setupcode: ''
 streaming-response: false
 template-engine: mako
 
@@ -213,6 +215,7 @@ onresize = function(){
 }
 $(window).resize(function(){setTimeout(onresize,300)});
 setTimeout(onresize,1000)
+setInterval(onresize, 5000)
 </script>
 
 
