@@ -209,7 +209,7 @@ python3 -m pip install tflite-runtime
 chown -R $(id -un 1000):$(id -un 1000) /home/$(id -un 1000)/kaithem
 chmod -R 700 /home/$(id -un 1000)/kaithem
 
-chmod 755 /home/$(id -un 1000)/opt/KaithemAutomation/kaithem/kaithem.py
+chmod 755 /home/$(id -un 1000)/opt/KaithemAutomation/dev_run.py
 
 chown -R $(id -un 1000):$(id -un 1000)  /home/$(id -un 1000)/opt/
 
@@ -217,7 +217,7 @@ cat << "EOF" >>  /usr/bin/ember-launch-kaithem
 #!/bin/bash
 # Systemd utterly fails at launching this unless we give it it's own little script.
 # If we run it directly from the service, jsonrpc times out over and over again.
-/usr/bin/pw-jack /usr/bin/python3 /home/$(id -un 1000)/opt/KaithemAutomation/kaithem/kaithem.py -c /home/$(id -un 1000)/kaithem/config.yaml
+/usr/bin/pw-jack /usr/bin/python3 /home/$(id -un 1000)/opt/KaithemAutomation/dev_run.py -c /home/$(id -un 1000)/kaithem/config.yaml
 EOF
 
 chmod 755 /usr/bin/ember-launch-kaithem
@@ -334,7 +334,6 @@ export XDG_CACHE_HOME=/dev/shm/kiosk-temp-cache
 
 while true
 do
-
     if chromium-browser  --kiosk --window-size=1920,1080 --start-fullscreen --kiosk --noerrdialogs --disable-translate --disable-extensions --auto-accept-camera-and-microphone-capture --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --autoplay-policy=no-user-gesture-required --no-default-browser-check --disk-cache-size=48000000 --no-first-run --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' $1; then
         echo "Restarting because of error in Chromium"
     else
