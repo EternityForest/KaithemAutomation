@@ -2,6 +2,10 @@
 
 # This script turns a fresh Pi OS or similar image into a Kaithem embedded controller.  It is a stripped down version
 # of code developed for the EmberOS project, which is on hold because I'm busy and hoping NixOS gets ready for prime time soon.
+# Source error handling, leave this in place
+set -x
+set -e
+
 
 
 mkdir -p /home/$(id -un 1000)/kioskify-setup
@@ -83,6 +87,15 @@ apt autoremove -y --purge
 
 # Misc setup
 ##############################################
+
+
+
+#raspi-config nonint do_ssh 0
+! raspi-config nonint do_spi 0
+! raspi-config nonint do_i2c 0
+! raspi-config nonint do_camera 0
+! raspi-config nonint do_overscan 1
+
 
 # Systemd all the way
 sudo apt-get -y purge rsyslog
