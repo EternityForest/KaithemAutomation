@@ -39,7 +39,44 @@ or access the full help via the web interface!
 *  [FAQ(old)](kaithem/src/docs/faq.md)
 
 
-## Setup
+
+
+## Setup the easy way, even works headless!
+
+Get a fresh RasPi OS image.  Use the raspi imager tool to set up the network stuff.
+
+SSH in and run these commands.  They reconfigure a whole lot of stuff, including protecting the disk against excessive writes.
+
+```
+cd /opt
+sudo git clone --depth 1 --branch develop https://github.com/EternityForest/KaithemAutomation
+cd KaithemAutomation
+sudo bash kaithem-kioskify.sh
+sudo reboot now
+```
+
+Now it will boot into a fullscreen kiosk browser pointed at Kaithem's home page.  Log in at
+PIHOSTNAME.local:8002 using your RasPi username and Password, kaithem will run as your default user(uid1000).
+
+If you want to change that default page, go to the Kaithem Settings and set the homepage to redirect to your URL of choice(Use PIHOSTNAME.local:8002 /index to get back to the real homepage)
+
+
+### Instant digital signage
+
+If you are trying to do digital signage, go to Settings > File Manager(Public webserver files) and upload a .mp4 file.
+It will detect that the file is in the public folder and give you a digital signage link button.
+
+Set your homepage to redirect to that link, you should be done!
+
+
+
+
+## NixOS
+
+This is a work in progress, but it does in fact run!!
+
+
+## Manual Setup Stuff
 See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
 
 Since there are initially no users, one is created using the name and password of the Linux user actually running the app.
