@@ -9,14 +9,15 @@ Change Log
 - :bug: Fix temperature alerts chattering on and off if near threshold
 - :coffin: Remove code view for Chandler fixture types
 - :sparkles: Can now import OP-Z fixture definitions from a file in Chandler(you can select which ones out of the file to import)
--  :coffin: MAJOR BREAKING: You now run kaithem by running dev_run.py.
--  :coffin: MAJOR BREAKING: You must update Chandler to the new version in the library
+-  :coffin: BREAKING: You now run kaithem in the CLI by running dev_run.py.
+-  :coffin: BREAKING: You must update Chandler to the new version in included the library, the old one will not work.
 -  :coffin: EspruinoHub removed
 -  :coffin: Icons other than icofont are gone
 -  :sparkles: Should work on Python3.11
 -  :sparkles: Can now configure / to redirect to some other page.  Use /index directly to get to the real home.
 -  :bug: Fix editing file resources regression
 -  :sparkles: /user_static/FN will now serve vardir/static/FN
+-  :sparkles: Kaithem-kioskify script configures the whole OS as an embedded controller/signage device from a fresh Pi image
 
 ### 0.68.42
 

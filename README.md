@@ -77,7 +77,7 @@ This is a work in progress, but it does in fact run!!
 
 
 ## Manual Setup Stuff
-See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
+See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run dev_run.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
 
 Since there are initially no users, one is created using the name and password of the Linux user actually running the app.
 This means you must run kaithem as a user that supports logins.
@@ -129,12 +129,11 @@ Leave of the pw-jack in the front of ExecStart if you do not have PipeWire(If no
 [Unit]
 Description=KaithemAutomation python based automation server
 After=basic.target time-sync.target sysinit.service zigbee2mqtt.service pipewire.service
-Type=simple
 
 
 [Service]
 TimeoutStartSec=0
-ExecStart=pw-jack /opt/kaithem/kaithem/kaithem.py -c /home/pi/kaithem/config.yaml
+ExecStart=/usr/bin/bash -o pipefail -c /usr/bin/ember-launch-kaithem
 Restart=on-failure
 RestartSec=15
 OOMScoreAdjust=-800
@@ -144,12 +143,12 @@ Nice=-15
 #Pipewire breaks without it though.
 Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="DISPLAY=:0"
 
 #This may cause some issues but I think it's a better way to go purely because of
 #The fact that we can use PipeWire instead of managing jack, without any conflicts.
 
-#On desktop-like systems, 1000 is typically the first user(In this case pi)
-#You can also just specify a username directly.
+#Also, node red runs as pi/user 1000, lets stay standard.
 User=1000
 #Bluetooth scannning and many other things will need this
 #Setting the system time is used for integration with GPS stuff.
@@ -159,24 +158,12 @@ SecureBits=keep-caps
 LimitRTPRIO= 95
 LimitNICE= -20
 LimitMEMLOCK= infinity
-
-
-StandardOutput=journal
-StandardError=journal
+Type=simple
 
 [Install]
 WantedBy=multi-user.target
 
 ```
-
-# To download all optional dependancies
-
-See helpers/debianpackaging/CONTROL for the list
-
-### Security
-At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at
-/var/lib/kaithem/ssl/certificate.key that you can replace with a real one if you don't want to go self-signed.
-
 
 ### Debugging
 
@@ -192,10 +179,28 @@ $run YOUR_KAITHEM_PY_FILE
 
 
 
-
-
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.68.43
+- :bug: Remove notification for tripped->normal transition
+- :sparkles: Show tripped alerts on main page
+- :sparkles: Thread start/stop logging now shows thread ID
+- :sparkles: Chandler cue media speed, windup, and winddown, to simulate the record player spinup/down or "evil dying robot" effect.
+- :bug: Fix temperature alerts chattering on and off if near threshold
+- :coffin: Remove code view for Chandler fixture types
+- :sparkles: Can now import OP-Z fixture definitions from a file in Chandler(you can select which ones out of the file to import)
+-  :coffin: BREAKING: You now run kaithem in the CLI by running dev_run.py.
+-  :coffin: BREAKING: You must update Chandler to the new version in included the library, the old one will not work.
+-  :coffin: EspruinoHub removed
+-  :coffin: Icons other than icofont are gone
+-  :sparkles: Should work on Python3.11
+-  :sparkles: Can now configure / to redirect to some other page.  Use /index directly to get to the real home.
+-  :bug: Fix editing file resources regression
+-  :sparkles: /user_static/FN will now serve vardir/static/FN
+-  :sparkles: Kaithem-kioskify script configures the whole OS as an embedded controller/signage device from a fresh Pi image
+
+
 ### 0.68.42
 
 This release is all about making the custom HTML pages more maintainable.
