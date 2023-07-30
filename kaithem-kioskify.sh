@@ -4,6 +4,9 @@
 # of code developed for the EmberOS project, which is on hold because I'm busy and hoping NixOS gets ready for prime time soon.
 
 
+mkdir -p /home/$(id -un 1000)/kioskify-setup
+
+sudo apt update
 
 sudo apt-get install -y git python3 python3-pip
 
@@ -20,8 +23,61 @@ sudo apt-get install -y git python3 python3-pip
 ! sudo usermod -a -G sudo $(id -un 1000)
 ! sudo usermod -a -G lpadmin $(id -un 1000)
 ! sudo usermod -a -G adm $(id -un 1000)
-
 ! sudo usermod -a -G rtkit $(id -un 1000)
+
+
+
+## Get rid of really big packages we don't need that are mostly nonfree
+####################################################################################################################
+
+# Move most of the deletion up front. Otherwise  it will get in the way and slow down the whole build.
+! apt purge -y libpam-chksshpwd
+! apt purge -y valgrind
+
+! apt purge -y wolfram-engine wolframscript
+! apt purge -y sonic-pi-samples
+#apt-get -y install libreoffice-draw libreoffice-writer libreoffice-calc
+! apt purge -y nuscratch
+! apt purge -y scratch2
+! apt purge -y scratch3
+! apt purge -y scratch
+! apt purge -y minecraft-pi
+! apt purge -y python-minecraftpi
+! apt purge -y realvnc-vnc-viewer
+! apt purge -y gpicview
+! apt purge -y oracle-java8-jdk
+! apt purge -y oracle-java7-jdk
+! apt purge -y tcsh
+! apt purge -y smartsim
+
+# I would like to get rid of this but people seem to like it... leave it on distros that have it
+# ! apt-get -y purge firefox
+
+
+# Old versions
+! apt purge -y gcc-7
+! apt purge -y gcc-8
+! apt purge -y gcc-9
+
+! apt purge -y ^dillo$  ^idle3$  ^smartsim$ ^sonic-pi$  ^epiphany-browser$  ^python-minecraftpi$ ^bluej$ 
+! apt purge -y ^greenfoot$  ^greenfoot-unbundled$  ^claws-mail$ ^claws-mail-i18n$
+
+! apt purge -y code-the-classics
+! apt purge -y openjdk-11-jdk
+! apt purge -y openjdk-11-jdk-headless
+! apt purge -y bluej
+! apt purge -y rpi-wayland
+
+
+! pip3 uninstall mu-editor
+
+! rm -r /opt/Wolfram
+! rm -r /usr/share/code-the-classics
+! rm -r /home/$(id -nu 1000)/MagPi/*.pdf
+! rm -r /home/$(id -nu 1000)/Bookshelf/Beginners*.pdf
+
+apt autoremove -y --purge
+
 
 
 
@@ -30,12 +86,6 @@ sudo apt-get install -y git python3 python3-pip
 
 # Systemd all the way
 sudo apt-get -y purge rsyslog
-
-# Embedded PC disk protector
-
-! systemctl disable systemd-readahead-collect.service
-! systemctl disable systemd-readahead-replay.service
-
 
 #Eliminate the apt-daily updates that were the suspected cause of periodic crashes in real deployments
 sudo systemctl mask apt-daily-upgrade
@@ -49,6 +99,12 @@ systemctl disable systemd-random-seed.service
 sudo systemctl disable apt-daily-upgrade.timer
 sudo systemctl disable apt-daily.timer
 sudo systemctl disable apt-daily.service
+
+# Remove SSH warning
+
+! rm -rf /etc/profile.d/sshpwd.sh
+! rm -rf /etc/xdg/lxsession/LXDE-pi/sshpwd.sh
+! rm -rf /etc/xdg/autostart/pprompt.desktop
 
 
 # Howerver DO update time zones and certs
@@ -96,6 +152,7 @@ systemctl enable ember-update.timer
 mkdir -p  /usr/lib/systemd/system.conf.d/
 
 #Set up the watchdog timer to handle really bad crashes
+# This can make it nt even boot if you set a bad time value...
 cat << EOF >> /usr/lib/systemd/system.conf.d/20-emberos-watchdog.conf
 # This file is part of EmberOS, it enables the hardware watchdog to allow recovery from
 # total system crashes
@@ -109,15 +166,15 @@ EOF
 ## Utils you can probably expect to want
 #########################################################################
 
-apt-get -y install onboard kmag qjackctl
-apt-get -y install gnome-screenshot gnome-system-monitor gnome-logs
-apt-get -y install nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip
+
+apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip
 apt-get -y install vim-tiny units git wget htop lsof  git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs
+
 # For accessing CDs
 apt-get -y install  python3-cdio
 apt-get -y install abcde --no-install-recommends
 apt-get -y install glyrc imagemagick libdigest-sha-perl vorbis-tools atomicparsley eject eyed3 id3 id3v2 mkcue normalize-audio vorbisgain
-apt-get -y install k3b
+
 # This lits us capture frames from DSLRs and the like
 sudo apt-get -y install gphoto2 python3-gphoto2cffi
 sudo apt-get -y  install libexif12 libgphoto2-6 libgphoto2-port12 libltdl7 gtkam entangle
@@ -128,6 +185,7 @@ apt-get -y install uhubctl usbrelay
 apt-get -y install python3-pip libhidapi-libusb0 libxcb-xinerama0
 # Gotta have this one
 apt-get -y install kdeconnect nuntius
+
 # IPod stuff
 sudo apt-get -y install ifuse
 sudo apt-get -y install libimobiledevice-utils
@@ -136,6 +194,10 @@ apt-get -y install cups cups-ipp-utils cups-core-drivers system-config-printer p
 #HPs scanner drivers
 sudo apt-get -y install hplip hplip-gui sane sane-utils xsane
 
+
+## GUI Apps
+apt-get -y install  kmag qjackctl k3b
+apt-get -y install gnome-screenshot gnome-system-monitor gnome-logs
 
 
 ## Kaithem  with optional features
@@ -488,8 +550,12 @@ EOF
 
 
 
-# Add TMPFSes to make the SD card not wear out.
+# Try and make the SD card not wear out.
 ###################################################################################################
+
+
+! systemctl disable systemd-readahead-collect.service
+! systemctl disable systemd-readahead-replay.service
 
 
 
@@ -512,6 +578,9 @@ EOF
 ! rm  /home/$(id -un 1000)/.xsession-errors
 # Make it look like it's in the same place so we can get to it easily
 ln -s /var/log/ember-xsession-errors /home/$(id -un 1000)/.xsession-errors
+
+
+#/run should already be tmpfs on non-insane setups
 
 cat << EOF >> /etc/systemd/system/ember-tmpfs-media.mount
 [Unit]
@@ -665,3 +734,103 @@ EOF
 
 systemctl enable ember-tmpfs-nm.mount
 
+
+
+#########################################################
+# Install SD card monitoring utility
+
+
+cd /home/$(id -un 1000)/kioskify-setup
+
+
+if [ `uname -m` == "aarch64" ]; then
+
+# This is the program that lets us get the SanDisk industrial health data.
+
+wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.4.2/sdmon-arm64.tar.gz
+tar zxf sdmon-arm64.tar.gz
+mv sdmon /usr/bin
+chmod 755 /usr/bin/sdmon 
+
+fi
+
+
+if [ `uname -m` == "armv7l" ]; then
+
+# This is the program that lets us get the SanDisk industrial health data.
+
+wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.4.2/sdmon-armv7.tar.gz
+tar zxf sdmon-armv7.tar.gz
+mv sdmon /usr/bin
+chmod 755 /usr/bin/sdmon 
+
+fi
+
+
+
+cat << EOF >> /etc/systemd/system/ember-sdmon-cache.timer
+[Unit]
+Description=Check SD wear status on supported industrial cards
+RefuseManualStart=no # Allow manual starts
+RefuseManualStop=no # Allow manual stops 
+
+[Timer]
+Persistent=no
+OnCalendar=daily
+Unit=ember-sdmon-cache.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
+cat << EOF >> /etc/systemd/system/ember-sdmon-cache.service
+[Unit]
+Description=Check SD wear status on supported industrial cards
+
+[Service] 
+Type=simple
+ExecStart=/bin/bash /usr/bin/ember-sdmon-cache.sh
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat << EOF >> /usr/bin/ember-sdmon-cache.sh
+#!/bin/bash
+mkdir -p /run/sdmon-cache
+sdmon /dev/mmcblk0 >> /dev/shm/sdmon_cache_mmcblk0~
+chmod 755 /dev/shm/sdmon_cache_mmcblk0~
+mv /dev/shm/sdmon_cache_mmcblk0~ /run/sdmon-cache/mmcblk0
+EOF
+
+cat << EOF >> /usr/bin/get-sdmon-remaining.py
+#!/usr/bin/python3
+import os
+import json
+if os.path.exists("/dev/shm/sdmon_cache_mmcblk0"):
+  with open("/dev/shm/sdmon_cache_mmcblk0") as f:
+    d = json.load(f)
+  if "enduranceRemainLifePercent" in d:
+    print(str(d["enduranceRemainLifePercent"])+'%')
+  elif "healthStatusPercentUsed" in d:
+    print(str(100 - d["healthStatusPercentUsed"])+'%')
+  else:
+    print("unknown %")
+
+EOF
+
+
+chmod 755 /usr/bin/ember-sdmon-cache.sh
+systemctl enable ember-sdmon-cache.timer
+
+
+
+if [ `uname -m` == "aarch64" ]; then
+systemctl enable ember-sdmon-cache.timer
+fi
+
+
+if [ `uname -m` == "armv7l" ]; then
+systemctl enable ember-sdmon-cache.timer
+fi

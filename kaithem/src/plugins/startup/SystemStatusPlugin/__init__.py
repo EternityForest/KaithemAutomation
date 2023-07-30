@@ -12,8 +12,16 @@ battery = None
 def getSDHealth():
     import os
     import json
+
+    p = None
     if os.path.exists("/dev/shm/sdmon_cache_mmcblk0"):
-        with open("/dev/shm/sdmon_cache_mmcblk0") as f:
+        p = "/dev/shm/sdmon_cache_mmcblk0"
+
+    if os.path.exists("/run/sdmon-cache/mmcblk0"):
+        p = "/run/sdmon-cache/mmcblk0"
+
+    if p:
+        with open(p) as f:
             try:
                 d = json.load(f)
             except Exception:
