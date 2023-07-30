@@ -69,6 +69,14 @@ import os%>
 <dd>Run short scripts in the system shell via the web interface. Unix only.</dd>
 <dt><a href="/settings/files">File Manager</a></dt>
 <dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
+
+<dt><a href="/settings/files/${directories.vardir|u}">File Manager(Kaithem var dir)</a></dt>
+<dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
+
+<dt><a href="/settings/files/${directories.vardir|u}/static">File Manager(Public webserver files)</a></dt>
+<dd>Manage files made available to clients at <a href="/user_static">/user_static</a></dd>
+
+
 <dt><a href="/settings/mixer">JACK Mixer</a></dt>
 <dd>Web-based audio mixing board. Requires JACK and GStreamer, and only works on Linux.</dd>
 </dl>

@@ -204,26 +204,8 @@ def saveResource(m, r, resourceData, name=None):
         shutil.move(fn, newfn)
 
 
-    if resourceData['resource-type'] == "internal-fileref":
-        # store them directly in the module data in a special folder.
-
-        # Basically, we want to always copy the current "loaded" version over.
-        currentFileLocation = fileResourceAbsPaths[modulename, resource]
-        # Handle broken targets if a file was manually deleted
-        if os.path.isfile(currentFileLocation):
-            t = parseTarget(resourceData['target'], modulename, True)
-            newpath = os.path.join(
-                dir, "__filedata__", url(t, safeFnChars))
-            if not newpath == currentFileLocation:
-                util.ensure_dir(newpath)
-                # Storage is cheap enough I guess, might as well copy instead of move for now. Maybe
-                # change it?
-                shutil.copyfile(currentFileLocation, newpath)
-                fileResourceAbsPaths[modulename, resource] = newpath
-        # broken target
-        else:
-            logger.error(
-                "File reference resource has nonexistant target, igonring.")
+    # Don't need to do anything with the file resource data, it is always modified directly when actually changed
+    # In the upload code itself.
 
 
 

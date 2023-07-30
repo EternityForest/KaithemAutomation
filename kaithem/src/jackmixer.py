@@ -275,7 +275,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         if not input or not input.startswith("rtplisten://"):
 
-            self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,  do_timestamp=True, low_latency=True,
+            self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,  do_timestamp=True,
                                        port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name + "_in", connect=0, slave_method=2)
             self.capsfilter = self.addElement(
                 "capsfilter", caps="audio/x-raw,channels=" + str(channels))
@@ -342,8 +342,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self.outputs:
                 pattern=self.outputs[0]
 
-            
-            self.sink = self.addElement("jackaudiosink", buffer_time=10, latency_time=10, sync=False, low_latency=True,
+            # TODO maybe we can use the low latency flag if we implement feature detection
+            self.sink = self.addElement("jackaudiosink", buffer_time=10, latency_time=10, sync=False,
                                         slave_method=2, port_pattern=pattern, client_name=self.name + "_out", connect=0, blocksize=self.channels * 128)
 
             # I think It doesn't like it if you start without jack

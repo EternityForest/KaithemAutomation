@@ -9,6 +9,7 @@
 <h2>File Resource ${resource|h}</h2>
 <title${resource|h}</title>
 <section>
+    <h2>Info</h2>
     <table border=1>
     <tr>
     <th>
@@ -37,6 +38,9 @@
 
     <form action="/modules/module/${url(module)}/updateresource/${url(resource)}" method="POST">
     
+        <label>New name(blank to keep)<input name="name" disabled title="Name change not yet supported"></label></input></label>
+
+        <h2>Serve to end-users</h2>
     <label><input type="checkbox"  name="serve"
 
        %if 'serve' in resourceobj:
@@ -45,8 +49,13 @@
            %endif
        %else:
         %endif
-      ></input>Serve file with the same URL pattern as you would expect for a page: <a class="gobutton" href="${usrpages.url_for_resource(module,resource)}">User acessible link</a>
+      ></input>Serve file with the same URL pattern as you would expect for a page(Needed for features in this section) <a class="gobutton" href="${usrpages.url_for_resource(module,resource)}">User accessible link</a>
     </label>
+    
+    <br>
+
+    <a href="/utils/video_signage?src=${usrpages.url_for_resource(module,resource)|u}">Looping video signage link</a>
+<h2>Permissions</h2>
 
 <p class="help"><span class="permission-icon"></span>Require the following permissions to access this resource</p>
 <div class="scrollbox">

@@ -85,6 +85,7 @@ from .config import config
 from . import config as cfg
 import mako.exceptions
 import cherrypy
+from cherrypy.lib.static import serve_file
 import logging
 
 from . import version_info
@@ -432,6 +433,31 @@ def webRoot():
         def default(self, *path, **data):
             return self._cp_dispatch(list(path))(*path, **data)
 
+
+        @cherrypy.expose
+        @cherrypy.config(**{'response.timeout': 7200})
+        def user_static(self, *args, **kwargs):
+            "Very simple file server feature!"
+
+            if not args:
+                if os.path.exists(os.path.join(directories.vardir, "static", "index.html")):
+                    return serve_file(os.path.join(directories.vardir, "static", "index.html"))
+                                  
+            try:
+                dir = os.path.join('/', *args)[1:]
+                if ".." in dir:
+                    raise RuntimeError("Security violation")
+                
+                dir = os.path.join(directories.vardir, "static", dir)
+                if os.path.isfile(dir):
+                    return serve_file(dir)
+                else:
+                    x = '\r\n'.join(['<a href="' +i + '">'+i+"</a><br>" for i in os.listdir(dir)])
+                    return(x)
+            except Exception:
+                return (traceback.format_exc())
+
+
         # Keep the dispatcher from freaking out. The actual handling
         # Is done by a cherrypy tool. These just keeo cp_dispatch from being called
         # I have NO clue why the favicon doesn't have this issue.
@@ -603,12 +629,17 @@ def webRoot():
             cherrypy.response.status = 500
             return pages.get_template('errors/error.html').render(info="An Error Occurred")
 
+    class Utils():
+        @cherrypy.expose
+        def video_signage(self,*a,**k):
+            return pages.get_template('utils/video_signage.html').render(vid=k['src'])
+
     def cpexception():
         cherrypy.response.status = 500
         try:
             cherrypy.response.body = bytes(pages.get_template('errors/cperror.html').render(
                 e=_cperror.format_exc(), mk=mako.exceptions.html_error_template().render().decode()), 'utf8')
-        except:
+        except Exception:
             cherrypy.response.body = bytes(pages.get_template(
                 'errors/cperror.html').render(e=_cperror.format_exc(), mk=""), 'utf8')
 
@@ -624,6 +655,7 @@ def webRoot():
     root.settings = settings.Settings()
     root.settings.bt = btadmin.WebUI()
     root.errors = Errors()
+    root.utils = Utils()
     root.pages = usrpages.KaithemPage()
     root.logs = messagelogging.WebInterface()
     root.notifications = notifications.WI()
@@ -870,6 +902,7 @@ def webRoot():
     workers.do(systasks.doUPnP)
 
 
+os.makedirs(os.path.join(directories.vardir,'static'),exist_ok=True)
 webRoot()
 
 workers.do(loadJackMixer)

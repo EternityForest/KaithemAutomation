@@ -15,6 +15,8 @@ Change Log
 -  :coffin: Icons other than icofont are gone
 -  :sparkles: Should work on Python3.11
 -  :sparkles: Can now configure / to redirect to some other page.  Use /index directly to get to the real home.
+-  :bug: Fix editing file resources regression
+-  :sparkles: /user_static/FN will now serve vardir/static/FN
 
 ### 0.68.42
 

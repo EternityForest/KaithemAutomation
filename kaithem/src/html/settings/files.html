@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 <%
-from kaithem.src import unitsofmeasure,util
+from kaithem.src import unitsofmeasure,util,directories
 import os,urllib
 
 def size(f):
@@ -64,11 +64,20 @@ Upload zip and unpack:
 <tr><td><a href="/settings/files/${util.url(os.path.join(dir,i))}">${i+("/" if os.path.isdir(os.path.join(dir,i)) else '')|h}</a></td>
 <td>${size(i)}B</td>\
 
-<td><a class="button" href="/settings/cnfdel/${util.url(os.path.join(dir,i))}">Delete</a>
+<td><div style="display: flex; flex-direction:column;"><a class="button" href="/settings/cnfdel/${util.url(os.path.join(dir,i))}">Delete</a>
 
 %if i.endswith("m3u8"):
 <a class="button" href="/settings/hlsplayer/${util.url(os.path.join(dir,i))}">Play in browser</a>
 %endif
+
+%if dir.startswith(os.path.join(directories.vardir,"static")):
+    %if i.endswith(".mp4"):
+    <a class="button" href="/utils/video_signage?src=${util.url('/user_static/'+os.path.join(dir[len(os.path.join(directories.vardir,'static')):],i))}">Digital Signage link</a>
+    %endif
+
+%endif
+
+</div>
 </td>
 
 </tr>

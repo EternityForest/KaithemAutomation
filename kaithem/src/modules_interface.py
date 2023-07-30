@@ -432,13 +432,10 @@ class WebInterface():
 
                     # END BLOCK OF COPY PASTED CODE.
 
+                    modules_state.fileResourceAbsPaths[root, escapedName] = dataname
                     insertResource({'resource-type': 'internal-fileref', 'target': "$MODULERESOURCES/"+url(
                         escapedName, modules.safeFnChars), 'serve': 'serve' in kwargs})
-                    if len(path) > 1:
-                        x = path[1]+"/"
-                    else:
-                        x = ""
-                    fileResourceAbsPaths[root, x+kwargs['name']] = dataname
+
                     modules_state.modulesHaveChanged()
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root))
 
@@ -705,7 +702,7 @@ def permissionEditPage(module, resource):
 # The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module, resource, kwargs):
 
-    newname = kwargs['name']
+    newname = kwargs.get('newname','')
 
     pages.require("/admin/modules.edit", noautoreturn=True)
     pages.postOnly()
@@ -887,7 +884,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                 mvResource(module, resource, module, kwargs['name'])
 
         # We can pass a compiled object for things like events that would otherwise have to have a test compile then the real compile
-        modules.handleResourceChange(module, kwargs['name'], compiled_object)
+        modules.handleResourceChange(module, kwargs.get('name', resource), compiled_object)
 
         prev_versions[(module, resource)] = old_resource
 

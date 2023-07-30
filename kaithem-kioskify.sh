@@ -90,6 +90,13 @@ apt autoremove -y --purge
 
 
 
+cat << EOF > /etc/security/limits.conf
+@audio   -  rtprio     95
+@audio   -  memlock    unlimited
+@audio   -  priority   -20
+EOF
+
+
 #raspi-config nonint do_ssh 0
 ! raspi-config nonint do_spi 0
 ! raspi-config nonint do_i2c 0
@@ -123,7 +130,7 @@ sudo systemctl disable apt-daily.service
 # Howerver DO update time zones and certs
 #####################
 
-cat << EOF >> /etc/systemd/system/ember-update.timer
+cat << EOF > /etc/systemd/system/ember-update.timer
 [Unit]
 Description=EmberOS minimal updater, just the stuff that will break without it
 RefuseManualStart=no # Allow manual starts
@@ -139,7 +146,7 @@ Unit=ember-update.service
 WantedBy=timers.target
 EOF
 
-cat << EOF >> /etc/systemd/system/ember-update.service
+cat << EOF > /etc/systemd/system/ember-update.service
 [Unit]
 Description=EmberOS minimal updater, just the stuff that will break without it
 [Service] 
@@ -149,7 +156,7 @@ ExecStart=/bin/bash /usr/bin/ember-update.sh
 Type=oneshot
 EOF
 
-cat << EOF >> /usr/bin/ember-update.sh
+cat << EOF > /usr/bin/ember-update.sh
 #!/bin/bash
 yes | apt update
 apt install ca-certificates
@@ -166,7 +173,7 @@ mkdir -p  /usr/lib/systemd/system.conf.d/
 
 #Set up the watchdog timer to handle really bad crashes
 # This can make it nt even boot if you set a bad time value...
-cat << EOF >> /usr/lib/systemd/system.conf.d/20-emberos-watchdog.conf
+cat << EOF > /usr/lib/systemd/system.conf.d/20-emberos-watchdog.conf
 # This file is part of EmberOS, it enables the hardware watchdog to allow recovery from
 # total system crashes
 [Manager]
@@ -180,7 +187,7 @@ EOF
 #########################################################################
 
 
-apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip
+apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip xdotool
 apt-get -y install vim-tiny units git wget htop lsof  git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs
 
 # For accessing CDs
@@ -216,21 +223,26 @@ apt-get -y install gnome-screenshot gnome-system-monitor gnome-logs
 ## Kaithem  with optional features
 ##############################################################################################################
 
+
+# Numpy is unhappy without this on latest pi os??
+sudo apt-get install libatlas-base-dev libjasper-dev
+
+
 sudo apt -y install mpv libmpv-dev python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage
 python3 -m pip install tflite-runtime 
 
+mkdir -p /home/$(id -un 1000)/kaithem
 chown -R $(id -un 1000):$(id -un 1000) /home/$(id -un 1000)/kaithem
 chmod -R 700 /home/$(id -un 1000)/kaithem
 
-chmod 755 /home/$(id -un 1000)/opt/KaithemAutomation/dev_run.py
+chmod 755 /opt/KaithemAutomation/dev_run.py
 
-chown -R $(id -un 1000):$(id -un 1000)  /home/$(id -un 1000)/opt/
 
-cat << "EOF" >>  /usr/bin/ember-launch-kaithem
+cat << "EOF" >  /usr/bin/ember-launch-kaithem
 #!/bin/bash
 # Systemd utterly fails at launching this unless we give it it's own little script.
 # If we run it directly from the service, jsonrpc times out over and over again.
-/usr/bin/pw-jack /usr/bin/python3 /home/$(id -un 1000)/opt/KaithemAutomation/dev_run.py -c /home/$(id -un 1000)/kaithem/config.yaml
+/usr/bin/pw-jack /usr/bin/python3 /opt/KaithemAutomation/dev_run.py -c /home/$(id -un 1000)/kaithem/config.yaml
 EOF
 
 chmod 755 /usr/bin/ember-launch-kaithem
@@ -238,13 +250,13 @@ chmod 755 /usr/bin/ember-launch-kaithem
 
 # Many of these settings are ignored now that kaithem does more automatically.
 mkdir -p    /home/$(id -un 1000)/kaithem/system.mixer
-cat << EOF >>   /home/$(id -un 1000)/kaithem/system.mixer/jacksettings.yaml
+cat << EOF >   /home/$(id -un 1000)/kaithem/system.mixer/jacksettings.yaml
 {jackDevice: '', jackMode: use, jackPeriodSize: 512, jackPeriods: 3, sharePulse: 'off',
   usbLatency: -1, usbPeriodSize: 512, usbPeriods: 3, usbQuality: 0, useAdditionalSoundcards: 'no'}
 EOF
 
 
-cat << EOF >> /home/$(id -un 1000)/kaithem/config.yaml
+cat << EOF > /home/$(id -un 1000)/kaithem/config.yaml
 site-data-dir: ~/kaithem
 ssl-dir: ~/kaithem/ssl
 save-before-shutdown: yes
@@ -264,11 +276,10 @@ audio-paths:
     - __default__
 EOF
 
-cat << EOF >> /etc/systemd/system/kaithem.service
+cat << EOF > /etc/systemd/system/kaithem.service
 [Unit]
 Description=KaithemAutomation python based automation server
 After=basic.target time-sync.target sysinit.service zigbee2mqtt.service pipewire.service
-Type=simple
 
 
 [Service]
@@ -283,6 +294,7 @@ Nice=-15
 #Pipewire breaks without it though.
 Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="DISPLAY=:0"
 
 #This may cause some issues but I think it's a better way to go purely because of
 #The fact that we can use PipeWire instead of managing jack, without any conflicts.
@@ -297,6 +309,7 @@ SecureBits=keep-caps
 LimitRTPRIO= 95
 LimitNICE= -20
 LimitMEMLOCK= infinity
+Type=simple
 
 [Install]
 WantedBy=multi-user.target
@@ -319,7 +332,7 @@ gsettings set org.gnome.desktop.screensaver idle-activation-enabled false
 
 mkdir -p /home/$(id -un 1000)/.config/autostart/
 
-cat << EOF >> /home/$(id -un 1000)/.config/autostart/kiosk.desktop
+cat << EOF > /home/$(id -un 1000)/.config/autostart/kiosk.desktop
 [Desktop Entry]
 Name=EmberDefaultKiosk
 Type=Application
@@ -329,7 +342,7 @@ EOF
 
 sudo apt -y install chromium-browser unclutter
 
-cat << EOF >> /home/$(id -un 1000)/.config/autostart/unclutter.desktop
+cat << EOF > /home/$(id -un 1000)/.config/autostart/unclutter.desktop
 [Desktop Entry]
 Name=Unclutter
 Type=Application
@@ -338,7 +351,7 @@ Terminal=false
 EOF
 
 
-cat << 'EOF' >>  /usr/bin/ember-kiosk-launch.sh
+cat << 'EOF' >  /usr/bin/ember-kiosk-launch.sh
 #!/bin/bash
 mkdir -p /dev/shm/kiosk-temp-config
 mkdir -p /dev/shm/kiosk-temp-cache
@@ -360,7 +373,7 @@ EOF
 
 chmod 755 /usr/bin/ember-kiosk-launch.sh
 
-cat << EOF >>  /etc/lightdm/lightdm.conf
+cat << EOF >  /etc/lightdm/lightdm.conf
 [SeatDefaults]
 autologin-guest=false
 autologin-user=$(id -un 1000)
@@ -377,7 +390,7 @@ EOF
 # because it still runs and fills ram with log files.
 ! apt-get -y remove dhcpcd-gtk
 
-apt-get -y install network-manager libnss3-tools ca-certificates nftables firewalld avahi-daemon avahi-utils radvd
+apt-get -y install network-manager libnss3-tools ca-certificates avahi-daemon avahi-utils radvd
 
 apt-get -y install network-manager-gnome
 
@@ -388,7 +401,7 @@ apt-get -y install network-manager-gnome
 # Now we are going to get rid of any legacy wpa-supplicant type stuff and use NetworkManager
 # Unfortunately Pi still uses this stuff so we really do need it.
 
-cat << EOF >> /usr/bin/import_from_wpa_config.py
+cat << EOF > /usr/bin/import_from_wpa_config.py
 #!/usr/bin/python3
 
 import subprocess
@@ -514,7 +527,7 @@ for i in list(os.listdir("/etc/NetworkManager/system-connections/")):
 EOF
 
 
-cat << EOF >> /etc/systemd/system/import_wpa_conf_to_nm.service
+cat << EOF > /etc/systemd/system/import_wpa_conf_to_nm.service
 [Unit]
 Description=Import any networks found in a wpa_supplicant file to NetworkManager
 Before=NetworkManager.service
@@ -553,7 +566,7 @@ systemctl enable NetworkManager.service
 
 # WiFi power save is not really that big of a savings
 # Get rid of the privacy mac for stability reasons
-cat << EOF >> /etc/NetworkManager/NetworkManager.conf
+cat << EOF > /etc/NetworkManager/NetworkManager.conf
 [main]
 plugins=ifupdown,keyfile
 
@@ -574,7 +587,7 @@ EOF
 
 
 # Ethernet settings
-cat << EOF >> /etc/NetworkManager/system-connections/ethernet.nmconnection
+cat << EOF > /etc/NetworkManager/system-connections/ethernet.nmconnection
 [connection]
 id=Ethernet
 uuid=8874a940-b7d6-3b50-9cfb-031801810ab4
@@ -603,10 +616,6 @@ EOF
 apt-get install -y pipewire libspa-0.2-jack pipewire-audio-client-libraries libspa-0.2-bluetooth 
 apt-get remove -y pulseaudio-module-bluetooth 
 
-! apt-get purge -y pipewire-media-session
-apt-get -y install wireplumber
-
-
 mkdir -p /etc/pipewire/media-session.d/
 touch /etc/pipewire/media-session.d/with-pulseaudio
 
@@ -618,13 +627,10 @@ su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XD
 su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user  disable pulseaudio.service' $(id -un 1000)
 
 # Can't get this to work. Leave it off and things will use the ALSA virtual device it makes.
-su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user disable  pipewire-pulse' $(id -un 1000)
+# Some things have it already disabled.
+! su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user disable  pipewire-pulse' $(id -un 1000)
 
 
-
-
-
-su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user enable wireplumber' $(id -un 1000)
 su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user enable pipewire' $(id -un 1000)
 
 su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user mask pulseaudio' $(id -un 1000)
@@ -636,7 +642,7 @@ ldconfig
 
 
 
-cat << EOF >> /etc/pipewire/jack.conf
+cat << EOF > /etc/pipewire/jack.conf
 
 # JACK client config file for PipeWire version "0.3.24" #
 
@@ -702,7 +708,7 @@ jack.properties = {
 
 EOF
 
-cat << EOF >> /etc/pipewire/media-session.d/bluez-monitor.conf
+cat << EOF > /etc/pipewire/media-session.d/bluez-monitor.conf
 properties = {
     bluez5.msbc-support = true
     bluez5.sbc-xq-support = true
@@ -728,7 +734,7 @@ sed -i s/'ERRFILE=\$HOME\/\.xsession\-errors'/'ERRFILE\=\/var\/log\/\$USER\-xses
 # Xsession errors is a big offender for wrecking down your disk with writes
 sed -i s/'ERRFILE=\$HOME\/\.xsession\-errors'/'ERRFILE\=\/var\/log\/\$USER\-xsession\-errors'/g /etc/X11/Xsession
 
-cat << EOF >> /etc/logrotate.d/xsession
+cat << EOF > /etc/logrotate.d/xsession
 /var/log/ember-xsession-errors {
   rotate 2 
   daily
@@ -745,7 +751,7 @@ ln -s /var/log/ember-xsession-errors /home/$(id -un 1000)/.xsession-errors
 
 #/run should already be tmpfs on non-insane setups
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-media.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-media.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -759,7 +765,7 @@ EOF
 
 systemctl enable ember-tmpfs-media.mount
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-mnt.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-mnt.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -774,7 +780,7 @@ EOF
 systemctl enable ember-tmpfs-mnt.mount
 
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-tmp.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-tmp.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -789,7 +795,7 @@ EOF
 systemctl enable ember-tmpfs-tmp.mount
 
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-varlog.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-varlog.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -806,7 +812,7 @@ systemctl enable ember-tmpfs-varlog.mount
 
 
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-logrotate.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-logrotate.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -821,7 +827,7 @@ EOF
 
 systemctl enable ember-tmpfs-logrotate.mount
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-sudo.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-sudo.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -837,7 +843,7 @@ systemctl enable ember-tmpfs-sudo.mount
 
 
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-systemd.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-systemd.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -853,7 +859,7 @@ systemctl enable ember-tmpfs-systemd.mount
 
 
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-chrony.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-chrony.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -868,7 +874,7 @@ EOF
 systemctl enable ember-tmpfs-chrony.mount
 
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-vartmp.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-vartmp.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -883,7 +889,7 @@ EOF
 systemctl enable ember-tmpfs-vartmp.mount
 
 
-cat << EOF >> /etc/systemd/system/ember-tmpfs-nm.mount
+cat << EOF > /etc/systemd/system/ember-tmpfs-nm.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -931,7 +937,7 @@ fi
 
 
 
-cat << EOF >> /etc/systemd/system/ember-sdmon-cache.timer
+cat << EOF > /etc/systemd/system/ember-sdmon-cache.timer
 [Unit]
 Description=Check SD wear status on supported industrial cards
 RefuseManualStart=no # Allow manual starts
@@ -946,7 +952,7 @@ Unit=ember-sdmon-cache.service
 WantedBy=timers.target
 EOF
 
-cat << EOF >> /etc/systemd/system/ember-sdmon-cache.service
+cat << EOF > /etc/systemd/system/ember-sdmon-cache.service
 [Unit]
 Description=Check SD wear status on supported industrial cards
 
@@ -959,15 +965,15 @@ Type=oneshot
 WantedBy=multi-user.target
 EOF
 
-cat << EOF >> /usr/bin/ember-sdmon-cache.sh
+cat << EOF > /usr/bin/ember-sdmon-cache.sh
 #!/bin/bash
 mkdir -p /run/sdmon-cache
-sdmon /dev/mmcblk0 >> /dev/shm/sdmon_cache_mmcblk0~
+sdmon /dev/mmcblk0 > /dev/shm/sdmon_cache_mmcblk0~
 chmod 755 /dev/shm/sdmon_cache_mmcblk0~
 mv /dev/shm/sdmon_cache_mmcblk0~ /run/sdmon-cache/mmcblk0
 EOF
 
-cat << EOF >> /usr/bin/get-sdmon-remaining.py
+cat << EOF > /usr/bin/get-sdmon-remaining.py
 #!/usr/bin/python3
 import os
 import json
@@ -997,3 +1003,53 @@ fi
 if [ `uname -m` == "armv7l" ]; then
 systemctl enable ember-sdmon-cache.timer
 fi
+
+
+###################################################################################################
+# Random seed
+
+
+cat << EOF > /etc/systemd/system/ember-random-seed.service
+[Unit]
+Description=make systemd random seeding work, and whatever else needs to happen at boot for RO systems.
+After=systemd-remount-fs.service
+Before=sysinit.target nmbd.service smbd.service apache2.service systemd-logind.service
+RequiresMountsFor=/etc/ /var/log/
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/bin/ember-random-seed.sh
+
+[Install]
+WantedBy=sysinit.target
+EOF
+
+cat << EOF > /usr/bin/ember-random-seed.sh
+#!/bin/bash
+# Make things still random even when we get rid of the old random seed service
+# By using HW randomnes instead
+
+#If the on chip hwrng isn't random, this might actually help if there is a real RTC installed.
+date +%s%N > /dev/random
+
+# Use the on chip HW RNG if it is available
+if [ -e /dev/hwrng ] ; then
+dd if=/dev/hwrng of=/dev/random bs=256 count=1 > /dev/null
+else
+dd if=/dev/random of=/dev/random bs=32 count=1 > /dev/null
+fi
+
+#HWRNG might have unpredictable timing, no reason not to use the timer again.
+#Probably isn't helping much but maybe makes paranoid types feel better?
+date +%s%N > /dev/random
+
+#The RNG should already be well seeded, but the systemd thing needs to think its doing something
+touch /var/lib/systemd/random-seed
+chmod 700 /var/lib/systemd/random-seed
+dd bs=1 count=32K if=/dev/urandom of=/var/lib/systemd/random-seed > /dev/null
+touch /run/cprng-seeded
+EOF
+
+chmod 755 /usr/bin/ember-update.sh
+systemctl enable ember-random-seed
