@@ -804,6 +804,9 @@ What=tmpfs
 Where=/media
 Type=tmpfs
 Options=defaults,noatime,nosuid,nodev,noexec,mode=0755,size=1M
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable media.mount
@@ -818,6 +821,9 @@ What=tmpfs
 Where=/mnt
 Type=tmpfs
 Options=defaults,noatime,nosuid,nodev,noexec,mode=0755,size=1M
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable mnt.mount
@@ -833,6 +839,9 @@ What=tmpfs
 Where=/tmp
 Type=tmpfs
 Options=defaults,noatime,nosuid,nodev,mode=1777,size=256M
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable tmp.mount
@@ -848,6 +857,9 @@ What=tmpfs
 Where=/var/log
 Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0755,size=128M
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable var-log.mount
@@ -865,6 +877,9 @@ What=tmpfs
 Where=/var/lib/logrotate
 Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0755,size=32m
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 
@@ -880,6 +895,9 @@ What=tmpfs
 Where=/var/lib/sudo
 Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0700,size=8m
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable var-lib-sudo.mount
@@ -896,6 +914,9 @@ What=tmpfs
 Where=/var/lib/systemd
 Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0755,size=64m
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable var-lib-systemd.mount
@@ -912,6 +933,9 @@ What=tmpfs
 Where=/var/lib/chrony
 Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0755,size=8m
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable var-lib-chrony.mount
@@ -927,6 +951,9 @@ What=tmpfs
 Where=/var/tmp
 Type=tmpfs
 Options=defaults,noatime,nosuid,mode=1777,size=128M
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable var-tmp.mount
@@ -942,6 +969,9 @@ What=tmpfs
 Where=/var/lib/NetworkManager
 Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0700,size=64M
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 systemctl enable var-lib-NetworkManager.mount
