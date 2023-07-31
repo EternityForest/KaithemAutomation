@@ -632,7 +632,7 @@ def webRoot():
     class Utils():
         @cherrypy.expose
         def video_signage(self,*a,**k):
-            return pages.get_template('utils/video_signage.html').render(vid=k['src'])
+            return pages.get_template('utils/video_signage.html').render(vid=k['src'],mute=int(k.get('mute', 1)))
 
     def cpexception():
         cherrypy.response.status = 500

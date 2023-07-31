@@ -73,6 +73,8 @@ Upload zip and unpack:
 %if dir.startswith(os.path.join(directories.vardir,"static")):
     %if i.endswith(".mp4"):
     <a class="button" href="/utils/video_signage?src=${util.url('/user_static/'+os.path.join(dir[len(os.path.join(directories.vardir,'static')):],i))}">Digital Signage link</a>
+    <a class="button" href="/utils/video_signage?src=${util.url('/user_static/'+os.path.join(dir[len(os.path.join(directories.vardir,'static')):],i))}&muted=0">Digital Signage(w/ audio)</a>
+
     %endif
 
 %endif

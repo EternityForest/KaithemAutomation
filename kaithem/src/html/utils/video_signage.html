@@ -39,9 +39,11 @@
     transform: translate(-50%,-50%);
   }
 </style>
+<script type="text/javascript" src="/static/widget.js"></script>
+
 
 <div class="video-container">
-    <video id="video" src="${vid}" loop autoplay muted> </video>
+    <video id="video" src="${vid}" loop autoplay ${'muted' if mute else ''}> </video>
 </div>
 
 
