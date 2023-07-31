@@ -449,6 +449,17 @@ else:
                     disabled=1\
         %endif
         ></input>
+
+
+        <label>Theme CSS
+            <input type="text"  name="themecss"
+                    value= "${page.get('theme-css-url','')|h}"
+                    %if not pages.canUserDoThis("/admin/modules.edit"):
+                                disabled=1\
+                    %endif 
+                    title="default"
+                    ></input>
+            </label>
 </div>
 
 <p class="help"><span class="permission-icon"></span>Require the following permissions to access this page</p>

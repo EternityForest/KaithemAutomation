@@ -177,6 +177,9 @@ class CompiledPage():
             else:
                 self.permissions = []
 
+
+            self.theme = resource.get('theme-css-url','')
+
             if 'allow-xss' in resource:
                 self.xss = resource["allow-xss"]
             else:
@@ -191,6 +194,8 @@ class CompiledPage():
 
             if resource['resource-type'] == 'page':
                 template = resource['body']
+
+                code_header = ''
 
                 self.streaming= resource.get("streaming-response",False)
 
@@ -236,17 +241,16 @@ class CompiledPage():
 
                 if not 'template-engine' in resource or resource['template-engine'] == 'mako':
 
-
                     # Add in the separate code
 
                     usejson = False
 
                     if 'setupcode' in resource and resource['setupcode'].strip():
-                        header+="\n<%!\n" + resource['setupcode'] + "\n%>\n"
+                        code_header+="\n<%!\n" + resource['setupcode'] + "\n%>\n"
                         usejson = True
 
                     if 'code' in resource and resource['code'].strip():
-                        header+="\n<%\n" + resource['code'] + "\n%>\n"
+                        code_header+="\n<%\n" + resource['code'] + "\n%>\n"
                         usejson = True
 
                     if usejson:
@@ -286,7 +290,7 @@ class CompiledPage():
 
 
 
-                    templatesource = header + template + footer
+                    templatesource = code_header+header + template + footer
 
                     self.template = mako.template.Template(
                         templatesource, uri="Template"+m+'_'+r)
@@ -582,7 +586,8 @@ class KaithemPage():
                     path=args,
                     kwargs=kwargs,
                     print=page.new_print,
-                    page=page.localAPI
+                    page=page.localAPI,
+                    _k_usr_page_theme = page.theme
                 ).encode("utf-8")
             else:
                 return page.text.encode('utf-8')

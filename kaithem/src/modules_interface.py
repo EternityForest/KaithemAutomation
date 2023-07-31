@@ -844,6 +844,7 @@ def resourceUpdateTarget(module, resource, kwargs):
 
 
             resourceobj['body'] = body
+            resourceobj['theme-css-url'] = kwargs['themecss'].strip()
             resourceobj['code'] = code
             resourceobj['setupcode'] = setupcode
 

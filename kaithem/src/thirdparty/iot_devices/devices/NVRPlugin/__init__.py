@@ -128,6 +128,7 @@ def recognize_tflite(i, r):
             path, "efficientdet/efficientdet-lite0-f32.tflite"))
         objectDetector[0].allocate_tensors()
 
+    if objectDetector[1] is None:
         objectDetector[1] = numpy.loadtxt(os.path.join(
             path, "labelmap.txt"), dtype=str, delimiter="/n")
 
