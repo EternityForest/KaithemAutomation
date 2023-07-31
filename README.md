@@ -68,7 +68,14 @@ It will detect that the file is in the public folder and give you a digital sign
 
 Set your homepage to redirect to that link, you should be done!
 
+#### Signage with audio
 
+If you don't get any audio from the signage display, it is probably because you're using Chrome is choosing the wrong output and your speakers are on the HDMI device.
+
+Either try a different one, or go to the Kaithem mixer, make a new channel, set "PipeWire ALSA [chromium-browser]" as the input, and 
+make the output the correct device, to forward it on.
+
+Be careful though, most likely your audio is just going to annoy people if it's not very quiet!!
 
 
 ## NixOS

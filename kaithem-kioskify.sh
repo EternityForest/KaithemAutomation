@@ -376,7 +376,7 @@ fi
 
 while true
 do
-    if chromium-browser  --kiosk --window-size=1920,1080 --start-fullscreen --kiosk --noerrdialogs --disable-translate --disable-extensions --auto-accept-camera-and-microphone-capture --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --autoplay-policy=no-user-gesture-required --no-default-browser-check --disk-cache-size=48000000 --no-first-run --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' $1; then
+    if chromium-browser  --kiosk --window-size=1920,1080 --start-fullscreen --noerrdialogs --disable-translate --disable-extensions --auto-accept-camera-and-microphone-capture --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --autoplay-policy=no-user-gesture-required --no-default-browser-check --disk-cache-size=48000000 --no-first-run --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' $1; then
         echo "Restarting because of error in Chromium"
     else
         echo "Exiting due to sucessful chrome exit"
