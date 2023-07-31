@@ -102,7 +102,7 @@ EOF
 ! raspi-config nonint do_i2c 0
 ! raspi-config nonint do_camera 0
 ! raspi-config nonint do_overscan 1
-
+! raspi-config nonint do_memory_split 128
 
 # Systemd all the way
 sudo apt-get -y purge rsyslog
@@ -324,6 +324,10 @@ systemctl enable kaithem.service
 ###############################################################################################################################
 
 
+# HW Acceleration
+sudo apt-get -y install libgles2-mesa libgles2-mesa-dev xorg-dev
+
+
 # Bye bye to the screen savier.
 gsettings set org.gnome.desktop.screensaver lock-delay 3600
 gsettings set org.gnome.desktop.screensaver lock-enabled false
@@ -353,10 +357,20 @@ EOF
 
 cat << 'EOF' >  /usr/bin/ember-kiosk-launch.sh
 #!/bin/bash
+
+# Needed so xrandr doesn't get overwritten with something and mess up resolution
+sleep 15
 mkdir -p /dev/shm/kiosk-temp-config
 mkdir -p /dev/shm/kiosk-temp-cache
+export DISPLAY=:0
 export XDG_CONFIG_HOME=/dev/shm/kiosk-temp-config
 export XDG_CACHE_HOME=/dev/shm/kiosk-temp-cache
+
+# Try to not use 4k because that is slow
+if xrandr | grep -q "1920x1080"; then
+    DISPLAY=:0 xrandr -s 1920x1080
+fi
+
 
 while true
 do
