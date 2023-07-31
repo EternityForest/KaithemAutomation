@@ -12,9 +12,9 @@ mkdir -p /home/$(id -un 1000)/kioskify-setup
 
 sudo apt update
 
-sudo apt-get install -y git python3 python3-pip
+sudo apt-get install -y git git-lfs python3 python3-pip
 
-
+git lfs pull
 
 ## User perms
 #####################################################################3
