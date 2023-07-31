@@ -1,2 +1,2 @@
-__version__ = "0.68.43 Production"
-__version_info__ = (0, 68, 43, "release", 0)
+__version__ = "0.68.44 Production"
+__version_info__ = (0, 68, 44, "release", 0)

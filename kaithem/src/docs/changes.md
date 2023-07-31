@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.68.44
+- :bug: Faster and more reliable jackmixer startup
+- :sparkles: Improve kioskify
+
 ### 0.68.43
 - :bug: Remove notification for tripped->normal transition
 - :sparkles: Show tripped alerts on main page

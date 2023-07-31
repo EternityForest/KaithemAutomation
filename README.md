@@ -188,6 +188,10 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.68.44
+- :bug: Faster and more reliable jackmixer startup
+- :sparkles: Improve kioskify
+
 ### 0.68.43
 - :bug: Remove notification for tripped->normal transition
 - :sparkles: Show tripped alerts on main page
