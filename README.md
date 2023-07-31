@@ -49,7 +49,7 @@ SSH in and run these commands.  They reconfigure a whole lot of stuff, including
 
 ```
 cd /opt
-sudo git clone --depth 1 --branch develop https://github.com/EternityForest/KaithemAutomation
+sudo git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
 cd KaithemAutomation
 sudo bash kaithem-kioskify.sh
 sudo reboot now
