@@ -420,7 +420,7 @@ if __name__=='__setup__':
     if not os.path.exists(musicLocation):
         try:
             os.makedirs(musicLocation,mode=0o755)
-        except:
+        except Exception:
             pass
     
     def searchPaths(s, paths):
@@ -644,14 +644,14 @@ if __name__=='__setup__':
                     if id(module.fixtures[self.name]())==id(ID):
                         self.assign(None,None)
                         self.rm()
-                except:
+                except Exception:
                     pass
             kaithem.misc.do(f)
     
         def rm(self):
             try:
                 del module.fixtures[self.name]
-            except:
+            except Exception:
                 pass
     
         def assign(self,universe, channel):
@@ -721,7 +721,7 @@ if __name__=='__setup__':
                     self.sceneObj().recalcCueVals()
                     self.sceneObj().rerender=True
     
-            except:
+            except Exception:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
     
@@ -736,7 +736,7 @@ if __name__=='__setup__':
                         else:
                             v = str(v)[:160]
                             i().link.send(['varchange',self.scene, k, v])        
-            except:
+            except Exception:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
     
@@ -745,7 +745,7 @@ if __name__=='__setup__':
             try:
                 for i in module.boards:
                     i().pushEv(e, self.sceneName,module.timefunc(),value=v)
-            except:
+            except Exception:
                 rl_log_exc("error handling event")
                 print(traceback.format_exc())
     
@@ -755,7 +755,7 @@ if __name__=='__setup__':
             try:
                 for i in module.boards:
                     i().link.send(['scenetimers',self.scene, self.sceneObj().runningTimers])
-            except:
+            except Exception:
                 rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
     
@@ -905,13 +905,13 @@ if __name__=='__setup__':
                     for i in self.fixtures:
                         self.fixtures[i].assign(None,None)
                         self.fixtures[i].rm()
-                except:
+                except Exception:
                     self.ferrs+= 'Error deleting old assignments:\n'+traceback.format_exc()
                     print(traceback.format_exc())
                     
                 try:
                     del i
-                except:
+                except Exception:
                     pass
                     
                 self.fixtures = {}
@@ -922,7 +922,7 @@ if __name__=='__setup__':
                         self.fixtures[i['name']] = x
                         self.fixtures[i['name']].assign(i['universe'],  int(i['addr']))
                         module.fixtures[i['name']]= weakref.ref(x)                    
-                    except:
+                    except Exception:
                         logger.exception("Error setting up fixture")
                         print(traceback.format_exc())
                         self.ferrs += str(i)+'\n'+traceback.format_exc()
@@ -964,7 +964,7 @@ if __name__=='__setup__':
     
             try:
                 module.discoverColorTagDevices()
-            except:
+            except Exception:
                 event("system.error",traceback.format_exc())
                 print(traceback.format_exc())
     
@@ -1138,7 +1138,7 @@ if __name__=='__setup__':
         def rmScene(self,scene):
             try:
                 del self.scenememory[scene.id]
-            except:
+            except Exception:
                 pass
     
             
@@ -1150,7 +1150,7 @@ if __name__=='__setup__':
                 if self.guiSendLock.acquire(timeout=5):
                     try:
                         self.link.send(['event',[event, target,kaithem.time.strftime(t or time.time() ),value, info]])
-                    except:
+                    except Exception:
                         if time.monotonic()-self.lastLoggedGuiSendError< 60:
                             logger.exception("Error when reporting event. (Log ratelimit: 30)")
                             self.lastLoggedGuiSendError = time.monotonic()
@@ -1168,7 +1168,7 @@ if __name__=='__setup__':
             self.link.send(["ferrs",self.ferrs])   
             try:
                 self.link.send(['fixtures', {i:[module.fixtures[i]().universe,module.fixtures[i]().startAddress, module.fixtures[i]().channels] for i in module.fixtures} ])
-            except:
+            except Exception:
                 pass
                 
         def pushUniverses(self):
@@ -1263,7 +1263,7 @@ if __name__=='__setup__':
                                 v[j]=scene.scriptContext.variables[j]
                             else:
                                 v[j]='__PYTHONDATA__'
-                except:
+                except Exception:
                     print(traceback.format_exc())
     
             if not statusOnly:
@@ -1634,7 +1634,7 @@ if __name__=='__setup__':
                         for j in msg[2][i]:
                             try:
                                 ch = int(j)
-                            except:
+                            except Exception:
                                 ch = j
                             #Hack. because JSON and yaml are giving us strings
                             cues[msg[1]].setValue(i,j,msg[2][i][j])
@@ -1743,17 +1743,17 @@ if __name__=='__setup__':
                             if self.scenememory[i].cue:
                                 try:
                                     self.pushCueMeta(self.scenememory[i].cue.id)
-                                except:
+                                except Exception:
                                     print(traceback.format_exc())
                             try:
                                 self.pushCueMeta(self.scenememory[i].cues['default'].id)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
     
                             try:
                                 for j in self.scenememory[i].cues:
                                     self.pushCueMeta(self.scenememory[i].cues[j].id)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
     
                         for i in module.activeScenes:
@@ -1785,7 +1785,7 @@ if __name__=='__setup__':
                     if isinstance(ch, str):
                         try:
                             ch=int(ch)
-                        except:
+                        except Exception:
                             pass
     
                     v = msg[4]
@@ -1793,7 +1793,7 @@ if __name__=='__setup__':
                     if isinstance(v, str):
                         try:
                             v=float(v)
-                        except:
+                        except Exception:
                             pass
     
     
@@ -1834,7 +1834,7 @@ if __name__=='__setup__':
                         tags = TinyTag.get(msg[2])
                         if tags.artist and tags.title:
                             bn = tags.title +" ~ "+ tags.artist
-                    except:
+                    except Exception:
                         pass
                     #Empty string is probably going to look best for that char
                     bn=bn.replace("'","")
@@ -1882,7 +1882,7 @@ if __name__=='__setup__':
                     if cues[msg[1]].nextCue:
                         try:
                             cues[msg[1]].scene().nextCue(cause='manual')
-                        except:
+                        except Exception:
                             pass
     
     
@@ -1893,7 +1893,7 @@ if __name__=='__setup__':
                 if msg[0] == "setfadein":
                     try:
                         v=float(msg[2])
-                    except:
+                    except Exception:
                         v=msg[2]
                     cues[msg[1]].fadein=v
                     self.pushCueMeta(msg[1])
@@ -1901,7 +1901,7 @@ if __name__=='__setup__':
                 if msg[0] == "setSoundFadeOut":
                     try:
                         v=float(msg[2])
-                    except:
+                    except Exception:
                         v=msg[2]
                     cues[msg[1]].soundFadeOut=v
                     self.pushCueMeta(msg[1])
@@ -1909,7 +1909,7 @@ if __name__=='__setup__':
                 if msg[0] == "setCueVolume":
                     try:
                         v=float(msg[2])
-                    except:
+                    except Exception:
                         v=msg[2]
                     cues[msg[1]].soundVolume=v
                     self.pushCueMeta(msg[1])
@@ -1920,7 +1920,7 @@ if __name__=='__setup__':
                 if msg[0] == "setCueLoops":
                     try:
                         v=float(msg[2])
-                    except:
+                    except Exception:
                         v=msg[2]
                     cues[msg[1]].soundLoops= v if (not v==-1) else 99999999999999999
                     
@@ -1932,7 +1932,7 @@ if __name__=='__setup__':
                 if msg[0] == "setSoundFadeIn":
                     try:
                         v=float(msg[2])
-                    except:
+                    except Exception:
                         v=msg[2]
                     cues[msg[1]].soundFadeIn=v
                     self.pushCueMeta(msg[1])
@@ -2030,7 +2030,7 @@ if __name__=='__setup__':
                 if msg[0] == "setlength":
                     try:
                         v=float(msg[2])
-                    except:
+                    except Exception:
                         v=msg[2][:256]
                     cues[msg[1]].length=v
                     cues[msg[1]].scene().recalcCueLen()
@@ -2039,7 +2039,7 @@ if __name__=='__setup__':
                 if msg[0] == "setrandomize":
                     try:
                         v=float(msg[2])
-                    except:
+                    except Exception:
                         v=msg[2][:256]
                     cues[msg[1]].lengthRandomize=v
                     cues[msg[1]].scene().recalcRandomizeModifier()
@@ -2105,7 +2105,7 @@ if __name__=='__setup__':
                 if msg[0] == "next":
                     try:
                         module.runningTracks[msg[1]].end()
-                    except:
+                    except Exception:
                         pass           
     
                 if msg[0] == "testSoundCard":
@@ -2219,7 +2219,7 @@ if __name__=='__setup__':
                 uvalues = scene._blend.frame(universe,uvalues,vals,alphas,scene.alpha)
                 #Also incorrect-ish, but treating modified vals as fully opaque is good enough.
                 ualphas =  (alphas*scene.alpha)>0
-            except:
+            except Exception:
                 print("Error in blend function")
                 print(traceback.format_exc())
         uobj.alphas = ualphas
@@ -2331,7 +2331,7 @@ if __name__=='__setup__':
                     x =universesSnapshot[i]
                     x.preFrame()
                     x.onFrame()
-            except:
+            except Exception:
                 raise
     
         for i in universesSnapshot:
@@ -2469,7 +2469,7 @@ if __name__=='__setup__':
                         if x:
                             x.go()
                             x.gotoCue(i.name,cause='manual')
-                    except:
+                    except Exception:
                         print(traceback.format_exc())
     
     cues =weakref.WeakValueDictionary()
@@ -2541,7 +2541,7 @@ if __name__=='__setup__':
             #Odd circular dependancy
             try:
                 self.number = number or parent.cues_ordered[-1].number+5000
-            except:
+            except Exception:
                 self.number = 5000
             self.next_ll = None
             parent._addCue(self,f=f)
@@ -2680,7 +2680,7 @@ if __name__=='__setup__':
                 if self.shortcut in shortcut_codes:
                     try:
                         shortcut_codes[code].remove(self)
-                    except:
+                    except Exception:
                         pass
     
                 if random.random()<1:
@@ -2712,7 +2712,7 @@ if __name__=='__setup__':
     
             try:
                 value = float(value)
-            except:
+            except Exception:
                 pass
                 
             if isinstance(channel,(int,float)):
@@ -2727,7 +2727,7 @@ if __name__=='__setup__':
                 #We get a lot of raw user input that looks like that.
                 try:
                     channel=float(channel)
-                except:
+                except Exception:
                     pass
             else:
                 raise Exception("Only str or int channel numbers allowed")
@@ -2738,7 +2738,7 @@ if __name__=='__setup__':
             if isinstance(channel, str):
                 try:
                     channel=int(channel)
-                except:
+                except Exception:
                     pass
     
             
@@ -3141,7 +3141,7 @@ if __name__=='__setup__':
                 self.cues_ordered.sort(key=lambda i: i.number)
                 try:
                     self.cuePointer = self.cues_ordered.index(self.cue)
-                except:
+                except Exception:
                     pass
                 #Regenerate linked list by brute force when a new cue is added.
                 for i in range(len(self.cues_ordered)-1):
@@ -3153,7 +3153,7 @@ if __name__=='__setup__':
                 return self.defaultNext.strip()
             try:
                 return self.cues_ordered[self.cuePointer+1].name
-            except:
+            except Exception:
                 return None
         
     
@@ -3197,7 +3197,7 @@ if __name__=='__setup__':
                 if self.cue and self.name == cue:
                     try:
                         self.gotoCue("default",cause='deletion')
-                    except:
+                    except Exception:
                         self.gotoCue(self.cues_ordered[0].name,cause='deletion')
     
                 if cue in cues:
@@ -3222,7 +3222,7 @@ if __name__=='__setup__':
                         i().newDataFunctions.append(lambda s:s.link.send(["delcue",id]))
                 try:
                     self.cuePointer = self.cues_ordered.index(self.cue)
-                except:
+                except Exception:
                     pass
             #Regenerate linked list by brute force when a new cue is added.
             for i in range(len(self.cues_ordered)-1):
@@ -3351,7 +3351,7 @@ if __name__=='__setup__':
             if not cue in self.cues:
                 try:
                     cue = float(cue)
-                except:
+                except Exception:
                     raise ValueError("No such cue "+str(cue))
                 for i in self.cues_ordered:
                     if i.number-(float(cue)*1000)<0.001:
@@ -3458,7 +3458,7 @@ if __name__=='__setup__':
                         #Take rules from new cue, don't actually set this as the cue we are in
                         #Until we succeed in running all the rules that happen as we enter
                         self.refreshRules(cobj)
-                    except:
+                    except Exception:
                         rl_log_exc("Error handling script")
                         print(traceback.format_exc(6))
                     
@@ -3490,7 +3490,7 @@ if __name__=='__setup__':
                     for i in cuevars:
                         try:
                             self.scriptContext.setVar(i,self.evalExpr(cuevars[i]))
-                        except:
+                        except Exception:
                             print(traceback.format_exc())
                             rl_log_exc("Error with cue variable "+i)
     
@@ -3535,12 +3535,12 @@ if __name__=='__setup__':
                             sound = self.cue.sound
                             try:
                                 self.cueVolume = min(5, max(0,float(self.evalExpr(self.cue.soundVolume))))
-                            except:
+                            except Exception:
                                 self.event("script.error", self.name+" in cueVolume eval:\n"+traceback.format_exc())
                                 self.cueVolume=1
                             try:
                                 sound = self.resolveSound(sound)
-                            except:
+                            except Exception:
                                 print(traceback.format_exc())
     
                             if os.path.isfile(sound):
@@ -3668,7 +3668,7 @@ if __name__=='__setup__':
                 sound = c.sound
                 try:
                     sound = self.resolveSound(sound)
-                except:
+                except Exception:
                     return
                 if os.path.isfile(sound):
                     out = self.cue.soundOutput
@@ -3679,7 +3679,7 @@ if __name__=='__setup__':
     
                     try:
                         kaithem.sound.preload(sound, out)
-                    except:
+                    except Exception:
                         pass
     
         def resolveSound(self, sound):
@@ -3816,7 +3816,7 @@ if __name__=='__setup__':
                             try:
                                 self.cue_cached_alphas_as_arrays[universe][channel + (idx*chCount)] = 1.0 if not cuev==None else 0
                                 self.cue_cached_vals_as_arrays[universe][channel + (idx*chCount)] = evaled
-                            except:
+                            except Exception:
                                 print("err", traceback.format_exc())
                                 self.event("script.error", self.name+" cue "+cuex.name+" Val " +str((universe,channel))+"\n"+traceback.format_exc())
     
@@ -3871,14 +3871,14 @@ if __name__=='__setup__':
                 try:
                     for i in module.boards:
                         i().link.send(['scenetimers',self.id, self.runningTimers])
-                except:
+                except Exception:
                     rl_log_exc("Error handling timer set notification")
                 
     
         def onMqttMessage(self,topic,message):
             try:
                 self.event("$mqtt:"+topic, json.loads(message.decode("utf-8")))
-            except:
+            except Exception:
                 self.event("$mqtt:"+topic, message)
     
                 
@@ -4148,7 +4148,7 @@ if __name__=='__setup__':
                 try:
                     for i in self.affect:
                         rerenderUniverse(i)
-                except:
+                except Exception:
                     pass
     
         
@@ -4313,7 +4313,7 @@ if __name__=='__setup__':
                 try:
                     for i in self.affect:
                         rerenderUniverse(i)
-                except:
+                except Exception:
                     pass
         
                 self.affect = []
@@ -4331,7 +4331,7 @@ if __name__=='__setup__':
                 try:
                     for i in module.boards:
                         i().link.send(['scenetimers',self.id, self.runningTimers])
-                except:
+                except Exception:
                     rl_log_exc("Error handling timer set notification")
                     print(traceback.format_exc())
                 
@@ -4374,7 +4374,7 @@ if __name__=='__setup__':
             val = min(1,max(0,val))
             try:
                 self.cueVolume = min(5, max(0,float(self.evalExpr(self.cue.soundVolume))))
-            except:
+            except Exception:
                 self.event("script.error", self.name+" in cueVolume eval:\n"+traceback.format_exc())
                 self.cueVolume=1
     
@@ -4444,7 +4444,7 @@ if __name__=='__setup__':
                     #still not totally threadsafe
                     if x:
                         self.values[universe] =x
-            except:
+            except Exception:
                 pass
             self.valueschanged = {}
             

@@ -114,7 +114,7 @@ class GPIOTag():
                                    "Pin already in use, old connection closed. The old pin will no longer correctly. If the old connection is unwanted, ignore this.")
             try:
                 inUsePins[pin].mockAlert.clear()
-            except:
+            except Exception:
                 pass
             inUsePins[pin].close()
 
@@ -131,12 +131,12 @@ class GPIOTag():
     def close(self):
         try:
             self.realGpio.close()
-        except:
+        except Exception:
             pass
 
         try:
             self.fakeGpio.close()
-        except:
+        except Exception:
             pass
 
     def connectToPin(self, withclass, pin, *args, mock=None, **kwargs):
@@ -155,7 +155,7 @@ class GPIOTag():
             if self.realGpio:
                 try:
                     self.realGpio.close()
-                except:
+                except Exception:
                     pass
                 self.realGpio = None
 
@@ -172,7 +172,7 @@ class GPIOTag():
             if self.fakeGpio:
                 try:
                     self.fakeGpio.close()
-                except:
+                except Exception:
                     pass
                 self.fakeGpio = None
             try:
@@ -281,17 +281,17 @@ class DigitalOutput(GPIOTag):
         try:
             with lock:
                 del outputs[self.pin]
-        except:
+        except Exception:
             pass
 
         try:
             self.realGpio.close()
-        except:
+        except Exception:
             pass
 
         try:
             self.fakeGpio.close()
-        except:
+        except Exception:
             pass
         
 class PWMOutput(DigitalOutput):
@@ -360,17 +360,17 @@ class DigitalInput(GPIOTag):
         try:
             with lock:
                 del inputs[self.pin]
-        except:
+        except Exception:
             pass
 
         try:
             self.realGpio.close()
-        except:
+        except Exception:
             pass
 
         try:
             self.fakeGpio.close()
-        except:
+        except Exception:
             pass
 
     def setRawMockValue(self, value):

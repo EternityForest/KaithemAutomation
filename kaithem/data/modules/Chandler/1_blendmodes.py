@@ -50,10 +50,10 @@ if __name__=='__setup__':
     
         try:
             return blendmodes[mode].description
-        except:
+        except Exception:
             try:
                 return blendmodes[mode].__doc__
-            except:
+            except Exception:
                 return ""
     
     class BlendMode():

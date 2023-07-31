@@ -46,7 +46,7 @@ def checkIfProcessRunning(processName):
     '''
     try:
         import psutil
-    except:
+    except Exception:
         return False
 
     # Iterate over the all the running process

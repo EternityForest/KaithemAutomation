@@ -38,7 +38,7 @@ if __name__=='__setup__':
             #y should immediately be set back to 0 at the next polling cycle
             if x.pymodule.y == 1:
                     raise RuntimeError("Edge-Triggered Event did nothing")
-        except:
+        except Exception:
             print(x.pymodule.__dict__)
             raise
         finally:
@@ -143,7 +143,7 @@ if __name__=='__setup__':
     
         try:
                x.pymodule.y =1
-        except:
+        except Exception:
             #This might fail if the implementatino makes pymodule not exist anymore
             pass
     
@@ -160,7 +160,7 @@ if __name__=='__setup__':
     def runtest():
         try:
             theTest()
-        except:
+        except Exception:
             messagebus.postMessage("/system/notifications/errors",    traceback.format_exc(6))
         finally:
             newevt.removeOneEvent('testevt','testevt')

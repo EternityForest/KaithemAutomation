@@ -255,7 +255,7 @@ def webRoot():
                     f._kaithemFirstErrorMarker = True
                     messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
                         f) + " from " + str(f.__module__) + " to " + tag.name)
-        except:
+        except Exception:
             print(traceback.format_exc(chain=True))
 
     tagpoints.subscriberErrorHandlers = [tagErrorHandler]
@@ -279,7 +279,7 @@ def webRoot():
 
     try:
         from . import timesync
-    except:
+    except Exception:
         logger.exception("Could not start time sync module")
         messagebus.postMessage('/system/notifications/errors',
                                """Failed to initialize the time sync module or zeroconf discovery
@@ -329,7 +329,7 @@ def webRoot():
             import setproctitle
             setproctitle.setproctitle("kaithem")
             logger.info("setting process title")
-        except:
+        except Exception:
             logger.warning("error setting process title")
 
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
@@ -862,7 +862,7 @@ def webRoot():
             directories.rchown(directories.ssldir, config['run-as-user'])
             directories.rchown(directories.usersdir, config['run-as-user'])
             directories.rchown(directories.regdir, config['run-as-user'])
-        except:
+        except Exception:
             logger.exception("This is normal on non-unix")
 
     # If configured that way on unix, check if we are root and drop root.
@@ -894,7 +894,7 @@ def webRoot():
                                          localserver_name + "._https._tcp.local.",
                                          [None], cfg.config['https-port'], 0, 0, desc)
             r.register_service(info2)
-        except:
+        except Exception:
             logger.exception("Error advertising MDNS service")
 
     # Open a port to the outside world. Note that this can only be enabled through the webUI,

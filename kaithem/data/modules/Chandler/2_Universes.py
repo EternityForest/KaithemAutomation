@@ -110,7 +110,7 @@ if __name__=='__setup__':
                         if name in _universes and _universes[name]():
                             try:
                                 _universes[name]().close()
-                            except:
+                            except Exception:
                                 raise ValueError("Name "+name+ " is taken")
                     _universes[name] = weakref.ref(self)
                     module.universes = {i:_universes[i] for i in _universes if _universes[i]()}
@@ -306,7 +306,7 @@ if __name__=='__setup__':
         def setStatus(self,s,ok):
             try:
                 self.universe().setStatus(s,ok)
-            except:
+            except Exception:
                 pass
                 
         def connect(self):
@@ -339,7 +339,7 @@ if __name__=='__setup__':
                 time.sleep(0.1)
                 try:
                     self.port.close()
-                except:
+                except Exception:
                     pass
                 self.port = serial.Serial(p,57600, timeout=1.0, write_timeout=1.0)
     
@@ -360,7 +360,7 @@ if __name__=='__setup__':
             except Exception as e:
                 try:
                     self.setStatus('disconnected, '+str(e)[:100]+'...',False)
-                except:
+                except Exception:
                     pass
     
         def run(self):
@@ -375,7 +375,7 @@ if __name__=='__setup__':
                         if self.data is None:
                             try:
                                 self.port.close()
-                            except:
+                            except Exception:
                                 pass
                             return
                         self.port.write(self.data)
@@ -384,7 +384,7 @@ if __name__=='__setup__':
                 except Exception as e:
                     try:
                         self.port.close()
-                    except:
+                    except Exception:
                         pass
                     try:
                         if self.data is None:
@@ -403,7 +403,7 @@ if __name__=='__setup__':
                         time.sleep(3)
                         self.reconnect(portlist)
                         time.sleep(1)
-                    except:
+                    except Exception:
                         print("Sender thread exiting")
                         print(traceback.format_exc())
                         return
@@ -480,7 +480,7 @@ if __name__=='__setup__':
                     chname=''
                     try:
                         num = int(x[0].strip())
-                    except:
+                    except Exception:
                         num = len(self.claims)+1
                         chname = x[0].strip()
                     
@@ -522,7 +522,7 @@ if __name__=='__setup__':
                                 x *= self.tagObjsByNum[i].max- self.tagObjsByNum[i].min
                                 x+= self.tagObjsByNum[i].min
                         self.claims[i].set(x)
-                except:
+                except Exception:
                     rl_log_exc("Error in tagpoint universe")
                     print(traceback.format_exc())
     
@@ -588,7 +588,7 @@ if __name__=='__setup__':
                             if self.scheme=="pavillion":
                                 try:
                                     addr=kaithem.devices[self.addr].data['address']
-                                except:
+                                except Exception:
                                     time.sleep(3)
                                     continue
                             else:
@@ -597,7 +597,7 @@ if __name__=='__setup__':
                             self.frame.clear()
                         try:
                             self.sock.sendto(self.data, (addr, self.port))
-                        except:
+                        except Exception:
                             time.sleep(5)
                             raise
     
@@ -630,7 +630,7 @@ if __name__=='__setup__':
         def setStatus(self,s,ok):
             try:
                 self.universe().setStatus(s,ok)
-            except:
+            except Exception:
                 pass
     
         def onFrame(self,data,physical = None, universe=0):
@@ -704,7 +704,7 @@ if __name__=='__setup__':
         def setStatus(self,s,ok):
             try:
                 self.universe().setStatus(s,ok)
-            except:
+            except Exception:
                 pass
                 
         def connect(self):
@@ -737,7 +737,7 @@ if __name__=='__setup__':
                 time.sleep(0.1)
                 try:
                     self.port.close()
-                except:
+                except Exception:
                     pass
                 self.port = serial.Serial(p,baudrate=250000, timeout=1.0, write_timeout=1.0,stopbits=2)
     
@@ -755,7 +755,7 @@ if __name__=='__setup__':
             except Exception as e:
                 try:
                     self.setStatus('disconnected, '+str(e)[:100]+'...',False)
-                except:
+                except Exception:
                     pass
     
         def run(self):
@@ -768,7 +768,7 @@ if __name__=='__setup__':
                         if self.data is None:
                             try:
                                 self.port.close()
-                            except:
+                            except Exception:
                                 pass
                             return
                         
@@ -784,7 +784,7 @@ if __name__=='__setup__':
                 except Exception as e:
                     try:
                         self.port.close()
-                    except:
+                    except Exception:
                         pass
                     try:
                         if self.data is None:
@@ -799,7 +799,7 @@ if __name__=='__setup__':
                         time.sleep(1)
                         self.reconnect()
                         time.sleep(1)
-                    except:
+                    except Exception:
                         return
     
     
