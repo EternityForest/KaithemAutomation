@@ -216,7 +216,7 @@ sudo apt-get -y install hplip hplip-gui sane sane-utils xsane
 
 
 ## GUI Apps
-apt-get -y install  kmag qjackctl k3b
+apt-get -y install  kmag qjackctl k3b git-cola
 apt-get -y install gnome-screenshot gnome-system-monitor gnome-logs
 
 
