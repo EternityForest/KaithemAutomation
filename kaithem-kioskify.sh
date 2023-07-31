@@ -794,7 +794,7 @@ ln -s /var/log/ember-xsession-errors /home/$(id -un 1000)/.xsession-errors
 
 #/run should already be tmpfs on non-insane setups
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-media.mount
+cat << EOF > /etc/systemd/system/media.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -806,9 +806,9 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,nodev,noexec,mode=0755,size=1M
 EOF
 
-systemctl enable ember-tmpfs-media.mount
+systemctl enable media.mount
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-mnt.mount
+cat << EOF > /etc/systemd/system/mnt.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -820,10 +820,10 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,nodev,noexec,mode=0755,size=1M
 EOF
 
-systemctl enable ember-tmpfs-mnt.mount
+systemctl enable mnt.mount
 
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-tmp.mount
+cat << EOF > /etc/systemd/system/tmp.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -835,10 +835,10 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,nodev,mode=1777,size=256M
 EOF
 
-systemctl enable ember-tmpfs-tmp.mount
+systemctl enable tmp.mount
 
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-varlog.mount
+cat << EOF > /etc/systemd/system/var-log.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -850,12 +850,12 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0755,size=128M
 EOF
 
-systemctl enable ember-tmpfs-varlog.mount
+systemctl enable var-log.mount
 
 
 
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-logrotate.mount
+cat << EOF > /etc/systemd/system/var-lib-logrotate.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -868,9 +868,9 @@ Options=defaults,noatime,nosuid,mode=0755,size=32m
 EOF
 
 
-systemctl enable ember-tmpfs-logrotate.mount
+systemctl enable var-lib-logrotate.mount
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-sudo.mount
+cat << EOF > /etc/systemd/system/var-lib-sudo.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -882,11 +882,11 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0700,size=8m
 EOF
 
-systemctl enable ember-tmpfs-sudo.mount
+systemctl enable var-lib-sudo.mount
 
 
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-systemd.mount
+cat << EOF > /etc/systemd/system/var-lib-systemd.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -898,11 +898,11 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0755,size=64m
 EOF
 
-systemctl enable ember-tmpfs-systemd.mount
+systemctl enable var-lib-systemd.mount
 
 
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-chrony.mount
+cat << EOF > /etc/systemd/system/var-lib-chrony.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -914,10 +914,10 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0755,size=8m
 EOF
 
-systemctl enable ember-tmpfs-chrony.mount
+systemctl enable var-lib-chrony.mount
 
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-vartmp.mount
+cat << EOF > /etc/systemd/system/var-tmp.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -929,10 +929,10 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,mode=1777,size=128M
 EOF
 
-systemctl enable ember-tmpfs-vartmp.mount
+systemctl enable var-tmp.mount
 
 
-cat << EOF > /etc/systemd/system/ember-tmpfs-nm.mount
+cat << EOF > /etc/systemd/system/var-lib-NetworkManager.mount
 [Unit]
 Description=Flash saver ramdisk
 Before=local-fs.target
@@ -944,7 +944,7 @@ Type=tmpfs
 Options=defaults,noatime,nosuid,mode=0700,size=64M
 EOF
 
-systemctl enable ember-tmpfs-nm.mount
+systemctl enable var-lib-NetworkManager.mount
 
 
 
