@@ -72,6 +72,8 @@ sudo apt-get install -y git python3 python3-pip
 ! apt purge -y bluej
 ! apt purge -y rpi-wayland
 
+# Might need to use this if you get chrome file chooser crashes.  Should already be gone at start
+! apt purge -y xdg-desktop-portal
 
 ! pip3 uninstall mu-editor
 

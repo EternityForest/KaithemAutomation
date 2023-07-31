@@ -384,11 +384,7 @@ class Pipeline(iceflow.GstreamerPipeline):
                             (self.config.get('device.fps', '4') or '4') + "/1")
             self.addElement("videoconvert")
             self.addElement("queue", max_size_time=10000000)
-            try:
-                self.addElement("omxh264enc", interval_intraframes=int(
-                    (self.config.get('device.fps', '4') or '4')) * 2)
-            except Exception:
-                self.addElement("x264enc", tune="zerolatency",
+            self.addElement("x264enc", tune="zerolatency",
                                 rc_lookahead=0, bitrate=int(self.dev.config['device.bitrate']), key_int_max=int((self.config.get('device.fps', '4') or '4')) * 2)
             self.addElement(
                 "capsfilter", caps="video/x-h264, profile=main")
@@ -458,11 +454,7 @@ class Pipeline(iceflow.GstreamerPipeline):
                             (self.config.get('device.fps', '4') or '4') + "/1")
             self.addElement("videoconvert")
             self.addElement("queue", max_size_time=10000000)
-            try:
-                self.addElement("omxh264enc", interval_intraframes=int(
-                    (self.config.get('device.fps', '4') or '4')))
-            except Exception:
-                self.addElement("x264enc", tune="zerolatency",
+            self.addElement("x264enc", tune="zerolatency",
                                 rc_lookahead=0, bitrate=int(self.dev.config['device.bitrate']), 
                                 key_int_max=int((self.config.get('device.fps', '4') or '4')) * 2)
             self.addElement(
@@ -819,10 +811,7 @@ class NVRChannel(devices.Device):
                                 leaky=2)
         self.process.addElement("capsfilter", caps="video/x-h264")
 
-        try:
-            self.process.addElement("omxh264dec")
-        except Exception:
-            self.process.addElement("avdec_h264")
+        self.process.addElement("avdec_h264")
         # self.process.addElement("videorate",drop_only=True)
         # self.process.addElement("capsfilter", caps="video/x-raw,framerate=1/1")
 
