@@ -317,8 +317,31 @@ Type=simple
 WantedBy=multi-user.target
 EOF
 
+# Make the audio work out of the box.  This is where we intercept the Chromium kiosk audio
+
+mkdir -p /home/$(id -un 1000)/kaithem/system.mixer/presets/
+cat << EOF > /home/$(id -un 1000)/kaithem/system.mixer/presets/default.yaml
+Kiosk:
+  channels: 2
+  effects:
+  - displayType: Fader
+    help: The main fader for the channel
+    id: f26c3ef7-61bf-4154-87b4-98eb874252ee
+    params: {}
+    type: fader
+  fader: -1.5
+  input: PipeWire ALSA [chromium-browser]
+  level: -17.6
+  mute: false
+  output: bcm2835 Headphones
+  soundFuse: 3
+  type: audio
+EOF
+
 
 systemctl enable kaithem.service
+
+
 
 
 ## Start in Kiosk mode, Kaithem's opinionated way is to do signage through the web
@@ -372,6 +395,10 @@ export XDG_CACHE_HOME=/dev/shm/kiosk-temp-cache
 if xrandr | grep -q "1920x1080"; then
     DISPLAY=:0 xrandr -s 1920x1080
 fi
+
+
+# We don't do sound here, we intercept in kaithem so we have remote control of the effects
+export PIPEWIRE_NODE=dummy_name
 
 
 while true

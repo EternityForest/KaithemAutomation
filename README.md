@@ -70,12 +70,11 @@ Set your homepage to redirect to that link, you should be done!
 
 #### Signage with audio
 
-If you don't get any audio from the signage display, it is probably because you're using Chrome is choosing the wrong output and your speakers are on the HDMI device.
+Audio is managed through the Kaithem mixer.  It should work out of the box if you're using the headphone jack.
 
-Either try a different one, or go to the Kaithem mixer, make a new channel, set "PipeWire ALSA [chromium-browser]" as the input, and 
-make the output the correct device, to forward it on.
+Otherwise if using HDMI, or if you want to remotely adjust volume, go to the mixer and make sure that channel has the output you want selected, and that the input matches Chromium's name. You can also add effects like EQ from this page.  Don't forget to save the setup as the default!
 
-Be careful though, most likely your audio is just going to annoy people if it's not very quiet!!
+
 
 
 ## NixOS
