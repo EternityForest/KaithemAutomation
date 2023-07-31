@@ -2235,7 +2235,7 @@ def _checkJackClient(err=True):
 
             if not postedCheck:
                 postedCheck=True
-                messagebus.postMessage("/system/jack/started", {})
+                messagebus.postMessage("/system/jack/started", "")
             
             return True
         except Exception:
@@ -2244,7 +2244,7 @@ def _checkJackClient(err=True):
             if firstConnect:
                 print(traceback.format_exc())
                 firstConnect = True
-                
+
             print("Remaking client")
             try:
                 _jackclient.close()

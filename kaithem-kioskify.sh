@@ -325,7 +325,7 @@ systemctl enable kaithem.service
 
 
 # HW Acceleration
-sudo apt-get -y install libgles2-mesa libgles2-mesa-dev xorg-dev
+# sudo apt-get -y install libgles2-mesa libgles2-mesa-dev xorg-dev
 
 
 # Bye bye to the screen savier.

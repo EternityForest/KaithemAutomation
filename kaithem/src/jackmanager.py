@@ -64,32 +64,13 @@ def checkIfProcessRunning(processName):
 pipewireprocess1 = None
 pipewireprocess2 = None
 
-jackWasRuning = [0]
-
-# Assume pipewire is good enough to be jack
-if checkIfProcessRunning("pipewire"):
-    messagebus.postMessage("/system/jack/started", "Actually, it's pipewire")
 
 
-def reloadSettings():
-    global pipewireprocess1, pipewireprocess2
 
-    # Let pipewire do it all for us!!
-    scullery.jacktools.useAdditionalSoundcards = "no"
-    scullery.jacktools.usePulse = True
-    scullery.jacktools.dummy = False
-
-    scullery.jacktools.manageJackProcess = False
-
-    if checkIfProcessRunning("jackd"):
-        messagebus.postMessage("/system/jack/started", "External JACK")
-        jackWasRuning[0] = 1
-
-    elif checkIfProcessRunning("pipewire"):
-        messagebus.postMessage("/system/jack/started", "External JACK")
-        jackWasRuning[0] = 1
+scullery.jacktools.useAdditionalSoundcards = "no"
+scullery.jacktools.usePulse = True
+scullery.jacktools.dummy = False
+scullery.jacktools.manageJackProcess = False
 
 
-scullery.jacktools.settingsReloader = reloadSettings
-
-reloadSettings()
+scullery.jacktools.startManaging()

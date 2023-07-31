@@ -43,7 +43,7 @@
 
 
 <div class="video-container">
-    <video id="video" src="${vid}" loop autoplay ${'muted' if mute else ''}> </video>
+    <video id="video" src="${vid}" loop autoplay ${'muted' if mute else ''} onclick="document.getElementById('video').play()"> </video>
 </div>
 
 
