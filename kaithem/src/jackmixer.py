@@ -798,7 +798,7 @@ class MixingBoard():
         self.channelAlerts = {}
         self.lock = threading.RLock()
         self.channelStatus = {}
-        self.running = checkIfProcessRunning("jackd")
+        self.running = checkIfProcessRunning("pipewire") or checkIfProcessRunning("jackd")
 
         def f(t, v):
             self.running = True
@@ -912,7 +912,7 @@ class MixingBoard():
         self.pushStatus(name,'loading')
 
         if not self.running:
-            if not checkIfProcessRunning("pipewire"):
+            if not (checkIfProcessRunning("pipewire") or checkIfProcessRunning("jackd")):
                 return
             else:
                 self.running = True
