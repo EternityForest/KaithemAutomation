@@ -82,6 +82,11 @@ git lfs pull
 ! rm -r /home/$(id -nu 1000)/MagPi/*.pdf
 ! rm -r /home/$(id -nu 1000)/Bookshelf/Beginners*.pdf
 
+# No more swap to wear the disk!!!
+! sudo apt-get purge -y dphys-swapfile
+
+
+
 apt autoremove -y --purge
 
 
@@ -793,6 +798,41 @@ ln -s /var/log/ember-xsession-errors /home/$(id -un 1000)/.xsession-errors
 
 
 #/run should already be tmpfs on non-insane setups
+
+#Before we cover it up, remove whats already there so it doesn't waste space forever
+! rm /home/$(id -un 1000)/.cache/lxsession/LXDE-pi/run.log
+
+mkdir -p /home/$(id -un 1000)/.cache/lxsession/
+
+cat << EOF > /etc/systemd/system/home-$(id -un 1000)-.cache-lxsession.mount
+[Unit]
+Description=Flash saver ramdisk
+Before=local-fs.target
+
+[Mount]
+What=tmpfs
+Where=/home/$(id -un 1000)/.cache/lxsession/
+Type=tmpfs
+Options=defaults,noatime,nosuid,nodev,noexec,mode=0755,size=32M
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable home-$(id -un 1000)-.cache-lxsession.mount
+
+
+cat << EOF > /etc/logrotate.d/lxsessionrunlog
+/home/$(id -un 1000)/.cache/lxsession/LXDE-pi/run.log {
+  rotate 2 
+  daily
+  compress
+  missingok
+  notifempty
+}
+EOF
+
+
 
 cat << EOF > /etc/systemd/system/media.mount
 [Unit]
