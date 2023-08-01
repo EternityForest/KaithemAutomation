@@ -55,6 +55,36 @@ def setRedirect(url):
     redirects['/']['url'] = url
     persist.save(redirects, redirectsfn, private=True)
 
+
+
+displayfn = os.path.join(directories.vardir, "core.settings", "display.toml")
+
+if os.path.exists(displayfn):
+    display = persist.load(displayfn)
+else:
+    display = {
+            "__first__": {
+                "rotate": ""
+            }
+        }
+
+def setScreenRotate(direction):
+    if not direction in ('','left','right','normal','invert'):
+        raise RuntimeError("Security!!!")
+    os.system('''DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate '''+direction)
+    display['__first__']['rotate'] = direction
+    persist.save(display, displayfn, private=True)
+
+
+if display.get('__first__',{}).get('rotate',''):
+    try:
+        os.system("DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate "+  display.get('__first__',{}).get('rotate',''))
+    except Exception:
+        pass
+
+
+
+
 NULL = 0
 
 # https://gist.github.com/liuw/2407154
@@ -515,6 +545,13 @@ class Settings():
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         setRedirect(kwargs['url'])
+        raise cherrypy.HTTPRedirect('/settings/system')
+    
+    @cherrypy.expose
+    def changerotationtarget(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
+        setScreenRotate(kwargs['rotate'])
         raise cherrypy.HTTPRedirect('/settings/system')
     
 

@@ -69,6 +69,63 @@ This lets you make the root go to a different page.  Use /index to access the no
 </section>
 
 
+<h2>Screen Rotate</h2>
+<section>
+    <form method="POST" action="/settings/changerotationtarget">
+
+<label>Rotate<select name="rotate">
+    <p class="help">
+
+        Sets the screen rotation.  You should not use this on multi-display systems, the result is undefined
+        as to which one it will affect.  This may be fixed later.
+    </p>
+            <option value=""
+            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='':
+            selected\
+            %endif
+            >
+            Unset
+            </option>
+
+            <option value="left"
+            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='left':
+            selected\
+            %endif
+            >
+            Left
+            </option>
+
+            <option value="right"
+            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='right':
+            selected\
+            %endif
+            >
+            Right
+            </option>
+
+            <option value=""
+            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='invert':
+            selected\
+            %endif
+            >
+            Invert
+            </option>
+
+            <option value="normal"
+            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='normal':
+            selected\
+            %endif
+            >
+            Normal
+            </option>
+        </select></label>
+        <input type="submit" >
+
+    </form>
+</section>
+
+
+
 <h2>Server Location</h2>
 <section>
 <p class="help">

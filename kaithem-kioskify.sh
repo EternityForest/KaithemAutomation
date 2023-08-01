@@ -286,7 +286,7 @@ EOF
 cat << EOF > /etc/systemd/system/kaithem.service
 [Unit]
 Description=KaithemAutomation python based automation server
-After=basic.target time-sync.target sysinit.service zigbee2mqtt.service pipewire.service
+After=basic.target time-sync.target sysinit.service zigbee2mqtt.service pipewire.service graphical.target pipewire-media-session.service
 
 
 [Service]

@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.68.47
+- :bug: MOre robust responsive video
+
 ### 0.68.46
 - :bug: Video signage auto restart fixes
 - 
