@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.68.44
+- :sparkles: Digital signage chrome error resillience
+- :bug: New versions of NumPy needed a fix for the NVR labels file loading
+
 ### 0.68.44
 - :bug: Faster and more reliable jackmixer startup
 - :sparkles: Improve kioskify

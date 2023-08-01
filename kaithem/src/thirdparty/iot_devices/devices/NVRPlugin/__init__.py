@@ -128,9 +128,15 @@ def recognize_tflite(i, r):
             path, "efficientdet/efficientdet-lite0-f32.tflite"))
         objectDetector[0].allocate_tensors()
 
+    # Sigh.  So many breaking changes to watch for!
+    # https://stackoverflow.com/questions/74379966/typeerror-text-reading-control-character-must-be-a-single-unicode-character-or
     if objectDetector[1] is None:
-        objectDetector[1] = numpy.loadtxt(os.path.join(
-            path, "labelmap.txt"), dtype=str, delimiter="/n")
+        try:
+            objectDetector[1] = numpy.loadtxt(os.path.join(
+                path, "labelmap.txt"), dtype=str, delimiter="/n")
+        except Exception:
+            objectDetector[1] = numpy.genfromtxt(os.path.join(
+                path, "labelmap.txt"), dtype=str, delimiter="/n")
 
     interpreter = objectDetector[0]
     labels = objectDetector[1]
