@@ -46,7 +46,7 @@
     <video id="video" src="${vid}" loop autoplay ${'muted' if mute else ''} onclick="document.getElementById('video').play()"> </video>
 </div>
 
-
+<script>
 view = videoElement = document.getElementById('video')
         
 lastPostion = 0
@@ -82,6 +82,8 @@ function checkStalled(){
         }
         lastPostion = videoElement.currentTime
 }
+
+</script>
 
 
 setInterval(checkStalled, 8000)

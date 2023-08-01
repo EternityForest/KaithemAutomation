@@ -195,7 +195,7 @@ EOF
 
 
 apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip xdotool neofetch
-apt-get -y install vim-tiny units git wget htop lsof  git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs
+apt-get -y install vim-tiny units git wget htop lsof  git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs dstat sysstat
 
 # For accessing CDs
 apt-get -y install  python3-cdio
