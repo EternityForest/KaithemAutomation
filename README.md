@@ -188,7 +188,9 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
-
+### 0.68.46
+- :bug: Video signage auto restart fixes
+- 
 ### 0.68.45
 - :sparkles: Digital signage chrome error resillience
 - :bug: New versions of NumPy needed a fix for the NVR labels file loading
