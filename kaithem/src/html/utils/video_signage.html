@@ -47,4 +47,43 @@
 </div>
 
 
+view = videoElement = document.getElementById('video')
+        
+lastPostion = 0
+count = 0
+function checkStalled(){
+        if(videoElement.currentTime == lastPostion){
+                view.play()
+                count +=1;
+
+        }
+        else
+        {
+            count =0;
+        }
+
+        if((count >2) && ((count%3) == 0) )
+        {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+
+                    // This a potential big issue because if the server is down it might not ever reload.
+                    // So first we have to check to see if the server is back.
+
+                    // There is still race conditions and edge cases but really the server should always
+                    // be there, it's just localhost.
+                    window.location.reload()
+                }
+            };
+            xhttp.open("GET", window.location.href, true);
+            xhttp.send();
+
+        }
+        lastPostion = videoElement.currentTime
+}
+
+
+setInterval(checkStalled, 8000)
+
 <%include file="/pagefooter.html"/>
