@@ -5,10 +5,11 @@ import yaml
 %>
 
 <datalist id="l">
-    <option>/static/css/kaithem_scrapbook_green.css</option>
-    <option>/static/css/fugit.css</option>
-    <option>/static/css/kaithem_simple_dark.css</option>
+    %for i in theming.cssthemes:
+        <option>${i|h}</option>
+    %endfor
 </datalist>
+
 <h2>Theme</h2>
 <section>
 <form method="post" action="/settings/settheming">
@@ -16,6 +17,13 @@ import yaml
     <input list="l" value="${theming.file['web']['csstheme']}" name="cssfile"></label>
 <input type="submit">
 </form>
+
+<h3>Known Themes</h3>
+<ul>
+    %for i in theming.cssthemes:
+        <li>${i|h}</li>
+    %endfor
+</ul>
 </section>
 
 

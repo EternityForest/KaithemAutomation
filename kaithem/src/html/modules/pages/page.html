@@ -1,6 +1,6 @@
 <%!
 from kaithem.src.util import url
-from kaithem.src import auth,pages, modules_interface
+from kaithem.src import auth,pages, modules_interface, theming
 from kaithem.src import usrpages,pages,util
 from kaithem.src.config import config
 import cherrypy,traceback
@@ -30,6 +30,11 @@ page['code'] = page.get('code','')
 </script>
 %endif
 
+<datalist id="themes">
+    %for i in theming.cssthemes:
+        <option>${i|h}</option>
+    %endfor
+</datalist>
 
 <script>
 function setTab(t)
@@ -433,7 +438,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\
         %endif
-       ></input>Allow cross-origin requests from(comma separated, * means any)<
+       ></input>Allow cross-origin requests from(comma separated, * means any)
 <%
 origins = ""
 if 'allow-origins' in page:
@@ -448,11 +453,11 @@ else:
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\
         %endif
-        ></input>
+        ></input><br>
 
 
-        <label>Theme CSS
-            <input type="text"  name="themecss"
+        <label>Theme
+            <input type="text"  name="themecss" list="themes"
                     value= "${page.get('theme-css-url','')|h}"
                     %if not pages.canUserDoThis("/admin/modules.edit"):
                                 disabled=1\
@@ -464,18 +469,16 @@ else:
 
 <p class="help"><span class="permission-icon"></span>Require the following permissions to access this page</p>
 <div class="scrollbox">
-<ul>
 %for i in sorted(auth.Permissions.keys()):
-    <li> <input type="checkbox"  name="Permission${i}" value="true"
+    <p> <input type="checkbox"  name="Permission${i}" value="true"
         %if i in requiredpermissions:
             checked="yes"
         %endif
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\
         %endif
-        ></input>${i|h}</li>
+        ></input>${i|h}</p>
 %endfor
-</ul>
 </div>
 %if usrpages.getPageErrors(module,name):
 %if (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):

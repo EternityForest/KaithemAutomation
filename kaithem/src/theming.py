@@ -30,5 +30,29 @@ def saveTheme(*a,**k):
     persist.unsavedFiles.pop(fn,"")
 
 
+
+import weakref
+
+cssthemes = weakref.WeakValueDictionary()
+
+class Theme():
+    def __init__(self,name,css_url:str= '') -> None:
+        self.css_url = css_url
+        cssthemes[name]=self
+
+scrapbook = Theme("scrapbook", "/static/css/kaithem_scrapbook_green.css")
+fugit = Theme("fugit", "/static/css/fugit.css")
+simple_dark = Theme("simple_dark", "/static/css/kaithem_simple_dark.css")
+
 def getCSSTheme():
-    return file['web']['csstheme'] or config['theme-url']
+    x = file['web']['csstheme'] or config['theme-url']
+
+    try:
+        if x in cssthemes:
+            return cssthemes[x].css_url
+
+        else:
+            return x
+    except:
+        return None
+

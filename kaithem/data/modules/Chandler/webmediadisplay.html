@@ -3,15 +3,18 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
+code: ''
 mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1663464839189665
+resource-timestamp: 1690988087141429
 resource-type: page
+setupcode: ''
 streaming-response: false
 template-engine: mako
+theme-css-url: ''
 
 ---
 <%! 
@@ -26,23 +29,59 @@ __doc__="#Python Code here runs every page load"
   body{
 background-color:  black;
 color: white;
+text-align: center;
 }
 </style>
 <script src="/static/widget.js"></script>
 
+<style>
+    body{
+        background-color: black;
+        overflow: hidden;
+        margin: 0px;
+        padding:0opx;
+    }
+.video-container {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%; 
+    overflow: hidden;
+    margin: 0px;
+    padding: 0px;
+  }
+  .video-container video,.video-container img {
+    width: 100%; 
+    margin: 0px;
+    padding: 0px;
 
-  <video id="v" style="width: 100%; max-height: 100%" controls></video>
-  <audio id='a'></audio>
+    height: auto;
+    max-height: 100%;
+
+    /* Center the video */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+  }
+</style>
+
 
 
   ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
+
+<div class="video-container">
+  <video id="v" style="width: 100%; max-height: 100%" controls></video>
+  <audio id='a'></audio>
+  <img id='i' style="max-width: 100%; max-height: 100%;"></img>
+</div>
+
 <script>
 
-
-
-
       atypes = ['.ogg', '.m4a', '.mp3', '.opus']
+      itypes = ['.png', '.jpg','.bmp','.tiff']
 
       lastSrc = ''
 
@@ -58,6 +97,7 @@ function f(v)
 {
     var a =  document.getElementById('a')
     var vid = document.getElementById('v')
+    var img = document.getElementById('i')
 
   
   if(v[0]=='volume')
@@ -69,6 +109,7 @@ function f(v)
   if(v[0]=='mediaURL')
   {
     isSound=0
+    isPicture = 0
     
     if(v[1] == null)
     {
@@ -76,8 +117,20 @@ function f(v)
       vid.pause();
       vid.style.display='none'
       a.style.display='none'
+      img.style.display='none'
+
       return
     }
+
+    for(i of itypes)
+    {
+      if (v[1].indexOf(i) >-1)
+      {
+        isPicture = true;
+      }
+    }
+    
+    
     for(i of atypes)
     {
       if (v[1].indexOf(i) >-1)
@@ -98,6 +151,13 @@ function f(v)
       a.style.display=''
       m= a
     }
+    else if(isPicture)
+    {
+      a.style.display='none'
+      vid.pause();
+      vid.style.display = 'none'
+      m= img
+    }
     else
     {
       a.controls=false
@@ -106,7 +166,7 @@ function f(v)
       vid.style.display = ''
       try
       {
-      vid.requestFullscreen();
+        vid.requestFullscreen();
       }
       catch(e)
       {
@@ -126,6 +186,8 @@ function f(v)
         m.src=x
       }
 
+
+    if(!isPicture){
       //detect restart
       if(lastTime<m.currentTime)
       {
@@ -186,13 +248,13 @@ function f(v)
       {
       if(dt< m.duration)
       {
-      m.play().catch(function (e)
+        m.play().catch(function (e)
             {
-              link.send(['error', e.toString()])
               console.log(e)
             })
             }
             }
+          }
     }
     catch(e)
     {

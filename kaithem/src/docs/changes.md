@@ -2,8 +2,10 @@ Change Log
 ----------
 
 ### 0.68.47
-- :bug: MOre robust responsive video
-
+- :bug: More robust responsive video
+- :sparkles: Screen rotation setting in web UI
+- :sparkles: Work on a proper theme chooser engine
+- 
 ### 0.68.46
 - :bug: Video signage auto restart fixes
 - 
