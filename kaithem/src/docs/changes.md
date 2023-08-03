@@ -2,6 +2,10 @@ Change Log
 ----------
 
 ### 0.68.47
+- :coffin: Remove the Chandler tag permissions system, as it is too complex to properly assess the security model. It can now access any tag.
+- :sparkles: JACK mixer has a noise gate now
+
+### 0.68.47
 - :bug: More robust responsive video
 - :sparkles: Screen rotation setting in web UI
 - :sparkles: Work on a proper theme chooser engine

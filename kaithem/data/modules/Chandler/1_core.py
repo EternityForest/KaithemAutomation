@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1671835407677572
+resource-timestamp: 1691096609996605
 resource-type: event
 versions: {}
 
@@ -24,8 +24,6 @@ if __name__=='__setup__':
     
     module.config ={
         'soundFolders': [],
-        'allowAllTags': False,
-        'netTime': False
     }
     
     saveLocation = os.path.join(kaithem.misc.vardir,"chandler")

@@ -3,16 +3,19 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
+code: ''
 dont-show-in-index: false
 mimetype: text/html
 no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [/admin/modules.edit, users.chandler.admin]
-resource-timestamp: 1663194419820648
+resource-timestamp: 1691097922149610
 resource-type: page
+setupcode: ''
 streaming-response: false
 template-engine: mako
+theme-css-url: ''
 
 ---
 <%!
@@ -39,13 +42,6 @@ if request.method=="POST":
     <p class="help">Auto-discover an NTP server for lighting control using MDNS. Note that every kaithem instance acts as an NTP server as well. Changing this with running scenes may
         cause odd behaviour, but shouldn't cause a crash. If no NTP server is found, uses system time as normal. This is a global setting for the entire lighting subsystem.
     </p>
-
-        <label><input name="allTags" type="checkbox"
-        %if module.config.get("allowAllTags",False):
-        checked="1"
-        %endif
-        
-        >Allow cue logic to access any tagpoint? Be careful who has permission to edit cues!</label><br>
         <p class="help">Enter the sound folders here, as full paths, one per line.
         </p>
         <textarea name="folders">${'\n'.join(module.config['soundFolders'])}</textarea>

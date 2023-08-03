@@ -1,5 +1,15 @@
 #!/bin/bash
 
+
+#   _  __     _ _   _                      _  ___           _    _  __        
+#  | |/ /    (_) | | |                    | |/ (_)         | |  (_)/ _|       
+#  | ' / __ _ _| |_| |__   ___ _ __ ___   | ' / _  ___  ___| | ___| |_ _   _  
+#  |  < / _` | | __| '_ \ / _ \ '_ ` _ \  |  < | |/ _ \/ __| |/ / |  _| | | | 
+#  | . \ (_| | | |_| | | |  __/ | | | | | | . \| | (_) \__ \   <| | | | |_| | 
+#  |_|\_\__,_|_|\__|_| |_|\___|_| |_| |_| |_|\_\_|\___/|___/_|\_\_|_|  \__, | 
+#                                                                       __/ | 
+#                                                                      |___/  
+
 # This script turns a fresh Pi OS or similar image into a Kaithem embedded controller.  It is a stripped down version
 # of code developed for the EmberOS project, which is on hold because I'm busy and hoping NixOS gets ready for prime time soon.
 # Source error handling, leave this in place
@@ -119,10 +129,6 @@ sudo systemctl mask apt-daily-upgrade
 sudo systemctl mask apt-daily.service
 sudo systemctl mask apt-daily.timer
 
-systemctl mask systemd-update-utmp.service
-systemctl mask systemd-random-seed.service
-systemctl disable systemd-update-utmp.service
-systemctl disable systemd-random-seed.service
 sudo systemctl disable apt-daily-upgrade.timer
 sudo systemctl disable apt-daily.timer
 sudo systemctl disable apt-daily.service
@@ -348,6 +354,12 @@ systemctl enable kaithem.service
 
 
 
+#        _           _    
+#   /\ /(_) ___  ___| | __
+#  / //_/ |/ _ \/ __| |/ /
+# / __ \| | (_) \__ \   < 
+# \/  \/|_|\___/|___/_|\_\
+                        
 
 ## Start in Kiosk mode, Kaithem's opinionated way is to do signage through the web
 
@@ -430,6 +442,12 @@ autologin-user-timeout=0
 EOF
 
 
+#      __     _                      _                                             
+#   /\ \ \___| |___      _____  _ __| | __ /\/\   __ _ _ __   __ _  __ _  ___ _ __ 
+#  /  \/ / _ \ __\ \ /\ / / _ \| '__| |/ //    \ / _` | '_ \ / _` |/ _` |/ _ \ '__|
+# / /\  /  __/ |_ \ V  V / (_) | |  |   </ /\/\ \ (_| | | | | (_| | (_| |  __/ |   
+# \_\ \/ \___|\__| \_/\_/ \___/|_|  |_|\_\/    \/\__,_|_| |_|\__,_|\__, |\___|_|   
+#                                                                  |___/           
 
 ## Switch to NetworkManager
 ####################################################################################################################################
@@ -765,11 +783,21 @@ EOF
 
 
 
-
+#   __    ___     ___           _            _   _             
+#  / _\  /   \   / _ \_ __ ___ | |_ ___  ___| |_(_) ___  _ __  
+#  \ \  / /\ /  / /_)/ '__/ _ \| __/ _ \/ __| __| |/ _ \| '_ \ 
+#  _\ \/ /_//  / ___/| | | (_) | ||  __/ (__| |_| | (_) | | | |
+#  \__/___,'   \/    |_|  \___/ \__\___|\___|\__|_|\___/|_| |_|
+                                                             
 
 # Try and make the SD card not wear out.
 ###################################################################################################
 
+
+systemctl mask systemd-update-utmp.service
+systemctl mask systemd-random-seed.service
+systemctl disable systemd-update-utmp.service
+systemctl disable systemd-random-seed.service
 
 ! systemctl disable systemd-readahead-collect.service
 ! systemctl disable systemd-readahead-replay.service

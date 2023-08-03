@@ -873,6 +873,46 @@ effectTemplates_data = {
         "gstSetup":
             {},
     },
+
+    "noiseGate":
+    {
+        "displayType": "Noise Gate",
+        "type": "noiseGate",
+        "monoGstElement": "ladspa-caps-so-noisegate",
+        'help': "Basic Noise Gate. From the CAPS plugins.",
+        "params": {
+            "open": {
+                "type": "float",
+                "displayName": "Open",
+                "value": -41.25,
+                "min": -55,
+                "max": 0,
+                "step": 0.25,
+                "sort": 0
+            },
+            "close": {
+                "type": "float",
+                "displayName": "Close",
+                "value": -41.25,
+                "min": -80,
+                "max": 0,
+                "step": 0.25,
+                "sort": 0
+            },            
+            
+            "attack": {
+                "type": "float",
+                "displayName": "Attack",
+                "value": 0,
+                "min": 0,
+                "max": 5,
+                "step": 1,
+                "sort": 0
+            },
+        },
+        "gstSetup":
+            {},
+    },
     "gverb":
     {
         "displayType": "GVerb",
