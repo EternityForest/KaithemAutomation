@@ -40,6 +40,12 @@ git lfs pull
 ! sudo usermod -a -G rtkit $(id -un 1000)
 
 
+#    ___ _                              
+#   / __\ | ___  __ _ _ __  _   _ _ __  
+#  / /  | |/ _ \/ _` | '_ \| | | | '_ \ 
+# / /___| |  __/ (_| | | | | |_| | |_) |
+# \____/|_|\___|\__,_|_| |_|\__,_| .__/ 
+#                                |_|    
 
 ## Get rid of really big packages we don't need that are mostly nonfree
 ####################################################################################################################
@@ -101,6 +107,12 @@ apt autoremove -y --purge
 
 
 
+#         _          
+#   /\/\ (_)___  ___ 
+#  /    \| / __|/ __|
+# / /\/\ \ \__ \ (__ 
+# \/    \/_|___/\___|
+                   
 
 # Misc setup
 ##############################################
@@ -196,6 +208,14 @@ EOF
 
 
 
+
+#        _   _ _ _ _   _           
+#  /\ /\| |_(_) (_) |_(_) ___  ___ 
+# / / \ \ __| | | | __| |/ _ \/ __|
+# \ \_/ / |_| | | | |_| |  __/\__ \
+#  \___/ \__|_|_|_|\__|_|\___||___/
+                                 
+
 ## Utils you can probably expect to want
 #########################################################################
 
@@ -241,7 +261,7 @@ apt-get -y install gnome-screenshot gnome-system-monitor gnome-logs
 sudo apt-get install libatlas-base-dev libjasper-dev
 
 
-sudo apt -y install mpv libmpv-dev python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage
+sudo apt -y install scrot mpv libmpv-dev python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage python3-setproctitle
 python3 -m pip install tflite-runtime 
 
 mkdir -p /home/$(id -un 1000)/kaithem
@@ -329,8 +349,11 @@ WantedBy=multi-user.target
 EOF
 
 # Make the audio work out of the box.  This is where we intercept the Chromium kiosk audio
+# But we do not want to overwrite an existig preset!
+if [ ! -f /home/$(id -un 1000)/kaithem/system.mixer/presets/ ]; then
 
 mkdir -p /home/$(id -un 1000)/kaithem/system.mixer/presets/
+
 cat << EOF > /home/$(id -un 1000)/kaithem/system.mixer/presets/default.yaml
 Kiosk:
   channels: 2
@@ -349,6 +372,7 @@ Kiosk:
   type: audio
 EOF
 
+fi
 
 systemctl enable kaithem.service
 
@@ -676,6 +700,14 @@ addr-gen-mode=eui64
 dns-search=
 method=auto
 EOF
+
+
+#    ___ _                     _          
+#   / _ (_)_ __   _____      _(_)_ __ ___ 
+#  / /_)/ | '_ \ / _ \ \ /\ / / | '__/ _ \
+# / ___/| | |_) |  __/\ V  V /| | | |  __/
+# \/    |_| .__/ \___| \_/\_/ |_|_|  \___|
+#         |_|                             
 
 ## Switch to Pipewire
 #####################################################################################################################

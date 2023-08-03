@@ -444,15 +444,17 @@ def webRoot():
                     return serve_file(os.path.join(directories.vardir, "static", "index.html"))
                                   
             try:
-                dir = os.path.join('/', *args)[1:]
+                dir = '/'.join(args)
                 if ".." in dir:
                     raise RuntimeError("Security violation")
                 
                 dir = os.path.join(directories.vardir, "static", dir)
+
                 if os.path.isfile(dir):
                     return serve_file(dir)
                 else:
-                    x = '\r\n'.join(['<a href="' +i + '">'+i+"</a><br>" for i in os.listdir(dir)])
+                    x = [(i+"/" if os.path.isdir(os.path.join(dir,i)) else i)  for i in os.listdir(dir) ]
+                    x = '\r\n'.join(['<a href="'+i + '">'+i+"</a><br>" for i in x])
                     return(x)
             except Exception:
                 return (traceback.format_exc())

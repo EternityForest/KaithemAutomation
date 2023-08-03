@@ -178,6 +178,18 @@ class Settings():
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
+    
+
+    @cherrypy.expose
+    def screenshot(self):
+        pages.require("/admin/settings.edit")
+        try:
+            os.remove("/dev/shm/kaithem_temp_screenshot.jpg")
+        except Exception:
+            pass
+
+        os.system("scrot -F /dev/shm/kaithem_temp_screenshot.jpg")
+        return serve_file("/dev/shm/kaithem_temp_screenshot.jpg")
 
     @cherrypy.expose
     def upnp(self, *a, **k):
