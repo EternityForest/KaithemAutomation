@@ -127,7 +127,7 @@
 .buttonbar h3,
 .buttonbar h4,
 .buttonbar h5,
-
+.buttonbar label,
 .buttonbar meter,
 .buttonbar input[type=submit] {
     background: var(--buttonbar-convex-item-bg);
@@ -162,7 +162,6 @@
 .buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button):first-child,
 .buttonbar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form):first-child :first-child {
     border-radius: var(--buttonbar-border-radius) 0px 0px var(--buttonbar-border-radius);
-    padding: 4px;
 }
 
 .buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button):last-child,

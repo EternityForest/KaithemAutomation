@@ -1,0 +1,96 @@
+@import "kaithem_minimal.css";
+
+/* Using a string */
+
+@import "kaithem_fuge_icons.css";
+
+/* Using a string */
+
+html {
+    background:  radial-gradient(circle, rgba(255,244,181,0.32816876750700286) 0%, rgba(32,42,11,0.5606617647058824)), url(/static/img/pergament-papier-hintergrund-braun.jpg);
+    background-size: cover, unset;
+    background-repeat: repeat, repeat;
+    min-height: 100vh;
+    padding: 0px;
+    margin: 0px;
+    box-sizing: border-box;
+}
+
+ ::selection {
+    background: rgba(168, 170, 59, 0.431);
+    color: rgb(70, 45, 19);
+}
+
+
+
+body {
+    color: #520f02;
+    --box-bg: rgba(228, 233, 227, 0.6);
+}
+
+
+
+.buttonbar {
+    box-shadow: 1px 5px 12px -3px rgba(43, 39, 85, 0.329);
+    background-color: #d9dee079;
+    background-image: url(/static/img/stone-texture-i.jpg);
+
+}
+
+.menubar:is(.buttonbar), .navbar .buttonbar, .buttonbar {
+    --buttonbar-convex-item-bg: linear-gradient(180deg, rgb(225 225 225 / 91%) 0%, rgb(191 191 191 / 87%) 96%);
+    --buttonbar-concave-item-bg: linear-gradient(180deg, rgb(191 191 191 / 74%) 96%,  rgb(225 225 225 / 78%) 0%);
+}
+
+/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
+
+div.sectionbox,
+section {
+    border-style: solid;
+    background: var(--box-bg);
+    border-width: 1px;
+    border-radius: 15px;
+    backdrop-filter: blur(1px);
+    border-color: #00000059;
+}
+
+
+button,
+a.button,
+input[type="submit"] {
+    border-radius: 12px;
+    border: 1px solid;
+    background:  linear-gradient(179deg, rgb(255 255 255 / 70%), rgb(156 167 156)),url(/static/img/stone-texture-i.jpg);
+    border-color: #00000057;
+    color: #520f02;
+}
+
+a {
+    color: rgba(82, 20, 5);
+    text-shadow: 0 0 1px rgb(215 237 255);
+    text-decoration: none;
+    color: #520f02;
+}
+
+
+/* ===== Scrollbar CSS ===== */
+  /* Firefox */
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: #a05460 #8e8c71;
+  }
+
+  /* Chrome, Edge, and Safari */
+  *::-webkit-scrollbar {
+    width: 16px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #8e8c71;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: #a05460;
+    border-radius: 10px;
+    border: 1px solid #000000;
+  }
