@@ -120,6 +120,15 @@
 .buttonbar select,
 .buttonbar button,
 .buttonbar a,
+.buttonbar p,
+.buttonbar h1,
+
+.buttonbar h2,
+.buttonbar h3,
+.buttonbar h4,
+.buttonbar h5,
+
+.buttonbar meter,
 .buttonbar input[type=submit] {
     background: var(--buttonbar-convex-item-bg);
 }
@@ -153,6 +162,7 @@
 .buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button):first-child,
 .buttonbar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form):first-child :first-child {
     border-radius: var(--buttonbar-border-radius) 0px 0px var(--buttonbar-border-radius);
+    padding: 4px;
 }
 
 .buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button):last-child,
@@ -179,14 +189,10 @@
 
 /*The boder puts an ugly white line on the meter*/
 
-.buttonbar>*:not(meter) {
+.buttonbar>*:not(meter), .buttonbar > form >*:not(meter) {
     border: var(--buttonbar-element-border);
-    background: var( --buttonbar-convex-item-bg);
 }
 
-.buttonbar meter {
-    background: var( --buttonbar-convex-item-bg);
-}
 
 .buttonbar input:not([type="submit"]) {
     border: var(--buttonbar-element-border);
@@ -200,7 +206,6 @@
     border-left: var(--buttonbar-element-border) !important;
     border-right: var(--buttonbar-element-border) !important;
     border-color: rgba(170, 170, 170, 0.445) !important;
-    background: var(--buttonbar-concave-item-bg);
 }
 
 

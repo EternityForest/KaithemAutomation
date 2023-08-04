@@ -43,6 +43,8 @@ class Theme():
 scrapbook = Theme("scrapbook", "/static/css/kaithem_scrapbook_green.css")
 fugit = Theme("fugit", "/static/css/fugit.css")
 simple_dark = Theme("simple_dark", "/static/css/kaithem_simple_dark.css")
+simple_dark = Theme("banderole", "/static/css/banderole.css")
+
 
 def getCSSTheme():
     x = file['web']['csstheme'] or config['theme-url']

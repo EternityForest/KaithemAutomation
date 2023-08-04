@@ -6,6 +6,7 @@ Change Log
 - :sparkles: JACK mixer has a noise gate now
 - :sparkles: Link on settings page to take screenshot of server(Useful for checking on signage)
 - :bug: Fix hang at shutdown
+- :sparkles: New Banderole theme, probably the best example to learn theming
 
 
 ### 0.68.47
