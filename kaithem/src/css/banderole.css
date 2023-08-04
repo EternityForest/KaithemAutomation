@@ -22,6 +22,10 @@ html {
 }
 
 
+p::first-letter,h1::first-letter,h2::first-letter{
+  color: #873807;
+  text-shadow: 1px 1px 1px rgba(29,76,200,0.6);
+}
 
 body {
     color: #520f02;
@@ -46,12 +50,12 @@ body {
 
 div.sectionbox,
 section {
-    border-style: solid;
+    border-style: double;
     background: var(--box-bg);
-    border-width: 1px;
-    border-radius: 15px;
+    border-width: 10px;
+    border-radius: 5px;
     backdrop-filter: blur(1px);
-    border-color: #00000059;
+    border-color: #656641;
 }
 
 
@@ -94,3 +98,8 @@ a {
     border-radius: 10px;
     border: 1px solid #000000;
   }
+
+
+  button:active, a.button:active,.buttonbar button:active,.buttonbar a.button:active {
+    background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+}

@@ -91,7 +91,7 @@
 
 .buttonbar :is(h1, h2, h3, h4, h5, h6, label) {
     margin: 0px;
-    padding: 0px;
+    padding: 4px;
     vertical-align: middle;
     display: flex;
 }
@@ -142,15 +142,7 @@
     display: flex;
 }
 
-.buttonbar :is(h1, h2, h3, h4, h5, h6) {
-    margin: 0px;
-    padding: 0px;
-}
 
-.buttonbar> :is(h1, h2, h3, h4, h5, h6)>* {
-    margin: 0px;
-    padding: 0px;
-}
 
 
 /*Exception: the first item always growable so it can be the title*/
