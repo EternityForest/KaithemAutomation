@@ -4,25 +4,65 @@ import sys
 import os
 import importlib
 import json
-import copy 
+import copy
 import logging
+import threading
+import traceback
 from typing import Dict, Type
 
 
-_known_device_types: Dict[str, Dict]= {}
+_known_device_types: Dict[str, Dict] = {}
 """
 Cache of discovered data about devices
 """
 
 
 # Programmatically generated device classes go here
-device_classes= weakref.WeakValueDictionary()
+device_classes = weakref.WeakValueDictionary()
 """
 This dict lets you programmatically add new devices
 """
 
 
-def discover() -> Dict[str,Dict]:
+app_exit_functions = []
+"""
+These are called on exit
+"""
+
+app_exit_lock = threading.Lock()
+
+already_did_cleanup = False
+
+
+def app_exit_cleanup(*a,**k):
+    """
+        Called by the host to clean up all devices
+    """
+    global already_did_cleanup
+    with app_exit_lock:
+        if not already_did_cleanup:
+            already_did_cleanup = True
+
+            for i in app_exit_functions:
+                if callable(i):
+                    try:
+                        i()
+                    except Exception:
+                        print(traceback.format_exc())
+
+
+def app_exit_register(f):
+    """
+        A device type plugin registers a cleanup function here
+    """
+    with app_exit_lock:
+        if already_did_cleanup:
+            f()
+        else:
+            app_exit_functions.append(f)
+
+
+def discover() -> Dict[str, Dict]:
     """Search system paths for modules that have a devices manifest.
 
     Returns:
@@ -34,7 +74,7 @@ def discover() -> Dict[str,Dict]:
         importable: The full module(including the submodule) you would import to get the class to build this device.
 
         classname: The name of the class you would import
-    
+
     """
 
     paths = copy.deepcopy(sys.path)
@@ -46,7 +86,7 @@ def discover() -> Dict[str,Dict]:
         if not os.path.isdir(i):
             continue
         for d in os.listdir(i):
-            folder = os.path.join(i,d)
+            folder = os.path.join(i, d)
             if os.path.isdir(folder):
                 if os.path.isfile(os.path.join(folder, "devices_manifest.json")):
                     try:
@@ -57,14 +97,14 @@ def discover() -> Dict[str,Dict]:
                         for dev in d['devices']:
                             _known_device_types[dev] = d['devices'][dev]
 
-                            #Special case handling devices included in this library for demo purposes.
-                            modulename =os.path.basename(folder)
-                            if os.path.dirname(folder)== here:
-                                modulename= "iot_device"
+                            # Special case handling devices included in this library for demo purposes.
+                            modulename = os.path.basename(folder)
+                            if os.path.dirname(folder) == here:
+                                modulename = "iot_device"
 
-                            x = d['devices'][dev].get("submodule",None)
+                            x = d['devices'][dev].get("submodule", None)
                             if x:
-                                modulename=modulename+"."+x
+                                modulename = modulename + "." + x
 
                             _known_device_types[dev]['importable'] = modulename
 
@@ -74,7 +114,8 @@ def discover() -> Dict[str,Dict]:
                             if not 'classname' in _known_device_types[dev]:
                                 _known_device_types[dev]['classname'] = dev
                     except:
-                        logging.exception("Error with devices manifest in: "+folder)
+                        logging.exception(
+                            "Error with devices manifest in: " + folder)
     return _known_device_types
 
 
@@ -96,14 +137,14 @@ def get_class(data) -> Type:
     if not t in _known_device_types:
         discover()
 
-    classname =  _known_device_types[t].get("classname",t)
+    classname = _known_device_types[t].get("classname", t)
 
     m = _known_device_types[t]['importable']
-    module  =  importlib.import_module(m)
+    module = importlib.import_module(m)
     return module.__dict__[classname]
 
 
-def get_description(t:str) -> str:
+def get_description(t: str) -> str:
     """
     Return the description for a device given it's type.  Automatically search all system paths.
 
@@ -113,7 +154,7 @@ def get_description(t:str) -> str:
         discover()
 
     try:
-        return  _known_device_types[t].get("description",t)
+        return _known_device_types[t].get("description", t)
     except KeyError:
         return "No description"
 

@@ -15,12 +15,15 @@ all_devs = weakref.WeakValueDictionary()
 mqttlock = threading.Lock()
 
 import iot_devices.device as devices
-
+import iot_devices.host as host
+stopFlag = [0]
 
 def scan():
     while 1:
+        if stopFlag[0]:
+            break
         time.sleep(10)
-        with lock:
+        if lock.acquire(timeout=1):
             try:
                 for i in all_devs:
                     # If the last signal was very strong, we don't need to wait as long before considering
@@ -34,9 +37,17 @@ def scan():
             except Exception:
                 logging.exception("RTL err")
 
+            finally:
+                lock.release()
 
-t = threading.Thread(target=scan, name="RTL433Task")
+
+t = threading.Thread(target=scan, name="RTL433Task", daemon=True)
 t.start()
+
+def stop():
+    stopFlag[0]= 1
+
+host.app_exit_register(stop)
 
 
 from mako.lookup import TemplateLookup

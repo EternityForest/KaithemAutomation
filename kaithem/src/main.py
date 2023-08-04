@@ -81,12 +81,17 @@ from . import statemachines
 from . import auth
 from . import directories
 
+import iot_devices.host
+
 from .config import config
 from . import config as cfg
 import mako.exceptions
 import cherrypy
 from cherrypy.lib.static import serve_file
 import logging
+
+
+cherrypy.engine.subscribe("stop", iot_devices.host.app_exit_cleanup)
 
 from . import version_info
 __version__ = version_info.__version__
@@ -455,7 +460,7 @@ def webRoot():
                 else:
                     x = [(i+"/" if os.path.isdir(os.path.join(dir,i)) else i)  for i in os.listdir(dir) ]
                     x = '\r\n'.join(['<a href="'+i + '">'+i+"</a><br>" for i in x])
-                    return(x)
+                    return x
             except Exception:
                 return (traceback.format_exc())
 

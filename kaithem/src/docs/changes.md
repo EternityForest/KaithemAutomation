@@ -5,6 +5,8 @@ Change Log
 - :coffin: Remove the Chandler tag permissions system, as it is too complex to properly assess the security model. It can now access any tag.
 - :sparkles: JACK mixer has a noise gate now
 - :sparkles: Link on settings page to take screenshot of server(Useful for checking on signage)
+- :bug: Fix hang at shutdown
+
 
 ### 0.68.47
 - :bug: More robust responsive video

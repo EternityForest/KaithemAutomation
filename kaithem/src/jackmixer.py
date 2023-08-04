@@ -893,6 +893,7 @@ class MixingBoard():
             try:
                 self._createChannelAttempt(name, data, wait=(3**i + 4))
                 self.channelAlerts[name].release()
+                self.pushStatus(name, "running")
                 break
             except Exception as e:
                 self.channelAlerts[name].trip("Failed to load channel")
@@ -900,7 +901,6 @@ class MixingBoard():
                 self.pushStatus(name, "failed " +str(e))
                 time.sleep(1)
         
-        self.pushStatus(name, "running")
 
 
     def _createChannelAttempt(self, name, data=channelTemplate,wait=3):
@@ -957,6 +957,7 @@ class MixingBoard():
         if name in self.channels:
             del self.channels[name]
         if name in self.channelAlerts:
+            self.channelAlerts[name].release()
             del self.channelAlerts[name]
         if name in self.channelObjects:
             self.channelObjects[name].stop()

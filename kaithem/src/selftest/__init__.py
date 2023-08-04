@@ -24,10 +24,10 @@ def memtest():
     for i in range(5):
         x=os.urandom(128)
 
-        x1=x*1024*128
-        x2=x*1024*128
+        x1=list(x*1024*128)
+        x2=list(x*1024*128)
         #Wait a bit, in case it's a time retention thing
-        time.sleep(10)
+        time.sleep(1)
         if not x1==x2:
             messagebus.postMessage("/system/notifications/errors","Memory may be corrupt")
 
@@ -108,7 +108,7 @@ def runtest():
         testpersist.test()
         mathtest()
         #netTest()
-        t= threading.Thread(target=memtest)
+        t= threading.Thread(target=memtest, daemon=True)
         t.daemon=True
         t.start()
         logging.info("Self test was sucessful")
