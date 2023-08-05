@@ -7,7 +7,7 @@
 /* Using a string */
 
 html {
-    background:  radial-gradient(circle, rgba(255,244,181,0.32816876750700286) 0%, rgba(32,42,11,0.5606617647058824)), url(/static/img/pergament-papier-hintergrund-braun.jpg);
+    background:  radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.jpg);
     background-size: cover, unset;
     background-repeat: repeat, repeat;
     min-height: 100vh;
@@ -17,35 +17,65 @@ html {
 }
 
  ::selection {
-    background: rgba(168, 170, 59, 0.431);
+    background: rgba(168, 170, 59, 0.123);
     color: rgb(70, 45, 19);
 }
 
 
-p::first-letter,h1::first-letter,h2::first-letter{
-  color: #873807;
-  text-shadow: 1px 1px 1px rgba(29,76,200,0.6);
+p::first-letter,h1::first-letter,h2::first-letter,h3::first-letter, h1 *::first-letter,h2 *::first-letter,h3 *::first-letter{
+  color: #b51c00;
+  font-weight: bold;
 }
+
+
 
 body {
-    color: #520f02;
-    --box-bg: rgba(228, 233, 227, 0.6);
+    color: black;
+    --box-bg: rgba(228, 233, 227, 0.103);
 }
 
+div.card {
+  border-style: solid;
+  background: transparent; 
+  border-width: 1px;
+  border-color: rgba(65, 85, 27, 0.39);
+  border-radius: 15px;
+  backdrop-filter:none;
+}
+
+.highlight {
+  color: rgb(33 121 33);
+  border-color: rgb(33 121 33);
+
+  background-color: transparent;
+  border-width: 3px;
+}
 
 
 .buttonbar {
-    box-shadow: 1px 5px 12px -3px rgba(43, 39, 85, 0.329);
-    background-color: #d9dee079;
-    background-image: url(/static/img/stone-texture-i.jpg);
+    box-shadow: none;
+    background: transparent;
+    text-shadow: none;
+    font-weight: 500;
 
+}
+
+.buttonbar *{
+  border-color: #520f02;
+  text-shadow: none;
 }
 
 .menubar:is(.buttonbar), .navbar .buttonbar, .buttonbar {
-    --buttonbar-convex-item-bg: linear-gradient(180deg, rgb(225 225 225 / 91%) 0%, rgb(191 191 191 / 87%) 96%);
-    --buttonbar-concave-item-bg: linear-gradient(180deg, rgb(191 191 191 / 74%) 96%,  rgb(225 225 225 / 78%) 0%);
+    --buttonbar-convex-item-bg: transparent;
+    --buttonbar-concave-item-bg: transparent;
+    --buttonbar-element-border:  2px solid #5c2b0d;
+
 }
 
+
+div.menubar{
+  background-color: transparent;
+}
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
 div.sectionbox,
@@ -59,21 +89,20 @@ section {
 }
 
 
-button,
-a.button,
-input[type="submit"] {
-    border-radius: 12px;
-    border: 1px solid;
-    background:  linear-gradient(179deg, rgb(255 255 255 / 70%), rgb(156 167 156)),url(/static/img/stone-texture-i.jpg);
-    border-color: #00000057;
-    color: #520f02;
-}
-
 a {
     color: rgba(82, 20, 5);
     text-shadow: 0 0 1px rgb(215 237 255);
     text-decoration: none;
     color: #520f02;
+}
+
+
+
+
+div.widgetcontainer {
+  background-color: rgba(70, 90, 70, 0);
+  border-style: solid;
+  border-color: inherit;
 }
 
 
@@ -102,4 +131,104 @@ a {
 
   button:active, a.button:active,.buttonbar button:active,.buttonbar a.button:active {
     background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+}
+
+input, button,textarea,select{
+  background-color: transparent;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #5c1705;
+  border-radius: 12px;
+}
+
+
+input[type=range] {
+  width: 100%;
+  margin: 13.8px 0;
+  background-color: transparent;
+  -webkit-appearance: none;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  background: #a62000;
+  border: 0.2px solid #010101;
+  border-radius: 1.3px;
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  margin-top: -14px;
+  width: 16px;
+  height: 36px;
+  background: #12a900;
+  border: 3px solid #666b4b;
+  border-radius: 30px;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: #c02500;
+}
+input[type=range]::-moz-range-track {
+  background: #a62000;
+  border: 0.2px solid #010101;
+  border-radius: 1.3px;
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+}
+input[type=range]::-moz-range-thumb {
+  width: 16px;
+  height: 36px;
+  background: #12a900;
+  border: 3px solid #666b4b;
+  border-radius: 30px;
+  cursor: pointer;
+}
+input[type=range]::-ms-track {
+  background: transparent;
+  border-color: transparent;
+  border-width: 13.8px 0;
+  color: transparent;
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+}
+input[type=range]::-ms-fill-lower {
+  background: #8d1b00;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+}
+input[type=range]::-ms-fill-upper {
+  background: #a62000;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+}
+input[type=range]::-ms-thumb {
+  width: 16px;
+  height: 36px;
+  background: #12a900;
+  border: 3px solid #666b4b;
+  border-radius: 30px;
+  cursor: pointer;
+  margin-top: 0px;
+  /*Needed to keep the Edge thumb centred*/
+}
+input[type=range]:focus::-ms-fill-lower {
+  background: #a62000;
+}
+input[type=range]:focus::-ms-fill-upper {
+  background: #c02500;
+}
+/*TODO: Use one of the selectors from https://stackoverflow.com/a/20541859/7077589 and figure out
+how to remove the virtical space around the range input in IE*/
+@supports (-ms-ime-align:auto) {
+  /* Pre-Chromium Edge only styles, selector taken from hhttps://stackoverflow.com/a/32202953/7077589 */
+  input[type=range] {
+    margin: 0;
+    /*Edge starts the margin from the thumb, not the track as other browsers do*/
+  }
 }

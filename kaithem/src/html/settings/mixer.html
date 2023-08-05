@@ -31,8 +31,7 @@ import os
     }
 
     div.effect {
-      border-style: solid;
-      border-width: 1px;
+
       border-radius: 8px;
       margin: 0.5em;
     }
@@ -170,20 +169,25 @@ import os
           </div>
           
           <div class="buttonbar">
-          <p>In:</p><input v-model="channel.input" list="outports"
-            v-on:input="setInput(channelname, $event.target.value)">
+          <label>In:<input v-model="channel.input" list="outports"
+            v-on:input="setInput(channelname, $event.target.value)"></label>
+
           </div>
           <div class="chain">
             <div v-for="effect, index in channel.effects" class="effect">
+              <details>
+                <summary>              <div class="menubar buttonbar">
+                  <p v-bind:title="effect.id">
+                    <b>{{effect.displayType}}</b>
+                  </p>
+                  <button v-on:click="moveEffectUp(channelname, index)">Up</button>
+                  <button v-on:click="moveEffectDown(channelname, index)">Down</button>
+                  <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
+                </div>
+                </summary>
 
-              <div class="menubar buttonbar">
-                <p v-bind:title="effect.id">
-                  <b>{{effect.displayType}}</b>
-                </p>
-                <button v-on:click="moveEffectUp(channelname, index)">Up</button>
-                <button v-on:click="moveEffectDown(channelname, index)">Down</button>
-                <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
-              </div>
+
+
               <table style="width:98%;margin:auto;" border=1>
                 <tr v-for="param in sortedParams(effect.params)" class="param">
                   <template v-if="param.type=='float'">
@@ -252,6 +256,7 @@ import os
 
                 </tr>
               </table>
+            </details>
 
             </div>
 

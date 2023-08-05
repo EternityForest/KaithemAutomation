@@ -15,7 +15,7 @@
     align-items: stretch;
     --buttonbar-border-radius: 12px;
     border-radius: var(--buttonbar-border-radius);
-    min-height: 28px;
+    min-height: var(--buttonbar-height);
     margin: 4px;
     flex-grow: 1;
     vertical-align: middle;
@@ -29,6 +29,8 @@
     --buttonbar-concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
     --buttonbar-convex-item-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.096) 96%);
     --buttonbar-active-item-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+    --buttonbar-height: 28px;
+
 }
 
 .multibar .buttonbar {
@@ -51,9 +53,8 @@
 
 .buttonbar * {
     box-sizing: border-box;
-    min-height: 100%;
     font-size: inherit;
-    max-height: 28px;
+    height: var(--buttonbar-height);
 }
 
 .buttonbar :is(a, a.button, select, input, meter, button) {
@@ -66,6 +67,7 @@
     padding: 4px;
     flex-basis: fit-content;
 }
+
 
 .buttonbar :only-child {
     flex-grow: 1;
@@ -81,7 +83,7 @@
     flex-basis: fit-content;
 }
 
-.buttonbar form :is(button, input[type=button]) {
+.buttonbar form :is(button, input[type=button], select) {
     flex-grow: 1;
 }
 
@@ -89,9 +91,21 @@
     border: none;
 }
 
+
+.buttonbar :is(h1, h2, h3, h4, h5, h6) {
+        margin: 0px;
+        padding: 0px;
+}
+     
+.buttonbar> :is(h1, h2, h3, h4, h5, h6)>* {
+    margin: 0px;
+    padding: 0px;
+}
+
+
 .buttonbar :is(h1, h2, h3, h4, h5, h6, label) {
     margin: 0px;
-    padding: 4px;
+    padding: 0px;
     vertical-align: middle;
     display: flex;
 }
@@ -101,6 +115,9 @@
     margin: 0px;
 }
 
+.buttonbar > p {
+    padding: 0px;
+}
 
 /*P is not growable */
 
@@ -185,13 +202,13 @@
 }
 
 
-.buttonbar input:not([type="submit"]) {
+.buttonbar input:not([type="submit"]){
     border: var(--buttonbar-element-border);
     background: var(--buttonbar-concave-item-bg);
     box-shadow: inset 0px 0px 4px 2px #3838383b
 }
 
-.buttonbar label input:not([type="submit"]) {
+.buttonbar label input:not([type="submit"]){
     border-top: 3px solid !important;
     border-bottom: 3px solid !important;
     border-left: var(--buttonbar-element-border) !important;
