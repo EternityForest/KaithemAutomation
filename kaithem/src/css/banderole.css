@@ -16,6 +16,7 @@ html {
     box-sizing: border-box;
 }
 
+
  ::selection {
     background: rgba(168, 170, 59, 0.123);
     color: rgb(70, 45, 19);
@@ -61,14 +62,14 @@ div.card {
 }
 
 .buttonbar *{
-  border-color: #520f02;
+  border-color: #1d0702;
   text-shadow: none;
 }
 
 .menubar:is(.buttonbar), .navbar .buttonbar, .buttonbar {
     --buttonbar-convex-item-bg: transparent;
     --buttonbar-concave-item-bg: transparent;
-    --buttonbar-element-border:  2px solid #5c2b0d;
+    --buttonbar-element-border:  2px solid #361907;
 
 }
 
@@ -85,15 +86,14 @@ section {
     border-width: 10px;
     border-radius: 5px;
     backdrop-filter: blur(1px);
-    border-color: #656641;
+    border-color: #3b2e11;
 }
 
 
 a {
-    color: rgba(82, 20, 5);
+    color: rgb(87, 25, 63);
     text-shadow: 0 0 1px rgb(215 237 255);
     text-decoration: none;
-    color: #520f02;
 }
 
 
@@ -110,7 +110,7 @@ div.widgetcontainer {
   /* Firefox */
   * {
     scrollbar-width: auto;
-    scrollbar-color: #a05460 #8e8c71;
+    scrollbar-color: #6d363e #8e8c71;
   }
 
   /* Chrome, Edge, and Safari */
@@ -123,7 +123,7 @@ div.widgetcontainer {
   }
 
   *::-webkit-scrollbar-thumb {
-    background-color: #a05460;
+    background-color: #943d4a;
     border-radius: 10px;
     border: 1px solid #000000;
   }

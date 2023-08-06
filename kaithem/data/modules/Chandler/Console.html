@@ -17,12 +17,13 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1689718135192855
+resource-timestamp: 1691355436157309
 resource-type: page
 setupcode: "#Code Here runs once when page is first rendered. Good place for import\
   \ statements. \r\n__doc__= \"\"\r\nboardname = \"default\"\r\nimport json\r\n"
 streaming-response: false
 template-engine: mako
+theme-css-url: ''
 
 ---
 <datalist name="nextcueoptions" id="nextcueoptions">
@@ -573,11 +574,11 @@ template-engine: mako
         <table border="1">
 
             <tr>
-                <td>Name:</td>
+                <td>Name</td>
                 <td><input v-model="newfixname"></input>
                 </td>
             <tr>
-                <td>Type:</td>
+                <td>Type</td>
                 <td>
                     <select v-model="newfixtype">
                 <option v-for="(v,i) in fixtureClasses" v-bind:value="i">{{i}}</option>
@@ -585,18 +586,18 @@ template-engine: mako
 
                 </td>
             <tr>
-                <td>Universe:</td>
+                <td>Universe</td>
                 <td><input v-model="newfixuniverse" list="universes"></input>
                 </td>
             <tr>
-                <td>Address:</td>
+                <td>Address</td>
                 <td><input type="number" min=1 v-model="newfixaddr"></input>
                 </td>
         </table>
         <button v-on:click="addFixtureAssignment(newfixname,newfixtype,newfixuniverse, newfixaddr)">Add and Update</button>
 
         <div v-if="ferrs">
-            <h4>Errors:</h4>
+            <h4>Errors</h4>
             <pre>{{ferrs}}</pre>
         </div><br>
 
@@ -629,7 +630,7 @@ template-engine: mako
                 style="border-style:solid; border-width:1px;">
                 <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width: 100%">
 
-                        <span style="font-size: 150%;">{{i[1].name}}:</span><span v-if="i[1].ext" class="grey"> (external)</span>
+                        <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext" class="grey"> (external)</span>
                                     
 
                             <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>

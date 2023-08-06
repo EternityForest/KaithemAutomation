@@ -21,8 +21,8 @@ def getDesc():
 <section>
     <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
 
-MD5 Sum: <b>${getModuleHash(name)}</b></br>
-WordHash: <b>${getModuleWordHash(name)}</b></br>
+MD5 Sum: ${getModuleHash(name)}</br>
+WordHash: ${getModuleWordHash(name)}</br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file</a><br>
 <form action="/modules/module/${url(name)}/obj/module" method="post"><button>The module namespace object(requires edit permission, beware shoulder surfers)</button></form>
 </section>
@@ -69,8 +69,7 @@ temp_p+= i+'/'
 </p>
 
 
-<div class="menubar" style="width: 100%;">
-    <div class="buttonbar">
+<div class="buttonbar">
     <p><i class="icofont-ui-add"></i>Add:</p>
     <a class="button" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
     <a class="button" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
@@ -88,10 +87,8 @@ temp_p+= i+'/'
 
 
     <form style="display:inline-flex;" action="/modules/search/${url(name)}"><p><i class="icofont-ui-search"></p></i><input size=8 name="search" placeholder="Search this module"/><input  type=submit value="search"/></form>
-    </div>
+</div>
     
-    </div>
-
 <%!
 def get_time(ev):
   try:
@@ -125,30 +122,6 @@ def in_folder(r,f,n):
 %endif
 %for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: (module[x]['resource-type'],x)):
 %if in_folder(i,fullpath,name):
-
-%if isinstance(module[i],weakref.ref):
-    <%
-        x=module[i]()
-    %>
-    %if x:
-        %try:
-        <dt><b><span class="virtual">${util.split_escape(i,'/','\\')[-1]|h}(Virtual)</span></b></dt>
-        <dd>${module[i]().__html_repr__()}</dd>
-        %except Exception as e :
-        <dt></b><span class="virtual">${util.split_escape(i,'/','\\')[-1]|h}(Virtual)</span></b></dt>
-        <dd>ERROR:${e|h}</dd>
-        %endtry
-    %else:
-        <dt></b><span class="virtual">${util.split_escape(i,'/','\\')[-1]|h}(Virtual)</span></b></dt>
-        <dd>Deleted VirtualResource</dd>
-    %endif
-
-
-<%
-continue
-%>
-%endif
-
 
 %if not 'resource-type' in module[i]:
 <p class=error>OBJECT ${i|h} MISSING resource-type</p>
@@ -187,10 +160,10 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	  <dd>
 
           <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
-	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
+	       Trigger:  <code>${module[i]['trigger']|h}</code><br>
             %try:
 
-    		    <b>Last Ran:</b>
+    		    Last Ran:
     		    %if newevt.getEventLastRan(name,i):
     		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
     		    (${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
@@ -252,7 +225,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 
           <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
       %if 'require-permissions' in module[i] and module[i]['require-permissions']:
-	  <b>Permissions:</b>
+	  Permissions:
 
 	  %for x in module[i]['require-permissions']:
 	  <i class="icofont-key"></i>${x|h}
@@ -260,7 +233,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
       %endif
 
       %if 'require-method' in module[i]:
-      <i class="icofont-unlocked"></i><b>Access:</b> ${','.join(module[i]['require-method'])}
+      <i class="icofont-unlocked"></i>Access: ${','.join(module[i]['require-method'])}
       %endif
 	  </dd>
 	%endif

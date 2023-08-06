@@ -50,7 +50,7 @@ def getRTSPFromOnvif(c):
                 continue
 
             cw = p['VideoEncoderConfiguration']['Resolution']['Width']
-        selection= p
+        selection = p
 
     # Only do the net request after we know what we want to connect with.
     resp = c.media.GetStreamUri({

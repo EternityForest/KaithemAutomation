@@ -409,7 +409,7 @@ Currently this is only supported for the newer cross-framework devices.
 
         %if hasattr(obj.tagPoints[i],'meterWidget'):
         <h4>Current</h4>
-        ${obj.tagPoints[i].meterWidget.render()}
+        ${obj.tagPoints[i].meterWidget.render_as_span()}
 
         %elif hasattr(obj.tagPoints[i],'spanWidget'):
         <h4>Current</h4>

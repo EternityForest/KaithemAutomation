@@ -374,12 +374,7 @@ div.menubar {
     backdrop-filter: blur(3px);
 }
 
-button,
-a.button,
-label {
-    font-family: Lora;
-    text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
-}
+
 
 button,
 a.button,
@@ -531,7 +526,6 @@ div.widgetcontainer {
     padding: 0px;
     margin: 2px;
     vertical-align: text-top;
-    font-family: B612;
 }
 
 div.widgetcontainer>div.scrollbox {
@@ -542,9 +536,7 @@ div.widgetcontainer>div.scrollbox {
 /*Numeric Process Value. These spans are intended for displays of changing numbers.*/
 
 span.numericpv {
-    background-color: rgba(255, 255, 200, 0.30);
     cursor: crosshair;
-    font-family: B612;
 }
 
 div.sliderwidget {

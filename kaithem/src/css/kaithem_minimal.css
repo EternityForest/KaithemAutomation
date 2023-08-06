@@ -105,13 +105,37 @@ dd{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/Lato/lato-regular.woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+
+
+
+
+
 body {
-    font-family: Lora;
+    font-family: Lato;
     font-size: 18px;
     margin: 0px;
     --box-bg: rgba(0,0,0,0);
 }
 
+h1,h2,h3
+{
+    font-family: Lora;
+}
+
+h3 button, h3 a.button
+{
+    font-size: 100%;
+    font-family: Lora;
+}
 .nonavtopbannercontainer h1 {
     font-size: 100%;
 }
@@ -135,6 +159,14 @@ td select {
 
 td {
     padding: 1px;
+}
+
+
+button,
+a.button,
+label,
+a {
+    font-family: Lato;
 }
 
 
@@ -328,6 +360,23 @@ div.help {
     width: 3em;
     white-space: nowrap;
     display: inline-block;
+}
+
+
+
+p.help:hover,
+div.help:hover {
+    opacity: 100%;
+    font-size: 100%;
+    max-height: 100em;
+    max-width: 50em;
+    width: auto;
+    height: auto;
+    overflow: initial;
+    white-space: normal;
+    position: absolute;
+    background-color: white;
+    z-index: 100;
 }
 
 

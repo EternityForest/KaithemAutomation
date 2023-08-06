@@ -9,11 +9,12 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1690352782088733
+resource-timestamp: 1691354697763120
 resource-type: page
 setupcode: ''
 streaming-response: false
 template-engine: mako
+theme-css-url: ''
 
 ---
 <%!
@@ -180,8 +181,8 @@ import json
                         <div style="height: 98%; text-align:center;">
                             <div style="flex-direction: column; display: flex; text-align: center;">                                    
                                 
-                                <button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
-                                    {{i[1].name}}:<span v-if="i[1].ext" class="grey"> (external)</span>
+                                <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
+                                    {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span></h3>
                                                 
 
                                     <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span> 
@@ -247,7 +248,7 @@ import json
 
 
               <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; overflow:auto;">
-            <h3> Cues within {{editingScene.name}}
+            <h3>{{editingScene.name}}
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
                 </h3>
                 
