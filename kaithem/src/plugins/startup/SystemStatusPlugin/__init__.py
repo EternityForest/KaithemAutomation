@@ -2,7 +2,7 @@ import threading
 from kaithem.src import util, alerts, scheduling, tagpoints, messagebus
 import subprocess
 import logging
-
+import os
 
 undervoltageDuringBootPosted = False
 overTempDuringBootPosted = False
@@ -63,7 +63,7 @@ if battery:
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged or 0
-    acPowerTag.subtype='bool'
+    acPowerTag.subtype = 'bool'
     acPowerTag.setAlarm(
         "runningOnBattery", "(not value) and (tv('/system/power/batteryLevel')< 80)", priority='info')
 
@@ -115,7 +115,7 @@ if psutil:
                             space = psutil.disk_usage(p.mountpoint).free
                         except OSError:
                             continue
-                        if (full > 90 and space < (10**9*50)) or full > 95:
+                        if (full > 90 and space < (10**9 * 50)) or full > 95:
                             diskAlerts[id].trip()
                         if full < 80:
                             diskAlerts[id].release()
@@ -149,7 +149,8 @@ if psutil:
                 # Fix the name
                 tempTags[i] = tagpoints.Tag(
                     tagpoints.normalizeTagName("/system/sensors/temp/" + i, "_"))
-                tempTags[i].setAlarm("temperature", "value>78", releaseCondition="value<65")
+                tempTags[i].setAlarm(
+                    "temperature", "value>78", releaseCondition="value<65")
                 tempTags[i].setAlarm("lowtemperature", "value<5")
 
                 tempTags[i].unit = 'degC'
@@ -246,51 +247,46 @@ if util.which("vcgencmd"):
     checkPiFlags()
 
 
-import os
+
+ledDefaults: dict[str, str] = {}
+
+refs = []
+ledtags = {}
 
 
-ledDefaults = ['0', '0']
+def makeLedTagIfNonexistant(f, n):
+    if n in ledtags:
+        return
 
-def setLed0WithSudo(v,t,a):
-    if v>0.5:
-        v=255
-    elif f< 0:
-        v = ledDefaults[1]
-    else:
-        v=0
+    if os.path.exists(f):
+        def setLedWithSudo(v, t, a):
+            if v > 0.5:
+                v = 255
+            elif f < 0:
+                v = ledDefaults[n]
+            else:
+                v = 0
 
-    os.system('sudo bash -c  "echo '+str(v)+ ' >  /sys/class/leds/led0/brightness"')
+            os.system('sudo bash -c  "echo ' + str(v) + ' > ' + n + '"')
+        refs.append(setLedWithSudo)
 
-def setLed1WithSudo(v,t,a):
-    if v>0.5:
-        v=255
-    elif f< 0:
-        v = ledDefaults[1]
-    else:
-        v=0
+        with open(f) as f:
+            ledDefaults[n] = f.read()
+        t = tagpoints.Tag(n)
+        t.value = -1
+        t.min = -1
+        t.max = 1
+        t.subtype = "tristate"
+        t.subscribe(setLedWithSudo)
+        ledtags[n] = t
 
-    os.system('sudo bash -c  "echo '+str(v)+ ' >  /sys/class/leds/led1/brightness"')
 
+makeLedTagIfNonexistant(
+    "/sys/class/leds/led1/brightness", "/system/board/leds/pwr")
+makeLedTagIfNonexistant("/sys/class/leds/PWR/brightness",
+                        "/system/board/leds/pwr")
 
-if os.path.exists("/sys/class/leds/led0/brightness"):
-    with open("/sys/class/leds/led0/brightness") as f:
-        ledDefaults[0] = f.read()
-    t = tagpoints.Tag("/system/board/leds/0")
-    t.value = -1
-    t.min = -1
-    t.max = 1
-    t.subtype = "tristate"
-    t.subscribe(setLed0WithSudo)
-    ledtag0 = t
-
-if os.path.exists("/sys/class/leds/led1/brightness"):
-    with open("/sys/class/leds/led1/brightness") as f:
-        ledDefaults[1] = f.read()
-
-    t = tagpoints.Tag("/system/board/leds/0")
-    t.value = -1
-    t.min = -1
-    t.max = 1
-    t.subtype = "tristate"
-    t.subscribe(setLed0WithSudo)
-    ledtag1 = t
+makeLedTagIfNonexistant(
+    "/sys/class/leds/led0/brightness", "/system/board/leds/act")
+makeLedTagIfNonexistant("/sys/class/leds/ACT/brightness",
+                        "/system/board/leds/act")
