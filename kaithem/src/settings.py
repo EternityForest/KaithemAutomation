@@ -188,7 +188,7 @@ class Settings():
         except Exception:
             pass
 
-        os.system("scrot -F /dev/shm/kaithem_temp_screenshot.jpg")
+        os.system("scrot /dev/shm/kaithem_temp_screenshot.jpg")
         return serve_file("/dev/shm/kaithem_temp_screenshot.jpg")
 
     @cherrypy.expose
