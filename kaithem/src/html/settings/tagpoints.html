@@ -17,7 +17,7 @@ def paginate(l,n):
 
 pageNumber=int(data.get('pageNumber',0))
 searchFilter=data.get('searchFilter','').strip()
-filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if (searchFilter.lower() in i.lower() and ((not "/system/selftest/" in i) or 'selftest' in searchFilter)) ]
+filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if (searchFilter.lower() in i.lower() and ((not "/system/selftest" in i) or 'selftest' in searchFilter)) ]
 
 extraUrlStuff =''
 

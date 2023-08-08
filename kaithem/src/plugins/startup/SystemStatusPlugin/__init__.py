@@ -262,7 +262,7 @@ def makeLedTagIfNonexistant(f, n):
         def setLedWithSudo(v, t, a):
             if v > 0.5:
                 v = 255
-            elif f < 0:
+            elif v < 0:
                 v = ledDefaults[n]
             else:
                 v = 0
@@ -273,7 +273,7 @@ def makeLedTagIfNonexistant(f, n):
         with open(f) as f:
             ledDefaults[n] = f.read()
         t = tagpoints.Tag(n)
-        t.value = -1
+        t.default = -1
         t.min = -1
         t.max = 1
         t.subtype = "tristate"
