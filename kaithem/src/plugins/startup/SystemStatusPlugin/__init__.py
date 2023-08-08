@@ -259,7 +259,7 @@ def makeLedTagIfNonexistant(f, n):
         return
 
     if os.path.exists(f):
-        def setLedWithSudo(v, x**):
+        def setLedWithSudo(v, **x):
             if v > 0.5:
                 v = 255
             elif v < 0:
