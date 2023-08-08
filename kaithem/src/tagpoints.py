@@ -1282,8 +1282,8 @@ class _TagPoint():
             # This one is a little different. If the timestamp is 0,
             # We know it has never been set.
             if 'value' in data:
-                if not data['value'].strip() == '':
-                    configTagData[self.name]['value'] = data['value']
+                if not str(data['value'].strip()) == '':
+                    configTagData[self.name]['value'] = str(data['value'])
 
                     if self.timestamp == 0:
                         # Set timestamp to 0, this marks the tag as still using a default

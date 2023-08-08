@@ -259,7 +259,7 @@ def makeLedTagIfNonexistant(f, n):
         return
 
     if os.path.exists(f):
-        def setLedWithSudo(v, **x):
+        def setLedWithSudo(v, *x):
             if v > 0.5:
                 v = 255
             elif v < 0:
@@ -270,8 +270,8 @@ def makeLedTagIfNonexistant(f, n):
             os.system('sudo bash -c  "echo ' + str(v) + ' > ' + f + '"')
         refs.append(setLedWithSudo)
 
-        with open(f) as f:
-            ledDefaults[n] = f.read()
+        with open(f) as f2:
+            ledDefaults[n] = f2.read()
         t = tagpoints.Tag(n)
         t.default = -1
         t.min = -1
@@ -282,8 +282,8 @@ def makeLedTagIfNonexistant(f, n):
 
         try:
             setLedWithSudo(t.value)
-        except:
-            pass
+        except Exception:
+            logging.exception("Error setting up LED state")
 
 makeLedTagIfNonexistant(
     "/sys/class/leds/led1/brightness", "/system/board/leds/pwr")

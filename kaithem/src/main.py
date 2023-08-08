@@ -172,6 +172,36 @@ if cfg.argcmd.initialpackagesetup:
     sys.exit()
 
 
+
+
+from . import tagpoints
+
+def tagErrorHandler(tag, f, val):
+    try:
+        from . import newevt
+        if f.__module__ in newevt.eventsByModuleName:
+            newevt.eventsByModuleName[f.__module__]._handle_exception()
+        else:
+            if isinstance(f, MethodType):
+                # Better than nothing to have this global limit instead of no posted errors at all.
+                if time.monotonic() > globalMethodRateLimit[0] + 60 * 30:
+                    globalMethodRateLimit[0] = time.monotonic()
+                    messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
+                        f) + " from " + str(f.__module__) + " to " + tag.name)
+
+            elif not hasattr(f, "_kaithemFirstErrorMarker"):
+                f._kaithemFirstErrorMarker = True
+                messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
+                    f) + " from " + str(f.__module__) + " to " + tag.name)
+    except Exception:
+        print(traceback.format_exc(chain=True))
+
+tagpoints.subscriberErrorHandlers = [tagErrorHandler]
+
+tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir, "tags"))
+
+from . import builtintags
+
 plugins = {}
 try:
     for i in os.listdir(pathsetup.startupPluginsPath):
@@ -239,33 +269,6 @@ def webRoot():
     from cherrypy import _cperror
 
     logging.getLogger("cherrypy.access").propagate = False
-
-    from . import tagpoints
-    from . import builtintags
-
-    def tagErrorHandler(tag, f, val):
-        try:
-            from . import newevt
-            if f.__module__ in newevt.eventsByModuleName:
-                newevt.eventsByModuleName[f.__module__]._handle_exception()
-            else:
-                if isinstance(f, MethodType):
-                    # Better than nothing to have this global limit instead of no posted errors at all.
-                    if time.monotonic() > globalMethodRateLimit[0] + 60 * 30:
-                        globalMethodRateLimit[0] = time.monotonic()
-                        messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
-                            f) + " from " + str(f.__module__) + " to " + tag.name)
-
-                elif not hasattr(f, "_kaithemFirstErrorMarker"):
-                    f._kaithemFirstErrorMarker = True
-                    messagebus.postMessage("/system/notifications/errors", "First err in tag subscriber " + str(
-                        f) + " from " + str(f.__module__) + " to " + tag.name)
-        except Exception:
-            print(traceback.format_exc(chain=True))
-
-    tagpoints.subscriberErrorHandlers = [tagErrorHandler]
-
-    tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir, "tags"))
 
     # We want a notification anytime every first error in a scheduled event.
     # This can stay even with real python logging, we want the front page notificaton.
