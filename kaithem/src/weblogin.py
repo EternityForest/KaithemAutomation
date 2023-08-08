@@ -81,7 +81,7 @@ class LoginScreen():
         # Handle some nuisiance errors.
 
         if not 'username' in kwargs:
-            raise cherrypy.HTTPRedirect("/")
+            raise cherrypy.HTTPRedirect("/index")
 
         if "__nologin__" in pages.getSubdomain():
             raise RuntimeError(
@@ -163,7 +163,7 @@ class LoginScreen():
                 raise cherrypy.HTTPRedirect(
                     base64.b64decode(kwargs['go']).decode())
             else:
-                raise cherrypy.HTTPRedirect("/")
+                raise cherrypy.HTTPRedirect("/index")
         else:
             onFail(cherrypy.request.remote.ip, kwargs['username'])
             messagebus.postMessage(
@@ -179,4 +179,4 @@ class LoginScreen():
                 cherrypy.request.cookie['auth'].value), cherrypy.request.remote.ip])
             auth.assignNewToken(auth.whoHasToken(
                 cherrypy.request.cookie['auth'].value))
-        raise cherrypy.HTTPRedirect("/")
+        raise cherrypy.HTTPRedirect("/index")
