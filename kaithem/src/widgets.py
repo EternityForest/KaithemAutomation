@@ -842,7 +842,8 @@ class DynamicSpan(Widget):
         </script>%s
         </span>""" % (self.uuid, self.attrs, self.uuid, self.uuid, self.value))
 
-
+    def render_as_span(self, label=''):
+        return label+self.render()
 class DataSource(Widget):
     attrs = ''
 

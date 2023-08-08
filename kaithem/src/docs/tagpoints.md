@@ -137,6 +137,12 @@ This property can't currently be configured through the UI.
 
 For some units, meters will become "unit aware" on the display page.
 
+#### TagPoint.subtype
+
+A string that determines a more specific type.  Use a com.site.x name, or something like that, to avoid collisions.
+
+"Official" ones include bool, which can be 1 or 0, or tristate, which can be -1 for unset/no effect, 0, or 1.
+
 
 #### TagPoint.displayUnits
 
@@ -159,6 +165,10 @@ If a function is provided, it may return None to indicate no new data has arrive
 age.
 
 Should a claim already exist by that name, the exact same claim object as the previous claim is returned.
+
+Rather than using multiple claims, consider whether it's really needed, lots of builtin functionality in the UI is mean
+to just work with the default claim, for ease of use.
+
 
 ### tagPoint.pull()
 

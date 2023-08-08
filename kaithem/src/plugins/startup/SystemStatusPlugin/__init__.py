@@ -244,3 +244,53 @@ if util.which("vcgencmd"):
         except Exception:
             logging.exception("err")
     checkPiFlags()
+
+
+import os
+
+
+ledDefaults = ['0', '0']
+
+def setLed0WithSudo(v,t,a):
+    if v>0.5:
+        v=255
+    elif f< 0:
+        v = ledDefaults[1]
+    else:
+        v=0
+
+    os.system('sudo bash -c  "echo '+str(v)+ ' >  /sys/class/leds/led0/brightness"')
+
+def setLed1WithSudo(v,t,a):
+    if v>0.5:
+        v=255
+    elif f< 0:
+        v = ledDefaults[1]
+    else:
+        v=0
+
+    os.system('sudo bash -c  "echo '+str(v)+ ' >  /sys/class/leds/led1/brightness"')
+
+
+if os.path.exists("/sys/class/leds/led0/brightness"):
+    with open("/sys/class/leds/led0/brightness") as f:
+        ledDefaults[0] = f.read()
+    t = tagpoints.Tag("/system/board/leds/0")
+    t.value = -1
+    t.min = -1
+    t.max = 1
+    t.subtype = "tristate"
+    t.subscribe(setLed0WithSudo)
+    ledtag0 = t
+
+if os.path.exists("/sys/class/leds/led1/brightness"):
+    with open("/sys/class/leds/led1/brightness") as f:
+        ledDefaults[1] = f.read()
+
+    t = tagpoints.Tag("/system/board/leds/0")
+    t.value = -1
+    t.min = -1
+    t.max = 1
+    t.subtype = "tristate"
+    t.subscribe(setLed0WithSudo)
+    ledtag1 = t

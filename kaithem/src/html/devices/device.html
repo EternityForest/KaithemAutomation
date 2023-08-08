@@ -690,6 +690,10 @@ Currently this is only supported for the newer cross-framework devices.
                         %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">On</button>
+                        %elif obj.tagPoints[i].subtype == 'tristate':
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">On</button>
+                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', -1])">Unset</button>
                         %elif obj.tagPoints[i].subtype == 'trigger':
                         <button  type="button"  onclick="triggerCounters['${i|h}'] = (triggerCounters['${i|h}']||0)+1; _generic_ws_channel.send(['set', '${i|h}', triggerCounters['${i|h}']])">Trigger</button>
                         %elif obj.tagPoints[i].subtype == 'color':

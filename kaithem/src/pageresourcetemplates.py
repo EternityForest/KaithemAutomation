@@ -32,34 +32,40 @@ ${{kaithem.web.freeboard(page, kwargs, plugins)}}
 
 
 defaulthtml = """
-<%!
-#Code Here runs once when page is first rendered. Good place for import statements.
-%>
-
-<%
-__doc__= "#Python Code here runs every page load"
-%>
-
 <h2>{basename}</h2>
 <title>{basename}</title>
 
-<div class="sectionbox">
+<section>
   Content here
-</div>
+</section>
 """
 
 
 servicehtml = """
-<%!
-#Code Here runs once when page is first rendered. Good place for import statements.
-import json
-%>
-<%
-__doc__= "#Python Code here runs every page load"
-
-result = {}
-%>
 ${result}
+"""
+
+vueApp = """
+<script src="/static/js/vue3.js"></script>
+
+<h2>{basename}</h2>
+<title>{basename}</title>
+
+<section>
+  <div id="app">\{\{message\}\}</div>
+</section>
+
+<script>
+  const { createApp, ref } = Vue;
+
+      const app = createApp({
+        data() {
+          return {
+            message: "Hello World!"
+          }
+        }
+      }).mount('#app')
+</script>
 """
 
 
@@ -67,6 +73,17 @@ def default(basename, **kw):
     return{
         "resource-type": "page",
         "body": defaulthtml.format(basename=basename),
+        'require-method': ['GET', 'POST'],
+        'require-permissions': [],
+        'resource-timestamp': int(time.time()*1000000),
+        'resource-type': 'page'
+    }
+
+
+def vue(basename, **kw):
+    return{
+        "resource-type": "page",
+        "body": vueApp.replace("{basename}",basename),
         'require-method': ['GET', 'POST'],
         'require-permissions': [],
         'resource-timestamp': int(time.time()*1000000),
@@ -99,17 +116,4 @@ def service(basename, **kw):
         'template-engine': "mako"
     }
 
-templates = {'default': default, 'freeboard': freeboard, 'service': service}
-
-
-vue = """
-<div id="app">
-  {{ message }}
-</div>
-var app = new Vue({
-  el: '#app',
-  data: {
-    message: 'Hello Vue!'
-  }
-})
-"""
+templates = {'default': default, 'freeboard': freeboard, 'service': service, "vue3": vue}

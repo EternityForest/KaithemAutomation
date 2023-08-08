@@ -887,7 +887,7 @@ class MixingBoard():
         self.pushStatus(name, "loading")
 
         if not name in self.channelAlerts:
-            self.channelAlerts[name] = alerts.Alert("Mixer channel "+name, priority='error', tripDelay=15, autoAck=True)
+            self.channelAlerts[name] = alerts.Alert("Mixer channel "+name, priority='error', tripDelay=35, autoAck=True)
 
         for i in range(3):
             try:
