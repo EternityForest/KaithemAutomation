@@ -1282,7 +1282,7 @@ class _TagPoint():
             # This one is a little different. If the timestamp is 0,
             # We know it has never been set.
             if 'value' in data:
-                if not str(data['value'].strip()) == '':
+                if not str(data['value']).strip() == '':
                     configTagData[self.name]['value'] = str(data['value'])
 
                     if self.timestamp == 0:

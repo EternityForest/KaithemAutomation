@@ -1108,13 +1108,15 @@ class NVRChannel(devices.Device):
                             if not self.datapoints['record']:
                                 self.print("Record started because of "+i['class'])
 
-                            self.set_data_point("record", True, None,
-                                                automated_record_uuid)
+                            if self.datapoints['auto_record']>0.5:
+                                self.set_data_point("record", True, None,
+                                                    automated_record_uuid)
 
                 else:
                     self.lastRecordTrigger = time.monotonic()
-                    self.set_data_point("record", True, None,
-                                        automated_record_uuid)
+                    if self.datapoints['auto_record']>0.5:
+                        self.set_data_point("record", True, None,
+                                            automated_record_uuid)
 
             elif not v and self.canAutoStopRecord:
                 if self.lastRecordTrigger < (time.monotonic() - 12):
@@ -1391,6 +1393,15 @@ class NVRChannel(devices.Device):
                                     subtype='bool',
                                     default=1,
                                     handler=self.commandState)
+    
+            self.numeric_data_point("auto_record",
+                        min=0,
+                        max=1,
+                        subtype='bool',
+                        default=1,
+                        handler=self.onRecordingChange,
+                        description="Set to 0 to disable automatic new recordings."
+                        )
 
             self.numeric_data_point("record",
                                     min=0,

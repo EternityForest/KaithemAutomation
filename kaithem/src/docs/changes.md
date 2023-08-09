@@ -8,6 +8,8 @@ Change Log
 - :bug: Fix hang at shutdown
 - :sparkles: New Banderole theme, probably the best example to learn theming
 - :sparkles: Control RasPi and maybe others system power and activity LEDs via the tag points interface.
+- :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
+
 
 
 ### 0.68.47
