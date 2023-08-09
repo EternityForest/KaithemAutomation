@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1691537336987501
+resource-timestamp: 1691548433827318
 resource-type: event
 versions: {}
 
@@ -2908,7 +2908,7 @@ if __name__=='__setup__':
                 if v[0] == 'ask':                                        
                     self.mediaLink.send(['volume', self.alpha])
                     self.mediaLink.send(['mediaURL', self.allowMediaUrlRemote, self.enteredCue])
-                    self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue])
+                    self.mediaLink.send(["slide", self.cue.slide, self.enteredCue])
     
                 if v[0] == 'error':
                     self.event("system.error","Web media playback error in remote browser: "+v[1])
