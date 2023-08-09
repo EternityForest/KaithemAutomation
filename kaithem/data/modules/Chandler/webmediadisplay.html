@@ -9,7 +9,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1690988087141429
+resource-timestamp: 1691537220579779
 resource-type: page
 setupcode: ''
 streaming-response: false
@@ -50,6 +50,8 @@ text-align: center;
     overflow: hidden;
     margin: 0px;
     padding: 0px;
+    border-width:0px;
+    background: none;
   }
   .video-container video,.video-container img {
     width: 100%; 
@@ -72,195 +74,206 @@ text-align: center;
   ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
 
-<div class="video-container">
-  <video id="v" style="width: 100%; max-height: 100%" controls></video>
-  <audio id='a'></audio>
-  <img id='i' style="max-width: 100%; max-height: 100%;"></img>
-</div>
+<section class="video-container" id="layer">
+</section>
+
+<section class="video-container" id="layer2">
+</section>
+
 
 <script>
 
-      atypes = ['.ogg', '.m4a', '.mp3', '.opus']
-      itypes = ['.png', '.jpg','.bmp','.tiff']
+atypes = ['.ogg', '.m4a', '.mp3', '.opus']
+itypes = ['.png', '.jpg','.bmp','.tiff']
 
-      lastSrc = ''
+function isSound(fn)
+{
+    for(i of atypes)
+    {
+      if (fn.indexOf(i) >-1)
+      {
+         return true;
+      }
+    }
 
-      allowJumpAnyway = false
+  return false
+}
 
-      // Because of delay in starting a video, play it very slightly faster.
-      // This marks when it has caught up.
-      firstNegative = false
+function isStill(fn)
+{
+    for(i of itypes)
+    {
+      if (fn.indexOf(i) >-1)
+      {
+         return true;
+      }
+    }
 
-      lastTime = -1
+  return false
+}
+
+
+currentLayer = document.getElementById("layer")
+altLayer = document.getElementById("layer2")
+
+currentMedia = 0
+altMedia = 0
+
+fadeTask = 0
+fadeStart = 0
+fadeLength =0
+targetVolume = 0.1
+
+
+function fader()
+{
+
+  if(fadeLength == -1)
+  {
+    return;
+  }
+  if(fadeLength==0)
+  {
+    if(currentMedia)
+    {
+      currentMedia.volume = targetVolume;
+    }
+    if(altMedia){
+      altMedia.volume = 0;
+    }
+    return;
+  }
+
+  var position = Math.max(Math.min((Date.now()-fadeStart) / fadeLength, 1),0)
+
+  if(position==1)
+  {
+    fadeLength = 0;
+  }
+
+
+  currentLayer.style.opacity = (position*100)+'%'
+  altLayer.style.opacity = ((1-position)*100)+'%'
+
+  if(currentMedia)
+  {
+    currentMedia.volume = position*targetVolume
+  }
+
+  if(altMedia)
+  {
+    altMedia.volume = (1-position)*targetVolume
+  }
+
+}
+
+setInterval(fader, 1000/24)
+
+lastMedia=''
+
+function playMedia(t, f, st)
+{
+
+
+  if (t.children.length>0) {
+    t.removeChild(t.children[0]);
+  }
+
+    if(!f)
+  {
+    return
+  }
+
+  if(isSound(f))
+  {
+    t.appendChild(document.createElement('audio')) 
+  }
+
+  else if(isStill(f))
+  {
+    t.appendChild(document.createElement('img')) 
+  }
+
+  else
+  {
+    t.appendChild(document.createElement('video')) 
+  }
+
+
+  var x = "WebMediaServer?scene=" + "${kwargs['scene']}" +"&file="+encodeURIComponent(f)
+
+  t.children[0].src = x
+
+
+  if(!isStill(f))
+  {
+    t.children[0].volume = 0
+    t.children[0].currentTime = st
+    try
+    {
+      t.children[0].play()
+    }
+    catch(e)
+    {
+    //Allow retry once user clicks in normal browser
+    lastMedia=''
+      console.log(e)
+    }
+  }
+  return t.children[0]
+}
+function switchMedia(v,t, startAt)
+{
+
+    if(lastMedia == v)
+    {
+      return null
+    }
+    lastMedia=v
+
+  fadeStart = Date.now()
+
+ // ye switcharoo
+  x = currentLayer
+  currentLayer = altLayer
+  altLayer = x
+
+  currentLayer.style.opacity = '0%'
+
+  fadeLength = -1
+  altMedia = currentMedia
+  currentMedia = playMedia(currentLayer,v, startAt)
+
+  fadeLength = t*1000;
+}
+
+</script>
+
+
+<script>
+
+lastMedia=''
 
 function f(v)
 {
-    var a =  document.getElementById('a')
-    var vid = document.getElementById('v')
-    var img = document.getElementById('i')
-
-  
   if(v[0]=='volume')
   {
-    a.volume = v[1]
-    vid.volume = v[1]
+    targetVolume = v[1]
   }
 
   if(v[0]=='mediaURL')
   {
-    isSound=0
-    isPicture = 0
-    
-    if(v[1] == null)
-    {
-      a.pause();
-      vid.pause();
-      vid.style.display='none'
-      a.style.display='none'
-      img.style.display='none'
 
-      return
-    }
-
-    for(i of itypes)
-    {
-      if (v[1].indexOf(i) >-1)
+      // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
+      // But we more importantly want to prioritize not missing the start of a short clip
+      var t = (link.now()/1000)-v[2]
+      if(t< 1)
       {
-        isPicture = true;
-      }
-    }
-    
-    
-    for(i of atypes)
-    {
-      if (v[1].indexOf(i) >-1)
-      {
-        isSound = true;
-      }
-    }
-    
-    
-
-    var m = null
-    
-    if (isSound)
-    {
-      a.controls=true;
-      vid.pause();
-      vid.style.display = 'none'
-      a.style.display=''
-      m= a
-    }
-    else if(isPicture)
-    {
-      a.style.display='none'
-      vid.pause();
-      vid.style.display = 'none'
-      m= img
-    }
-    else
-    {
-      a.controls=false
-      a.pause()
-      a.style.display='none'
-      vid.style.display = ''
-      try
-      {
-        vid.requestFullscreen();
-      }
-      catch(e)
-      {
-      console.log(e)
-      }
-      m=vid
-    }
-
-    try{
-
-      var x = "WebMediaServer?scene=" + "${kwargs['scene']}" +"&file="+encodeURIComponent(v[1])
-      if( lastSrc != x)
-      {
-        allowJumpAnyway = true
-
-        lastSrc = x
-        m.src=x
+          t=0;
       }
 
+      switchMedia(v[1],1,t)
 
-    if(!isPicture){
-      //detect restart
-      if(lastTime<m.currentTime)
-      {
-              firstNegative = false;
-        m.playbackRate = 1.005;
-      }
-      lastTime = m.currentTime;
-
-            try{
-      const queryString = window.location.search;
-      const urlParams = new URLSearchParams(queryString);
-      var latency = parseInt(urlParams.get('latency')) || 30
-      }
-      catch(e){
-      var latency = 30
-      }
-
-      
-
-      var dt = ((link.now()/1000) - v[2]) - (latency/1000)
-      var delta = dt-m.currentTime
-
-
-      if(dt< m.duration)
-      {
-
-        if((!firstNegative) && (Math.abs(delta) < 0.6) && (!allowJumpAnyway))
-        {
-        if(delta<0.002){
-          m.playbackRate= 1;
-          firstNegative=true
-          }
-          else{
-            m.playbackRate = 1.003
-          }
-        }
-
-        else if((Math.abs(delta) < 0.6) && (!allowJumpAnyway)) 
-        {
-          if(delta>0)
-          {
-              m.playbackRate += 0.00003
-          }
-          else if(delta<0)
-          {
-              m.playbackRate -= 0.000033
-          }
-        }
-
-
-        else{
-          m.currentTime = dt
-          allowJumpAnyway = false
-        }
-      }
-
-      if(m.paused)
-      {
-      if(dt< m.duration)
-      {
-        m.play().catch(function (e)
-            {
-              console.log(e)
-            })
-            }
-            }
-          }
-    }
-    catch(e)
-    {
-      link.send(['error', e.toString()])
-      throw e
-    }
   }
 }
 link.upd=f

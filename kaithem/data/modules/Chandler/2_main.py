@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1691096662493860
+resource-timestamp: 1691537336987501
 resource-type: event
 versions: {}
 
@@ -1332,6 +1332,7 @@ if __name__=='__setup__':
                                 'name': cue.name,
                                 'id':cueid,
                                 'sound': cue.sound,
+                                'slide': cue.slide,
                                 'soundOutput': cue.soundOutput,
                                 'soundStartPosition': cue.soundStartPosition,
                                 'mediaSpeed': cue.mediaSpeed,
@@ -1877,6 +1878,49 @@ if __name__=='__setup__':
                         self.pushCueMeta(module.scenes[msg[1]].cues[bn].id)
                 
     
+                if msg[0]=="newFromSlide":
+                    bn = os.path.basename(msg[2])
+                    bn=fnToCueName(bn)
+    
+                    #Empty string is probably going to look best for that char
+                    bn=bn.replace("'","")
+                    #Also the double quotesif they show up
+                    bn=bn.replace('"',"")
+                    bn=bn.replace('(',"")
+                    bn=bn.replace(')',"")
+                    bn=bn.replace('[',"")
+                    bn=bn.replace(']',"")
+    
+                    #Sometimes used as a stylized S
+                    bn=bn.replace('$',"S")
+                    bn=bn.replace('@'," at ")
+    
+                    #Usually going to be the number sign, we can ditch
+                    bn=bn.replace("#","")
+    
+                    #Handle spaces already there or not
+                    bn=bn.replace(" & "," and ")
+                    bn=bn.replace("&"," and ")
+    
+                    bn = disallow_special(bn,"_~",replaceMode=" ")
+                    if not bn in module.scenes[msg[1]].cues:
+                        module.scenes[msg[1]].addCue(bn)
+                        soundfolders = getSoundFolders()
+    
+                        for i in soundfolders:
+                            s = msg[2]
+                            #Make paths relative.
+                            if not i.endswith("/"):
+                                i = i+"/"
+                            if s.startswith(i):
+                                s= s[len(i):]
+                                break
+                        module.scenes[msg[1]].cues[bn].slide = s
+    
+                        self.pushCueMeta(module.scenes[msg[1]].cues[bn].id)
+                
+    
+    
                 if msg[0] == "gotonext":
                     if cues[msg[1]].nextCue:
                         try:
@@ -1969,6 +2013,24 @@ if __name__=='__setup__':
                         raise RuntimeError("This cue was named for a specific sound file, forbidding change to avoid confusion.  To override, set to no sound first")
                     cues[msg[1]].sound=s
                     self.pushCueMeta(msg[1])
+    
+                if msg[0]=="setcueslide":
+    
+                    soundfolders = getSoundFolders()
+    
+                    for i in soundfolders:
+                        s = msg[2]
+                        #Make paths relative.
+                        if not i.endswith("/"):
+                            i = i+"/"
+                        if s.startswith(i):
+                            s= s[len(i):]
+                            break
+        
+                    cues[msg[1]].slide=s
+                    self.pushCueMeta(msg[1])
+    
+    
     
                 if msg[0]=="setcuesoundoutput":
                     cues[msg[1]].soundOutput=msg[2].strip()
@@ -2484,6 +2546,7 @@ if __name__=='__setup__':
         "track": True,
         "nextCue": '',
         "sound": "",
+        "slide": "",
         'notes':'',
         "soundOutput": '',
         "soundStartPosition": 0,
@@ -2505,10 +2568,10 @@ if __name__=='__setup__':
     class Cue():
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
-        'nextCue','track','notes', 'shortcut','number','inherit','sound','rel_length',
+        'nextCue','track','notes', 'shortcut','number','inherit','sound','slide','rel_length',
         'soundOutput','soundStartPosition','mediaSpeed', "mediaWindup", "mediaWinddown", 'onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
         '__weakref__']
-        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='',soundOutput='', soundStartPosition=0, mediaSpeed=1, mediaWindup=0, mediaWinddown=0, rel_length=False, id=None,number=None,
+        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='', slide='', soundOutput='', soundStartPosition=0, mediaSpeed=1, mediaWindup=0, mediaWinddown=0, rel_length=False, id=None,number=None,
             lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0, notes='', soundFadeOut=0,inheritRules='',soundVolume=1,soundLoops=0,namedForSound=False,probability='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
@@ -2561,6 +2624,7 @@ if __name__=='__setup__':
             self.track = track
             self.shortcut= None
             self.sound = sound or ''
+            self.slide = slide or ''
             self.soundOutput = soundOutput or ''
             self.soundStartPosition = soundStartPosition
             self.mediaSpeed = mediaSpeed
@@ -2597,8 +2661,8 @@ if __name__=='__setup__':
     
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-                "nextCue":self.nextCue,"track":self.track, 'notes':self.notes, "number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,
-                'soundStartPosition': self.soundStartPosition,'mediaSpeed': self.mediaSpeed, 'mediaWindup': self.mediaWindup, 'mediaWinddown': self.mediaWinddown,
+                "nextCue":self.nextCue,"track":self.track, 'notes':self.notes, "number":self.number,'sound':self.sound, 'soundOutput':self.soundOutput,
+                'soundStartPosition': self.soundStartPosition,'slide': self.slide, 'mediaSpeed': self.mediaSpeed, 'mediaWindup': self.mediaWindup, 'mediaWinddown': self.mediaWinddown,
                 'rel_length':self.rel_length, 'probability':self.probability, 'rules':self.rules,
                 'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, "soundLoops":self.soundLoops,'namedForSound':self.namedForSound
                 }
@@ -2844,6 +2908,7 @@ if __name__=='__setup__':
                 if v[0] == 'ask':                                        
                     self.mediaLink.send(['volume', self.alpha])
                     self.mediaLink.send(['mediaURL', self.allowMediaUrlRemote, self.enteredCue])
+                    self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue])
     
                 if v[0] == 'error':
                     self.event("system.error","Web media playback error in remote browser: "+v[1])
@@ -3495,6 +3560,8 @@ if __name__=='__setup__':
     
                     if self.cues[cue].track:
                         self.applyTrackedValues(cue)
+    
+                    self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue])
     
                     
     
@@ -4392,8 +4459,7 @@ if __name__=='__setup__':
             else:
                 self.pushMeta(keys={'alpha','dalpha'} )
     
-            if self.allowMediaUrlRemote:
-                self.mediaLink.send(['volume', val])
+            self.mediaLink.send(['volume', val])
     
         
         def addCue(self,name,**kw):

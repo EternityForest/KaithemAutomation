@@ -17,7 +17,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1691355436157309
+resource-timestamp: 1691532841002093
 resource-type: page
 setupcode: "#Code Here runs once when page is first rendered. Good place for import\
   \ statements. \r\n__doc__= \"\"\r\nboardname = \"default\"\r\nimport json\r\n"
@@ -1158,6 +1158,88 @@ theme-css-url: ''
                             </div>
                         </details>
 
+
+                    <details>
+                        <summary>Cue Slides</summary>
+                        <div>
+                            <p class="help">
+                                A scene's web media display page will show whatever the current cue's slide is.
+                            </p>
+
+                            <div>
+                                <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
+                                <label>Slide:
+                                    <input placeholder="No picture file" v-model="currentcue.slide" style="width:32em;"
+                                        v-on:change="setCueSlide(currentcueid,currentcue.slide)">
+                                </label>
+
+
+                            </div>
+                            <p class="buttonbar">
+                                <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
+                                    v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds" style="width:60%;">
+                                <button v-on:click="doSoundSearch(soundsearch)">Search</button>
+                                <button v-on:click="soundsearch=''">Clear Search</button>
+                            </p>
+                            <div style="max-height:25em; overflow:auto;">
+
+
+                                <div v-if="soundsearch">
+                                    <table border="1">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Add to Current</th>
+                                            <th>Add to New</th>
+                                        </tr>
+                                        <tr v-for="i in soundsearchresults">
+                                            <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
+                                            <td><button
+                                                    v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
+                                            </td>
+                                            <td><button
+                                                    v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <div v-if="soundsearch==''">
+                                    <h4>
+                                        <a title="View in file manager" v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
+                                            target="_blank">{{soundfilesdir}}</a>
+                                    </h4>
+
+                                    <ul>
+                                        <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
+                                        <li v-on:click="setSoundfileDir(soundfilesdir)">
+                                            <a><i class="icofont-refresh"></i>Refresh</a>
+                                        </li>
+                                        <li v-if="soundfilesdir"
+                                            v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
+                                            <a>..</a>
+                                        </li>
+                                        <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
+                                            <a>{{i[1] || i[0]}}</a>
+                                        </li>
+                                    </ul>
+
+                                    <table border="1">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Add to Current</th>
+                                            <th>Add to New</th>
+                                        </tr>
+                                        <tr v-for="i in soundfileslisting[1]">
+                                            <td>{{i}}</td>
+                                            <td><button v-on:click="setCueSlide(currentcueid,soundfilesdir+i)">Set</button>
+                                            </td>
+                                            <td><button v-on:click="newCueFromSlide(scenename,soundfilesdir+i)">New</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                    </details>
 
 
 
