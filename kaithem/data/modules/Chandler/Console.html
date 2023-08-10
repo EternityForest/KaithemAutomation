@@ -17,7 +17,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1691682760733312
+resource-timestamp: 1691683935841051
 resource-type: page
 setupcode: "#Code Here runs once when page is first rendered. Good place for import\
   \ statements. \r\n__doc__= \"\"\r\nboardname = \"default\"\r\nimport json\r\n"
@@ -1095,7 +1095,7 @@ theme-css-url: ''
                                                 </td>
                                                 <td><button v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
                                                 </td>
-                                                <td><button v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
+                                                <td><button v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
                                                 </td>
                                             </tr>
                                         </table>
@@ -1201,6 +1201,7 @@ theme-css-url: ''
                                             <th>File</th>
                                             <th>Add to Current</th>
                                             <th>Add to New</th>
+                                            <th>Preview</th>
                                         </tr>
                                         <tr v-for="i in soundsearchresults">
                                             <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
@@ -1210,6 +1211,9 @@ theme-css-url: ''
                                             <td><button
                                                     v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
                                             </td>
+
+                                            <td><button v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
+
                                         </tr>
                                     </table>
                                 </div>

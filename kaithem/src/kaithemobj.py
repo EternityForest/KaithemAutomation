@@ -52,7 +52,7 @@ from . import alerts
 from . import midi
 from . import gpio
 from . import theming
-
+from . import assetlib
 from . import version_info
 
 from . import astrallibwrapper as sky
@@ -77,9 +77,6 @@ persist.resolvePath = resolvePath
 ServeFileInsteadOfRenderingPageException = pages.ServeFileInsteadOfRenderingPageException
 
 plugins = weakref.WeakValueDictionary()
-
-
-
 
 
 class TagInterface():
@@ -124,6 +121,9 @@ class Kaithem():
     context = threading.local()
     tags = TagInterface()
     chandlerscript = scriptbindings
+
+    assetpacks = assetlib.AssetPacks(os.path.join(directories.vardir, 'assets'))
+
 
     def __getattr__(self, name):
         if name in plugins:
