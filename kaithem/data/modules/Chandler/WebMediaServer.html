@@ -3,15 +3,18 @@ allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
+code: ''
 mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1663916895635575
+resource-timestamp: 1691551568088989
 resource-type: page
+setupcode: ''
 streaming-response: true
 template-engine: mako
+theme-css-url: ''
 
 ---
 <%!
@@ -63,6 +66,8 @@ if 'albumArt' in kwargs:
 else:
   if module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
     kaithem.web.serveFile(kwargs['file'],name= os.path.basename(kwargs['file']))
+  if module.scenes_by_name[kwargs['scene']].cue.slide == kwargs['file']:
+    kaithem.web.serveFile(module.scenes_by_name[kwargs['scene']].resolveSound(kwargs['file']),name= os.path.basename(kwargs['file']))
   else:
     raise RuntimeError("Not allowed to access "+str(kwargs['file']))
 %>

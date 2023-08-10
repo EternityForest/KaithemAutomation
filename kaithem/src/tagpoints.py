@@ -2085,6 +2085,9 @@ class _TagPoint():
             self.lock.release()
 
 
+
+default_bool_enum = {-1: None, 0: False, 1:True}
+
 class _NumericTagPoint(_TagPoint):
     defaultData = 0
     type = 'number'
@@ -2105,6 +2108,7 @@ class _NumericTagPoint(_TagPoint):
         self._unit: str = ""
         self.guiLock = threading.Lock()
         self._meterWidget = None
+        self.enum = {}
 
         self._setupMeter()
         _TagPoint.__init__(self, name)

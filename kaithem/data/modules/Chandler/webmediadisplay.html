@@ -9,7 +9,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1691548810467583
+resource-timestamp: 1691627211798562
 resource-type: page
 setupcode: ''
 streaming-response: false
@@ -46,6 +46,20 @@ theme-css-url: ''
     display:none;
   }
 
+#overlay{
+    margin: 0px;
+    padding:0px;
+    border-width:0px;
+    height:100%;
+    width:100%;
+    z-index: 100;
+    top: 0px;
+    left: 0px;
+    background-color: transparent;
+    position: absolute;
+}
+
+
 </style>
 
 
@@ -54,7 +68,7 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
 <div class="player" id='player1'></div>
 <div class="player" id='player2'></div>
-
+<iframe id="overlay"></iframe>
 
 
 <script>
@@ -163,15 +177,16 @@ class makePlayer {
 
         c.appendChild(this.currentLayer);
         c.appendChild(this.altLayer);
+        var parent = this;
 
         //Handle when autoplay fails.
         this.altLayer.addEventListener('click', function () {
-            this.currentMedia.play();
+            parent.currentMedia.play();
         }, true);
 
         //Handle when autoplay fails.
         this.altLayer.addEventListener('click', function () {
-            this.currentMedia.play();
+            parent.currentMedia.play();
         }, true);
 
         this.currentMedia = 0;
@@ -181,7 +196,6 @@ class makePlayer {
         this.fadeLength = 0;
         this.targetVolume = 0.1;
 
-        var parent = this;
 
         this.task = function () {
 
@@ -203,9 +217,11 @@ class makePlayer {
             if (parent.fadeLength == 0) {
                 if (parent.currentMedia) {
                     parent.currentMedia.volume = parent.targetVolume;
+                    parent.currentLayer.style.opacity= '100%'
                 }
                 if (parent.altMedia) {
                     parent.altMedia.volume = 0;
+                    parent.altLayer.style.opacity= '0%'
                 }
                 return;
             }
@@ -266,10 +282,10 @@ class makePlayer {
 
             var x = "WebMediaServer?scene=" + "${kwargs['scene']}" + "&file=" + encodeURIComponent(f);
 
-            t.children[0].src = x;
 
             if(this.isHTML(f))
             {
+                t.children[0].src = f
                 this.setStyles(t.children[0],{
                 height: '100%', width: '100%', 'border-width':'0px',margin:'0px',padding: '0px'
                 })
@@ -277,6 +293,7 @@ class makePlayer {
             }
             else
             {
+                t.children[0].src = x;
                 this.setStyles(t.children[0],this.vstyle)
             }
 
@@ -321,7 +338,7 @@ class makePlayer {
             this.altMedia = this.currentMedia;
             this.currentMedia = this.playMedia(this.currentLayer, v, startAt);
 
-            this.fadeLength = t * 1000;
+            this.fadeLength = Math.max(0, (t-startAt) * 1000)
         };
 
     }
@@ -338,6 +355,14 @@ function f(v)
   if(v[0]=='volume')
   {
     player.targetVolume = v[1]
+    player2.targetVolume = v[1]
+
+  }
+
+    if(v[0]=='overlay')
+  {
+    document.getElementById('overlay').src = v[1]
+
   }
 
 
@@ -354,7 +379,7 @@ function f(v)
       }
 
       //Use when it started as the session tag
-      player.switchMedia(v[1],1,t, v[2])
+      player.switchMedia(v[1],v[3], t, v[2])
   }
 
 
@@ -371,7 +396,7 @@ function f(v)
       }
 
       //Use when it started as the session tag
-      player2.switchMedia(v[1],1,t, v[2])
+      player2.switchMedia(v[1],v[3],t, v[2])
   }
 }
 link.upd=f

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1691548433827318
+resource-timestamp: 1691626764272172
 resource-type: event
 versions: {}
 
@@ -1288,6 +1288,7 @@ if __name__=='__setup__':
                                 'defaultNext': scene.defaultNext,
                                 'commandTag': scene.commandTag,
                                 'soundOutput': scene.soundOutput,
+                                'slideOverlayURL': scene.slideOverlayURL,
                                 'eventButtons': scene.eventButtons,
                                 'infoDisplay': scene.infoDisplay,
                                 'utility': scene.utility,
@@ -2082,6 +2083,11 @@ if __name__=='__setup__':
                 if msg[0] == "setscenesoundout":
                     module.scenes[msg[1]].soundOutput=msg[2]
                     self.pushMeta(msg[1],keys={'soundOutput'})
+    
+                if msg[0] == "setsceneslideoverlay":
+                    module.scenes[msg[1]].slideOverlayURL=msg[2]
+                    self.pushMeta(msg[1],keys={'slideOverlayURL'})
+    
     
                 if msg[0] == "setscenecommandtag":
                     module.scenes[msg[1]].setCommandTag(msg[2])
@@ -2880,7 +2886,11 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
-        soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", utility=False, notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',**ignoredParams):
+        soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", utility=False, notes='',
+        page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',
+        slideOverlayURL= '',
+        
+        **ignoredParams):
         
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2900,6 +2910,8 @@ if __name__=='__setup__':
             self.mediaLink = kaithem.widget.APIWidget("media_link")
             self.mediaLink.echo = False
     
+            self.slideOverlayURL = slideOverlayURL
+    
     
             # The active media file being played through the remote playback mechanism.
             self.allowMediaUrlRemote  = None
@@ -2907,8 +2919,9 @@ if __name__=='__setup__':
             def handleMediaLink(u,v):
                 if v[0] == 'ask':                                        
                     self.mediaLink.send(['volume', self.alpha])
-                    self.mediaLink.send(['mediaURL', self.allowMediaUrlRemote, self.enteredCue])
-                    self.mediaLink.send(["slide", self.cue.slide, self.enteredCue])
+                    self.mediaLink.send(['mediaURL', self.allowMediaUrlRemote, self.enteredCue, max(0,self.cue.soundFadeIn or self.crossfade)])
+                    self.mediaLink.send(["slide", self.cue.slide, self.enteredCue, max(0,self.cue.fadein or self.crossfade)])
+                    self.mediaLink.send(["overlay", self.slideOverlayURL])
     
                 if v[0] == 'error':
                     self.event("system.error","Web media playback error in remote browser: "+v[1])
@@ -3131,6 +3144,7 @@ if __name__=='__setup__':
                         'blendArgs': self.blendArgs,
                         'backtrack': self.backtrack,
                         'soundOutput': self.soundOutput,
+                        'slideOverlayURL': self.slideOverlayURL,
                         'eventButtons': self.eventButtons,
                         'infoDisplay': self.infoDisplay,
                         'utility': self.utility,
@@ -3561,7 +3575,7 @@ if __name__=='__setup__':
                     if self.cues[cue].track:
                         self.applyTrackedValues(cue)
     
-                    self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue])
+                    self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue, max(0,self.cue.fadein or self.crossfade)])
     
                     
     
@@ -3594,7 +3608,7 @@ if __name__=='__setup__':
                             
                         if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
                             self.mediaLink.send(['volume', self.alpha])
-                            self.mediaLink.send(['mediaURL', None, self.enteredCue])
+                            self.mediaLink.send(['mediaURL', None, self.enteredCue,max(0,self.cue.fadein or self.crossfade)])
     
                         if self.cue.sound and self.active:
     
@@ -3626,10 +3640,9 @@ if __name__=='__setup__':
     
                                 
                                 else:
-                                    print(sound)
                                     self.allowMediaUrlRemote= sound
                                     self.mediaLink.send(['volume', self.alpha])
-                                    self.mediaLink.send(['mediaURL', sound, self.enteredCue])
+                                    self.mediaLink.send(['mediaURL', sound, self.enteredCue, max(0,self.cue.fadein or self.crossfade)])
     
     
                                 try:

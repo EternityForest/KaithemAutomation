@@ -453,10 +453,18 @@ def webRoot():
                                   
             try:
                 dir = '/'.join(args)
-                if ".." in dir:
-                    raise RuntimeError("Security violation")
-                
+                for i in dir:
+                    if "/" in i:
+                        raise RuntimeError("Security violation")
+                    
+                for i in dir:
+                    if ".." in i:
+                        raise RuntimeError("Security violation")
+                                   
                 dir = os.path.join(directories.vardir, "static", dir)
+
+                if not os.path.normpath(dir).startswith( os.path.join(directories.vardir, "static")):
+                    raise RuntimeError("Security violation")
 
                 if os.path.isfile(dir):
                     return serve_file(dir)

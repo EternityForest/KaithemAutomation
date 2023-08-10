@@ -11,11 +11,12 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1685928582804083
+resource-timestamp: 1691613894751708
 resource-type: page
 setupcode: "import json\r\n"
 streaming-response: true
 template-engine: mako
+theme-css-url: ''
 
 ---
 function set(o, k, v) {
@@ -194,9 +195,6 @@ appData = {
         ["_", "Output of the previous action"]
     ],
 
-
-    //The code in the fixture edit as code box
-    'fixturecode': '',
     'evlog': [
     ],
     'soundCards': KaithemSoundCards,
@@ -394,6 +392,12 @@ appData = {
         api_link.send(['setcuesoundstartposition', cueid, i])
     },
 
+    'setCueSlide': function (cueid, i) {
+
+        api_link.send(['setcueslide', cueid, i])
+    },
+
+
 
     'setCueMediaSpeed': function (cueid, i) {
 
@@ -418,6 +422,12 @@ appData = {
         api_link.send(['setscenesoundout', cueid, i])
     },
 
+    'setSceneSlideOverlay': function (cueid, i) {
+
+        api_link.send(['setsceneslideoverlay', cueid, i])
+    },
+
+
     'newCueFromSound': function (sc, i) {
 
         api_link.send(['newFromSound', sc, i])
@@ -430,11 +440,18 @@ appData = {
             Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
             [i], 3, undefined)
         }
+
+        else if (appData.fixtureClasses[appData.selectedFixtureClass]
+        [i][1] == 'fixed') {
+            var v = appData.fixtureClasses[appData.selectedFixtureClass][i]
+            Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
+            , i, [v[0],v[1],0,{}])
+        }
         else {
             Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-            [i], 2, null)
+            [i], 2, 0)
             Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-            [i], 3, null)
+            [i], 3, undefined)
 
         }
         appData.pushfixture(i)
@@ -478,20 +495,15 @@ appData = {
         }
     },
 
-    'saveFixtureTypeFromCode': function (fixture, code) {
-        try {
-            appData.fixtureClasses[fixture] = JSON.parse(code)
-        }
-        catch
-        {
-            alert("Could not set JSON data. Syntax error?")
-        }
-        appData.pushfixture(fixture)
-
-    },
 
     'pushfixture': function (i) {
         api_link.send(['setfixtureclass', i, appData.fixtureClasses[
+            i]])
+    },
+
+
+    'pushfixtureopz': function (i) {
+        api_link.send(['setfixtureclassopz', i, appData.fixtureClasses[
             i]])
     },
     'pushfixturescode': function () {
@@ -548,8 +560,6 @@ appData = {
         if (i == '') {
             return;
         }
-        //Reset the textbox when it changes
-        appData.fixturecode = '';
         api_link.send(['getfixtureclass', i])
     },
 
@@ -1393,6 +1403,12 @@ function f(v) {
         Vue.set(appData.scenemeta[v[1]], 'active', true)
 
     }
+
+    if(c == "refreshPage")
+    {
+        window.reload()
+    }
+    
     if (c == "stop") {
 
         Vue.set(appData.scenemeta[v[1]], 'active', false)
@@ -1416,10 +1432,6 @@ function f(v) {
 
         Vue.set(appData.fixtureClasses, v[1], v[2])
     }
-    if (c == "fixtureascode") {
-
-        appData.fixturescode = v[1]
-    }
 
     if (c == "fixtureAssignments") {
 
@@ -1439,7 +1451,7 @@ function f(v) {
         appData.allScenes.push([v[1], v[2]])
     }
     if (c == 'soundfolderlisting') {
-        if (v[1] == appData.soundfilesdir) {
+        if (v[1] == appData.soundfilesdir) {gas
             appData.soundfileslisting = v[2]
         }
     }
