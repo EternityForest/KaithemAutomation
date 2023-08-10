@@ -9,7 +9,7 @@ no-header: true
 no-navheader: true
 require-method: [GET]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1691683021245276
+resource-timestamp: 1691696595726737
 resource-type: page
 setupcode: ''
 streaming-response: true
@@ -79,6 +79,9 @@ else:
         if not i.endswith("/"):
           i=i+'/'
         if os.path.normpath(f).startswith(i):
+          # If this is a cloud asset pack asset, get it.
+          # Only do this under the chandler admin permission
+          kaithem.assetpacks.ensure_file(f)
           kaithem.web.serveFile(f, name= f)
 
   raise RuntimeError("Not allowed to access "+str(kwargs['file']))

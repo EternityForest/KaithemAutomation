@@ -10,7 +10,8 @@ Change Log
 - :sparkles: Control RasPi and maybe others system power and activity LEDs via the tag points interface.
 - :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
 - :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
-- :sparkles:  Devices framework now has a WeatherClient, No API key needed thanks to wttr.in! :sunny: :cloud: :rainbow:
+- :sparkles: Devices framework now has a WeatherClient, No API key needed thanks to wttr.in! :sunny: :cloud: :rainbow:
+- :sparkles: Github based online assets library, seamlessly browse and download music and SFX right in Chandler
 
 
 ### 0.68.47

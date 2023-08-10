@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1691680703591466
+resource-timestamp: 1691696888589513
 resource-type: event
 versions: {}
 
@@ -406,13 +406,15 @@ if __name__=='__setup__':
         if not match:
             return [[[i+('/' if not i.endswith('/') else ''),soundfolders[i]] for i in soundfolders],[]]
             
-        if not os.path.exists(path):
-            return [[],[]]
+        #if not os.path.exists(path):
+        #    return [[],[]]
     
-        x = os.listdir(path)
+        #x = os.listdir(path)
+        x = kaithem.assetpacks.ls(path)
+    
         return(
-            sorted([ [os.path.join(path,i)+'/',os.path.join(path,i)+'/'] for i in x if os.path.isdir(os.path.join(path,i))]),
-            sorted([i for i in x if os.path.isfile(os.path.join(path,i))])
+            sorted([ [os.path.join(path,i), os.path.join(path,i)] for i in x if i.endswith("/")]),
+            sorted([i for i in x if not i.endswith("/")])
         ) 
     
     musicLocation = os.path.join(kaithem.misc.vardir,"chandler", "music")
@@ -468,6 +470,8 @@ if __name__=='__setup__':
     def getSoundFolders():
         "path:displayname dict"
         soundfolders = {i.strip():i.strip() for i in module.config['soundFolders']}
+    
+        soundfolders[kaithem.assetpacks.assetlib] = 'Online Assets Library'
     
         soundfolders[os.path.join(kaithem.misc.datadir,"sounds")] = 'Builtin'
         soundfolders[musicLocation] = "Chandler music folder"
@@ -1999,6 +2003,8 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
     
                 if msg[0]=="setcuesound":
+                    # If it's a cloud asset, get it first
+                    kaithem.assetpacks.ensure_file(msg[2])
     
                     soundfolders = getSoundFolders()
     
@@ -2018,7 +2024,7 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
     
                 if msg[0]=="setcueslide":
-    
+                    kaithem.assetpacks.ensure_file(msg[2])
                     soundfolders = getSoundFolders()
     
                     for i in soundfolders:

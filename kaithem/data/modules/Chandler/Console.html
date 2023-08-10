@@ -17,7 +17,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1691683935841051
+resource-timestamp: 1691698330853904
 resource-type: page
 setupcode: "#Code Here runs once when page is first rendered. Good place for import\
   \ statements. \r\n__doc__= \"\"\r\nboardname = \"default\"\r\nimport json\r\n"
@@ -415,6 +415,7 @@ theme-css-url: ''
 
 
     <dialog id='soundpreviewdialog'>
+            <iframe id="textpreview" style="height:24em; width: 24em;"></iframe>
             <audio controls id="soundpreview"></audio>
             <button v-on:click="closePreview">OK</button>
     </dialog>

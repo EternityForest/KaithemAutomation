@@ -11,7 +11,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1691613894751708
+resource-timestamp: 1691698965357194
 resource-type: page
 setupcode: "import json\r\n"
 streaming-response: true
@@ -1022,6 +1022,36 @@ appData = {
     'apiCommand': function (sc, p, v) {
 
         api_link.send([p, sc, v]);
+    },
+
+    'previewSound': function (s) {
+
+        document.getElementById("soundpreviewdialog").show();
+        var  t = ['.mp3','.ogg','.wav','.oga','.opus','.aac','.flac']
+        for(let i of t)
+        {
+            if(s.endsWith(i))
+            {
+                document.getElementById("soundpreview").src = "WebMediaServer?file="+encodeURIComponent(s);
+                document.getElementById("soundpreview").currentTime = 0;
+                document.getElementById("soundpreview").play();
+                document.getElementById("textpreview").src = "";
+                document.getElementById("textpreview").style.display='none'
+                document.getElementById("soundpreview").style.display='block'
+                return
+            }
+        }
+        document.getElementById("textpreview").src = "WebMediaServer?file="+encodeURIComponent(s);
+        document.getElementById("soundpreview").src = ""
+        document.getElementById("textpreview").style.display='block'
+        document.getElementById("soundpreview").style.display='none'
+
+    },
+
+    'closePreview': function(s)
+    {
+        document.getElementById("soundpreviewdialog").close();
+        document.getElementById("soundpreview").pause()
     },
 
     'setlength': function (sc, v) {

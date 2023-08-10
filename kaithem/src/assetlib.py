@@ -8,12 +8,17 @@ from . import directories
 from urllib.parse import quote
 
 
+defaultAssetPacks = [
+    "https://github.com/0lhi/FreePD",
+    "https://github.com/Calinou/kenney-interface-sounds",
+    "https://github.com/Calinou/kenney-ui-audio"
+    ]
 
 class AssetPacks():
 
-    def __init__(self, assetlib) -> None:
+    def __init__(self, assetlib,assetPacks=None) -> None:
         self.assetlib = os.path.normpath(assetlib)
-        self.assetPacks = ["https://github.com/0lhi/FreePD"]
+        self.assetPacks = assetPacks or defaultAssetPacks
         self.assetPackFolders = {}
 
         self.assetPackNames = {}
@@ -33,6 +38,7 @@ class AssetPacks():
         if os.path.normpath(f).startswith(self.assetlib + "/"):
             if not os.path.exists(f):
                 os.makedirs(f, exist_ok=True)
+        
 
         ap = None
         d = f
@@ -44,8 +50,12 @@ class AssetPacks():
                 break
             d = os.path.dirname(d)
 
-        x = os.listdir(f)
-
+        x = [ (i+'/' if os.path.isdir(os.path.join(f,i)) else i) for i in os.listdir(f)]
+    
+        if os.path.normpath(f)==self.assetlib:
+            for i in self.assetPackFolders.keys():
+                if not i+"/" in x:
+                    x.append(i+"/")
         if ap:
             l = fetch_list(self.assetPackFolders[ap]
                            [0], self.assetPackFolders[ap][1], ap)
@@ -55,12 +65,13 @@ class AssetPacks():
                 current = os.path.relpath(f, ap)
                 if current == '.':
                     current = ''
-                if i['path'].startswith(current):
-                    if not '/' in i['path'][len(os.path.relpath(f, ap)):]:
+                if i['path'].startswith(current) and len(i['path']) > len(current):
+                    if not '/' in i['path'][len(os.path.relpath(f, ap))+1:]:
                         p = os.path.basename(i['path'])
                         if i['type'] == 'tree':
                             p = p + "/"
-                        x.append(p)
+                        if p not in x:
+                            x.append(p)
 
         return x
 
