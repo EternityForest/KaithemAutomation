@@ -9,7 +9,7 @@ no-header: true
 no-navheader: true
 require-method: [GET]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1691551568088989
+resource-timestamp: 1691683021245276
 resource-type: page
 setupcode: ''
 streaming-response: true
@@ -64,11 +64,23 @@ if 'albumArt' in kwargs:
 
 
 else:
-  if module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
+  if 'scene' in kwargs and module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
     kaithem.web.serveFile(kwargs['file'],name= os.path.basename(kwargs['file']))
-  if module.scenes_by_name[kwargs['scene']].cue.slide == kwargs['file']:
+  elif 'scene' in kwargs and module.scenes_by_name[kwargs['scene']].cue.slide == kwargs['file']:
     kaithem.web.serveFile(module.scenes_by_name[kwargs['scene']].resolveSound(kwargs['file']),name= os.path.basename(kwargs['file']))
   else:
-    raise RuntimeError("Not allowed to access "+str(kwargs['file']))
+    # Todo this should be a global api
+    for i in module.scenes_by_name:
+      x = i
+      break
+    f = module.scenes_by_name[x].resolveSound(kwargs['file'])
+    if kaithem.web.hasPermission("users.chandler.admin"):
+      for i in module.getSoundFolders():
+        if not i.endswith("/"):
+          i=i+'/'
+        if os.path.normpath(f).startswith(i):
+          kaithem.web.serveFile(f, name= f)
+
+  raise RuntimeError("Not allowed to access "+str(kwargs['file']))
 %>
 

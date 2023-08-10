@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1691626764272172
+resource-timestamp: 1691680703591466
 resource-type: event
 versions: {}
 
@@ -479,6 +479,8 @@ if __name__=='__setup__':
         return soundfolders
     
     
+    
+    module.getSoundFolders = getSoundFolders
     
     def disallow_special(s,allow='',replaceMode=None):
         for i in '[]{}()!@#$%^&*()<>,./;\':"-=_+\\|`~?\r\n\t':
@@ -3575,7 +3577,7 @@ if __name__=='__setup__':
                     if self.cues[cue].track:
                         self.applyTrackedValues(cue)
     
-                    self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue, max(0,self.cue.fadein or self.crossfade)])
+                    self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue, max(0,self.cues[cue].fadein or self.crossfade)])
     
                     
     

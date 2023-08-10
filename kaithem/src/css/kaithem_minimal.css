@@ -244,6 +244,14 @@ div.menubar {
     width: 98%;
 }
 
+dialog{
+position: fixed;
+top:50%;
+bottom: 50%;
+border: 3px solid;
+border-color: inherit;
+z-index: 1000;
+}
 
 
 /*********************Code editing************************/

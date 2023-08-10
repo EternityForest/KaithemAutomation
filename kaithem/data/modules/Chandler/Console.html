@@ -17,7 +17,7 @@ no-header: false
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1691618656250705
+resource-timestamp: 1691682760733312
 resource-type: page
 setupcode: "#Code Here runs once when page is first rendered. Good place for import\
   \ statements. \r\n__doc__= \"\"\r\nboardname = \"default\"\r\nimport json\r\n"
@@ -413,6 +413,11 @@ theme-css-url: ''
 
     </div>
 
+
+    <dialog id='soundpreviewdialog'>
+            <audio controls id="soundpreview"></audio>
+            <button v-on:click="closePreview">OK</button>
+    </dialog>
 
 
     <div v-if="universeFullSettings" class="sectionbox flex-item">
@@ -1082,12 +1087,15 @@ theme-css-url: ''
                                                 <th>File</th>
                                                 <th>Add to Current</th>
                                                 <th>Add to New</th>
+                                                <th>Preview</th>
                                             </tr>
                                             <tr v-for="i in soundsearchresults">
                                                 <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
                                                 <td><button v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
                                                 </td>
                                                 <td><button v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
+                                                </td>
+                                                <td><button v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
                                                 </td>
                                             </tr>
                                         </table>
@@ -1116,12 +1124,15 @@ theme-css-url: ''
                                                 <th>File</th>
                                                 <th>Add to Current</th>
                                                 <th>Add to New</th>
+                                                <th>Preview</th>
                                             </tr>
                                             <tr v-for="i in soundfileslisting[1]">
                                                 <td>{{i}}</td>
                                                 <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
                                                 </td>
                                                 <td><button v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button>
+                                                <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button>
+
                                                 </td>
                                             </tr>
                                         </table>
@@ -1228,6 +1239,7 @@ theme-css-url: ''
                                             <th>File</th>
                                             <th>Add to Current</th>
                                             <th>Add to New</th>
+                                            <th>Preview</th>
                                         </tr>
                                         <tr v-for="i in soundfileslisting[1]">
                                             <td>{{i}}</td>
@@ -1235,6 +1247,9 @@ theme-css-url: ''
                                             </td>
                                             <td><button v-on:click="newCueFromSlide(scenename,soundfilesdir+i)">New</button>
                                             </td>
+
+                                            <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button></td>
+
                                         </tr>
                                     </table>
                                 </div>
