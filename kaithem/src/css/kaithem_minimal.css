@@ -239,7 +239,6 @@ input[type=checkbox] {
 
 p.menubar,
 div.menubar {
-    background-color: rgba(255, 25, 255, 0.1);
     opacity: 90%;
     width: 98%;
 }
@@ -302,7 +301,7 @@ div.widgetcontainer {
     display: inline-block;
     background-color: rgba(70, 90, 70, 0.25);
     padding-top: 0px;
-    border-style: inset;
+    border-style: solid;
     border-width: 2px;
     color: rgb(0, 0, 0);
     padding: 5px;
@@ -408,7 +407,9 @@ a.button {
 }
 
 
-
+button, a.buttonbar{
+    border-style: solid;
+}
 summary h2:first-child {
  display: inline;
 }
@@ -551,4 +552,17 @@ div.k-laterality-reminder-left:hover {
 
 div.k-laterality-reminder-right:hover {
     color: rgba(0, 255, 0, 0.5);
+}
+
+.error,
+.danger {
+    text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
+}
+
+.warning {
+    background-color: rgba(255, 255, 0, 0.6);
+}
+
+.highlight{
+    background-color: #78dba479 !important;
 }

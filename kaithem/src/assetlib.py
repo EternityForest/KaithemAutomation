@@ -11,7 +11,9 @@ from urllib.parse import quote
 defaultAssetPacks = [
     "https://github.com/0lhi/FreePD",
     "https://github.com/Calinou/kenney-interface-sounds",
-    "https://github.com/Calinou/kenney-ui-audio"
+    "https://github.com/Calinou/kenney-ui-audio",
+    "https://github.com/EternityForest/CC0-SFX",
+    "https://github.com/EternityForest/CC0-Music"
     ]
 
 class AssetPacks():
@@ -54,8 +56,9 @@ class AssetPacks():
     
         if os.path.normpath(f)==self.assetlib:
             for i in self.assetPackFolders.keys():
-                if not i+"/" in x:
-                    x.append(i+"/")
+                n=os.path.basename(i)
+                if (not n+"/" in x):
+                    x.append(n+"/")
         if ap:
             l = fetch_list(self.assetPackFolders[ap]
                            [0], self.assetPackFolders[ap][1], ap)

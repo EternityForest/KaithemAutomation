@@ -1,0 +1,23 @@
+@import "kaithem_minimal.css";
+
+/* Using a string */
+
+@import "kaithem_fuge_icons.css";
+
+/* Using a string */
+
+
+
+body {
+    color:black;
+    border-color: gainsboro;
+}
+
+section, div.sectionbox, button{
+    border-color: gainsboro;
+    border-style: solid;
+}
+button{
+    border-radius: 2em;
+}
+
