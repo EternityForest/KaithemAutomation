@@ -53,6 +53,8 @@ units ={
     'Pa': 1,
     'psi': 6894.76,
     'PSI': 6894.76,
+    'bar': 100000,
+    'millibar': 100,
 
     'boolean': 1,
     'bool': 1,
@@ -99,7 +101,9 @@ unitTypes = {
 
     'psi': 'pressure',
     'Pa': 'pressure',
-    "PSI": 'pressure'
+    "PSI": 'pressure',
+    'bar':'pressure',
+    'millibar': 'pressure'
 }
 
 _prefixes = {"n":10**-9,"u":10**-6, "m":0.001, "k":1000,"M":1000000,"G":1000000000,"T":1000000000000}

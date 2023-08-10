@@ -21,6 +21,9 @@ from urllib.request import urlopen
 import time
 import json
 
+import iot_devices.host
+
+
 def ip_geolocate():
     # Block for a bit if its been less than a second since the last time we did this
     u = urlopen("http://ip-api.com/json", timeout=60)
@@ -117,3 +120,9 @@ def setDefaultLocation(lat, lon, city='',timezone='', region='', country=''):
     file['default']['regionName'] = str(region)
 
     persist.save(file, fn, private=True)
+
+
+def deviceLocationGetter():
+    return (file['default']['lat'], file['default']['lon'])
+
+iot_devices.host.api['get_site_coordinates'] = deviceLocationGetter

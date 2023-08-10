@@ -36,6 +36,11 @@
         "YoLinkService":{
             "submodule":"devices.YoLink",
             "description": "Access all devices on a YoLink cloud account. NOTE: YoLink has no local API yet, internet dependant.  Also note this uses the unencrypted web API"
+        },
+
+        "WeatherClient":{
+            "submodule":"devices.WeatherPlugin",
+            "description": "Get current weather info. No API key needed, uses wttr.in at the moment"
         }
 
     }

@@ -66,6 +66,7 @@ defaultDisplayUnits = {
     "power": "W",
     "frequency": "Hz",
     "ratio": "%",
+    "speed": "KPH|MPH"
 }
 
 
@@ -2306,6 +2307,9 @@ class _NumericTagPoint(_TagPoint):
             if "dB" not in value:
                 try:
                     self._displayUnits = defaultDisplayUnits[unitTypes[value]]
+                    # Always show the native unit
+                    if not value in self._displayUnits:
+                        self._displayUnits = value + '|' + self._displayUnits
                 except Exception:
                     self._displayUnits = value
             else:

@@ -34,6 +34,14 @@ app_exit_lock = threading.Lock()
 already_did_cleanup = False
 
 
+api = {}
+"""
+The host may place functions here to make available to all device plugins.  Functions must have
+string keys, and use UUID, com.site.foo, or some other similar notation.
+
+Host functions should be very simple and not need changes later!
+"""
+
 def app_exit_cleanup(*a,**k):
     """
         Called by the host to clean up all devices
