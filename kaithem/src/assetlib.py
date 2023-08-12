@@ -12,8 +12,8 @@ defaultAssetPacks = [
     "https://github.com/0lhi/FreePD",
     "https://github.com/Calinou/kenney-interface-sounds",
     "https://github.com/Calinou/kenney-ui-audio",
-    "https://github.com/EternityForest/CC0-SFX",
-    "https://github.com/EternityForest/CC0-Music"
+    "https://github.com/EternityForest/Free-SFX",
+    "https://github.com/EternityForest/Free-Music"
     ]
 
 class AssetPacks():
@@ -108,36 +108,52 @@ def fetch_meta(owner, repo, folder, cachetime=30 * 24 * 3600):
         if t > (time.time() - cachetime):
             with open(fn) as f:
                 return json.loads(f.read())
+    try:
+        url = "https://api.github.com/repos/" + owner + "/" + repo
 
-    url = "https://api.github.com/repos/" + owner + "/" + repo
+        d = requests.get(url)
+        d.raise_for_status()
 
-    d = requests.get(url)
-    d.raise_for_status()
+        with open(fn, 'w') as f:
+            f.write(d.text)
 
-    with open(fn, 'w') as f:
-        f.write(d.text)
+    except Exception:
+        # Fallback to just using what we have.
+        if os.path.exists(fn):
+            with open(fn) as f:
+                return json.loads(f.read())
+        else:
+            raise
 
     return json.loads(d.text)
 
 
-def fetch_list(owner, repo, folder, cachetime=30 * 24 * 3600):
+def fetch_list(owner, repo, folder, cachetime=7 * 24 * 3600):
     fn = os.path.join(folder, "github_api_listing.json")
     if os.path.exists(fn):
         t = os.stat(fn).st_mtime
         if t > (time.time() - cachetime):
             with open(fn) as f:
                 return json.loads(f.read())
+    
+    try:
 
-    branch = fetch_meta(owner, repo, folder)['default_branch']
+        branch = fetch_meta(owner, repo, folder)['default_branch']
 
-    url = "https://api.github.com/repos/" + owner + "/" + \
-        repo + "/git/trees/" + branch + "?recursive=1"
+        url = "https://api.github.com/repos/" + owner + "/" + \
+            repo + "/git/trees/" + branch + "?recursive=1"
 
-    d = requests.get(url)
-    d.raise_for_status()
+        d = requests.get(url)
+        d.raise_for_status()
 
-    with open(fn, 'w') as f:
-        f.write(d.text)
+        with open(fn, 'w') as f:
+            f.write(d.text)
+    except Exception:
+        if os.path.exists(fn):
+            with open(fn) as f:
+                return json.loads(f.read())
+        else:
+            raise
 
     return json.loads(d.text)
 

@@ -251,7 +251,7 @@ def getAcessingUser():
             t = userLogin(b[0], b[1])
             # Check the credentials of that token
             try:
-                return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+                return auth.whoHasToken(cherrypy.request.cookie['kaithem_auth'].value)
             except KeyError:
                 return "__guest__"
             except:
@@ -262,10 +262,10 @@ def getAcessingUser():
         if canOverrideSecurity():
             return "admin"
     # Handle token based auth
-    if not 'auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['auth'].value):
+    if not 'kaithem_auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['kaithem_auth'].value):
         return "__guest__"
     try:
-        user =  auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+        user =  auth.whoHasToken(cherrypy.request.cookie['kaithem_auth'].value)
         if not auth.getUserSetting(user, 'allow-cors'):
             if cherrypy.request.headers.get("Origin",''):
                 if not cherrypy.request.base == cherrypy.request.headers.get("Origin",''):

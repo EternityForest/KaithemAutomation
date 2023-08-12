@@ -449,7 +449,7 @@ class Settings():
         pages.require("/users/accountsettings.edit")
         pages.postOnly()
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        t = cherrypy.request.cookie['auth'].value
+        t = cherrypy.request.cookie['kaithem_auth'].value
         u = auth.whoHasToken(t)
         if len(kwargs['new']) > 100:
             raise RuntimeError("Limit 100 chars for password")

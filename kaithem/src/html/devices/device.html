@@ -9,7 +9,12 @@ import urllib.parse
 def url(u):
     return urllib.parse.quote(u,safe='')
 
-
+def read(f):
+    try:
+        with open(f) as fd:
+                return fd.read()
+    except:
+        return ""
 specialKeys={
 
         'subclass',
@@ -359,6 +364,28 @@ Currently this is only supported for the newer cross-framework devices.
 
 %endif
 </details>
+
+
+%for i in obj.text_config_files:
+<details open>
+        <summary>
+        <h2><i class="icofont-file-alt"></i>${i|h}</h2>
+        </summary>
+<textarea data-editor="${i.split('.')[-1]}" style="height: 40em; width:90%;" name="filedata.${i}">${read(obj.get_config_folder()+"/"+i)|h}</textarea>
+</details>
+%endfor
+
+%try:
+%if obj.get_config_folder(create=False):
+<details>
+        <summary>
+        <h2><i class="icofont-file-alt"></i>Config Folder</h2>
+        </summary>
+<a class="button" href="/settings/files/${url(obj.get_config_folder())}"><i class="icofont-ui-folder"></i>Browse</a>
+</details>
+%endif
+%except:
+%endtry
 
 
 %if hasattr(obj,'metadata') and obj.metadata:
@@ -969,5 +996,41 @@ function startEVM(video,canvas){
         }
         }
 }
+</script>
+
+<script src="/static/js/src-min-noconflict/ace.js"></script>
+<script src="/static/js/jquery3.js"></script>
+
+<script>
+    // Hook up ACE editor to all textareas with data-editor attribute
+    $(function () {
+        $('textarea[data-editor]').each(function () {
+            var textarea = $(this);
+            var mode = textarea.data('editor');
+            var editDiv = $('<div>', {
+                position: 'absolute',
+                width: textarea.width(),
+                height: textarea.height(),
+                'class': textarea.attr('class')
+            }).insertBefore(textarea);
+            textarea.css('display', 'none');
+            var editor = ace.edit(editDiv[0]);
+            editor.renderer.setShowGutter(true);
+            editor.getSession().setValue(textarea.val());
+            editor.getSession().setMode("ace/mode/" + mode);
+            // editor.setTheme("ace/theme/idle_fingers");
+            editor.setOptions({
+             fontFamily: "Hack",
+            fontSize: "12pt"
+            });
+            editor.getSession().on('change', function() {
+                wasChanged=true;
+            })
+            // copy back to textarea on form submit...
+            textarea.closest('form').submit(function () {
+                textarea.val(editor.getSession().getValue());
+            })
+        });
+    });
 </script>
 <%include file="/pagefooter.html"/>

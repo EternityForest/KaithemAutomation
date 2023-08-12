@@ -262,6 +262,51 @@ def nop():
 globalMethodRateLimit = [0]
 
 
+
+def ws_proxy_class(url):
+    from ws4py.client.threadedclient import WebSocketClient
+    from ws4py.websocket import WebSocket
+
+    class EchoClient(WebSocketClient):
+        def opened(self):
+            pass
+
+        def closed(self, code, reason):
+            pass
+
+        def received_message(self, m):
+            with self.parent.l:
+                self.parent.send(m)
+
+    class Handler(WebSocket):
+
+        def __init__(self,*a,**k):
+    
+            ws = EchoClient(url, protocols=['http-only', 'chat'])
+            ws.daemon = False
+            ws.connect()
+
+            self.ws = ws
+
+            ws.parent = self
+            import threading
+            self.l = threading.RLock()
+
+            WebSocket.__init__(self,*a,**k)
+
+        def received_message(self, m):
+            with self.l():
+                self.ws.send(m)
+
+        def closed(self, code, reason="A client left the room without a proper explanation."):
+            with self.l:
+                self.ws.close()
+
+    return Handler
+
+
+
+
 def webRoot():
     # We don't want Cherrypy writing temp files for no reason
     cherrypy._cpreqbody.Part.maxrambytes = 64 * 1024
@@ -341,7 +386,7 @@ def webRoot():
             logger.warning("error setting process title")
 
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-    from ws4py.websocket import EchoWebSocket, WebSocket
+    from ws4py.websocket import WebSocket
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
     logger.info("activated websockets")
@@ -365,10 +410,6 @@ def webRoot():
 
     import collections
 
-    # Super simple hacky cache. Maybe we should
-    # Just mostly eliminate zips and use files directly?
-    zipcache = collections.OrderedDict()
-
     # This class represents the "/" root of the web app
     class webapproot():
 
@@ -377,6 +418,9 @@ def webRoot():
 
         # foo.bar.com/foo maps to foo,bar,/,foo
         # bar.com/foo is just foo
+
+
+
         def _cp_dispatch(self, vpath):
 
             sdpath = pages.getSubdomain()
@@ -436,7 +480,7 @@ def webRoot():
                 vpath2.pop(-1)
 
             return None
-
+        
         @cherrypy.expose
         def default(self, *path, **data):
             return self._cp_dispatch(list(path))(*path, **data)
@@ -721,6 +765,9 @@ def webRoot():
         'server.socket_port': config['https-port'],
         'server.thread_pool': config['https-thread-pool']
     }
+
+    def esp_proxy_wscfg(p):
+        return {'tools.websocket.on': True, 'tools.websocket.handler_cls': ws_proxy_class("ws://localhost:6052/"+p)}
 
     wscfg = {'tools.websocket.on': True,
              'tools.websocket.handler_cls': widgets.websocket}

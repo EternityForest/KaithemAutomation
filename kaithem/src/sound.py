@@ -59,6 +59,10 @@ for i in p:
 builtinSounds = os.listdir(os.path.join(directories.datadir, "sounds"))
 
 
+sound_paths.append(os.path.join(directories.vardir, "static"))
+sound_paths.append(os.path.join(directories.vardir, "assets"))
+
+
 def soundPath(fn, extrapaths=[]):
     "Get the full path of a sound file by searching"
     filename = util.search_paths(fn, extrapaths)

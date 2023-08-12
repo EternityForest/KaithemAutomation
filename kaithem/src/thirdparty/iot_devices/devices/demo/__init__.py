@@ -2,11 +2,22 @@ from iot_devices import device
 
 import random
 import time
+import os
 
 class DemoDevice(device.Device):
     device_type = "DemoDevice"
     def __init__(self,name, data, **kw):
         device.Device.__init__(self,name, data, **kw)
+
+        self.text_config_files = ['test.conf']
+
+        try:
+            if not os.path.exists(os.path.join(self.get_config_folder(), 'test.conf')):
+                with open(os.path.join(self.get_config_folder(), 'test.conf'),"w") as f:
+                    f.write("Testing")
+        except Exception:
+            pass
+
 
         self.set_config_default("device.fixed_number_multiplier","1")
 

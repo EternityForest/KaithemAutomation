@@ -54,26 +54,6 @@ def f(u,v,id):
 
 toolbarapi.attach2(f)
 
-def makenotifier():
-    if not 'LastSawMainPage' in cherrypy.response.cookie:
-        t = float(cherrypy.request.cookie["LastSawMainPage"].value)
-    else:
-        t = float(cherrypy.response.cookie["LastSawMainPage"].value)
-
-    b = countnew(t)
-    if b[2]:
-        c = 'warning'
-    if b[3]:
-        c = 'error'
-    else:
-        c = ""
-
-    if b[0]:
-        s = "<span class='%s'>(%d)</span>" % (c, b[0])
-    else:
-        s = ''
-    return s
-
 
 def countnew(since):
     normal = 0

@@ -124,13 +124,13 @@ class LoginScreen():
             # Give the user the security token.
             # AFAIK this is and should at least for now be the
             # ONLY place in which the auth cookie is set.
-            cherrypy.response.cookie['auth'] = x
-            cherrypy.response.cookie['auth']['path'] = '/'
+            cherrypy.response.cookie['kaithem_auth'] = x
+            cherrypy.response.cookie['kaithem_auth']['path'] = '/'
             # This auth cookie REALLY does not belong anywhere near an unsecured connection.
             # For some reason, empty strings seem to mean "Don't put this attribute in.
             # Always test, folks!
             try:
-                cherrypy.response.cookie['auth']['SameSite'] = 'Strict'
+                cherrypy.response.cookie['kaithem_auth']['SameSite'] = 'Strict'
             except Exception:
                 logging.exception("Cannot set samesite strict")
 
@@ -139,11 +139,11 @@ class LoginScreen():
             # This will not be secure if someone puts it behind an insecure a proxy that allows HTTP also/s
             ip = cherrypy.request.remote.ip
             if not pages.isHTTPAllowed(ip):
-                cherrypy.response.cookie['auth']['secure'] = ' '
-            cherrypy.response.cookie['auth']['httponly'] = ' '
+                cherrypy.response.cookie['kaithem_auth']['secure'] = ' '
+            cherrypy.response.cookie['kaithem_auth']['httponly'] = ' '
             # Previously, tokens are good for 90 days
             # Now, just never expire, it might break kiosk applications.
-            # cherrypy.response.cookie['auth']['expires'] = 24 * 60 * 60 * 90
+            # cherrypy.response.cookie['kaithem_auth']['expires'] = 24 * 60 * 60 * 90
             x = auth.Users[kwargs['username']]
             if not 'loginhistory' in x:
                 x['loginhistory'] = [(time.time(), cherrypy.request.remote.ip)]
@@ -174,9 +174,9 @@ class LoginScreen():
     def logout(self, **kwargs):
         # Change the security token to make the old one invalid and thus log user out.
         pages.postOnly()
-        if cherrypy.request.cookie['auth'].value in auth.Tokens:
+        if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens:
             messagebus.postMessage("/system/auth/logout", [auth.whoHasToken(
-                cherrypy.request.cookie['auth'].value), cherrypy.request.remote.ip])
+                cherrypy.request.cookie['kaithem_auth'].value), cherrypy.request.remote.ip])
             auth.assignNewToken(auth.whoHasToken(
-                cherrypy.request.cookie['auth'].value))
+                cherrypy.request.cookie['kaithem_auth'].value))
         raise cherrypy.HTTPRedirect("/index")
