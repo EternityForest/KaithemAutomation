@@ -1166,8 +1166,15 @@ def updateDevice(devname, kwargs, saveChanges=True):
             i2 = i[len('filedata.'):]
 
             fl = getDeviceConfigFolder(name)
-            with open(os.path.join(fl, i2), "w") as f:
-                f.write(kwargs[i])
+
+            do = False
+            with open(os.path.join(fl, i2), "r") as f:
+                if not f.read()==kwargs[i]:
+                    do = True
+
+            if do:
+                with open(os.path.join(fl, i2), "w") as f:
+                    f.write(kwargs[i])
 
         if parentModule:
             modules_state.ActiveModules[parentModule][

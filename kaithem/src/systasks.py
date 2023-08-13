@@ -50,11 +50,11 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                 [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
             if len(httpservices) > 2048:
                 httpservices.pop(0)
-        else:
+        elif state_change is ServiceStateChange.Removed:
             try:
                 httpservices.remove((tuple(sorted(
                     [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
-            except:
+            except Exception:
                 logging.exception("???")
 
 

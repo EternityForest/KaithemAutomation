@@ -129,7 +129,6 @@ logger.setLevel(logging.WARNING)
 logger = logging.getLogger("aioesphomeapi._frame_helper")
 logger.setLevel(logging.WARNING)
 
-
 logger = logging.getLogger("aioesphomeapi.reconnect_logic")
 logger.setLevel(logging.WARNING)
 
@@ -949,30 +948,7 @@ def webRoot():
         '/system/notifications/important', 'System Initialized')
 
     r = util.zeroconf
-
-    import zeroconf
-    # Register an NTP service
-    desc = {}
-
-    if cfg.config['advertise-webui']:
-        try:
-            import socket
-            if not cfg.config['webui-servicename'] == "default":
-                localserver_name = cfg.config['webui-servicename']
-            else:
-                localserver_name = "kaithem_" + socket.gethostname()
-
-            info = zeroconf.ServiceInfo("_http._tcp.local.",
-                                        localserver_name + "._http._tcp.local.",
-                                        [None], cfg.config['http-port'], 0, 0, desc)
-            r.register_service(info)
-            info2 = zeroconf.ServiceInfo("_https._tcp.local.",
-                                         localserver_name + "._https._tcp.local.",
-                                         [None], cfg.config['https-port'], 0, 0, desc)
-            r.register_service(info2)
-        except Exception:
-            logger.exception("Error advertising MDNS service")
-
+  
     # Open a port to the outside world. Note that this can only be enabled through the webUI,
     # You are safe unless someone turns it on..
     workers.do(systasks.doUPnP)

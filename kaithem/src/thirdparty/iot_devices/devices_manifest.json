@@ -45,7 +45,7 @@
 
         "ESPHomeDevice":{
             "submodule":"devices.ESPHomePlugin",
-            "description": "Represents one single ESPHome device"
+            "description": "Represents one single ESPHome device.  Cannot flash or update the ESP, use the dashboard tool for that."
         }
 
     }

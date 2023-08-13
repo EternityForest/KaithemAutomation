@@ -53,7 +53,7 @@ else:
 
 def setRedirect(url):
     redirects['/']['url'] = url
-    persist.save(redirects, redirectsfn, private=True)
+    persist.save(redirects, redirectsfn)
 
 
 

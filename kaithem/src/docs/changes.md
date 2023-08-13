@@ -12,6 +12,8 @@ Change Log
 - :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
 - :sparkles: Devices framework now has a WeatherClient, No API key needed thanks to wttr.in! :sunny: :cloud: :rainbow:
 - :sparkles: Github based online assets library, seamlessly browse and download music and SFX right in Chandler
+- :sparkles: Extremely basic support for ESPHome devices(BinarySensor, Number, Sensor, TextSensor)
+- :bug: Fix zeroconf exceptions
 
 
 ### 0.68.47

@@ -7,7 +7,7 @@
 /* Using a string */
 
 html {
-    background:  radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.jpg);
+    background:  radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.avif);
     background-size: cover, unset;
     background-repeat: repeat, repeat;
     min-height: 100vh;

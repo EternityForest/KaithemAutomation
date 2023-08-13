@@ -269,7 +269,7 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                     onvifCams[fixAddr(name)]= None
             except Exception:
                 pass
-        else:
+        elif state_change is ServiceStateChange.Removed:
             try:
                 httpservices.remove((tuple(sorted(
                     [socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
