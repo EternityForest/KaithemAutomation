@@ -44,7 +44,7 @@ Host functions should be very simple and not need changes later!
 
 def app_exit_cleanup(*a,**k):
     """
-        Called by the host to clean up all devices
+        Called by the host to clean up all devices and also close them.
     """
     global already_did_cleanup
     with app_exit_lock:

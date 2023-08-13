@@ -7,13 +7,16 @@ import json
 from . import directories
 from urllib.parse import quote
 
+fetchlock = threading.RLock()
 
 defaultAssetPacks = [
     "https://github.com/0lhi/FreePD",
+    "https://github.com/Loppansson/kenney-casino-audio-for-godot",
     "https://github.com/Calinou/kenney-interface-sounds",
     "https://github.com/Calinou/kenney-ui-audio",
     "https://github.com/EternityForest/Free-SFX",
-    "https://github.com/EternityForest/Free-Music"
+    "https://github.com/EternityForest/Free-Music",
+    "https://github.com/Loppansson/kenney-rpg-audio-for-godot"
     ]
 
 class AssetPacks():
@@ -79,26 +82,27 @@ class AssetPacks():
         return x
 
     def ensure_file(self, f):
-        if os.path.exists(f):
-            return
+        with fetchlock:
+            if os.path.exists(f):
+                return
 
-        ap = None
-        d = f
-        for i in range(30):
-            if (d == '/'):
-                break
-            if d in self.assetPackFolders:
-                ap = d
-                break
-            d = os.path.dirname(d)
+            ap = None
+            d = f
+            for i in range(30):
+                if (d == '/'):
+                    break
+                if d in self.assetPackFolders:
+                    ap = d
+                    break
+                d = os.path.dirname(d)
 
-        if ap:
-            if not os.path.exists(os.path.dirname(f)):
-                os.makedirs(os.path.dirname(f), exist_ok=True)
+            if ap:
+                if not os.path.exists(os.path.dirname(f)):
+                    os.makedirs(os.path.dirname(f), exist_ok=True)
 
-            current = os.path.relpath(f, ap)
-            fetch_file(self.assetPackFolders[ap][0],
-                       self.assetPackFolders[ap][1], ap, current)
+                current = os.path.relpath(f, ap)
+                fetch_file(self.assetPackFolders[ap][0],
+                        self.assetPackFolders[ap][1], ap, current)
 
 
 def fetch_meta(owner, repo, folder, cachetime=30 * 24 * 3600):
@@ -111,7 +115,7 @@ def fetch_meta(owner, repo, folder, cachetime=30 * 24 * 3600):
     try:
         url = "https://api.github.com/repos/" + owner + "/" + repo
 
-        d = requests.get(url)
+        d = requests.get(url, timeout=5)
         d.raise_for_status()
 
         with open(fn, 'w') as f:
@@ -143,7 +147,7 @@ def fetch_list(owner, repo, folder, cachetime=7 * 24 * 3600):
         url = "https://api.github.com/repos/" + owner + "/" + \
             repo + "/git/trees/" + branch + "?recursive=1"
 
-        d = requests.get(url)
+        d = requests.get(url, timeout=5)
         d.raise_for_status()
 
         with open(fn, 'w') as f:
@@ -167,7 +171,7 @@ def fetch_file(owner, repo, folder, path):
     url = "https://raw.githubusercontent.com/" + \
         owner + "/" + repo + "/" + branch + "/" + path
 
-    d = requests.get(url)
+    d = requests.get(url, timeout=5)
     d.raise_for_status()
 
     with open(fn, 'wb') as f:

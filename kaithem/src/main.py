@@ -123,6 +123,16 @@ logger.setLevel(logging.INFO)
 logger = logging.getLogger("ws4py")
 logger.setLevel(logging.WARNING)
 
+logger = logging.getLogger("aioesphomeapi.connection")
+logger.setLevel(logging.WARNING)
+
+logger = logging.getLogger("aioesphomeapi._frame_helper")
+logger.setLevel(logging.WARNING)
+
+
+logger = logging.getLogger("aioesphomeapi.reconnect_logic")
+logger.setLevel(logging.WARNING)
+
 # Dump stuff to stderr when we get a segfault
 try:
     import faulthandler
@@ -219,6 +229,7 @@ except Exception:
 
 
 devices.init_devices()
+cherrypy.engine.subscribe("stop", devices.closeAll)
 
 
 def dumpThreads(*a):

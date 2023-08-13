@@ -66,6 +66,11 @@ syslogger = logging.getLogger("system.devices")
 dbgd = weakref.WeakValueDictionary()
 
 
+def closeAll(*a):
+    for i in remote_devices_atomic:
+        remote_devices_atomic[i].close()
+
+
 class DeviceResourceType():
     def onload(self, module, name, value):
         with modules_state.modulesLock:

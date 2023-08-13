@@ -41,6 +41,11 @@
         "WeatherClient":{
             "submodule":"devices.WeatherPlugin",
             "description": "Get current weather info. No API key needed, uses wttr.in at the moment"
+        },
+
+        "ESPHomeDevice":{
+            "submodule":"devices.ESPHomePlugin",
+            "description": "Represents one single ESPHome device"
         }
 
     }

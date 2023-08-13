@@ -365,7 +365,7 @@ Currently this is only supported for the newer cross-framework devices.
 %endif
 </details>
 
-
+%if hasattr( obj,"text_config_files"):
 %for i in obj.text_config_files:
 <details open>
         <summary>
@@ -374,6 +374,7 @@ Currently this is only supported for the newer cross-framework devices.
 <textarea data-editor="${i.split('.')[-1]}" style="height: 40em; width:90%;" name="filedata.${i}">${read(obj.get_config_folder()+"/"+i)|h}</textarea>
 </details>
 %endfor
+%endif
 
 %try:
 %if obj.get_config_folder(create=False):

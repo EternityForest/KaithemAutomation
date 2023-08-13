@@ -264,6 +264,8 @@ sudo apt-get install libatlas-base-dev libjasper-dev
 sudo apt -y install scrot mpv libmpv-dev python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage python3-setproctitle
 python3 -m pip install tflite-runtime 
 
+pip3 install aioesphomeapi
+
 mkdir -p /home/$(id -un 1000)/kaithem
 chown -R $(id -un 1000):$(id -un 1000) /home/$(id -un 1000)/kaithem
 chmod -R 700 /home/$(id -un 1000)/kaithem
