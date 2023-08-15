@@ -9,11 +9,12 @@ Change Log
 - :sparkles: New Banderole theme, probably the best example to learn theming
 - :sparkles: Control RasPi and maybe others system power and activity LEDs via the tag points interface.
 - :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
-- :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
 - :sparkles: Devices framework now has a WeatherClient, No API key needed thanks to wttr.in! :sunny: :cloud: :rainbow:
 - :sparkles: Github based online assets library, seamlessly browse and download music and SFX right in Chandler
 - :sparkles: Extremely basic support for ESPHome devices(BinarySensor, Number, Sensor, TextSensor)
 - :bug: Fix zeroconf exceptions
+- :sparkles: Chandler is no longer a module, it is now a built in, always-there tab.  Look forward to deeper integrations!
+- :sparkles: Chandler audio cues play much faster than before
 
 
 ### 0.68.47

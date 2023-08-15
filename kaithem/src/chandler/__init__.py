@@ -2819,10 +2819,10 @@ class ClosedScene():
 class Scene():
     "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
 
-    def __init__(self, name=None, values=None, active=False, alpha=1, priority=50, blend="normal", id=None, defaultActive=False,
+    def __init__(self, name=None, values=None, active=False, alpha=1, priority=50, blend="normal", id=None, defaultActive=True,
                  blendArgs=None, backtrack=True, defaultCue=True, bpm=60,
                  soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", utility=False, notes='',
-                 page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',
+                 mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',
                  slideOverlayURL='',
 
                  **ignoredParams):
