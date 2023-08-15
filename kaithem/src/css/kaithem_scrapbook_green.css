@@ -50,11 +50,6 @@ body {
     backdrop-filter: blur(8px) !important;
 }
 
-.navbar .buttonbar {
-    width: 100%;
-    backdrop-filter: blur(2px);
-    background-color: rgba(160, 64, 238, 0.1);
-}
 
 
 #topbanner {
@@ -374,7 +369,10 @@ div.menubar {
     backdrop-filter: blur(3px);
 }
 
-
+p.buttonbar *,
+div.buttonbar * {
+    backdrop-filter: blur(3px);
+}
 
 button,
 a.button,

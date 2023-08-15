@@ -181,18 +181,15 @@ body {
 /********************Basic Layout******************************/
 
 h2,
-h3,
-h4,
-h5 {
-    margin-bottom: 5px;
-    margin-top: 4px;
-}
-
-h2,
-h3 {
+h3
+ {
+    margin-bottom: 12px;
     margin-top: 28px;
     text-align: center;
+
 }
+
+
 
 h2 {
     margin-top: 32px;
@@ -253,6 +250,10 @@ z-index: 1000;
 }
 
 
+
+span, button{
+    color: inherit;
+}
 /*********************Code editing************************/
 
 @font-face {
@@ -347,6 +348,10 @@ textarea:disabled {
     background-color: #D0D0D0
 }
 
+
+details{
+    margin: 0.4em;
+}
 
 /*This is a help paragraph usually shown at the top or a sectionbox*/
 
@@ -456,6 +461,7 @@ table {
     border-width: 1px;
     border-color: #00000059;
     border-collapse: collapse;
+    margin: 0.4em;
 }
 
 
@@ -510,7 +516,7 @@ div.card {
 
 div.sectionbox.flex-item,
 section.flex-item {
-    margin: 0.2em;
+    margin: 1.2em;
     flex-grow: 1;
 }
 

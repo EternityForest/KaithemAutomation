@@ -115,7 +115,7 @@
 
 
 
-                <div style="display:flex;flex-direction:column;align-items: center;">
+                <div style="display:flex;flex-direction:column;align-items: center; margin:1em;">
                     <h3>Event Actions</h3>
                     <div  class="rulesbox" style="overflow:scroll">
                         <div v-for="i in rules" style="display:flex;flex-direction:row; padding:3px;">

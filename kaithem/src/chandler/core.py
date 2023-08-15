@@ -65,7 +65,7 @@ class RateLimiter():
         self.c = 0
 
     def limit(self):
-        self.c = min(25, self.c + ((time.monotonic() - self.t) * 10))
+        self.c = min(32, self.c + ((time.monotonic() - self.t) * 12))
 
         self.c -= 1
         self.t = time.monotonic()

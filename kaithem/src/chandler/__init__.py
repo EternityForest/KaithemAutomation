@@ -56,7 +56,7 @@ def number_to_note(number: int) -> str:
 
 
 def nbr():
-    return (50, '<a href="/chandler/console"><i class="icofont-cheer-leader"></i>Chandler</a>')
+    return (50, '<a href="/chandler/commander"><i class="icofont-cheer-leader"></i>Chandler</a>')
 
 
 kaithem.web.navBarPlugins['chandler'] = nbr

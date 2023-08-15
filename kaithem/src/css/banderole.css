@@ -6,6 +6,16 @@
 
 /* Using a string */
 
+
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/static/fonts/Lato/lato-regular.woff2');
+  /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+
 html {
     background:  radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.avif);
     background-size: cover, unset;
@@ -24,15 +34,15 @@ html {
 
 
 p::first-letter,h1::first-letter,h2::first-letter,h3::first-letter, h1 *::first-letter,h2 *::first-letter,h3 *::first-letter{
-  color: #b51c00;
+  color: #874437;
   font-weight: bold;
 }
 
 
 
 body {
-    color: black;
-    --box-bg: rgba(228, 233, 227, 0.103);
+    color: #412f1b;
+    border-color: #837b58;
 }
 
 div.card {
@@ -58,13 +68,22 @@ div.card {
     background: transparent;
     text-shadow: none;
     font-weight: 500;
-
+    --buttonbar-element-border: 1px solid rgba(58, 57, 45, 0.767);
 }
 
 .buttonbar *{
-  border-color: #1d0702;
   text-shadow: none;
 }
+.buttonbar h2, .buttonbar h3{
+  background-color: rgba(191 199 146 / 37%);
+}
+
+/* .buttonbar button:hover, .buttonbar a.button:hover
+{
+  backdrop-filter: blur(4px);
+  color: #12a900;
+} */
+
 
 .menubar:is(.buttonbar), .navbar .buttonbar, .buttonbar {
     --buttonbar-convex-item-bg: transparent;
@@ -83,16 +102,23 @@ div.sectionbox,
 section {
     border-style: double;
     background: var(--box-bg);
-    border-width: 10px;
+    border-width: 8px;
     border-radius: 5px;
     backdrop-filter: blur(1px);
-    border-color: #3b2e11;
-}
+    border-color: #412f1b;
+  }
 
+  
+
+
+
+.buttonbar{
+  transform: rotate(0.2deg);
+}
 
 a {
     color: rgb(87, 25, 63);
-    text-shadow: 0 0 1px rgb(215 237 255);
+    text-shadow: none;
     text-decoration: none;
 }
 
@@ -110,7 +136,7 @@ div.widgetcontainer {
   /* Firefox */
   * {
     scrollbar-width: auto;
-    scrollbar-color: #6d363e #8e8c71;
+    scrollbar-color: #874437 #8e8c71;
   }
 
   /* Chrome, Edge, and Safari */
@@ -123,27 +149,39 @@ div.widgetcontainer {
   }
 
   *::-webkit-scrollbar-thumb {
-    background-color: #943d4a;
+    background-color: #874437;
     border-radius: 10px;
     border: 1px solid #000000;
   }
+*::-webkit-scrollbar-corner
+{
+  background-color: #875b37;
+
+}
 
 
   button:active, a.button:active,.buttonbar button:active,.buttonbar a.button:active {
     background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
 }
 
+img{
+  opacity: 0.8;
+}
+
 input, button,textarea,select{
   background-color: transparent;
   border-style: solid;
   border-width: 2px;
-  border-color: #5c1705;
+  border-color: #412f1b;
   border-radius: 12px;
 }
 
+input, textarea, select, button, a.button
+{
+  box-shadow: inset 1px 1px 8px 1px rgba(0, 0, 0, 0.253);
+}
 
 input[type=range] {
-  width: 100%;
   margin: 13.8px 0;
   background-color: transparent;
   -webkit-appearance: none;
@@ -152,7 +190,7 @@ input[type=range]:focus {
   outline: none;
 }
 input[type=range]::-webkit-slider-runnable-track {
-  background: #a62000;
+  background: #874437;
   border: 0.2px solid #010101;
   border-radius: 1.3px;
   width: 100%;
@@ -170,7 +208,7 @@ input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
 }
 input[type=range]:focus::-webkit-slider-runnable-track {
-  background: #c02500;
+  background: #874437;
 }
 input[type=range]::-moz-range-track {
   background: #a62000;

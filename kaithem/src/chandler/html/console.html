@@ -210,7 +210,7 @@ ${lists}
     </div>
 
 
-    <div id="optionsblock" class="menubar multibar" style="flex-basis: 98%">
+    <div id="optionsblock" class="multibar" style="flex-basis: 98%">
 
         <div class="menubar buttonbar">
 
@@ -614,9 +614,6 @@ ${lists}
                 v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
             <button v-on:click="shortcut()">Go!</button>
         </div>
-
-        <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
-            Scenes</h3>
         <p class="buttonbar">
             <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
                     class="icofont-trash"></i></button>
@@ -627,7 +624,7 @@ ${lists}
             <button v-on:click="showPages=!showPages">Toggle Compact</button>
 
         </p>
-        <br />
+        <hr>
         <div id="scene" style="overflow: auto; max-height:450px;">
             <div v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;"
                 v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
@@ -721,10 +718,13 @@ ${lists}
 
     <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
         style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
+        <div style="display: flex; flex-direction: row;">
+
         <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
                 <span v-if="editingScene.blend=='monitor'">Monitor</span>
             </span> {{editingScene.name}}</span>
             <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+        </h3>
 
             <p class="buttonbar">
                 <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
@@ -734,9 +734,10 @@ ${lists}
                         class="icofont-ui-play-stop"></i>Stop</button>
                 <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
             </p>
-            <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
 
-        </h3>
+            <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
+</div>
+
 
         <p class="buttonbar">
             <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
@@ -751,7 +752,7 @@ ${lists}
         <div id="cuesbox" v-if="scenetab !='blend'">
 
             <div style="overflow-y: auto;max-height:12em;">
-                <table class="reflow" border="1" style="resize:both; width:100%;">
+                <table class="reflow" border="1" style="resize:both; width:98%;">
 
                     <thead>
                         <tr>
@@ -806,7 +807,7 @@ ${lists}
                             </td>
 
                             <td data-label="Next Cue:">
-                                <select style="width:100%" v-model="i[1].next"
+                                <select style="width:98%" v-model="i[1].next"
                                     v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off
                                     title="Select a cue to activate when this one ends"
                                     v-on:change="setnext(i[1].id,$event.target.value)">
@@ -848,7 +849,7 @@ ${lists}
             </div>
 
 
-
+                <hr>
             <p class="buttonbar">
                 <input v-model="newcuename" placeholder="New cue name">
                 <button v-on:click="addcue(scenename,newcuename)">
@@ -878,7 +879,7 @@ ${lists}
                     <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
                             class="icofont-listing-box"></i>Channels</button>
                 </p>
-                <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
+                <div style="overflow: auto; max-height:30em; border: 1px solid;" class="fadersbox" v-if="showLightingControls">
                     <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'"
                         style="border-style:solid">
                         <h3>{{uname}}</h3>
@@ -969,7 +970,7 @@ ${lists}
 
                         <div style="border-style:solid;flex-grow:1;margin:0.5em;padding:0.5em;">
                             <h3>Timers</h3>
-                            <table border="1" style="width:100%">
+                            <table border="1" style="width:98%">
 
                                 <tr v-for="(v,i) in editingScene.timers">
                                     <td>{{i}}</td>
