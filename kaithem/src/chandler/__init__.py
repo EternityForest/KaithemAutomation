@@ -3495,15 +3495,15 @@ class Scene():
                 if not self.cues[cue].sound == "__keep__":
                     # Don't stop audio of we're about to crossfade to the next track
                     if not (self.crossfade and self.cues[cue].sound):
-                        if self.cue.soundFadeOut or self.cue.mediaWinddown:
-                            fadeSound(None, length=self.cue.soundFadeOut, handle=str(
-                                self.id), winddown=self.cue.mediaWinddown)
+                        if self.cues[cue].soundFadeOut or self.cues[cue].mediaWinddown:
+                            fadeSound(None, length=self.cues[cue].soundFadeOut, handle=str(
+                                self.id), winddown=self.cues[cue].mediaWinddown)
                         else:
                             stopSound(str(self.id))
 
                     self.allowMediaUrlRemote = None
 
-                    out = self.cue.soundOutput
+                    out = self.cues[cue].soundOutput
                     if not out:
                         out = self.soundOutput
                     if not out:
@@ -3512,14 +3512,14 @@ class Scene():
                     if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
                         self.mediaLink.send(['volume', self.alpha])
                         self.mediaLink.send(['mediaURL', None, self.enteredCue, max(
-                            0, self.cue.fadein or self.crossfade)])
+                            0, self.cues[cue].fadein or self.crossfade)])
 
-                    if self.cue.sound and self.active:
+                    if self.cues[cue].sound and self.active:
 
-                        sound = self.cue.sound
+                        sound = self.cues[cue].sound
                         try:
                             self.cueVolume = min(
-                                5, max(0, float(self.evalExpr(self.cue.soundVolume))))
+                                5, max(0, float(self.evalExpr(self.cues[cue].soundVolume))))
                         except Exception:
                             self.event(
                                 "script.error", self.name + " in cueVolume eval:\n" + traceback.format_exc())
@@ -3535,20 +3535,20 @@ class Scene():
 
                                 # Always fade in if the face in time set.
                                 # Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
-                                if not (((self.crossfade > 0) and kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn or self.cue.mediaWindup):
+                                if not (((self.crossfade > 0) and kaithem.sound.isPlaying(str(self.id))) or self.cues[cue].soundFadeIn or self.cues[cue].mediaWindup):
                                     spd = self.scriptContext.preprocessArgument(
-                                        self.cue.mediaSpeed)
+                                        self.cues[cue].mediaSpeed)
                                     playSound(sound, handle=str(self.id), volume=self.alpha * self.cueVolume, output=out,
-                                              loop=self.cue.soundLoops, start=self.cue.soundStartPosition, speed=spd)
+                                              loop=self.cues[cue].soundLoops, start=self.cues[cue].soundStartPosition, speed=spd)
                                 else:
-                                    fadeSound(sound, length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id), volume=self.alpha * self.cueVolume, output=out, loop=self.cue.soundLoops,
-                                              start=self.cue.soundStartPosition, windup=self.cue.mediaWindup, winddown=self.cue.mediaWinddown)
+                                    fadeSound(sound, length=max(self.crossfade, self.cues[cue].soundFadeIn), handle=str(self.id), volume=self.alpha * self.cueVolume, output=out, loop=self.cues[cue].soundLoops,
+                                              start=self.cues[cue].soundStartPosition, windup=self.cues[cue].mediaWindup, winddown=self.cues[cue].mediaWinddown)
 
                             else:
                                 self.allowMediaUrlRemote = sound
                                 self.mediaLink.send(['volume', self.alpha])
                                 self.mediaLink.send(['mediaURL', sound, self.enteredCue, max(
-                                    0, self.cue.fadein or self.crossfade)])
+                                    0, self.cues[cue].fadein or self.crossfade)])
 
                             try:
                                 soundMeta = TinyTag.get(sound, image=True)
@@ -3584,14 +3584,14 @@ class Scene():
                                 "error", "File does not exist: " + sound)
 
                 self.cue = self.cues[cue]
-                self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
+                self.cueTagClaim.set(self.cues[cue].name, annotation="SceneObject")
 
                 self.recalcRandomizeModifier()
                 self.recalcCueLen()
 
                 # Recalc what universes are affected by this scene.
                 # We don't clear the old universes, we do that when we're done fading in.
-                for i in self.cue.values:
+                for i in self.cues[cue].values:
                     i = mapUniverse(i)
                     if i and i in universes.universes:
                         if i not in self.affect:
