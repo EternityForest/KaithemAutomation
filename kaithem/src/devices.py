@@ -16,7 +16,6 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-import typing
 import colorzero
 import weakref
 import time
@@ -68,7 +67,10 @@ dbgd = weakref.WeakValueDictionary()
 
 def closeAll(*a):
     for i in remote_devices_atomic:
-        remote_devices_atomic[i].close()
+        c= remote_devices_atomic[i]
+        c= c()
+        if c:
+            c.close()
 
 
 class DeviceResourceType():

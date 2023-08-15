@@ -92,7 +92,7 @@ class NamespaceGetter():
         self.__attr_dict = d
 
     def __getattr__(self, k):
-        return self.__attr_dict[self.__attr_prefix+'.'+k]
+        return self.__attr_dict[self.__attr_prefix + '.' + k]
 
 
 def DummyObject():
@@ -132,7 +132,7 @@ def DummyObject():
         return 0
 
     def __neg__(self):
-        return other
+        return 0
 
     def __str__(self):
         return ""
@@ -140,10 +140,10 @@ def DummyObject():
 
 def paramDefault(p):
     if isinstance(p, int):
-        return '='+str(p)
+        return '=' + str(p)
 
     if isinstance(p, float):
-        return '='+str(p)
+        return '=' + str(p)
 
     if isinstance(p, str):
 
@@ -151,9 +151,9 @@ def paramDefault(p):
         if p and not p.strip().startswith("="):
             try:
                 float(p)
-                return("="+"'"+repr(p)+"'")
+                return ("=" + "'" + repr(p) + "'")
             except Exception:
-                return("="+repr(p))
+                return ("=" + repr(p))
 
         # Presever things starting with = unchanged
         else:
@@ -168,14 +168,14 @@ def paramDefault(p):
 
 
 def getFunctionInfo(f):
-    p = inspect.signature(f).parameters        
+    p = inspect.signature(f).parameters
 
     d = {
         'doc': inspect.getdoc(f),
         'args': [[i, paramDefault(p[i].default)] for i in p]
     }
 
-    if hasattr(f,"completionTags"):
+    if hasattr(f, "completionTags"):
         d['completionTags'] = f.completionTags
 
     return d
@@ -191,8 +191,6 @@ def getContextFunctionInfo(f):
     return d
 
 
-
-
 def safesqrt(x):
     if x > 10**30:
         raise RuntimeError("Too High of number for sqrt")
@@ -200,13 +198,13 @@ def safesqrt(x):
 
 
 def millis():
-    return time.monotonic()*1000
-
+    return time.monotonic() * 1000
 
 
 # TODO separate the standard library stuff from this file?
 from . import astrallibwrapper as sky
 from . import geolocation
+
 
 def isDay(lat=None, lon=None):
     if lat is None:
@@ -254,7 +252,6 @@ def isDark(lat=None, lon=None):
     return (sky.isDark(lat, lon))
 
 
-
 globalUsrFunctions = {
     "unixtime": time.time,
     "millis": millis,
@@ -270,7 +267,7 @@ globalUsrFunctions = {
 
     "isDark": isDark,
     "isNight": isNight,
-    "isLight":isLight,
+    "isLight": isLight,
     "isDay": isDay
 }
 
@@ -292,7 +289,7 @@ def passAction():
 
 def maybe(chance=50):
     "Return a True with some percent chance, else stop the action"
-    return True if random.random()*100 > chance else None
+    return True if random.random() * 100 > chance else None
 
 
 def continueIf(v):
@@ -352,12 +349,11 @@ class ScheduleTimer():
     def stop(self):
         try:
             self.next.unregister()
-        except:
+        except Exception:
             pass
 
+
 import uuid
-
-
 
 
 def dt_to_ts(dt, tz=None):
@@ -371,7 +367,7 @@ def dt_to_ts(dt, tz=None):
         ts = time.time()
         offset = (datetime.datetime.fromtimestamp(ts) -
                   datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1))-offset
+        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
 
 
 class ScriptActionKeeper():
@@ -393,7 +389,7 @@ class ScriptActionKeeper():
         for i in p:
             if (not p[i].default == p[i].empty) and p[i].default and not isinstance(p[i].default, (str, int, bool)):
                 raise ValueError(
-                    "All default values must be int, string, or bool, not "+str(p[i].default))
+                    "All default values must be int, string, or bool, not " + str(p[i].default))
 
         self.scriptcommands[key] = value
 
@@ -489,12 +485,11 @@ class BaseChandlerScriptContext():
             if not isinstance(Variable, str):
                 raise RuntimeError("Var name must be string")
             if Variable in globalConstants or Variable in self.constants:
-                raise NameError("Key "+Variable+" is a constant")
+                raise NameError("Key " + Variable + " is a constant")
             self.setVar(Variable, Value)
 
         self.setter = setter
         self.commands['set'] = setter
-
 
         for i in predefinedcommands:
             self.commands[i] = predefinedcommands[i]
@@ -520,8 +515,7 @@ class BaseChandlerScriptContext():
         for i in contextFunctions:
             c[i] = wrap(self, contextFunctions[i])
 
-
-        self.functions=functions
+        self.functions = functions
 
         self.evaluator = simpleeval.SimpleEval(
             functions=functions, names=self._nameLookup)
@@ -561,12 +555,10 @@ class BaseChandlerScriptContext():
                             self.event(i, r)
                 except:
                     self.event("script.error", self.contextName +
-                               "\n"+traceback.format_exc(chain=True))
+                               "\n" + traceback.format_exc(chain=True))
                     raise
 
-
-
-    def getCommandDataForEditor():
+    def getCommandDataForEditor(self):
         "Get the data, as python dict which can be JSONed, which must be bound to the commands prop of the editor, so that the editor can know what commands we have"
         with self.gil:
             c = self.commands.scriptcommands
@@ -595,9 +587,6 @@ class BaseChandlerScriptContext():
                 raise RuntimeError(
                     "Event queue stalled, cannot execute, timed out waiting for the lock. Queued events are still buffered and may run later")
 
-
-
-
     def onTimerChange(self, timer, nextRunTime):
         pass
 
@@ -617,9 +606,9 @@ class BaseChandlerScriptContext():
                 return a(*[self.preprocessArgument(i) for i in c[1:]])
             except:
                 raise RuntimeError(
-                    "Error running chandler command: "+str(c)[:1024])
+                    "Error running chandler command: " + str(c)[:1024])
         else:
-            raise ValueError("No such command: "+c)
+            raise ValueError("No such command: " + c)
 
     def syncEvent(self, evt, val=None, timeout=20):
         "Handle an event synchronously, in the current thread."
@@ -637,6 +626,10 @@ class BaseChandlerScriptContext():
         else:
             raise RuntimeError("Could not get GIL to run this event")
 
+    def stopAfterThisHandler(self):
+        "Don't handle any more bindings for this event, but continue the current binding"
+        self.stopScriptFlag = True
+
     def event(self, evt, val=None):
         "Queue an event to run in the background. Queued events run in FIFO"
 
@@ -644,7 +637,7 @@ class BaseChandlerScriptContext():
         #
         try:
             depth = self.eventRecursionDepth.d
-        except:
+        except Exception:
             # Hasn't been set in this thread
             depth = 0
 
@@ -661,7 +654,7 @@ class BaseChandlerScriptContext():
         handled = False
 
         # Tell any functions we call that they are running at elevated depth.
-        self.eventRecursionDepth.d = depth+1
+        self.eventRecursionDepth.d = depth + 1
 
         try:
             if self.eventRecursionDepth.d > 8:
@@ -676,10 +669,13 @@ class BaseChandlerScriptContext():
 
             contextInfo.event = (evt, val)
             self.variables["_"] = True if val is None else val
+            self.stopScriptFlag = False
             try:
                 if evt in self.eventListeners:
                     handled = True
                     for pipeline in self.eventListeners[evt]:
+                        if self.stopScriptFlag:
+                            break
                         for command in pipeline:
                             x = self._runCommand(command)
                             if x == None:
@@ -687,7 +683,7 @@ class BaseChandlerScriptContext():
                             self.variables["_"] = x
             except:
                 self.event("script.error", self.contextName +
-                           "\n"+traceback.format_exc(chain=True))
+                           "\n" + traceback.format_exc(chain=True))
                 raise
 
         finally:
@@ -717,7 +713,7 @@ class BaseChandlerScriptContext():
             # Looks like a number, it is a number
             try:
                 a = float(a)
-            except:
+            except Exception:
                 pass
 
         return a
@@ -748,7 +744,7 @@ class BaseChandlerScriptContext():
         if n in self.namespaces:
             return self.namespaces[n]
 
-        raise NameError("No such name: "+n)
+        raise NameError("No such name: " + n)
 
     def setVar(self, k, v, force=False):
         if not self.gil.acquire(timeout=10):
@@ -756,7 +752,7 @@ class BaseChandlerScriptContext():
         try:
             if k.startswith("$"):
                 if not force:
-                    self.setSpecialVariableHook(k,v)
+                    self.setSpecialVariableHook(k, v)
 
             self.variables[k] = v
             self.changedVariables[k] = v
@@ -819,7 +815,7 @@ class BaseChandlerScriptContext():
                 if i == "script.poll":
                     if not self.poller:
                         self.poller = scheduler.scheduleRepeating(
-                            self.poll, 1/24.0)
+                            self.poll, 1 / 24.0)
                 # Really just a fallback for various insta-check triggers like tag changes
                 if i.strip().startswith("="):
                     if not self.slowpoller:
@@ -866,12 +862,6 @@ class BaseChandlerScriptContext():
             self.tagClaims = {}
 
 
-
-
-
-
-
-
 class ChandlerScriptContext(BaseChandlerScriptContext):
     tagDefaultPrefix = '/sandbox/'
 
@@ -881,8 +871,9 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         """
         def f():
             if isinstance(val, str) and len(val) > 16000:
-                raise RuntimeError(tagname+" val too long for chandlerscript")
-            self.setVar("$tag:"+tagname, val, True)
+                raise RuntimeError(
+                    tagname + " val too long for chandlerscript")
+            self.setVar("$tag:" + tagname, val, True)
             if not tagname in self.needRefreshForTag:
                 self.needRefreshForTag[tagname] = False
                 for i in self.eventListeners:
@@ -897,6 +888,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         # All tag point changes happen async
         self.eventQueue.append(f)
         workers.do(self.doEventQueue)
+
     def setupTag(self, tag):
         if tag in self.tagpoints:
             return
@@ -907,25 +899,23 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         self.needRefreshForTag[tag.name] = True
         self.tagHandlers[tag.name] = (tag, onchange)
 
-
     def canGetTagpoint(self, t):
         if not t in self.tagpoints and len(self.tagpoints) > 128:
             raise RuntimeError("Too many tagpoints")
         if t.startswith(self.tagDefaultPrefix):
             return t
 
-
     def specialVariableHook(self, k, v):
         if k.startswith("$tag:"):
             raise NameError(
-                    "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
+                "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
 
     def onClearBindingsHook(self):
         for i in self.tagHandlers:
             self.tagHandlers[i][0].unsubscribe(self.tagHandlers[i][1])
 
             try:
-                self.setVar("$tag:"+i, "Unsubscribed", force=True)
+                self.setVar("$tag:" + i, "Unsubscribed", force=True)
             except:
                 pass
 
@@ -935,9 +925,10 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         self.needRefreshForVariable = {}
         self.needRefreshForTag = {}
 
-    def __init__(self,*a,**k):
-        BaseChandlerScriptContext.__init__(self, *a,**k)
-        def setTag(tagName=self.tagDefaultPrefix+"foo", value="=0", priority=75):
+    def __init__(self, *a, **k):
+        BaseChandlerScriptContext.__init__(self, *a, **k)
+
+        def setTag(tagName=self.tagDefaultPrefix + "foo", value="=0", priority=75):
             """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
 
             If the tag does not exist, the type is auto-guessed based on the type of the value.
@@ -946,7 +937,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             """
 
             if not tagName[0] == '/':
-                tagName = "/"+tagName
+                tagName = "/" + tagName
 
             self.needRefreshForTag = {}
 
@@ -972,10 +963,10 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                 else:
                     self.setupTag(tagType(tagName))
                     tc = tagType(tagName).claim(
-                        value=value, priority=priority, name=self.contextName+"at"+str(id(self)))
+                        value=value, priority=priority, name=self.contextName + "at" + str(id(self)))
                     self.tagClaims[tagName] = tc
                 tc.set(value)
-                self.setVar("$tag:"+tagName, value, True)
+                self.setVar("$tag:" + tagName, value, True)
             else:
                 raise RuntimeError(
                     "This script context cannot access that tag")
@@ -991,19 +982,19 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         def tagpoint(t):
             tagName = self.canGetTagpoint(t)
             if not tagName:
-                raise RuntimeError("It seems you do not have access to:"+t)
+                raise RuntimeError("It seems you do not have access to:" + t)
             t = tagpoints.Tag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:"+t.name, t.value, True)
+            self.setVar("$tag:" + t.name, t.value, True)
             return t.value
 
         def stringtagpoint(t):
             tagName = self.canGetTagpoint(t)
             if not tagName:
-                raise RuntimeError("It seems you do not have access to:"+t)
+                raise RuntimeError("It seems you do not have access to:" + t)
             t = tagpoints.StringTag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:"+t.name, t.value, True)
+            self.setVar("$tag:" + t.name, t.value, True)
             return t.value
         c = {}
 
@@ -1031,7 +1022,7 @@ def baseball():
 
 
 def bat(a):
-    x.append("A bat goes with a "+a)
+    x.append("A bat goes with a " + a)
     return None
 
 

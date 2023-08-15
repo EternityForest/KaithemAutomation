@@ -1,0 +1,17 @@
+%if not __datalists__ == undefined:
+%for i in __datalists__:
+<datalist id="${i}">
+%for i in __datalists__[i]:
+<option title="${i.get('title','')}" value="${i['value']}">${i.get('option','')}</option>
+%endfor
+</datalist>
+%endfor
+%endif   
+
+<script>
+%if not __jsvars__ == undefined:
+%for i in __jsvars__:
+${i} = ${json.dumps(__jsvars__[i])}
+%endfor
+%endif
+</script>

@@ -596,6 +596,10 @@ class Kaithem():
             sound.playSound(*args, **kwargs)
 
         @staticmethod
+        def wait(*args, **kwargs):
+            sound.wait(*args, **kwargs)
+
+        @staticmethod
         def stop(*args, **kwargs):
             sound.stopSound(*args, **kwargs)
 
@@ -633,7 +637,9 @@ class Kaithem():
 
         @staticmethod
         def preload(*args, **kwargs):
-            return sound.preload(*args, **kwargs)
+            pass
+            #TODO Make this work again
+            #return sound.preload(*args, **kwargs)
 
     class message():
         @staticmethod

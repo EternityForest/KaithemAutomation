@@ -132,8 +132,7 @@ class SoundWrapper(object):
     def setVolume(self, vol, channel="PRIMARY"):
         pass
 
-
-    def setSpeed(self, speed, channel="PRIMARY",*a,**kw):
+    def setSpeed(self, speed, channel="PRIMARY", *a, **kw):
         pass
 
     def setEQ(self, channel="PRIMARY"):
@@ -180,7 +179,7 @@ class MadPlayWrapper(SoundWrapper):
             cmd = ["madplay", filename]
             self.loopcounter = - \
                 1 if kwargs.get('loop', False) is True else kwargs.get(
-                    'loop', False)-1
+                    'loop', False) - 1
             if self.loopcounter:
                 self.end = False
 
@@ -258,7 +257,7 @@ class Mpg123Wrapper(SoundWrapper):
             g = open(os.devnull, "w")
             cmd = ["mpg123", filename]
             self.loopcounter = - \
-                1 if kwargs.get('loop') is True else kwargs.get('loop')-1
+                1 if kwargs.get('loop') is True else kwargs.get('loop') - 1
             if self.loopcounter:
                 self.end = False
 
@@ -343,8 +342,8 @@ class SOXWrapper(SoundWrapper):
                 str(start),
                 str(end)
             ],
-                                            stdout=f,
-                                            stderr=g)
+                stdout=f,
+                stderr=g)
             self.loopcounter = -1 if loop is True else loop - 1
             if self.loopcounter:
                 self.end = False
@@ -371,8 +370,8 @@ class SOXWrapper(SoundWrapper):
                         str(start),
                         str(end)
                     ],
-                                                    stdout=f,
-                                                    stderr=g)
+                        stdout=f,
+                        stderr=g)
                     return True
 
                 self.loop_repeat_func = loop_play_again
@@ -384,8 +383,8 @@ class SOXWrapper(SoundWrapper):
                     str(start),
                     str(end)
                 ],
-                                                stdout=f,
-                                                stderr=g)
+                    stdout=f,
+                    stderr=g)
 
         def __del__(self):
             try:
@@ -474,7 +473,7 @@ class RemoteMPV():
     def __init__(self, *a, **k):
         # -*- coding: utf-8 -*-
 
-        #If del can't find this it would to an infinite loop
+        # If del can't find this it would to an infinite loop
         self.worker = None
         self.stopping = False
         from jsonrpyc import RPC
@@ -501,6 +500,9 @@ class RemoteMPV():
     def stop(self):
         if self.stopping:
             return
+        if not hasattr(self, "rpc"):
+            return
+        
         self.stopping = True
         self.rpc.stopFlag = True
         # v =  self.rpc.call('get',['volume'],block=0.001)
@@ -517,8 +519,8 @@ class RemoteMPV():
         except TimeoutError:
             pass
         except:
-            #I hate this. But I guess it's rather obvious if the stop function doesn't work,
-            #And this makes nuisance errors if the process is already dead.
+            # I hate this. But I guess it's rather obvious if the stop function doesn't work,
+            # And this makes nuisance errors if the process is already dead.
             pass
 
         self.worker.kill()
@@ -540,88 +542,108 @@ class MPVBackend(SoundWrapper):
         except:
             pass
 
-            
-
     backendname = "MPV"
 
     # What this does is it keeps a reference to the sound player process and
     # If the object is destroyed it destroys the process stopping the sound
     # It also abstracts checking if its playing or not.
     class MPVSoundContainer(object):
-        def __init__(self, filename, vol, finalGain, output, loop, start=0, speed=1):
+        def __init__(self, filename, vol, finalGain, output, loop, start=0, speed=1, just_preload=False):
             self.lock = threading.RLock()
+            self.stopped = False
+            self.isPlayingCache = None
 
             if output == "__disable__":
                 return
 
-
             self.alreadySetCorrection = False
 
-            #I think this leaks memory when created and destroyed repeatedly
+            settings_key = (speed, loop)
+
+            # I think this leaks memory when created and destroyed repeatedly
             with objectPoolLock:
                 if len(objectPool):
                     self.player = objectPool.pop()
                 else:
                     self.player = RemoteMPV()
 
-
-            #Avoid somewhat slow RPC calls if we can
+            # Avoid somewhat slow RPC calls if we can
             if (not hasattr(self.player,
                             'isConfigured')) or (not self.player.isConfigured):
                 cname = "kplayer" + str(time.monotonic()) + "_out"
 
                 self.player.rpc.call('set', ['vid', 'no'])
+                self.player.rpc.call('set', ['keep_open', 'yes'])
+
                 self.player.rpc.call('set', ['ao', 'jack,pulse,alsa'])
                 self.player.rpc.call('set', ['jack_name', cname])
                 self.player.rpc.call('set', ['gapless_audio', 'weak'])
                 self.player.isConfigured = True
 
+            if (not hasattr(self.player, 'conf')) or not self.player.conf == settings_key:
+                self.player.conf = settings_key
 
-            if not speed == 1:
-                self.player.rpc.call('set',['audio_pitch_correction', False], block=0.001)
-                self.player.rpc.call('set',['speed', speed], block=0.001)
+                if not speed == 1:
+                    self.player.rpc.call(
+                        'set', ['audio_pitch_correction', False], block=0.001)
+                    self.player.rpc.call('set', ['speed', speed], block=0.001)
 
-            if start:
-                self.player.rpc.call('seek', [str(start), 'absolute'])
+                # For legavy reasons some stuff used tens of millions instead of actual infinite loop.
+                # But it seems mpv ignores everything past a certain number. So we replace effectively forever with
+                # actually forever to get the same effect, assuming that was user intent.
+                if not (loop == -1 or loop > 900000000):
+                    self.player.rpc.call(
+                        'set',
+                        ['loop_playlist', int(max(loop, 1))])
+                else:
+                    self.player.rpc.call('set', ['loop_playlist', "inf"])
 
-            #Due to memory leaks, these have a limited lifespan
+            # Due to memory leaks, these have a limited lifespan
             self.player.usesCounter += 1
-            #For legavy reasons some stuff used tens of millions instead of actual infinite loop.
-            #But it seems mpv ignores everything past a certain number. So we replace effectively forever with
-            #actually forever to get the same effect, assuming that was user intent.
-            if not (loop == -1 or loop > 900000000):
-                self.player.rpc.call(
-                    'set',
-                    ['loop_playlist', int(max(loop, 1))])
-            else:
-                self.player.rpc.call('set', ['loop_playlist', "inf"])
 
-            self.player.rpc.call('set', ['volume', vol * 100])
+            if (not hasattr(self.player, 'lastvol')) or not self.player.lastvol == vol:
+                self.player.lastvol = vol
+                self.player.rpc.call('set', ['volume', vol * 100])
+
             self.volume = vol
             self.finalGain = finalGain if not finalGain == None else vol
 
+            jp = 'system:*'
             if output:
                 if not ":" in output:
-                    self.player.rpc.call('set', ['jack_port', output + ":*"])
+                    jp = output + ":*"
                 else:
-                    self.player.rpc.call('set', ['jack_port', output])
+                    jp = output
+
+            if (not hasattr(self.player, 'lastjack')) or not self.player.lastjack == jp:
+                self.player.rpc.call('set', ['jack_port', jp])
+                self.player.lastjack = jp
+
             self.started = time.time()
 
             if filename:
-                self.player.rpc.call('call', ['play', filename],
-                                     block=0.001,
-                                     timeout=12)
+                self.isPlayingCache=None
+                self.player.rpc.call('call', ['loadfile', filename],
+                                            block=0.001,
+                                            timeout=12)
+                self.player.rpc.call('set', ['pause', False])
+                if start:
+                    self.player.rpc.call('call', ['seek', str(start), 'absolute'])
+
 
         def __del__(self):
             self.stop()
 
         def stop(self):
+            if self.stopped:
+                return
+            self.stopped=True
             bad = True
             if hasattr(self, 'player'):
-                #Only do the maybe recycle logic when stopping a still good SFX
+                # Only do the maybe recycle logic when stopping a still good SFX
                 try:
                     w = self.player.worker
-                except:
+                except Exception:
                     return
                 if w.poll() == None:
                     try:
@@ -630,15 +652,15 @@ class MPVBackend(SoundWrapper):
                                                  block=0.001,
                                                  timeout=1)
                         bad = False
-                    except:
-                        #Sometimes two threads try to stop this at the same time and we get a race condition
-                        #I really hate this but stopping a crashed sound can't be allowed to take down anything else.
+                    except Exception:
+                        # Sometimes two threads try to stop this at the same time and we get a race condition
+                        # I really hate this but stopping a crashed sound can't be allowed to take down anything else.
                         pass
 
-                #When the player only has a few uses left, if we don't have many spare objects in
-                #the pool, we are going to make the replacement ahead of time in a background thread.
-                #But try tpo only make one replacement per object, we don't actually want to go up to the max
-                #in the pool because they can use CPU in the background
+                # When the player only has a few uses left, if we don't have many spare objects in
+                # the pool, we are going to make the replacement ahead of time in a background thread.
+                # But try tpo only make one replacement per object, we don't actually want to go up to the max
+                # in the pool because they can use CPU in the background
                 if bad or self.player.usesCounter > 8:
                     if not hasattr(self.player, "alreadyMadeReplacement"):
                         if (len(objectPool) <
@@ -646,7 +668,7 @@ class MPVBackend(SoundWrapper):
                             self.player.alreadyMadeReplacement = True
 
                             def f():
-                                #Can't make it under lock that is slow
+                                # Can't make it under lock that is slow
                                 o = RemoteMPV()
                                 with objectPoolLock:
                                     if len(objectPool) < 4:
@@ -657,7 +679,10 @@ class MPVBackend(SoundWrapper):
                             workers.do(f)
 
                 if bad or self.player.usesCounter > 10:
-                    self.player.stop()
+                    p = self.player
+                    def f():
+                        p.stop()
+                    workers.do(f)
 
                 else:
                     with objectPoolLock:
@@ -674,9 +699,16 @@ class MPVBackend(SoundWrapper):
                 if not hasattr(self, 'player'):
                     return False
                 try:
-                    return self.player.rpc.call('get', ['eof_reached'],
+                    if not self.isPlayingCache is None:
+                        return self.isPlayingCache
+                    c = self.player.rpc.call('get', ['eof_reached'],
                                                 block=0.001, timeout=12) == False
-                except:
+                    
+                    if c == False:
+                        self.isPlayingCache = c
+
+                    return c
+                except Exception:
                     logging.exception(
                         "Error getting playing status, assuming closed")
                     return False
@@ -689,7 +721,7 @@ class MPVBackend(SoundWrapper):
                 # Block until sound is finished playing.
                 self.player.rpc.call('wait_for_playback',
                                      block=0.001,
-                                     timeout=5)
+                                     timeout=3)
 
         def seek(self, position):
             pass
@@ -699,17 +731,17 @@ class MPVBackend(SoundWrapper):
                 self.volume = volume
                 if final:
                     self.finalGain = volume
+                self.player.lastvol = volume
                 self.player.rpc.call('set', ['volume', volume * 100],
                                      block=0.001)
-
 
         def setSpeed(self, speed):
             with self.lock:
                 if not self.alreadySetCorrection:
-                    self.player.rpc.call('set',['audio_pitch_correction', False], block=0.001)
-                    self.alreadySetCorrection=True
-                self.player.rpc.call('set',['speed', speed], block=0.001)
-
+                    self.player.rpc.call(
+                        'set', ['audio_pitch_correction', False], block=0.001)
+                    self.alreadySetCorrection = True
+                self.player.rpc.call('set', ['speed', speed], block=0.001)
 
         def getVol(self):
             with self.lock:
@@ -780,7 +812,7 @@ class MPVBackend(SoundWrapper):
         except KeyError:
             pass
 
-    def setSpeed(self, speed, channel="PRIMARY",*a,**kw):
+    def setSpeed(self, speed, channel="PRIMARY", *a, **kw):
         "Return true if a sound is playing on channel"
         try:
             return self.runningSounds[channel].setSpeed(speed)
@@ -850,7 +882,7 @@ class MPVBackend(SoundWrapper):
                            loop=kwargs.get('loop', 1),
                            speed=sspeed)
 
-        #if not x:
+        # if not x:
         #    return
         if not (length or winddown):
             return
@@ -865,9 +897,9 @@ class MPVBackend(SoundWrapper):
             targetVol = 1
             while time.monotonic() - t < max(length, winddown, windup):
 
-
                 if max(length, winddown):
-                    foratio = max(0, min(1, ((time.monotonic() - t) / max(length, winddown))))
+                    foratio = max(
+                        0, min(1, ((time.monotonic() - t) / max(length, winddown))))
                 else:
                     foratio = 1
 
@@ -882,22 +914,23 @@ class MPVBackend(SoundWrapper):
                     x.setVol(max(0, v * (1 - foratio)))
 
                     if winddown:
-                        wdratio = max(0, min(1, ((time.monotonic() - t) / winddown)))
+                        wdratio = max(
+                            0, min(1, ((time.monotonic() - t) / winddown)))
                         x.setSpeed(max(0.1, v * (1 - wdratio)))
-
 
                 if file and (handle in self.runningSounds):
                     targetVol = self.runningSounds[handle].finalGain
                     self.setVolume(min(1, targetVol * firatio),
                                    handle,
                                    final=False)
-                
-                    if windup:
-                        wuratio = max(0, min(1, ((time.monotonic() - t) / windup)))
-                        self.setSpeed(max(0.1, min(1, wuratio*speed)),
-                                    handle)
 
-                #Don't overwhelm the backend with commands
+                    if windup:
+                        wuratio = max(
+                            0, min(1, ((time.monotonic() - t) / windup)))
+                        self.setSpeed(max(0.1, min(1, wuratio * speed)),
+                                      handle)
+
+                # Don't overwhelm the backend with commands
                 time.sleep(max(1 / 48.0, time.monotonic() - tr))
 
             try:
@@ -935,8 +968,8 @@ if util.which('pulseaudio'):
 else:
     pulseaudio = False
 
-#MPV is alwaus auto chosen if available!!!
-#All the others are deprecated!!
+# MPV is alwaus auto chosen if available!!!
+# All the others are deprecated!!
 for i in ['mpv'] + list(config['audio-backends']):
     if not i in l:
         continue
@@ -951,10 +984,10 @@ for i in ['mpv'] + list(config['audio-backends']):
             " may be able to use fallback:\n" + traceback.format_exc())
 
 try:
-    if backend.backendname =="Dummy Sound Driver(No real sound player found)":
+    if backend.backendname == "Dummy Sound Driver(No real sound player found)":
         messagebus.postMessage(
             "/system/notifications/errors",
-           "Using adummy sound backend. Suggest installing MPV if you want sound")
+            "Using adummy sound backend. Suggest installing MPV if you want sound")
 except Exception:
     print(traceback.format_exc())
 

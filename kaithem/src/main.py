@@ -719,6 +719,8 @@ def webRoot():
 
     from . import devices, btadmin
 
+    from .chandler import web as cweb
+
     # There are lots of other objects ad classes represeting subfolders of the website so we attatch them
     root = webapproot()
     root.login = weblogin.LoginScreen()
@@ -734,6 +736,8 @@ def webRoot():
     root.widgets = widgets.WebInterface()
     root.syslog = logviewer.WebInterface()
     root.devices = devices.WebDevices()
+    root.chandler = cweb.Web()
+
 
     if not os.path.abspath(__file__).startswith("/usr/bin"):
         sdn = os.path.join(os.path.dirname(
@@ -915,7 +919,8 @@ def webRoot():
                                    "You are using the included demo SSL keys. These are not secure, do not use outside private network or VPN")
 
     cherrypy.engine.start()
-
+    
+    from . import chandler
     # Unlike other shm stuff that only gets used after startup, this
     # Can be used both before and after we are fully loaded.
     # So we need to hand off everything to the user we will actually run as.
