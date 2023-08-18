@@ -29,9 +29,17 @@ scolor={
     <%include file="/pageheader.html"/>
 <title>Kaithem Automation</title>
 
-<section>
-<p>${config['front-page-banner']}</p>
-</section>
+<div style="display: flex; flex-wrap: wrap; justify-content: center;">
+
+    <div style="flex-basis: 20%; text-align: center;"><div class="decorative-image-main decorative-image" style="height: 22em; max-width: 45vw; margin: auto;"></div></div>
+
+    <section style="flex-basis: 60%; max-width: 32em;  min-width: 22em;">
+    <p>${config['front-page-banner']}</p>
+    </section>
+
+    <div style="flex-basis: 20%; min-width: 12em;"></div>
+</div>
+
 
 <script src="/static/js/vue2.js"></script>
 <script src="/static/widget.js"></script>
@@ -64,7 +72,6 @@ ${alertsapi.render("alertapi")}
 
 </style>
 <main>
-
     <h2>Active/Unacknowledged Alarms</h2>
 
     <div class="scrollbox sectionbox" style="max-height: 25em;height:auto;width:fit-content;">

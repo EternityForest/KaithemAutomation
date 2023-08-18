@@ -1743,7 +1743,7 @@ class ChandlerConsole():
                     try:
                         ch = int(ch)
                     except Exception:
-                        print(traceback.format_exc())
+                        pass
 
                 v = msg[4]
 
@@ -1751,7 +1751,7 @@ class ChandlerConsole():
                     try:
                         v = float(v)
                     except Exception:
-                        print(traceback.format_exc())
+                        pass
 
                 cues[msg[1]].setValue(msg[2], ch, v)
                 self.link.send(["scv", msg[1], msg[2], ch, v])
@@ -2734,7 +2734,7 @@ class Cue():
             try:
                 channel = float(channel)
             except Exception:
-                print(traceback.format_exc())
+                pass
         else:
             raise Exception("Only str or int channel numbers allowed")
 
@@ -2743,7 +2743,7 @@ class Cue():
             try:
                 channel = int(channel)
             except Exception:
-                print(traceback.format_exc())
+                pass
 
         with core.lock:
             if universe == "__variables__":
@@ -4482,7 +4482,7 @@ kaithem.chandler.board = core.board
 kaithem.chandler.Scene = core.Scene
 kaithem.chandler.scenesByUUID = core.scenes
 kaithem.chandler.scenes = core.scenes_by_name
-kaithem.chandler.Universe = core.Universe
+kaithem.chandler.Universe = universes.Universe
 kaithem.chandler.blendmodes = core.blendmodes
 kaithem.chandler.fixture = Fixture
 kaithem.chandler.shortcut = shortcutCode
@@ -4491,9 +4491,9 @@ kaithem.chandler.commands = rootContext.commands
 kaithem.chandler.event = event
 
 
-controluniverse = core.Universe("control")
+controluniverse = universes.Universe("control")
 core.controluniverse = weakref.proxy(controluniverse)
-varsuniverse = core.Universe("__variables__")
+varsuniverse = universes.Universe("__variables__")
 
 
 def loop():

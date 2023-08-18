@@ -7,7 +7,7 @@ from kaithem.src import directories
 import os
 %>
 <title>Mixing Board</title>
-<div class="sectionbox">
+<div class="sectionbox" style="width: 98%;">
   <script type="text/javascript" src="/static/widget.js"></script>
   <style>
     div.channel {
@@ -302,12 +302,8 @@ import os
 
 
       <div class="channel">
-        <h2><a href="/settings/mixer">(reload)</a>Soundboard</h2>
-        <p>This is the control strip.<br>
-          Kaithem's Soundboard is an</br>
-          Emulation of a traditional </br>
-          Analog board.</br>
-        </p>
+        <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
+
         <h3>New Channel</h3>
         <p class="buttonbar">
         <input v-model="newchannelname" style="max-width: 8em;"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add

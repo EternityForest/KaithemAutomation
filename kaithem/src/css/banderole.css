@@ -108,6 +108,14 @@ section {
     border-color: #412f1b;
   }
 
+
+  div.sectionbox div.sectionbox,
+section section,
+div.sectionbox section,
+section div.sectionbox
+{
+  box-shadow: inset 1px 1px 8px 1px rgba(83, 49, 10, 0.486);
+}
   
 
 
@@ -167,6 +175,60 @@ div.widgetcontainer {
 img{
   opacity: 0.8;
 }
+
+section, div.sectionbox{
+  border-radius: 0.8em 0.7em 0.9em 0.8em;
+}
+
+/* body, button,html, a{
+  cursor: url(/static/img/banderole/orcish_short_sword.png) 8 8, auto;
+} */
+.decorative-image{
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.55;
+  box-shadow: inset 2px 3px 8px 2px rgba(83, 49, 10, 0.096);
+  border-radius: 4em;
+}
+
+.decorative-image-main
+{
+  background-image: url(/static/img/banderole/drinking-from-the-cask.svg);
+  display: block;
+  box-shadow: none;
+
+}
+
+.decorative-image-login
+{
+  background-image: url(/static/img/banderole/Halberd.svg);
+  display: block;
+}
+
+.decorative-image-settings
+{
+  background-image: url(/static/img/banderole/johnny_automatic_horse-shoeing.svg);
+  display: block;
+}
+
+.decorative-image-h-bar
+{
+  background-image: url(/static/img/banderole/decorativebarthing.svg);
+  display: block;
+}
+
+.decorative-image-corner-ur
+{
+  background-image: url(/static/img/banderole/Rose-Floral-Flourish-16.svg);
+  display: block;
+  box-shadow: none;
+}
+
+
+
+
+
 
 input, button,textarea,select{
   background-color: transparent;

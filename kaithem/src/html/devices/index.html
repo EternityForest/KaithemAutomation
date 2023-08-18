@@ -79,7 +79,7 @@ def devStatString(d):
 <title>Devices</title>
 
 <h2>Devices</h2>
-<div class="sectionbox">
+<section>
 
 <p class="help">
     This section provides an easy way to configure devices supported
@@ -102,7 +102,7 @@ else:
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
 <hr style="width: 100%;">
 %endif
-<div class="sectionbox" style="${greyout}border: 1px solid; margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
+<div class="sectionbox" style="${greyout} margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         
     <div class="buttonbar">
         <h3
@@ -288,10 +288,6 @@ del d
     %endfor
 </dl>
 </div>
-</div>
-
-
-
-</dd>
+</section>
 <%include file="/pagefooter.html"/>
 
