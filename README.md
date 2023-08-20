@@ -1,7 +1,12 @@
-![Logo](kaithem/data/static/img/klogoapr22.jpg)
+![Banderole Theme](screenshots/BanderoleTheme1.avif)
+
+(Banderole Theme)
 
 
-![Create a nice dashboard](screenshots/FreeboardDash.jpg)
+![Fugit Theme](screenshots/FugitTheme1.avif)
+
+(Fugit theme)
+
 
 ![Visitors](https://api.visitorbadge.io/api/combined?path=https%3A%2F%2Fgithub.com%2FEternityForest%2FKaithemAutomation&countColor=%23263759&style=plastic)
 

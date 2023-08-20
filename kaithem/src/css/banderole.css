@@ -115,6 +115,7 @@ div.sectionbox section,
 section div.sectionbox
 {
   box-shadow: inset 1px 1px 8px 1px rgba(83, 49, 10, 0.486);
+  border-radius: 0.8em !important;
 }
   
 
@@ -238,9 +239,9 @@ input, button,textarea,select{
   border-radius: 12px;
 }
 
-input, textarea, select, button, a.button
+input, textarea, select, button, a.button, .buttonbar a
 {
-  box-shadow: inset 1px 1px 8px 1px rgba(0, 0, 0, 0.253);
+  box-shadow: inset 1px 1px 8px 1px rgb(77 53 0 / 24%);
 }
 
 input[type=range] {

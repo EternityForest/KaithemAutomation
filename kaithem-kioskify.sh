@@ -286,8 +286,7 @@ chmod 755 /usr/bin/ember-launch-kaithem
 # Many of these settings are ignored now that kaithem does more automatically.
 mkdir -p    /home/$(id -un 1000)/kaithem/system.mixer
 cat << EOF >   /home/$(id -un 1000)/kaithem/system.mixer/jacksettings.yaml
-{jackDevice: '', jackMode: use, jackPeriodSize: 512, jackPeriods: 3, sharePulse: 'off',
-  usbLatency: -1, usbPeriodSize: 512, usbPeriods: 3, usbQuality: 0, useAdditionalSoundcards: 'no'}
+{jackMode: use}
 EOF
 
 

@@ -66,8 +66,11 @@ dbgd = weakref.WeakValueDictionary()
 
 
 def closeAll(*a):
-    for i in remote_devices_atomic:
-        c= remote_devices_atomic[i]
+    for i in list(remote_devices_atomic.keys()):
+        try:
+            c= remote_devices_atomic[i]
+        except KeyError:
+            continue
         c= c()
         if c:
             c.close()
