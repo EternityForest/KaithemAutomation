@@ -98,3 +98,7 @@ class WeatherClient(device.Device):
         self.set_data_point('humidity', w2['humidity'])
         self.set_data_point('pressure', w2['pressure'])
         self.set_data_point('uv_index', w2['uvIndex'])
+
+    def close(self):
+        self.shouldRun = False
+        return super().close()

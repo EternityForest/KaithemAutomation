@@ -17,6 +17,16 @@ iot_devices.host.app_exit_register(zc.close)
 class ESPHomeDevice(iot_devices.device.Device):
     device_type = "ESPHomeDevice"
 
+
+
+    def wait_ready(self, timeout=15):
+        # Wait for connection ready
+        s = time.time()
+        while not self.datapoints["native_api_connected"]:
+            if (time.time() - s) > timeout:
+                raise RuntimeError("Could not connect")
+            time.sleep(timeout/100)
+
     def async_on_service_call(self, service: client.HomeassistantServiceCall) -> None:
         """Call service when user automation in ESPHome config is triggered."""
         domain, service_name = service.service.split(".", 1)
@@ -133,9 +143,9 @@ class ESPHomeDevice(iot_devices.device.Device):
         self.input_units = {}
         self.thread = threading.Thread(
             target=self.asyncloop, name="ESPHOME " + self.name)
-        self.numeric_data_point("api_connected", min=0,
+        self.numeric_data_point("native_api_connected", min=0,
                                 max=1, subtype="bool", writable=False)
-        self.set_alarm("Not Connected", "api_connected",
+        self.set_alarm("Not Connected", "native_api_connected",
                        "value<1", trip_delay=120, auto_ack=True)
 
         self.set_config_default('device.hostname', '')
@@ -199,6 +209,7 @@ class ESPHomeDevice(iot_devices.device.Device):
         await api.subscribe_states(cb)
         await api.subscribe_logs(self.handle_log, log_level=client.LogLevel.LOG_LEVEL_INFO)
         await api.subscribe_service_calls(self.async_on_service_call)
+        time.sleep(0.5)
         self.set_data_point('api_connected', 1)
 
     async def on_disconnect(self, *a):

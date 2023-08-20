@@ -330,6 +330,13 @@ class Device():
         if not key in self.config or not self.config[key].strip():
             self.set_config_option(key, value.strip())
 
+    
+    def wait_ready(self, timeout=15):
+        """Call this to block for up to timeout seconds for the device to be fully initialized.
+            Use this in quick scripts with a devices that readies itself asynchronously
+        """
+        return
+
     def print(self, s: str, title: str = ""):
         """used by the device to print to the hosts live device message feed, if such a thing should happen to exist"""
         logging.info(title + ': ' + str(s))
