@@ -96,10 +96,14 @@ specialKeys={
 %endfor
 </datalist>
 
-<h1>Device Inspector: ${obj.title}
+<h1 style="text-align: center;">Device Inspector: ${obj.title}
 </h1>
 
-<div class="sectionbox">
+
+<div style="display: flex; flex-wrap: wrap; justify-content: center;">
+<div style="flex-basis: 20%; text-align: center;"><div class="decorative-image-settings decorative-image" style="height: 22em; min-width: 22em; max-width: 45vw; margin: auto;"></div></div>
+            
+<section>
 
 %if not hasattr(obj,'_kaithem_is_subdevice'):
 <form method="post" action="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">
@@ -145,6 +149,13 @@ specialKeys={
 
 <textarea name="description">${data.get('description','')}</textarea>
 </details>
+
+%if obj.device_type == "ESPHomeDevice":
+<details>
+        <summary><h2>ESPHome Web UI</h2></summary>
+        <iframe src="${data.get('device.hostname','')}" style="width: 98%; height: 30em;"></iframe>
+</details>
+%endif
 
 <details>
         <summary>
@@ -804,6 +815,12 @@ ${obj.logWindow.render()}
 
 
 
+</section>
+
+
+
+
+<div style="flex-basis: 20%; min-width: 12em;"></div>
 </div>
 
 ${obj._admin_ws_channel.render("_admin_ws_channel")}

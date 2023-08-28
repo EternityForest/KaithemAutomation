@@ -27,7 +27,7 @@
     background-clip: content-box;
     --buttonbar-element-border: 1px solid rgba(159, 172, 214, 0.767);
     --buttonbar-concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
-    --buttonbar-convex-item-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.096) 96%);
+    --buttonbar-convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
     --buttonbar-active-item-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
     --buttonbar-height: 28px;
 

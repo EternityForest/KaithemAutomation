@@ -210,7 +210,7 @@ class ESPHomeDevice(iot_devices.device.Device):
         await api.subscribe_logs(self.handle_log, log_level=client.LogLevel.LOG_LEVEL_INFO)
         await api.subscribe_service_calls(self.async_on_service_call)
         time.sleep(0.5)
-        self.set_data_point('api_connected', 1)
+        self.set_data_point('native_api_connected', 1)
 
     async def on_disconnect(self, *a):
-        self.set_data_point('api_connected', 0)
+        self.set_data_point('native_api_connected', 0)

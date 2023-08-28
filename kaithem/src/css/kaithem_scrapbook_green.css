@@ -259,6 +259,14 @@ section {
 }
 
 
+div.sectionbox div.sectionbox,
+section section,
+div.sectionbox section,
+section div.sectionbox
+{
+  border-radius: 0.8em !important;
+}
+
 /* A scrollable div */
 
 div.scrollbox {

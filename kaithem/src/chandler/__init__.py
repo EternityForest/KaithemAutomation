@@ -297,12 +297,19 @@ core.scenes = weakref.WeakValueDictionary()
 core.scenes_by_name = weakref.WeakValueDictionary()
 
 
+
+def codeCommand(code=""):
+    "Activates any cues with the matching shortcut code in any scene"
+    shortcutCode(code)
+    return True
+
+
 def gotoCommand(scene="=SCENE", cue=""):
     "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
 
     # Ignore empty
     if not cue.strip():
-        return
+        return True
 
     # Track layers of recursion
     newcause = 'script.0'
@@ -352,6 +359,7 @@ def eventCommand(scene="=SCENE", ev="DummyEvent", value=""):
     return True
 
 
+rootContext.commands['shortcut'] = codeCommand
 rootContext.commands['goto'] = gotoCommand
 rootContext.commands['setAlpha'] = setAlphaCommand
 rootContext.commands['ifCue'] = ifCueCommand
@@ -875,7 +883,7 @@ class ChandlerConsole():
             try:
                 del i
             except Exception:
-                print(traceback.format_exc())
+                pass
 
             self.fixtures = {}
 
@@ -3134,10 +3142,14 @@ class Scene():
                 self.cues_ordered.append(c)
 
             self.cues_ordered.sort(key=lambda i: i.number)
-            try:
-                self.cuePointer = self.cues_ordered.index(self.cue)
-            except Exception:
-                print(traceback.format_exc())
+            if self.cue:
+                try:
+                    self.cuePointer = self.cues_ordered.index(self.cue)
+                except Exception:
+                    print(traceback.format_exc())
+            else:
+                self.cuePointer = 0
+
             # Regenerate linked list by brute force when a new cue is added.
             for i in range(len(self.cues_ordered) - 1):
                 self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]

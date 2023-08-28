@@ -490,12 +490,13 @@ section {
     margin-right: auto;
     margin-top: 0.8em;
     margin-bottom: 0.2em;
-    width: min-content;
-    min-width: 35%;
+    width: min(45em, 100vw);
+    min-width: min-content;
     box-sizing: border-box;
     max-width: 96%;
     overflow-x: auto;
 }
+
 
 div.sectionbox div.sectionbox,
 section section,

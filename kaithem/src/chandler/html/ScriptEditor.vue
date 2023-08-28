@@ -146,7 +146,7 @@
                                     <div style="min-width:8em;max-width:30em;overflow:hidden" v-if="(!(j[0] in specialCommands)) && ((commands[j[0]]))">
 
                                         <b>{{j[0]}}</b><br>
-                                        <table popif="commands[j[0]].summaryTemplate.length==0" border=1 style="width:100%">
+                                        <table popif="commands[j[0]].summaryTemplate.length==0" border=1 style="margin:auto;">
                                             <tr v-for="i in commands[j[0]].args.keys()">
                                                 <td>{{commands[j[0]].args[i][0]}}</td>
                                                 <td>{{j[i+1]}}</td>
