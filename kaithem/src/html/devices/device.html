@@ -726,31 +726,33 @@ Currently this is only supported for the newer cross-framework devices.
                 %else:
                 <div style="display: flex; flex-wrap: wrap;" class="buttonbar">
                         %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
-                        %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">On</button>
-                        %elif obj.tagPoints[i].subtype == 'tristate':
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">On</button>
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', -1])">Unset</button>
-                        %elif obj.tagPoints[i].subtype == 'trigger':
-                        <button  type="button"  onclick="triggerCounters['${i|h}'] = (triggerCounters['${i|h}']||0)+1; _generic_ws_channel.send(['set', '${i|h}', triggerCounters['${i|h}']])">Trigger</button>
-                        %elif obj.tagPoints[i].subtype == 'color':
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set Hex</button>
-                        <button  type="button"  style="background-color: black;  color: lightblue;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#000000'])">Blk</button>
-                        <button  style="background-color: #FF0000;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FF0000'])">Red</button>
-                        <button   style="background-color: #FFDD00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFDD00'])">Yel</button>
-                        <button   style="background-color: #00FF00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#00FF00'])">Grn</button>
-                        <button   style="background-color: #0000FF;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#0000FF'])">Blu</button>
-                        <button   style="background-color: #8F17E5;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#8F17E5'])">Prp</button>
-                        <button  type="button"  style="background-color: white;  color: darkgray;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
-                        %else:
-                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
-                                %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
-                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
-                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
+                                %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">On</button>
+                                %elif obj.tagPoints[i].subtype == 'tristate':
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">On</button>
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', -1])">Unset</button>
+                                %elif obj.tagPoints[i].subtype == 'trigger':
+                                <button  type="button"  onclick="triggerCounters['${i|h}'] = (triggerCounters['${i|h}']||0)+1; _generic_ws_channel.send(['set', '${i|h}', triggerCounters['${i|h}']])">Trigger</button>
+                                %elif obj.tagPoints[i].subtype == 'color':
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set Hex</button>
+                                <button  type="button"  style="background-color: black;  color: lightblue;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#000000'])">Blk</button>
+                                <button  style="background-color: #FF0000;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FF0000'])">Red</button>
+                                <button   style="background-color: #FFDD00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFDD00'])">Yel</button>
+                                <button   style="background-color: #00FF00;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#00FF00'])">Grn</button>
+                                <button   style="background-color: #0000FF;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#0000FF'])">Blu</button>
+                                <button   style="background-color: #8F17E5;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#8F17E5'])">Prp</button>
+                                <button  type="button"  style="background-color: white;  color: darkgray;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
+                                %else:
+                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
+                                        %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
+                                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
+                                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
+                                        %endif
                                 %endif
-                        %endif
+                        %else:
+
                         %endif
                         
                         %if callable(obj.tagPoints[i].activeClaim().value):
@@ -827,6 +829,15 @@ ${obj._admin_ws_channel.render("_admin_ws_channel")}
 ${obj._generic_ws_channel.render("_generic_ws_channel")}
 <script>
 
+fakesOn = false;
+function setFake(k,v)
+{
+        setFake=confirm("Enable faking input values?");
+        if(fakesOn)
+        {
+                _generic_ws_channel.send(['fake',k, v])
+        }
+}
 
 function send_ui_message(m)
 {

@@ -484,6 +484,15 @@ class Device():
             if v[2] is not None:
                 self.tagPoints[v[1]].value = v[2]
 
+        if v[0] == 'fake':                
+            if v[2] is not None:
+                if not hasattr(self.tagPoints[v[1]], "_k_ui_fake"):
+                    self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(v[2], "webuifake", priority=50.5)
+
+            else:
+                if hasattr(self.tagPoints[v[1]], "_k_ui_fake"):
+                    self.tagPoints[v[1]]._k_ui_fake.release()
+
         elif v[0] == 'refresh':
             self.tagPoints[v[1]].pull()
 

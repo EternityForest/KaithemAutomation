@@ -15,6 +15,15 @@
   /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
+@font-face {
+  font-family: 'Fraktur';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/static/fonts/Unifraktur/UnifrakturMaguntia-Regular.ttf');
+  /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+
 
 html {
     background:  radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.avif);
@@ -39,6 +48,9 @@ p::first-letter,h1::first-letter,h2::first-letter,h3::first-letter, h1 *::first-
 }
 
 
+h1{
+  font-family: Fraktur;
+}
 
 body {
     color: #412f1b;

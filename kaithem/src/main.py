@@ -132,6 +132,10 @@ logger.setLevel(logging.WARNING)
 logger = logging.getLogger("aioesphomeapi.reconnect_logic")
 logger.setLevel(logging.WARNING)
 
+logger = logging.getLogger("PIL.PngImagePlugin")
+logger.setLevel(logging.WARNING)
+
+
 # Dump stuff to stderr when we get a segfault
 try:
     import faulthandler
