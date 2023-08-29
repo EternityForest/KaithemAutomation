@@ -828,10 +828,11 @@ class DynamicSpan(Widget):
     attrs = ''
 
     def __init__(self, *args, extraInfo= None, **kwargs):
+        Widget.__init__(self, *args, **kwargs)
         self.extraInfo = extraInfo
 
     def write(self, value, push=True):
-        self.value = value
+        self.value = str(value)[:255]
         Widget.write(self, self.value, push)
 
     def getExtraInfo(self):
