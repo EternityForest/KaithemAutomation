@@ -154,7 +154,9 @@ specialKeys={
 %if hasattr(obj,"device_type") and obj.device_type == "ESPHomeDevice":
 <details>
         <summary><h2>ESPHome Web UI</h2></summary>
-        <iframe src="${data.get('device.hostname','')}" style="width: 98%; height: 30em;"></iframe>
+        Only works if this page is loaded over plain HTTP, due to browser restrictions.
+        Use the <a href="http://${data.get('device.hostname','')}">Direct link</a> if the embedded viewer fails.
+        <iframe src="http://${data.get('device.hostname','')}"   class="embedpage" style="width: 98%; height: 30em;"></iframe>
 </details>
 %endif
 
