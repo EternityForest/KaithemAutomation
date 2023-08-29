@@ -1,10 +1,10 @@
 <%include file="/pageheader.html"/>
 <h1>System Console</h1>
 <div class="sectionbox">
-<p class="help">Enter bash commands into the console, they will be executed as a script under whatever user 
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>Enter bash commands into the console, they will be executed as a script under whatever user 
 Kaithem runs as.
 Currently, this does not attempt to simulate interactive shell sessions, but whatever bash returns from running your script will be returned.
-</p>
+</details>
 <pre>${output|h}</pre>
 <form method="post" action="/settings/console">
 <textarea rows="5" cols="80" name="script"></textarea><br>

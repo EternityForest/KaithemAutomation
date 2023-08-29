@@ -9,8 +9,8 @@ from kaithem.src import unitsofmeasure
 <h1>Authentication Failures</h1>
 <main>
     <section>
-        <p class="help">The failure count is reset when the application
-            restarts, or when the record for that IP gets pushed out by other records</p>
+        <details class="help"><summary><i class="icofont-question-circle"></i></summary>The failure count is reset when the application
+            restarts, or when the record for that IP gets pushed out by other records</details>
         <table border=1>
             <tr><th>IP Address</th><th>Number Of Login Failures</th><th>Most Recent</th><th>Most Recent Targeted Account(Hover)</tr>
             %for i in sorted(history,key=lambda i:i[1]):

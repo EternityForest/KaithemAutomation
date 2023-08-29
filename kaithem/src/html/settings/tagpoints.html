@@ -31,12 +31,12 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 
 <h1>Tag Points</h1>
 <div class="sectionbox">
-<p class="help">
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
     This page lists all <a href="/docs/mdtemplate?page=tagpoints.md">Tag Points</a> currently managed by Kaithem. 
     Creating a tag with a name beginning with "=" allows you to create expression tags,
     similar to soft tags in many SCADA systems.
 
-</p>
+</details>
 
 
 <h3>Active Tags</h3>
@@ -121,7 +121,7 @@ Page:
     <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
 </div>
 <h3>Configured but not used</h3>
-<p class="help">Empty configs go away when the server state is saved</p>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>Empty configs go away when the server state is saved</details>
 <ul>
 %for i in tagpoints.configTagData:
 %if not i in tagpoints.allTags:

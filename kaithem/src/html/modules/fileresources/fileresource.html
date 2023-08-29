@@ -57,7 +57,7 @@
     <a href="/utils/video_signage?src=${usrpages.url_for_resource(module,resource)|u}">Looping video signage link</a>
 <h2>Permissions</h2>
 
-<p class="help"><span class="permission-icon"></span>Require the following permissions to access this resource</p>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary><span class="permission-icon"></span>Require the following permissions to access this resource</details>
 <div class="scrollbox">
 <ul>
 %for i in sorted(auth.Permissions.keys()):

@@ -57,7 +57,7 @@ ${obj.__class__|h}
 <div class="sectionbox">
 <form method="post" action="?objname=${objname}&objpath=${objpath}&gcinfo=1"><button>Get Info</button></form>
 %if getGC:
-<p class="help">Greyed entries may be less interesting and more likely the rendering of this page itself.</p>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>Greyed entries may be less interesting and more likely the rendering of this page itself.</details>
 <dl>
 %for i in gc.get_referrers(obj):
 <dt><form method="post" action="?objname=${objname}&objpath=${objpath},r${id(i)}&gcinfo=1"><button>${id(i)}</button></form></dt

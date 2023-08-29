@@ -15,8 +15,8 @@ def size(f):
 <a href="/settings/files/${util.url(os.path.split(dir)[0])}">Up One Level</a><br>
 
 <pre>${dir|h}</pre>
-<p class="help">Unpacking puts all zip contents into the current dir, without creating a new subdir 
-"foo" in the zip becomes "DIR/foo".  If a destination file exists, it is overwritten.</p>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>Unpacking puts all zip contents into the current dir, without creating a new subdir 
+"foo" in the zip becomes "DIR/foo".  If a destination file exists, it is overwritten.</details>
 <form enctype="multipart/form-data" action="/settings/files/${util.url(dir)}" method="POST">
 
 <p class="menubar">

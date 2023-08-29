@@ -23,9 +23,9 @@ if __name__=='__setup__':
     
     myCustomManagementForm = """
     <h3>Info</h3>
-    <p class="help">
+    <details class="help"><summary><i class="icofont-question-circle"></i></summary>
       This is a custom device type, demonstrating how device drivers can be embedded in a module.  It plays a sound when creating and deleting devices.
-    </p>
+    </details>
     
     <table>
         <tr>

@@ -75,9 +75,9 @@ checked="on"
 
 <h3>Groups</h3>
 <div class="sectionbox">
-<p class="help">
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
 User ${username} is a member of the following groups:<br>
-(Check or uncheck to set membership)</p>
+(Check or uncheck to set membership)</details>
 %for i in sorted(groups):
     <br> <input type="checkbox" name="Group${i}" value="true"
     %if i in usergroups:

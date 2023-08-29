@@ -21,9 +21,9 @@ e,entries = getEntries(messagelogging.log[topicname], page)
 
 <h2>Recent messages on topic ${topicname|h} (${len(messagelogging.log[topicname])} Messages total, ${entries} shown)</h2>
 <div class="sectionbox">
-<p class="help">
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
 Only messages posted since the most recent periodic dump are shown
-</p>
+</details>
 <p class="menubar">
 Page:
 %for i in range(1,(int(math.ceil(len(messagelogging.log[topicname])/200))+1)):

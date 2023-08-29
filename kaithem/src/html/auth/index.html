@@ -4,15 +4,15 @@ from kaithem.src.util import url
 
 <%include file="/pageheader.html"/>
 <h2> Users and Groups <sup><a href="/docs#auth">[help]</a></sup></h2>
-<p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
 <title>Manage Authorization</title>
 <h3>Users</h3>
 
 <div class="sectionbox">
 <p class="menubar">
 <a class="button createbutton" href="/auth/newuser">Add New User</a>  <a class="button deletebutton" href="/auth/deleteuser">Delete User</a></p>
-<p class="help">
-The following users are registered with the server. <br>To allow unregistered users access to certain permissions, create a user named '__guest__' with password '__none__'<br>All usernames surrounded by double underscores are reserved.</p>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+The following users are registered with the server. <br>To allow unregistered users access to certain permissions, create a user named '__guest__' with password '__none__'<br>All usernames surrounded by double underscores are reserved.</details>
 <hr>
 <ul>
 %for i in sorted(auth.Users.keys()):
@@ -29,8 +29,8 @@ class="specialentry"\
 <div class="sectionbox">
 <p class="menubar">
 <a class="button createbutton" href="/auth/newgroup">Add New Group</a>  <a class="button deletebutton" href="/auth/deletegroup">Delete Group</a></p>
-<p class="help">
-The following groups are registered with the server.</p>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+The following groups are registered with the server.</details>
 <hr>
 <ul>
 %for i in sorted(auth.Groups.keys()):

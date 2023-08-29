@@ -19,7 +19,7 @@ def getDesc():
 <h2>Module ${name|h}</h2>
 <title>Module: ${name|h}</title>
 <section>
-    <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
+    <details class="help"><summary><i class="icofont-question-circle"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
 
 MD5 Sum: ${getModuleHash(name)}</br>
 WordHash: ${getModuleWordHash(name)}</br>
