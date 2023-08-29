@@ -119,9 +119,9 @@ import os
 
     <div v-if="activePane=='presets'">
       <h2>Presets</h2>
-      <p class="help">Presets let you load and save the entire state of the mixing board. When kaithem boots, the preset
+      <details class="help"><summary><i class="icofont-question-circle"></i></summary>Presets let you load and save the entire state of the mixing board. When kaithem boots, the preset
         named "default" will be loaded if it exists. Presets are saved immediately to vardir/system.mixer/presets
-      </p>
+      </details>
 
 
 
@@ -311,7 +311,7 @@ import os
         <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
       </p>
         <h3>Recorder ({{recordStatus}})</h3>
-        <p class=help>Jack name: krecorder, channels will autoconnect. <br>Files in <a href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a></p>
+        <details class="help"><summary><i class="icofont-question-circle"></i></summary>Jack name: krecorder, channels will autoconnect. <br>Files in <a href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a></details>
         <div class="buttonbar">
         <p>Channels:</p><input aria-label="Channels" type="number" v-model="recordChannels" style="max-width: 3em;">
         <p>File Prefix:</p><input v-model="recordName" size=1>

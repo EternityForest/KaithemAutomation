@@ -74,6 +74,9 @@ div.card {
   border-width: 3px;
 }
 
+.warning {
+  background-color: rgba(217 217 45 / 71%);
+}
 
 .buttonbar {
     box-shadow: none;
@@ -113,7 +116,7 @@ div.menubar{
 div.sectionbox,
 section, article{
     background: var(--box-bg);
-    border-width: 8px;
+    border-width: 1px;
     border-radius: 10px;
     backdrop-filter: blur(1px);
     border-color: #412f1b;

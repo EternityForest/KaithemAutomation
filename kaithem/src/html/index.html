@@ -27,6 +27,8 @@ scolor={
 
 %>
     <%include file="/pageheader.html"/>
+<meta http-equiv="refresh" content="240" />
+
 <title>Kaithem Automation</title>
 
 <div style="display: flex; flex-wrap: wrap; justify-content: center;">
@@ -75,7 +77,7 @@ ${alertsapi.render("alertapi")}
     <h2>Active/Unacknowledged Alarms</h2>
 
     <div class="scrollbox sectionbox" style="max-height: 25em;height:auto;width:fit-content;">
-        <p class="help">Anyone who can see the main page can see all alarms, regardless of alarm-specific permssions, as alarms are not meant for private data.</p>
+        <details class="help"><summary><i class="icofont-question-circle"></i></summary>Anyone who can see the main page can see all alarms, regardless of alarm-specific permssions, as alarms are not meant for private data.</details>
 
         <%
         if "ackalarm" in cherrypy.request.params:
@@ -108,10 +110,18 @@ ${alertsapi.render("alertapi")}
             pass
 
         l = sorted(l, key=lambda i: (0 if (i.priority in ('error', 'critical')) else 1, i.sm.state=="acknowledged", i.priority, i.zone, i.name))
+
+        def getClass(i):
+            if i.sm.state in ("acknowledged", "active"):
+                if i.priority  in ('error', 'critical'):
+                    return "error"
+                if i.priority  in ('warning'):
+                    return "warning"
+            return ""
         %>
 
         %for i in l:
-        <div style="padding: 4px; ;margin:8px; border-radius: 12px; border: 1px solid; ;block-size:fit-content;word-wrap: break-word;">
+        <div class="${getClass(i)}" style="padding: 4px; ;margin:8px; border-radius: 12px; border: 1px solid; ;block-size:fit-content;word-wrap: break-word;">
             <div>
                 <span style="font-size:120%;">${i.name}</span><span style="font-size:120%">:${i.sm.state}</span><br>
 

@@ -52,41 +52,31 @@ ${lists}
     p.scene {
         border-style: solid;
         border-width: 1px;
-
-        !important
     }
 
-    p.run {
-        !important
+    .fadersbox{
+        display: flex;
     }
 
-    div.universe {
-        border-style: solid;
-        border-radius: 5px;
-        float: left;
+    article.universe {
         overflow: auto;
         border-color: grey;
         margin: 3px;
         width: 95%;
         display: inline-block;
-        !important
+        flex-basis: min-content;
+        flex-grow: 1;
     }
 
-    div.fixture {
-        border-style: solid;
-        border-radius: 5px;
-        float: left;
+    article.fixture {
         overflow: auto;
-        border-width: 2px;
-        // border-color: darkgrey;
         margin: 3px;
         display: inline-block;
-        //background-color: rgba(128, 128, 128, 0.4);
-        // !important
+        max-width: 32em;
+        flex-basis: min-content;
     }
 
     .indicator {
-        //border-color: black;
         border-radius: 0.2em;
         display: inline-block;
         width: 0.9em;
@@ -107,7 +97,6 @@ ${lists}
 
     label>input {
         border-radius: 0px;
-        //border: 1px solid rgba(0,0,0,0.3);
         margin: 0px;
     }
 
@@ -300,9 +289,9 @@ ${lists}
             <button v-on:click="showDMXSetup=0">
                 <i class="icofont-ui-close"></i>Close</button> Universe Setup
         </h3>
-        <p class="help">These settings take effect immediately when you click "Update Settings". To save them to disk,
+        <details class="help"><summary><i class="icofont-question-circle"></i></summary>These settings take effect immediately when you click "Update Settings". To save them to disk,
             use "save setup" Note: Configuring these universes requires /admin/settings.edit,
-            however you do not need that permission to use the lightboard after it's configured.</p>
+            however you do not need that permission to use the lightboard after it's configured.</details>
         <button v-on:click="refreshPorts">Refresh Serial Ports</button>
         <button v-on:click="pushSettings">Update Settings</button><br>
         <br>
@@ -417,13 +406,13 @@ ${lists}
             Setup:{{universeFullSettings}}</h3>
 
         <div v-if="configuredUniverses[universeFullSettings].type=='tagpoints'">
-            <p class="help">
+            <details class="help"><summary><i class="icofont-question-circle"></i></summary>
                 Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign tags
                 to channels. Assigning
                 tags to channels requires admin permissions unless the tag begins with /chandler. You can give channels
                 names in addition
                 to numbers by using number:name syntax.
-            </p>
+            </details>
             <table border="1">
                 <tr>
                     <th>Channel Number</th>
@@ -509,12 +498,12 @@ ${lists}
                 </label>
 
                 <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
-                    <p class="Help">
+                    <details class="help"><summary><i class="icofont-question-circle"></i></summary>
                         The custom channel type allows you to define a different meaning for a channel depending on what
                         range it is in. This is
                         fairly common for controlling gobos and gobo rotation, etc. Ranges are defined my the inclusive
                         min and max channel
-                        of that range, plus a name for that option.</p>
+                        of that range, plus a name for that option.</details>
                     </p>
                     <h5>Ranges for channel {{i}}</h5>
                     <table border="1">
@@ -560,7 +549,7 @@ ${lists}
         <h3>
             <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture Assignments
         </h3>
-        <p class="Help">Here is where you actually assign fixtures to channels after creating the desired fixture types.
+        <details class="help"><summary><i class="icofont-question-circle"></i></summary>Here is where you actually assign fixtures to channels after creating the desired fixture types.
             Clicking Update will cause the new assignments to take effect immediately. Use the save settings button to
             make them permanent.
 
@@ -629,7 +618,7 @@ ${lists}
         <p class="buttonbar">
             <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
                     class="icofont-trash"></i></button>
-        </p>
+        </details>
         <hr>
 
         <p class="buttonbar">
@@ -864,8 +853,6 @@ ${lists}
                 </table>
             </div>
 
-
-                <hr>
             <p class="buttonbar">
                 <input v-model="newcuename" placeholder="New cue name">
                 <button v-on:click="addcue(scenename,newcuename)">
@@ -895,17 +882,17 @@ ${lists}
                     <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
                             class="icofont-listing-box"></i>Channels</button>
                 </p>
-                <div style="overflow: auto; max-height:30em; border: 1px solid;" class="fadersbox" v-if="showLightingControls">
-                    <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'"
+                <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
+                    <article class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'"
                         style="border-style:solid">
                         <h3>{{uname}}</h3>
                         <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
                             :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
                         </h-fader>
-                    </div>
+                    </article>
 
 
-                    <div class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'"
+                    <article class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'"
                         style="border-style:solid">
                         <h4>{{fname}}</h4>
 
@@ -916,7 +903,7 @@ ${lists}
                         <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
                             :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
                         </h-fader>
-                    </div>
+                    </article>
                 </div>
 
                 <div v-if="scenetab=='channels'">
@@ -951,11 +938,11 @@ ${lists}
                 <div style="overflow: auto; max-height:30em;" class="logicbox">
                     <div>
                         <h3>Automation Logic</h3>
-                        <p class="help">Here you can create rules that apply whenever the scene is in this cue, to
+                        <details class="help"><summary><i class="icofont-question-circle"></i></summary>Here you can create rules that apply whenever the scene is in this cue, to
                             do things like trigger other cues when
                             this one enters or exits.
                             <a href="docs/RulesEngine">Documentation</a>
-                        </p>
+                        </details>
                     </div>
                     <div>
                         <label>Inherit rules from cue in same scene(inherited rules run after directly set rules):
@@ -1200,8 +1187,8 @@ ${lists}
                         </div>
                         <div class="scrollbox">
                             <h5>Sound Outputs</h5>
-                            <p class="help">To use play videos, you must use the web remote display feature. Cue
-                                videos will play in the browser on connected remote displays.</p>
+                            <details class="help"><summary><i class="icofont-question-circle"></i></summary>To use play videos, you must use the web remote display feature. Cue
+                                videos will play in the browser on connected remote displays.</details>
                             <dl>
 
 
@@ -1236,9 +1223,9 @@ ${lists}
                 <details>
                     <summary>Cue Slides</summary>
                     <div>
-                        <p class="help">
+                        <details class="help"><summary><i class="icofont-question-circle"></i></summary>
                             A scene's web media display page will show whatever the current cue's slide is.
-                        </p>
+                        </details>
 
                         <div>
                             <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
@@ -1583,9 +1570,9 @@ ${lists}
                 </label>
                 <div class="scrollbox" v-if="showSoundControls">
                     <h5>Sound Outputs</h5>
-                    <p class="help">So long as you plug the same device into the same port(on linux), it will be
+                    <details class="help"><summary><i class="icofont-question-circle"></i></summary>So long as you plug the same device into the same port(on linux), it will be
                         given the same device alias, although
-                        they will be different if JACK is used.</p>
+                        they will be different if JACK is used.</details>
                     <dl>
                         <dt>Web Player</dt>
                         <dd>
@@ -1636,7 +1623,7 @@ ${lists}
                 </table>
 
                 <h3>Display Tags</h3>
-                <p class="help">Lets you display some tag points in the scene overview</p>
+                <details class="help"><summary><i class="icofont-question-circle"></i></summary>Lets you display some tag points in the scene overview</details>
 
                 <table border="1">
                     <tr>

@@ -151,7 +151,7 @@ specialKeys={
 <textarea name="description">${data.get('description','')}</textarea>
 </details>
 
-%if obj.device_type == "ESPHomeDevice":
+%if hasattr(obj,"device_type") and obj.device_type == "ESPHomeDevice":
 <details>
         <summary><h2>ESPHome Web UI</h2></summary>
         <iframe src="${data.get('device.hostname','')}" style="width: 98%; height: 30em;"></iframe>
@@ -162,9 +162,9 @@ specialKeys={
         <summary>
         <h2>Notes</h2>
         </summary>
-        <p class="help">The notes do not show up in the main devices list. Use it to make your devices more self-describing without
+        <details class="help"><summary><i class="icofont-question-circle"></i></summary>The notes do not show up in the main devices list. Use it to make your devices more self-describing without
                 cluttering the overview page.
-        </p>
+        </details>
         <textarea name="notes">${data.get('notes','')}</textarea>
 </details>
 
@@ -212,13 +212,13 @@ ${obj.readme|h}
 <h2><i class="icofont-link"></i>Bindings(${len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[])) })</h2>
 </summary>
 
-<p class="help">A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
         all of these devices are one way. The device will be updated when the tag point changes.  For the local point, 
         use the short name.  For the external point, use the long name.
-</p>
-<p class="help">As per the usual tag features, the tag does not actually have to exist, and you can use an expression like
+</details>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>As per the usual tag features, the tag does not actually have to exist, and you can use an expression like
 "=tv("/some/tag/name") + 50" to create a virtual tag.
-</p>
+</details>
 
 <details><summary><i class="icofont-question-circle"></i></summary>If either the external or device tag point exists, you can leave the type field blank.</details>
 
@@ -231,9 +231,9 @@ ${json.dumps(data.get('kaithem.input_bindings',[])) or '[]'|h}
 
 <h2><i class="icofont-link"></i>Output Bindings</h2>
 
-<p class="help">An output binding is just a command that the destination tag should change whenever the source tag does. 
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>An output binding is just a command that the destination tag should change whenever the source tag does. 
         The source tag is one that is owned by this device.
-</p>
+</details>
 
 <textarea name="temp.kaithem.outputbindings" id="bindings2" style="display: none">
 ${json.dumps(data.get('kaithem.output_bindings',[])) or '[]'|h}
@@ -311,15 +311,15 @@ ${manageForm}
 
 <h3>Permissions</h3>
 <div>
-<p class="help">
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
 Set a default for all tag points exposed by this device.  You can further refine this in the tag points manager.
 It is preferable to do things at the device-level, as devices can be bundle into modules, and you don't have to handle
 settings individually for every tag.  Leave blank to disable.  These are used to make data points show up in the 
-</p>
+</details>
 
-<p class="help">
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
 Currently this is only supported for the newer cross-framework devices.
- </p>
+ </details>
 
 <div class="buttonbar">
 <label>Read:<input name="kaithem.read_perms" list="k_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__"></label>
@@ -337,11 +337,11 @@ Currently this is only supported for the newer cross-framework devices.
 <summary>
 <h2><i class="icofont-ui-text-chat"></i>Alerts</h2>
 </summary>
-<p class="help">This section lists all alerts supported by the device.
-</p>
-<p class="help">For new device types, the alarms will likely be configured via the corresponding
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>This section lists all alerts supported by the device.
+</details>
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>For new device types, the alarms will likely be configured via the corresponding
         tag point.
-</p>
+</details>
 
 <table border="1" style="width:100%">
 <tr><th>Name</th><th>Priority</th><th>Status</th></tr>
@@ -425,9 +425,9 @@ Currently this is only supported for the newer cross-framework devices.
 </details>
 
 <h2><i class="icofont-chart-flow-2"></i>Tag Points</h2>
-<p class="help">This section lists all the tag points owned.  Controls do not work if
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>This section lists all the tag points owned.  Controls do not work if
         the tag has been overriden by some high priority claim.
-</p>
+</details>
 
 <script>
 
@@ -666,11 +666,11 @@ Currently this is only supported for the newer cross-framework devices.
 
         </script>
 
-        <p class="help">
+        <details class="help"><summary><i class="icofont-question-circle"></i></summary>
                 The regions property is a semicolon separated list, looking like "name=x,y,w,h;".  To delete a region,
                 just delete it's entry in the regions box.  A proper deletion feature coming soon.
 
-        </p>
+        </details>
         <div class="buttonbar">
                 <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
         </div>
@@ -820,10 +820,10 @@ Currently this is only supported for the newer cross-framework devices.
 
 
 <h2>Messages</h2>
-<p class="help">
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
         These are not logged. Add a message with device.print(message). Old messages
         are deleted. Most recent is first.
-</p>
+</details>
 ${obj.logWindow.render()}
 
 
