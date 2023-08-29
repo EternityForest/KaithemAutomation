@@ -9,6 +9,17 @@ ${lists}
     <option>__shuffle__</option>
 </datalist>
 
+<datalist name="lenoptions" id="lenoptions">
+    <option>0.25</option>
+    <option>1</option>
+    <option>2.5</option>
+    <option>5</option>
+    <option>10</option>
+    <option>25</option>
+    <option>@2:30PM</option>
+    <option>@2:30PM every Friday</option>
+</datalist>
+
 <title>Chandler Console</title>
 
 
@@ -689,7 +700,11 @@ ${lists}
                     <tr>
                 </table>
 
-                <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                <div style="display:flex; width: 100%">
+                    <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                    <small><span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
+                </div>
+                
                 <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue:
                     {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
 
@@ -788,7 +803,7 @@ ${lists}
 
 
                             <td class="desktop-only" data-label="Shortcut:">
-                                <p class="buttonbar">
+                                <p class="buttonbar" style="width: 12em;">
                                     <input title="Shortcut code" size="8"
                                         v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
                                         step=0.1 v-model="i[1].shortcut">
@@ -803,7 +818,7 @@ ${lists}
                             </td>
 
                             <td class="desktop-only" data-label="Length:">
-                                <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em"
+                                <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:12em" list="lenoptions"
                                     v-model="i[1].length">
                             </td>
 

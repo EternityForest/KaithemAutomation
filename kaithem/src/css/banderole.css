@@ -19,7 +19,7 @@
   font-family: 'Fraktur';
   font-style: normal;
   font-weight: 400;
-  src: url('/static/fonts/Unifraktur/UnifrakturMaguntia-Regular.ttf');
+  src: url('/static/fonts/Unifraktur/UnifrakturMaguntia-Regular.woff2');
   /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
@@ -111,14 +111,19 @@ div.menubar{
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
 div.sectionbox,
-section {
-    border-style: double;
+section, article{
     background: var(--box-bg);
     border-width: 8px;
-    border-radius: 5px;
+    border-radius: 10px;
     backdrop-filter: blur(1px);
     border-color: #412f1b;
   }
+
+
+  div.sectionbox,
+  section{
+      border-style: double;
+    }
 
 
   div.sectionbox div.sectionbox,

@@ -486,8 +486,7 @@ class Device():
 
         if v[0] == 'fake':                
             if v[2] is not None:
-                if not hasattr(self.tagPoints[v[1]], "_k_ui_fake"):
-                    self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(v[2], "webuifake", priority=50.5)
+                self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(v[2], "faked", priority=50.5)
 
             else:
                 if hasattr(self.tagPoints[v[1]], "_k_ui_fake"):

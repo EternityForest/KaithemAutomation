@@ -1249,7 +1249,7 @@ class ChandlerConsole():
                 'bpm': round(scene.bpm, 6),
                 'blend': scene.blend,
                 'blendArgs': scene.blendArgs,
-                'blendDesc': core.getblenddesc(scene.blend),
+                'blendDesc': blendmodes.getblenddesc(scene.blend),
                 'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass, "parameters") else {},
                 'priority': scene.priority,
                 'started': scene.started,

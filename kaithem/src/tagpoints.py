@@ -23,6 +23,15 @@ import dateutil.parser
 from typing import Callable, Tuple, Union, Dict, List, Any, Optional
 from typeguard import typechecked
 
+def makeTagInfoHelper(t):
+    def f():
+        x = t.currentSource
+        if x == 'default':
+            return ''
+        else:
+            return '(' + x + ')'
+    return f
+
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
 
@@ -1848,6 +1857,10 @@ class _TagPoint():
         )
 
     def handleSourceChanged(self, name):
+        try:
+            self._debugAdminPush(*self.vta)
+        except Exception:
+            pass
         if self.onSourceChanged:
             try:
                 self.onSourceChanged(name)
@@ -2076,12 +2089,16 @@ class _TagPoint():
             if not o:
                 return
 
+            doChange = self.activeClaim() is not o
+
             self.vta = (o.value, o.timestamp, o.annotation)
             self.activeClaim = weakref.ref(o)
 
             self._getValue()
             self._push()
             self._managePolling()
+            if doChange:
+                self.handleSourceChanged(self.activeClaim().name)
         finally:
             self.lock.release()
 
@@ -2137,7 +2154,7 @@ class _NumericTagPoint(_TagPoint):
                     self._meterWidget = x
                     return self._meterWidget
 
-            self._meterWidget = widgets.Meter()
+            self._meterWidget = widgets.Meter(extraInfo=makeTagInfoHelper(self))
 
             def f(v, t, a):
                 self._debugAdminPush(v, t, a)
@@ -2420,7 +2437,7 @@ class _StringTagPoint(_TagPoint):
                     self._spanWidget = x
                     return self._spanWidget
 
-            self._spanWidget = widgets.DynamicSpan()
+            self._spanWidget = widgets.DynamicSpan(extraInfo=makeTagInfoHelper(self))
 
             def f(v, t, a):
                 self._debugAdminPush(v, t, a)

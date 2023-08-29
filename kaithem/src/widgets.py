@@ -827,11 +827,25 @@ time_widget = TimeWidget(Widget)
 class DynamicSpan(Widget):
     attrs = ''
 
+    def __init__(self, *args, extraInfo= None, **kwargs):
+        self.extraInfo = extraInfo
+
+    def write(self, value, push=True):
+        self.value = value
+        Widget.write(self, self.value, push)
+
+    def getExtraInfo(self):
+        if self.extraInfo:
+            return self.extraInfo()
+        else:
+            return ''
+        
     def render(self):
         """
         Returns:
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
+
         return("""<span id="%s" %s>
         <script type="text/javascript">
         var upd = function(val)
@@ -844,6 +858,7 @@ class DynamicSpan(Widget):
 
     def render_as_span(self, label=''):
         return label+self.render()
+    
 class DataSource(Widget):
     attrs = ''
 
@@ -887,7 +902,7 @@ siUnits = {
 
 
 class Meter(Widget):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, extraInfo= None, **kwargs):
         self.k = kwargs
         if not 'high' in self.k:
             self.k['high'] = 10000
@@ -901,6 +916,8 @@ class Meter(Widget):
             self.k['min'] = 0
         if not 'max' in self.k:
             self.k['max'] = 100
+
+        self.extraInfo = extraInfo
 
         self.displayUnits = None
         self.defaultLabel = ''
@@ -918,6 +935,12 @@ class Meter(Widget):
 
         Widget.__init__(self, *args, **kwargs)
         self.value = [0, 'normal', self.formatForUser(0)]
+
+    def getExtraInfo(self):
+        if self.extraInfo:
+            return self.extraInfo()
+        else:
+            return ''
 
     def write(self, value, push=True):
         # Decide a class so it can show red or yellow with high or low values.
@@ -964,6 +987,7 @@ class Meter(Widget):
 
     def onUpdate(self, *a, **k):
         raise RuntimeError("Only the server can edit this widget")
+    
 
     def formatForUser(self, v, displayUnit=None):
         """Format the value into something for display, like 27degC, if we have a unit configured.
@@ -1006,9 +1030,9 @@ class Meter(Widget):
                         # We're just hardcoding this for now
                         s += str(round(convert(v, unit, i), 2)) + i
 
-                return s.replace("degC","C").replace("degF", "F")
+                return s.replace("degC","C").replace("degF", "F")+ self.getExtraInfo()
             else:
-                return str(round(v, 3))
+                return str(round(v, 3)) + self.getExtraInfo()
         except Exception as e:
             print(traceback.format_exc())
             return str(round(v, 3)) + str(e)[:16]

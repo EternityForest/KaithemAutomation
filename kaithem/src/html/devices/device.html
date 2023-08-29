@@ -25,6 +25,7 @@ specialKeys={
         'description',
         'notes'
 }
+
 %>
 
 <style>
@@ -442,7 +443,8 @@ Currently this is only supported for the newer cross-framework devices.
                 border: none;
         }
 </style>
-<div class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
+
+<article class="tagbox" style="margin: 1em; border-style: solid; border-width: 1px; padding: 0.2em;">
 <h3 style="font-size: 140%;"><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></h3>
 
 
@@ -664,7 +666,6 @@ Currently this is only supported for the newer cross-framework devices.
 
         </script>
 
-        <h4>Controls</h4>
         <p class="help">
                 The regions property is a semicolon separated list, looking like "name=x,y,w,h;".  To delete a region,
                 just delete it's entry in the regions box.  A proper deletion feature coming soon.
@@ -720,8 +721,7 @@ Currently this is only supported for the newer cross-framework devices.
         %endif
 
         %if not obj.tagPoints[i].subtype == 'mpegts':
-                <h4>Controls</h4>
-                %if obj.tagPoints[i].activeClaim().priority > 50:
+                %if obj.tagPoints[i].activeClaim().priority > 50.5:
                         Overridden: ${obj.tagPoints[i].activeClaim().name}
                 %else:
                 <div style="display: flex; flex-wrap: wrap;" class="buttonbar">
@@ -745,14 +745,32 @@ Currently this is only supported for the newer cross-framework devices.
                                 <button   style="background-color: #8F17E5;" type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#8F17E5'])">Prp</button>
                                 <button  type="button"  style="background-color: white;  color: darkgray;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
                                 %else:
-                                <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
+                                        <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
                                         %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
                                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
                                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
                                         %endif
                                 %endif
                         %else:
+                                %if  obj.tagPoints[i].type=='number':
+                                        <button type="button"  onclick="setFake('${i|h}', null)" title="Disable faking and use real value">Stop fake</button>
 
+                                        %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
+                                                <button type="button"  onclick="setFake('${i|h}', 0)" title="Fake input being zero">Fake Off</button>
+                                                <button type="button"  onclick="setFake('${i|h}', 1)" title="Fake input being one">Fake On</button>
+                                                <button type="button"  onmousedown="setFake('${i|h}', 1)"  onmouseup="setFake('${i|h}', null)" title="Fake 1 while held">Fake Press</button>
+                                        %else:
+                                                <button  type="button"  onclick="setFake('${i|h}', prompt('New value?'))">Set fake val</button>
+                                        %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
+                                                <button type="button"  onclick="setFake('${i|h}', 0)" title="Fake input being zero">Fake Off</button>
+                                                <button type="button"  onclick="setFake('${i|h}', 1)" title="Fake input being one">Fake On</button>
+                                        %endif
+                                        %endif
+
+                                        %if obj.tagPoints[i].subtype == 'tristate':
+                                                <button type="button"  onclick="setFake('${i|h}', -1)" title="Fake input being tristate/-1">Fake Unset</button>
+                                        %endif
+                                %endif
                         %endif
                         
                         %if callable(obj.tagPoints[i].activeClaim().value):
@@ -787,7 +805,7 @@ Currently this is only supported for the newer cross-framework devices.
         %endif
 
         %endif
-</div>
+</article>
 %except:
 </div>
 <div>
@@ -832,11 +850,14 @@ ${obj._generic_ws_channel.render("_generic_ws_channel")}
 fakesOn = false;
 function setFake(k,v)
 {
-        setFake=confirm("Enable faking input values?");
-        if(fakesOn)
-        {
-                _generic_ws_channel.send(['fake',k, v])
-        }
+        if(!fakesOn){
+                        fakesOn=confirm("Enable faking input values?");
+                }
+                if(fakesOn)
+                {
+                        _generic_ws_channel.send(['fake',k, v])
+                }
+        
 }
 
 function send_ui_message(m)

@@ -15,7 +15,7 @@ Change Log
 - :bug: Fix zeroconf exceptions
 - :sparkles: Chandler is no longer a module, it is now a built in, always-there tab.  Look forward to deeper integrations!
 - :sparkles: Chandler audio cues play much faster than before
-
+- :sparkles: Non-writable device data points can be "faked"
 
 ### 0.68.47
 - :bug: More robust responsive video
