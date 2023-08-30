@@ -115,12 +115,12 @@ sudo apt install scrot mpv libmpv-dev python3 cython3 build-essential python3-ms
 ```
 
 You will also need Python's tflite_runtime for deep learning image recognition in the NVR.  
-python3 -m pip install tflite-runtime  will do it on linux.
+`python3 -m pip install tflite-runtime`  will do it on linux.
 
 You don't need a model! A version of efficientdet-lite0 is included.  Accuracy should be better than the bare
 model itself as we use heuristics to reduce false positives.
 
-If you want to use ESPHome, you need to install pip3 install aioesphomeapi, as this has non-python dependencies we can't easily incluse, just like tflite-runtime.
+If you want to use ESPHome, you need to install `pip3 install aioesphomeapi`, as this has non-python dependencies we can't easily incluse, just like tflite-runtime.
 
 Both are included by the kioskify script.
 
@@ -187,6 +187,25 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.68.48
+- :coffin: Remove the Chandler tag permissions system, as it is too complex to properly assess the security model. It can now access any tag.
+- :sparkles: JACK mixer has a noise gate now
+- :sparkles: Link on settings page to take screenshot of server(Useful for checking on signage)
+- :bug: Fix hang at shutdown
+- :sparkles: New Banderole theme, probably the best example to learn theming
+- :sparkles: Control RasPi and maybe others system power and activity LEDs via the tag points interface.
+- :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
+- :sparkles: Devices framework now has a WeatherClient, No API key needed thanks to wttr.in! :sunny: :cloud: :rainbow:
+- :sparkles: Github based online assets library, seamlessly browse and download music and SFX right in Chandler
+- :sparkles: Basic support for ESPHome devices(BinarySensor, Number, Sensor, TextSensor, Switch) including reconnect logic
+- :bug: Fix zeroconf exceptions
+- :sparkles: Chandler is no longer a module, it is now a built in, always-there tab.  Look forward to deeper integrations!
+- :sparkles: Chandler audio cues play much faster than before
+- :sparkles: Non-writable device data points can be "faked"
+- :coffin: p class="help" deprecated, used details class="help"
+- :sparkles: simple_light and simple_dark themes are official
+  
 ### 0.68.47
 - :bug: More robust responsive video
 - :sparkles: Screen rotation setting in web UI
@@ -222,110 +241,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 -  :sparkles: /user_static/FN will now serve vardir/static/FN
 -  :sparkles: Kaithem-kioskify script configures the whole OS as an embedded controller/signage device from a fresh Pi image
 
-
-### 0.68.42
-
-This release is all about making the custom HTML pages more maintainable.
-
-- :lipstick: Chandler always shows all scenes, no separate "This board" and "All active"
-- :sparkles: We now have a separate setup and handler code area for pages.  Inline code will continue to work as before.
-- :sparkles: Special variables \_\_jsvars\_\_ and \_\_datalists\_\_ to directly add stuff to pages. 
-- :bug: Fix devices in modules
-- :lipstick: Use accordion sections on device pages
-- :sparkles: Devices now have a configurable description field, to make them more self-documenting.
-- :coffin: Anything to do with managing the JACK server is gone. Pipewire needed for live mixing.
-- :bug: Fix newly added modules imported from the library not being immediately saved
-- :coffin: Remove chandler code view for fixtures.
-- :bug: Remove some more nuisance alerts
-
-### 0.68.41
-
-- :bug: Remove SG1 plugin, the last deployment is gone and there doesn't seem to be much interest in the protocol.
-- :sparkles: If the SQLite tag history DB gets corrupted, archive it and start a new one.
-
-
-
-### 0.68.40
-- :bug: Don't spam notifications from inactive alerts
-- :bug: Use nmcli for wifi status instead of outdated dbus
-- :bug: Fix settings and theming page not loading
-
-
-
-### 0.68.39 Fresh and Free! Closer to 1.0
-
-- :bug: Make it so tag subscribers never fire at all if the timestamp is zero.
-- :bug: Suppress unneccesary PIL.Image debug logs
-- :sparkles: Support for YoLink devices via the(unencrypted) cloud API
-- :lipstick: Devices page much simpler and cleaner
-- :lipstick: Devices page has one-click control of smart plugs, bulbs, and YoLink sirens.
-- :lipstick: More compact temperature meter widgets
-- :coffin: Remove the SculleryMQTT plugin as it was very complex and confusing.  Shared MQTT connections are no longer recommended.
-- :coffin: Nuisiance print statement removal
-- :coffin: Remove fallback to legacy registry stuff
-- :coffin: BREAKING: Completely remove the registry. You will need to update Chandler to the new included version.
-- :sparkles: UPnP saved in a file, not the registry
-- :coffin: BREAKING: You will need to re-set up UPnP if you were using it
-- :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately.
-- :bug: Fix zombie devices staying around after deletion
-- :coffin: Deprecate thin wrappers kaithem.time.year() kaithem.time.month() kaithem.time.dayofweek() kaithem.time.\[minute\|second\|hour\]() 
-- :coffin: Deprecate thin wrappers kaithem.time.isdst() kaithem.time.day() kaithem.time.accuracy()
-- :memo: Sound documentation
-- :memo: Announce that kaithem.mqtt will no longer use shared connection optimization at some point in the future
-- :sparkles: Ability to go back to the previous version of a page or an event. Only 1 level of history is saved, and only until the server  restarts
-- :coffin: BREAKING: Completely remove hardlinep2p/drayer
-- :bug: IPv6 localhost glitches
-
-
-### 0.68.38
-- :arrow_up: Update tinytag
-
-
-### 0.68.37
-- :coffin: Schema validation removed from registry as the registry is deprecated anyway
-- :coffin: Remove the validictory module, it doesn't work in new python
-- :coffin: Remove the DrayerDB plugin as per the Decustomization philosophy
-- :sparkles: Use the jsonschema module for config validation
-
-
-### 0.68.36
-- :sparkles: Builtin video downloader does not use the largely incompatible webm
-- :sparkles: Chandler supports gradient effects over multiple identical fixtures
-- :sparkles: Chandler scenes list for the goto action block has a dropdown.
-- :sparkles: Chandler sound file browser has a refresh button
-  
-### 0.68.35
-- :sparkles: Mixer channels have a mute button
-- :sparkles: Simple dark theme
-
-
-### 0.68.34
-- :bug: Fix alarms that reference other tagpoints
-- :bug: Fix use of ~ in config file directories
-- :bug: Chandler visual bugs
-- :bug: Fix chandler shuffle
-- :bug: Fix length randomize with sound-relative and wall clock lengths
-- :bug: Prevent unscheduled event windup
-- :sparkles: Chandler remote media web players
-- :sparkles: Pages that are just JS code, ending in .js, are now properly syntax highlighted
-- :sparkles: Chandler can respond to keyboards connected directly to the server, with serverkeyup.X events
-- :memo: Document the \_\_del\_\_ event cleanup functions
-- :sparkles: Chandler scenes menus now show any running cue logic timers for the scene
-- :sparkles: Chandler ABCD event buttons gone, replaced by configurable event buttons.
-- :sparkles: Chandler display tags: show tag value meters right in the scene overview.
-- :sparkles: Chandler cue lengths can accept @5PM style time specifiers, no need to use events and rules
-- :sparkles: Chandler no longer displays fractional seconds to reduce visual clutter
-- :sparkles: Chandler Commander view 
-- :sparkles: Get notified if a widget no longer exists that a page you are on is using.
-- :sparkles: Chandler default alpha now 1 by default, goto cue buttons activate scene if not already active.
-- :sparkles: Chandler utility scenes don't have buttons or a slider.  Use for embedding camera feeds in the console, and state machine logic.
-
-
-### 0.68.33
-- :bug: Compatibility with older sdmon versions that gave bad JSON
-- :bug: Fix illegal character errors that were blocking showing low disk space alerts
-- :sparkles: Notifications are now posted to the system notifications, if you have plyer
-- :sparkles: NVRChannel autodiscover and list webcams
 
 
 License Terms
