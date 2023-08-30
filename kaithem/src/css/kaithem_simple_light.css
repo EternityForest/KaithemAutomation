@@ -11,6 +11,7 @@
 body {
     color:black;
     border-color: gainsboro;
+    background-color: #EEEEEE;
 }
 
 section, div.sectionbox, button{
