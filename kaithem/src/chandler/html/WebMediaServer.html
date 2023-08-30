@@ -31,11 +31,7 @@ if 'albumArt' in kwargs:
     t = vignette.try_get_thumbnail(sound)
     if t:
       kaithem.web.serveFile(t)
-  
-
-
-  
-  print(sound)
+    
   soundMeta = TinyTag.get(sound,image=True)
   t = soundMeta.get_image()
   if not t:
