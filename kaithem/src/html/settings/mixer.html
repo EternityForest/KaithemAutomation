@@ -73,15 +73,11 @@ import os
     <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
     <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
     <button class="{bold: activePane=='status'}" v-on:click="activePane='status'">Status</button>
-    <button class="{bold: activePane=='settings'}" v-on:click="activePane='settings'">Settings</button>
 
     <button v-on:click="showAddEffect=true">Show Effects Menu</button>
     <p>Preset:</p><input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
         v-on:click="confirmSavePreset(loadedPreset)">Save</button>
 
-    </div>
-
-    <div v-if="activePane=='settings'">
     </div>
 
     <div v-if="activePane=='status'">

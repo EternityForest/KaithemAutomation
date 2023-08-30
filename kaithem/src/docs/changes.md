@@ -17,7 +17,8 @@ Change Log
 - :sparkles: Chandler audio cues play much faster than before
 - :sparkles: Non-writable device data points can be "faked"
 - :coffin: p class="help" deprecated, used details class="help"
-  
+- :sparkles: simple_light and simple_dark themes are official
+
 ### 0.68.47
 - :bug: More robust responsive video
 - :sparkles: Screen rotation setting in web UI

@@ -21,3 +21,17 @@ button{
     border-radius: 2em;
 }
 
+[class*=" icofont-"],
+[class^=icofont-] {
+    color: rgba(0, 0, 0, 0.8);
+}
+
+a {
+    color: #07c;
+    text-decoration: none;
+  }
+  
+  a:hover {
+    color: #059;
+    text-decoration: underline;
+  }

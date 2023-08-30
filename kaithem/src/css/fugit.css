@@ -19,6 +19,12 @@ a{
 table{
     color:#dddca7;
 }
+
+iframe{
+    background-color: #ffd477a9;
+    border-width: 3px;
+    border-color: #dddca7;
+}
 @font-face {
     font-family: 'ModernDOS';
     font-style: normal;

@@ -31,11 +31,14 @@ html {
 
 
 body {
-    color:rgb(202, 202, 201);
+    color:rgb(229 229 229);
     border-color: rgb(155, 153, 153);
     --box-bg: rgba(0, 0, 0, 0.6);
 }
 
+iframe{
+    background-color: rgb(229 229 229);
+}
 section, div.sectionbox, button, textarea, input, div.buttonbar, p.buttonbar{
 background-color: #2c302f;
 color: rgb(180 178 177);

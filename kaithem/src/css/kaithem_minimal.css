@@ -117,15 +117,30 @@ dd{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-regular');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
 
-
-
+@font-face {
+    font-family: 'AlegreyaSans';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/Alegreya/AlegreyaSans-Regular.ttf');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
 
 
 body {
     font-family: Lato;
+    line-height: 1.6;
     font-size: 18px;
     margin: 0px;
+    color: #444;
+    background-color: #EEEEEE;
     --box-bg: rgba(0,0,0,0);
 }
 
@@ -169,7 +184,7 @@ button,
 a.button,
 label,
 a {
-    font-family: Lato;
+    font-family: inherit;
 }
 
 
@@ -453,6 +468,11 @@ summary h2:first-child {
 /**Basic styling**/
 
 
+
+iframe{
+    border-style: solid;
+    border-width: 1px;
+}
 /*Tables*/
 
 table {
@@ -480,7 +500,6 @@ table tr:nth-child(even) td {
 div.sectionbox,
 section {
     border-style: solid;
-    background: white;
     border-width: 2px;
     padding-top: 0.4em;
     padding-bottom: 0.5%;

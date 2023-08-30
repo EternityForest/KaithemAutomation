@@ -30,6 +30,11 @@ body {
     --box-bg: rgba(228, 233, 227, 0.6);
 }
 
+iframe.embedpage{
+    border-radius: 2em;
+    border-style: solid;
+  }
+
 .error,
 .danger {
     text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
