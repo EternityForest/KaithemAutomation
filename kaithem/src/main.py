@@ -18,6 +18,8 @@
 
 #
 
+USE_TORNADO=True
+
 
 # Hack to keep pyyaml working till we find a better way
 try:
@@ -784,8 +786,6 @@ def webRoot():
         'server.thread_pool': config['https-thread-pool']
     }
 
-    def esp_proxy_wscfg(p):
-        return {'tools.websocket.on': True, 'tools.websocket.handler_cls': ws_proxy_class("ws://localhost:6052/"+p)}
 
     wscfg = {'tools.websocket.on': True,
              'tools.websocket.handler_cls': widgets.websocket}
@@ -881,11 +881,12 @@ def webRoot():
 
     # As far as I can tell, this second server inherits everything from the "implicit" server
     # except what we override.
-    server2 = cherrypy._cpserver.Server()
-    server2.socket_port = config['http-port']
-    server2._socket_host = bindto
-    server2.thread_pool = config['http-thread-pool']
-    server2.subscribe()
+    if not USE_TORNADO:
+        server2 = cherrypy._cpserver.Server()
+        server2.socket_port = config['http-port']
+        server2._socket_host = bindto
+        server2.thread_pool = config['http-thread-pool']
+        server2.subscribe()
 
     cherrypy.config.update(site_config)
     cherrypy.config.update(https_config)
@@ -900,7 +901,7 @@ def webRoot():
         del cherrypy.engine.signal_handler.handlers['SIGUSR1']
         cherrypy.engine.signal_handler.subscribe()
 
-    cherrypy.tree.mount(root, config=cnf)
+    wsgiapp = cherrypy.tree.mount(root, config=cnf)
 
     if time.time() < 1420070400:
         messagebus.postMessage('/system/notifications/errors',
@@ -922,7 +923,6 @@ def webRoot():
             messagebus.postMessage('/system/notifications',
                                    "You are using the included demo SSL keys. These are not secure, do not use outside private network or VPN")
 
-    cherrypy.engine.start()
     
     from . import chandler
     # Unlike other shm stuff that only gets used after startup, this
@@ -961,14 +961,51 @@ def webRoot():
     # Open a port to the outside world. Note that this can only be enabled through the webUI,
     # You are safe unless someone turns it on..
     workers.do(systasks.doUPnP)
+    return wsgiapp
 
 
 os.makedirs(os.path.join(directories.vardir,'static'),exist_ok=True)
-webRoot()
+wsgiapp = webRoot()
 
 workers.do(loadJackMixer)
 # Wait till everything is set up to start the self test
 
-cherrypy.engine.block()
+if not USE_TORNADO:
+    cherrypy.server.unsubscribe()
+    cherrypy.config.update({'environment': 'embedded'})
+    #cherrypy.engine.signals.subscribe()
+
+cherrypy.engine.start()
+
+if USE_TORNADO:
+    import tornado
+    import tornado.httpserver
+    import tornado.wsgi
+    import tornado.web
+    from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches
+
+    container = tornado.wsgi.WSGIContainer(wsgiapp)
+
+    from . import widgets
+
+    wsapp = tornado.web.Application([
+            (r"/widgets/ws", widgets.makeTornadoSocket()),
+        ])
+
+    router = RuleRouter([
+        Rule(PathMatches("/widgets/ws"), wsapp),
+        Rule(AnyMatches(), container),
+        ])
+
+
+    http_server = tornado.httpserver.HTTPServer(router)
+    http_server.listen(config['http-port'])
+    # Publish to the CherryPy engine as if
+    # we were using its mainloop
+    tornado.ioloop.PeriodicCallback(lambda: cherrypy.engine.publish('main'), 100).start()
+    tornado.ioloop.IOLoop.instance().start()
+
+if not USE_TORNADO:
+    cherrypy.engine.block()
 
 logger.info("Cherrypy engine stopped")

@@ -1,5 +1,3 @@
-
-
 # Copyright Daniel Dunn 2013. 2015,2017
 # This file is part of Kaithem Automation.
 
@@ -46,7 +44,7 @@ noSecurityMode = False
 mode = int(cfg.argcmd.nosecurity) if cfg.argcmd.nosecurity else None
 # limit nosecurity to localhost
 if mode == 1:
-    bindto = '127.0.0.1'
+    bindto = "127.0.0.1"
     noSecurityMode = 1
 
 # Unless it's mode 2
@@ -61,9 +59,19 @@ if mode == 3:
 navBarPlugins = weakref.WeakValueDictionary()
 
 
-#There are cases where this may not exactly be perfect, but the point is just an extra guard against user error.
+# There are cases where this may not exactly be perfect, but the point is just an extra guard against user error.
 def isHTTPAllowed(ip):
-   return (ip.startswith("::1") or ip.startswith("127.") or ip =='::ffff:127.0.0.1' or ip.startswith("::ffff:192.") or  ip.startswith("::ffff:10.") or ip.startswith("192.") or ip.startswith("10.") or ip.startswith("fc") or ip.startswith("fd"))
+    return (
+        ip.startswith("::1")
+        or ip.startswith("127.")
+        or ip == "::ffff:127.0.0.1"
+        or ip.startswith("::ffff:192.")
+        or ip.startswith("::ffff:10.")
+        or ip.startswith("192.")
+        or ip.startswith("10.")
+        or ip.startswith("fc")
+        or ip.startswith("fd")
+    )
 
 
 nativeHandlers = weakref.WeakValueDictionary()
@@ -81,7 +89,7 @@ def getSubdomain():
         x.append(i)
         # Only put one part of the ip addr, host,tld need to be exactly
         # 2 entries
-        if i.isnumeric() or i.startswith('localhost:') or '[' in i:
+        if i.isnumeric() or i.startswith("localhost:") or "[" in i:
             # Pad with fake TLD for numeric ip addr
             x.append(".faketld")
             break
@@ -102,12 +110,14 @@ def canOverrideSecurity():
 
     if noSecurityMode:
         if noSecurityMode == 1:
-            x=cherrypy.request.remote.ip
+            x = cherrypy.request.remote.ip
             if isHTTPAllowed(x):
                 return True
             else:
                 raise RuntimeError(
-                    "Nosecurity 1 enabled, but got request from ext IP:" + str(cherrypy.request.remote.ip))
+                    "Nosecurity 1 enabled, but got request from ext IP:"
+                    + str(cherrypy.request.remote.ip)
+                )
                 return False
 
         if noSecurityMode == 2:
@@ -128,50 +138,53 @@ def canOverrideSecurity():
 
 def require(permission, noautoreturn=False):
     """Get the user that is making the request bound to this thread,
-        and then raise an interrupt if he does not have the permission specified.
+    and then raise an interrupt if he does not have the permission specified.
 
-        Normally this will prompt the user to go to a login page, and if they log in it takes them right back where they were
-        trying to go. However if the place they were going has an effect, you might want them to confirm first, so set noauto to true
-        to take them to the main page on successful login, or set it to a url to take them there instead.
-        """
+    Normally this will prompt the user to go to a login page, and if they log in it takes them right back where they were
+    trying to go. However if the place they were going has an effect, you might want them to confirm first, so set noauto to true
+    to take them to the main page on successful login, or set it to a url to take them there instead.
+    """
 
     if permission == "__never__":
         raise RuntimeError(
-            "Nobody has the __never__ permission, ever, except in nosecurity mode.")
+            "Nobody has the __never__ permission, ever, except in nosecurity mode."
+        )
 
     if not isinstance(permission, str):
         p = permission
     else:
         p = [permission]
     for permission in p:
-        if permission =='__guest__':
+        if permission == "__guest__":
             continue
 
         user = getAcessingUser()
 
-        if permission in auth.crossSiteRestrictedPermissions or not auth.getUserSetting(user, 'allow-cors'):
+        if (
+            permission in auth.crossSiteRestrictedPermissions
+            or not auth.getUserSetting(user, "allow-cors")
+        ):
             noCrossSite()
 
         # If the special __guest__ user can do it, anybody can.
-        if '__guest__' in auth.Users:
-            if permission in auth.Users['__guest__'].permissions:
+        if "__guest__" in auth.Users:
+            if permission in auth.Users["__guest__"].permissions:
                 return
-            if "__all_permissions__" in auth.Users['__guest__'].permissions:
+            if "__all_permissions__" in auth.Users["__guest__"].permissions:
                 return
 
         # Anything guest can't do needs https
-        if not cherrypy.request.scheme == 'https':
+        if not cherrypy.request.scheme == "https":
             x = cherrypy.request.remote.ip
             # Allow localhost, and Yggdrasil mesh. This check is really just to be sure nobody accidentally uses HTTP,
             # But localhost and encrypted mesh are legitamate uses of HTTP.
             if not isHTTPAllowed(x):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
 
-
         if user == "__guest__":
             # The login page can auto return people to what they were doing before logging in
             # Don't autoreturn users that came here from a POST call.
-            if noautoreturn or cherrypy.request.method == 'POST':
+            if noautoreturn or cherrypy.request.method == "POST":
                 noautoreturn = True
             # Default to taking them to the main page.
             if noautoreturn:
@@ -180,8 +193,12 @@ def require(permission, noautoreturn=False):
                 url = cherrypy.url()
             # User has 5 minutes to log in.  Any more time than that and it takes him back to the main page.  This is so it can't auto redirect
             # To something you forgot about and no longer want.
-            raise cherrypy.HTTPRedirect("/login?go=" + base64.b64encode(
-                url.encode()).decode() + "&maxgotime-" + str(time.time() + 300))
+            raise cherrypy.HTTPRedirect(
+                "/login?go="
+                + base64.b64encode(url.encode()).decode()
+                + "&maxgotime-"
+                + str(time.time() + 300)
+            )
 
         if not auth.canUserDoThis(user, permission):
             raise cherrypy.HTTPRedirect("/errors/permissionerror?")
@@ -196,7 +213,6 @@ def canUserDoThis(permissions, user=None):
 
     if not isinstance(permissions, (list, tuple)):
         permissions = (permissions,)
-        
 
     for permission in permissions:
         if permission in auth.crossSiteRestrictedPermissions:
@@ -207,6 +223,7 @@ def canUserDoThis(permissions, user=None):
 
 
 if noSecurityMode:
+
     def require(*args, **kwargs):
         if canOverrideSecurity():
             return True
@@ -218,40 +235,57 @@ if noSecurityMode:
         raise auth.canUserDoThis(getAcessingUser(), permission)
 
 
-
 def noCrossSite():
-    if cherrypy.request.headers.get("Origin",''):
-        if not cherrypy.request.base == cherrypy.request.headers.get("Origin",''):
+    if cherrypy.request.headers.get("Origin", ""):
+        if not cherrypy.request.base == cherrypy.request.headers.get("Origin", ""):
             raise PermissionError("Cannot make this request from a different origin")
 
+
 def strictNoCrossSite():
-    if not cherrypy.request.base == cherrypy.request.headers.get("Origin",''):
-        raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
+    if not cherrypy.request.base == cherrypy.request.headers.get("Origin", ""):
+        raise PermissionError(
+            "Cannot make this request from a different origin, or from a requester that does not provide an origin"
+        )
 
 
-
-def getAcessingUser():
+def getAcessingUser(tornado_mode=None):
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
-        The result of this function can be trusted because it uses the authentication token.
+    The result of this function can be trusted because it uses the authentication token.
     """
     # Handle HTTP Basic Auth
-    if "Authorization" in cherrypy.request.headers:
-        x = cherrypy.request.headers['Authorization'].split("Basic ")
+
+    # Directly pass tornado request. Normally not needed, just for websocket stuff
+    if tornado_mode:
+        headers = tornado_mode.headers
+        scheme = tornado_mode.protocol
+        remote_ip = tornado_mode.remote_ip
+        cookie = tornado_mode.cookies
+        base = tornado_mode.host
+
+    else:
+        headers = cherrypy.request.headers
+        scheme = cherrypy.request.scheme
+        remote_ip = cherrypy.request.remote.ip
+        cookie = cherrypy.request.cookie
+        base = cherrypy.request.base
+
+    if "Authorization" in headers:
+        x = headers["Authorization"].split("Basic ")
         if len(x) > 1:
             # Get username and password from http header
             b = base64.b64decode(x[1])
             b = b.split(";")
 
-            if not cherrypy.request.scheme == 'https':
+            if not scheme == "https":
                 # Basic auth over http is not secure at all, so we raise an error if we catch it.
-                x = cherrypy.request.remote.ip
+                x = remote_ip
                 if not isHTTPAllowed(x):
                     raise cherrypy.HTTPRedirect("/errors/gosecure")
             # Get token using username and password
-            t = userLogin(b[0], b[1])
+            t = auth.userLogin(b[0], b[1])
             # Check the credentials of that token
             try:
-                return auth.whoHasToken(cherrypy.request.cookie['kaithem_auth'].value)
+                return auth.whoHasToken(cookie["kaithem_auth"].value)
             except KeyError:
                 return "__guest__"
             except:
@@ -262,18 +296,21 @@ def getAcessingUser():
         if canOverrideSecurity():
             return "admin"
     # Handle token based auth
-    if not 'kaithem_auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['kaithem_auth'].value):
+    if not "kaithem_auth" in cookie or (not cookie["kaithem_auth"].value):
         return "__guest__"
     try:
-        user =  auth.whoHasToken(cherrypy.request.cookie['kaithem_auth'].value)
-        if not auth.getUserSetting(user, 'allow-cors'):
-            if cherrypy.request.headers.get("Origin",''):
-                if not cherrypy.request.base == cherrypy.request.headers.get("Origin",''):
+        user = auth.whoHasToken(cookie["kaithem_auth"].value)
+        if not auth.getUserSetting(user, "allow-cors"):
+            if headers.get("Origin", ""):
+                x = headers.get("Origin", "").replace("http://",'').replace("https://",'').replace("ws://",'').replace("wss://",'')
+                x2 = headers.get("Origin", "")
+                # Cherrypy and tornado compatibility
+                if base not in(x, x2):
                     return "__guest__"
         return user
 
     except KeyError:
-            return "__guest__"
+        return "__guest__"
     except:
         logging.exception("Error in user lookup")
         return "__guest__"
@@ -288,13 +325,14 @@ def serveFile(path, contenttype="", name=None):
     if name == None:
         name = path
     if not contenttype:
-        c= mimetypes.guess_type(path, strict=True)
+        c = mimetypes.guess_type(path, strict=True)
         if c[0]:
             contenttype = c[0]
-            
+
     # Give it some text for when someone decides to call it from the wrong place
     e = ServeFileInsteadOfRenderingPageException(
-        "If you see this exception, it means someone tried to serve a file from somewhere that was not a page.")
+        "If you see this exception, it means someone tried to serve a file from somewhere that was not a page."
+    )
     e.f_filepath = path
     e.f_MIME = contenttype
     e.f_name = name

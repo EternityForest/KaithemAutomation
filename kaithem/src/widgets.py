@@ -12,7 +12,10 @@
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-from typing import Callable
+from typing import Any, Callable, Dict, Union
+import tornado
+from tornado import httputil
+from tornado.concurrent import Future
 from typeguard import typechecked
 from .unitsofmeasure import convert, unitTypes
 import ws4py.messaging
@@ -30,7 +33,7 @@ import logging
 import socket
 import copy
 import collections
-from . import auth, pages, unitsofmeasure, util, messagebus
+from . import auth, pages, unitsofmeasure, util, messagebus, workers
 from .config import config
 
 logger = logging.getLogger("system.widgets")
@@ -41,10 +44,47 @@ widgets = weakref.WeakValueDictionary()
 n = 0
 
 
+wsActionSerializer = threading.Lock()
+
+wsActionQueue = []
+
+
+# We must serialize  actions to avoid out of order,
+# but for performance we really need to do them in the background
+def dowsAction(g):
+    if len(wsActionQueue)>10:
+        time.sleep(1)
+
+    wsActionQueue.append(g)
+    
+    # Somebody else got it
+    if wsActionSerializer.locked():
+        return
+    
+    def f():
+        # As long as we have the lock ir means we are going to check at least one more time
+        # to see if anyone else put something in the queue before we quit
+        #Therefore if we can't get the lock, we can return, whoever has it will do the action
+        #for us
+        while wsActionQueue:
+            if wsActionSerializer.acquire(blocking=False):
+                try:
+                    while wsActionQueue:
+                        x = wsActionQueue.pop(False)
+                        x()
+                finally:
+                    wsActionSerializer.release()
+    
+    workers.do(f)
+
+
+
+
 def eventErrorHandler(f):
     # If we can, try to send the exception back whence it came
     try:
         from . import newevt
+
         if f.__module__ in newevt.eventsByModuleName:
             newevt.eventsByModuleName[f.__module__]._handle_exception()
     except:
@@ -69,10 +109,10 @@ server_session_ID = str(time.time()) + str(os.urandom(8))
 def mkid():
     global n
     n = (n + 1) % 10000
-    return('id' + str(n))
+    return "id" + str(n)
 
 
-class ClientInfo():
+class ClientInfo:
     def __init__(self, user, cookie=None):
         self.user = user
         self.cookie = cookie
@@ -80,9 +120,10 @@ class ClientInfo():
 
 lastLoggedUserError = 0
 
-lastPrintedUserError =0 
+lastPrintedUserError = 0
 
-class WebInterface():
+
+class WebInterface:
     @cherrypy.expose
     def ws(self):
         pages.strictNoCrossSite()
@@ -91,20 +132,21 @@ class WebInterface():
         x = cherrypy.request.remote.ip
         try:
             handler.user_agent = cherrypy.request.headers["User-Agent"]
-        except:
+        except Exception:
             pass
 
-        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
+        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
             handler.user = pages.getAcessingUser()
             handler.cookie = cherrypy.request.cookie
         else:
             handler.cookie = None
             handler.user = "__guest__"
+
         handler.clientinfo = ClientInfo(handler.user, handler.cookie)
         clients_info[handler.uuid] = handler.clientinfo
 
     @cherrypy.expose
-    def wsraw(self,*a,**k):
+    def wsraw(self, *a, **k):
         pages.strictNoCrossSite()
         # you can access the class instance through
         handler = cherrypy.request.ws_handler
@@ -114,7 +156,7 @@ class WebInterface():
         except:
             pass
 
-        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
+        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
             handler.user = pages.getAcessingUser()
             handler.cookie = cherrypy.request.cookie
         else:
@@ -123,14 +165,13 @@ class WebInterface():
         handler.clientinfo = ClientInfo(handler.user, handler.cookie)
         clients_info[handler.uuid] = handler.clientinfo
 
-
     @cherrypy.expose
     def session_id(self):
         return server_session_ID
 
 
 def subsc_closure(self, i, widget):
-    def f(msg,raw):
+    def f(msg, raw):
         try:
             self.send(msg)
         except socket.error:
@@ -141,17 +182,20 @@ def subsc_closure(self, i, widget):
             if not widget.errored_send:
                 widget.errored_send = True
                 messagebus.postMessage(
-                    "/system/notifications/errors", "Problem in widget " + repr(widget) + ", see logs")
+                    "/system/notifications/errors",
+                    "Problem in widget " + repr(widget) + ", see logs",
+                )
                 logger.exception(
-                    "Error sending data from widget " + repr(widget) + " via websocket")
+                    "Error sending data from widget " + repr(widget) + " via websocket"
+                )
             else:
                 logging.exception("Error sending data from websocket")
+
     return f
 
 
-
 def raw_subsc_closure(self, i, widget):
-    def f(msg,raw):
+    def f(msg, raw):
         try:
             if isinstance(raw, bytes):
                 self.send(raw)
@@ -159,7 +203,7 @@ def raw_subsc_closure(self, i, widget):
                 self.send(json.dumps(raw))
 
         except socket.error as e:
-            if e.errno==32:
+            if e.errno == 32:
                 self.closeUnderLock()
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
@@ -168,11 +212,15 @@ def raw_subsc_closure(self, i, widget):
             if not widget.errored_send:
                 widget.errored_send = True
                 messagebus.postMessage(
-                    "/system/notifications/errors", "Problem in widget " + repr(widget) + ", see logs")
+                    "/system/notifications/errors",
+                    "Problem in widget " + repr(widget) + ", see logs",
+                )
                 logger.exception(
-                    "Error sending data from widget " + repr(widget) + " via websocket")
+                    "Error sending data from widget " + repr(widget) + " via websocket"
+                )
             else:
                 logging.exception("Error sending data from websocket")
+
     return f
 
 
@@ -191,13 +239,14 @@ def getConnectionRefForID(id, deleteCallback=None):
 usingmp = False
 try:
     import msgpack
+
     usingmp = True
 except:
     logging.exception("No msgpack support, using JSON fallback")
 
 
 # Message, start time, duration
-lastGlobalAlertMessage = ['', 0, 0]
+lastGlobalAlertMessage = ["", 0, 0]
 
 
 def sendToAll(d):
@@ -230,7 +279,7 @@ def sendTo(topic, value, target):
         d = msgpack.packb([[topic, value]])
     else:
         d = json.dumps([[topic, value]])
-    if (len(d) > 32 * 1024 * 1024):
+    if len(d) > 32 * 1024 * 1024:
         raise ValueError("Data is too large, refusing to send")
     ws_connections[target].send(d)
 
@@ -238,23 +287,24 @@ def sendTo(topic, value, target):
 userBatteryAlerts = {}
 
 
-class websocket(WebSocket):
-    def __init__(self, *args, **kwargs):
+class websocket_impl:
+    def __init__(self, parent, user, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
-        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace(
-            "/", '').replace("-", '').replace('+', '')[:-2]
+        self.uuid = (
+            "id"
+            + base64.b64encode(os.urandom(16))
+            .decode()
+            .replace("/", "")
+            .replace("-", "")
+            .replace("+", "")[:-2]
+        )
+        self.parent = parent
+        self.user = user
         self.widget_wslock = threading.Lock()
         self.subCount = 0
         ws_connections[self.uuid] = self
-        messagebus.subscribe(
-            "/system/permissions/rmfromuser", self.onPermissionRemoved)
-        self.user = '__guest__'
-
-        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(cherrypy.request.remote.ip):
-            self.user = pages.getAcessingUser()
-        else:
-            self.user = "__guest__"
+        messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
 
         self.pageURL = "UNKNOWN"
 
@@ -262,9 +312,12 @@ class websocket(WebSocket):
 
         if auth.getUserSetting(self.user, "telemetry-alerts"):
             from . import alerts
+
             if not self.user in userBatteryAlerts:
-                userBatteryAlerts[self.user]= alerts.Alert(
-                    "Low battery on client browser device for: " + self.user, priority="warning")
+                userBatteryAlerts[self.user] = alerts.Alert(
+                    "Low battery on client browser device for: " + self.user,
+                    priority="warning",
+                )
             self.batteryAlertRef = userBatteryAlerts[self.user]
         else:
             try:
@@ -272,18 +325,16 @@ class websocket(WebSocket):
             except KeyError:
                 pass
 
-        WebSocket.__init__(self, *args, **kwargs)
-
     def onPermissionRemoved(self, t, v):
         "Close the socket if the user no longer has the permission"
         if v[0] == self.user and v[1] in self.usedPermissions:
             self.closeUnderLock()
 
-    def send(self, *a, **k):
+    def send(self, b, *a, **k):
         with self.widget_wslock:
-            WebSocket.send(self, *a, **k, binary=isinstance(a[0], bytes))
+            self.parent.send_data(b, binary=isinstance(b, bytes))
 
-    def closed(self, code, reason):
+    def closed(self, *a):
         with subscriptionLock:
             for i in self.subscriptions:
                 try:
@@ -292,7 +343,7 @@ class websocket(WebSocket):
 
                     if not widgets[i].subscriptions:
                         widgets[i].lastSubscribedTo = time.monotonic()
-                except:
+                except Exception:
                     pass
 
     def closeUnderLock(self):
@@ -305,52 +356,61 @@ class websocket(WebSocket):
         global lastPrintedUserError
         try:
             if isinstance(message, ws4py.messaging.BinaryMessage):
-                o = msgpack.unpackb(message.data, raw=False)
+                d = message.data
             else:
-                o = json.loads(message.data.decode('utf8'))
+                d = message
+
+            if isinstance(d, bytes):
+                o = msgpack.unpackb(d, raw=False)
+            else:
+                o = json.loads(d)
 
             resp = []
             user = self.user
 
- 
-            upd = o['upd']
+            upd = o["upd"]
             for i in upd:
                 if i[0] in widgets:
                     widgets[i[0]]._onUpdate(user, i[1], self.uuid)
-                elif i[0] == '__url__':
+                elif i[0] == "__url__":
                     self.pageURL = i[1]
 
-                elif i[0] == '__geo__':
+                elif i[0] == "__geo__":
                     self.geoLocation = i[1]
 
-                elif i[0] == '__BATTERY__':
+                elif i[0] == "__BATTERY__":
                     self.batteryStatus = i[1]
                     if self.user in userBatteryAlerts:
                         try:
-                            if i[1]['level'] < 0.2 and not i[1]['charging']:
+                            if i[1]["level"] < 0.2 and not i[1]["charging"]:
                                 userBatteryAlerts[self.user].trip()
-                            elif i[1]['level'] > 0.4 and i[1]['charging']:
+                            elif i[1]["level"] > 0.4 and i[1]["charging"]:
                                 userBatteryAlerts[self.user].release()
                         except:
                             logging.exception("Error in battery status telemetry")
-                
-                elif i[0]=="__USERIDLE__":
-                    self.userState =i[1]['userState']
-                    self.screenState =i[1]['screenState']
-                elif i[0]=="__ERROR__":
+
+                elif i[0] == "__USERIDLE__":
+                    self.userState = i[1]["userState"]
+                    self.screenState = i[1]["screenState"]
+                elif i[0] == "__ERROR__":
                     # Only log one user error per minute, globally.  It's not meant to catch *everything*,
                     # just to give you a decent change
                     if lastLoggedUserError < time.time() - 10:
                         logger.error(
-                            "Client side err(These are globally ratelimited):\r\n" + i[1])
+                            "Client side err(These are globally ratelimited):\r\n"
+                            + i[1]
+                        )
                         lastLoggedUserError = time.time()
 
                     elif lastPrintedUserError < time.time() - 1:
-                        print("Client side err(These are globally ratelimited):\r\n" +i[1])
+                        print(
+                            "Client side err(These are globally ratelimited):\r\n"
+                            + i[1]
+                        )
                         lastPrintedUserError = time.time()
 
-            if 'subsc' in o:
-                for i in o['subsc']:
+            if "subsc" in o:
+                for i in o["subsc"]:
                     if i in self.subscriptions:
                         continue
                     if i == "__WIDGETERROR__":
@@ -358,31 +418,61 @@ class websocket(WebSocket):
                     elif i == "__SHOWMESSAGE__":
                         continue
                     elif i == "__SHOWSNACKBAR__":
-                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1] > (time.monotonic() - lastGlobalAlertMessage[2]):
-                            self.send(json.dumps([['__SHOWSNACKBAR__', [
-                                      lastGlobalAlertMessage[0], lastGlobalAlertMessage[2] - (time.monotonic() - lastGlobalAlertMessage[1])]]]))
+                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1] > (
+                            time.monotonic() - lastGlobalAlertMessage[2]
+                        ):
+                            self.send(
+                                json.dumps(
+                                    [
+                                        [
+                                            "__SHOWSNACKBAR__",
+                                            [
+                                                lastGlobalAlertMessage[0],
+                                                lastGlobalAlertMessage[2]
+                                                - (
+                                                    time.monotonic()
+                                                    - lastGlobalAlertMessage[1]
+                                                ),
+                                            ],
+                                        ]
+                                    ]
+                                )
+                            )
 
                     # TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
                     if self.subCount > 1024:
                         raise RuntimeError(
-                            "Too many subscriptions for this connnection")
+                            "Too many subscriptions for this connnection"
+                        )
 
                     with subscriptionLock:
                         if i in widgets:
                             for p in widgets[i]._read_perms:
                                 if not pages.canUserDoThis(p, user):
-
                                     # We have to be very careful about this, because
-                                    self.send(json.dumps(
-                                        [['__SHOWMESSAGE__', "You are missing permission: " + str(p) + ", data may be incorrect"]]))
+                                    self.send(
+                                        json.dumps(
+                                            [
+                                                [
+                                                    "__SHOWMESSAGE__",
+                                                    "You are missing permission: "
+                                                    + str(p)
+                                                    + ", data may be incorrect",
+                                                ]
+                                            ]
+                                        )
+                                    )
                                     raise RuntimeError(
-                                        user + " missing permission: " + str(p))
+                                        user + " missing permission: " + str(p)
+                                    )
                                 self.usedPermissions[p] += 1
 
                             widgets[i].subscriptions[self.uuid] = subsc_closure(
-                                self, i, widgets[i])
-                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy(
+                                self, i, widgets[i]
                             )
+                            widgets[i].subscriptions_atomic = widgets[
+                                i
+                            ].subscriptions.copy()
                             # This comes after in case it  sends data
                             widgets[i].onNewSubscriber(user, {})
                             widgets[i].lastSubscribedTo = time.monotonic()
@@ -394,8 +484,8 @@ class websocket(WebSocket):
                                     widgets[i].send(x)
                             self.subCount += 1
 
-            if 'unsub' in o:
-                for i in o['unsub']:
+            if "unsub" in o:
+                for i in o["unsub"]:
                     if not i in self.subscriptions:
                         continue
 
@@ -409,61 +499,135 @@ class websocket(WebSocket):
                                     self.usedPermissions[p] -= 1
                                     if self.usedPermissions[p] == 0:
                                         del self.usedPermissions[p]
-                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy(
-                            )
+                            widgets[i].subscriptions_atomic = widgets[
+                                i
+                            ].subscriptions.copy()
 
         except Exception as e:
-            logging.exception(
-                'Error in widget, responding to ' + str(message.data))
+            logging.exception("Error in widget, responding to " + str(d))
             messagebus.postMessage(
-                "system/errors/widgets/websocket", traceback.format_exc(6))
-            self.send(json.dumps({'__WIDGETERROR__': repr(e)}))
+                "system/errors/widgets/websocket", traceback.format_exc(6)
+            )
+            self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
+
+
+class websocket(WebSocket):
+    def __init__(self, *args, **kwargs):
+
+        self.user = "__guest__"
+        x = cherrypy.request.remote.ip
+
+        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
+            user = pages.getAcessingUser()
+        else:
+            user = "__guest__"
+
+        self.impl = websocket_impl(self, user)
+        WebSocket.__init__(self, *args, **kwargs)
+
+    def send_data(self, d, binary=False):
+        WebSocket.send(self, d, binary=binary)
+
+    def closed(self, *a):
+        self.impl.closed()
+
+    def recieved_message(self, m,*a):
+        self.impl.received_message(m)
 
 
 
+def makeTornadoSocket():
+    import tornado.websocket
 
+    class WS(tornado.websocket.WebSocketHandler):
+        def open(self):
 
+            x = self.request.remote_ip
 
+            try:
+                user_agent = self.request.headers["User-Agent"]
+            except Exception:
+                user_agent = ''
+
+            if self.request.protocol == "https" or pages.isHTTPAllowed(x):
+                user = pages.getAcessingUser(self.request)
+                cookie = self.request.cookies
+            else:
+                cookie = None
+                user = "__guest__"
+
+            self.io_loop = tornado.ioloop.IOLoop.current()
+            impl = websocket_impl(self, user)
+            impl.cookie = cookie
+            impl.user_agent = user_agent
+
+            impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+            clients_info[impl.uuid] = impl.clientinfo
+            self.impl = impl
+            
+
+        def on_message(self, message):
+            def doFunction():
+                self.impl.received_message(message)
+            dowsAction(doFunction)
+
+        def send_data(self, message, binary=False):
+            def f():
+                if self.close_code is None:
+                    self.write_message(message, binary=binary)
+            self.io_loop.add_callback(f)
+
+        def on_close(self):
+            self.impl.closed()
+
+    return WS
 
 
 import urllib
+
+
 class rawwebsocket(WebSocket):
     def __init__(self, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
-        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace(
-            "/", '').replace("-", '').replace('+', '')[:-2]
+        self.uuid = (
+            "id"
+            + base64.b64encode(os.urandom(16))
+            .decode()
+            .replace("/", "")
+            .replace("-", "")
+            .replace("+", "")[:-2]
+        )
         self.widget_wslock = threading.Lock()
         self.subCount = 0
         ws_connections[self.uuid] = self
-        messagebus.subscribe(
-            "/system/permissions/rmfromuser", self.onPermissionRemoved)
-        self.user = '__guest__'
+        messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
+        self.user = "__guest__"
         x = cherrypy.request.remote.ip
 
-        if cherrypy.request.scheme == 'https' or pages.isHTTPAllowed(x):
+        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
             self.user = pages.getAcessingUser()
         else:
             self.user = "__guest__"
         self.usedPermissions = collections.defaultdict(lambda: 0)
 
-     
-        params = urllib.parse.parse_qs(args[3]['QUERY_STRING'])
-        widgetName = params['widgetid'][0]
+        params = urllib.parse.parse_qs(args[3]["QUERY_STRING"])
+        widgetName = params["widgetid"][0]
         WebSocket.__init__(self, *args, **kwargs)
 
         with subscriptionLock:
             if widgetName in widgets:
                 for p in widgets[widgetName]._read_perms:
                     if not pages.canUserDoThis(p, self.user):
-                        raise RuntimeError(
-                            self.user + " missing permission: " + str(p))
+                        raise RuntimeError(self.user + " missing permission: " + str(p))
                     self.usedPermissions[p] += 1
 
                 widgets[widgetName].subscriptions[self.uuid] = raw_subsc_closure(
-                    self, widgetName, widgets[widgetName])
-                widgets[widgetName].subscriptions_atomic = widgets[widgetName].subscriptions.copy(
+                    self, widgetName, widgets[widgetName]
                 )
+                widgets[widgetName].subscriptions_atomic = widgets[
+                    widgetName
+                ].subscriptions.copy()
                 # This comes after in case it  sends data
                 widgets[widgetName].onNewSubscriber(self.user, {})
                 widgets[widgetName].lastSubscribedTo = time.monotonic()
@@ -471,19 +635,17 @@ class rawwebsocket(WebSocket):
                 self.subscriptions.append(widgetName)
                 self.subCount += 1
 
-
-
-
     def onPermissionRemoved(self, t, v):
         "Close the socket if the user no longer has the permission"
         if v[0] == self.user and v[1] in self.usedPermissions:
             self.closeUnderLock()
 
-
     def closeUnderLock(self):
         def f():
             with self.widget_wslock:
                 self.close()
+
+        workers.do(f)
 
     def send(self, *a, **k):
         with self.widget_wslock:
@@ -507,28 +669,25 @@ class rawwebsocket(WebSocket):
             if isinstance(message, ws4py.messaging.BinaryMessage):
                 o = msgpack.unpackb(message.data, raw=False)
             else:
-                o = json.loads(message.data.decode('utf8'))
+                o = json.loads(message.data.decode("utf8"))
 
         except Exception as e:
-            logging.exception(
-                'Error in widget, responding to ' + str(message.data))
+            logging.exception("Error in widget, responding to " + str(message.data))
             messagebus.postMessage(
-                "system/errors/widgets/websocket", traceback.format_exc(6))
-            self.send(json.dumps({'__WIDGETERROR__': repr(e)}))
-
-
-
-
-
-
-
-
-
+                "system/errors/widgets/websocket", traceback.format_exc(6)
+            )
+            self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
 def randID():
     "Generate a base64 id"
-    return base64.b64encode(os.urandom(8))[:-1].decode().replace("+", '').replace("/", '').replace("-", '')
+    return (
+        base64.b64encode(os.urandom(8))[:-1]
+        .decode()
+        .replace("+", "")
+        .replace("/", "")
+        .replace("-", "")
+    )
 
 
 idlock = threading.RLock()
@@ -537,7 +696,7 @@ idlock = threading.RLock()
 widgets_by_subsc_carryover = weakref.WeakValueDictionary()
 
 
-class Widget():
+class Widget:
     def __init__(self, *args, subsc_carryover=None, **kwargs):
         self.value = None
         self._read_perms = []
@@ -548,7 +707,7 @@ class Widget():
         self.subscriptions = {}
         self.subscriptions_atomic = {}
         self.echo = True
-        self.noOnConnectData=False
+        self.noOnConnectData = False
 
         # Used for GC, we have a fake subscriber right away so we can do a grace
         # Period before trashing it.
@@ -567,7 +726,7 @@ class Widget():
         with idlock:
             # Give the widget an ID for the client to refer to it by
             # Note that it's no longer always a  uuid!!
-            if not 'id' in kwargs:
+            if not "id" in kwargs:
                 for i in range(0, 250000):
                     self.uuid = randID()
                     if not self.uuid in widgets:
@@ -575,7 +734,7 @@ class Widget():
                     if i > 240000:
                         raise RuntimeError("No more IDs?")
             else:
-                self.uuid = kwargs['id']
+                self.uuid = kwargs["id"]
 
             # oldWidget = widgets_by_subsc_carryover.get(self.uuid, None)
 
@@ -630,8 +789,11 @@ class Widget():
         except Exception as e:
             logger.exception("Error in widget request to " + repr(self))
             if not (self.errored_getter == id(self._callback)):
-                messagebus.postMessage("/system/notifications/errors", "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
-                                       % (self._callback.__name__, self._callback.__module__))
+                messagebus.postMessage(
+                    "/system/notifications/errors",
+                    "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                    % (self._callback.__name__, self._callback.__module__),
+                )
                 self.errored_getter = id(self._callback)
 
     # This function is meant to be overridden or used as is
@@ -665,8 +827,11 @@ class Widget():
             eventErrorHandler(self._callback)
             logger.exception("Error in widget callback for " + repr(self))
             if not (self.errored_function == id(self._callback)):
-                messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
-                                       % (self._callback.__name__, self._callback.__module__))
+                messagebus.postMessage(
+                    "/system/notifications/errors",
+                    "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                    % (self._callback.__name__, self._callback.__module__),
+                )
                 self.errored_function = id(self._callback)
             raise e
 
@@ -676,8 +841,11 @@ class Widget():
             logger.exception("Error in widget callback for " + repr(self))
             eventErrorHandler(self._callback2)
             if not (self.errored_function == id(self._callback)):
-                messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
-                                       % (self._callback.__name__, self._callback.__module__))
+                messagebus.postMessage(
+                    "/system/notifications/errors",
+                    "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                    % (self._callback.__name__, self._callback.__module__),
+                )
                 self.errored_function = id(self._callback)
             raise e
 
@@ -724,7 +892,7 @@ class Widget():
             d = json.dumps([[self.uuid, value]])
 
         # Very basic saniy check here
-        if (len(d) > 32 * 1024 * 1024):
+        if len(d) > 32 * 1024 * 1024:
             raise ValueError("Data is too large, refusing to send")
 
         # Yes, I really had a KeyError here. Somehow the dict was replaced with the new version in the middle of iteration
@@ -732,10 +900,9 @@ class Widget():
         x = self.subscriptions_atomic
         for i in x:
             try:
-                x[i](d,value)
+                x[i](d, value)
             except Exception:
-                print("WS Send Error ",traceback.format_exc())
-
+                print("WS Send Error ", traceback.format_exc())
 
     def __del__(self):
         try:
@@ -746,12 +913,11 @@ class Widget():
             x = self.subscriptions_atomic
             for i in x:
                 try:
-                    x[i](d,None)
+                    x[i](d, None)
                 except Exception:
-                    print("WS Send Error ",traceback.format_exc())
+                    print("WS Send Error ", traceback.format_exc())
         except Exception:
             print(traceback.format_exc())
-
 
     def sendTo(self, value, target):
         "Send a value to one subscriber by the connection ID"
@@ -759,9 +925,10 @@ class Widget():
             d = msgpack.packb([[self.uuid, value]])
         else:
             d = json.dumps([[self.uuid, value]])
-        if (len(d) > 32 * 1024 * 1024):
+        if len(d) > 32 * 1024 * 1024:
             raise ValueError("Data is too large, refusing to send")
-        self.subscriptions_atomic[target](d,value)
+        if target in self.subscriptions_atomic:
+            self.subscriptions_atomic[target](d, value)
 
     # Lets you add permissions that are required to read or write the widget.
     def require(self, permission):
@@ -774,6 +941,7 @@ class Widget():
         self._read_perms = copy.copy(read)
         self._write_perms = copy.copy(write)
 
+
 # This widget is just a time display, it doesn't really talk to the server, but it's useful to keep the same interface.
 
 
@@ -781,15 +949,15 @@ class TimeWidget(Widget):
     def onRequest(self, user, uuid):
         return str(unitsofmeasure.strftime())
 
-    def render(self, type='widget'):
+    def render(self, type="widget"):
         """
         Args:
             type(string): if "widget",  returns it with normal widget styling. If "inline", it jsut looks like a span.
         Returns:
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
-        if type == 'widget':
-            return("""<div id="%s" class="widgetcontainer">
+        if type == "widget":
+            return """<div id="%s" class="widgetcontainer">
             <script type="text/javascript" src="/static/js/strftime-min.js">
             </script>
             <script type="text/javascript">
@@ -801,10 +969,16 @@ class TimeWidget(Widget):
             }
             setInterval(f,70);
             </script>
-            </div>""" % (self.uuid, self.uuid, auth.getUserSetting(pages.getAcessingUser(), 'strftime').replace('%l', '%I')))
+            </div>""" % (
+                self.uuid,
+                self.uuid,
+                auth.getUserSetting(pages.getAcessingUser(), "strftime").replace(
+                    "%l", "%I"
+                ),
+            )
 
-        elif type == 'inline':
-            return("""<span id="%s">
+        elif type == "inline":
+            return """<span id="%s">
             <script type="text/javascript" src="/static/js/strftime-min.js">
             </script>
             <script type="text/javascript">
@@ -816,7 +990,13 @@ class TimeWidget(Widget):
             }
             setInterval(f,70);
             </script>
-            </span>""" % (self.uuid, self.uuid, auth.getUserSetting(pages.getAcessingUser(), 'strftime').replace('%l', '%I')))
+            </span>""" % (
+                self.uuid,
+                self.uuid,
+                auth.getUserSetting(pages.getAcessingUser(), "strftime").replace(
+                    "%l", "%I"
+                ),
+            )
         else:
             raise ValueError("Invalid type")
 
@@ -825,9 +1005,9 @@ time_widget = TimeWidget(Widget)
 
 
 class DynamicSpan(Widget):
-    attrs = ''
+    attrs = ""
 
-    def __init__(self, *args, extraInfo= None, **kwargs):
+    def __init__(self, *args, extraInfo=None, **kwargs):
         Widget.__init__(self, *args, **kwargs)
         self.extraInfo = extraInfo
 
@@ -839,15 +1019,15 @@ class DynamicSpan(Widget):
         if self.extraInfo:
             return self.extraInfo()
         else:
-            return ''
-        
+            return ""
+
     def render(self):
         """
         Returns:
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
 
-        return("""<span id="%s" %s>
+        return """<span id="%s" %s>
         <script type="text/javascript">
         var upd = function(val)
         {
@@ -855,27 +1035,35 @@ class DynamicSpan(Widget):
         }
         kaithemapi.subscribe('%s',upd);
         </script>%s
-        </span>""" % (self.uuid, self.attrs, self.uuid, self.uuid, self.value))
+        </span>""" % (
+            self.uuid,
+            self.attrs,
+            self.uuid,
+            self.uuid,
+            self.value,
+        )
 
-    def render_as_span(self, label=''):
-        return label+self.render()
-    
+    def render_as_span(self, label=""):
+        return label + self.render()
+
+
 class DataSource(Widget):
-    attrs = ''
+    attrs = ""
 
     def render(self):
         raise RuntimeError(
-            "This is not a real widget, you must manually subscribe to this widget's ID and build your own handling for it.")
+            "This is not a real widget, you must manually subscribe to this widget's ID and build your own handling for it."
+        )
 
 
 class TextDisplay(Widget):
-    def render(self, height='4em', width='24em'):
+    def render(self, height="4em", width="24em"):
         """
         Returns:
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
         # We only want to update the div when it has changed, otherwise some browsers might not let you click the links
-        return("""<div style="height:%s; width:%s; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="%s">
+        return """<div style="height:%s; width:%s; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="%s">
         <script type="text/javascript">
         KWidget_%s_prev = "PlaceHolder1234";
         var upd = function(val)
@@ -892,42 +1080,50 @@ class TextDisplay(Widget):
         }
         kaithemapi.subscribe('%s',upd);
         </script>%s
-        </div>""" % (height, width, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.value))
+        </div>""" % (
+            height,
+            width,
+            self.uuid,
+            self.uuid,
+            self.uuid,
+            self.uuid,
+            self.uuid,
+            self.uuid,
+            self.value,
+        )
 
 
 # Gram is the base unit even though Si has kg as the base
 # Because it makes it *SO* much easier
-siUnits = {
-    "m", "Pa", "g", "V", "A"
-}
+siUnits = {"m", "Pa", "g", "V", "A"}
 
 
 class Meter(Widget):
-    def __init__(self, *args, extraInfo= None, **kwargs):
+    def __init__(self, *args, extraInfo=None, **kwargs):
         self.k = kwargs
-        if not 'high' in self.k:
-            self.k['high'] = 10000
-        if not 'high_warn' in self.k:
-            self.k['high_warn'] = self.k['high']
-        if not 'low' in self.k:
-            self.k['low'] = -10000
-        if not 'low_warn' in self.k:
-            self.k['low_warn'] = self.k['low']
-        if not 'min' in self.k:
-            self.k['min'] = 0
-        if not 'max' in self.k:
-            self.k['max'] = 100
+        if not "high" in self.k:
+            self.k["high"] = 10000
+        if not "high_warn" in self.k:
+            self.k["high_warn"] = self.k["high"]
+        if not "low" in self.k:
+            self.k["low"] = -10000
+        if not "low_warn" in self.k:
+            self.k["low_warn"] = self.k["low"]
+        if not "min" in self.k:
+            self.k["min"] = 0
+        if not "max" in self.k:
+            self.k["max"] = 100
 
         self.extraInfo = extraInfo
 
         self.displayUnits = None
-        self.defaultLabel = ''
-        if not 'unit' in kwargs:
+        self.defaultLabel = ""
+        if not "unit" in kwargs:
             self.unit = None
         else:
             try:
                 # Throw an error if you give it a bad unit
-                self.unit = kwargs['unit']
+                self.unit = kwargs["unit"]
                 # Do a KeyError if we don't support the unit
                 unitTypes[self.unit] + "_format"
             except:
@@ -935,40 +1131,46 @@ class Meter(Widget):
                 logging.exception("Bad unit")
 
         Widget.__init__(self, *args, **kwargs)
-        self.value = [0, 'normal', self.formatForUser(0)]
+        self.value = [0, "normal", self.formatForUser(0)]
 
     def getExtraInfo(self):
         if self.extraInfo:
             return self.extraInfo()
         else:
-            return ''
+            return ""
 
     def write(self, value, push=True):
         # Decide a class so it can show red or yellow with high or low values.
         self.c = "normal"
 
-        if 'high_warn' in self.k:
-            if value >= self.k['high_warn']:
-                self.c = 'warning'
+        if "high_warn" in self.k:
+            if value >= self.k["high_warn"]:
+                self.c = "warning"
 
-        if 'low_warn' in self.k:
-            if value <= self.k['low_warn']:
-                self.c = 'warning'
+        if "low_warn" in self.k:
+            if value <= self.k["low_warn"]:
+                self.c = "warning"
 
-        if 'high' in self.k:
-            if value >= self.k['high']:
-                self.c = 'error'
+        if "high" in self.k:
+            if value >= self.k["high"]:
+                self.c = "error"
 
-        if 'low' in self.k:
-            if value <= self.k['low']:
-                self.c = 'error'
+        if "low" in self.k:
+            if value <= self.k["low"]:
+                self.c = "error"
         self.value = [round(value, 3), self.c, self.formatForUser(value)]
         Widget.write(self, self.value, push)
 
     def setup(self, min, max, high, low, unit=None, displayUnits=None):
         "On-the-fly change of parameters"
-        d = {'high': high, 'low': low, 'high_warn': high,
-             'low_warn': low, "min": min, "max": max}
+        d = {
+            "high": high,
+            "low": low,
+            "high_warn": high,
+            "low_warn": low,
+            "min": min,
+            "max": max,
+        }
         self.k.update(d)
 
         if not unit:
@@ -988,24 +1190,23 @@ class Meter(Widget):
 
     def onUpdate(self, *a, **k):
         raise RuntimeError("Only the server can edit this widget")
-    
 
     def formatForUser(self, v, displayUnit=None):
         """Format the value into something for display, like 27degC, if we have a unit configured.
-            Otherwise just return the value
+        Otherwise just return the value
         """
         try:
             unit = self.unit
             if unit:
-                s = ''
+                s = ""
 
                 x = unitTypes[unit]
 
                 if x in defaultDisplayUnits:
-                    if not unit == 'dBm':
+                    if not unit == "dBm":
                         units = defaultDisplayUnits[x]
                     else:
-                        units = 'dBm'
+                        units = "dBm"
                 else:
                     return str(round(v, 3)) + unit
                 # Overrides are allowed, we ignorer the user specified units
@@ -1015,7 +1216,7 @@ class Meter(Widget):
                     # Always show the base unit by default
                     if not unit in units:
                         units += "|" + unit
-            # else:
+                # else:
                 #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[unit.dimensionality]+"_format").split("|")
 
                 for i in units.split("|"):
@@ -1023,29 +1224,26 @@ class Meter(Widget):
                         s += "/"
                     # Si abbreviations and symbols work with prefixes
                     if i in siUnits:
-                        s += unitsofmeasure.siFormatNumber(
-                            convert(v, unit, i)) + i
+                        s += unitsofmeasure.siFormatNumber(convert(v, unit, i)) + i
                     else:
                         # If you need more than three digits,
                         # You should probably use an SI prefix.
                         # We're just hardcoding this for now
                         s += str(round(convert(v, unit, i), 2)) + i
 
-                return s.replace("degC","C").replace("degF", "F")+ self.getExtraInfo()
+                return s.replace("degC", "C").replace("degF", "F") + self.getExtraInfo()
             else:
                 return str(round(v, 3)) + self.getExtraInfo()
         except Exception as e:
             print(traceback.format_exc())
             return str(round(v, 3)) + str(e)[:16]
-        
 
-
-    def render_as_span(self,label=''):
+    def render_as_span(self, label=""):
         """
         Returns:
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
-        return("""%s<span id="%s">
+        return """%s<span id="%s">
         <script type="text/javascript">
         var upd = function(val)
         {
@@ -1053,11 +1251,17 @@ class Meter(Widget):
         }
         kaithemapi.subscribe('%s',upd);
         </script>%s
-        </span>""" % (label,self.uuid, self.uuid, self.uuid, self.value[2]))
+        </span>""" % (
+            label,
+            self.uuid,
+            self.uuid,
+            self.uuid,
+            self.value[2],
+        )
 
-    def render(self, unit='', label=None):
+    def render(self, unit="", label=None):
         label = label or self.defaultLabel
-        return("""
+        return """
         <div class="widgetcontainer meterwidget">
         {label}<br>
         <span class="numericpv" id="{uuid}" style=" margin:0px;">
@@ -1081,13 +1285,21 @@ class Meter(Widget):
         </span></br>
         <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
 
-        </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
-                         max=self.k['max'], high=self.k['high_warn'], low=self.k['low_warn'], label=label, unit=unit, valuestr=self.formatForUser(self.value[0], unit)))
+        </div>""".format(
+            uuid=self.uuid,
+            value=self.value[0],
+            min=self.k["min"],
+            max=self.k["max"],
+            high=self.k["high_warn"],
+            low=self.k["low_warn"],
+            label=label,
+            unit=unit,
+            valuestr=self.formatForUser(self.value[0], unit),
+        )
 
-
-    def render_oneline(self, unit='', label=None):
+    def render_oneline(self, unit="", label=None):
         label = label or self.defaultLabel
-        return("""
+        return """
         {label}
         <span class="numericpv" id="{uuid}" style=" margin:0px;">
         <script type="text/javascript">
@@ -1110,15 +1322,21 @@ class Meter(Widget):
         </span>
         <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
 
-        """.format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
-                         max=self.k['max'], high=self.k['high_warn'], low=self.k['low_warn'], label=label, unit=unit, valuestr=self.formatForUser(self.value[0], unit)))
+        """.format(
+            uuid=self.uuid,
+            value=self.value[0],
+            min=self.k["min"],
+            max=self.k["max"],
+            high=self.k["high_warn"],
+            low=self.k["low_warn"],
+            label=label,
+            unit=unit,
+            valuestr=self.formatForUser(self.value[0], unit),
+        )
 
-
-
-
-    def render_compact(self, unit='', label=None):
+    def render_compact(self, unit="", label=None):
         label = label or self.defaultLabel
-        return ("""
+        return """
         <div style="display: inline">
         <script type="text/javascript">
         var upd = function(val)
@@ -1143,19 +1361,35 @@ class Meter(Widget):
         </span><br>
         <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}" style="width: 100%"></meter>
         </div>
-        </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
-                         max=self.k['max'], high=self.k['high_warn'], low=self.k['low_warn'], label=label, unit=unit, valuestr=self.formatForUser(self.value[0], unit)))
+        </div>""".format(
+            uuid=self.uuid,
+            value=self.value[0],
+            min=self.k["min"],
+            max=self.k["max"],
+            high=self.k["high_warn"],
+            low=self.k["low_warn"],
+            label=label,
+            unit=unit,
+            valuestr=self.formatForUser(self.value[0], unit),
+        )
+
 
 class Button(Widget):
-
     def render(self, content, type="default"):
         if type == "default":
-            return("""
+            return """
             <button %s type="button" id="%s" onmousedown="kaithemapi.sendValue('%s','pushed')" onmouseleave="kaithemapi.sendValue('%s','released')" onmouseup="kaithemapi.sendValue('%s','released')">%s</button>
-             """ % (self.isWritable(), self.uuid, self.uuid, self.uuid, self.uuid, content))
+             """ % (
+                self.isWritable(),
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                content,
+            )
 
         if type == "trigger":
-            return("""
+            return """
             <div class="widgetcontainer">
             <script type="text/javascript">
             function %s_toggle()
@@ -1184,7 +1418,26 @@ class Button(Widget):
             <span id="%s_3">%s</span>
             </button>
             </div>
-             """ % (self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.uuid, self.isWritable(), self.uuid, content))
+             """ % (
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.uuid,
+                self.isWritable(),
+                self.uuid,
+                content,
+            )
 
         raise RuntimeError("Invalid Button Type")
 
@@ -1202,15 +1455,22 @@ class Slider(Widget):
         # Is this the right behavior?
         self._callback("__SERVER__", value)
 
-    def render(self, type="realtime", orient='vertical', unit='', label=''):
-
-        if orient == 'vertical':
+    def render(self, type="realtime", orient="vertical", unit="", label=""):
+        if orient == "vertical":
             orient = 'class="verticalslider" orient="vertical"'
         else:
             orient = 'class="horizontalslider"'
-        if type == 'debug':
-            return {'htmlid': mkid(), 'id': self.uuid, 'min': self.min, 'step': self.step, 'max': self.max, 'value': self.value, 'unit': unit}
-        elif type == 'realtime':
+        if type == "debug":
+            return {
+                "htmlid": mkid(),
+                "id": self.uuid,
+                "min": self.min,
+                "step": self.step,
+                "max": self.max,
+                "value": self.value,
+                "unit": unit,
+            }
+        elif type == "realtime":
             return """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
@@ -1239,9 +1499,20 @@ class Slider(Widget):
             kaithemapi.subscribe("%(id)s",upd);
             </script>
 
-            </div>""" % {'label': label, 'orient': orient, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.min, 'step': self.step, 'max': self.max, 'value': self.value, 'unit': unit}
+            </div>""" % {
+                "label": label,
+                "orient": orient,
+                "en": self.isWritable(),
+                "htmlid": mkid(),
+                "id": self.uuid,
+                "min": self.min,
+                "step": self.step,
+                "max": self.max,
+                "value": self.value,
+                "unit": unit,
+            }
 
-        elif type == 'onrelease':
+        elif type == "onrelease":
             return """<div class="widgetcontainer sliderwidget">
             <b><p">%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
@@ -1272,7 +1543,18 @@ class Slider(Widget):
             document.getElementById('%(htmlid)s').jsmodifiable = true;
             kaithemapi.subscribe("%(id)s",upd);
             </script>
-            </div>""" % {'label': label, 'orient': orient, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.min, 'step': self.step, 'max': self.max, 'value': self.value, 'unit': unit}
+            </div>""" % {
+                "label": label,
+                "orient": orient,
+                "en": self.isWritable(),
+                "htmlid": mkid(),
+                "id": self.uuid,
+                "min": self.min,
+                "step": self.step,
+                "max": self.max,
+                "value": self.value,
+                "unit": unit,
+            }
         raise ValueError("Invalid slider type:" % str(type))
 
 
@@ -1290,7 +1572,7 @@ class Switch(Widget):
         if self.value:
             x = "checked=1"
         else:
-            x = ''
+            x = ""
 
         return """<div class="widgetcontainer">
         <label><input %(en)s id="%(htmlid)s" type="checkbox"
@@ -1310,7 +1592,14 @@ class Switch(Widget):
         }
         kaithemapi.subscribe("%(id)s",upd);
         </script>
-        </div>""" % {'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'x': x, 'value': self.value, 'label': label}
+        </div>""" % {
+            "en": self.isWritable(),
+            "htmlid": mkid(),
+            "id": self.uuid,
+            "x": x,
+            "value": self.value,
+            "label": label,
+        }
 
 
 class TagPoint(Widget):
@@ -1327,8 +1616,8 @@ class TagPoint(Widget):
         if self.value:
             x = "checked=1"
         else:
-            x = ''
-        if type == 'realtime':
+            x = ""
+        if type == "realtime":
             sl = """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
@@ -1355,9 +1644,19 @@ class TagPoint(Widget):
            kaithemapi.subscribe("%(id)s",upd);
            </script>
 
-            </div>""" % {'label': label, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.tag.min, 'step': self.step, 'max': self.tag.max, 'value': self.value, 'unit': self.unit}
+            </div>""" % {
+                "label": label,
+                "en": self.isWritable(),
+                "htmlid": mkid(),
+                "id": self.uuid,
+                "min": self.tag.min,
+                "step": self.step,
+                "max": self.tag.max,
+                "value": self.value,
+                "unit": self.unit,
+            }
 
-        if type == 'onrelease':
+        if type == "onrelease":
             sl = """<div class="widgetcontainer sliderwidget">
             <b><p">%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
@@ -1387,9 +1686,22 @@ class TagPoint(Widget):
             document.getElementById('%(htmlid)s').jsmodifiable = true;
             kaithemapi.subscribe("%(id)s",upd);
             </script>
-            </div>""" % {'label': label, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.min, 'step': self.step, 'max': self.max, 'value': self.value, 'unit': unit}
+            </div>""" % {
+                "label": label,
+                "en": self.isWritable(),
+                "htmlid": mkid(),
+                "id": self.uuid,
+                "min": self.min,
+                "step": self.step,
+                "max": self.max,
+                "value": self.value,
+                "unit": unit,
+            }
 
-        return """<div class="widgetcontainer">""" + sl + """
+        return (
+            """<div class="widgetcontainer">"""
+            + sl
+            + """
 
 
         <label><input %(en)s id="%(htmlid)sman" type="checkbox"
@@ -1409,13 +1721,22 @@ class TagPoint(Widget):
         }
         kaithemapi.subscribe("%(id)s",upd);
         </script>
-        </div>""" % {'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'x': x, 'value': self.value, 'label': label}
+        </div>"""
+            % {
+                "en": self.isWritable(),
+                "htmlid": mkid(),
+                "id": self.uuid,
+                "x": x,
+                "value": self.value,
+                "label": label,
+            }
+        )
 
 
 class TextBox(Widget):
     def __init__(self, *args, **kwargs):
         Widget.__init__(self, *args, **kwargs)
-        self.value = ''
+        self.value = ""
 
     def write(self, value):
         self.value = str(value)
@@ -1426,7 +1747,7 @@ class TextBox(Widget):
         if self.value:
             x = "checked=1"
         else:
-            x = ''
+            x = ""
 
         return """<div class="widgetcontainer">
         <label>%(label)s<input %(en)s id="%(htmlid)s" type="text"
@@ -1446,14 +1767,21 @@ class TextBox(Widget):
         }
         kaithemapi.subscribe("%(id)s",upd);
         </script>
-        </div>""" % {'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'x': x, 'value': self.value, 'label': label}
+        </div>""" % {
+            "en": self.isWritable(),
+            "htmlid": mkid(),
+            "id": self.uuid,
+            "x": x,
+            "value": self.value,
+            "label": label,
+        }
 
 
 class ScrollingWindow(Widget):
-    """A widget used for chatroom style scrolling text. 
-       Only the new changes are ever pushed over the net. To use, just write the HTML to it, it will
-       go into a nev div in the log, old entries automatically go away, use the length param to decide
-       how many to keep"""
+    """A widget used for chatroom style scrolling text.
+    Only the new changes are ever pushed over the net. To use, just write the HTML to it, it will
+    go into a nev div in the log, old entries automatically go away, use the length param to decide
+    how many to keep"""
 
     def __init__(self, length=250, *args, **kwargs):
         Widget.__init__(self, *args, **kwargs)
@@ -1464,13 +1792,12 @@ class ScrollingWindow(Widget):
     def write(self, value):
         with self.lock:
             self.value.append(str(value))
-            self.value = self.value[-self.maxlen:]
+            self.value = self.value[-self.maxlen :]
             self.send(value)
             self._callback("__SERVER__", value)
 
-    def render(self, cssclass='', style=''):
-
-        content = ''.join(["<div>" + i + "</div>" for i in self.value])
+    def render(self, cssclass="", style=""):
+        content = "".join(["<div>" + i + "</div>" for i in self.value])
 
         return """<div class="widgetcontainer" style="display:block;width:90%%;">
         <div id=%(htmlid)s class ="scrollbox %(cssclass)s" style="%(style)s">
@@ -1500,8 +1827,14 @@ class ScrollingWindow(Widget):
         }
         kaithemapi.subscribe("%(id)s",upd);
         </script>
-        </div>""" % {'htmlid': mkid(), 'maxlen': self.maxlen, 'content': content,
-                     'cssclass': cssclass, 'style': style, 'id': self.uuid}
+        </div>""" % {
+            "htmlid": mkid(),
+            "maxlen": self.maxlen,
+            "content": content,
+            "cssclass": cssclass,
+            "style": style,
+            "id": self.uuid,
+        }
 
 
 class APIWidget(Widget):
@@ -1512,7 +1845,7 @@ class APIWidget(Widget):
 
     def write(self, value, push=True):
         # Don't set the value, because we don't have a value just a pipe of messages
-        #self.value = value
+        # self.value = value
         self.doCallback("__SERVER__", value, "__SERVER__")
         if push:
             self.send(value)
@@ -1596,10 +1929,15 @@ class APIWidget(Widget):
                     kaithemapi.subscribe("%(id)s",_upd);
                     setTimeout(%(htmlid)s.getTime,500)
             </script>
-            """ % {'htmlid': htmlid, 'id': self.uuid, 'value': json.dumps(self.value), 'loadtime': time.time() * 1000}
+            """ % {
+            "htmlid": htmlid,
+            "id": self.uuid,
+            "value": json.dumps(self.value),
+            "loadtime": time.time() * 1000,
+        }
 
 
-t = APIWidget(echo=False, id='_ws_timesync_channel')
+t = APIWidget(echo=False, id="_ws_timesync_channel")
 
 
 def f(s, v, id):
