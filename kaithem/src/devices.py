@@ -52,6 +52,16 @@ saveLocation = os.path.join(directories.vardir, "devices")
 
 driversLocation = os.path.join(directories.vardir, "devicedrivers")
 
+
+recent_scanned_tags = {}
+
+
+def log_scanned_tag(v:str, *args):
+    recent_scanned_tags[v] = time.time()
+    if len(recent_scanned_tags)>15:
+        recent_scanned_tags.pop(next(iter(recent_scanned_tags)))
+
+
 if os.path.isdir(saveLocation):
     for i in os.listdir(saveLocation):
         fn = os.path.join(saveLocation, i)

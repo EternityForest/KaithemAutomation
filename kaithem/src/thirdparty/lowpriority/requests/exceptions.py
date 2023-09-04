@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
-
 """
 requests.exceptions
 ~~~~~~~~~~~~~~~~~~~
 
 This module contains the set of Requests' exceptions.
 """
-from .packages.urllib3.exceptions import HTTPError as BaseHTTPError
+from urllib3.exceptions import HTTPError as BaseHTTPError
+
+from .compat import JSONDecodeError as CompatJSONDecodeError
 
 
 class RequestException(IOError):
@@ -16,13 +16,30 @@ class RequestException(IOError):
 
     def __init__(self, *args, **kwargs):
         """Initialize RequestException with `request` and `response` objects."""
-        response = kwargs.pop('response', None)
+        response = kwargs.pop("response", None)
         self.response = response
-        self.request = kwargs.pop('request', None)
-        if (response is not None and not self.request and
-                hasattr(response, 'request')):
+        self.request = kwargs.pop("request", None)
+        if response is not None and not self.request and hasattr(response, "request"):
             self.request = self.response.request
-        super(RequestException, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+
+
+class InvalidJSONError(RequestException):
+    """A JSON error occurred."""
+
+
+class JSONDecodeError(InvalidJSONError, CompatJSONDecodeError):
+    """Couldn't decode the text into json"""
+
+    def __init__(self, *args, **kwargs):
+        """
+        Construct the JSONDecodeError instance first with all
+        args. Then use it's args to construct the IOError so that
+        the json specific args aren't used as IOError specific args
+        and the error message from JSONDecodeError is preserved.
+        """
+        CompatJSONDecodeError.__init__(self, *args)
+        InvalidJSONError.__init__(self, *self.args, **kwargs)
 
 
 class HTTPError(RequestException):
@@ -70,11 +87,11 @@ class TooManyRedirects(RequestException):
 
 
 class MissingSchema(RequestException, ValueError):
-    """The URL schema (e.g. http or https) is missing."""
+    """The URL scheme (e.g. http or https) is missing."""
 
 
 class InvalidSchema(RequestException, ValueError):
-    """See defaults.py for valid schemas."""
+    """The URL scheme provided is either invalid or unsupported."""
 
 
 class InvalidURL(RequestException, ValueError):
@@ -85,20 +102,28 @@ class InvalidHeader(RequestException, ValueError):
     """The header value provided was somehow invalid."""
 
 
+class InvalidProxyURL(InvalidURL):
+    """The proxy URL provided is invalid."""
+
+
 class ChunkedEncodingError(RequestException):
     """The server declared chunked encoding but sent an invalid chunk."""
 
 
 class ContentDecodingError(RequestException, BaseHTTPError):
-    """Failed to decode response content"""
+    """Failed to decode response content."""
 
 
 class StreamConsumedError(RequestException, TypeError):
-    """The content for this response was already consumed"""
+    """The content for this response was already consumed."""
 
 
 class RetryError(RequestException):
     """Custom retries logic failed"""
+
+
+class UnrewindableBodyError(RequestException):
+    """Requests encountered an error when trying to rewind a body."""
 
 
 # Warnings
@@ -106,9 +131,11 @@ class RetryError(RequestException):
 
 class RequestsWarning(Warning):
     """Base warning for Requests."""
-    pass
 
 
 class FileModeWarning(RequestsWarning, DeprecationWarning):
     """A file was opened in text mode, but Requests determined its binary length."""
-    pass
+
+
+class RequestsDependencyWarning(RequestsWarning):
+    """An imported dependency doesn't match the expected version range."""

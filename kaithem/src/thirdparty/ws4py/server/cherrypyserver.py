@@ -50,7 +50,7 @@ import base64
 from hashlib import sha1
 import inspect
 import threading
-
+import io
 import cherrypy
 from cherrypy import Tool
 from cherrypy.process import plugins
@@ -183,9 +183,13 @@ class WebSocketTool(Tool):
             response.headers['Sec-WebSocket-Extensions'] = ','.join(ws_extensions)
 
         addr = (request.remote.ip, request.remote.port)
-        rfile = request.rfile.rfile
-        if isinstance(rfile, KnownLengthRFile):
-            rfile = rfile.rfile
+
+        if isinstance(request.rfile, io.BytesIO):
+            rfile = request.rfile
+        else:
+            rfile = request.rfile.rfile
+            if isinstance(rfile, KnownLengthRFile):
+                rfile = rfile.rfile
 
         ws_conn = get_connection(rfile)
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions,
