@@ -586,7 +586,7 @@ def makeTornadoSocket():
 import urllib
 
 
-class rawwebsocket(WebSocket):
+class rawwebsocket_impl():
     def __init__(self, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
@@ -649,7 +649,7 @@ class rawwebsocket(WebSocket):
 
     def send(self, *a, **k):
         with self.widget_wslock:
-            WebSocket.send(self, *a, **k, binary=isinstance(a[0], bytes))
+            self.parent.send_data(self, *a, **k, binary=isinstance(a[0], bytes))
 
     def closed(self, code, reason):
         with subscriptionLock:
