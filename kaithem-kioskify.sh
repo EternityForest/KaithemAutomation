@@ -256,6 +256,8 @@ apt-get -y install gnome-screenshot gnome-system-monitor gnome-logs
 ## Kaithem  with optional features
 ##############################################################################################################
 
+# Pretty sure the compiled version is going to be faster
+sudo apt-get -y install python3-tornado
 
 # Numpy is unhappy without this on latest pi os??
 sudo apt-get install libatlas-base-dev libjasper-dev
@@ -265,6 +267,7 @@ sudo apt -y install scrot mpv libmpv-dev python3 cython3 build-essential python3
 python3 -m pip install tflite-runtime 
 
 pip3 install aioesphomeapi
+pip3 install esphome
 
 mkdir -p /home/$(id -un 1000)/kaithem
 chown -R $(id -un 1000):$(id -un 1000) /home/$(id -un 1000)/kaithem
