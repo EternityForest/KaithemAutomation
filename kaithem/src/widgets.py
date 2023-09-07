@@ -12,7 +12,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Union, List
 import tornado
 from tornado import httputil
 from tornado.concurrent import Future
@@ -43,41 +43,50 @@ subscriptionLock = threading.Lock()
 widgets = weakref.WeakValueDictionary()
 n = 0
 
-
-wsActionSerializer = threading.Lock()
-
-wsActionQueue = []
-
-
-# We must serialize  actions to avoid out of order,
-# but for performance we really need to do them in the background
-def dowsAction(g):
-    if len(wsActionQueue)>10:
-        time.sleep(1)
-
-    wsActionQueue.append(g)
-    
-    # Somebody else got it
-    if wsActionSerializer.locked():
-        return
-    
-    def f():
-        # As long as we have the lock ir means we are going to check at least one more time
-        # to see if anyone else put something in the queue before we quit
-        #Therefore if we can't get the lock, we can return, whoever has it will do the action
-        #for us
-        while wsActionQueue:
-            if wsActionSerializer.acquire(blocking=False):
-                try:
-                    while wsActionQueue:
-                        x = wsActionQueue.pop(False)
-                        x()
-                finally:
-                    wsActionSerializer.release()
-    
-    workers.do(f)
+# We can keep track of how many. If more than 10, we stop making new ones for every
+# connection.
+wsrunners = weakref.WeakValueDictionary()
 
 
+class WSActionRunner:
+    """Class for running actions in a separate thread under a lock"""
+
+    def __init__(self) -> None:
+        self.wsActionSerializer = threading.Lock()
+        self.wsActionQueue: List[Callable] = []
+        wsrunners[id(self)] = self
+
+    # We must serialize  actions to avoid out of order,
+    # but for performance we really need to do them in the background
+    def dowsAction(self, g):
+        if len(self.wsActionQueue) > 10:
+            time.sleep(1)
+
+        self.wsActionQueue.append(g)
+
+        # Somebody else got it
+        if self.wsActionSerializer.locked():
+            return
+
+        def f():
+            # As long as we have the lock ir means we are going to check at least one more time
+            # to see if anyone else put something in the queue before we quit
+            # Therefore if we can't get the lock, we can return, whoever has it will do the action
+            # for us
+            while self.wsActionQueue:
+                if self.wsActionSerializer.acquire(blocking=False):
+                    try:
+                        while self.wsActionQueue:
+                            x = self.wsActionQueue.pop(False)
+                            x()
+                    finally:
+                        self.wsActionSerializer.release()
+
+        workers.do(f)
+
+
+# All guests share a runner, logged in users get their own per-connection
+guestWSRunner = WSActionRunner()
 
 
 def eventErrorHandler(f):
@@ -511,43 +520,17 @@ class websocket_impl:
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
-class websocket(WebSocket):
-    def __init__(self, *args, **kwargs):
-
-        self.user = "__guest__"
-        x = cherrypy.request.remote.ip
-
-        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
-            user = pages.getAcessingUser()
-        else:
-            user = "__guest__"
-
-        self.impl = websocket_impl(self, user)
-        WebSocket.__init__(self, *args, **kwargs)
-
-    def send_data(self, d, binary=False):
-        WebSocket.send(self, d, binary=binary)
-
-    def closed(self, *a):
-        self.impl.closed()
-
-    def recieved_message(self, m,*a):
-        self.impl.received_message(m)
-
-
-
 def makeTornadoSocket():
     import tornado.websocket
 
     class WS(tornado.websocket.WebSocketHandler):
         def open(self):
-
             x = self.request.remote_ip
 
             try:
                 user_agent = self.request.headers["User-Agent"]
             except Exception:
-                user_agent = ''
+                user_agent = ""
 
             if self.request.protocol == "https" or pages.isHTTPAllowed(x):
                 user = pages.getAcessingUser(self.request)
@@ -564,17 +547,27 @@ def makeTornadoSocket():
             impl.clientinfo = ClientInfo(impl.user, impl.cookie)
             clients_info[impl.uuid] = impl.clientinfo
             self.impl = impl
-            
+
+            if (
+                user == "__guest__"
+                and (not x.startswith("127."))
+                and (len(wsrunners) > 8)
+            ):
+                self.runner = guestWSRunner
+            else:
+                self.runner = WSActionRunner()
 
         def on_message(self, message):
             def doFunction():
                 self.impl.received_message(message)
-            dowsAction(doFunction)
+
+            self.runner.dowsAction(doFunction)
 
         def send_data(self, message, binary=False):
             def f():
                 if self.close_code is None:
                     self.write_message(message, binary=binary)
+
             self.io_loop.add_callback(f)
 
         def on_close(self):
@@ -586,7 +579,7 @@ def makeTornadoSocket():
 import urllib
 
 
-class rawwebsocket_impl():
+class rawwebsocket_impl:
     def __init__(self, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
@@ -662,21 +655,6 @@ class rawwebsocket_impl():
                         widgets[i].lastSubscribedTo = time.monotonic()
                 except:
                     pass
-
-    def received_message(self, message):
-        global lastLoggedUserError
-        try:
-            if isinstance(message, ws4py.messaging.BinaryMessage):
-                o = msgpack.unpackb(message.data, raw=False)
-            else:
-                o = json.loads(message.data.decode("utf8"))
-
-        except Exception as e:
-            logging.exception("Error in widget, responding to " + str(message.data))
-            messagebus.postMessage(
-                "system/errors/widgets/websocket", traceback.format_exc(6)
-            )
-            self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
 def randID():
