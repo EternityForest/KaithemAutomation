@@ -7,18 +7,6 @@ https-port : 8001
 http-port : 8002
 
 
-
-#Local port on which to provide access to Drayer services
-# DEPRECATED
-drayer-port: 7009
-
-
-
-#Public port on which to accept incoming P2P connections.
-#Note that this does not enable exposing kaithem to the world,
-#You have to explicitly create a service
-drayer-p2p-port: 8107
-
 #What host to bind to. Default is determined by local-access-only
 host: "default"
 
@@ -37,7 +25,7 @@ ssl-dir : ssl
 # gets auto-overridden to ~/kaithem if we detect that it is in a path under /usr or /nix
 site-data-dir: var
 
-#How many threads to allocate for the worker thread pool
+#Max how many threads to allocate for the worker thread pool
 worker-threads: 12
 
 #How many threads cherrypy should use for the web server to serve unencrypted pages
@@ -111,14 +99,6 @@ audio-backends:
 #How many times to retry loading an event before marking it as a failure and moving on
 max-load-attempts: 3
 
-#allow websocket connections? This is now the only non-deprecated widget interface
-enable-websockets: true
-
-#Enable optional javascript effects.
-#Now deprecated, might do nothing or break something if turned off.
-enable-js: yes
-
-
 #This setting does nothing unless the process is started as root on UNIX.
 #if the process does get started as root, then it will drop to this user.
 #By default we assume that if the user starts the process as root he wants it to run as root.
@@ -126,11 +106,6 @@ run-as-user: root
 
 #If this is not default, and run as user is not root, and the user starts the process as root, then we use this group.
 run-as-group: __default__
-
-
-#The priority to advertise the embedded ntp server with.
-#Should be between 5000 and 6000, lower ones are preferred.
-ntpserver-priority: 5500
 
 #If set to yes and setproctitle is installed, changes process title to kaithem instead of python.
 change-process-title: yes
@@ -240,3 +215,7 @@ quotes-file: default
 #####################MISC#######################################################
 
 get-public-ip: no
+
+
+esphome-config-dir: esphome
+esphome-dashboard: null

@@ -18,9 +18,6 @@ from tornado import httputil
 from tornado.concurrent import Future
 from typeguard import typechecked
 from .unitsofmeasure import convert, unitTypes
-import ws4py.messaging
-import ws4py
-from ws4py.websocket import WebSocket
 import weakref
 import time
 import json
@@ -364,10 +361,7 @@ class websocket_impl:
         global lastLoggedUserError
         global lastPrintedUserError
         try:
-            if isinstance(message, ws4py.messaging.BinaryMessage):
-                d = message.data
-            else:
-                d = message
+            d = message
 
             if isinstance(d, bytes):
                 o = msgpack.unpackb(d, raw=False)
@@ -606,7 +600,6 @@ class rawwebsocket_impl:
 
         params = urllib.parse.parse_qs(args[3]["QUERY_STRING"])
         widgetName = params["widgetid"][0]
-        WebSocket.__init__(self, *args, **kwargs)
 
         with subscriptionLock:
             if widgetName in widgets:

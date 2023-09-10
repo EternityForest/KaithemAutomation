@@ -5,6 +5,8 @@ Change Log
 
 - :sparkles: Use the Tornado server
 - :sparkles: Per-connection Websocket handler threads eliminate global bogdown on blocking socket actions
+- :coffin: enable-js, enable-websockets, drayer-port, and other useless config options removed.
+- :coffin: config validation no longer rejects additional properties.
 
 ### 0.68.48
 - :coffin: Remove the Chandler tag permissions system, as it is too complex to properly assess the security model. It can now access any tag.

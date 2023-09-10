@@ -13,17 +13,6 @@ properties:
         minimum: 0
         maximum: 65536
 
-
-    drayer-port:
-        type: integer
-        minimum: 0
-        maximum: 65536
-
-    drayer-p2p-port:
-        type: integer
-        minimum: 0
-        maximum: 65536
-
     host:
         type: string
     
@@ -152,11 +141,6 @@ properties:
     run-as-group:
         type: string
 
-    ntpserver-priority:
-        type: integer
-        minimum: 1000
-        maximum: 9999
-
     change-process-title:
         type: boolean
 
@@ -251,9 +235,6 @@ properties:
     quotes-file:
         type: string
 
-    enable-js:
-        type: boolean
-
     time-format:
         type: string
 
@@ -267,7 +248,10 @@ properties:
     get-public-ip:
         type: boolean
 
-    enable-websockets:
-        type: boolean
+    esphome-config-dir:
+        type: string
 
-additionalProperties: no
+    esphome-dashboard:
+        type: [boolean,"null"]
+
+additionalProperties: yes

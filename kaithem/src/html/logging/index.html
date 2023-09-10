@@ -12,28 +12,26 @@ def dump(j):
     return saferepr(j)
 %>
 
-%if config['enable-js']:
-    <script type="text/javascript">
-    function f(element)
-        {
-            if (element.id.indexOf(document.getElementById("filter").value) == -1)
-                {
-                    element.hidden = true;
-                }
-            else
-                {
-                    element.hidden = false;
-                }
-        }
+<script type="text/javascript">
+function f(element)
+    {
+        if (element.id.indexOf(document.getElementById("filter").value) == -1)
+            {
+                element.hidden = true;
+            }
+        else
+            {
+                element.hidden = false;
+            }
+    }
 
-     function hideshow()
-     {
-        for (var i=0; i<document.getElementById('ListOfTopics').children.length; i++) {
-            f(document.getElementById('ListOfTopics').children[i]);
-        }
-     }
-    </script>
-%endif
+    function hideshow()
+    {
+    for (var i=0; i<document.getElementById('ListOfTopics').children.length; i++) {
+        f(document.getElementById('ListOfTopics').children[i]);
+    }
+    }
+</script>
 
 <h2>Recently active topics</h2>
 <div class="sectionbox">
@@ -45,12 +43,8 @@ def dump(j):
     Log files will be dumped after a certain number of messages, or when the server state is explicitly saved.
     </details>
     <p class="menubar">
-    %if config['enable-js']:
         | Show only topics containing:<input type="text" id="filter"
         onchange="hideshow()" onkeyup="hideshow()"/>
-    %endif
-
-
     </p>
 
     <div id="ListOfTopics">

@@ -32,6 +32,9 @@ import os
 import sys
 from types import MethodType
 import base64
+from typing import Any, Dict, Optional
+
+from tornado import httputil
 from . import pathsetup
 
 # Minimal path setup, to be able to even find the rest
@@ -76,6 +79,8 @@ from scullery import messagebus
 from . import statemachines
 from . import auth
 from . import directories
+from . import pages
+
 
 import iot_devices.host
 
@@ -336,9 +341,7 @@ def webRoot():
         """,
         )
 
-    from . import pages
     from . import weblogin
-    from . import pages
 
     from . import ManageUsers
     from . import newevt
@@ -891,7 +894,7 @@ def webRoot():
             )
             or 64 * 1024,
             "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-        }
+        },
     }
 
     if not config["favicon-png"] == "default":
@@ -959,8 +962,6 @@ def webRoot():
             "System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.",
         )
 
-
-
     from . import chandler
 
     # Unlike other shm stuff that only gets used after startup, this
@@ -1017,7 +1018,7 @@ import tornado
 import tornado.httpserver
 import tornado.wsgi
 import tornado.web
-from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches
+from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches, Matcher
 
 container = tornado.wsgi.WSGIContainer(wsgiapp)
 
@@ -1029,16 +1030,46 @@ wsapp = tornado.web.Application(
     ]
 )
 
-router = RuleRouter(
-    [
-        Rule(PathMatches("/widgets/ws"), wsapp),
-        Rule(AnyMatches(), container),
-    ]
-)
+
+class KAuthMatcher(Matcher):
+    def __init__(self, path, permission) -> None:
+        super().__init__()
+        self.pm = PathMatches(path)
+        self.perm = permission
+
+    def match(self, request) -> Dict[str, Any] | None:
+        if self.pm.match(request) is not None:
+            if pages.canUserDoThis(self.perm, pages.getAcessingUser(request)):
+                return {}
+
+        return None
 
 
 
+rules = [
+    Rule(PathMatches("/widgets/ws"), wsapp),
+]
 
+
+rules.append(Rule(AnyMatches(), container))
+
+
+if config["esphome-config-dir"]:
+    from . import esphome_dash
+    rules.extend(
+        [
+            Rule(
+                KAuthMatcher("/esphome.*", "/admin/settings.edit"),
+                esphome_dash.start_web_server(),
+            ),
+            Rule(
+                PathMatches("/esphome.*"),
+                tornado.web.RedirectHandler,
+                {"url": "/login"},
+            ),
+        ]
+    )
+router = RuleRouter(rules)
 
 https_config = {
     "server.ssl_module": "builtin",
@@ -1060,17 +1091,18 @@ if config["https-port"]:
             "You do not have an SSL certificate set up. HTTPS is not enabled.",
         )
     else:
-        https_server = tornado.httpserver.HTTPServer(router, ssl_options={
-            "certfile":os.path.join(directories.ssldir, "certificate.cert"),
-            "keyfile":os.path.join(directories.ssldir, "certificate.key"),
-        })
+        https_server = tornado.httpserver.HTTPServer(
+            router,
+            ssl_options={
+                "certfile": os.path.join(directories.ssldir, "certificate.cert"),
+                "keyfile": os.path.join(directories.ssldir, "certificate.key"),
+            },
+        )
         https_server.listen(config["https-port"])
 
 # Publish to the CherryPy engine as if
 # we were using its mainloop
-tornado.ioloop.PeriodicCallback(
-    lambda: cherrypy.engine.publish("main"), 100
-).start()
+tornado.ioloop.PeriodicCallback(lambda: cherrypy.engine.publish("main"), 100).start()
 tornado.ioloop.IOLoop.instance().start()
 
 logger.info("Cherrypy engine stopped")

@@ -9,7 +9,7 @@ import cherrypy,traceback
 <%
 #I really am not a fan of having separate mobile and desktop versions. It's really often garbage
 #Here we don't have much of an option, monaco only supports desktop.
-using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
+using_js_editor = auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
 
 
 #Detect self self-modifying.
@@ -251,6 +251,7 @@ window.onbeforeunload = function(){
 	        fontSize: 14,
             scrollBeyondLastLine: false,
             theme:'kaithem',
+            "bracketPairColorization.enabled": true,
 %if not pages.canUserDoThis("/admin/modules.edit"):
             readOnly:true
 %endif
@@ -534,7 +535,7 @@ Saving this module will cause it to be immediately acessable from the web.
 </form>
 </section>
 
-%if not(config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']):
+%if not(auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']):
 <script src="/static/js/src-min-noconflict/ace.js"></script>
 <script src="/static/js/jquery3.js"></script>
 

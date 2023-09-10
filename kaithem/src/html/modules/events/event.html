@@ -11,7 +11,7 @@ import cherrypy
 
 <%include file="/pageheader.html"/>
 <%
-using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
+using_js_editor = auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
 %>
 <script src="/static/widget.js"></script>
 
@@ -386,7 +386,7 @@ Saving this module will case it to completely reload, including its local scope.
 
 </section>
 
-%if not(config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco')):
+%if auth.getUserSetting(pages.getAcessingUser(),'usemonaco')):
 <script src="/static/js/src-min-noconflict/ace.js"></script>
 <script src="/static/js/jquery3.js"></script>
 

@@ -703,6 +703,9 @@ Kaithem.globals = obj()  # this is just a place to stash stuff.
 # This is a global instance but we are moving away from that
 kaithem = Kaithem()
 
+# Moving away from the thin time wrapper stuff to just astro stuff
+kaithem.sky = kaithem.time
+
 if config.config['quotes-file'] == 'default':
     sentences = kaithem.persist.load(
         os.path.join(directories.datadir, "quotes.yaml"))

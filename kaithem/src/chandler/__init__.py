@@ -31,19 +31,25 @@ import recur
 def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
-        utc = pytz.timezone('UTC')
-        return ((tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1))
+        utc = pytz.timezone("UTC")
+        return (
+            tz.localize(dt.replace(tzinfo=None))
+            - datetime.datetime(1970, 1, 1, tzinfo=utc)
+        ) / datetime.timedelta(seconds=1)
 
     else:
         # Local Time
         ts = time.time()
-        offset = (datetime.datetime.fromtimestamp(ts) -
-                  datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
+        offset = (
+            datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)
+        ).total_seconds()
+        return (
+            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
+        ) - offset
 
 
 # https://gist.github.com/devxpy/063968e0a2ef9b6db0bd6af8079dad2a
-NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 OCTAVES = list(range(11))
 NOTES_IN_OCTAVE = len(NOTES)
 
@@ -56,17 +62,20 @@ def number_to_note(number: int) -> str:
 
 
 def nbr():
-    return (50, '<a href="/chandler/commander"><i class="icofont-cheer-leader"></i>Chandler</a>')
+    return (
+        50,
+        '<a href="/chandler/commander"><i class="icofont-cheer-leader"></i>Chandler</a>',
+    )
 
 
-kaithem.web.navBarPlugins['chandler'] = nbr
+kaithem.web.navBarPlugins["chandler"] = nbr
 
 
 def nbr2():
     return (50, '<a href="/chandler/editor"><i class="icofont-pencil"></i>Editor</a>')
 
 
-kaithem.web.navBarPlugins['chandler2'] = nbr2
+kaithem.web.navBarPlugins["chandler2"] = nbr2
 
 logger = logging.getLogger("system.chandler")
 
@@ -97,28 +106,34 @@ def doSoundAction(g):
 
 def playSound(*args, **kwargs):
     if core.ratelimit.limit():
+
         def doFunction():
             kaithem.sound.play(*args, **kwargs)
-            #kaithem.sound.wait()
+            # kaithem.sound.wait()
+
         doSoundAction(doFunction)
 
 
 def stopSound(*args, **kwargs):
     if core.ratelimit.limit():
+
         def doFunction():
             kaithem.sound.stop(*args, **kwargs)
+
         doSoundAction(doFunction)
 
 
 def fadeSound(*args, **kwargs):
     if core.ratelimit.limit():
+
         def doFunction():
             kaithem.sound.fadeTo(*args, **kwargs)
+
         doSoundAction(doFunction)
     else:
         # A bit of a race condition here, if the sound had not started yet. But if we are triggering rate limit we
         # have other issues.
-        kaithem.sound.stop(kwargs['handle'])
+        kaithem.sound.stop(kwargs["handle"])
 
 
 float = float
@@ -127,7 +142,7 @@ int = int
 max = max
 min = min
 
-allowedCueNameSpecials = '_~.'
+allowedCueNameSpecials = "_~."
 
 
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
@@ -149,13 +164,14 @@ def doTransitionRateLimit():
     # Limit to less than 2 per 100ms
     if cueTransitionsLimitCount > 6:
         raise RuntimeError(
-            "Too many cue transitions extremely fast.  You may have a problem somewhere.")
+            "Too many cue transitions extremely fast.  You may have a problem somewhere."
+        )
     cueTransitionsLimitCount += 2
 
 
 def refresh_scenes(t, v):
     """Stop and restart all active scenes, because some caches might need to be updated
-        when a new universes is added
+    when a new universes is added
     """
     with core.lock:
         for i in core.activeScenes:
@@ -198,7 +214,7 @@ def mapUniverse(u):
     if not u.startswith("@"):
         return u
 
-    u = u.split('[')[0]
+    u = u.split("[")[0]
 
     try:
         x = core.fixtures[u[1:]]()
@@ -216,9 +232,9 @@ def mapChannel(u, c):
         if c.startswith("__"):
             return None
         # Handle the notation for repeating fixtures
-        if '[' in c:
-            c, index = c.split('[')
-            index = int(index.split(']')[0].strip())
+        if "[" in c:
+            c, index = c.split("[")
+            index = int(index.split("]")[0].strip())
 
     if not u.startswith("@"):
         if isinstance(c, str):
@@ -248,7 +264,6 @@ def mapChannel(u, c):
 
 
 def fnToCueName(fn):
-
     isNum = False
     try:
         int(fn.split(".")[0])
@@ -297,7 +312,6 @@ core.scenes = weakref.WeakValueDictionary()
 core.scenes_by_name = weakref.WeakValueDictionary()
 
 
-
 def codeCommand(code=""):
     "Activates any cues with the matching shortcut code in any scene"
     shortcutCode(code)
@@ -312,19 +326,20 @@ def gotoCommand(scene="=SCENE", cue=""):
         return True
 
     # Track layers of recursion
-    newcause = 'script.0'
-    if kaithem.chandlerscript.contextInfo.event[0] in ('cue.enter', 'cue.exit'):
+    newcause = "script.0"
+    if kaithem.chandlerscript.contextInfo.event[0] in ("cue.enter", "cue.exit"):
         cause = kaithem.chandlerscript.contextInfo.event[1][1]
         # Nast hack, but i don't thing we need more layers and parsing might be slower.
-        if cause == 'script.0':
-            newcause = 'script.1'
+        if cause == "script.0":
+            newcause = "script.1"
 
-        elif cause == 'script.1':
-            newcause = 'script.2'
+        elif cause == "script.1":
+            newcause = "script.2"
 
-        elif cause == 'script.2':
+        elif cause == "script.2":
             raise RuntimeError(
-                "More than 3 layers of redirects in cue.enter or cue.exit")
+                "More than 3 layers of redirects in cue.enter or cue.exit"
+            )
 
     # We don't want to handle other bindings after a goto, leaving a scene stops execution.
     core.scenes_by_name[scene].scriptContext.stopAfterThisHandler()
@@ -333,7 +348,9 @@ def gotoCommand(scene="=SCENE", cue=""):
 
 
 gotoCommand.completionTags = {
-    "scene": "gotoSceneNamesCompleter", "cue": "gotoSceneCuesCompleter"}
+    "scene": "gotoSceneNamesCompleter",
+    "cue": "gotoSceneCuesCompleter",
+}
 
 
 def setAlphaCommand(scene="=SCENE", alpha=1):
@@ -344,7 +361,12 @@ def setAlphaCommand(scene="=SCENE", alpha=1):
 
 def ifCueCommand(scene, cue):
     "True if the scene is running that cue"
-    return True if core.scenes_by_name[scene].active and core.scenes_by_name[scene].cue.name == cue else None
+    return (
+        True
+        if core.scenes_by_name[scene].active
+        and core.scenes_by_name[scene].cue.name == cue
+        else None
+    )
 
 
 ifCueCommand.summaryTemplate = "True if cue is running"
@@ -359,31 +381,35 @@ def eventCommand(scene="=SCENE", ev="DummyEvent", value=""):
     return True
 
 
-rootContext.commands['shortcut'] = codeCommand
-rootContext.commands['goto'] = gotoCommand
-rootContext.commands['setAlpha'] = setAlphaCommand
-rootContext.commands['ifCue'] = ifCueCommand
-rootContext.commands['sendEvent'] = eventCommand
+rootContext.commands["shortcut"] = codeCommand
+rootContext.commands["goto"] = gotoCommand
+rootContext.commands["setAlpha"] = setAlphaCommand
+rootContext.commands["ifCue"] = ifCueCommand
+rootContext.commands["sendEvent"] = eventCommand
 
-rootContext.commands['setTag'].completionTags = {
-    "tagName": 'tagPointsCompleter'}
+rootContext.commands["setTag"].completionTags = {"tagName": "tagPointsCompleter"}
 
 
 def sendMqttMessage(topic, message):
     "JSON encodes message, and publishes it to the scene's MQTT server"
-    raise RuntimeError(
-        "This was supposed to be overridden by a scene specific version")
+    raise RuntimeError("This was supposed to be overridden by a scene specific version")
 
 
-rootContext.commands['sendMQTT'] = sendMqttMessage
+rootContext.commands["sendMQTT"] = sendMqttMessage
 
 
 def listsoundfolder(path):
-    " return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
+    "return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
     soundfolders = core.getSoundFolders()
 
     if not path:
-        return [[[i + ('/' if not i.endswith('/') else ''), soundfolders[i]] for i in soundfolders], []]
+        return [
+            [
+                [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
+                for i in soundfolders
+            ],
+            [],
+        ]
 
     if not path.endswith("/"):
         path = path + "/"
@@ -395,18 +421,29 @@ def listsoundfolder(path):
         if path.startswith(i):
             match = True
     if not match:
-        return [[[i + ('/' if not i.endswith('/') else ''), soundfolders[i]] for i in soundfolders], []]
+        return [
+            [
+                [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
+                for i in soundfolders
+            ],
+            [],
+        ]
 
     # if not os.path.exists(path):
     #    return [[],[]]
 
-    #x = os.listdir(path)
+    # x = os.listdir(path)
     x = kaithem.assetpacks.ls(path)
 
     return (
-        sorted([[os.path.join(path, i), os.path.join(path, i)]
-               for i in x if i.endswith("/")]),
-        sorted([i for i in x if not i.endswith("/")])
+        sorted(
+            [
+                [os.path.join(path, i), os.path.join(path, i)]
+                for i in x
+                if i.endswith("/")
+            ]
+        ),
+        sorted([i for i in x if not i.endswith("/")]),
     )
 
 
@@ -422,15 +459,15 @@ def searchPaths(s, paths):
 
     for path in paths:
         if not path[-1] == "/":
-            path = path + '/'
+            path = path + "/"
 
         for dir, dirs, files in os.walk(path):
             relpath = dir[len(path):]
             for i in files:
                 match = True
                 for j in words:
-                    if not j in i.lower():
-                        if not j in relpath.lower():
+                    if j not in i.lower():
+                        if j not in relpath.lower():
                             match = False
                 if not match:
                     continue
@@ -441,20 +478,29 @@ def searchPaths(s, paths):
 def getSerPorts():
     try:
         import serial.tools.list_ports
+
         if os.path.exists("/dev/serial/by-path"):
-            return [os.path.join('/dev/serial/by-path', i) for i in os.listdir("/dev/serial/by-path")]
+            return [
+                os.path.join("/dev/serial/by-path", i)
+                for i in os.listdir("/dev/serial/by-path")
+            ]
         else:
             return [i.device for i in serial.tools.list_ports.comports()]
     except Exception:
         return [str(traceback.format_exc())]
 
 
-def disallow_special(s, allow='', replaceMode=None):
-    for i in '[]{}()!@#$%^&*()<>,./;\':"-=_+\\|`~?\r\n\t':
+def disallow_special(s, allow="", replaceMode=None):
+    for i in "[]{}()!@#$%^&*()<>,./;':\"-=_+\\|`~?\r\n\t":
         if i in s and i not in allow:
             if replaceMode is None:
                 raise ValueError(
-                    "Special char " + i + " not allowed in this context(full str starts with " + s[:100] + ")")
+                    "Special char "
+                    + i
+                    + " not allowed in this context(full str starts with "
+                    + s[:100]
+                    + ")"
+                )
             else:
                 s = s.replace(i, replaceMode)
     return s
@@ -470,11 +516,13 @@ def pollsounds():
                 if i.cue.sound and i.cue.rel_length:
                     if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
                         i.sound_end = time.time()
-                    if i.sound_end and (time.time() - i.sound_end > (i.cue.length * i.bpm)):
-                        i.nextCue(cause='sound')
+                    if i.sound_end and (
+                        time.time() - i.sound_end > (i.cue.length * i.bpm)
+                    ):
+                        i.nextCue(cause="sound")
 
 
-class ObjPlugin():
+class ObjPlugin:
     pass
 
 
@@ -487,12 +535,12 @@ core.controlValues = weakref.WeakValueDictionary()
 def number_to_shortcut(number):
     s = str((Decimal(number) / 1000).quantize(Decimal("0.001")))
     # https://stackoverflow.com/questions/11227620/drop-trailing-zeros-from-decimal
-    s = s.rstrip('0').rstrip('.') if '.' in s else s
+    s = s.rstrip("0").rstrip(".") if "." in s else s
     return s
 
 
 def getControlValue(cv, default=None):
-    "Return numbers as is, or resolve values in the form of Universe:3 to the current value from that universe "
+    "Return numbers as is, or resolve values in the form of Universe:3 to the current value from that universe"
     if isinstance(cv, (float, int)):
         return cv
     else:
@@ -546,37 +594,37 @@ def unpack_np_vals(v):
     return {j: [float(k) for k in v[j]] for j in v}
 
 
-class Fixture():
+class Fixture:
     def __init__(self, name, data=None):
         """Represents a contiguous range of channels each with a defined role in one universe.
 
-            data is the definition of the type of fixture. It can be a list of channels, or
-            a dict having a 'channels' property.
+        data is the definition of the type of fixture. It can be a list of channels, or
+        a dict having a 'channels' property.
 
-            Each channel must be described by a [name, type, [arguments]] list, where type is one of:
+        Each channel must be described by a [name, type, [arguments]] list, where type is one of:
 
-            red
-            green
-            blue
-            value
-            dim
-            custom
-            fine
-            fog
-            hue
+        red
+        green
+        blue
+        value
+        dim
+        custom
+        fine
+        fog
+        hue
 
-            The name must be unique per-fixture.
-            If a channel has the type "fine" it will be interpreted as the fine value of
-            the immediately preceding coarse channel, and should automatically get its value from the fractional part.
-            If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
-            with 0 being the fixture's first channel.        
+        The name must be unique per-fixture.
+        If a channel has the type "fine" it will be interpreted as the fine value of
+        the immediately preceding coarse channel, and should automatically get its value from the fractional part.
+        If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
+        with 0 being the fixture's first channel.
         """
         if data:
             # Normalize and raise errors on nonsense
             channels = json.loads(json.dumps(data))
 
             if not isinstance(channels, list):
-                channels = channels['channels']
+                channels = channels["channels"]
             self.channels = channels
 
         else:
@@ -618,6 +666,7 @@ class Fixture():
                     self.rm()
             except Exception:
                 print(traceback.format_exc())
+
         kaithem.misc.do(f)
 
     def rm(self):
@@ -634,15 +683,24 @@ class Fixture():
 
                 if oldUniverseObj:
                     # Delete current assignments
-                    for i in range(self.startAddress, self.startAddress + len(self.channels)):
+                    for i in range(
+                        self.startAddress, self.startAddress + len(self.channels)
+                    ):
                         if i in oldUniverseObj.channels:
-                            if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
+                            if (
+                                oldUniverseObj.channels[i]()
+                                and oldUniverseObj.channels[i]() is self
+                            ):
                                 del oldUniverseObj.channels[i]
                                 # We just unassigned it, so it's not a hue channel anymore
                                 oldUniverseObj.hueBlendMask[i] = 0
                             else:
-                                print("Unexpected channel data corruption",
-                                      universe, i, oldUniverseObj.channels[i]())
+                                print(
+                                    "Unexpected channel data corruption",
+                                    universe,
+                                    i,
+                                    oldUniverseObj.channels[i](),
+                                )
 
             self.assignment = universe, channel
 
@@ -665,13 +723,19 @@ class Fixture():
                 if i in universeObj.channels:
                     if universeObj.channels[i] and universeObj.channels[i]():
                         if not self.name == universeObj.channels[i]().name:
-                            raise ValueError("channel " + str(i) + " of " + self.name +
-                                             " would overlap with " + universeObj.channels[i]().name)
+                            raise ValueError(
+                                "channel "
+                                + str(i)
+                                + " of "
+                                + self.name
+                                + " would overlap with "
+                                + universeObj.channels[i]().name
+                            )
 
             cPointer = 0
             for i in range(channel, channel + len(self.channels)):
                 universeObj.channels[i] = weakref.ref(self)
-                if self.channels[cPointer][1] in ('hue', 'sat', 'custom'):
+                if self.channels[cPointer][1] in ("hue", "sat", "custom"):
                     # Mark it as a hue channel that blends slightly differently
                     universeObj.hueBlendMask[i] = 1
                     cPointer += 1
@@ -682,7 +746,11 @@ core.Fixture = Fixture
 
 def fixturesFromOldListStyle(l):
     "Convert fixtures from the older list of tuples style to the new dict style"
-    return {i[0]: {'name': i[0], 'type': i[1], 'universe': i[2], 'addr': i[3]} for i in l if len(i) == 4}
+    return {
+        i[0]: {"name": i[0], "type": i[1], "universe": i[2], "addr": i[3]}
+        for i in l
+        if len(i) == 4
+    }
 
 
 class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
@@ -700,13 +768,13 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
             if not k.startswith("_"):
                 for i in core.boards:
                     if isinstance(v, (str, int, float, bool)):
-                        i().link.send(['varchange', self.scene, k, v])
+                        i().link.send(["varchange", self.scene, k, v])
                     elif isinstance(v, collections.defaultdict):
                         v = json.dumps(v)[:160]
-                        i().link.send(['varchange', self.scene, k, v])
+                        i().link.send(["varchange", self.scene, k, v])
                     else:
                         v = str(v)[:160]
-                        i().link.send(['varchange', self.scene, k, v])
+                        i().link.send(["varchange", self.scene, k, v])
         except Exception:
             rl_log_exc("Error handling var set notification")
             print(traceback.format_exc())
@@ -724,8 +792,9 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         self.sceneObj().runningTimers[timer] = run
         try:
             for i in core.boards:
-                i().link.send(['scenetimers', self.scene,
-                               self.sceneObj().runningTimers])
+                i().link.send(
+                    ["scenetimers", self.scene, self.sceneObj().runningTimers]
+                )
         except Exception:
             rl_log_exc("Error handling timer set notification")
             print(traceback.format_exc())
@@ -738,24 +807,31 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
 
 def checkPermissionsForSceneData(data, user):
     """Check if used can upload or edit the scene, ekse raise an error if it uses advanced features that would prevent that action.
-        We disallow delete because we don't want unprivelaged users to delete something important that they can't fix.
+    We disallow delete because we don't want unprivelaged users to delete something important that they can't fix.
 
     """
-    if 'page' in data and (data['page']['html'].strip() or data['page']['js'].strip() or data['page'].get('rawhtml', '').strip()):
+    if "page" in data and (
+        data["page"]["html"].strip()
+        or data["page"]["js"].strip()
+        or data["page"].get("rawhtml", "").strip()
+    ):
         if not kaithem.users.checkPermission(user, "/admin/modules.edit"):
             raise ValueError(
-                "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: pages. User:" + str(kaithem.web.user()))
-    if 'mqttServer' in data and data['mqttServer'].strip():
+                "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: pages. User:"
+                + str(kaithem.web.user())
+            )
+    if "mqttServer" in data and data["mqttServer"].strip():
         if not kaithem.users.checkPermission(user, "/admin/modules.edit"):
             raise ValueError(
-                "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: MQTT:" + str(kaithem.web.user()))
+                "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: MQTT:"
+                + str(kaithem.web.user())
+            )
 
 
-class ChandlerConsole():
+class ChandlerConsole:
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
     def loadProject(self):
-
         for i in self.scenememory:
             self.scenememory[i].stop()
             self.scenememory[i].close()
@@ -768,37 +844,34 @@ class ChandlerConsole():
         self.fixtureClasses = {}
         self.fixtureAssignments = {}
 
-        saveLocation = os.path.join(
-            kaithem.misc.vardir, "chandler", "universes")
+        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "universes")
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.configuredUniverses[i[:-
-                                               len('.yaml')]] = kaithem.persist.load(fn)
+                    self.configuredUniverses[i[: -len(".yaml")]] = kaithem.persist.load(
+                        fn
+                    )
 
-        saveLocation = os.path.join(
-            kaithem.misc.vardir, "chandler", "fixturetypes")
+        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "fixturetypes")
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixtureClasses[i[:-len('.yaml')]
-                                        ] = kaithem.persist.load(fn)
+                    self.fixtureClasses[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
-        saveLocation = os.path.join(
-            kaithem.misc.vardir, "chandler", "fixtures")
+        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "fixtures")
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixtureAssignments[i[:-
-                                              len('.yaml')]] = kaithem.persist.load(fn)
+                    self.fixtureAssignments[i[: -len(".yaml")]] = kaithem.persist.load(
+                        fn
+                    )
 
         # This used to be a list of [name, fixturetype, startAddress] triples
         if not isinstance(self.fixtureAssignments, dict):
-            self.fixtureAssignments = fixturesFromOldListStyle(
-                self.fixtureAssignments)
+            self.fixtureAssignments = fixturesFromOldListStyle(self.fixtureAssignments)
         try:
             self.createUniverses(self.configuredUniverses)
         except Exception:
@@ -813,15 +886,14 @@ class ChandlerConsole():
                 fn = os.path.join(saveLocation, i)
 
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    d[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+                    d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
         self.loadDict(d)
 
         if self.link:
-            self.link.send(['refreshPage', self.fixtureAssignments])
+            self.link.send(["refreshPage", self.fixtureAssignments])
 
     def __init__(self, count=65536):
-
         self.newDataFunctions = []
 
         self.id = uuid.uuid4().hex
@@ -855,8 +927,7 @@ class ChandlerConsole():
         self.refreshFixtures()
 
         def f(self, *dummy):
-            self.link.send(
-                ['soundoutputs', [i for i in kaithem.sound.outputs()]])
+            self.link.send(["soundoutputs", [i for i in kaithem.sound.outputs()]])
 
         self.callback_jackports = f
         kaithem.message.subscribe("/system/jack/newport/", f)
@@ -871,13 +942,15 @@ class ChandlerConsole():
 
     def refreshFixtures(self):
         with core.lock:
-            self.ferrs = ''
+            self.ferrs = ""
             try:
                 for i in self.fixtures:
                     self.fixtures[i].assign(None, None)
                     self.fixtures[i].rm()
             except Exception:
-                self.ferrs += 'Error deleting old assignments:\n' + traceback.format_exc()
+                self.ferrs += (
+                    "Error deleting old assignments:\n" + traceback.format_exc()
+                )
                 print(traceback.format_exc())
 
             try:
@@ -889,15 +962,14 @@ class ChandlerConsole():
 
             for i in self.fixtureAssignments.values():
                 try:
-                    x = Fixture(i['name'], self.fixtureClasses[i['type']])
-                    self.fixtures[i['name']] = x
-                    self.fixtures[i['name']].assign(
-                        i['universe'], int(i['addr']))
-                    core.fixtures[i['name']] = weakref.ref(x)
+                    x = Fixture(i["name"], self.fixtureClasses[i["type"]])
+                    self.fixtures[i["name"]] = x
+                    self.fixtures[i["name"]].assign(i["universe"], int(i["addr"]))
+                    core.fixtures[i["name"]] = weakref.ref(x)
                 except Exception:
                     logger.exception("Error setting up fixture")
                     print(traceback.format_exc())
-                    self.ferrs += str(i) + '\n' + traceback.format_exc()
+                    self.ferrs += str(i) + "\n" + traceback.format_exc()
 
             for u in universes.universes:
                 self.pushChannelNames(u)
@@ -907,7 +979,7 @@ class ChandlerConsole():
                     if f:
                         self.pushChannelNames("@" + f)
 
-            self.ferrs = self.ferrs or 'No Errors!'
+            self.ferrs = self.ferrs or "No Errors!"
             self.pushfixtures()
 
     def createUniverses(self, data):
@@ -916,24 +988,43 @@ class ChandlerConsole():
 
         self.universeObjs = {}
         import gc
+
         gc.collect()
         l = {}
         u = data
         for i in u:
-            if u[i]['type'] == 'enttecopen' or u[i]['type'] == 'rawdmx':
-                l[i] = core.EnttecOpenUniverse(i, channels=int(u[i].get('channels', 128)), portname=u[i].get(
-                    'interface', None), framerate=float(u[i].get('framerate', 44)))
-            elif u[i]['type'] == 'enttec':
-                l[i] = core.EnttecUniverse(i, channels=int(u[i].get('channels', 128)), portname=u[i].get(
-                    'interface', None), framerate=float(u[i].get('framerate', 44)))
-            elif u[i]['type'] == 'artnet':
-                l[i] = core.ArtNetUniverse(i, channels=int(u[i].get('channels', 128)), address=u[i].get(
-                    'interface', "255.255.255.255:6454"), framerate=float(u[i].get('framerate', 44)), number=int(u[i].get('number', 0)))
-            elif u[i]['type'] == 'tagpoints':
-                l[i] = core.TagpointUniverse(i, channels=int(u[i].get('channels', 128)), tagpoints=u[i].get(
-                    'channelConfig', {}), framerate=float(u[i].get('framerate', 44)), number=int(u[i].get('number', 0)))
+            if u[i]["type"] == "enttecopen" or u[i]["type"] == "rawdmx":
+                l[i] = core.EnttecOpenUniverse(
+                    i,
+                    channels=int(u[i].get("channels", 128)),
+                    portname=u[i].get("interface", None),
+                    framerate=float(u[i].get("framerate", 44)),
+                )
+            elif u[i]["type"] == "enttec":
+                l[i] = core.EnttecUniverse(
+                    i,
+                    channels=int(u[i].get("channels", 128)),
+                    portname=u[i].get("interface", None),
+                    framerate=float(u[i].get("framerate", 44)),
+                )
+            elif u[i]["type"] == "artnet":
+                l[i] = core.ArtNetUniverse(
+                    i,
+                    channels=int(u[i].get("channels", 128)),
+                    address=u[i].get("interface", "255.255.255.255:6454"),
+                    framerate=float(u[i].get("framerate", 44)),
+                    number=int(u[i].get("number", 0)),
+                )
+            elif u[i]["type"] == "tagpoints":
+                l[i] = core.TagpointUniverse(
+                    i,
+                    channels=int(u[i].get("channels", 128)),
+                    tagpoints=u[i].get("channelConfig", {}),
+                    framerate=float(u[i].get("framerate", 44)),
+                    number=int(u[i].get("number", 0)),
+                )
             else:
-                event("system.error", "No universe type: " + u[i]['type'])
+                event("system.error", "No universe type: " + u[i]["type"])
         self.universeObjs = l
 
         try:
@@ -945,28 +1036,29 @@ class ChandlerConsole():
         self.pushUniverses()
 
     def loadShow(self, showName):
-        saveLocation = os.path.join(
-            kaithem.misc.vardir, "chandler", "shows", showName)
+        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "shows", showName)
         d = {}
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
 
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    d[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+                    d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
         self.loadDict(d)
         self.refreshFixtures()
 
     def loadSetup(self, setupName):
         saveLocation = os.path.join(
-            kaithem.misc.vardir, "chandler", "setups", setupName, "universes")
+            kaithem.misc.vardir, "chandler", "setups", setupName, "universes"
+        )
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.configuredUniverses[i[:-
-                                               len('.yaml')]] = kaithem.persist.load(fn)
+                    self.configuredUniverses[i[: -len(".yaml")]] = kaithem.persist.load(
+                        fn
+                    )
 
         self.universeObjs = {}
         self.fixtureAssignments = {}
@@ -975,67 +1067,65 @@ class ChandlerConsole():
         self.fixtureAssignments = {}
 
         saveLocation = os.path.join(
-            kaithem.misc.vardir, "chandler", "setups", setupName, "fixtures")
+            kaithem.misc.vardir, "chandler", "setups", setupName, "fixtures"
+        )
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixtureAssignments[i[:-
-                                              len('.yaml')]] = kaithem.persist.load(fn)
+                    self.fixtureAssignments[i[: -len(".yaml")]] = kaithem.persist.load(
+                        fn
+                    )
 
         self.refreshFixtures()
         self.createUniverses(self.configuredUniverses)
 
     def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
-
         if not kaithem.users.checkPermission(kaithem.web.user(), "/admin/modules.edit"):
-            raise ValueError(
-                "You cannot change the setup without /admin/modules.edit")
+            raise ValueError("You cannot change the setup without /admin/modules.edit")
         data = yaml.load(data)
 
-        if 'fixtureTypes' in data:
-            self.fixtureClasses.update(data['fixtureTypes'])
+        if "fixtureTypes" in data:
+            self.fixtureClasses.update(data["fixtureTypes"])
 
-        if 'universes' in data:
-            self.configuredUniverses = data['universes']
+        if "universes" in data:
+            self.configuredUniverses = data["universes"]
             self.createUniverses(self.configuredUniverses)
 
-        if 'fixtures' in data:
-            self.fixtureAssignments = data['fixtures']
+        if "fixtures" in data:
+            self.fixtureAssignments = data["fixtures"]
             self.refreshFixtures()
 
     def getSetupFile(self):
         with core.lock:
-            return ({
-
+            return {
                 "fixtureTypes": self.fixtureClasses,
                 "universes": self.configuredUniverses,
-                "fixures": self.fixtureAssignments
-            })
+                "fixures": self.fixtureAssignments,
+            }
 
     def loadLibraryFile(self, data, _asuser=False, filename=None, errs=False):
         data = yaml.load(data)
 
-        if 'fixtureTypes' in data:
-            self.fixtureClasses.update(data['fixtureTypes'])
+        if "fixtureTypes" in data:
+            self.fixtureClasses.update(data["fixtureTypes"])
         else:
             raise ValueError("No fixture types in that file")
 
     def getLibraryFile(self):
         with core.lock:
-            return ({
+            return {
                 "fixtureTypes": self.fixtureClasses,
                 "universes": self.configuredUniverses,
-                "fixures": self.fixtureAssignments
-            })
+                "fixures": self.fixtureAssignments,
+            }
 
     def loadSceneFile(self, data, _asuser=False, filename=None, errs=False):
-
         data = yaml.load(data)
 
         # Detect if the user is trying to upload a single scenefile, if so, wrap it in a multi-dict of scenes to keep the reading code
         # The same for both
-        if 'uuid' in data and isinstance(data['uuid'], str):
+        if "uuid" in data and isinstance(data["uuid"], str):
             # Remove the .yaml
             data = {filename[:-5]: data}
         for i in data:
@@ -1044,20 +1134,20 @@ class ChandlerConsole():
         with core.lock:
             for i in self.scenememory:
                 checkPermissionsForSceneData(
-                    self.scenememory[i].toDict(), kaithem.web.user())
+                    self.scenememory[i].toDict(), kaithem.web.user()
+                )
 
             self.loadDict(data, errs)
 
     def loadDict(self, data, errs=False):
         with core.lock:
             for i in data:
-
                 # New versions don't have a name key at all, the name is the key
-                if 'name' in data[i]:
+                if "name" in data[i]:
                     pass
                 else:
-                    data[i]['name'] = i
-                n = data[i]['name']
+                    data[i]["name"] = i
+                n = data[i]["name"]
 
                 # Delete existing scenes we own
                 if n in core.scenes_by_name:
@@ -1067,32 +1157,34 @@ class ChandlerConsole():
                         del core.scenes_by_name[n]
                     else:
                         raise ValueError(
-                            "Scene " + i + " already exists. We cannot overwrite, because it was not created through this board")
+                            "Scene "
+                            + i
+                            + " already exists. We cannot overwrite, because it was not created through this board"
+                        )
                 try:
                     # Kinda brittle and hacky, because loadinga new default scene isn't well
                     # supported
-                    cues = data[i]['cues']
-                    del data[i]['cues']
+                    cues = data[i]["cues"]
+                    del data[i]["cues"]
                     x = False
-                    if 'defaultActive' in data[i]:
-                        x = data[i]['defaultActive']
-                        del data[i]['defaultActive']
-                    if 'active' in data[i]:
-                        x = data[i]['active']
-                        del data[i]['active']
+                    if "defaultActive" in data[i]:
+                        x = data[i]["defaultActive"]
+                        del data[i]["defaultActive"]
+                    if "active" in data[i]:
+                        x = data[i]["active"]
+                        del data[i]["active"]
 
                     # Older versions indexed by UUID
-                    if 'uuid' in data[i]:
-                        uuid = data[i]['uuid']
-                        del data[i]['uuid']
+                    if "uuid" in data[i]:
+                        uuid = data[i]["uuid"]
+                        del data[i]["uuid"]
                     else:
                         uuid = i
 
-                    s = Scene(id=uuid, defaultCue=False,
-                              defaultActive=x, **data[i])
+                    s = Scene(id=uuid, defaultCue=False, defaultActive=x, **data[i])
                     for j in cues:
                         Cue(s, f=True, name=j, **cues[j])
-                    s.cue = s.cues['default']
+                    s.cue = s.cues["default"]
                     # s.gotoCue("default")
 
                     self.scenememory[uuid] = s
@@ -1102,9 +1194,19 @@ class ChandlerConsole():
                 except Exception:
                     if not errs:
                         logger.exception(
-                            "Failed to load scene " + str(i) + " " + str(data[i].get('name', '')))
-                        print("Failed to load scene " + str(i) + " " +
-                              str(data[i].get('name', '')) + ": " + traceback.format_exc(3))
+                            "Failed to load scene "
+                            + str(i)
+                            + " "
+                            + str(data[i].get("name", ""))
+                        )
+                        print(
+                            "Failed to load scene "
+                            + str(i)
+                            + " "
+                            + str(data[i].get("name", ""))
+                            + ": "
+                            + traceback.format_exc(3)
+                        )
                     else:
                         raise
 
@@ -1120,24 +1222,35 @@ class ChandlerConsole():
             print(traceback.format_exc())
 
     def pushEv(self, event, target, t=None, value=None, info=""):
-
         # TODO: Do we want a better way of handling this? We don't want to clog up the semi-re
         def f():
             if self.guiSendLock.acquire(timeout=5):
                 try:
                     self.link.send(
-                        ['event', [event, target, kaithem.time.strftime(t or time.time()), value, info]])
+                        [
+                            "event",
+                            [
+                                event,
+                                target,
+                                kaithem.time.strftime(t or time.time()),
+                                value,
+                                info,
+                            ],
+                        ]
+                    )
                 except Exception:
                     if time.monotonic() - self.lastLoggedGuiSendError < 60:
                         logger.exception(
-                            "Error when reporting event. (Log ratelimit: 30)")
+                            "Error when reporting event. (Log ratelimit: 30)"
+                        )
                         self.lastLoggedGuiSendError = time.monotonic()
                 finally:
                     self.guiSendLock.release()
             else:
                 if time.monotonic() - self.lastLoggedGuiSendError < 60:
                     logger.error(
-                        "Timeout getting lock to push event. (Log ratelimit: 60)")
+                        "Timeout getting lock to push event. (Log ratelimit: 60)"
+                    )
                     self.lastLoggedGuiSendError = time.monotonic()
 
         kaithem.misc.do(f)
@@ -1146,17 +1259,39 @@ class ChandlerConsole():
         "Errors in fixture list"
         self.link.send(["ferrs", self.ferrs])
         try:
-            self.link.send(['fixtures', {i: [core.fixtures[i]().universe, core.fixtures[i](
-            ).startAddress, core.fixtures[i]().channels] for i in core.fixtures}])
+            self.link.send(
+                [
+                    "fixtures",
+                    {
+                        i: [
+                            core.fixtures[i]().universe,
+                            core.fixtures[i]().startAddress,
+                            core.fixtures[i]().channels,
+                        ]
+                        for i in core.fixtures
+                    },
+                ]
+            )
         except Exception:
             print(traceback.format_exc())
 
     def pushUniverses(self):
         snapshot = getUniverses()
 
-        self.link.send(["universes", {i: {'count': len(snapshot[i].values),
-                                          'status':snapshot[i].status,
-                                          'ok':snapshot[i].ok, "telemetry":snapshot[i].telemetry} for i in snapshot}])
+        self.link.send(
+            [
+                "universes",
+                {
+                    i: {
+                        "count": len(snapshot[i].values),
+                        "status": snapshot[i].status,
+                        "ok": snapshot[i].ok,
+                        "telemetry": snapshot[i].telemetry,
+                    }
+                    for i in snapshot
+                },
+            ]
+        )
 
     def getScenes(self):
         "Return serializable version of scenes list"
@@ -1179,8 +1314,7 @@ class ChandlerConsole():
         with core.lock:
             for i in sd:
                 saved[i + ".yaml"] = True
-                kaithem.persist.save(
-                    sd[i], os.path.join(saveLocation, i + ".yaml"))
+                kaithem.persist.save(sd[i], os.path.join(saveLocation, i + ".yaml"))
 
         # Delete everything not in folder
         for i in os.listdir(saveLocation):
@@ -1191,12 +1325,12 @@ class ChandlerConsole():
 
     def pushTracks(self):
         self.link.send(
-            ['tracks', {i: core.runningTracks[i].name for i in core.runningTracks}])
+            ["tracks", {i: core.runningTracks[i].name for i in core.runningTracks}]
+        )
 
     def pushChannelNames(self, u):
         "This has expanded to push more data than names"
-        if not u[0] == '@':
-
+        if not u[0] == "@":
             uobj = getUniverse(u)
 
             if not uobj:
@@ -1210,17 +1344,16 @@ class ChandlerConsole():
 
                 if not fixture.startAddress:
                     return
-                data = [fixture.name] + \
-                    fixture.channels[i - fixture.startAddress]
+                data = [fixture.name] + fixture.channels[i - fixture.startAddress]
                 d[i] = data
-            self.link.send(['cnames', u, d])
+            self.link.send(["cnames", u, d])
         else:
             d = {}
             if u[1:] in core.fixtures:
                 f = core.fixtures[u[1:]]()
                 for i in range(0, len(f.channels)):
                     d[f.channels[i][0]] = [u[1:]] + f.channels[i]
-            self.link.send(['cnames', u, d])
+            self.link.send(["cnames", u, d])
 
     def pushMeta(self, sceneid, statusOnly=False, keys=None):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
@@ -1231,105 +1364,118 @@ class ChandlerConsole():
             try:
                 for j in scene.scriptContext.variables:
                     if not j == "_":
-                        if isinstance(scene.scriptContext.variables[j], (int, float, str, bool)):
+                        if isinstance(
+                            scene.scriptContext.variables[j], (int, float, str, bool)
+                        ):
                             v[j] = scene.scriptContext.variables[j]
                         else:
-                            v[j] = '__PYTHONDATA__'
+                            v[j] = "__PYTHONDATA__"
             except Exception:
                 print(traceback.format_exc())
 
         if not statusOnly:
             data = {
-                'ext': not sceneid in self.scenememory,
-                'dalpha': scene.defaultalpha,
-                'alpha': scene.alpha,
-                'active': scene.isActive(),
-                'defaultActive': scene.defaultActive,
-                'name': scene.name,
-                'bpm': round(scene.bpm, 6),
-                'blend': scene.blend,
-                'blendArgs': scene.blendArgs,
-                'blendDesc': blendmodes.getblenddesc(scene.blend),
-                'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass, "parameters") else {},
-                'priority': scene.priority,
-                'started': scene.started,
-                'enteredCue': scene.enteredCue,
-                'backtrack': scene.backtrack,
-                'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
-                'cuelen': scene.cuelen,
-                'midiSource': scene.midiSource,
-                'defaultNext': scene.defaultNext,
-                'commandTag': scene.commandTag,
-                'soundOutput': scene.soundOutput,
-                'slideOverlayURL': scene.slideOverlayURL,
-                'eventButtons': scene.eventButtons,
-                'infoDisplay': scene.infoDisplay,
-                'utility': scene.utility,
-                'displayTags': scene.displayTags,
-                'displayTagValues': scene.displayTagValues,
-                'displayTagMeta': scene.displayTagMeta,
-                'vars': v,
-                'timers': scene.runningTimers,
-                'notes': scene.notes,
+                "ext": not sceneid in self.scenememory,
+                "dalpha": scene.defaultalpha,
+                "alpha": scene.alpha,
+                "active": scene.isActive(),
+                "defaultActive": scene.defaultActive,
+                "name": scene.name,
+                "bpm": round(scene.bpm, 6),
+                "blend": scene.blend,
+                "blendArgs": scene.blendArgs,
+                "blendDesc": blendmodes.getblenddesc(scene.blend),
+                "blendParams": scene.blendClass.parameters
+                if hasattr(scene.blendClass, "parameters")
+                else {},
+                "priority": scene.priority,
+                "started": scene.started,
+                "enteredCue": scene.enteredCue,
+                "backtrack": scene.backtrack,
+                "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
+                "cuelen": scene.cuelen,
+                "midiSource": scene.midiSource,
+                "defaultNext": scene.defaultNext,
+                "commandTag": scene.commandTag,
+                "soundOutput": scene.soundOutput,
+                "slideOverlayURL": scene.slideOverlayURL,
+                "eventButtons": scene.eventButtons,
+                "infoDisplay": scene.infoDisplay,
+                "utility": scene.utility,
+                "displayTags": scene.displayTags,
+                "displayTagValues": scene.displayTagValues,
+                "displayTagMeta": scene.displayTagMeta,
+                "vars": v,
+                "timers": scene.runningTimers,
+                "notes": scene.notes,
                 "mqttServer": scene.mqttServer,
-                'crossfade': scene.crossfade,
-                'status': scene.getStatusString()
+                "crossfade": scene.crossfade,
+                "status": scene.getStatusString(),
             }
         else:
             data = {
-                'alpha': scene.alpha,
-                'active': scene.isActive(),
-                'defaultActive': scene.defaultActive,
-                'displayTagValues': scene.displayTagValues,
-                'enteredCue': scene.enteredCue,
-                'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
-                'cuelen': scene.cuelen,
-                'status': scene.getStatusString()
+                "alpha": scene.alpha,
+                "active": scene.isActive(),
+                "defaultActive": scene.defaultActive,
+                "displayTagValues": scene.displayTagValues,
+                "enteredCue": scene.enteredCue,
+                "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
+                "cuelen": scene.cuelen,
+                "status": scene.getStatusString(),
             }
         if keys:
             for i in keys:
                 if i not in data:
                     raise KeyError(i)
-        self.link.send(["scenemeta", sceneid, {
-                       i: data[i] for i in data if (not keys or (i in keys))}])
+        self.link.send(
+            [
+                "scenemeta",
+                sceneid,
+                {i: data[i] for i in data if (not keys or (i in keys))},
+            ]
+        )
 
     def pushCueMeta(self, cueid):
         try:
             cue = cues[cueid]
-            self.link.send(["cuemeta", cueid,
-                            {
-                                'fadein': cue.fadein,
-                                'alpha': cue.alpha,
-                                'length': cue.length,
-                                'lengthRandomize': cue.lengthRandomize,
-                                'next': cue.nextCue if cue.nextCue else '',
-                                'name': cue.name,
-                                'id': cueid,
-                                'sound': cue.sound,
-                                'slide': cue.slide,
-                                'soundOutput': cue.soundOutput,
-                                'soundStartPosition': cue.soundStartPosition,
-                                'mediaSpeed': cue.mediaSpeed,
-                                'mediaWindup': cue.mediaWindup,
-                                'mediaWinddown': cue.mediaWinddown,
-                                'rel_len': cue.rel_length,
-                                'track': cue.track,
-                                'notes': cue.notes,
-                                'scene': cue.scene().id,
-                                'shortcut': cue.shortcut,
-                                'number': cue.number / 1000.0,
-                                'defaultNext': cue.scene().getAfter(cue.name),
-                                'prev': cue.scene().getParent(cue.name),
-                                'probability': cue.probability,
-                                'rules': cue.rules,
-                                'reentrant': cue.reentrant,
-                                'inheritRules': cue.inheritRules,
-                                "soundFadeOut": cue.soundFadeOut,
-                                "soundFadeIn": cue.soundFadeIn,
-                                'soundVolume': cue.soundVolume,
-                                'soundLoops': cue.soundLoops
-
-                            }])
+            self.link.send(
+                [
+                    "cuemeta",
+                    cueid,
+                    {
+                        "fadein": cue.fadein,
+                        "alpha": cue.alpha,
+                        "length": cue.length,
+                        "lengthRandomize": cue.lengthRandomize,
+                        "next": cue.nextCue if cue.nextCue else "",
+                        "name": cue.name,
+                        "id": cueid,
+                        "sound": cue.sound,
+                        "slide": cue.slide,
+                        "soundOutput": cue.soundOutput,
+                        "soundStartPosition": cue.soundStartPosition,
+                        "mediaSpeed": cue.mediaSpeed,
+                        "mediaWindup": cue.mediaWindup,
+                        "mediaWinddown": cue.mediaWinddown,
+                        "rel_len": cue.rel_length,
+                        "track": cue.track,
+                        "notes": cue.notes,
+                        "scene": cue.scene().id,
+                        "shortcut": cue.shortcut,
+                        "number": cue.number / 1000.0,
+                        "defaultNext": cue.scene().getAfter(cue.name),
+                        "prev": cue.scene().getParent(cue.name),
+                        "probability": cue.probability,
+                        "rules": cue.rules,
+                        "reentrant": cue.reentrant,
+                        "inheritRules": cue.inheritRules,
+                        "soundFadeOut": cue.soundFadeOut,
+                        "soundFadeIn": cue.soundFadeIn,
+                        "soundVolume": cue.soundVolume,
+                        "soundLoops": cue.soundLoops,
+                    },
+                ]
+            )
         except Exception:
             rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid, traceback.format_exc())
@@ -1338,8 +1484,7 @@ class ChandlerConsole():
         "Be careful with this, some attributes can't be sent directly and need preprocessing"
         try:
             cue = cues[cueid]
-            self.link.send(["cuemetaattr", cueid,
-                            {attr: getattr(cue, attr)}])
+            self.link.send(["cuemetaattr", cueid, {attr: getattr(cue, attr)}])
         except Exception:
             rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid, traceback.format_exc())
@@ -1355,50 +1500,66 @@ class ChandlerConsole():
         x = list(s.cues.keys())
         # split list into messages of 100 because we don't want to exceed the widget send limit
         while x:
-            self.link.send(["scenecues", scene, {
-                           i: (s.cues[i].id, s.cues[i].number / 1000.0) for i in x[:100]}])
+            self.link.send(
+                [
+                    "scenecues",
+                    scene,
+                    {i: (s.cues[i].id, s.cues[i].number / 1000.0) for i in x[:100]},
+                ]
+            )
             x = x[100:]
 
     def _onmsg(self, user, msg):
-        # Adds a light to a scene
         try:
-
             if msg[0] == "saveScenes":
-                self.saveAsFiles('scenes', self.getScenes(), "lighting/scenes")
+                self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
 
             if msg[0] == "saveShow":
-                self.saveAsFiles(os.path.join(
-                    'shows', msg[1], 'scenes', self.getScenes()))
+                self.saveAsFiles(
+                    os.path.join("shows", msg[1], "scenes", self.getScenes())
+                )
 
             if msg[0] == "loadShow":
                 self.loadShow(msg[1])
 
             if msg[0] == "saveSetup":
                 self.saveAsFiles(
-                    'fixturetypes', self.fixtureClasses, "lighting/fixtureclasses")
+                    "fixturetypes", self.fixtureClasses, "lighting/fixtureclasses"
+                )
                 self.saveAsFiles(
-                    'universes', self.configuredUniverses, "lighting/universes")
+                    "universes", self.configuredUniverses, "lighting/universes"
+                )
                 self.saveAsFiles(
-                    'fixtures', self.fixtureAssignments, "lighting/fixtures")
+                    "fixtures", self.fixtureAssignments, "lighting/fixtures"
+                )
 
                 saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
                 if not os.path.exists(saveLocation):
                     os.makedirs(saveLocation, mode=0o755)
 
-                kaithem.persist.save(core.config, os.path.join(
-                    saveLocation, "config.yaml"))
+                kaithem.persist.save(
+                    core.config, os.path.join(saveLocation, "config.yaml")
+                )
 
             if msg[0] == "saveSetupPreset":
-                self.saveAsFiles('fixturetypes', self.fixtureClasses,
-                                 "lighting/fixtureclasses", noRm=True)
-                self.saveAsFiles(os.path.join(
-                    'setups', msg[1], 'universes'), self.configuredUniverses)
-                self.saveAsFiles(os.path.join(
-                    'setups', msg[1], 'fixtures'), self.fixtureAssignments)
+                self.saveAsFiles(
+                    "fixturetypes",
+                    self.fixtureClasses,
+                    "lighting/fixtureclasses",
+                    noRm=True,
+                )
+                self.saveAsFiles(
+                    os.path.join("setups", msg[1], "universes"),
+                    self.configuredUniverses,
+                )
+                self.saveAsFiles(
+                    os.path.join("setups", msg[1], "fixtures"), self.fixtureAssignments
+                )
 
             if msg[0] == "saveLibrary":
                 self.saveAsFiles(
-                    'fixturetypes', self.fixtureClasses, "lighting/fixtureclasses")
+                    "fixturetypes", self.fixtureClasses, "lighting/fixtureclasses"
+                )
 
             if msg[0] == "addscene":
                 s = Scene(msg[1].strip())
@@ -1407,8 +1568,7 @@ class ChandlerConsole():
                 self.pushMeta(s.id)
 
             if msg[0] == "addmonitor":
-                s = Scene(msg[1].strip(), blend="monitor",
-                          priority=100, active=True)
+                s = Scene(msg[1].strip(), blend="monitor", priority=100, active=True)
                 self.scenememory[s.id] = s
                 self.link.send(["newscene", msg[1].strip(), s.id])
 
@@ -1436,7 +1596,7 @@ class ChandlerConsole():
             if msg[0] == "setfixtureclass":
                 l = []
                 for i in msg[2]:
-                    if i[1] not in ['custom', 'fine', 'fixed']:
+                    if i[1] not in ["custom", "fine", "fixed"]:
                         l.append(i[:2])
                     else:
                         l.append(i)
@@ -1446,24 +1606,23 @@ class ChandlerConsole():
             if msg[0] == "setfixtureclassopz":
                 x = []
 
-                for i in msg[2]['channels']:
-                    if i in ('red', 'green', 'blue', 'intensity', "white", "fog"):
+                for i in msg[2]["channels"]:
+                    if i in ("red", "green", "blue", "intensity", "white", "fog"):
                         x.append([i, i])
 
                     elif i.isnumeric:
-                        x.append(['fixed', 'fixed', i])
+                        x.append(["fixed", "fixed", i])
 
-                    elif i == 'color':
-                        x.append(['hue', 'hue'])
+                    elif i == "color":
+                        x.append(["hue", "hue"])
 
                 l = []
                 for i in x:
-                    if i[1] not in ['custom', 'fine', 'fixed']:
+                    if i[1] not in ["custom", "fine", "fixed"]:
                         l.append(i[:2])
                     else:
                         l.append(i)
-                self.fixtureClasses[msg[1].replace(
-                    "-", " ").replace("/", " ")] = l
+                self.fixtureClasses[msg[1].replace("-", " ").replace("/", " ")] = l
                 self.refreshFixtures()
 
             if msg[0] == "rmfixtureclass":
@@ -1472,23 +1631,22 @@ class ChandlerConsole():
 
             if msg[0] == "setFixtureAssignment":
                 self.fixtureAssignments[msg[1]] = msg[2]
-                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+                self.link.send(["fixtureAssignments", self.fixtureAssignments])
                 self.refreshFixtures()
 
             if msg[0] == "getcuehistory":
-                self.link.send(
-                    ['cuehistory', msg[1], core.scenes[msg[1]].cueHistory])
+                self.link.send(["cuehistory", msg[1], core.scenes[msg[1]].cueHistory])
 
             if msg[0] == "rmFixtureAssignment":
                 del self.fixtureAssignments[msg[1]]
 
-                self.link.send(['fixtureAssignments', self.fixtureAssignments])
-                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+                self.link.send(["fixtureAssignments", self.fixtureAssignments])
+                self.link.send(["fixtureAssignments", self.fixtureAssignments])
 
                 self.refreshFixtures()
 
             if msg[0] == "getfixtureassg":
-                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+                self.link.send(["fixtureAssignments", self.fixtureAssignments])
                 self.pushfixtures()
 
             if msg[0] == "clonecue":
@@ -1498,19 +1656,19 @@ class ChandlerConsole():
                 if not cues[msg[1]].scene().active:
                     cues[msg[1]].scene().go()
 
-                cues[msg[1]].scene().gotoCue(cues[msg[1]].name, cause='manual')
+                cues[msg[1]].scene().gotoCue(cues[msg[1]].name, cause="manual")
 
             if msg[0] == "jumpbyname":
-                core.scenes_by_name[msg[1]].gotoCue(msg[2], cause='manual')
+                core.scenes_by_name[msg[1]].gotoCue(msg[2], cause="manual")
 
             if msg[0] == "nextcue":
-                core.scenes[msg[1]].nextCue(cause='manual')
+                core.scenes[msg[1]].nextCue(cause="manual")
 
             if msg[0] == "prevcue":
-                core.scenes[msg[1]].nextCue(cause='manual')
+                core.scenes[msg[1]].nextCue(cause="manual")
 
             if msg[0] == "nextcuebyname":
-                core.scenes_by_name[msg[1]].nextCue(cause='manual')
+                core.scenes_by_name[msg[1]].nextCue(cause="manual")
 
             if msg[0] == "shortcut":
                 shortcutCode(msg[1])
@@ -1533,28 +1691,28 @@ class ChandlerConsole():
 
             if msg[0] == "setNotes":
                 core.scenes[msg[1]].notes = msg[2]
-                self.pushMeta(msg[1], keys={'notes'})
+                self.pushMeta(msg[1], keys={"notes"})
 
             if msg[0] == "seteventbuttons":
                 core.scenes[msg[1]].eventButtons = msg[2]
-                self.pushMeta(msg[1], keys={'eventButtons'})
+                self.pushMeta(msg[1], keys={"eventButtons"})
 
             if msg[0] == "setinfodisplay":
                 core.scenes[msg[1]].infoDisplay = msg[2]
-                self.pushMeta(msg[1], keys={'infoDisplay'})
+                self.pushMeta(msg[1], keys={"infoDisplay"})
 
             if msg[0] == "setutility":
                 core.scenes[msg[1]].utility = msg[2]
-                self.pushMeta(msg[1], keys={'utility'})
+                self.pushMeta(msg[1], keys={"utility"})
 
             if msg[0] == "setdisplaytags":
                 core.scenes[msg[1]].setDisplayTags(msg[2])
-                self.pushMeta(msg[1], keys={'displayTags'})
+                self.pushMeta(msg[1], keys={"displayTags"})
 
             if msg[0] == "setMqttServer":
                 if kaithem.users.checkPermission(user, "/admin/modules.edit"):
                     core.scenes[msg[1]].setMqttServer(msg[2])
-                    self.pushMeta(msg[1], keys={'mqttServer'})
+                    self.pushMeta(msg[1], keys={"mqttServer"})
 
             if msg[0] == "clonescene":
                 s = Scene(msg[2])
@@ -1580,7 +1738,7 @@ class ChandlerConsole():
                     del universes.universes[msg[1]]().channels[msg[2]]
 
             if msg[0] == "addcueval":
-                if hasattr(cues[msg[1]].scene().blendClass, 'default_channel_value'):
+                if hasattr(cues[msg[1]].scene().blendClass, "default_channel_value"):
                     val = cues[msg[1]].scene().blendClass.default_channel_value
                 else:
                     val = 0
@@ -1588,7 +1746,6 @@ class ChandlerConsole():
                 cues[msg[1]].setValue(msg[2], str(msg[3]).split(":")[-1], val)
 
             if msg[0] == "setcuevaldata":
-
                 # Verify correct data
                 for i in msg[2]:
                     for j in msg[2][i]:
@@ -1609,18 +1766,18 @@ class ChandlerConsole():
                 cue = cues[msg[1]]
 
                 # Can add a length and start point to the cue.
-                #index = int(msg[3])
+                # index = int(msg[3])
                 length = int(msg[4])
                 spacing = int(msg[5])
 
                 # Get rid of any index part, treat it like it's part of the same fixture.
-                x = core.fixtures[msg[2].split('[')[0]]()
+                x = core.fixtures[msg[2].split("[")[0]]()
                 # Add every non-unused channel.  Fixtures
                 # Are stored as if they are their own universe, starting with an @ sign.
                 # Channels are stored by name and not by number.
                 for i in x.channels:
                     if not i[1] in ("unused", "fixed"):
-                        if hasattr(cue.scene().blendClass, 'default_channel_value'):
+                        if hasattr(cue.scene().blendClass, "default_channel_value"):
                             val = cue.scene().blendClass.default_channel_value
                         else:
                             val = 0
@@ -1635,13 +1792,12 @@ class ChandlerConsole():
                     # The __dest__ channels represet the color at the end of the channel
                     for i in x.channels:
                         if not i[1] in ("unused", "fixed"):
-                            if hasattr(cue.scene().blendClass, 'default_channel_value'):
+                            if hasattr(cue.scene().blendClass, "default_channel_value"):
                                 val = cue.scene().blendClass.default_channel_value
                             else:
                                 val = 0
                             # i[0] is the name of the channel
-                            cue.setValue(
-                                "@" + msg[2], "__dest__." + str(i[0]), val)
+                            cue.setValue("@" + msg[2], "__dest__." + str(i[0]), val)
 
                 self.link.send(["cuedata", msg[1], cue.values])
 
@@ -1665,12 +1821,15 @@ class ChandlerConsole():
                     self.pushCueList(s.id)
                     self.pushMeta(msg[1])
                     self.pushfixtures()
+
                 kaithem.misc.do(f)
 
             if msg[0] == "getallcuemeta":
+
                 def f():
                     for i in core.scenes[msg[1]].cues:
                         self.pushCueMeta(core.scenes[msg[1]].cues[i].id)
+
                 kaithem.misc.do(f)
 
             if msg[0] == "getcuedata":
@@ -1679,17 +1838,16 @@ class ChandlerConsole():
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "getfixtureclass":
-                self.link.send(
-                    ["fixtureclass", msg[1], self.fixtureClasses[msg[1]]])
+                self.link.send(["fixtureclass", msg[1], self.fixtureClasses[msg[1]]])
 
             if msg[0] == "getfixtureclasses":
                 # Send placeholder lists
                 self.link.send(
-                    ["fixtureclasses", {i: [] for i in self.fixtureClasses.keys()}])
+                    ["fixtureclasses", {i: [] for i in self.fixtureClasses.keys()}]
+                )
 
-            if msg[0] == 'listsoundfolder':
-                self.link.send(
-                    ["soundfolderlisting", msg[1], listsoundfolder(msg[1])])
+            if msg[0] == "listsoundfolder":
+                self.link.send(["soundfolderlisting", msg[1], listsoundfolder(msg[1])])
 
             if msg[0] == "getcuemeta":
                 s = cues[msg[1]]
@@ -1709,15 +1867,13 @@ class ChandlerConsole():
                             except Exception:
                                 print(traceback.format_exc())
                         try:
-                            self.pushCueMeta(
-                                self.scenememory[i].cues['default'].id)
+                            self.pushCueMeta(self.scenememory[i].cues["default"].id)
                         except Exception:
                             print(traceback.format_exc())
 
                         try:
                             for j in self.scenememory[i].cues:
-                                self.pushCueMeta(
-                                    self.scenememory[i].cues[j].id)
+                                self.pushCueMeta(self.scenememory[i].cues[j].id)
                         except Exception:
                             print(traceback.format_exc())
 
@@ -1730,14 +1886,29 @@ class ChandlerConsole():
 
                 shows = os.path.join(kaithem.misc.vardir, "chandler", "shows")
                 if os.path.isdir(shows):
-                    self.link.send(['shows', [i for i in os.listdir(
-                        shows) if os.path.isdir(os.path.join(shows, i))]])
+                    self.link.send(
+                        [
+                            "shows",
+                            [
+                                i
+                                for i in os.listdir(shows)
+                                if os.path.isdir(os.path.join(shows, i))
+                            ],
+                        ]
+                    )
 
-                setups = os.path.join(
-                    kaithem.misc.vardir, "chandler", "setups")
+                setups = os.path.join(kaithem.misc.vardir, "chandler", "setups")
                 if os.path.isdir(setups):
-                    self.link.send(['setups', [i for i in os.listdir(
-                        setups) if os.path.isdir(os.path.join(setups, i))]])
+                    self.link.send(
+                        [
+                            "setups",
+                            [
+                                i
+                                for i in os.listdir(setups)
+                                if os.path.isdir(os.path.join(setups, i))
+                            ],
+                        ]
+                    )
 
             # There's such a possibility for an iteration error if universes changes.
             # I'm not going to worry about it, this is only for the GUI list of universes.
@@ -1788,8 +1959,13 @@ class ChandlerConsole():
                     core.scenes[msg[1]].addCue(n)
 
             if msg[0] == "searchsounds":
-                self.link.send(['soundsearchresults', msg[1],
-                               searchPaths(msg[1], core.getSoundFolders())])
+                self.link.send(
+                    [
+                        "soundsearchresults",
+                        msg[1],
+                        searchPaths(msg[1], core.getSoundFolders()),
+                    ]
+                )
 
             if msg[0] == "newFromSound":
                 bn = os.path.basename(msg[2])
@@ -1804,14 +1980,14 @@ class ChandlerConsole():
                 bn = bn.replace("'", "")
                 # Also the double quotesif they show up
                 bn = bn.replace('"', "")
-                bn = bn.replace('(', "")
-                bn = bn.replace(')', "")
-                bn = bn.replace('[', "")
-                bn = bn.replace(']', "")
+                bn = bn.replace("(", "")
+                bn = bn.replace(")", "")
+                bn = bn.replace("[", "")
+                bn = bn.replace("]", "")
 
                 # Sometimes used as a stylized S
-                bn = bn.replace('$', "S")
-                bn = bn.replace('@', " at ")
+                bn = bn.replace("$", "S")
+                bn = bn.replace("@", " at ")
 
                 # Usually going to be the number sign, we can ditch
                 bn = bn.replace("#", "")
@@ -1834,7 +2010,7 @@ class ChandlerConsole():
                         if not i.endswith("/"):
                             i = i + "/"
                         if s.startswith(i):
-                            s = s[len(i):]
+                            s = s[len(i) :]
                             break
                     core.scenes[msg[1]].cues[bn].sound = s
                     core.scenes[msg[1]].cues[bn].namedForSound = True
@@ -1849,14 +2025,14 @@ class ChandlerConsole():
                 bn = bn.replace("'", "")
                 # Also the double quotesif they show up
                 bn = bn.replace('"', "")
-                bn = bn.replace('(', "")
-                bn = bn.replace(')', "")
-                bn = bn.replace('[', "")
-                bn = bn.replace(']', "")
+                bn = bn.replace("(", "")
+                bn = bn.replace(")", "")
+                bn = bn.replace("[", "")
+                bn = bn.replace("]", "")
 
                 # Sometimes used as a stylized S
-                bn = bn.replace('$', "S")
-                bn = bn.replace('@', " at ")
+                bn = bn.replace("$", "S")
+                bn = bn.replace("@", " at ")
 
                 # Usually going to be the number sign, we can ditch
                 bn = bn.replace("#", "")
@@ -1876,7 +2052,7 @@ class ChandlerConsole():
                         if not i.endswith("/"):
                             i = i + "/"
                         if s.startswith(i):
-                            s = s[len(i):]
+                            s = s[len(i) :]
                             break
                     core.scenes[msg[1]].cues[bn].slide = s
 
@@ -1885,7 +2061,7 @@ class ChandlerConsole():
             if msg[0] == "gotonext":
                 if cues[msg[1]].nextCue:
                     try:
-                        cues[msg[1]].scene().nextCue(cause='manual')
+                        cues[msg[1]].scene().nextCue(cause="manual")
                     except Exception:
                         print(traceback.format_exc())
 
@@ -1923,8 +2099,7 @@ class ChandlerConsole():
                     v = float(msg[2])
                 except Exception:
                     v = msg[2]
-                cues[msg[1]].soundLoops = v if (
-                    not v == -1) else 99999999999999999
+                cues[msg[1]].soundLoops = v if (not v == -1) else 99999999999999999
 
                 self.pushCueMeta(msg[1])
                 cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
@@ -1963,13 +2138,14 @@ class ChandlerConsole():
                     if not i.endswith("/"):
                         i = i + "/"
                     if s.startswith(i):
-                        s = s[len(i):]
+                        s = s[len(i) :]
                         break
 
                 if s.strip() and cues[msg[1]].sound and cues[msg[1]].namedForSound:
                     self.pushCueMeta(msg[1])
                     raise RuntimeError(
-                        "This cue was named for a specific sound file, forbidding change to avoid confusion.  To override, set to no sound first")
+                        "This cue was named for a specific sound file, forbidding change to avoid confusion.  To override, set to no sound first"
+                    )
                 cues[msg[1]].sound = s
                 self.pushCueMeta(msg[1])
 
@@ -1983,7 +2159,7 @@ class ChandlerConsole():
                     if not i.endswith("/"):
                         i = i + "/"
                     if s.startswith(i):
-                        s = s[len(i):]
+                        s = s[len(i) :]
                         break
 
                 cues[msg[1]].slide = s
@@ -2027,24 +2203,24 @@ class ChandlerConsole():
 
             if msg[0] == "setdefaultactive":
                 core.scenes[msg[1]].defaultActive = bool(msg[2])
-                self.pushMeta(msg[1], keys={'active'})
+                self.pushMeta(msg[1], keys={"active"})
 
             if msg[0] == "setbacktrack":
                 core.scenes[msg[1]].setBacktrack(bool(msg[2]))
-                self.pushMeta(msg[1], keys={'backtrack'})
+                self.pushMeta(msg[1], keys={"backtrack"})
 
             if msg[0] == "setscenesoundout":
                 core.scenes[msg[1]].soundOutput = msg[2]
-                self.pushMeta(msg[1], keys={'soundOutput'})
+                self.pushMeta(msg[1], keys={"soundOutput"})
 
             if msg[0] == "setsceneslideoverlay":
                 core.scenes[msg[1]].slideOverlayURL = msg[2]
-                self.pushMeta(msg[1], keys={'slideOverlayURL'})
+                self.pushMeta(msg[1], keys={"slideOverlayURL"})
 
             if msg[0] == "setscenecommandtag":
                 core.scenes[msg[1]].setCommandTag(msg[2])
 
-                self.pushMeta(msg[1], keys={'commandTag'})
+                self.pushMeta(msg[1], keys={"commandTag"})
 
             if msg[0] == "setlength":
                 try:
@@ -2112,7 +2288,9 @@ class ChandlerConsole():
                     core.scenes_by_name[msg[1]].stop()
                 else:
                     core.scenes_by_name[msg[1]].go()
-                self.pushMeta(msg[1],)
+                self.pushMeta(
+                    msg[1],
+                )
 
             if msg[0] == "stop":
                 x = core.scenes[msg[1]]
@@ -2130,8 +2308,12 @@ class ChandlerConsole():
 
         except Exception:
             rl_log_exc("Error handling command")
-            self.pushEv('board.error', "__this_lightboard__",
-                        time.time(), traceback.format_exc(8))
+            self.pushEv(
+                "board.error",
+                "__this_lightboard__",
+                time.time(),
+                traceback.format_exc(8),
+            )
             print(msg, traceback.format_exc(8))
 
     def setChannelName(self, id, name="Untitled"):
@@ -2156,7 +2338,14 @@ class ChandlerConsole():
             for i in snapshot:
                 if not self.id in snapshot[i].statusChanged:
                     self.link.send(
-                        ["universe_status", i, snapshot[i].status, snapshot[i].ok, snapshot[i].telemetry])
+                        [
+                            "universe_status",
+                            i,
+                            snapshot[i].status,
+                            snapshot[i].ok,
+                            snapshot[i].telemetry,
+                        ]
+                    )
                     snapshot[i].statusChanged[self.id] = True
 
             for i in self.scenememory:
@@ -2166,11 +2355,20 @@ class ChandlerConsole():
                     self.scenememory[i].hasNewInfo[self.id] = False
 
                 # special case the monitor scenes.
-                if self.scenememory[i].blend == "monitor" and self.scenememory[i].isActive() and self.id not in self.scenememory[i].valueschanged:
+                if (
+                    self.scenememory[i].blend == "monitor"
+                    and self.scenememory[i].isActive()
+                    and self.id not in self.scenememory[i].valueschanged
+                ):
                     self.scenememory[i].valueschanged[self.id] = True
                     # Numpy scalars aren't serializable, so we have to un-numpy them in case
                     self.link.send(
-                        ["cuedata", self.scenememory[i].cue.id, self.scenememory[i].cue.values])
+                        [
+                            "cuedata",
+                            self.scenememory[i].cue.id,
+                            self.scenememory[i].cue.values,
+                        ]
+                    )
 
             for i in core.activeScenes:
                 # Tell clients about any changed alpha values and stuff.
@@ -2198,14 +2396,13 @@ def applyLayer(universe, uvalues, scene, uobj):
     # if it handles fading in a different way.
     # This will look really bad for complex things, to try and reduce them to a series of fades,
     # but we just do the best we can, and assume there's mostly only 1 scene at a time affecting things
-    uobj.fadeEndTime = max(
-        uobj.fadeEndTime, scene.cue.fadein + scene.enteredCue)
+    uobj.fadeEndTime = max(uobj.fadeEndTime, scene.cue.fadein + scene.enteredCue)
 
     ualphas = uobj.alphas
 
     if scene.blend == "normal":
         # todo: is it bad to multiply by bool?
-        unsetVals = (ualphas == 0.0)
+        unsetVals = ualphas == 0.0
         fade = numpy.maximum(scene.alpha, unsetVals & uobj.hueBlendMask)
 
         uvalues = composite(uvalues, vals, alphas, fade)
@@ -2224,8 +2421,7 @@ def applyLayer(universe, uvalues, scene, uobj):
         if scene.alpha:
             # precompute constants
             c = 255 / scene.alpha
-            uvalues = (uvalues * (1 - alphas * scene.alpha)) + \
-                (uvalues * vals) / c
+            uvalues = (uvalues * (1 - alphas * scene.alpha)) + (uvalues * vals) / c
 
             # COMPLETELY incorrect, but we don't use alpha for that much, and the real math
             # Is compliccated. #TODO
@@ -2233,8 +2429,7 @@ def applyLayer(universe, uvalues, scene, uobj):
 
     elif scene._blend:
         try:
-            uvalues = scene._blend.frame(
-                universe, uvalues, vals, alphas, scene.alpha)
+            uvalues = scene._blend.frame(universe, uvalues, vals, alphas, scene.alpha)
             # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
             ualphas = (alphas * scene.alpha) > 0
         except Exception:
@@ -2262,7 +2457,7 @@ def pre_render():
                     changedUniverses[u] = (0, 0)
 
                     # We are below the cached layer, we need to fully reset
-                    if ((i.priority, i.started) <= universe.prerendered_layer):
+                    if (i.priority, i.started) <= universe.prerendered_layer:
                         to_reset[u] = 1
                     else:
                         # We are stacking on another layer or changing the top layer. We don't need
@@ -2300,10 +2495,11 @@ def render(t=None):
 
     # Remember that scenes get rendered in ascending priority order here
     for i in core.activeScenes:
-
         # We don't need to call render() if the frame is a static scene and the opacity
         # and all that is the same, we can just re-layer it on top of the values
-        if i.rerender or (i.cue.length and ((time.time() - i.enteredCue) > i.cuelen * (60 / i.bpm))):
+        if i.rerender or (
+            i.cue.length and ((time.time() - i.enteredCue) > i.cuelen * (60 / i.bpm))
+        ):
             i.rerender = False
             i.render()
 
@@ -2327,13 +2523,17 @@ def render(t=None):
             if (i.priority, i.started) > universeObject.top_layer:
                 # If this layer we are about to render was found to be the highest layer that likely won't need rerendering,
                 # Save the state just befor we apply that layer.
-                if (universeObject.save_before_layer == (i.priority, i.started)) and not ((i.priority, i.started) == (0, 0)):
+                if (
+                    universeObject.save_before_layer == (i.priority, i.started)
+                ) and not ((i.priority, i.started) == (0, 0)):
                     universeObject.save_prerendered(
-                        universeObject.top_layer[0], universeObject.top_layer[1])
+                        universeObject.top_layer[0], universeObject.top_layer[1]
+                    )
 
                 changedUniverses[u] = (i.priority, i.started)
                 universeObject.values = applyLayer(
-                    u, universeObject.values, i, universeObject)
+                    u, universeObject.values, i, universeObject
+                )
                 universeObject.top_layer = (i.priority, i.started)
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
@@ -2363,7 +2563,7 @@ def makeBlankArray(l):
     return numpy.array(x, dtype="f4")
 
 
-class FadeCanvas():
+class FadeCanvas:
     def __init__(self):
         "Handles calculating the effect of one scene over a background. This doesn't do blend modes, it just interpolates."
         self.v = {}
@@ -2408,7 +2608,7 @@ class FadeCanvas():
 
             # We don't want to fade any values that have 0 alpha in the scene,
             # because that's how we mark "not present", and we want to track the old val.
-            #faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
+            # faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
             faded = self.v[i] * (1 - effectiveFade) + (effectiveFade * vals[i])
 
             # We always want to jump straight to the value if alpha was previously 0.
@@ -2457,8 +2657,10 @@ def getAllDeviceTagPoints():
     for i in kaithem.devices:
         o[i] = {}
         for j in kaithem.devices[i].tagpoints:
-            o[i][j] = [kaithem.devices[i].tagpoints[j].name,
-                       kaithem.devices[i].tagpoints[j].subtype]
+            o[i][j] = [
+                kaithem.devices[i].tagpoints[j].name,
+                kaithem.devices[i].tagpoints[j].subtype,
+            ]
 
 
 def shortcutCode(code, limitScene=None):
@@ -2474,13 +2676,13 @@ def shortcutCode(code, limitScene=None):
                     x = i.scene()
                     if limitScene:
                         if (not x is limitScene) and not (x.name == limitScene):
-                            print('skip ' + x.name, limitScene)
+                            print("skip " + x.name, limitScene)
                             continue
                         x.event("shortcut." + str(code)[:64])
 
                     if x:
                         x.go()
-                        x.gotoCue(i.name, cause='manual')
+                        x.gotoCue(i.name, cause="manual")
                 except Exception:
                     print(traceback.format_exc())
 
@@ -2490,65 +2692,135 @@ cues = weakref.WeakValueDictionary()
 core.cuesByID = cues
 
 cueDefaults = {
-
     "fadein": 0,
     "soundFadeOut": 0,
     "soundFadeIn": 0,
     "length": 0,
     "track": True,
-    "nextCue": '',
+    "nextCue": "",
     "sound": "",
     "slide": "",
-    'notes': '',
-    "soundOutput": '',
+    "notes": "",
+    "soundOutput": "",
     "soundStartPosition": 0,
     "mediaSpeed": 1,
     "mediaWindup": 0,
     "mediaWinddown": 1,
     "rel_length": False,
     "lengthRandomize": 0,
-    'inheritRules': '',
-    'rules': [],
-    'probability': '',
-    'values': {},
-    'soundVolume': 1,
-    'soundLoops': 0,
-
-    'namedForSound': False
+    "inheritRules": "",
+    "rules": [],
+    "probability": "",
+    "values": {},
+    "soundVolume": 1,
+    "soundLoops": 0,
+    "namedForSound": False,
 }
 
 
-class Cue():
+class Cue:
     "A static set of values with a fade in and out duration"
-    __slots__ = ['id', 'changed', 'next_ll', 'alpha', 'fadein', 'length', 'lengthRandomize', 'name', 'values', 'scene',
-                 'nextCue', 'track', 'notes', 'shortcut', 'number', 'inherit', 'sound', 'slide', 'rel_length',
-                 'soundOutput', 'soundStartPosition', 'mediaSpeed', "mediaWindup", "mediaWinddown", 'onEnter', 'onExit', 'influences', 'associations', "rules", "reentrant", "inheritRules", "soundFadeIn", "soundFadeOut", "soundVolume", 'soundLoops', 'namedForSound', 'probability',
-                 '__weakref__']
+    __slots__ = [
+        "id",
+        "changed",
+        "next_ll",
+        "alpha",
+        "fadein",
+        "length",
+        "lengthRandomize",
+        "name",
+        "values",
+        "scene",
+        "nextCue",
+        "track",
+        "notes",
+        "shortcut",
+        "number",
+        "inherit",
+        "sound",
+        "slide",
+        "rel_length",
+        "soundOutput",
+        "soundStartPosition",
+        "mediaSpeed",
+        "mediaWindup",
+        "mediaWinddown",
+        "onEnter",
+        "onExit",
+        "influences",
+        "associations",
+        "rules",
+        "reentrant",
+        "inheritRules",
+        "soundFadeIn",
+        "soundFadeOut",
+        "soundVolume",
+        "soundLoops",
+        "namedForSound",
+        "probability",
+        "__weakref__",
+    ]
 
-    def __init__(self, parent, name, f=False, values=None, alpha=1, fadein=0, length=0, track=True, nextCue=None, shortcut='', sound='', slide='', soundOutput='', soundStartPosition=0, mediaSpeed=1, mediaWindup=0, mediaWinddown=0, rel_length=False, id=None, number=None,
-                 lengthRandomize=0, script='', onEnter=None, onExit=None, rules=None, reentrant=True, soundFadeIn=0, notes='', soundFadeOut=0, inheritRules='', soundVolume=1, soundLoops=0, namedForSound=False, probability='', **kw):
+    def __init__(
+        self,
+        parent,
+        name,
+        f=False,
+        values=None,
+        alpha=1,
+        fadein=0,
+        length=0,
+        track=True,
+        nextCue=None,
+        shortcut="",
+        sound="",
+        slide="",
+        soundOutput="",
+        soundStartPosition=0,
+        mediaSpeed=1,
+        mediaWindup=0,
+        mediaWinddown=0,
+        rel_length=False,
+        id=None,
+        number=None,
+        lengthRandomize=0,
+        script="",
+        onEnter=None,
+        onExit=None,
+        rules=None,
+        reentrant=True,
+        soundFadeIn=0,
+        notes="",
+        soundFadeOut=0,
+        inheritRules="",
+        soundVolume=1,
+        soundLoops=0,
+        namedForSound=False,
+        probability="",
+        **kw
+    ):
         # This is so we can loop through them and push to gui
         self.id = uuid.uuid4().hex
         self.name = name
 
         # Now unused
-        #self.script = script
+        # self.script = script
         self.onEnter = onEnter
         self.onExit = onExit
-        self.inheritRules = inheritRules or ''
+        self.inheritRules = inheritRules or ""
         self.reentrant = True
         self.soundVolume = soundVolume
         self.soundLoops = soundLoops
         self.namedForSound = namedForSound
         self.probability = probability
-        self.notes = ''
+        self.notes = ""
 
         # Rules created via the GUI logic editor
         self.rules = rules or []
 
         disallow_special(name, allowedCueNameSpecials)
-        if name[0] in '1234567890 \t_':
-            name = 'x' + name
+        if name[0] in "1234567890 \t_":
+            name = "x" + name
 
         if id:
             disallow_special(id)
@@ -2572,14 +2844,14 @@ class Cue():
         self.lengthRandomize = lengthRandomize
         self.values = values or {}
         self.scene = weakref.ref(parent)
-        self.nextCue = nextCue or ''
+        self.nextCue = nextCue or ""
         # Note: This refers to tracking as found on lighting gear, not the old concept of track from
         # the first version
         self.track = track
         self.shortcut = None
-        self.sound = sound or ''
-        self.slide = slide or ''
-        self.soundOutput = soundOutput or ''
+        self.sound = sound or ""
+        self.slide = slide or ""
+        self.soundOutput = soundOutput or ""
         self.soundStartPosition = soundStartPosition
         self.mediaSpeed = mediaSpeed
         self.mediaWindup = mediaWindup
@@ -2587,11 +2859,11 @@ class Cue():
 
         # Used for the livingnight algorithm
         # Aspect, value tuples
-        #self.influences = {}
+        # self.influences = {}
 
         # List if tuples(type, aspect, effect)
         # Type is what parameter if the cue is being affected
-        #self.associations = []
+        # self.associations = []
 
         self.setShortcut(shortcut, False)
 
@@ -2614,16 +2886,38 @@ class Cue():
     #     return s
 
     def serialize(self):
-        x = {"fadein": self.fadein, "length": self.length, 'lengthRandomize': self.lengthRandomize, "shortcut": self.shortcut, "values": self.values,
-             "nextCue": self.nextCue, "track": self.track, 'notes': self.notes, "number": self.number, 'sound': self.sound, 'soundOutput': self.soundOutput,
-             'soundStartPosition': self.soundStartPosition, 'slide': self.slide, 'mediaSpeed': self.mediaSpeed, 'mediaWindup': self.mediaWindup, 'mediaWinddown': self.mediaWinddown,
-             'rel_length': self.rel_length, 'probability': self.probability, 'rules': self.rules,
-             'reentrant': self.reentrant, 'inheritRules': self.inheritRules, "soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, "soundLoops": self.soundLoops, 'namedForSound': self.namedForSound
-             }
+        x = {
+            "fadein": self.fadein,
+            "length": self.length,
+            "lengthRandomize": self.lengthRandomize,
+            "shortcut": self.shortcut,
+            "values": self.values,
+            "nextCue": self.nextCue,
+            "track": self.track,
+            "notes": self.notes,
+            "number": self.number,
+            "sound": self.sound,
+            "soundOutput": self.soundOutput,
+            "soundStartPosition": self.soundStartPosition,
+            "slide": self.slide,
+            "mediaSpeed": self.mediaSpeed,
+            "mediaWindup": self.mediaWindup,
+            "mediaWinddown": self.mediaWinddown,
+            "rel_length": self.rel_length,
+            "probability": self.probability,
+            "rules": self.rules,
+            "reentrant": self.reentrant,
+            "inheritRules": self.inheritRules,
+            "soundFadeIn": self.soundFadeIn,
+            "soundFadeOut": self.soundFadeOut,
+            "soundVolume": self.soundVolume,
+            "soundLoops": self.soundLoops,
+            "namedForSound": self.namedForSound,
+        }
 
         # Cleanup defaults
-        if x['shortcut'] == number_to_shortcut(self.number):
-            del x['shortcut']
+        if x["shortcut"] == number_to_shortcut(self.number):
+            del x["shortcut"]
         for i in cueDefaults:
             if str(x[i]) == str(cueDefaults[i]):
                 del x[i]
@@ -2643,7 +2937,8 @@ class Cue():
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
                 i().newDataFunctions.append(
-                    lambda s: s.link.send(["scv", self.id, u, ch, v]))
+                    lambda s: s.link.send(["scv", self.id, u, ch, v])
+                )
 
     def clone(self, name):
         name = self.scene().evalExpr(name)
@@ -2651,8 +2946,16 @@ class Cue():
         if name in self.scene().cues:
             raise RuntimeError("Cannot duplicate cue names in one scene")
 
-        c = Cue(self.scene(), name, fadein=self.fadein, length=self.length, lengthRandomize=self.lengthRandomize,
-                values=copy.deepcopy(self.values), nextCue=self.nextCue, rel_length=self.rel_length)
+        c = Cue(
+            self.scene(),
+            name,
+            fadein=self.fadein,
+            length=self.length,
+            lengthRandomize=self.lengthRandomize,
+            values=copy.deepcopy(self.values),
+            nextCue=self.nextCue,
+            rel_length=self.rel_length,
+        )
 
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
@@ -2668,8 +2971,9 @@ class Cue():
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
         if self.shortcut == number_to_shortcut(self.number):
-            self.setShortcut(number_to_shortcut(
-                int((Decimal(n) * Decimal(1000)).quantize(1))))
+            self.setShortcut(
+                number_to_shortcut(int((Decimal(n) * Decimal(1000)).quantize(1)))
+            )
         self.number = int((Decimal(n) * Decimal(1000)).quantize(1))
 
         # re-sort the cuelist
@@ -2688,7 +2992,7 @@ class Cue():
     def setShortcut(self, code, push=True):
         disallow_special(code, allow="._")
 
-        if code == '__generate__from__number__':
+        if code == "__generate__from__number__":
             code = number_to_shortcut(self.number)
         with core.lock:
             if self.shortcut in shortcut_codes:
@@ -2731,11 +3035,9 @@ class Cue():
         if isinstance(channel, (int, float)):
             pass
         elif isinstance(channel, str):
-
             x = channel.strip()
             if not x == channel:
-                raise ValueError(
-                    "Channel name cannot begin or end with whitespace")
+                raise ValueError("Channel name cannot begin or end with whitespace")
 
             # If it looks like an int, cast it even if it's a string,
             # We get a lot of raw user input that looks like that.
@@ -2784,7 +3086,10 @@ class Cue():
                 self.scene().rerender = True
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
-                if unmappeduniverse in self.values and '__length__' in self.values[unmappeduniverse]:
+                if (
+                    unmappeduniverse in self.values
+                    and "__length__" in self.values[unmappeduniverse]
+                ):
                     self.scene().cueValsToNumpyCache(self, False)
 
                     # The FadeCanvas needs to know about this change
@@ -2794,18 +3099,24 @@ class Cue():
                 elif x:
                     universe, channel = x[0], x[1]
 
-                    if (not universe in self.scene().cue_cached_alphas_as_arrays) and not value is None:
+                    if (
+                        not universe in self.scene().cue_cached_alphas_as_arrays
+                    ) and not value is None:
                         uobj = getUniverse(universe)
                         if uobj:
-                            self.scene().cue_cached_vals_as_arrays[universe] = numpy.array(
-                                [0.0] * len(uobj.values), dtype="f4")
-                            self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array(
-                                [0.0] * len(uobj.values), dtype="f4")
+                            self.scene().cue_cached_vals_as_arrays[
+                                universe
+                            ] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                            self.scene().cue_cached_alphas_as_arrays[
+                                universe
+                            ] = numpy.array([0.0] * len(uobj.values), dtype="f4")
                     if universe in self.scene().cue_cached_alphas_as_arrays:
-                        self.scene(
-                        ).cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
-                        self.scene().cue_cached_vals_as_arrays[universe][channel] = self.scene(
-                        ).evalExpr(value if not value is None else 0)
+                        self.scene().cue_cached_alphas_as_arrays[universe][channel] = (
+                            1 if not value is None else 0
+                        )
+                        self.scene().cue_cached_vals_as_arrays[universe][
+                            channel
+                        ] = self.scene().evalExpr(value if not value is None else 0)
                     if not universe in self.scene().affect:
                         self.scene().affect.append(universe)
 
@@ -2820,21 +3131,41 @@ class Cue():
                 self.scene().setBlend(self.scene().blend)
 
 
-class ClosedScene():
+class ClosedScene:
     pass
 
 
-class Scene():
+class Scene:
     "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
 
-    def __init__(self, name=None, values=None, active=False, alpha=1, priority=50, blend="normal", id=None, defaultActive=True,
-                 blendArgs=None, backtrack=True, defaultCue=True, bpm=60,
-                 soundOutput='', eventButtons=[], displayTags=[], infoDisplay="", utility=False, notes='',
-                 mqttServer='', crossfade=0, midiSource='', defaultNext='', commandTag='',
-                 slideOverlayURL='',
-
-                 **ignoredParams):
-
+    def __init__(
+        self,
+        name=None,
+        values=None,
+        active=False,
+        alpha=1,
+        priority=50,
+        blend="normal",
+        id=None,
+        defaultActive=True,
+        blendArgs=None,
+        backtrack=True,
+        defaultCue=True,
+        bpm=60,
+        soundOutput="",
+        eventButtons=[],
+        displayTags=[],
+        infoDisplay="",
+        utility=False,
+        notes="",
+        mqttServer="",
+        crossfade=0,
+        midiSource="",
+        defaultNext="",
+        commandTag="",
+        slideOverlayURL="",
+        **ignoredParams
+    ):
         if name and name in core.scenes_by_name:
             raise RuntimeError("Cannot have 2 scenes sharing a name: " + name)
 
@@ -2859,17 +3190,31 @@ class Scene():
         self.allowMediaUrlRemote = None
 
         def handleMediaLink(u, v):
-            if v[0] == 'ask':
-                self.mediaLink.send(['volume', self.alpha])
-                self.mediaLink.send(['mediaURL', self.allowMediaUrlRemote, self.enteredCue, max(
-                    0, self.cue.soundFadeIn or self.crossfade)])
-                self.mediaLink.send(["slide", self.cue.slide, self.enteredCue, max(
-                    0, self.cue.fadein or self.crossfade)])
+            if v[0] == "ask":
+                self.mediaLink.send(["volume", self.alpha])
+                self.mediaLink.send(
+                    [
+                        "mediaURL",
+                        self.allowMediaUrlRemote,
+                        self.enteredCue,
+                        max(0, self.cue.soundFadeIn or self.crossfade),
+                    ]
+                )
+                self.mediaLink.send(
+                    [
+                        "slide",
+                        self.cue.slide,
+                        self.enteredCue,
+                        max(0, self.cue.fadein or self.crossfade),
+                    ]
+                )
                 self.mediaLink.send(["overlay", self.slideOverlayURL])
 
-            if v[0] == 'error':
+            if v[0] == "error":
                 self.event(
-                    "system.error", "Web media playback error in remote browser: " + v[1])
+                    "system.error",
+                    "Web media playback error in remote browser: " + v[1],
+                )
 
         self.mediaLink.attach(handleMediaLink)
         self.lock = threading.RLock()
@@ -2885,18 +3230,18 @@ class Scene():
         self.setDisplayTags(displayTags)
 
         self.notes = notes
-        self.midiSource = ''
+        self.midiSource = ""
         self.defaultNext = str(defaultNext).strip()
 
         self.id = id or uuid.uuid4().hex
 
         # TagPoint for managing the current cue
-        self.cueTag = kaithem.tags.StringTag(
-            "/chandler/scenes/" + name + ".cue")
+        self.cueTag = kaithem.tags.StringTag("/chandler/scenes/" + name + ".cue")
         self.cueTag.expose("users.chandler.admin", "users.chandler.admin")
 
         self.cueTagClaim = self.cueTag.claim(
-            "__stopped__", "Scene", 50, annotation="SceneObject")
+            "__stopped__", "Scene", 50, annotation="SceneObject"
+        )
 
         self.cueVolume = 1
 
@@ -2910,19 +3255,22 @@ class Scene():
                 self.stop()
             else:
                 # Just goto the cue
-                self.gotoCue(val, cause='tagpoint')
+                self.gotoCue(val, cause="tagpoint")
+
         self.cueTagHandler = cueTagHandler
 
         self.cueTag.subscribe(cueTagHandler)
 
         # This is used to expose the state of the music cue mostly.
         self.cueInfoTag = kaithem.tags.ObjectTag(
-            "/chandler/scenes/" + name + ".cueInfo")
+            "/chandler/scenes/" + name + ".cueInfo"
+        )
         self.cueInfoTag.value = {"audio.meta": {}}
         self.cueInfoTag.expose("users.chandler.admin", "users.chandler.admin")
 
         self.albumArtTag = kaithem.tags.StringTag(
-            "/chandler/scenes/" + name + ".albumArt")
+            "/chandler/scenes/" + name + ".albumArt"
+        )
         self.albumArtTag.expose("users.chandler.admin")
 
         # Used to determine the numbering of added cues
@@ -2944,7 +3292,8 @@ class Scene():
         self.alphaTag.expose("users.chandler.admin", "users.chandler.admin")
 
         self.alphaTagClaim = self.alphaTag.claim(
-            self.alpha, "Scene", 50, annotation="SceneObject")
+            self.alpha, "Scene", 50, annotation="SceneObject"
+        )
 
         # Allow setting the alpha
         def alphaTagHandler(val, timestamp, annotation):
@@ -2960,7 +3309,7 @@ class Scene():
         self.defaultalpha = alpha
         self.name = name
 
-        #self.values = values or {}
+        # self.values = values or {}
         self.canvas = None
         self.backtrack = backtrack
         self.bpm = bpm
@@ -3053,7 +3402,7 @@ class Scene():
             pass
 
         if active:
-            self.gotoCue('default', sendSync=False, cause='start')
+            self.gotoCue("default", sendSync=False, cause="start")
             self.go()
             if isinstance(active, float):
                 self.started = time.time() - active
@@ -3065,34 +3414,34 @@ class Scene():
 
     def toDict(self):
         return {
-            'bpm': self.bpm,
-            'alpha': self.defaultalpha,
-            'cues': {j: self.cues[j].serialize() for j in self.cues},
-            'priority': self.priority,
-            'active': self.defaultActive,
-            'blend': self.blend,
-            'blendArgs': self.blendArgs,
-            'backtrack': self.backtrack,
-            'soundOutput': self.soundOutput,
-            'slideOverlayURL': self.slideOverlayURL,
-            'eventButtons': self.eventButtons,
-            'infoDisplay': self.infoDisplay,
-            'utility': self.utility,
-            'displayTags': self.displayTags,
-            'midiSource': self.midiSource,
-            'defaultNext': self.defaultNext,
-            'commandTag': self.commandTag,
-            'uuid': self.id,
-            'notes': self.notes,
-            'mqttServer': self.mqttServer,
-            'crossfade': self.crossfade
+            "bpm": self.bpm,
+            "alpha": self.defaultalpha,
+            "cues": {j: self.cues[j].serialize() for j in self.cues},
+            "priority": self.priority,
+            "active": self.defaultActive,
+            "blend": self.blend,
+            "blendArgs": self.blendArgs,
+            "backtrack": self.backtrack,
+            "soundOutput": self.soundOutput,
+            "slideOverlayURL": self.slideOverlayURL,
+            "eventButtons": self.eventButtons,
+            "infoDisplay": self.infoDisplay,
+            "utility": self.utility,
+            "displayTags": self.displayTags,
+            "midiSource": self.midiSource,
+            "defaultNext": self.defaultNext,
+            "commandTag": self.commandTag,
+            "uuid": self.id,
+            "notes": self.notes,
+            "mqttServer": self.mqttServer,
+            "crossfade": self.crossfade,
         }
 
     def __del__(self):
         pass
 
     def getStatusString(self):
-        x = ''
+        x = ""
         if self.mqttConnection:
             if not self.mqttConnection.statusTag.value == "connected":
                 x += "MQTT Disconnected "
@@ -3109,11 +3458,11 @@ class Scene():
 
     def evalExpr(self, s):
         """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
-            return the input.
+        return the input.
 
-            Given a number, return it.
+        Given a number, return it.
 
-            Basically, implements something like the logic from a spreadsheet app.
+        Basically, implements something like the logic from a spreadsheet app.
         """
         return self.scriptContext.preprocessArgument(s)
 
@@ -3137,7 +3486,6 @@ class Scene():
     def insertSorted(self, c):
         "Insert a None to just recalt the whole ordering"
         with core.lock:
-
             if c:
                 self.cues_ordered.append(c)
 
@@ -3173,7 +3521,10 @@ class Scene():
             if not self.cues[cue].track:
                 return None
             if self.cues[cue].inherit:
-                if self.cues[cue].inherit in self.cues and not self.cues[cue].inherit == cue:
+                if (
+                    self.cues[cue].inherit in self.cues
+                    and not self.cues[cue].inherit == cue
+                ):
                     return self.cues[cue].inherit
                 else:
                     return None
@@ -3201,9 +3552,9 @@ class Scene():
 
             if self.cue and self.name == cue:
                 try:
-                    self.gotoCue("default", cause='deletion')
+                    self.gotoCue("default", cause="deletion")
                 except Exception:
-                    self.gotoCue(self.cues_ordered[0].name, cause='deletion')
+                    self.gotoCue(self.cues_ordered[0].name, cause="deletion")
 
             if cue in cues:
                 id = cue
@@ -3215,17 +3566,16 @@ class Scene():
 
             if cue in cues:
                 id = cue
-                self.cues[cues[cue].name].setShortcut('')
+                self.cues[cues[cue].name].setShortcut("")
                 del self.cues[cues[cue].name]
             elif cue in self.cues:
                 id = self.cues[cue].id
-                self.cues[cue].setShortcut('')
+                self.cues[cue].setShortcut("")
                 del self.cues[cue]
 
             for i in core.boards:
                 if len(i().newDataFunctions) < 100:
-                    i().newDataFunctions.append(
-                        lambda s: s.link.send(["delcue", id]))
+                    i().newDataFunctions.append(lambda s: s.link.send(["delcue", id]))
             try:
                 self.cuePointer = self.cues_ordered.index(self.cue)
             except Exception:
@@ -3252,8 +3602,7 @@ class Scene():
 
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(
-                    lambda s: s.pushCueMeta(self.cues[name].id))
+                i().newDataFunctions.append(lambda s: s.pushCueMeta(self.cues[name].id))
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
                 i().newDataFunctions.append(lambda s: s.pushCueData(cue.id))
@@ -3267,15 +3616,16 @@ class Scene():
 
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(lambda s: s.pushMeta(
-                    self.id, statusOnly=statusOnly, keys=keys))
+                i().newDataFunctions.append(
+                    lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys)
+                )
 
-    def event(self, s, value=None, info=''):
+    def event(self, s, value=None, info=""):
         # No error loops allowed!
         if not s == "script.error":
             self._event(s, value, info)
 
-    def _event(self, s, value=None, info=''):
+    def _event(self, s, value=None, info=""):
         "Manually trigger any script bindings on an event"
         try:
             if self.scriptContext:
@@ -3291,16 +3641,14 @@ class Scene():
         for i in cues:
             i = i.strip()
             if i in self.cues:
-                weights.append(self.evalExpr(
-                    self.cues[i].probability.strip() or 1))
+                weights.append(self.evalExpr(self.cues[i].probability.strip() or 1))
                 names.append(i)
 
         return random.choices(names, weights=weights)[0]
 
     def _parseCueName(self, cue):
         if cue == "__shuffle__":
-            x = [i.name for i in self.cues_ordered if not (
-                i.name == self.cue.name)]
+            x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
             for i in list(reversed(self.cueHistory[-15:])):
                 if len(x) < 3:
                     break
@@ -3326,10 +3674,11 @@ class Scene():
 
             elif "*" in cue:
                 import fnmatch
+
                 x = []
 
                 if cue.startswith("shuffle:"):
-                    cue = cue[len("shuffle:"):]
+                    cue = cue[len("shuffle:") :]
                     shuffle = True
                 else:
                     shuffle = False
@@ -3365,7 +3714,7 @@ class Scene():
                     break
         return cue
 
-    def gotoCue(self, cue, t=None, sendSync=True, generateEvents=True, cause='generic'):
+    def gotoCue(self, cue, t=None, sendSync=True, generateEvents=True, cause="generic"):
         "Goto cue by name, number, or string repr of number"
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
@@ -3379,7 +3728,7 @@ class Scene():
 
         cue = str(self.evalExpr(cue))
 
-        if '?' in cue:
+        if "?" in cue:
             cue, args = cue.split("?")
             kwargs = urllib.parse.parse_qs(args)
         else:
@@ -3423,9 +3772,8 @@ class Scene():
                 else:
                     # Act like we actually we in the default cue, but allow reenter no matter what since
                     # We weren't in any cue
-                    self.cue = self.cues['default']
-                    self.cueTagClaim.set(
-                        self.cue.name, annotation="SceneObject")
+                    self.cue = self.cues["default"]
+                    self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
                 self.enteredCue = time.time()
 
@@ -3442,8 +3790,7 @@ class Scene():
                 if not (cue == self.cue.name):
                     if generateEvents:
                         if self.active and self.scriptContext:
-                            self.event("cue.exit", value=[
-                                       self.cue.name, cause])
+                            self.event("cue.exit", value=[self.cue.name, cause])
 
                 # We return if some the enter transition already
                 # Changed to a new cue
@@ -3470,9 +3817,9 @@ class Scene():
                         cobj.onEnter(t)
 
                     if generateEvents:
-                        self.event('cue.enter', [cobj.name, cause])
+                        self.event("cue.enter", [cobj.name, cause])
 
-        # We return if some the enter transition already
+                # We return if some the enter transition already
                 # Changed to a new cue
                 if not self.enteredCue == entered:
                     return
@@ -3494,12 +3841,21 @@ class Scene():
                 if self.cues[cue].track:
                     self.applyTrackedValues(cue)
 
-                self.mediaLink.send(["slide", self.cues[cue].slide, self.enteredCue, max(
-                    0, self.cues[cue].fadein or self.crossfade)])
+                self.mediaLink.send(
+                    [
+                        "slide",
+                        self.cues[cue].slide,
+                        self.enteredCue,
+                        max(0, self.cues[cue].fadein or self.crossfade),
+                    ]
+                )
 
                 # optimization, try to se if we can just increment if we are going to the next cue, else
                 # we have to actually find the index of the new cue
-                if self.cuePointer < (len(self.cues_ordered) - 1) and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]:
+                if (
+                    self.cuePointer < (len(self.cues_ordered) - 1)
+                    and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]
+                ):
                     self.cuePointer += 1
                 else:
                     self.cuePointer = self.cues_ordered.index(self.cues[cue])
@@ -3508,8 +3864,12 @@ class Scene():
                     # Don't stop audio of we're about to crossfade to the next track
                     if not (self.crossfade and self.cues[cue].sound):
                         if self.cues[cue].soundFadeOut or self.cues[cue].mediaWinddown:
-                            fadeSound(None, length=self.cues[cue].soundFadeOut, handle=str(
-                                self.id), winddown=self.cues[cue].mediaWinddown)
+                            fadeSound(
+                                None,
+                                length=self.cues[cue].soundFadeOut,
+                                handle=str(self.id),
+                                winddown=self.cues[cue].mediaWinddown,
+                            )
                         else:
                             stopSound(str(self.id))
 
@@ -3522,19 +3882,32 @@ class Scene():
                         out = None
 
                     if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
-                        self.mediaLink.send(['volume', self.alpha])
-                        self.mediaLink.send(['mediaURL', None, self.enteredCue, max(
-                            0, self.cues[cue].fadein or self.crossfade)])
+                        self.mediaLink.send(["volume", self.alpha])
+                        self.mediaLink.send(
+                            [
+                                "mediaURL",
+                                None,
+                                self.enteredCue,
+                                max(0, self.cues[cue].fadein or self.crossfade),
+                            ]
+                        )
 
                     if self.cues[cue].sound and self.active:
-
                         sound = self.cues[cue].sound
                         try:
                             self.cueVolume = min(
-                                5, max(0, float(self.evalExpr(self.cues[cue].soundVolume))))
+                                5,
+                                max(
+                                    0, float(self.evalExpr(self.cues[cue].soundVolume))
+                                ),
+                            )
                         except Exception:
                             self.event(
-                                "script.error", self.name + " in cueVolume eval:\n" + traceback.format_exc())
+                                "script.error",
+                                self.name
+                                + " in cueVolume eval:\n"
+                                + traceback.format_exc(),
+                            )
                             self.cueVolume = 1
                         try:
                             sound = self.resolveSound(sound)
@@ -3542,58 +3915,95 @@ class Scene():
                             print(traceback.format_exc())
 
                         if os.path.isfile(sound):
-
                             if not out == "scenewebplayer":
-
                                 # Always fade in if the face in time set.
                                 # Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
-                                if not (((self.crossfade > 0) and kaithem.sound.isPlaying(str(self.id))) or self.cues[cue].soundFadeIn or self.cues[cue].mediaWindup):
+                                if not (
+                                    (
+                                        (self.crossfade > 0)
+                                        and kaithem.sound.isPlaying(str(self.id))
+                                    )
+                                    or self.cues[cue].soundFadeIn
+                                    or self.cues[cue].mediaWindup
+                                ):
                                     spd = self.scriptContext.preprocessArgument(
-                                        self.cues[cue].mediaSpeed)
-                                    playSound(sound, handle=str(self.id), volume=self.alpha * self.cueVolume, output=out,
-                                              loop=self.cues[cue].soundLoops, start=self.cues[cue].soundStartPosition, speed=spd)
+                                        self.cues[cue].mediaSpeed
+                                    )
+                                    playSound(
+                                        sound,
+                                        handle=str(self.id),
+                                        volume=self.alpha * self.cueVolume,
+                                        output=out,
+                                        loop=self.cues[cue].soundLoops,
+                                        start=self.cues[cue].soundStartPosition,
+                                        speed=spd,
+                                    )
                                 else:
-                                    fadeSound(sound, length=max(self.crossfade, self.cues[cue].soundFadeIn), handle=str(self.id), volume=self.alpha * self.cueVolume, output=out, loop=self.cues[cue].soundLoops,
-                                              start=self.cues[cue].soundStartPosition, windup=self.cues[cue].mediaWindup, winddown=self.cues[cue].mediaWinddown)
+                                    fadeSound(
+                                        sound,
+                                        length=max(
+                                            self.crossfade, self.cues[cue].soundFadeIn
+                                        ),
+                                        handle=str(self.id),
+                                        volume=self.alpha * self.cueVolume,
+                                        output=out,
+                                        loop=self.cues[cue].soundLoops,
+                                        start=self.cues[cue].soundStartPosition,
+                                        windup=self.cues[cue].mediaWindup,
+                                        winddown=self.cues[cue].mediaWinddown,
+                                    )
 
                             else:
                                 self.allowMediaUrlRemote = sound
-                                self.mediaLink.send(['volume', self.alpha])
-                                self.mediaLink.send(['mediaURL', sound, self.enteredCue, max(
-                                    0, self.cues[cue].fadein or self.crossfade)])
+                                self.mediaLink.send(["volume", self.alpha])
+                                self.mediaLink.send(
+                                    [
+                                        "mediaURL",
+                                        sound,
+                                        self.enteredCue,
+                                        max(0, self.cues[cue].fadein or self.crossfade),
+                                    ]
+                                )
 
                             try:
                                 soundMeta = TinyTag.get(sound, image=True)
 
                                 currentAudioMetadata = {
-                                    "title": soundMeta.title or 'Unknown',
-                                    "artist": soundMeta.artist or 'Unknown',
-                                    "album": soundMeta.album or 'Unknown',
-                                    "year": soundMeta.year or 'Unknown'
+                                    "title": soundMeta.title or "Unknown",
+                                    "artist": soundMeta.artist or "Unknown",
+                                    "album": soundMeta.album or "Unknown",
+                                    "year": soundMeta.year or "Unknown",
                                 }
                                 t = soundMeta.get_image()
                             except Exception:
                                 # Not support, but it might just be an unsupported type. if mp3, its a real error, we should alert
-                                if sound.endswith('.mp3'):
+                                if sound.endswith(".mp3"):
                                     self.event(
-                                        "error", "Reading metadata for: " + sound + traceback.format_exc())
+                                        "error",
+                                        "Reading metadata for: "
+                                        + sound
+                                        + traceback.format_exc(),
+                                    )
                                 t = None
                                 currentAudioMetadata = {
-                                    'title': "", 'artist': '', "album": '', 'year': ''}
+                                    "title": "",
+                                    "artist": "",
+                                    "album": "",
+                                    "year": "",
+                                }
 
-                            self.cueInfoTag.value = {
-                                "audio.meta": currentAudioMetadata
-                            }
+                            self.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
 
                             if t and len(t) < 3 * 10**6:
-                                self.albumArtTag.value = "data:image/jpeg;base64," + \
-                                    base64.b64encode(t).decode()
+                                self.albumArtTag.value = (
+                                    "data:image/jpeg;base64,"
+                                    + base64.b64encode(t).decode()
+                                )
                             else:
                                 self.albumArtTag.value = ""
 
                         else:
-                            self.event(
-                                "error", "File does not exist: " + sound)
+                            self.event("error", "File does not exist: " + sound)
 
                 self.cue = self.cues[cue]
                 self.cueTagClaim.set(self.cues[cue].name, annotation="SceneObject")
@@ -3628,7 +4038,11 @@ class Scene():
         # references this cue.
         cobj = self.cues[cue]
 
-        if self.backtrack and not cue == (self.cue.nextCue or self.getDefaultNext()) and cobj.track:
+        if (
+            self.backtrack
+            and not cue == (self.cue.nextCue or self.getDefaultNext())
+            and cobj.track
+        ):
             l = []
             seen = {}
             safety = 10000
@@ -3656,7 +4070,7 @@ class Scene():
     def preloadNextCueSound(self):
         # Preload the next cue's sound if we know what it is
         nextCue = None
-        if self.cue.nextCue == '':
+        if self.cue.nextCue == "":
             nextCue = self.getDefaultNext()
         elif self.cue.nextCue in self.cues:
             nextCue = self.cue.nextCue
@@ -3686,7 +4100,8 @@ class Scene():
     def recalcRandomizeModifier(self):
         "Recalculate the random variance to apply to the length"
         self.randomizeModifier = random.triangular(
-            -float(self.cue.lengthRandomize), +float(self.cue.lengthRandomize))
+            -float(self.cue.lengthRandomize), +float(self.cue.lengthRandomize)
+        )
 
     def recalcCueLen(self):
         "Calculate the actual cue len, without changing the randomizeModifier"
@@ -3695,7 +4110,7 @@ class Scene():
         cuelen = self.scriptContext.preprocessArgument(self.cue.length)
         v = cuelen or 0
 
-        if str(cuelen).startswith('@'):
+        if str(cuelen).startswith("@"):
             selector = recur.getConstraint(cuelen[1:])
             ref = datetime.datetime.now()
             nextruntime = selector.after(ref, True)
@@ -3714,18 +4129,25 @@ class Scene():
         else:
             if self.cue.sound and self.cue.rel_length:
                 path = self.resolveSound(self.cue.sound)
-                if path.endswith(".png") or path.endswith(".jpg") or path.endswith(".webp") or path.endswith(".png") or path.endswith(".heif") or path.endswith(".tiff") or path.endswith(".gif") or path.endswith(".svg"):
+                if (
+                    path.endswith(".png")
+                    or path.endswith(".jpg")
+                    or path.endswith(".webp")
+                    or path.endswith(".png")
+                    or path.endswith(".heif")
+                    or path.endswith(".tiff")
+                    or path.endswith(".gif")
+                    or path.endswith(".svg")
+                ):
                     v = 0
                 else:
                     try:
                         # If we are doing crossfading, we have to stop slightly early for
                         # The crossfade to work
-                        slen = (TinyTag.get(path).duration -
-                                self.crossfade) + cuelen
+                        slen = (TinyTag.get(path).duration - self.crossfade) + cuelen
                         v = max(0, self.randomizeModifier + slen)
                     except Exception:
-                        logging.exception(
-                            "Error getting length for sound " + str(path))
+                        logging.exception("Error getting length for sound " + str(path))
                         # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
                         self.cuelen = 300
                         return
@@ -3734,7 +4156,7 @@ class Scene():
             self.cuelen = 0
         else:
             # never go below 0.1*the setting or else you could go to zero and get a never ending cue
-            self.cuelen = max(0,float(v*0.1) , self.randomizeModifier + float(v))
+            self.cuelen = max(0, float(v * 0.1), self.randomizeModifier + float(v))
 
     def recalcCueVals(self):
         self.cueValsToNumpyCache(self.cue, not self.cue.track)
@@ -3765,13 +4187,13 @@ class Scene():
             if fixture:
                 chCount = len(fixture.channels)
 
-            if '__length__' in cuex.values[i]:
-                repeats = int(cuex.values[i]['__length__'])
+            if "__length__" in cuex.values[i]:
+                repeats = int(cuex.values[i]["__length__"])
             else:
                 repeats = 1
 
-            if '__spacing__' in cuex.values[i]:
-                chCount = int(cuex.values[i]['__spacing__'])
+            if "__spacing__" in cuex.values[i]:
+                chCount = int(cuex.values[i]["__spacing__"])
 
             uobj = getUniverse(universe)
 
@@ -3781,9 +4203,11 @@ class Scene():
             if not universe in self.cue_cached_vals_as_arrays:
                 l = len(uobj.values)
                 self.cue_cached_vals_as_arrays[universe] = numpy.array(
-                    [0.0] * l, dtype="f4")
+                    [0.0] * l, dtype="f4"
+                )
                 self.cue_cached_alphas_as_arrays[universe] = numpy.array(
-                    [0.0] * l, dtype="f4")
+                    [0.0] * l, dtype="f4"
+                )
 
             if not universe in self.affect:
                 self.affect.append(universe)
@@ -3795,7 +4219,8 @@ class Scene():
             for j in cuex.values[i]:
                 if isinstance(j, str) and j.startswith("__dest__."):
                     dest[j[9:]] = self.evalExpr(
-                        cuex.values[i][j] if not cuex.values[i][j] == None else 0)
+                        cuex.values[i][j] if not cuex.values[i][j] == None else 0
+                    )
 
             for idx in range(repeats):
                 for j in cuex.values[i]:
@@ -3816,14 +4241,24 @@ class Scene():
                     if x:
                         universe, channel = x[0], x[1]
                         try:
-                            self.cue_cached_alphas_as_arrays[universe][channel + (
-                                idx * chCount)] = 1.0 if not cuev == None else 0
-                            self.cue_cached_vals_as_arrays[universe][channel + (
-                                idx * chCount)] = evaled
+                            self.cue_cached_alphas_as_arrays[universe][
+                                channel + (idx * chCount)
+                            ] = (1.0 if not cuev == None else 0)
+                            self.cue_cached_vals_as_arrays[universe][
+                                channel + (idx * chCount)
+                            ] = evaled
                         except Exception:
                             print("err", traceback.format_exc())
-                            self.event("script.error", self.name + " cue " + cuex.name + " Val " + str(
-                                (universe, channel)) + "\n" + traceback.format_exc())
+                            self.event(
+                                "script.error",
+                                self.name
+                                + " cue "
+                                + cuex.name
+                                + " Val "
+                                + str((universe, channel))
+                                + "\n"
+                                + traceback.format_exc(),
+                            )
 
                     if isinstance(cuev, str) and cuev.startswith("="):
                         self.rerenderOnVarChange = True
@@ -3833,7 +4268,8 @@ class Scene():
             # We copy over the event recursion depth so that we can detct infinite loops
             if not self.scriptContext:
                 self.scriptContext = DebugScriptContext(
-                    rootContext, variables=self.chandlerVars, gil=core.lock)
+                    rootContext, variables=self.chandlerVars, gil=core.lock
+                )
 
                 self.scriptContext.addNamespace("pagevars")
 
@@ -3844,8 +4280,9 @@ class Scene():
                 def sendMQTT(t, m):
                     self.sendMqttMessage(t, m)
                     return True
+
                 self.wrMqttCmdSendWrapper = sendMQTT
-                self.scriptContext.commands['sendMQTT'] = sendMQTT
+                self.scriptContext.commands["sendMQTT"] = sendMQTT
 
             self.scriptContext.clearBindings()
 
@@ -3875,7 +4312,7 @@ class Scene():
 
             try:
                 for i in core.boards:
-                    i().link.send(['scenetimers', self.id, self.runningTimers])
+                    i().link.send(["scenetimers", self.id, self.runningTimers])
             except Exception:
                 rl_log_exc("Error handling timer set notification")
 
@@ -3887,14 +4324,14 @@ class Scene():
 
     def doMqttSubscriptions(self, keepUnused=120):
         if self.mqttConnection and self.scriptContext:
-
             # Subscribe to everything we aren't subscribed to
             for i in self.scriptContext.eventListeners:
                 if i.startswith("$mqtt:"):
                     x = i.split(":", 1)
                     if not x[1] in self.mqttSubscribed:
                         self.mqttConnection.subscribe(
-                            x[1], self.onMqttMessage, encoding="raw")
+                            x[1], self.onMqttMessage, encoding="raw"
+                        )
                         self.mqttSubscribed[x[1]] = True
 
             # Unsubscribe from no longer used things
@@ -3919,7 +4356,6 @@ class Scene():
 
     def clearMQTT(self, keepUnused=120):
         if self.mqttConnection and self.scriptContext:
-
             torm = []
 
             for i in self.mqttSubscribed:
@@ -3931,7 +4367,7 @@ class Scene():
 
     def sendMqttMessage(self, topic, message):
         "JSON encodes message, and publishes it to the scene's MQTT server"
-        self.mqttConnection.publish(topic, message, encoding='json')
+        self.mqttConnection.publish(topic, message, encoding="json")
 
     def clearDisplayTags(self):
         with core.lock:
@@ -3942,7 +4378,6 @@ class Scene():
             self.displayTagMeta = {}
 
     def displayTagSubscriber(self, n):
-
         t = n[1]
         if not self.scriptContext.canGetTagpoint(t):
             raise ValueError("Not allowed tag " + t)
@@ -3950,12 +4385,12 @@ class Scene():
         t = kaithem.tags[n[1]]
         sn = n[1]
         self.displayTagMeta[sn] = {}
-        self.displayTagMeta[sn]['min'] = t.min
-        self.displayTagMeta[sn]['max'] = t.max
-        self.displayTagMeta[sn]['hi'] = t.hi
-        self.displayTagMeta[sn]['lo'] = t.lo
-        self.displayTagMeta[sn]['unit'] = t.unit
-        self.displayTagMeta[sn]['subtype'] = t.subtype
+        self.displayTagMeta[sn]["min"] = t.min
+        self.displayTagMeta[sn]["max"] = t.max
+        self.displayTagMeta[sn]["hi"] = t.hi
+        self.displayTagMeta[sn]["lo"] = t.lo
+        self.displayTagMeta[sn]["unit"] = t.unit
+        self.displayTagMeta[sn]["subtype"] = t.subtype
 
         self.pushMeta(keys=["displayTagMeta"])
 
@@ -3975,8 +4410,7 @@ class Scene():
             self.clearDisplayTags()
             try:
                 for i in dt:
-                    self.displayTagSubscriptions.append(
-                        self.displayTagSubscriber(i))
+                    self.displayTagSubscriptions.append(self.displayTagSubscriber(i))
             except Exception:
                 print(traceback.format_exc())
             self.displayTags = dt
@@ -3994,12 +4428,12 @@ class Scene():
             v = v[0]
 
             if v.startswith("launch:"):
-                shortcutCode(str(v[len("launch:"):]), sn)
+                shortcutCode(str(v[len("launch:") :]), sn)
 
-            elif v == 'Rev':
+            elif v == "Rev":
                 self.prevCue(cause="ECP")
 
-            elif v == 'Fwd':
+            elif v == "Fwd":
                 self.nextCue(cause="ECP")
 
             elif v == "VolumeUp":
@@ -4020,7 +4454,7 @@ class Scene():
             elif v == "VolumeMute":
                 self.setAlpha(0)
 
-            if v.startswith('Lit_'):
+            if v.startswith("Lit_"):
                 self.event("button." + v[4:])
 
         return f
@@ -4044,14 +4478,19 @@ class Scene():
 
         if st:
             st = kaithem.tags.ObjectTag(st)
-            if st.subtype and not st.subtype == 'event':
+            if st.subtype and not st.subtype == "event":
                 raise ValueError("That tag does not have the event subtype")
 
             self.subscribeCommandTags()
 
-    def nextCue(self, t=None, cause='generic'):
+    def nextCue(self, t=None, cause="generic"):
         with core.lock:
-            if self.cue.nextCue and ((self.evalExpr(self.cue.nextCue).split("?")[0] in self.cues) or self.cue.nextCue.startswith("__") or "|" in self.cue.nextCue or "*" in self.cue.nextCue):
+            if self.cue.nextCue and (
+                (self.evalExpr(self.cue.nextCue).split("?")[0] in self.cues)
+                or self.cue.nextCue.startswith("__")
+                or "|" in self.cue.nextCue
+                or "*" in self.cue.nextCue
+            ):
                 self.gotoCue(self.cue.nextCue, t, cause=cause)
             elif not self.cue.nextCue:
                 x = self.getDefaultNext()
@@ -4072,7 +4511,6 @@ class Scene():
                     self.blendArgs[i] = self.blendClass.parameters[i][3]
 
     def go(self, nohandoff=False):
-
         self.setDisplayTags(self.displayTags)
 
         with core.lock:
@@ -4085,13 +4523,16 @@ class Scene():
             self.active = True
 
             if not self.cue:
-                self.gotoCue('default', sendSync=False, cause='start')
+                self.gotoCue("default", sendSync=False, cause="start")
             else:
                 # Re-enter cue to create the cache
-                self.gotoCue(self.cue.name, cause='start')
+                self.gotoCue(self.cue.name, cause="start")
             # Bug workaround for bug where scenes do nothing when first activated
-            self.canvas.paint(0, vals=self.cue_cached_vals_as_arrays,
-                              alphas=self.cue_cached_alphas_as_arrays)
+            self.canvas.paint(
+                0,
+                vals=self.cue_cached_vals_as_arrays,
+                alphas=self.cue_cached_alphas_as_arrays,
+            )
 
             self.enteredCue = time.time()
 
@@ -4106,7 +4547,8 @@ class Scene():
             if not self in core._activeScenes:
                 core._activeScenes.append(self)
             core._activeScenes = sorted(
-                core._activeScenes, key=lambda k: (k.priority, k.started))
+                core._activeScenes, key=lambda k: (k.priority, k.started)
+            )
             core.activeScenes = core._activeScenes[:]
 
             self.setMqttServer(self.mqttServer)
@@ -4123,7 +4565,8 @@ class Scene():
         self.priority = p
         with core.lock:
             core._activeScenes = sorted(
-                core._activeScenes, key=lambda k: (k.priority, k.started))
+                core._activeScenes, key=lambda k: (k.priority, k.started)
+            )
             core.activeScenes = core._activeScenes[:]
             try:
                 for i in self.affect:
@@ -4158,14 +4601,17 @@ class Scene():
             self.unusedMqttTopics = {}
             if mqttServer:
                 if self in core.activeScenes:
-
                     # Get rid of old before we change over to new
                     if self.mqttConnection:
                         self.clearMQTT()
 
                     self.mqttConnection = None
                     self.mqttConnection = kaithem.mqtt.Connection(
-                        server, port, alertPriority='warning', connectionID=str(uuid.uuid4()))
+                        server,
+                        port,
+                        alertPriority="warning",
+                        connectionID=str(uuid.uuid4()),
+                    )
                     self.mqttSubscribed = {}
 
                     t = self.mqttConnection.statusTag
@@ -4240,7 +4686,7 @@ class Scene():
                 self.tapSequence = 0
 
         if self.tapSequence:
-            f = max((1 / self.tapSequence)**2, 0.0025)
+            f = max((1 / self.tapSequence) ** 2, 0.0025)
             self.bpm = self.bpm * (1 - f) + (60 / (x)) * f
         self.tapSequence += 1
 
@@ -4263,7 +4709,7 @@ class Scene():
         elif self.tapSequence:
             # Just change enteredCue to match the phase.
             self.enteredCue = x
-        self.pushMeta(keys={'bpm'})
+        self.pushMeta(keys={"bpm"})
 
     def stop(self):
         with core.lock:
@@ -4302,7 +4748,7 @@ class Scene():
 
             try:
                 for i in core.boards:
-                    i().link.send(['scenetimers', self.id, self.runningTimers])
+                    i().link.send(["scenetimers", self.id, self.runningTimers])
             except Exception:
                 rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
@@ -4321,35 +4767,47 @@ class Scene():
         self.event("midi.cc:" + str(ch) + "." + str(n), v)
 
     def setMidiSource(self, s):
-
         if s == self.midiSource:
             return
 
         if not s:
-            kaithem.message.unsubscribe("/midi/" + s.replace(":", '_').replace(
-                "[", '').replace("]", '').replace(" ", ''), self.onMidiMessage)
+            kaithem.message.unsubscribe(
+                "/midi/"
+                + s.replace(":", "_")
+                .replace("[", "")
+                .replace("]", "")
+                .replace(" ", ""),
+                self.onMidiMessage,
+            )
         else:
-            kaithem.message.subscribe("/midi/" + s.replace(":", '_').replace(
-                "[", '').replace("]", '').replace(" ", ''), self.onMidiMessage)
+            kaithem.message.subscribe(
+                "/midi/"
+                + s.replace(":", "_")
+                .replace("[", "")
+                .replace("]", "")
+                .replace(" ", ""),
+                self.onMidiMessage,
+            )
 
         self.midiSource = s
 
     def onMidiMessage(self, t, v):
-        if v[0] == 'noteon':
+        if v[0] == "noteon":
             self.noteOn(v[1], v[2], v[3])
-        if v[0] == 'noteoff':
+        if v[0] == "noteoff":
             self.noteOff(v[1], v[2])
-        if v[0] == 'cc':
+        if v[0] == "cc":
             self.cc(v[1], v[2], v[3])
 
     def setAlpha(self, val, sd=False):
         val = min(1, max(0, val))
         try:
-            self.cueVolume = min(
-                5, max(0, float(self.evalExpr(self.cue.soundVolume))))
+            self.cueVolume = min(5, max(0, float(self.evalExpr(self.cue.soundVolume))))
         except Exception:
-            self.event("script.error", self.name +
-                       " in cueVolume eval:\n" + traceback.format_exc())
+            self.event(
+                "script.error",
+                self.name + " in cueVolume eval:\n" + traceback.format_exc(),
+            )
             self.cueVolume = 1
 
         kaithem.sound.setvol(val * self.cueVolume, str(self.id))
@@ -4362,11 +4820,11 @@ class Scene():
         self.alphaTagClaim.set(val, annotation="SceneObject")
         if sd:
             self.defaultalpha = val
-            self.pushMeta(keys={'alpha', 'dalpha'})
+            self.pushMeta(keys={"alpha", "dalpha"})
         else:
-            self.pushMeta(keys={'alpha', 'dalpha'})
+            self.pushMeta(keys={"alpha", "dalpha"})
 
-        self.mediaLink.send(['volume', val])
+        self.mediaLink.send(["volume", val])
 
     def addCue(self, name, **kw):
         return Cue(self, name, **kw)
@@ -4391,7 +4849,10 @@ class Scene():
         disallow_special(key, "_")
         # serializableness check
         json.dumps(val)
-        if not hasattr(self.blendClass, "parameters") or not key in self.blendClass.parameters:
+        if (
+            not hasattr(self.blendClass, "parameters")
+            or not key in self.blendClass.parameters
+        ):
             raise KeyError("No such param")
 
         if val is None:
@@ -4421,8 +4882,9 @@ class Scene():
     def render(self, force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fadein:
-            fadePosition = min((time.time() - self.enteredCue) /
-                               (self.cue.fadein * (60 / self.bpm)), 1)
+            fadePosition = min(
+                (time.time() - self.enteredCue) / (self.cue.fadein * (60 / self.bpm)), 1
+            )
         else:
             fadePosition = 1
 
@@ -4431,12 +4893,15 @@ class Scene():
 
         # TODO: We absolutely should not have to do this every time we rerender.
         # Bugfix is in order!
-        #self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
+        # self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
 
         # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
         if force_repaint or (not self.fadeInCompleted):
-            self.canvas.paint(fadePosition, vals=self.cue_cached_vals_as_arrays,
-                              alphas=self.cue_cached_alphas_as_arrays)
+            self.canvas.paint(
+                fadePosition,
+                vals=self.cue_cached_vals_as_arrays,
+                alphas=self.cue_cached_alphas_as_arrays,
+            )
             if fadePosition >= 1:
                 # We no longer affect universes from the previous cue we are fading from
 
@@ -4453,12 +4918,15 @@ class Scene():
                 self.fadeInCompleted = True
                 self.rerender = True
 
-        if self.cuelen and (time.time() - self.enteredCue) > self.cuelen * (60 / self.bpm):
+        if self.cuelen and (time.time() - self.enteredCue) > self.cuelen * (
+            60 / self.bpm
+        ):
             # rel_length cues end after the sound in a totally different part of code
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-            self.nextCue(round(self.enteredCue + self.cuelen *
-                         (60 / self.bpm), 3), cause='time')
+            self.nextCue(
+                round(self.enteredCue + self.cuelen * (60 / self.bpm), 3), cause="time"
+            )
 
     def updateMonitorValues(self):
         if self.blend == "monitor":
@@ -4474,9 +4942,9 @@ class Scene():
             self.valueschanged = {}
 
 
-def event(s, value=None, info=''):
+def event(s, value=None, info=""):
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
-    #disallow_special(s, allow=".")
+    # disallow_special(s, allow=".")
     with core.lock:
         for i in core.activeScenes:
             i._event(s, value=value, info=info)
@@ -4528,6 +4996,7 @@ def loop():
             time.sleep(1 / 60)
         except Exception:
             logger.exception("Wat")
+
 
 thread = threading.Thread(target=loop, name="ChandlerThread")
 thread.start()
