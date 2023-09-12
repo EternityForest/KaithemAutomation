@@ -301,6 +301,8 @@ class webapproot:
 
         if path:
             tn = '/'.join(path)
+            if not tn.startswith('='):
+                tn = '/'+tn
             if not tn in tagpoints.allTags:
                 raise ValueError("This tag does not exist")
             return pages.get_template("settings/tagpoint.html").render(
