@@ -17,7 +17,6 @@ from dataclasses import replace
 import threading
 import sys
 import time
-import datetime
 import traceback
 import logging
 import types
@@ -31,18 +30,25 @@ localLogger = logging.getLogger("scheduling")
 
 
 def handleFirstError(f):
-    "Callback that you can swap for something else, test first error in a repeating event"
-    pass
+    "Callback to deal with the first error from any given event"
+    m = f.__module__
+    messagebus.postMessage(
+        "/system/notifications/errors",
+        "Problem in scheduled event function: "
+        + repr(f)
+        + " in module: "
+        + m
+        + ", check logs for more info.",
+    )
 
 
 enumerate = enumerate
 
 
-class BaseEvent():
+class BaseEvent:
     def __init__(self):
         self.exact = 0
         self.schedID = None
-
 
 
 # Event API(not public):
@@ -55,7 +61,6 @@ class BaseEvent():
 # do the actual action, and reschedule self if it's a repeating event
 
 # run: use the worker pool to run an event, or run directly if fast enough(under 1ms)
-
 
 
 class Event(BaseEvent):
@@ -84,10 +89,10 @@ class Event(BaseEvent):
             else:
                 f()
         except Exception:
-
             # If we can, try to send the exception back whence it came
             try:
                 from . import newevt
+
                 newevt.eventsByModuleName(f.__module__)._handle_exception()
             except Exception:
                 print(traceback.format_exc())
@@ -95,7 +100,11 @@ class Event(BaseEvent):
             try:
                 if hasattr(f, "__name__") and hasattr(f, "__module__"):
                     logger.exception(
-                        "Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
+                        "Exception in scheduled function "
+                        + f.__name__
+                        + " of module "
+                        + f.__module__
+                    )
             except Exception:
                 logger.exception("Exception in scheduled function " + repr(f))
 
@@ -113,10 +122,22 @@ class Event(BaseEvent):
 
 
 def shouldSkip(priority, interval, lateby, lastran):
-    t = {'realtime': 200, 'interactive': 0.8, 'high': 0.5,
-         'medium': 0.3, 'low': 0.2, "verylow": 0.1}
-    maxlatency = {'realtime': 0, 'interactive': 0.2,
-                  'high': 2, 'medium': 3, 'low': 10, "verylow": 60}
+    t = {
+        "realtime": 200,
+        "interactive": 0.8,
+        "high": 0.5,
+        "medium": 0.3,
+        "low": 0.2,
+        "verylow": 0.1,
+    }
+    maxlatency = {
+        "realtime": 0,
+        "interactive": 0.2,
+        "high": 2,
+        "medium": 3,
+        "low": 10,
+        "verylow": 60,
+    }
     if lateby > t[priority]:
         if ((time.time() - lastran) + interval) < maxlatency[priority]:
             return True
@@ -126,7 +147,11 @@ class BaseRepeatingEvent(BaseEvent):
     """Does function every interval seconds in real time,
     and stops if you don't keep a reference to function"""
 
-    def __init__(self, function, interval, ):
+    def __init__(
+        self,
+        function,
+        interval,
+    ):
         BaseEvent.__init__(self)
         self.f = util.universal_weakref(function)
         self.fstr = str(function)
@@ -150,9 +175,16 @@ class BaseRepeatingEvent(BaseEvent):
         try:
             f = self.f()
             if not f:
-                f= self.fstr +"(dead)"
+                f = self.fstr + "(dead)"
             f = str(f)
-            return "<BaseRepeatingEvent at "+str(id(self)) + f + " every "+str(self.interval)+ "s >"
+            return (
+                "<BaseRepeatingEvent at "
+                + str(id(self))
+                + f
+                + " every "
+                + str(self.interval)
+                + "s >"
+            )
         except Exception:
             print(traceback.format_exc())
             return super().__repr__()
@@ -179,12 +211,11 @@ class BaseRepeatingEvent(BaseEvent):
                 self.lock.release()
         else:
             logger.warning(
-                "Tried to schedule something that is still running: " + str(self.f()))
+                "Tried to schedule something that is still running: " + str(self.f())
+            )
 
     def _schedule(self):
         raise NotImplementedError()
-
-        
 
     def register(self):
         self.stop = False
@@ -210,21 +241,16 @@ class BaseRepeatingEvent(BaseEvent):
         if self.stop:
             return
 
-
         # Don't run way too fast but do allow some tolerance in the speed.
-        if time.time()-self.lastrun < (self.interval/3):
+        if time.time() - self.lastrun < (self.interval / 3):
             return
 
         self.lastrun = time.time()
 
-
         # We must have been pulled out of the event queue or we wouldn't be running.
         # If somehow there is another copy, exit and let recovery reschedule us later.
 
-
         if self.lock.acquire(timeout=1):
-
-
             try:
                 f = self.f()
                 if not f:
@@ -236,16 +262,20 @@ class BaseRepeatingEvent(BaseEvent):
                 # If we can, try to send the exception back whence it came
                 try:
                     from . import newevt
+
                     if f.__module__.startswith("Event_"):
                         newevt.eventsByModuleName[f.__module__]._handle_exception()
                 except:
                     print(traceback.format_exc())
 
-
                 try:
                     if hasattr(f, "__name__") and hasattr(f, "__module__"):
                         localLogger.exception(
-                            "Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
+                            "Exception in scheduled function "
+                            + f.__name__
+                            + " of module "
+                            + f.__module__
+                        )
 
                 except:
                     localLogger.exception("Exception in scheduled function")
@@ -254,20 +284,24 @@ class BaseRepeatingEvent(BaseEvent):
                     try:
                         try:
                             logger.exception(
-                                "Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
+                                "Exception in scheduled function "
+                                + f.__name__
+                                + " of module "
+                                + f.__module__
+                            )
                         except:
                             logger.exception("Exception in scheduled function")
                         handleFirstError(f)
                     except:
                         logging.exception(
-                            "Error handling first error in repeating event")
+                            "Error handling first error in repeating event"
+                        )
                 self.errored = True
             finally:
                 # We have to reschedule no matter what.
                 try:
                     self._schedule()
                 except:
-
                     # Don't even trust logging here. I'm being extremely paranoid about a deadlock.
                     try:
                         logging.exception("Error scheduling")
@@ -281,24 +315,22 @@ class BaseRepeatingEvent(BaseEvent):
 
 
 class UnsynchronizedRepeatingEvent(BaseRepeatingEvent):
-    """Represents a repeating event that is not synced to the real time exactly
-    """
+    """Represents a repeating event that is not synced to the real time exactly"""
 
     def __init__(self, *args, **kwargs):
         BaseRepeatingEvent.__init__(self, *args, **kwargs)
 
     def _schedule(self):
-        """Calculate next runtime and put self into the queue. 
+        """Calculate next runtime and put self into the queue.
         Should only ever be called under lock"""
         if self.scheduled:
             return
 
         # Don't alow unlimited amounts of winding up a big queue.
-        t = max((self.lastrun + self.interval), ((time.time()+self.interval)-5))
+        t = max((self.lastrun + self.interval), ((time.time() + self.interval) - 5))
         self.time = t
         self.scheduled = True
         scheduler.insert(self)
-        
 
 
 class RepeatWhileEvent(UnsynchronizedRepeatingEvent):
@@ -327,19 +359,20 @@ class RepeatWhileEvent(UnsynchronizedRepeatingEvent):
 
 
 # class ComplexRecurringEvent():
-    # def schedule(self):
-        # if self.scheduled:
-            # return
-        # else:
-            #t = self.schedulefunc(self.last)
-            # if t<time.time():
-                # if self.makeup:
-                #n = self.schedulefunc(t)
-                #x = (t+n)/2
-            #self.scheduled = t
-            # s
+# def schedule(self):
+# if self.scheduled:
+# return
+# else:
+# t = self.schedulefunc(self.last)
+# if t<time.time():
+# if self.makeup:
+# n = self.schedulefunc(t)
+# x = (t+n)/2
+# self.scheduled = t
+# s
 
-class NewScheduler():
+
+class NewScheduler:
     """
     represents a thread that constantly runs tasks which are objects having a time property that determins when
     their run method gets called. Inserted tasks use a lockless double buffered scheme.
@@ -349,7 +382,7 @@ class NewScheduler():
         self.lock = threading.RLock()
         self.repeatingtasks = []
         self.daemon = True
-        self.name = 'SchedulerThread'
+        self.name = "SchedulerThread"
         self.lastrecheckedschedules = time.time()
         self.lf = time.time()
         self.running = False
@@ -357,15 +390,21 @@ class NewScheduler():
         self.wakeUp = threading.Event()
         import sched
 
-        self.sched =sched.scheduler(timefunc=time.time, delayfunc=self.delay)
+        self.sched = sched.scheduler(timefunc=time.time, delayfunc=self.delay)
 
     def start(self):
         with self.lock:
             if self.running:
                 return
             self.running = True
-            self.thread=threading.Thread(daemon=self.daemon, target=self.run, name="schedulerthread")
-            self.thread2=threading.Thread(daemon=self.daemon, target=self.manager, name="schedulerthread_errorrecovery")
+            self.thread = threading.Thread(
+                daemon=self.daemon, target=self.run, name="schedulerthread"
+            )
+            self.thread2 = threading.Thread(
+                daemon=self.daemon,
+                target=self.manager,
+                name="schedulerthread_errorrecovery",
+            )
 
             self.thread.start()
             self.thread2.start()
@@ -394,8 +433,10 @@ class NewScheduler():
         e.register()
         e.schedule()
         if isinstance(f, types.MethodType):
+
             def f2():
                 f()
+
         else:
             f2 = f
         f2.unregister = lambda: e.unregister()
@@ -425,18 +466,17 @@ class NewScheduler():
             except Exception:
                 pass
 
-        event.schedID = self.sched.enterabs(event.time,1,event.run)
-        #Only very fast events need to use this wake mechanism that burns CPU.
-        #We have a min 0.15hz poll rate
-        if event.time< (time.time()+0.15):
+        event.schedID = self.sched.enterabs(event.time, 1, event.run)
+        # Only very fast events need to use this wake mechanism that burns CPU.
+        # We have a min 0.15hz poll rate
+        if event.time < (time.time() + 0.15):
             self.wakeUp.set()
-
 
     def remove(self, event):
         "Remove something that has a time and a run property that wants its run to be called at time"
         with self.lock:
             try:
-              self.sched.cancel(event.schedID)
+                self.sched.cancel(event.schedID)
             except ValueError:
                 pass
             except:
@@ -462,8 +502,10 @@ class NewScheduler():
                 except ValueError:
                     pass
                 except:
-                    logger.exception("failed to remove event, perhaps it was not actually scheduled")
-                    
+                    logger.exception(
+                        "failed to remove event, perhaps it was not actually scheduled"
+                    )
+
             except:
                 logger.exception("failed to unregister event")
 
@@ -473,12 +515,11 @@ class NewScheduler():
             with self.lock:
                 self._dorErrorRecovery()
 
-
-    #Custom delay func because we must be able to recieve new events while waiting
-    def delay(self,t):
+    # Custom delay func because we must be able to recieve new events while waiting
+    def delay(self, t):
         self.wakeUp.clear()
         self.wakeUp.wait(min(t, 0.15))
-    
+
     def run(self):
         while 1:
             try:
@@ -489,22 +530,22 @@ class NewScheduler():
     def _dorErrorRecovery(self):
         for i in self.repeatingtasks:
             try:
-                if not i.scheduled or time.time()-i.lastrun > (i.interval*2):
+                if not i.scheduled or time.time() - i.lastrun > (i.interval * 2):
                     # Give them 10 seconds to finish what they are doing and schedule themselves.
                     if i.lastrun < time.time() - 10:
                         # Let's maybe not block the entire scheduling thread
                         # If one event takes a long time to schedule or if it
                         # Is already running and can't schedule yet.
 
-                        #On the off chance it actually IS scheduled, replace whatever was there last.
+                        # On the off chance it actually IS scheduled, replace whatever was there last.
                         workers.do(i.schedule)
                         logger.debug(
-                            "Rescheduled " + str(i) + "using error recovery, could indicate a bug somewhere, or just a long running event.")
+                            "Rescheduled "
+                            + str(i)
+                            + "using error recovery, could indicate a bug somewhere, or just a long running event."
+                        )
             except:
                 logger.exception("Exception while scheduling event")
-
-
-
 
 
 scheduler = NewScheduler()
@@ -512,23 +553,32 @@ scheduler.start()
 
 
 # If either of these doesn't run at the right time, raise a message
-selftest = [time.monotonic(),time.monotonic()]
+selftest = [time.monotonic(), time.monotonic()]
 
 lastpost = [0]
 
+
 def a():
     selftest[0] = time.monotonic()
-    if selftest[1]< time.monotonic()-40:
-        if lastpost[0]< time.monotonic()-600:
-            lastpost[0]=time.monotonic()
-            messagebus.postMessage("/system/notifications/errors", "Something caused a scheduler continual selftest function not to run.")
+    if selftest[1] < time.monotonic() - 40:
+        if lastpost[0] < time.monotonic() - 600:
+            lastpost[0] = time.monotonic()
+            messagebus.postMessage(
+                "/system/notifications/errors",
+                "Something caused a scheduler continual selftest function not to run.",
+            )
+
 
 def b():
     selftest[1] = time.monotonic()
-    if selftest[0]< time.monotonic()-40:
-        if lastpost[0]< time.monotonic()-600:
-            lastpost[0]=time.monotonic()
-            messagebus.postMessage("/system/notifications/errors", "Something caused a scheduler continual selftest function not to run.")
+    if selftest[0] < time.monotonic() - 40:
+        if lastpost[0] < time.monotonic() - 600:
+            lastpost[0] = time.monotonic()
+            messagebus.postMessage(
+                "/system/notifications/errors",
+                "Something caused a scheduler continual selftest function not to run.",
+            )
 
-scheduler.every(a,20)
-scheduler.every(b,20)
+
+scheduler.every(a, 20)
+scheduler.every(b, 20)

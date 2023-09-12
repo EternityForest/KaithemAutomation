@@ -26,6 +26,31 @@ import re
 #Whatever it used to be was way too high and causingh seg faults if you mess up
 sys.setrecursionlimit(256)
 
+# Compatibility with older libraries.
+try:
+    import collections.abc
+    collections.Hashable = collections.abc.Hashable
+    collections.Callable = collections.abc.Callable
+    collections.MutableMapping = collections.abc.MutableMapping
+    collections.Mapping = collections.abc.Mapping
+except Exception:
+    pass
+
+# Library that makes threading and lock operations, which we use a lot of, use native code on linux
+try:
+    import pthreading
+    pthreading.monkey_patch()
+except Exception:
+    pass
+
+# Dump stuff to stderr when we get a segfault
+try:
+    import faulthandler
+    faulthandler.enable()
+except Exception:
+    logger.exception(
+        "Faulthandler not found. Segfault error messages disabled. use pip3 install faulthandler to fix"
+    )
 
 
 # Python 3.7 doesn't support the samesite attribute, which we need.

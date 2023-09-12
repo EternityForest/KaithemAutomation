@@ -45,11 +45,6 @@ max-frame-rate: 60
 #A minimum delay between frames even if less would be required to maintain the frame rate.
 delay-between-frames : 0.005
 
-#Serve additional directories of static files
-#Must be a dict mapping names to directories on the server's disk.
-#The directory will be mounted under /site/static/NAME on the URL path
-serve-static: {}
-
 #If yes, don't allow acess from any computer except this one.
 local-access-only: no
 

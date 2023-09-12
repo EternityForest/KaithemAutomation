@@ -88,3 +88,7 @@ def setupPath(linuxpackage=None, force_local=False):
         for i in sys.modules:
             if fullname.endswith(i):
                 return sys.modules[i]
+            
+
+setupPath(linuxpackage=os.path.abspath(__file__).startswith("/usr/bin"))
+setupCython()

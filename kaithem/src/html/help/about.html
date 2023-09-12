@@ -21,7 +21,6 @@
     from kaithem.src import util
     from kaithem.src import kaithemobj
     from kaithem.src import workers
-    from kaithem.src import timesync
     from kaithem.src.config import config
 
     import scullery.workers
@@ -284,10 +283,6 @@ except Exception:
 
 <h3>IP Data</h3>
     <table border=1>
-       <tr>
-            <td>WAN(Public) IP when sys loaded</td>
-            <td>${myip}</td>
-        </tr>
         <tr>
             <td>HTTPS(Secure) Port</td>
             <td>${config['https-port']}</td>

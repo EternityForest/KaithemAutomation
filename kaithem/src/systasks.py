@@ -274,10 +274,14 @@ atexit.register(sd)
 cherrypy.engine.subscribe("stop", sd)
 
 
-def stop(*args):
+if time.time() < 1420070400:
     messagebus.postMessage(
-        '/system/notifications/shutdown', "Recieved SIGINT.")
-    cherrypy.engine.exit()
+        "/system/notifications/errors",
+        "System Clock is wrong, some features may not work properly.",
+    )
 
-
-signal.signal(signal.SIGINT, stop)
+if time.time() < util.min_time:
+    messagebus.postMessage(
+        "/system/notifications/errors",
+        "System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.",
+    )

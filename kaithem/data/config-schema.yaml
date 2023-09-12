@@ -56,11 +56,6 @@ properties:
         type: number
         minimim: 0.001
 
-    serve-static:
-        type: object
-        additionalProperties:
-            type: string
-
     local-access-only:
         type: boolean
 
