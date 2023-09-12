@@ -107,7 +107,6 @@ logger.info("Loaded auth data")
 tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir, "tags"))
 
 if cfg.argcmd.initialpackagesetup:
-    util.drop_perms(config["run-as-user"], config["run-as-group"])
     auth.dumpDatabase()
     logger.info(
         "Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init"
@@ -183,31 +182,9 @@ def webRoot():
     # There are lots of other objects ad classes represeting subfolders of the website so we attatch them
     root = webapproot.root
 
-    if not os.path.abspath(__file__).startswith("/usr/bin"):
-        sdn = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src"
-        )
-        ddn = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data"
-        )
-    else:
-        sdn = "/usr/lib/kaithem/src"
-        ddn = "/usr/share/kaithem"
 
-    def allow_upload(*args, **kwargs):
-        # Only do the callback if needed. Assume it's really big if no header.
-        if (
-            int(cherrypy.request.headers.get("Content-Length", 2**32))
-            > cherrypy.request.body.maxbytes
-        ):
-            cherrypy.request.body.maxbytes = cherrypy.request.config[
-                "tools.allow_upload.f"
-            ]()
-
-    cherrypy.tools.allow_upload = cherrypy.Tool("before_request_body", allow_upload)
 
     site_config = {
-        "request.body.maxbytes": 64 * 1024,
         "tools.encode.on": True,
         "tools.encode.encoding": "utf-8",
         "tools.decode.on": True,
@@ -215,79 +192,9 @@ def webRoot():
         "request.error_response": webapproot.cpexception,
         "log.screen": config["cherrypy-log-stdout"],
         "engine.autoreload.on": False,
-        "tools.allow_upload.on": True,
-        "tools.allow_upload.f": lambda: auth.getUserLimit(
-            pages.getAcessingUser(), "web.maxbytes"
-        )
-        or 64 * 1024,
     }
 
-    cnf = {
-        "/static": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(ddn, "static"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-            "tools.expires.on": True,
-            "tools.expires.secs": 3600 + 48,  # expire in 48 hours
-        },
-        "/static/js": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "js"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/vue": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "vue"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/css": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "css"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/docs": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "docs"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/zip": {
-            "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-            "tools.addheader.on": True,
-        },
-        "/pages": {
-            "tools.allow_upload.on": True,
-            "tools.allow_upload.f": lambda: auth.getUserLimit(
-                pages.getAcessingUser(), "web.maxbytes"
-            )
-            or 64 * 1024,
-            "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-        },
-    }
-
-    if not config["favicon-png"] == "default":
-        cnf["/favicon.png"] = {
-            "tools.staticfile.on": True,
-            "tools.staticfile.filename": os.path.join(
-                directories.datadir, "static", config["favicon-png"]
-            ),
-            "tools.expires.on": True,
-            "tools.expires.secs": 3600,  # expire in an hour
-        }
-
-    if not config["favicon-ico"] == "default":
-        cnf["/favicon.ico"] = {
-            "tools.staticfile.on": True,
-            "tools.staticfile.filename": os.path.join(
-                directories.datadir, "static", config["favicon-ico"]
-            ),
-            "tools.expires.on": True,
-            "tools.expires.secs": 3600,  # expire in an hour
-        }
+    cnf = webapproot.conf
 
     def addheader(*args, **kwargs):
         "This function's only purpose is to tell the browser to cache requests for an hour"
@@ -312,35 +219,6 @@ def webRoot():
 
     wsgiapp = cherrypy.tree.mount(root, config=cnf)
 
-
-
-    # Unlike other shm stuff that only gets used after startup, this
-    # Can be used both before and after we are fully loaded.
-    # So we need to hand off everything to the user we will actually run as.
-
-    # This is also useful for when someone directly modifies config
-    # Over SSH and we want to adopt those changes to the kaithem usr.
-
-    # It's even useful if we ever change the user for some reason.
-
-    # We only do this if we start as root though.
-
-    if not config["run-as-user"] == "root" and getpass.getuser() == "root":
-        try:
-            d = "/dev/shm/kaithem_pyx_" + config["run-as-user"]
-            directories.rchown(d, config["run-as-user"])
-            directories.rchown(directories.vardir, config["run-as-user"])
-            directories.rchown(directories.logdir, config["run-as-user"])
-            # Might as well own our own SSL dir, that way we can change certs via the webUI.
-            directories.rchown(directories.ssldir, config["run-as-user"])
-            directories.rchown(directories.usersdir, config["run-as-user"])
-            directories.rchown(directories.regdir, config["run-as-user"])
-        except Exception:
-            logger.exception("This is normal on non-unix")
-
-    # If configured that way on unix, check if we are root and drop root.
-    util.drop_perms(config["run-as-user"], config["run-as-group"])
-    pylogginghandler.onUserChanged()
     messagebus.postMessage("/system/startup", "System Initialized")
     messagebus.postMessage("/system/notifications/important", "System Initialized")
 

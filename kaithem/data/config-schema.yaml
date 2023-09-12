@@ -130,12 +130,6 @@ properties:
         minimum: 1
         maximum: 500
 
-    run-as-user:
-        type: string
-
-    run-as-group:
-        type: string
-
     change-process-title:
         type: boolean
 

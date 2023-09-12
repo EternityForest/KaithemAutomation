@@ -154,17 +154,6 @@ class LoggingHandler(logging.Handler):
         self.setFormatter(formatter)
         all_handlers[(time.time(), random.random(), self.name)] = self
 
-    def checkShmFolder(self):
-        with self.savelock:
-            self._checkShmFolderChanged()
-
-    def _checkShmFolderChanged(self):
-        "Only relevant to shm handlers. Basically we need to move to a new folder if permissions dropped"
-        f = "/dev/shm/kaithemdbglog_" + getpass.getuser() + "/"
-        if not f == self.folder:
-            self.folder = f
-            self.current_file = None
-
     def close(self):
         if self.flush_before_close:
             self.flush()
@@ -273,8 +262,6 @@ class LoggingHandler(logging.Handler):
                     except Exception as e:
                         # Swap them back so we can flush later, but don't hoard too many
                         self.logbuffer = logbuffer[-256:]
-                        if self.isShmHandler:
-                            self._checkShmFolderChanged()
                         # Sometimes the problem is that garbage collection
                         # Hasn't gotten to a bunch of sockets yet
                         gc.collect()
@@ -308,8 +295,6 @@ class LoggingHandler(logging.Handler):
                     # Swap them back so we can flush later, but don't hoard too many
                     self.logbuffer = logbuffer[-32:]
                     self.contextbuffer = []
-                    if self.isShmHandler:
-                        self._checkShmFolderChanged()
                     # Sometimes the problem is that garbage collection
                     # Hasn't gotten to a bunch of sockets yet
                     gc.collect()
@@ -319,8 +304,6 @@ class LoggingHandler(logging.Handler):
                     # Swap them back so we can flush later, but don't hoard too many
                     self.logbuffer = logbuffer[-32:]
                     self.contextbuffer = []
-                    if self.isShmHandler:
-                        self._checkShmFolderChanged()
                     # Sometimes the problem is that garbage collection
                     # Hasn't gotten to a bunch of sockets yet
                     gc.collect()
@@ -440,9 +423,3 @@ if os.path.exists("/dev/shm"):
                                 compress="none",
                                 doprint=False)
     shmhandler.isShmHandler = True
-
-    def onUserChanged():
-        shmhandler.checkShmFolder()
-else:
-    def onUserChanged():
-        pass

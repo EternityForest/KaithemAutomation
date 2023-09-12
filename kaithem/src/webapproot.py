@@ -12,6 +12,7 @@ from . import (
     settings,
     notifications,
     auth,
+    config,
     tagpoints,
     modules,
     alerts,
@@ -419,3 +420,82 @@ class webapproot:
 
 
 root = webapproot()
+
+if not os.path.abspath(__file__).startswith("/usr/bin"):
+    sdn = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src"
+    )
+    ddn = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data"
+    )
+else:
+    sdn = "/usr/lib/kaithem/src"
+    ddn = "/usr/share/kaithem"
+
+conf = {
+        "/static": {
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": os.path.join(ddn, "static"),
+            "tools.sessions.on": False,
+            "tools.addheader.on": True,
+            "tools.expires.on": True,
+            "tools.expires.secs": 3600 + 48,  # expire in 48 hours
+        },
+        "/static/js": {
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": os.path.join(sdn, "js"),
+            "tools.sessions.on": False,
+            "tools.addheader.on": True,
+        },
+        "/static/vue": {
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": os.path.join(sdn, "vue"),
+            "tools.sessions.on": False,
+            "tools.addheader.on": True,
+        },
+        "/static/css": {
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": os.path.join(sdn, "css"),
+            "tools.sessions.on": False,
+            "tools.addheader.on": True,
+        },
+        "/static/docs": {
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": os.path.join(sdn, "docs"),
+            "tools.sessions.on": False,
+            "tools.addheader.on": True,
+        },
+        "/static/zip": {
+            "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
+            "tools.addheader.on": True,
+        },
+        "/pages": {
+            "tools.allow_upload.on": True,
+            "tools.allow_upload.f": lambda: auth.getUserLimit(
+                pages.getAcessingUser(), "web.maxbytes"
+            )
+            or 64 * 1024,
+            "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
+        },
+    }
+
+    if not config["favicon-png"] == "default":
+        cnf["/favicon.png"] = {
+            "tools.staticfile.on": True,
+            "tools.staticfile.filename": os.path.join(
+                directories.datadir, "static", config["favicon-png"]
+            ),
+            "tools.expires.on": True,
+            "tools.expires.secs": 3600,  # expire in an hour
+        }
+
+    if not config["favicon-ico"] == "default":
+        cnf["/favicon.ico"] = {
+            "tools.staticfile.on": True,
+            "tools.staticfile.filename": os.path.join(
+                directories.datadir, "static", config["favicon-ico"]
+            ),
+            "tools.expires.on": True,
+            "tools.expires.secs": 3600,  # expire in an hour
+        }
+}

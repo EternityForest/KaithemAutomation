@@ -27,10 +27,8 @@ def setupCython():
     # Does that ever happen? Do they even need separate dirs?
     from . import config, util
 
-    if config.config['run-as-user'] == 'root':
-        d = "/dev/shm/kaithem_pyx_"+util.getUser()
-    else:
-        d = "/dev/shm/kaithem_pyx_"+config.config['run-as-user']
+    d = "/dev/shm/kaithem_pyx_"+util.getUser()
+
     # Set up pyximport in the proper kaithem-y way
     try:
         import os
