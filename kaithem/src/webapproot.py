@@ -470,11 +470,6 @@ conf = {
             "tools.addheader.on": True,
         },
         "/pages": {
-            "tools.allow_upload.on": True,
-            "tools.allow_upload.f": lambda: auth.getUserLimit(
-                pages.getAcessingUser(), "web.maxbytes"
-            )
-            or 64 * 1024,
             "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
         },
     }

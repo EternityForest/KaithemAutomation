@@ -241,7 +241,6 @@ class Settings():
 
     @cherrypy.expose
     @cherrypy.config(**{'response.timeout': 7200})
-    @cherrypy.config(**{'tools.allow_upload.on': True, 'tools.allow_upload.f': validate_upload})
     def files(self, *args, **kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
         pages.require("/admin/settings.edit")

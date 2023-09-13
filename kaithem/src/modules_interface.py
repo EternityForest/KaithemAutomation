@@ -166,7 +166,6 @@ class WebInterface():
         # This lets the user upload modules
 
     @cherrypy.expose
-    @cherrypy.config(**{'tools.allow_upload.on': True, 'tools.allow_upload.f': validate_upload})
     def uploadtarget(self, modulesfile, **kwargs):
         pages.require('/admin/modules.edit')
         pages.postOnly()
@@ -256,7 +255,6 @@ class WebInterface():
         raise cherrypy.HTTPRedirect('/modules')
 
     @cherrypy.expose
-    @cherrypy.config(**{'tools.allow_upload.on': True, 'tools.allow_upload.f': validate_upload})
     # This function handles HTTP requests of or relating to one specific already existing module.
     # The URLs that this function handles are of the form /modules/module/<modulename>[something?]
     def module(self, module, *path, **kwargs):
