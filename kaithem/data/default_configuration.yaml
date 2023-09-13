@@ -204,5 +204,5 @@ quotes-file: default
 get-public-ip: no
 
 
-esphome-config-dir: esphome
+esphome-config-dir: ""
 esphome-dashboard: null

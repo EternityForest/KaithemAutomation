@@ -153,3 +153,5 @@ def installThreadLogging():
                 pass
         self.run = run_with_except_hook
     threading.Thread.__init__ = init
+
+installThreadLogging()

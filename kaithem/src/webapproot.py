@@ -12,7 +12,6 @@ from . import (
     settings,
     notifications,
     auth,
-    config,
     tagpoints,
     modules,
     alerts,
@@ -29,6 +28,7 @@ from . import (
 
 
 from .chandler import web as cweb
+from .config import config
 
 from cherrypy.lib.static import serve_file
 from cherrypy import _cperror
@@ -479,23 +479,22 @@ conf = {
         },
     }
 
-    if not config["favicon-png"] == "default":
-        cnf["/favicon.png"] = {
-            "tools.staticfile.on": True,
-            "tools.staticfile.filename": os.path.join(
-                directories.datadir, "static", config["favicon-png"]
-            ),
-            "tools.expires.on": True,
-            "tools.expires.secs": 3600,  # expire in an hour
-        }
+if not config["favicon-png"] == "default":
+    conf["/favicon.png"] = {
+        "tools.staticfile.on": True,
+        "tools.staticfile.filename": os.path.join(
+            directories.datadir, "static", config["favicon-png"]
+        ),
+        "tools.expires.on": True,
+        "tools.expires.secs": 3600,  # expire in an hour
+    }
 
-    if not config["favicon-ico"] == "default":
-        cnf["/favicon.ico"] = {
-            "tools.staticfile.on": True,
-            "tools.staticfile.filename": os.path.join(
-                directories.datadir, "static", config["favicon-ico"]
-            ),
-            "tools.expires.on": True,
-            "tools.expires.secs": 3600,  # expire in an hour
-        }
-}
+if not config["favicon-ico"] == "default":
+    conf["/favicon.ico"] = {
+        "tools.staticfile.on": True,
+        "tools.staticfile.filename": os.path.join(
+            directories.datadir, "static", config["favicon-ico"]
+        ),
+        "tools.expires.on": True,
+        "tools.expires.secs": 3600,  # expire in an hour
+    }

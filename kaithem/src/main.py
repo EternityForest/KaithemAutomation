@@ -28,11 +28,13 @@ import os
 import sys
 
 import cherrypy
+import tornado
+import tornado.httpserver
+import tornado.wsgi
+import tornado.web
+from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches, Matcher
+
 import logging
-
-
-# Enable logging when threads start and stop.
-tweaks.installThreadLogging()
 
 # Thhese happpen early so we cab start logging stuff soon
 from . import messagelogging
@@ -94,7 +96,6 @@ logger.setLevel(logging.INFO)
 cherrypy.engine.subscribe("stop", iot_devices.host.app_exit_cleanup)
 
 
-
 __version__ = version_info.__version__
 __version_info__ = version_info.__version_info__
 
@@ -125,11 +126,22 @@ modules.initModules()
 logger.info("Loaded modules")
 
 workers.do(systasks.doUPnP)
+
+
 def loadJackMixer():
     from . import jackmixer
+
+
 workers.do(loadJackMixer)
 
-# from . import wifimanager
+if config["change-process-title"]:
+    try:
+        import setproctitle
+
+        setproctitle.setproctitle("kaithem")
+        logger.info("setting process title")
+    except Exception:
+        logger.warning("error setting process title")
 
 
 def webRoot():
@@ -154,18 +166,7 @@ def webRoot():
 
     logger.info("Ports are free")
 
-    if config["change-process-title"]:
-        try:
-            import setproctitle
-
-            setproctitle.setproctitle("kaithem")
-            logger.info("setting process title")
-        except Exception:
-            logger.warning("error setting process title")
-
     sys.modules["kaithem"] = sys.modules["__main__"]
-
-
 
     def save():
         if config["save-before-shutdown"]:
@@ -181,8 +182,6 @@ def webRoot():
 
     # There are lots of other objects ad classes represeting subfolders of the website so we attatch them
     root = webapproot.root
-
-
 
     site_config = {
         "tools.encode.on": True,
@@ -222,21 +221,13 @@ def webRoot():
     messagebus.postMessage("/system/startup", "System Initialized")
     messagebus.postMessage("/system/notifications/important", "System Initialized")
 
-
     cherrypy.server.unsubscribe()
     cherrypy.config.update({"environment": "embedded"})
     # cherrypy.engine.signals.subscribe()
 
     cherrypy.engine.start()
 
-    import tornado
-    import tornado.httpserver
-    import tornado.wsgi
-    import tornado.web
-    from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches, Matcher
-
     container = tornado.wsgi.WSGIContainer(wsgiapp)
-
 
     wsapp = tornado.web.Application(
         [

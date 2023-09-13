@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### 0.68.49
+### 0.69.0
 
 - :sparkles: Use the Tornado server
 - :sparkles: Per-connection Websocket handler threads eliminate global bogdown on blocking socket actions
