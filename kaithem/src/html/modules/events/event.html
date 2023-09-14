@@ -11,11 +11,11 @@ import cherrypy
 
 <%include file="/pageheader.html"/>
 <%
-using_js_editor = auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
+using_monaco_editor = auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
 %>
 <script src="/static/widget.js"></script>
 
-%if using_js_editor:
+%if using_monaco_editor:
 <script src="/static/js/vs/loader.js"></script>
 <script>
     	require.config({ paths: { 'vs': '/static/js/vs' }});
@@ -95,7 +95,7 @@ or go to the working copy and save that to delete this draft.</p>
     }
 </script>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"
-%if using_js_editor:
+%if using_monaco_editor:
 onsubmit="presubmit()"
 %endif
 >
@@ -135,7 +135,7 @@ else:
 %endif
 >${xyz|h}</textarea>
 
-%if using_js_editor:
+%if using_monaco_editor:
 <div id="monacosetupbox" style="width:100%;height:30em;border:1px solid grey"></div>
 <script src="${config['monaco-theme-url']}"></script>
 <script src="/static/js/monaco-actions.js"></script>
@@ -149,6 +149,7 @@ else:
 	        fontSize: 14,
             scrollBeyondLastLine: false,
             theme:'kaithem',
+            automaticLayout: true,
 %if not pages.canUserDoThis("/admin/modules.edit"):
             readOnly:true
 %endif
@@ -263,7 +264,7 @@ you may need to use the global keyword. You may also need to use the global keyw
         %endif
 >${event["action"]|h}</textarea>
 
-%if using_js_editor:
+%if using_monaco_editor:
 <div id="monacoactionbox" style="width:100%;height:30em;border:1px solid grey"></div>
 <script>
 	require(['vs/editor/editor.main'], function() {
@@ -386,7 +387,7 @@ Saving this module will case it to completely reload, including its local scope.
 
 </section>
 
-%if auth.getUserSetting(pages.getAcessingUser(),'usemonaco')):
+%if not using_monaco_editor:
 <script src="/static/js/src-min-noconflict/ace.js"></script>
 <script src="/static/js/jquery3.js"></script>
 
