@@ -24,7 +24,7 @@ import gc
 import mimetypes
 
 from attr import has
-from . import util, pages, directories, messagebus, systasks, modules_state
+from . import util, pages, directories, messagebus, systasks, modules_state, theming
 import mako
 import cherrypy
 import sys
@@ -179,6 +179,7 @@ class CompiledPage():
 
 
             self.theme = resource.get('theme-css-url','')
+            self.alt_top_banner = resource.get('alt-top-banner','')
 
             if 'allow-xss' in resource:
                 self.xss = resource["allow-xss"]
@@ -235,7 +236,7 @@ class CompiledPage():
 
 
                 self.d = {'kaithem': self.kaithemobj.kaithem,
-                          'page': self.localAPI, 'print': self.new_print}
+                          'page': self.localAPI, 'print': self.new_print, "_k_alt_top_banner": self.alt_top_banner}
                 if m in modules_state.scopes:
                     self.d['module'] = modules_state.scopes[m]
 
@@ -578,6 +579,10 @@ class KaithemPage():
             if page.directServeFile:
                 return cherrypy.lib.static.serve_file(page.directServeFile, page.mime, os.path.basename(page.directServeFile))
 
+            t = page.theme
+            if t in theming.cssthemes:
+                t = theming.cssthemes[t].css_url
+
             if hasattr(page, "template"):
                 return page.template.render(
                     kaithem=self.kaithemobj.kaithem,
@@ -587,7 +592,8 @@ class KaithemPage():
                     kwargs=kwargs,
                     print=page.new_print,
                     page=page.localAPI,
-                    _k_usr_page_theme = page.theme
+                    _k_usr_page_theme = t,
+                    _k_alt_top_banner = page.alt_top_banner
                 ).encode("utf-8")
             else:
                 return page.text.encode('utf-8')

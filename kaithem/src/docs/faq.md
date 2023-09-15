@@ -20,15 +20,7 @@ Kaithem won't mess with your .git folder should you choose to use git.
 
 
 
-### JACK Audio doesn't work or sounds bad
-
-You may  need threadirqs. Check that kaithem's user can
-run realtime processes(Adding them to the audio group may help).
-
-Finally, there's a limit to what computers can handle. Turn up the block size.
-You will get more lag, but better quality.
-
-### Kaithem can't so something!
+### Kaithem can't do something!
 
 Have you checked if it's a permission problem? If it's installed as a
 package, it runs under it's own user.
@@ -126,21 +118,6 @@ permissions on the private key file are truly set to private.
 To make an event that goes off at Noon, simply create a normal event and
 set the trigger to "kaithem.time.hour() == 12"
 
-### <span id="static"></span>How do I tell Kaithem to serve a static file?
-
-Add something like this to your configuration file
-
-    serve-static:
-    images: /home/piper/My Pictures
-    images2: /home/piper/My Other Pictures
-
-Now the url /usr/static/images/page.jpg will point to the file
-/home/piper/My Pictures/page.jpg  
-All user-created static directories are mounted under /usr/static. Be
-VERY careful what you choose to serve statically, because anyone will be
-able to access them. If you need a secure way to serve a file, you are
-better off creating a page with the appropriate permissions, and using
-[kaithem.web.serveFile()](#servefile)
 
 ### I am getting "permission denied" errors on the web interface
 
@@ -323,21 +300,7 @@ need to reliably track changing data, the "keep everything in ram and
 periodically save" model may not work. You might want to consider using
 a spinnin drive or good SSD and SQLite. for rapidly changing data.
 
-### Audio is not working on the RasPi
 
-At least on the version of Raspbian used for testing, SoX will not work
-unless you set the following environment variables
-
-    AUDIODEV=hw:0
-    AUDIODRIVER=alsa
-
-Also,the user that kaithem is running under must be in the audio group,
-use
-
-    sudo usermod -a -G audio USERS_NAME
-
-to fix that. The default user had this enables already but if you made a
-new user you may need to use the command.
 
 ### How does the polling mechanism manage CPU time and prevent "hogging"?
 
@@ -413,3 +376,20 @@ Internally, the setup code is run once during the 'test compile', then
 once when actually creating the event. The object created in the test
 compile is deteted, so all deleters are honored. Your setup setions
 should be retry tolerant anyway, but this issue may be fixed later
+
+### What CSS Classes are used?
+
+
+#### theme-item-animation-enter-active and others 
+
+theme-item-animation-leave-active, theme-item-animation-leave-to, and theme-item-animation-enter-from
+are used to allow you to animate the entrance and leaving of an item in a theme-specific way.
+
+theme-item-animation-leave-active can work as a CSS class by itself, to animate page loads, or you can just use <Template name="theme-item-animation">
+
+#### Buttonbar
+
+A div with class buttonbar filled with buttons, inputs, p, labels, headings, and links, produces the bars frequently seen
+
+  
+

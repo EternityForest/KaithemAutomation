@@ -251,6 +251,7 @@ window.onbeforeunload = function(){
 	        fontSize: 14,
             scrollBeyondLastLine: false,
             theme:'kaithem',
+            automaticLayout: true,
             "bracketPairColorization.enabled": true,
 %if not pages.canUserDoThis("/admin/modules.edit"):
             readOnly:true
@@ -277,6 +278,7 @@ require(['vs/editor/editor.main'], function() {
 	        fontSize: 14,
             scrollBeyondLastLine: false,
             theme:'kaithem',
+            automaticLayout: true,
 %if not pages.canUserDoThis("/admin/modules.edit"):
             readOnly:true
 %endif
@@ -467,6 +469,15 @@ else:
                     title="default"
                     ></input>
             </label>
+
+    <label>Alt top banner text(Applies when nav disabled)<input type="text"  name="alttopbanner"
+    value= "${page.get('alt-top-banner','')|h}"
+    %if not pages.canUserDoThis("/admin/modules.edit"):
+                disabled=1\
+    %endif
+    ></input></label><br>
+    
+    
 </div>
 
 <details class="help"><summary><i class="icofont-question-circle"></i></summary><span class="permission-icon"></span>Require the following permissions to access this page</details>

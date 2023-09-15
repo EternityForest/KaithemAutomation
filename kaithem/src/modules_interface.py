@@ -845,6 +845,7 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj['theme-css-url'] = kwargs['themecss'].strip()
             resourceobj['code'] = code
             resourceobj['setupcode'] = setupcode
+            resourceobj['alt-top-banner'] = kwargs['alttopbanner']
 
             resourceobj['mimetype'] = kwargs['mimetype']
             resourceobj['template-engine'] = kwargs['template-engine']

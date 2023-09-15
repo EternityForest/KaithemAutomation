@@ -22,7 +22,7 @@ import traceback
 import threading
 import sys
 import typing
-from typing import Callable,Union,Optional
+from typing import Callable, Union, Optional
 import time
 import cherrypy
 import collections
@@ -45,26 +45,34 @@ import dateutil.tz
 import textwrap
 
 
-
-from . import workers, kaithemobj, messagebus, util, modules_state, scheduling, unitsofmeasure,devices
+from . import (
+    workers,
+    kaithemobj,
+    messagebus,
+    util,
+    modules_state,
+    scheduling,
+    unitsofmeasure,
+    devices,
+)
 from .config import config
 from .scheduling import scheduler
+
 ctime = time.time
 do = workers.do
 
 from .resource_serialization import toPyFile
 
 
-
-
-
 def retryDeviceCreation():
-    """When we load up a new event, it might contain a driver, so we 
-    retry to create all the devices that may have been stuck as Unsupported because there was no driver"""
+    """When we load up a new event, it might contain a driver, so we
+    retry to create all the devices that may have been stuck as Unsupported because there was no driver
+    """
     try:
         devices.fixUnsupported()
     except:
         logger.exception("Something bad happened")
+
 
 # Ratelimiter for calling gc.collect automatically when we get OSErrors
 _lastGC = 0
@@ -88,25 +96,27 @@ syslogger = logging.getLogger("system.events")
 eventsByModuleName = weakref.WeakValueDictionary()
 
 
-class EventInterface():
-    def __init__(self,ev) -> None:
+class EventInterface:
+    def __init__(self, ev) -> None:
         self.__ev = ev
+
 
 def makePrintFunction(ev):
     """For some unknown reason, new_print is involved in a
-       garbage cycle that was preventing event GC
-        Here we implement it as a closuse that only
-         weakly references the actual event object.
+    garbage cycle that was preventing event GC
+     Here we implement it as a closuse that only
+      weakly references the actual event object.
     """
     import uuid
+
     printID = str(uuid.uuid4())
-    ev.printID=printID
+    ev.printID = printID
 
     ev = weakref.ref(ev)
 
-    def new_print(*args, title='msg', **kwargs):
+    def new_print(*args, title="msg", **kwargs):
         # No, we cannot just do print(*args), because it breaks on python2
-        if 'local' in kwargs and kwargs['local']:
+        if "local" in kwargs and kwargs["local"]:
             local = True
         else:
             local = False
@@ -114,16 +124,16 @@ def makePrintFunction(ev):
         if len(args) == 1:
             if not local:
                 print(args[0])
-            x = str(args[0])+"\n"
+            x = str(args[0]) + "\n"
         else:
             if not local:
                 print(args)
-            x = str(args)+"\n"
+            x = str(args) + "\n"
         ev2 = ev()
         if not ev2.printID == printID:
-            w="FROM OLD DELETED EVENT"
+            w = "FROM OLD DELETED EVENT"
         else:
-            w=''
+            w = ""
         del ev2
 
         "Print a message to the Device's management page"
@@ -132,7 +142,7 @@ def makePrintFunction(ev):
 
         # Can't use a def here, wouldn't want it to possibly capture more than just a string,
         # And keep stuff from GCIng for too long
-        workers.do(makeBackgroundPrintFunction(t, tm, title+w, ev))
+        workers.do(makeBackgroundPrintFunction(t, tm, title + w, ev))
 
     return new_print
 
@@ -144,24 +154,27 @@ def manualRun(event):
 
 def getPrintOutput(event):
     """Given a tuple of (module, resource),  return
-     the doc string of an event if it exists, else return '' """
+    the doc string of an event if it exists, else return ''"""
     try:
         return EventReferences[event].printoutput
     except Exception as e:
-        return "Err getting output:"+str(e)
+        return "Err getting output:" + str(e)
 
 
 def getEventInfo(event):
     """Given a tuple of (module, resource),  return the doc
-     string of an event if it exists, else return '' """
-    return EventReferences[event].__doc__ if event in EventReferences and EventReferences[event].__doc__ else ""
+    string of an event if it exists, else return ''"""
+    return (
+        EventReferences[event].__doc__
+        if event in EventReferences and EventReferences[event].__doc__
+        else ""
+    )
 
 
 def renameEvent(oldModule, oldResource, module, resource):
     "Move an event, similar to unix mv"
     with _event_list_lock:
-        __EventReferences[module,
-                          resource] = __EventReferences[oldModule, oldResource]
+        __EventReferences[module, resource] = __EventReferences[oldModule, oldResource]
         del __EventReferences[oldModule, oldResource]
         __EventReferences[module, resource].resource = resource
         __EventReferences[module, resource].module = module
@@ -173,7 +186,9 @@ def getEventErrors(module, event):
         try:
             return __EventReferences[module, event].errors
         except (KeyError, AttributeError) as e:
-            return[['0', 'Event does not exist or was not properly initialized:'+str(e)]]
+            return [
+                ["0", "Event does not exist or was not properly initialized:" + str(e)]
+            ]
 
 
 def fastGetEventErrors(module, event):
@@ -182,7 +197,8 @@ def fastGetEventErrors(module, event):
     try:
         return __EventReferences[module, event].errors
     except Exception as e:
-        return[['0', str(e)+'Try refreshing page? ']]
+        return [["0", str(e) + "Try refreshing page? "]]
+
 
 # Given two functions, execute the action when the trigger is true.
 # Trigger takes no arguments and returns a boolean
@@ -198,10 +214,19 @@ def when(trigger, action, priority="interactive"):
         priority(string): One of realtime, interactive, low, etc. determines how often to poll.
     """
 
-    module = '<OneTimeEvents>'
-    resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at ' + \
-        str(time.time()) + 'by thread: '+str(threading.currentThread().ident) + \
-        ' id='+str(base64.b64encode(os.urandom(16)))
+    module = "<OneTimeEvents>"
+    resource = (
+        trigger.__name__
+        + ">"
+        + action.__name__
+        + " "
+        + "set at "
+        + str(time.time())
+        + "by thread: "
+        + str(threading.currentThread().ident)
+        + " id="
+        + str(base64.b64encode(os.urandom(16)))
+    )
 
     # This is a hacky flag to let us turn the thing off immediately
     enable = [True]
@@ -218,12 +243,18 @@ def when(trigger, action, priority="interactive"):
         enable.pop()
         workers.do(rm_slf)
 
-    e = PolledInternalSystemEvent(lambda: False if not enable else trigger(
-    ), f, priority=priority, m=module, r=resource)
+    e = PolledInternalSystemEvent(
+        lambda: False if not enable else trigger(),
+        f,
+        priority=priority,
+        m=module,
+        r=resource,
+    )
     e.module = module
     e.resource = resource
     __EventReferences[module, resource] = e
     e.register()
+
 
 # Given two functions, execute the action after delay.
 # Trigger takes no arguments and returns a boolean
@@ -231,7 +262,7 @@ def when(trigger, action, priority="interactive"):
 
 def after(delay, action, priority="interactive"):
     # If the time is in the future, then we use the scheduler.
-    scheduling.scheduler.schedule(action, time.time()+delay)
+    scheduling.scheduler.schedule(action, time.time() + delay)
     return
 
 
@@ -258,8 +289,9 @@ run = [True]
 
 def STOP():
     global run
-    run.pop()
-    print("Threads should be stopping")
+    if run:
+        run.pop()
+        print("Threads should be stopping")
 
 
 cherrypy.engine.subscribe("stop", STOP)
@@ -271,17 +303,27 @@ t = 0
 def stim():
     global t
     t = time.time()
-    print('000000000')
+    print("000000000")
 
 
 def ptim():
-    print(time.time()-t)
+    print(time.time() - t)
+
+
 # In a background thread, we use the worker pool to check all threads
 
 
 # Yeah yeah, the name isn't the best
 class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
-    def __init__(self, function, interval, priority="realtime", phase=0, module=None, resource=None):
+    def __init__(
+        self,
+        function,
+        interval,
+        priority="realtime",
+        phase=0,
+        module=None,
+        resource=None,
+    ):
         scheduling.BaseEvent.__init__(self)
         self.f = function
         self.interval = float(interval)
@@ -289,13 +331,18 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
         self.errored = False
         self.lock = threading.Lock()
         self.lastrun = None
-        self.phaseoffset = (phase % 1)*interval
+        self.phaseoffset = (phase % 1) * interval
         self.module = module
         self.resource = resource
 
     def __repr__(self):
-        return ("<newevt.EventEvent object for event at " +
-                str((self.module, self.resource)) + "with id " + str(id(self))+">")
+        return (
+            "<newevt.EventEvent object for event at "
+            + str((self.module, self.resource))
+            + "with id "
+            + str(id(self))
+            + ">"
+        )
 
     def run(self):
         do(self._run)
@@ -325,10 +372,13 @@ insert_phase = 0
 def beginPolling(ev):
     # Note that we spread out the intervals by 0.15% to make them not all bunch up at once constantly.
     global insert_phase
-    ev.schedulerobj = EventEvent(ev.check,
-                                 config['priority-response'].get(
-                                     ev.symbolicpriority, 0.08)+(insert_phase*0.03)-0.015,
-                                 ev.symbolicpriority)
+    ev.schedulerobj = EventEvent(
+        ev.check,
+        config["priority-response"].get(ev.symbolicpriority, 0.08)
+        + (insert_phase * 0.03)
+        - 0.015,
+        ev.symbolicpriority,
+    )
     try:
         ev.schedulerobj.module = ev.module
         ev.schedulerobj.resource = ev.resource
@@ -356,47 +406,74 @@ def parseTrigger(when):
     output = []
 
     # Split on spaces, but take into account multipla spaces by ignoring empty strings.
-    for i in when.strip().split(' '):
-        if not i == '':
+    for i in when.strip().split(" "):
+        if not i == "":
             output.append(i)
 
     # Take into account normal python expression triggers and return a similar format
-    if output[0].startswith('!'):
+    if output[0].startswith("!"):
         return output
     else:
-        return(['!edgetrigger', when])
+        return ["!edgetrigger", when]
 
 
 # Factory function that examines the type of trigger and chooses a class to handle it.
-def Event(when="False", do="pass", scope=None, continual=False, ratelimit=0, setup=None, priority=1, dummy=0, **kwargs):
+def Event(
+    when="False",
+    do="pass",
+    scope=None,
+    continual=False,
+    ratelimit=0,
+    setup=None,
+    priority=1,
+    dummy=0,
+    **kwargs
+):
     if dummy:
-        when = 'False'
-        do = 'pass'
-        setup = 'pass'
+        when = "False"
+        do = "pass"
+        setup = "pass"
 
     trigger = parseTrigger(when)
     if scope is None:
         scope = make_eventscope()
 
-    if trigger[0] == '!onmsg':
-        return MessageEvent(when, do, scope, continual, ratelimit, setup, priority, **kwargs)
+    if trigger[0] == "!onmsg":
+        return MessageEvent(
+            when, do, scope, continual, ratelimit, setup, priority, **kwargs
+        )
 
-    elif trigger[0] == '!onchange':
-        return ChangedEvalEvent(when, do, scope, continual, ratelimit, setup, priority, **kwargs)
+    elif trigger[0] == "!onchange":
+        return ChangedEvalEvent(
+            when, do, scope, continual, ratelimit, setup, priority, **kwargs
+        )
 
-    elif trigger[0] == '!edgetrigger':
-        if priority == 'realtime':
-            return ThreadPolledEvalEvent(when, do, scope, continual, ratelimit, setup, priority, **kwargs)
+    elif trigger[0] == "!edgetrigger":
+        if priority == "realtime":
+            return ThreadPolledEvalEvent(
+                when, do, scope, continual, ratelimit, setup, priority, **kwargs
+            )
         else:
-            return PolledEvalEvent(when, do, scope, continual, ratelimit, setup, priority, **kwargs)
+            return PolledEvalEvent(
+                when, do, scope, continual, ratelimit, setup, priority, **kwargs
+            )
 
-    elif trigger[0] == '!time':
-        return RecurringEvent(' '.join(trigger[1:]), do, scope, continual, ratelimit, setup, priority, **kwargs)
+    elif trigger[0] == "!time":
+        return RecurringEvent(
+            " ".join(trigger[1:]),
+            do,
+            scope,
+            continual,
+            ratelimit,
+            setup,
+            priority,
+            **kwargs
+        )
     else:
-
         # Defensive programming, raise error on nonsense event type
         raise RuntimeError(
-            "Invalid trigger expression that begins with " + str(trigger[0]))
+            "Invalid trigger expression that begins with " + str(trigger[0])
+        )
 
 
 # A brief rundown on how these classes work. You have the BaseEvent, which handles registering and unregistering
@@ -412,32 +489,38 @@ def Event(when="False", do="pass", scope=None, continual=False, ratelimit=0, set
 # The BaseEvent wraps the _check function in such a way that only one event will be polled at a time
 # And errors in _check will be logged.
 
-class PersistentData():
+
+class PersistentData:
     "Used to persist small amounts of data that remain when an event is re-saved"
     pass
 
 
-fps = config['max-frame-rate']
+fps = config["max-frame-rate"]
 
 
 def makeBackgroundPrintFunction(p, t, title, self):
     def f():
-        self().logWindow.write('<b>' + title + " at " + t + "</b><br>"
-                               + p
-                               )
+        self().logWindow.write("<b>" + title + " at " + t + "</b><br>" + p)
+
     return f
 
 
 def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
-        self.logWindow.write('<div class="error"><b>Error at ' + time+"</b><br>"
-                             + '<pre>'+t+'</pre></div>'
-                             )
+        self.logWindow.write(
+            '<div class="error"><b>Error at '
+            + time
+            + "</b><br>"
+            + "<pre>"
+            + t
+            + "</pre></div>"
+        )
+
     return f
 
 
-class BaseEvent():
+class BaseEvent:
     """Base Class representing one event.
     scope must be a dict representing the scope in which both the trigger and action will be executed.
     When the trigger goes from fase to true, the action will occur.
@@ -449,7 +532,18 @@ class BaseEvent():
 
     """
 
-    def __init__(self, when:str, do:str, scope, continual=False, ratelimit=0, setup:str=None, priority=2, m=None, r=None):
+    def __init__(
+        self,
+        when: str,
+        do: str,
+        scope,
+        continual=False,
+        ratelimit=0,
+        setup: str = None,
+        priority=2,
+        m=None,
+        r=None,
+    ):
         # Copy in the data from args
         self.evt_persistant_data = PersistentData()
         self.scope = scope
@@ -469,25 +563,26 @@ class BaseEvent():
         self.symbolicpriority = priority
         # realtime is always every frame even for legacy
         if self.symbolicpriority == 1:
-            self.symbolicpriority == 'realtime'
+            self.symbolicpriority == "realtime"
 
         # try to look up the numeric priority from the symbolic
         try:
-            self.poll_interval = config['priority-response'][priority]
+            self.poll_interval = config["priority-response"][priority]
         except KeyError:
             # Should that fail, attempt to use the priority directly
             try:
-                self.poll_interval = fps/int(priority)
+                self.poll_interval = fps / int(priority)
             # If even that fails, use interactive priority.
             except ValueError:
-                self.poll_interval = config['priority-response']['interactive']
+                self.poll_interval = config["priority-response"]["interactive"]
         self.runTimes = []
         self.module = m if m else "<unknown>"
         self.resource = r if r else str(util.unique_number())
         self.pymodule = types.ModuleType(
-            str("Event_"+self.module + "_"+self.resource))
-        self.pymodule.__file__ = str("Event_"+self.module + "_"+self.resource)
-        self.pymoduleName = "Event_"+self.module+'_'+self.resource
+            str("Event_" + self.module + "_" + self.resource)
+        )
+        self.pymodule.__file__ = str("Event_" + self.module + "_" + self.resource)
+        self.pymoduleName = "Event_" + self.module + "_" + self.resource
 
         eventsByModuleName[self.pymoduleName] = self
         # This lock makes sure that only one copy of the event executes at once.
@@ -505,20 +600,29 @@ class BaseEvent():
         # going and how long it took
         self.lastcompleted = 0
 
-        self.history:typing.List[tuple] = []
+        self.history: typing.List[tuple] = []
         self.backoff_until = 0
 
         # A place to put errors
         self.errors = []
 
         from . import widgets
+
         self.logWindow = widgets.ScrollingWindow(2500)
 
     def __repr__(self):
         try:
-            return "<"+type(self).__name__ + "object at"+hex(id(self))+" for module,resource "+repr((self.module, self.resource))+">"
+            return (
+                "<"
+                + type(self).__name__
+                + "object at"
+                + hex(id(self))
+                + " for module,resource "
+                + repr((self.module, self.resource))
+                + ">"
+            )
         except Exception:
-            return "<error in repr for event object at "+hex(id(self))+">"
+            return "<error in repr for event object at " + hex(id(self)) + ">"
 
     def manualRun(self):
         # J.F. Sebastian of stackoverflow's post was helpful for this
@@ -528,24 +632,24 @@ class BaseEvent():
                 time.sleep(0.7)
                 if not self.lock.acquire(False):
                     raise RuntimeError(
-                        "Could not acquire lock while event already running or polling. Trying again may work.")
+                        "Could not acquire lock while event already running or polling. Trying again may work."
+                    )
         try:
             self._on_trigger()
         finally:
             self.lock.release()
 
     def cleanup(self):
-
         try:
             with self.lock:
                 try:
-                    if hasattr(self, 'pymodule'):
-                        if '__del__' in self.pymodule.__dict__:
+                    if hasattr(self, "pymodule"):
+                        if "__del__" in self.pymodule.__dict__:
                             self.pymodule.__dict__.__del__()
                             del self.pymodule.__dict__.__del__
                 except Exception:
                     logger.exception("Error in delete function")
-                if hasattr(self, 'pymodule'):
+                if hasattr(self, "pymodule"):
                     self.pymodule.__dict__.clear()
                     del self.pymodule
         except Exception:
@@ -559,9 +663,9 @@ class BaseEvent():
         # Don't execute more often than ratelimit
 
         try:
-            kaithemobj.kaithem.context.event = (self.module,self.resource)
+            kaithemobj.kaithem.context.event = (self.module, self.resource)
 
-            if (time.time() - self.lastexecuted > self.ratelimit):
+            if time.time() - self.lastexecuted > self.ratelimit:
                 # Set the varible so we know when the last time the body actually ran
                 self.lastexecuted = time.time()
                 try:
@@ -575,61 +679,71 @@ class BaseEvent():
                     # messagebus.postMessage('/system/events/ran',[self.module, self.resource])
                 except Exception as e:
                     # This is not a child of system
-                    logger.exception("Error running event " +
-                                    self.resource+" of " + self.module)
+                    logger.exception(
+                        "Error running event " + self.resource + " of " + self.module
+                    )
                     self._handle_exception(e)
         finally:
             kaithemobj.kaithem.context.event = None
-
 
     def _handle_exception(self, e=None, tb=None):
         global _lastGC
         if tb is None:
             tb = traceback.format_exc(chain=True)
-            
+
         # TODO: Get rid of legacy error stuff
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object
-        self.errors.append([time.strftime(config['time-format']), tb])
+        self.errors.append([time.strftime(config["time-format"]), tb])
         # Keep only the most recent errors
-        self.errors = self.errors[-(config['errors-to-keep']):]
+        self.errors = self.errors[-(config["errors-to-keep"]) :]
 
-        workers.do(makeBackgroundErrorFunction(textwrap.fill(
-            tb, 120), unitsofmeasure.strftime(time.time()), self))
+        workers.do(
+            makeBackgroundErrorFunction(
+                textwrap.fill(tb, 120), unitsofmeasure.strftime(time.time()), self
+            )
+        )
 
         try:
-            messagebus.postMessage('/system/errors/events/' +
-                                   self.module+'/' +
-                                   self.resource, str(tb))
+            messagebus.postMessage(
+                "/system/errors/events/" + self.module + "/" + self.resource, str(tb)
+            )
         except Exception as e:
             print(e)
 
         # Catch legacy number based priorities that are realtime
         if self.symbolicpriority == 1:
-            backoff = config['error-backoff']['realtime']
+            backoff = config["error-backoff"]["realtime"]
         else:
             try:
-                backoff = config['error-backoff'][self.symbolicpriority]
+                backoff = config["error-backoff"][self.symbolicpriority]
             except KeyError:
-                backoff = config['error-backoff']['interactive']
+                backoff = config["error-backoff"]["interactive"]
 
         # Randomize backoff intervals in case there's an error that can
         # Be fixed by changing the order of events
-        self.backoff_until = time.time()+(backoff*((random.random()/10) + 0.95))
+        self.backoff_until = time.time() + (backoff * ((random.random() / 10) + 0.95))
 
         # Try to fix the error by garbage collecting
         # If there's too many open files
         if isinstance(e, OSError):
-            if time.time()-_lastGC > 240:
+            if time.time() - _lastGC > 240:
                 _lastGC = time.time()
                 gc.collect()
 
         # If this is the first error since th module was last saved raise a notification
         if len(self.errors) == 1:
-            syslogger.exception("Error running event " +
-                                self.resource+" of " + self.module)
-            messagebus.postMessage('/system/notifications/errors', "Event \"" +
-                                   self.resource+"\" of module \""+self.module + "\" may need attention")
+            syslogger.exception(
+                "Error running event " + self.resource + " of " + self.module
+            )
+            messagebus.postMessage(
+                "/system/notifications/errors",
+                'Event "'
+                + self.resource
+                + '" of module "'
+                + self.module
+                + '" may need attention',
+            )
 
     def register(self):
         # Note: The whole self.disabled thing is really laregly a hack to get instant response
@@ -656,7 +770,7 @@ class BaseEvent():
                 del self.schedulerobj
 
     def unregister(self):
-        logging.debug("Unregistering event "+repr(self))
+        logging.debug("Unregistering event " + repr(self))
         self.disable = True
         with self.register_lock:
             if hasattr(self, "schedulerobj"):
@@ -684,8 +798,9 @@ class BaseEvent():
                 self._check()
             except Exception as e:
                 try:
-                    logger.exception("Error in event " +
-                                     self.resource+" of " + self.module)
+                    logger.exception(
+                        "Error in event " + self.resource + " of " + self.module
+                    )
                     self._handle_exception(e)
                 except Exception:
                     logging.exception("Error handling exception in event")
@@ -699,16 +814,15 @@ def test_compile(setup, action):
         setup = "pass"
 
     # initialize the module scope with the kaithem object and the module thing.
-    compile(
-        setup, "TestCompileSetup", "exec")
+    compile(setup, "TestCompileSetup", "exec")
 
     body = "def _event_action():\n"
-    for line in action.split('\n'):
-        body += ("    "+line+'\n')
-    body = compile(body, "TestCompile", 'exec')
+    for line in action.split("\n"):
+        body += "    " + line + "\n"
+    body = compile(body, "TestCompile", "exec")
 
 
-class DummyModuleScope():
+class DummyModuleScope:
     pass
 
 
@@ -716,7 +830,7 @@ class UnrecoverableEventInitError(RuntimeError):
     pass
 
 
-class CompileCodeStringsMixin():
+class CompileCodeStringsMixin:
     "This mixin lets a class take strings of code for its setup and action"
 
     def _init_setup_and_action(self, setup, action, params={}):
@@ -726,19 +840,22 @@ class CompileCodeStringsMixin():
 
         # initialize the module scope with the kaithem object and the module thing.
         initializer = compile(
-            setup, "Event_"+self.module+'_'+self.resource, "exec")
+            setup, "Event_" + self.module + "_" + self.resource, "exec"
+        )
 
         try:
-            self.pymodule.__dict__['kaithem'] = kaithemobj.kaithem
-            self.pymodule.__dict__[
-                'module'] = modules_state.scopes[self.module] if self.module in modules_state.scopes else DummyModuleScope()
+            self.pymodule.__dict__["kaithem"] = kaithemobj.kaithem
+            self.pymodule.__dict__["module"] = (
+                modules_state.scopes[self.module]
+                if self.module in modules_state.scopes
+                else DummyModuleScope()
+            )
             try:
                 # To avoid a garbage cycle, the function is a closure
                 # That only weak references the object
-                self.pymodule.__dict__['print'] = makePrintFunction(self)
+                self.pymodule.__dict__["print"] = makePrintFunction(self)
             except Exception:
-                logging.exception(
-                    "Failed to activate event print output functionality")
+                logging.exception("Failed to activate event print output functionality")
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
@@ -751,22 +868,22 @@ class CompileCodeStringsMixin():
                 # Just a marker so we know it got called
                 flag.append(0)
                 try:
-                    kaithemobj.kaithem.context.event = (self.module,self.resource)
+                    kaithemobj.kaithem.context.event = (self.module, self.resource)
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
                     logging.exception(
-                        "Error in event code for "+self.module+":"+self.resource)
+                        "Error in event code for " + self.module + ":" + self.resource
+                    )
                     e.storedError = traceback.format_exc(chain=True)
                     err.append(e)
                 finally:
                     kaithemobj.kaithem.context.event = None
 
-
         modules_state.listenForMlockRequests()
         workers.do(runInit)
         try:
             # Wait for it to get the lock
-            while(len(flag)) == 0:
+            while (len(flag)) == 0:
                 time.sleep(0.001)
 
             t = time.monotonic()
@@ -776,9 +893,10 @@ class CompileCodeStringsMixin():
                 # It can't, because we have it, so we let it delegate some things to us.
                 modules_state.pollMlockRequests()
 
-                if time.monotonic()-t > 15:
+                if time.monotonic() - t > 15:
                     raise UnrecoverableEventInitError(
-                        "The event initializer is stuck in a loop or blocken more than 15s, and may still be running. Undefined behavior? ")
+                        "The event initializer is stuck in a loop or blocken more than 15s, and may still be running. Undefined behavior? "
+                    )
         finally:
             modules_state.stopMlockRequests()
             modules_state.pollMlockRequests()
@@ -787,9 +905,9 @@ class CompileCodeStringsMixin():
             raise err[0]
 
         body = "def _event_action():\n"
-        for line in action.split('\n'):
-            body += ("    "+line+'\n')
-        body = compile(body, "Event_"+self.module+'_'+self.resource, 'exec')
+        for line in action.split("\n"):
+            body += "    " + line + "\n"
+        body = compile(body, "Event_" + self.module + "_" + self.resource, "exec")
         exec(body, self.pymodule.__dict__)
         self.__doc__ = self.pymodule.__doc__
         # This is one of the weirder line of code I've ever writter
@@ -799,27 +917,37 @@ class CompileCodeStringsMixin():
         if hasattr(self.pymodule, "_event_action"):
             self.pymodule._event_action()
         else:
-            raise RuntimeError(self.resource+" has no _event_action.")
+            raise RuntimeError(self.resource + " has no _event_action.")
 
 
-class DirectFunctionsMixin():
+class DirectFunctionsMixin:
     def _init_setup_and_action(self, setup, action):
         self._do_action = action
 
 
 class MessageEvent(BaseEvent, CompileCodeStringsMixin):
-    def __init__(self, when, do, scope, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
-
+    def __init__(
+        self,
+        when,
+        do,
+        scope,
+        continual=False,
+        ratelimit=0,
+        setup="pass",
+        *args,
+        **kwargs
+    ):
         # This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
-        BaseEvent.__init__(self, when, do, scope, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(
+            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+        )
         self.lastran = 0
 
         # Handle whatever stupid whitespace someone puts in
         # What this does is to eliminate leading whitespace, split on first space,
         # Then get rid of any extra spaces in between the command and argument.
-        t = when.strip().split(' ', 1)[1].strip()
+        t = when.strip().split(" ", 1)[1].strip()
         self.topic = t
 
         # No idea why this is done last, actually, but I'm not changing it if it works without looking into it first.
@@ -834,7 +962,7 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
             if self.disable:
                 return
             with self.lock:
-                if self.ratelimit > time.time()-self.lastran:
+                if self.ratelimit > time.time() - self.lastran:
                     return
                 self.lastran = time.time()
                 # These two lines were an old fix for a circular reference buf that made message events not go away.
@@ -843,10 +971,11 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
                     return
 
                 # setup environment
-                self.pymodule.__dict__['__topic'] = topic
-                self.pymodule.__dict__['__message'] = message
+                self.pymodule.__dict__["__topic"] = topic
+                self.pymodule.__dict__["__message"] = message
                 # We delegate the actual execution of the body to the on_trigger
                 self._on_trigger()
+
         # When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it,
         # even if we don't do an unregister call, which we should.
         self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper
@@ -856,14 +985,24 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
 
     # This is the solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
     def unregister(self):
-        logging.debug("Unregistering event "+repr(self))
+        logging.debug("Unregistering event " + repr(self))
         if hasattr(self, "action_wrapper_because_we_need_to_keep_a_reference"):
             del self.action_wrapper_because_we_need_to_keep_a_reference
         self.disable = True
 
 
 class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
-    def __init__(self, when, do, scope, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
+    def __init__(
+        self,
+        when,
+        do,
+        scope,
+        continual=False,
+        ratelimit=0,
+        setup="pass",
+        *args,
+        **kwargs
+    ):
         # If the user tries to use the !onchanged trigger expression,
         # what we do is to make a function that does the actual checking and always returns false
         # This means it will be called every frame but the usual trigger method(which is edge triggered)
@@ -872,13 +1011,17 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
         # Handle whatever stupid whitespace someone puts in
         # What this does is to eliminate leading whitespace, split on first space,
         # Then get rid of any extra spaces in between the command and argument.
-        f = when.strip().split(' ', 1)[1].strip()
-        BaseEvent.__init__(self, when, do, scope, continual,
-                           ratelimit, setup, *args, **kwargs)
+        f = when.strip().split(" ", 1)[1].strip()
+        BaseEvent.__init__(
+            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+        )
         self._init_setup_and_action(setup, do)
 
-        x = compile("def _event_trigger():\n    return "+f,
-                    "Event_"+self.module+'_'+self.resource, 'exec')
+        x = compile(
+            "def _event_trigger():\n    return " + f,
+            "Event_" + self.module + "_" + self.resource,
+            "exec",
+        )
         exec(x, self.pymodule.__dict__)
 
         # This flag indicates that we have never had a reading
@@ -886,11 +1029,10 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
         self.polled = True
 
     def _check(self):
-
         if self.disable:
             return
         try:
-            kaithemobj.kaithem.context.event = (self.module,self.resource)
+            kaithemobj.kaithem.context.event = (self.module, self.resource)
             # Evaluate the function that gives us the values we are looking for changes in
             self.latest = self.pymodule._event_trigger()
         finally:
@@ -907,23 +1049,37 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
             # Update the value of the last reading for next time
             self.old = self.latest
             # Set it up so user code will have access to the value
-            self.scope['__value'] = self.latest
+            self.scope["__value"] = self.latest
             self._on_trigger()
 
 
 class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
-    def __init__(self, when, do, scope, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
-        BaseEvent.__init__(self, when, do, scope, continual,
-                           ratelimit, setup, *args, **kwargs)
+    def __init__(
+        self,
+        when,
+        do,
+        scope,
+        continual=False,
+        ratelimit=0,
+        setup="pass",
+        *args,
+        **kwargs
+    ):
+        BaseEvent.__init__(
+            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+        )
         self.polled = True
 
         # Sometimes an event is used for its setup action and never runs.
         # If the trigger is False, it will never trigger, so we don't poll it.
-        if when == 'False':
+        if when == "False":
             self.polled = False
         # Compile the trigger
-        x = compile("def _event_trigger():\n    return "+when,
-                    "Event_"+self.module+'_'+self.resource, 'exec')
+        x = compile(
+            "def _event_trigger():\n    return " + when,
+            "Event_" + self.module + "_" + self.resource,
+            "exec",
+        )
         exec(x, self.pymodule.__dict__)
 
         self._init_setup_and_action(setup, do)
@@ -936,7 +1092,7 @@ class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
             return
         if self.ev_trig():
             # Only execute once on false to true change unless continual was set
-            if (self.continual or self._prevstate == False):
+            if self.continual or self._prevstate == False:
                 self._prevstate = True
                 self._on_trigger()
         else:
@@ -945,18 +1101,29 @@ class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
 
 class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
-    def __init__(self, when, do, scope, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
-        BaseEvent.__init__(self, when, do, scope, continual,
-                           ratelimit, setup, *args, **kwargs)
+    def __init__(
+        self,
+        when,
+        do,
+        scope,
+        continual=False,
+        ratelimit=0,
+        setup="pass",
+        *args,
+        **kwargs
+    ):
+        BaseEvent.__init__(
+            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+        )
         self.runthread = True
         self.lock = threading.RLock()
         self.pauseflag = threading.Event()
         self.pauseflag.set()
 
         def f():
-            d = config['priority-response'].get(self.symbolicpriority, 1/60.0)
+            d = config["priority-response"].get(self.symbolicpriority, 1 / 60.0)
             # Run is the global run flag used to shutdown
-            while(run and self.runthread):
+            while run and self.runthread:
                 # The sleep comes before the check of the condition because
                 # we want the fastest response when turning the event back on.
                 time.sleep(d)
@@ -974,22 +1141,26 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
                     except Exception as e:
                         if not (run and self.runthread):
                             return
-                        logger.exception("Error in event " +
-                                         self.resource+" of " + self.module)
+                        logger.exception(
+                            "Error in event " + self.resource + " of " + self.module
+                        )
                         self._handle_exception(e)
                         time.sleep(
-                            config['error-backoff'].get(self.symbolicpriority, 5))
+                            config["error-backoff"].get(self.symbolicpriority, 5)
+                        )
+
         self.loop = f
 
         # Sometimes an event is used for its setup action and never runs.
         # If the trigger is False, it will never trigger, so we don't poll it.
-        if when == 'False':
+        if when == "False":
             self.polled = False
         else:
             self.polled = True
         # Compile the trigger
-        x = compile("def _event_trigger():\n    return " +
-                    when, self.pymoduleName, 'exec')
+        x = compile(
+            "def _event_trigger():\n    return " + when, self.pymoduleName, "exec"
+        )
         exec(x, self.pymodule.__dict__)
 
         self._init_setup_and_action(setup, do)
@@ -1023,7 +1194,8 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
         if self.lock.acquire(False):
             try:
                 self.thread = threading.Thread(
-                    target=self.loop, name="Event_"+self.module+'_'+self.resource)
+                    target=self.loop, name="Event_" + self.module + "_" + self.resource
+                )
                 self.thread.start()
             finally:
                 self.lock.release()
@@ -1034,7 +1206,9 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
             if self.lock.acquire(False):
                 try:
                     self.thread = threading.Thread(
-                        target=self.loop, name="Event_"+self.module+'_'+self.resource)
+                        target=self.loop,
+                        name="Event_" + self.module + "_" + self.resource,
+                    )
 
                     self.thread.start()
                 finally:
@@ -1043,18 +1217,18 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
     def unregister(self):
         with self.lock:
-            logging.debug("Unregistering event "+repr(self))
+            logging.debug("Unregistering event " + repr(self))
             self.runthread = False
             self.disable = True
             self.pauseflag.clear()
-            time.sleep(1/60.0)
+            time.sleep(1 / 60.0)
 
     def _check(self):
         """Check if the trigger is true and if so do the action."""
         # Eval the condition in the local event scope
         if self.pymodule._event_trigger():
             # Only execute once on false to true change unless continual was set
-            if (self.continual or not self._prevstate):
+            if self.continual or not self._prevstate:
                 self._prevstate = True
                 self._on_trigger()
         else:
@@ -1063,9 +1237,20 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
 
 class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
-    def __init__(self, when: Callable, do:Callable, scope=None, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
-        BaseEvent.__init__(self, when, do, scope, continual,
-                           ratelimit, setup, *args, **kwargs)
+    def __init__(
+        self,
+        when: Callable,
+        do: Callable,
+        scope=None,
+        continual=False,
+        ratelimit=0,
+        setup="pass",
+        *args,
+        **kwargs
+    ):
+        BaseEvent.__init__(
+            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+        )
         self.polled = True
         # Compile the trigger
         self.trigger = when
@@ -1077,7 +1262,7 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
         # Eval the condition in the local event scope
         if self.trigger():
             # Only execute once on false to true change unless continual was set
-            if (self.continual or self._prevstate == False):
+            if self.continual or self._prevstate == False:
                 self._prevstate = True
                 self._on_trigger()
         else:
@@ -1088,26 +1273,43 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
 def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
-        utc = pytz.timezone('UTC')
-        return ((tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1))
+        utc = pytz.timezone("UTC")
+        return (
+            tz.localize(dt.replace(tzinfo=None))
+            - datetime.datetime(1970, 1, 1, tzinfo=utc)
+        ) / datetime.timedelta(seconds=1)
 
     else:
         # Local Time
         ts = time.time()
-        offset = (datetime.datetime.fromtimestamp(ts) -
-                  datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1))-offset
+        offset = (
+            datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)
+        ).total_seconds()
+        return (
+            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
+        ) - offset
 
 
 class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
     "This represents an event that happens on a schedule"
 
-    def __init__(self, when, do, scope, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
+    def __init__(
+        self,
+        when,
+        do,
+        scope,
+        continual=False,
+        ratelimit=0,
+        setup="pass",
+        *args,
+        **kwargs
+    ):
         self.polled = False
         self.trigger = when
         self.register_lock = threading.Lock()
-        BaseEvent.__init__(self, when, do, scope, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(
+            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+        )
         self._init_setup_and_action(setup, do)
         # Bound methods aren't enough to stop GC
         # TODO, Maybe this method should be asyncified?
@@ -1146,13 +1348,14 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
         self.next = scheduler.schedule(self.handler, self.nextruntime, False)
 
     def _handler(self):
-        if 'allow_overlap' not in self.trigger:
+        if "allow_overlap" not in self.trigger:
             # If already running, just schedule the next one and go home.
             if not self.lock.acquire(False):
                 self.nextruntime = self.selector.after(self.nextruntime, False)
 
                 self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime, self.tz), False)
+                    self.handler, dt_to_ts(self.nextruntime, self.tz), False
+                )
                 return
         try:
             # If the scheduler misses it and we have exact configured, then we just don't do the
@@ -1160,6 +1363,7 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
             def f():
                 if not (self.exact and (time.time() > (self.nextruntime + self.exact))):
                     self._on_trigger()
+
             workers.do(f)
 
         finally:
@@ -1175,34 +1379,52 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
 
             if self.nextruntime:
                 self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime, self.tz), False)
+                    self.handler, dt_to_ts(self.nextruntime, self.tz), False
+                )
                 return
-            print("Caught event trying to return None for get next run, time is:", time.time(
-            ), " expr is ", self.trigger, " last ran ", self.lastexecuted, "retrying")
+            print(
+                "Caught event trying to return None for get next run, time is:",
+                time.time(),
+                " expr is ",
+                self.trigger,
+                " last ran ",
+                self.lastexecuted,
+                "retrying",
+            )
             # A random number unlikely to sync up with anything
             time.sleep(0.179)
 
             if self.nextruntime:
-                self.next = scheduler.schedule(
-                    self.handler, self.nextruntime, False)
+                self.next = scheduler.schedule(self.handler, self.nextruntime, False)
                 return
-            print("""Caught event trying to return None for get next run
+            print(
+                """Caught event trying to return None for get next run
                 (might be an event that only runs for a period that already expired), and retry 1 failed time is:""",
-                  time.time(), " expr is ",
-                  self.trigger, " last ran ",
-                  self.lastexecuted, "retrying")
+                time.time(),
+                " expr is ",
+                self.trigger,
+                " last ran ",
+                self.lastexecuted,
+                "retrying",
+            )
             # A random number unlikely to sync up with anything
             time.sleep(1.353)
 
             if self.nextruntime:
                 self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime, self.tz), False)
+                    self.handler, dt_to_ts(self.nextruntime, self.tz), False
+                )
                 return
-            print("""Caught event trying to return None for get next run
+            print(
+                """Caught event trying to return None for get next run
                 (might be an event that only runs for a period that already expired), and retry 1 failed time is:""",
-                  time.time(), " expr is ",
-                  self.trigger, " last ran ",
-                  self.lastexecuted, "NOT retrying")
+                time.time(),
+                " expr is ",
+                self.trigger,
+                " last ran ",
+                self.lastexecuted,
+                "NOT retrying",
+            )
 
     def __del__(self):
         try:
@@ -1215,14 +1437,14 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
         with self.register_lock:
             if self.nextruntime:
                 return
-            self.nextruntime = self.selector.after(
-                datetime.datetime.now(), False)
+            self.nextruntime = self.selector.after(datetime.datetime.now(), False)
             if self.nextruntime == None:
                 return
 
             self.next = scheduler.schedule(
-                self.handler, dt_to_ts(self.nextruntime, self.tz), False)
-            logging.debug("scheduled"+repr(self.next)+str(self.nextruntime))
+                self.handler, dt_to_ts(self.nextruntime, self.tz), False
+            )
+            logging.debug("scheduled" + repr(self.next) + str(self.nextruntime))
             self.disable = False
 
     def unregister(self):
@@ -1233,8 +1455,9 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
             pass
         self.disable = True
 
+
 # If the system time has been set, we may want to recalculate all of the events.
-#Work in progress
+# Work in progress
 
 
 def recalc_schedule():
@@ -1272,14 +1495,16 @@ def removeModuleEvents(module):
         gc.collect(1)
         gc.collect(2)
 
+
 # Every event has it's own local scope that it uses, this creates the dict to represent it
 
 
 def make_eventscope(module=None):
     if module:
-        return {'module': modules_state.scopes[module], 'kaithem': kaithemobj.kaithem}
+        return {"module": modules_state.scopes[module], "kaithem": kaithemobj.kaithem}
     else:
-        return {'module': None, 'kaithem': kaithemobj.kaithem}
+        return {"module": None, "kaithem": kaithemobj.kaithem}
+
 
 # This piece of code will update the actual event object based on the event resource definition in the module
 # Also can add a new event.
@@ -1321,7 +1546,6 @@ def updateOneEvent(resource, module, o=None):
             if old:
                 x.evt_persistant_data = old.evt_persistant_data
 
-
             # Here is the other lock(!)
             with _event_list_lock:  # Make sure nobody is iterating the eventlist
                 # Add new event
@@ -1332,12 +1556,10 @@ def updateOneEvent(resource, module, o=None):
             data = modules_state.ActiveModules[module][resource]
 
             del old
-            
+
             # One last run.
             gc.collect()
-        
-      
-            
+
         except Exception as e:
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
@@ -1345,23 +1567,26 @@ def updateOneEvent(resource, module, o=None):
         retryDeviceCreation()
 
         from . import codechecks
+
         data = toPyFile(data)
-        e = codechecks.check(data, resource+".py")
+        e = codechecks.check(data, resource + ".py")
         data = data.splitlines()
         if e:
             for i in e.splitlines():
                 line = re.search(r":(\d*):", i)
                 if line:
-                    line=line.group(1)
+                    line = line.group(1)
                 else:
-                    line="Line number could not be decoded"
+                    line = "Line number could not be decoded"
 
                 try:
-                    line = data[int(line)-1]
+                    line = data[int(line) - 1]
                 except:
-                    line= "Context not found"
+                    line = "Context not found"
 
-                x.pymodule.__dict__['print'](i+"\r\n"+line,title="Pyflakes warning")
+                x.pymodule.__dict__["print"](
+                    i + "\r\n" + line, title="Pyflakes warning"
+                )
 
 
 # makes a dummy event for when there is an error loading and puts it in the right place
@@ -1371,7 +1596,6 @@ def updateOneEvent(resource, module, o=None):
 def makeDummyEvent(module, resource):
     # This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
-
         x = Event(m=module, r=resource)
         # Here is the other lock(!)
         with _event_list_lock:  # Make sure nobody is iterating the eventlist
@@ -1383,6 +1607,8 @@ def makeDummyEvent(module, resource):
             # Update index
             __EventReferences[module, resource] = x
         return x
+
+
 # look in the modules and compile all the event code
 # if only is supplied, must be a set and will only look in those modules
 
@@ -1392,7 +1618,7 @@ def getEventsFromModules(only=None):
     toLoad = []
 
     # Closures were acting weird. This class is to be like a non wierd closure.
-    class needstobeloaded():
+    class needstobeloaded:
         def __init__(self, module, resource):
             self.module = module
             self.resource = resource
@@ -1402,7 +1628,7 @@ def getEventsFromModules(only=None):
             x = make_event_from_resource(self.module, self.resource)
             x.register()
             # Now we update the references
-            globals()['__EventReferences'][self.module, self.resource] = x
+            globals()["__EventReferences"][self.module, self.resource] = x
             self.evt = x
 
     with modules_state.modulesLock:
@@ -1412,7 +1638,7 @@ def getEventsFromModules(only=None):
                 if only == None or (module in only):
                     for resource in modules_state.ActiveModules[module]:
                         x = modules_state.ActiveModules[module][resource]
-                        if x['resource-type'] == 'event':
+                        if x["resource-type"] == "event":
                             # For every resource that is an event, we make an event object based on it
                             # And put it in the event referenced thing.
                             # However, we do this indirectly, for each event we create a function representing
@@ -1431,32 +1657,40 @@ def getEventsFromModules(only=None):
             # retry immediately, but only after trying the remaining list of events.
             # This is because inter-event dependancies are the most common reason for failure.
 
-            attempts = max(1, config['max-load-attempts'])
+            attempts = max(1, config["max-load-attempts"])
             for baz in range(0, attempts):
                 if not toLoad:
                     break
-                logging.debug(
-                    "Event initialization resolution round "+str(baz))
+                logging.debug("Event initialization resolution round " + str(baz))
                 for i in toLoad:
                     try:
-                        logging.debug("Loading "+i.module + ":"+i.resource)
+                        logging.debug("Loading " + i.module + ":" + i.resource)
                         slt = time.time()
                         i.f()
 
-                        #Fix any unsupported devices that may now be supported because we just added a driver for them.
+                        # Fix any unsupported devices that may now be supported because we just added a driver for them.
                         retryDeviceCreation()
 
                         messagebus.postMessage(
-                            "/system/events/loaded", [i.module, i.resource])
-                        logging.debug("Loaded "+i.module + ":"+i.resource +
-                                      " in "+str(round(time.time()-slt, 2))+"s")
+                            "/system/events/loaded", [i.module, i.resource]
+                        )
+                        logging.debug(
+                            "Loaded "
+                            + i.module
+                            + ":"
+                            + i.resource
+                            + " in "
+                            + str(round(time.time() - slt, 2))
+                            + "s"
+                        )
                         time.sleep(0.005)
 
                     except (SyntaxError, UnrecoverableEventInitError):
                         i.loadingTraceback = traceback.format_exc(chain=True)
                         i.error = traceback.format_exc(chain=True)
                         logging.exception(
-                            "Could not load "+i.module + ":"+i.resource)
+                            "Could not load " + i.module + ":" + i.resource
+                        )
 
                     # If there is an error, add it t the list of things to be retried.
                     except Exception as e:
@@ -1464,14 +1698,23 @@ def getEventsFromModules(only=None):
                             i.error = traceback.format_exc(chain=True)
                         else:
                             i.error = traceback.format_exc()
-                        if baz == attempts-1:
+                        if baz == attempts - 1:
                             i.loadingTraceback = traceback.format_exc()
                         if hasattr(e, "storedTraceback"):
                             i.error = e.storedTraceback
 
                         nextRound.append(i)
-                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n" +
-                                      "failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc(chain=True))
+                        logging.debug(
+                            "Could not load "
+                            + i.module
+                            + ":"
+                            + i.resource
+                            + " in this round, deferring to next round\n"
+                            + "failed after"
+                            + str(round(time.time() - slt, 2))
+                            + "s\n"
+                            + traceback.format_exc(chain=True)
+                        )
                         gc.collect()
                         pass
                 toLoad = nextRound
@@ -1483,9 +1726,19 @@ def getEventsFromModules(only=None):
                 d._handle_exception(tb=i.error)
                 # Add the reason for the error to the actual object so it shows up on the page.
                 __EventReferences[i.module, i.resource].errors.append(
-                    [time.strftime(config['time-format']), str(i.error)])
-                messagebus.postMessage("/system/notifications/errors", "Failed to load event resource: " +
-                                       i.resource + " module: " + i.module + "\n" + str(i.error)+"\n"+"please edit and reload.")
+                    [time.strftime(config["time-format"]), str(i.error)]
+                )
+                messagebus.postMessage(
+                    "/system/notifications/errors",
+                    "Failed to load event resource: "
+                    + i.resource
+                    + " module: "
+                    + i.module
+                    + "\n"
+                    + str(i.error)
+                    + "\n"
+                    + "please edit and reload.",
+                )
     try:
         devices.warnAboutUnsupportedDevices()
     except Exception:
@@ -1506,56 +1759,65 @@ def make_event_from_resource(module, resource, subst=None):
         r = subst
 
     # Add defaults for legacy events that do not have setup, rate limit, etc.
-    if 'setup' in r:
-        setupcode = r['setup']
+    if "setup" in r:
+        setupcode = r["setup"]
     else:
         setupcode = "pass"
 
-    if 'rate-limit' in r:
-        ratelimit = r['rate-limit']
+    if "rate-limit" in r:
+        ratelimit = r["rate-limit"]
     else:
         ratelimit = 0
 
-    if 'continual' in r:
-        continual = r['continual']
+    if "continual" in r:
+        continual = r["continual"]
     else:
         continual = False
 
-    if 'priority' in r:
-        priority = r['priority']
+    if "priority" in r:
+        priority = r["priority"]
     else:
         priority = 1
     try:
-        if 'enable' in r:
+        if "enable" in r:
             scope = make_eventscope(module)
 
-            if not r['enable']:
+            if not r["enable"]:
                 # TODO: What's going on here?
-                if not parseTrigger(r['trigger'][0]) == '!function':
+                if not parseTrigger(r["trigger"][0]) == "!function":
                     e = Event(m=module, r=resource)
                 else:
-                    e = Event(r['trigger'], r['action'], scope,
-                              setup=setupcode,
-                              continual=continual,
-                              ratelimit=ratelimit,
-                              priority=priority,
-                              m=module,
-                              r=resource, dummy=True)
+                    e = Event(
+                        r["trigger"],
+                        r["action"],
+                        scope,
+                        setup=setupcode,
+                        continual=continual,
+                        ratelimit=ratelimit,
+                        priority=priority,
+                        m=module,
+                        r=resource,
+                        dummy=True,
+                    )
 
                 e.disable = True
-                scope['event'] = EventInterface(e)
+                scope["event"] = EventInterface(e)
                 return e
 
         scope = make_eventscope(module)
-        x = Event(r['trigger'], r['action'], scope,
-                  setup=setupcode,
-                  continual=continual,
-                  ratelimit=ratelimit,
-                  priority=priority,
-                  m=module,
-                  r=resource)
+        x = Event(
+            r["trigger"],
+            r["action"],
+            scope,
+            setup=setupcode,
+            continual=continual,
+            ratelimit=ratelimit,
+            priority=priority,
+            m=module,
+            r=resource,
+        )
 
-        scope['event'] = modules_state.scopes[module][resource]
+        scope["event"] = modules_state.scopes[module][resource]
 
     except Exception as e:
         if not (module, resource) in __EventReferences:
@@ -1563,6 +1825,6 @@ def make_event_from_resource(module, resource, subst=None):
             d._handle_exception(e)
         raise
 
-    #findCapitalizationIssues(setupcode+" \n "+r['trigger']+ "\n "+r['action'], x)
-    x.timeTakenToLoad = time.time()-t
+    # findCapitalizationIssues(setupcode+" \n "+r['trigger']+ "\n "+r['action'], x)
+    x.timeTakenToLoad = time.time() - t
     return x
