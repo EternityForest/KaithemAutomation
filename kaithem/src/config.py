@@ -19,9 +19,10 @@ import yaml
 import argparse
 import sys
 import os
-import jsonschema    
+import jsonschema
 import logging
-logger = logging.getLogger('system')
+
+logger = logging.getLogger("system")
 
 ##########################################################
 # Modified code from ibt of stackoverflow. Uses literal style for scalars instead of ugly folded.
@@ -38,7 +39,7 @@ def should_use_block(value):
 def my_represent_scalar(self, tag, value, style=None):
     if style is None:
         if should_use_block(value):
-            style = '|'
+            style = "|"
         else:
             style = self.default_style
 
@@ -50,8 +51,7 @@ def my_represent_scalar(self, tag, value, style=None):
 
 yaml.representer.BaseRepresenter.represent_scalar = my_represent_scalar
 
-_dn = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "..", "data")
+_dn = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
 #################################################################
 
@@ -89,7 +89,7 @@ def load():
         config[i] = _usr_config[i]
 
     if argcmd.p:
-        config['https-port'] = int(argcmd.p)
+        config["https-port"] = int(argcmd.p)
     return config
 
 
@@ -105,4 +105,6 @@ c = load()
 with open(os.path.join(_dn, "config-schema.yaml")) as f:
     jsonschema.validate(c, yaml.load(f))
 config = c
+# Happy linter
+argcmd = argcmd
 del c

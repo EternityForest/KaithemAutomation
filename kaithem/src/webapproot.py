@@ -20,7 +20,6 @@ from . import (
     ManageUsers,
     modules_interface,
     usrpages,
-    widgets,
     messagelogging,
     btadmin,
     devices,
@@ -303,7 +302,7 @@ class webapproot:
             tn = '/'.join(path)
             if not tn.startswith('='):
                 tn = '/'+tn
-            if not tn in tagpoints.allTags:
+            if tn not in tagpoints.allTags:
                 raise ValueError("This tag does not exist")
             return pages.get_template("settings/tagpoint.html").render(
                 tagName=tn, data=data, show_advanced=show_advanced

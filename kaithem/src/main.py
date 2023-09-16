@@ -14,16 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-from types import MethodType
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from . import tweaks
-from . import logconfig
+from . import tweaks  # noqa: F401
+from . import logconfig  # noqa: F401
 
 # Enable importing stuff directly from ./thirdparty,
 # Since we include lots of dependancies that would normally be provided by the system.
 # This must be done before CherryPy
-from . import pathsetup
+from . import pathsetup  # noqa: F401
 import os
 import sys
 
@@ -37,57 +36,49 @@ from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches, Matcher
 import logging
 
 # Thhese happpen early so we cab start logging stuff soon
-from . import messagelogging
-from . import pylogginghandler
+from . import messagelogging  # noqa: F401
+from . import pylogginghandler  # noqa: F401
 
 
-from . import notifications
+from . import notifications  # noqa: F401
 
 
-import getpass
 import atexit
-import signal
-import mimetypes
-import time
-import traceback
 from . import util, workers
-from . import selftest
-from . import devices
-import importlib
+from . import selftest  # noqa: F401
+from . import devices  # noqa: F401
 from scullery import messagebus
-from . import statemachines
-from . import auth
+from . import statemachines  # noqa: F401
+from . import auth  # noqa: F401
 from . import directories
 from . import pages
 import iot_devices.host
 from .config import config
 from . import config as cfg
-import mako.exceptions
-from . import tagpoints
-from . import builtintags
-from . import kaithemobj
-from . import wifimanager
-from . import tagpoints
-from . import rtmidimanager
-from . import logviewer
-from . import weblogin
-from . import ManageUsers
-from . import newevt
-from . import persist
-from . import modules
-from . import modules_interface
-from . import settings
-from . import usrpages
-from . import systasks
-from . import widgets
-from . import alerts
-from . import tag_errors
-from . import scheduling
-from . import plugin_system
-from . import signalhandlers
-from . import webapproot
-from . import version_info
-from . import chandler
+from . import tagpoints  # noqa: F401
+from . import builtintags  # noqa: F401
+from . import kaithemobj  # noqa: F401
+from . import wifimanager  # noqa: F401
+from . import rtmidimanager  # noqa: F401
+from . import logviewer  # noqa: F401
+from . import weblogin  # noqa: F401
+from . import ManageUsers  # noqa: F401
+from . import newevt  # noqa: F401
+from . import persist  # noqa: F401
+from . import modules  # noqa: F401
+from . import modules_interface  # noqa: F401
+from . import settings  # noqa: F401
+from . import usrpages  # noqa: F401
+from . import systasks  # noqa: F401
+from . import widgets  # noqa: F401
+from . import alerts  # noqa: F401
+from . import tag_errors  # noqa: F401
+from . import scheduling  # noqa: F401
+from . import plugin_system  # noqa: F401
+from . import signalhandlers  # noqa: F401
+from . import webapproot  # noqa: F401
+from . import version_info  # noqa: F401
+from . import chandler  # noqa: F401
 
 
 logger = logging.getLogger("system")
@@ -110,7 +101,7 @@ tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir, "tags"))
 if cfg.argcmd.initialpackagesetup:
     auth.dumpDatabase()
     logger.info(
-        "Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init"
+        "Kaithem users set up. Now exiting."
     )
     cherrypy.engine.exit()
     sys.exit()
@@ -129,7 +120,7 @@ workers.do(systasks.doUPnP)
 
 
 def loadJackMixer():
-    from . import jackmixer
+    from . import jackmixer  # noqa: F401
 
 
 workers.do(loadJackMixer)
@@ -180,7 +171,8 @@ def webRoot():
         atexit.register(save)
         cherrypy.engine.subscribe("exit", save)
 
-    # There are lots of other objects ad classes represeting subfolders of the website so we attatch them
+    # There are lots of other objects ad classes represeting subfolders of the website
+    #  so we attatch them
     root = webapproot.root
 
     site_config = {

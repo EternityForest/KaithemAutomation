@@ -14,11 +14,10 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 # This file is just for keeping track of state info that would otherwise cause circular issues.
-from typing import Any, Dict
+from typing import Dict
 import weakref
 import urllib
 import os
-import sys
 import hashlib
 import json
 import time
@@ -27,9 +26,9 @@ import yaml
 import logging
 import copy
 from threading import RLock
-from . import util, config, directories
+from . import util, directories
 from . import resource_serialization
-from .util import url, unurl
+
 
 # / is there because we just forbid use of that char for anything but dirs,
 # So there is no confusion
@@ -38,7 +37,7 @@ safeFnChars = "~@*&()-_=+/ '"
 logger = logging.getLogger("system")
 
 # This lets us have some modules saved outside the var dir.
-external_module_locations = {}
+external_module_locations: Dict[str, str] = {}
 
 
 # Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
@@ -70,34 +69,32 @@ external_module_locations = {}
 # TWhich must return the JSON object of the module. Onload will be automatically called for newly created resources.
 
 # Note that the actual dict objects are directly passed, you can modify them in place but you still must return them.
-additionalTypes = weakref.WeakValueDictionary()
 
 # This is a dict indexed by module/resource tuples that contains the absolute path to what
 # The system considers the current "loaded" version.
-fileResourceAbsPaths : Dict[tuple, str] = {}
+fileResourceAbsPaths: Dict[tuple, str] = {}
 
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
 
+
 def parseTarget(t, module, in_ext=False):
     if t.startswith("$MODULERESOURCES/"):
-        t = t[len('$MODULERESOURCES/'):]
+        t = t[len("$MODULERESOURCES/") :]
     return t
 
 
-
 def getExt(r):
+    if r["resource-type"] == "directory":
+        return ""
 
-    if r['resource-type'] == 'directory':
-        return ''
-
-    elif r['resource-type'] == 'page':
-        if r.get('template-engine', '') == 'markdown':
+    elif r["resource-type"] == "page":
+        if r.get("template-engine", "") == "markdown":
             return ".md"
         else:
             return ".html"
 
-    elif r['resource-type'] == 'event':
+    elif r["resource-type"] == "event":
         return ".py"
 
     else:
@@ -109,21 +106,20 @@ def serializeResource(obj):
 
     r = copy.deepcopy(obj)
     # This is a ram only thing that tells us where it is saved
-    if 'resource-loadedfrom' in r:
-        del r['resource-loadedfrom']
+    if "resource-loadedfrom" in r:
+        del r["resource-loadedfrom"]
 
-    ext = ''
-    if r['resource-type'] == 'page':
-        if r.get('template-engine', '') == 'markdown':
-            b = r['body']
-            del r['body']
+    if r["resource-type"] == "page":
+        if r.get("template-engine", "") == "markdown":
+            b = r["body"]
+            del r["body"]
             d = "---\n" + yaml.dump(r) + "\n---\n" + b
         else:
-            b = r['body']
-            del r['body']
+            b = r["body"]
+            del r["body"]
             d = "---\n" + yaml.dump(r) + "\n---\n" + b
 
-    elif r['resource-type'] == 'event':
+    elif r["resource-type"] == "event":
         d = resource_serialization.toPyFile(r)
 
     else:
@@ -131,23 +127,23 @@ def serializeResource(obj):
     return (d, getExt(obj))
 
 
-def writeResource(obj, fn: str):
-
+def writeResource(obj: dict, fn: str):
     # Don't save VResources
     if isinstance(obj, weakref.ref):
         # logger.debug("Did not save resource because it is virtual")
         return
     # logger.debug("Saving resource to "+str(fn))
 
-    d, ext = serializeResource(obj)
+    if obj.get("do-not-save-to-disk", False):
+        return
 
-    fn
+    d, ext = serializeResource(obj)
 
     if os.path.exists(fn):
         try:
             # Check for sameness, avoid useless write
             with open(fn, "rb") as f:
-                x = f.read().decode('utf8')
+                x = f.read().decode("utf8")
                 if x == d:
                     return fn
         except Exception:
@@ -160,7 +156,7 @@ def writeResource(obj, fn: str):
     if os.path.isfile(fn):
         with open(fn, "rb") as f:
             if f.read() == data:
-                obj['resource-loadedfrom'] = fn
+                obj["resource-loadedfrom"] = fn
                 return fn
 
     with open(fn, "wb") as f:
@@ -170,12 +166,14 @@ def writeResource(obj, fn: str):
         os.fsync(f.fileno())
 
     # logger.debug("saved resource to file " + fn)
-    obj['resource-loadedfrom'] = fn
+    obj["resource-loadedfrom"] = fn
     return fn
 
 
-
 def saveResource(m, r, resourceData, name=None):
+    if "__do__not__save__to__disk__:" in m:
+        return
+
     modulename, resource = m, r
     name = name or resource
 
@@ -185,11 +183,11 @@ def saveResource(m, r, resourceData, name=None):
 
     if not newfn == fn:
         if os.path.exists(newfn):
-            raise ValueError("File exists: "+ newfn)
+            raise ValueError("File exists: " + newfn)
 
-    if resourceData['resource-type'] == "directory":
+    if resourceData["resource-type"] == "directory":
         d = copy.deepcopy(resourceData)
-        d.pop('resource-type',None)
+        d.pop("resource-type", None)
 
         # As the folder on disk is enough to create the resource internally, we don't need to clutter
         # the FS with this if there is no extra data
@@ -197,22 +195,19 @@ def saveResource(m, r, resourceData, name=None):
             return
 
     # Allow non-saved virtual resources
-    if not hasattr(resourceData, "ephemeral") or resourceData.ephemeral == False:
+    if not hasattr(resourceData, "ephemeral") or resourceData.ephemeral is False:
         writeResource(resourceData, fn)
-    
+
     if not newfn == fn:
         shutil.move(fn, newfn)
-
 
     # Don't need to do anything with the file resource data, it is always modified directly when actually changed
     # In the upload code itself.
 
 
-
-
 def getResourceFn(m, r, o):
     dir = os.path.join(directories.moduledir, "data")
-    return os.path.join(dir, m, urllib.parse.quote(r, safe=" /"))+getExt(o)
+    return os.path.join(dir, m, urllib.parse.quote(r, safe=" /")) + getExt(o)
 
 
 def getModuleFn(m):
@@ -225,6 +220,10 @@ def saveModule(module, modulename: str):
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
     """
+
+    if "__do__not__save__to__disk__:" in modulename:
+        return
+
     # Iterate over all of the resources in a module and save them as json files
     # under the URL url module name for the filename.
     logger.debug("Saving module " + str(modulename))
@@ -253,7 +252,7 @@ def saveModule(module, modulename: str):
         raise
 
 
-class ResourceType():
+class ResourceType:
     def __init__(self):
         self.createButton = None
 
@@ -264,10 +263,12 @@ class ResourceType():
         <input name="name">
         <input type="submit">
         </form>
-        """.format(module=module, path=path)
+        """.format(
+            module=module, path=path
+        )
 
     def create(self, module, path, name, kwargs):
-        return {'resource-type': 'example'}
+        return {"resource-type": "example"}
 
     def editpage(self, module, resource, resourceobj):
         return str(resourceobj)
@@ -285,11 +286,10 @@ class ResourceType():
         return True
 
 
-r = ResourceType()
-additionalTypes['example'] = r
+additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()
 
 
-class HierarchyDict():
+class HierarchyDict:
     def __init__(self):
         self.flat = {}
         # This tree only stores the tree structure, actual elements are referenced by flat.
@@ -369,7 +369,7 @@ class HierarchyDict():
 
 
 # Lets just store the entire list of modules as a huge dict for now at least
-ActiveModules : Dict[str, Dict] = {}
+ActiveModules: Dict[str, Dict] = {}
 
 moduleshash = "000000000000000000000000"
 modulehashes = {}
@@ -377,44 +377,69 @@ modulewordhashes = {}
 
 
 def hashModules():
-    """For some unknown lagacy reason, the hash of the entire module state is different from the hash of individual modules 
-        hashed together
+    """For some unknown lagacy reason, the hash of the entire module state is different from the hash of individual modules
+    hashed together
     """
     try:
         m = hashlib.md5()
         with modulesLock:
             for i in sorted(ActiveModules.keys()):
-                m.update(i.encode('utf-8'))
+                m.update(i.encode("utf-8"))
                 for j in sorted(ActiveModules[i].keys()):
                     if isinstance(ActiveModules[i][j], weakref.ref):
                         continue
-                    m.update(j.encode('utf-8'))
-                    m.update(json.dumps(ActiveModules[i][j], sort_keys=True, separators=(
-                        ',', ':')).encode('utf-8'))
+                    m.update(j.encode("utf-8"))
+                    m.update(
+                        json.dumps(
+                            ActiveModules[i][j], sort_keys=True, separators=(",", ":")
+                        ).encode("utf-8")
+                    )
         return m.hexdigest().upper()
     except Exception:
         logger.exception("Could not hash modules")
-        return("ERRORHASHINGMODULES")
+        return "ERRORHASHINGMODULES"
+
 
 def hashModule(module: str):
     try:
         m = hashlib.md5()
         with modulesLock:
-            m.update(json.dumps({i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(
-                ActiveModules[module][i], weakref.ref)}, sort_keys=True, separators=(',', ':')).encode('utf-8'))
+            m.update(
+                json.dumps(
+                    {
+                        i: ActiveModules[module][i]
+                        for i in ActiveModules[module]
+                        if not isinstance(ActiveModules[module][i], weakref.ref)
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            )
         return m.hexdigest()
     except Exception:
         logger.exception("Could not hash module")
-        return("ERRORHASHINGMODULE")
+        return "ERRORHASHINGMODULE"
+
 
 def wordHashModule(module: str):
     try:
         with modulesLock:
             return util.blakeMemorable(
-                json.dumps({i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i], weakref.ref)}, sort_keys=True, separators=(',', ':')).encode('utf-8'), num=12, separator=" ")
+                json.dumps(
+                    {
+                        i: ActiveModules[module][i]
+                        for i in ActiveModules[module]
+                        if not isinstance(ActiveModules[module][i], weakref.ref)
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8"),
+                num=12,
+                separator=" ",
+            )
     except Exception:
         logger.exception("Could not hash module")
-        return("ERRORHASHINGMODULE")
+        return "ERRORHASHINGMODULE"
 
 
 def getModuleHash(m: str):
@@ -437,18 +462,17 @@ def modulesHaveChanged():
     ls_folder.invalidate_cache()
 
 
-
 def in_folder(r, f):
     """Return true if name r represents a kaihem resource in folder f"""
     # Note: this is about kaithem resources and folders, not actual filesystem dirs.
     if not r.startswith(f):
         return False
     # Get the path as a list
-    r = util.split_escape(r, '/', '\\')
+    r = util.split_escape(r, "/", "\\")
     # Get the path of the folder
-    f = util.split_escape(f, '/', '\\')
+    f = util.split_escape(f, "/", "\\")
     # make sure the resource path is one longer than module
-    if not len(r) == len(f)+1:
+    if not len(r) == len(f) + 1:
         return False
     return True
 
@@ -462,7 +486,6 @@ def ls_folder(m, d):
         if in_folder(i, d):
             o.append(i)
     return o
-
 
 
 "this lock protects the activemodules thing. Any changes at all should go through this."
@@ -490,7 +513,7 @@ def listenForMlockRequests():
         g._ret = None
         g._err = None
         mlockFunctionQueue.append(g)
-        while(mlockFunctionQueue):
+        while mlockFunctionQueue:
             time.sleep(0.01)
         if g._err:
             raise g._err
@@ -500,11 +523,12 @@ def listenForMlockRequests():
 
 
 def stopMlockRequests():
-    "ALWAYS call this before you stop polling for requests "
+    "ALWAYS call this before you stop polling for requests"
     global runWithModulesLock
 
     def f(g):
         return g()
+
     runWithModulesLock = f
 
 
@@ -522,4 +546,4 @@ def pollMlockRequests():
 # Define a place to keep the module private scope obects.
 # Every module has a object of class object that is used so user code can share state between resources in
 # a module
-scopes = {}
+scopes: Dict[str, Dict] = {}

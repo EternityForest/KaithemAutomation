@@ -15,18 +15,16 @@
 import time
 import threading
 import os
-import bz2
-import gzip
-import re
 import collections
 import traceback
 import logging
 import cherrypy
-from . import unitsofmeasure, messagebus, directories, workers, util, pages, config
+from . import messagebus, directories, util, pages
 from .messagebus import normalize_topic
 
 from .config import config
-from collections import defaultdict, deque, OrderedDict
+from collections import deque, OrderedDict
+
 # this flag tells if we need to save the list of what to log
 loglistchanged = False
 
@@ -37,17 +35,19 @@ savelock = threading.RLock()
 toSave = set()
 try:
     if os.path.isfile(os.path.join(directories.logdir, "whattosave.txt")):
-        with open(os.path.join(directories.logdir, "whattosave.txt"), 'r') as f:
+        with open(os.path.join(directories.logdir, "whattosave.txt"), "r") as f:
             x = f.read()
-        for line in x.split('\n'):
+        for line in x.split("\n"):
             toSave.add(normalize_topic(line.strip()))
         del x
     else:
-        for i in config['log-topics']:
+        for i in config["log-topics"]:
             toSave.add(normalize_topic(i))
-except:
-    messagebus.postMessage("/system/notifications/errors",
-                           "Error loading logged topics list. using defaults:\n"+traceback.format_exc(6))
+except Exception:
+    messagebus.postMessage(
+        "/system/notifications/errors",
+        "Error loading logged topics list. using defaults:\n" + traceback.format_exc(6),
+    )
 
 log = {}
 
@@ -56,11 +56,10 @@ def saveLogList():
     global loglistchanged
     if loglistchanged:
         # Save the list of things to dump
-        with open(os.path.join(directories.logdir, "whattosave.txt"), 'w') as f:
-            util.chmod_private_try(os.path.join(
-                directories.logdir, "whattosave.txt"))
+        with open(os.path.join(directories.logdir, "whattosave.txt"), "w") as f:
+            util.chmod_private_try(os.path.join(directories.logdir, "whattosave.txt"))
             for i in toSave:
-                f.write(i+'\n')
+                f.write(i + "\n")
         loglistchanged = False
 
 
@@ -89,14 +88,14 @@ def messagelistener(topic, message):
     global approxtotallogentries
 
     if isSaved(topic):
-        if 'error' in topic:
-            logger.error(topic+" "+str(message))
-        elif 'warning' in topic:
-            logger.warning(topic+" "+str(message))
+        if "error" in topic:
+            logger.error(topic + " " + str(message))
+        elif "warning" in topic:
+            logger.warning(topic + " " + str(message))
         else:
-            logger.info(topic+" "+str(message))
+            logger.info(topic + " " + str(message))
 
-    if not topic in log:
+    if topic not in log:
         log[topic] = deque()
 
     # Default dicts are *not* good here like I thought
@@ -104,27 +103,27 @@ def messagelistener(topic, message):
 
     # Only keep recent messages.
     try:
-        if len(log[topic]) > config['non-logged-topic-limit']:
+        if len(log[topic]) > config["non-logged-topic-limit"]:
             log[topic].popleft()
             approxtotallogentries -= 1
     except Exception as e:
         print(e)
 
 
-messagebus.subscribe('/#', messagelistener)
+messagebus.subscribe("/#", messagelistener)
 
 
 class WebInterface(object):
     @cherrypy.expose
     def index(self, *args, **kwargs):
-        pages.require('/users/logs.view')
-        return pages.get_template('logging/index.html').render()
+        pages.require("/users/logs.view")
+        return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
     def startlogging(self, topic):
         global known_unsaved
         global loglistchanged
-        pages.require('/admin/logging.edit')
+        pages.require("/admin/logging.edit")
         pages.postOnly()
         # Invalidate the cache of non-logged topics
         known_unsaved = OrderedDict()
@@ -132,23 +131,23 @@ class WebInterface(object):
         topic = topic[:]
         loglistchanged = True
         toSave.add(normalize_topic(topic))
-        return pages.get_template('logging/index.html').render()
+        return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
     def stoplogging(self, topic):
         global loglistchanged
-        pages.require('/admin/logging.edit')
+        pages.require("/admin/logging.edit")
         pages.postOnly()
         topic = topic.encode("latin-1").decode("utf-8")
         topic = topic[1:]
         loglistchanged = True
         toSave.discard(normalize_topic(topic))
-        return pages.get_template('logging/index.html').render()
+        return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
     def setlogging(self, txt):
         global known_unsaved
-        pages.require('/admin/logging.edit')
+        pages.require("/admin/logging.edit")
         pages.postOnly()
         # Invalidate the cache of non-logged topics
         global loglistchanged
@@ -162,9 +161,11 @@ class WebInterface(object):
             if line:
                 toSave.add(normalize_topic(line))
         known_unsaved = OrderedDict()
-        return pages.get_template('logging/index.html').render()
+        return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
     def viewall(self, topic, page=1):
-        pages.require('/users/logs.view')
-        return pages.get_template('logging/topic.html').render(topicname=normalize_topic(topic), page=int(page))
+        pages.require("/users/logs.view")
+        return pages.get_template("logging/topic.html").render(
+            topicname=normalize_topic(topic), page=int(page)
+        )

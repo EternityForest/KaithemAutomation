@@ -654,15 +654,6 @@ class Kaithem():
         def unsubscribe(topic, callback):
             messagebus.unsubscribe(topic, callback)
 
-    class pymessage():
-        @staticmethod
-        def post(topic, message):
-            messagebus.pyPostMessage(topic, message)
-
-        @staticmethod
-        def subscribe(topic, callback):
-            messagebus.pySubscribe(topic, callback)
-
     class persist():
         unsaved = scullery.persist.unsavedFiles
 

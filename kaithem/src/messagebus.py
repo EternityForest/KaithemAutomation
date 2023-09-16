@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-from scullery.messagebus import *
 import scullery.messagebus
 import traceback
 import cherrypy
@@ -23,32 +22,44 @@ import logging
 postMessage = scullery.messagebus.postMessage
 post = scullery.messagebus.postMessage
 subscribe = scullery.messagebus.subscribe
+unsubscribe = scullery.messagebus.unsubscribe
+normalize_topic = scullery.messagebus.normalize_topic
+log = scullery.messagebus.log
+MessageBus = scullery.messagebus.MessageBus
+
 
 def handleMsgbusError(f, topic, message):
     try:
-        scullery.messagebus.log.exception("Error in subscribed function for "+topic +" with message "+str(message)[:64])
+        scullery.messagebus.log.exception(
+            "Error in subscribed function for "
+            + topic
+            + " with message "
+            + str(message)[:64]
+        )
         from . import newevt
+
         if f.__module__ in newevt.eventsByModuleName:
             newevt.eventsByModuleName[f.__module__]._handle_exception()
 
         # If we can't handle it whence it came
         else:
             try:
-                if isinstance(f,(weakref.WeakMethod, weakref.ref)):
-                    f=f()
+                if isinstance(f, (weakref.WeakMethod, weakref.ref)):
+                    f = f()
                 x = hasattr(f, "_kaithemAlreadyPostedNotificatonError")
                 f._kaithemAlreadyPostedNotificatonError = True
-                logging.exception("Message subscriber error for "+str(topic))
-            except:
+                if not x:
+                    logging.exception("Message subscriber error for " + str(topic))
+            except Exception:
                 print(traceback.format_exc())
 
-    except Exception as e:
+    except Exception:
         print(traceback.format_exc())
         del f
 
 
 def _shouldReRaiseAttrErr():
-    "Check if we actually need to notify about errors during cherrypy shutdown, to avoid annoyance "
+    "Check if we actually need to notify about errors during cherrypy shutdown, to avoid annoyance"
     return cherrypy.engine.state == cherrypy.engine.states.STARTED
 
 
