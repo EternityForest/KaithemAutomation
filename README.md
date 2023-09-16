@@ -188,6 +188,15 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.69.1
+Moving to Tornado was a rather large change, this release is mostly cleanup.
+
+- :sparkles: Alt top banner HTML option in user pages
+- :bug: Can specify per-page theme name instead of full CSS url
+- :bug: Fix raw websockets used in NVR streaming
+- :bug: Fix tagpoint page fake buttons
+
+
 ### 0.69.0
 
 - :sparkles: Use the Tornado server
