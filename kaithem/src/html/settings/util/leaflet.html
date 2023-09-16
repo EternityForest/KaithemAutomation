@@ -31,23 +31,29 @@
 </head>
 <body>
 
-<p>This is just a tester. To actually enable serving maps, load a Map Server module from the Modules Library.</p>
 
-<p>To update or get new maps, either browse around using Marble, or rsync from /home/USERNAME/.local/share/marble/maps/ on another computer.</p>
+<p>To update or get new maps, either browse around or add them to vardir/maptiles/opentopomap/z/x/y.png</p>
+<p>If available maps are served to anyone with /users/maptiles.view.   If the user has /admin/settings.edit, the tiles will be fetched
+	automatically from opentopomap.org.
+</p>
 
+<p>This is a rather large privacy issue if you aren't careful, as it allows people with the view permission to see which maps
+	are cached and thus which areas someone must have been looking at.  Avoid using this for highly sensitive applications.
+</p>
 <p>Use /static/js/leaflet/leaflet.min.js and /static/js/leaflet/leaflet.css to make your own map-enabled modules.  Kaithem's builtin tile server is on: /maptiles/tile/{z}/{x}/{y}.png when
     enabled.
 </p>
 
-<div id="mapid" style="width: 1024px; height: 1024px;"></div>
+<p></p>
+
+<div id="mapid" style="width: 80vw; height: 80vh;"></div>
 <script>
 
 	var mymap = L.map('mapid').setView([51.505, -0.09], 6);
 
     
     var myTileLayer = L.tileLayer.fallback('/maptiles/tile/{z}/{x}/{y}.png', {
-		maxZoom: 8,
-		attribution: 'OSM Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+		attribution: 'OpenTopoMap (CC-BY-SA)' +
 			'<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
 		id: 'osm/streets-v11',
 		tileSize: 512,

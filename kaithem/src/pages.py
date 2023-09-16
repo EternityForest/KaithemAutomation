@@ -14,19 +14,16 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 from . import config as cfg
-from mako.template import Template
 from mako.lookup import TemplateLookup
 import cherrypy
 import base64
 import weakref
-import threading
 import time
 import logging
 import os
 import mimetypes
 from . import auth, config
 from . import directories, util
-from mako import exceptions
 
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
@@ -39,7 +36,7 @@ def get_vardir_template(fn):
     return _varLookup.get_template(os.path.relpath(fn, directories.vardir))
 
 
-noSecurityMode = False
+noSecurityMode = 0
 
 mode = int(cfg.argcmd.nosecurity) if cfg.argcmd.nosecurity else None
 # limit nosecurity to localhost
@@ -59,7 +56,8 @@ if mode == 3:
 navBarPlugins = weakref.WeakValueDictionary()
 
 
-# There are cases where this may not exactly be perfect, but the point is just an extra guard against user error.
+# There are cases where this may not exactly be perfect,
+# but the point is just an extra guard against user error.
 def isHTTPAllowed(ip):
     return (
         ip.startswith("::1")
@@ -140,9 +138,12 @@ def require(permission, noautoreturn=False):
     """Get the user that is making the request bound to this thread,
     and then raise an interrupt if he does not have the permission specified.
 
-    Normally this will prompt the user to go to a login page, and if they log in it takes them right back where they were
-    trying to go. However if the place they were going has an effect, you might want them to confirm first, so set noauto to true
-    to take them to the main page on successful login, or set it to a url to take them there instead.
+    Normally this will prompt the user to go to a login page, 
+    and if they log in it takes them right back where they were
+    trying to go. However if the place they were going has an effect, 
+    you might want them to confirm first, so set noauto to true
+    to take them to the main page on successful login, 
+    or set it to a url to take them there instead.
     """
 
     if permission == "__never__":
@@ -176,7 +177,8 @@ def require(permission, noautoreturn=False):
         # Anything guest can't do needs https
         if not cherrypy.request.scheme == "https":
             x = cherrypy.request.remote.ip
-            # Allow localhost, and Yggdrasil mesh. This check is really just to be sure nobody accidentally uses HTTP,
+            # Allow localhost, and Yggdrasil mesh. 
+            # This check is really just to be sure nobody accidentally uses HTTP,
             # But localhost and encrypted mesh are legitamate uses of HTTP.
             if not isHTTPAllowed(x):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
@@ -223,13 +225,7 @@ def canUserDoThis(permissions, user=None):
 
 
 if noSecurityMode:
-
-    def require(*args, **kwargs):
-        if canOverrideSecurity():
-            return True
-        raise cherrypy.HTTPRedirect("/errors/permissionerror?")
-
-    def require(permission, *args, **kwargs):
+    def require(permission, noautoreturn=False):
         if canOverrideSecurity():
             return True
         raise auth.canUserDoThis(getAcessingUser(), permission)
@@ -282,13 +278,13 @@ def getAcessingUser(tornado_mode=None):
                 if not isHTTPAllowed(x):
                     raise cherrypy.HTTPRedirect("/errors/gosecure")
             # Get token using username and password
-            t = auth.userLogin(b[0], b[1])
+            auth.userLogin(b[0], b[1])
             # Check the credentials of that token
             try:
                 return auth.whoHasToken(cookie["kaithem_auth"].value)
             except KeyError:
                 return "__guest__"
-            except:
+            except Exception:
                 logging.exception("Error finding accessing user")
                 return "__guest__"
 
@@ -302,10 +298,16 @@ def getAcessingUser(tornado_mode=None):
         user = auth.whoHasToken(cookie["kaithem_auth"].value)
         if not auth.getUserSetting(user, "allow-cors"):
             if headers.get("Origin", ""):
-                x = headers.get("Origin", "").replace("http://",'').replace("https://",'').replace("ws://",'').replace("wss://",'')
+                x = (
+                    headers.get("Origin", "")
+                    .replace("http://", "")
+                    .replace("https://", "")
+                    .replace("ws://", "")
+                    .replace("wss://", "")
+                )
                 x2 = headers.get("Origin", "")
                 # Cherrypy and tornado compatibility
-                if base not in(x, x2):
+                if base not in (x, x2):
                     return "__guest__"
         return user
 
@@ -322,7 +324,7 @@ class ServeFileInsteadOfRenderingPageException(Exception):
 
 def serveFile(path, contenttype="", name=None):
     "Skip the rendering of the current page and Serve a static file instead."
-    if name == None:
+    if name is None:
         name = path
     if not contenttype:
         c = mimetypes.guess_type(path, strict=True)

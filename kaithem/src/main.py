@@ -79,7 +79,7 @@ from . import signalhandlers  # noqa: F401
 from . import webapproot  # noqa: F401
 from . import version_info  # noqa: F401
 from . import chandler  # noqa: F401
-
+from . import tileserver
 
 logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
@@ -100,9 +100,7 @@ tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir, "tags"))
 
 if cfg.argcmd.initialpackagesetup:
     auth.dumpDatabase()
-    logger.info(
-        "Kaithem users set up. Now exiting."
-    )
+    logger.info("Kaithem users set up. Now exiting.")
     cherrypy.engine.exit()
     sys.exit()
 
@@ -243,6 +241,10 @@ def webRoot():
 
     rules = [
         Rule(PathMatches("/widgets/ws.*"), wsapp),
+        Rule(
+            PathMatches("/maptiles/tile/.*"),
+            tornado.web.Application([("/maptiles/tile/.*",tileserver.MainHandler)]),
+        ),
     ]
 
     rules.append(Rule(AnyMatches(), container))

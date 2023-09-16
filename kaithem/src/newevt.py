@@ -17,32 +17,26 @@
 # ALWAYS GET _event_list_lock LAST
 # IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import copy
 import traceback
 import threading
 import sys
 import typing
-from typing import Callable, Union, Optional
+from typing import Callable
 import time
 import cherrypy
-import collections
 import os
 import base64
-import imp
 import types
 import weakref
-import dateutil
-import datetime
 import recur
 import re
-import yaml
 import pytz
 import gc
 import random
 import logging
-import dateutil.rrule
-import dateutil.tz
 import textwrap
+import datetime
+from .resource_serialization import toPyFile
 
 
 from . import (
@@ -61,8 +55,6 @@ from .scheduling import scheduler
 ctime = time.time
 do = workers.do
 
-from .resource_serialization import toPyFile
-
 
 def retryDeviceCreation():
     """When we load up a new event, it might contain a driver, so we
@@ -70,19 +62,17 @@ def retryDeviceCreation():
     """
     try:
         devices.fixUnsupported()
-    except:
+    except Exception:
         logger.exception("Something bad happened")
 
 
 # Ratelimiter for calling gc.collect automatically when we get OSErrors
 _lastGC = 0
 
-# Use this lock whenever you access _events or __EventReferences in any way.
+# Use this lock whenever you access __EventReferences in any way.
 # Most of the time it should be held by the event manager
 # that continually iterates it.
-# To update the _events, event execution must temporarily pause
 _event_list_lock = threading.RLock()
-_events = []
 
 # Let us now have a way to get at active event objects by
 # means of their origin (resource, module) tuple.
@@ -280,7 +270,7 @@ def getEventLastRan(module, event):
 
 def countEvents():
     # Why bother with the lock. The event count is not critical at all.
-    return len(_events)
+    return len(__EventReferences)
 
 
 # Used for interpreter shutdown
@@ -386,8 +376,10 @@ def beginPolling(ev):
         # I have no idea what this was for
         logging.exception("????????????????")
         pass
-    # Basically we want to spread them out in the phase space from 0 to 1 in a deterministic ish way.
-    # There might be a better algorithm of better constant to use, but this one should be decent.
+    # Basically we want to spread them out in the
+    # phase space from 0 to 1 in a deterministic ish way.
+    # There might be a better algorithm of better constant to use,
+    # but this one should be decent.
     # The phase of this wave determines the frequency offset applied
     insert_phase += 0.555555
     insert_phase = insert_phase % 1
@@ -476,17 +468,22 @@ def Event(
         )
 
 
-# A brief rundown on how these classes work. You have the BaseEvent, which handles registering and unregistering
+# A brief rundown on how these classes work. You have the BaseEvent,
+#  which handles registering and unregistering
 # From polling lists, exeptions, and locking.
 
 # Derived classes must do three things:
-# Set self.polled to True if this event needs polling, or False if it is not(interrups, callbacks,etc)
-# Define a _check() function that does polling and calls _on_trigger() if the event condition is true
+# Set self.polled to True if this event needs polling,
+# or False if it is not(interrups, callbacks,etc)
+# Define a _check() function that does
+# polling and calls _on_trigger() if the event condition is true
 # Do something with the setup variable if applicable
-# define a _do_action() method that actually carries out the appropriate action
+# define a _do_action() method that actually
+#  carries out the appropriate action
 # call the init of the base class properly.
 
-# The BaseEvent wraps the _check function in such a way that only one event will be polled at a time
+# The BaseEvent wraps the _check function
+# in such a way that only one event will be polled at a time
 # And errors in _check will be logged.
 
 
@@ -534,8 +531,8 @@ class BaseEvent:
 
     def __init__(
         self,
-        when: str,
-        do: str,
+        when: str | Callable,
+        do: str | Callable,
         scope,
         continual=False,
         ratelimit=0,
@@ -746,11 +743,14 @@ class BaseEvent:
             )
 
     def register(self):
-        # Note: The whole self.disabled thing is really laregly a hack to get instant response
-        # To things if an event is based on some external thing with a callback that takes time to unregister.
+        # Note: The whole self.disabled thing is
+        # really laregly a hack to get instant response
+        # To things if an event is based on some external thing
+        # with a callback that takes time to unregister.
         self.disable = False
         with self.register_lock:
-            # Some events are really just containers for a callback, so there is no need to poll them
+            # Some events are really just containers for a callback,
+            # so there is no need to poll them
             if self.polled:
                 # Ensure we don't have 2 objects going.
                 # This is defensive, we still delete schedulerobj when unregistering
@@ -895,7 +895,7 @@ class CompileCodeStringsMixin:
 
                 if time.monotonic() - t > 15:
                     raise UnrecoverableEventInitError(
-                        "The event initializer is stuck in a loop or blocken more than 15s, and may still be running. Undefined behavior? "
+                        "event initializer stuck in loop, and may still be running. Undefined behavior? "
                     )
         finally:
             modules_state.stopMlockRequests()
@@ -950,7 +950,8 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
         t = when.strip().split(" ", 1)[1].strip()
         self.topic = t
 
-        # No idea why this is done last, actually, but I'm not changing it if it works without looking into it first.
+        # No idea why this is done last, actually,
+        # but I'm not changing it if it works without looking into it first.
         self._init_setup_and_action(setup, do)
 
     def register(self):
@@ -1092,7 +1093,7 @@ class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
             return
         if self.ev_trig():
             # Only execute once on false to true change unless continual was set
-            if self.continual or self._prevstate == False:
+            if self.continual or self._prevstate is False:
                 self._prevstate = True
                 self._on_trigger()
         else:
@@ -1175,17 +1176,24 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
         self.pauseflag.set()
 
     def register(self):
-        # Our entire thing runs under self.lock, so that keeps us from accidentally starting 2 threads
-        # However, the self.runthread = True run regardless of the lock. A previous call to unregister could have set it False,
+        # Our entire thing runs under self.lock,
+        # so that keeps us from accidentally starting 2 threads
+        # However, the self.runthread = True run regardless of the lock.
+        # A previous call to unregister could have set it False,
         # But the thread might not notice for maybe minutes or seconds.
-        # In that case, if a register() call happens in that time, we want to prevent the thread stopping in the first place.
+        # In that case, if a register() call happens in that time,
+        # we want to prevent the thread stopping in the first place.
 
-        # Note that this is not 100% threadsafe. Calling register() 0.1ms after unregister()
+        # Note that this is not 100% threadsafe. Calling register()
+        # 0.1ms after unregister()
         # could still result in a stopped thread in theory.
 
-        # This is because the process of stopping may take a bit of time. Calls to register() during the stopping time
-        # Will 99.9% of the time prevent the stopping from happening, but 0.001% of the time might do nothing.
-        # No matter what, calling them in any order from any number of threads should not deadlock.
+        # This is because the process of stopping may take a bit of time.
+        # Calls to register() during the stopping time
+        # Will 99.9% of the time prevent the stopping from happening,
+        #  but 0.001% of the time might do nothing.
+        # No matter what, calling them in any order from any number
+        # of threads should not deadlock.
         if not self.polled:
             return
         self.unpause()
@@ -1262,7 +1270,7 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
         # Eval the condition in the local event scope
         if self.trigger():
             # Only execute once on false to true change unless continual was set
-            if self.continual or self._prevstate == False:
+            if self.continual or self._prevstate is False:
                 self._prevstate = True
                 self._on_trigger()
         else:
@@ -1331,8 +1339,10 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
         else:
             return 3
 
-    # Recalculate the next time at which the event should run, for cases in which the time was set incorrectly
-    # And has now been changed. Not well tested, work in progress, might cause a missed event or something.
+    # Recalculate the next time at which the event should run,
+    # for cases in which the time was set incorrectly
+    # And has now been changed. Not well tested,
+    # work in progress, might cause a missed event or something.
     def recalc_time(self):
         try:
             self.next.unregister()
@@ -1343,7 +1353,7 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
 
         self.nextruntime = self.selector.after(self.nextruntime, False)
 
-        if self.nextruntime == None:
+        if self.nextruntime is None:
             return
         self.next = scheduler.schedule(self.handler, self.nextruntime, False)
 
@@ -1374,7 +1384,7 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
                 pass
             self.nextruntime = self.selector.after(self.nextruntime, False)
 
-            if self.nextruntime == None:
+            if self.nextruntime is None:
                 return
 
             if self.nextruntime:
@@ -1399,7 +1409,8 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
                 return
             print(
                 """Caught event trying to return None for get next run
-                (might be an event that only runs for a period that already expired), and retry 1 failed time is:""",
+                (might be an event that only runs for a period that
+                already expired), and retry 1 failed time is:""",
                 time.time(),
                 " expr is ",
                 self.trigger,
@@ -1438,7 +1449,7 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
             if self.nextruntime:
                 return
             self.nextruntime = self.selector.after(datetime.datetime.now(), False)
-            if self.nextruntime == None:
+            if self.nextruntime is None:
                 return
 
             self.next = scheduler.schedule(
@@ -1526,7 +1537,8 @@ def updateOneEvent(resource, module, o=None):
                 old.unregister()
                 # Now we clean it up and delete any references the user code might have had to things
                 old.cleanup()
-                # Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
+                # Really we should wait a bit longer but this is a compromise,
+                # we wait so any cleanup effects can propagate.
                 # 120ms is better than nothing I guess. And we garbage collect before and after,
                 # Because we want all the __del__ stuff to get a chance to take effect.
                 gc.collect(0)
@@ -1581,7 +1593,7 @@ def updateOneEvent(resource, module, o=None):
 
                 try:
                     line = data[int(line) - 1]
-                except:
+                except Exception:
                     line = "Context not found"
 
                 x.pymodule.__dict__["print"](
@@ -1614,7 +1626,6 @@ def makeDummyEvent(module, resource):
 
 
 def getEventsFromModules(only=None):
-    global _events
     toLoad = []
 
     # Closures were acting weird. This class is to be like a non wierd closure.
@@ -1634,8 +1645,8 @@ def getEventsFromModules(only=None):
     with modules_state.modulesLock:
         with _event_list_lock:
             for module in modules_state.ActiveModules:
-                # now we loop over all the resources of the module to see which ones are _events
-                if only == None or (module in only):
+                # now we loop over all the resources of the module to see which ones are events
+                if only is None or (module in only):
                     for resource in modules_state.ActiveModules[module]:
                         x = modules_state.ActiveModules[module][resource]
                         if x["resource-type"] == "event":

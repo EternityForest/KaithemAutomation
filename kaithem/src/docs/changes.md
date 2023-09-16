@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.69.2
+
+- :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
+
+
+
 ### 0.69.1
 Moving to Tornado was a rather large change, this release is mostly cleanup.
 

@@ -487,10 +487,6 @@ class Settings():
         util.SaveAllState()
         raise cherrypy.HTTPRedirect('/')
 
-    @cherrypy.expose
-    def clearerrors(self):
-        pages.require("/admin/settings.edit")
-        return pages.get_template("settings/clearerrors.html").render()
 
     @cherrypy.expose
     def settime(self):
@@ -597,15 +593,6 @@ class Settings():
     def environment(self):
         pages.require("/admin/settings.view")
         return pages.get_template("settings/environment.html").render()
-
-    @cherrypy.expose
-    def clearerrorstarget(self):
-        pages.require("/admin/settings.edit", noautoreturn=True)
-        pages.postOnly()
-        util.clearErrors()
-        messagebus.postMessage(
-            "/system/notifications", "All errors were cleared by" + pages.getAcessingUser())
-        raise cherrypy.HTTPRedirect('/')
 
     gpio = gpio.WebInterface()
 

@@ -17,7 +17,8 @@ import os
 from scullery.jacktools import *
 from scullery import messagebus
 from scullery import jacktools
-__doc__ = ''
+
+__doc__ = ""
 
 # This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
 
@@ -25,13 +26,11 @@ from . import persist, directories
 
 
 def onFail():
-    messagebus.postMessage("/system/notifications/errors",
-                           "JACK server has failed")
+    messagebus.postMessage("/system/notifications/errors", "JACK server has failed")
 
 
 def onStart():
-    messagebus.postMessage(
-        "/system/notifications/important", "JACK server connected")
+    messagebus.postMessage("/system/notifications/important", "JACK server connected")
     messagebus.postMessage("/system/sound/jackstart", "JACK server connected")
 
 
@@ -39,11 +38,10 @@ scullery.jacktools.onJackFailure = onFail
 scullery.jacktools.onJackStart = onStart
 
 
-
 def checkIfProcessRunning(processName):
-    '''
+    """
     Check if there is any running process that contains the given name processName, but only if it is OUR process
-    '''
+    """
     try:
         import psutil
     except Exception:
@@ -63,8 +61,6 @@ def checkIfProcessRunning(processName):
 
 pipewireprocess1 = None
 pipewireprocess2 = None
-
-
 
 
 scullery.jacktools.useAdditionalSoundcards = "no"

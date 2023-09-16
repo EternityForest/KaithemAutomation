@@ -347,15 +347,6 @@ def exit():
     cherrypy.engine.exit()
 
 
-def clearErrors():
-    from . import usrpages, newevt
-    for i in newevt._events[:]:
-        i.errors = []
-    for i in usrpages._Pages.items():
-        for j in i[1].items():
-            j[1].errors = []
-
-
 def updateIP():
     global MyExternalIPAdress
     # Yes, This really is the only way i know of to get your public IP.
