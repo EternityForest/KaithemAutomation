@@ -1,6 +1,15 @@
 Change Log
 ----------
 
+### 0.69.1
+Moving to Tornado was a rather large change, this release is mostly cleanup.
+
+- :sparkles: Alt top banner HTML option in user pages
+- :bug: Can specify per-page theme name instead of full CSS url
+- :bug: Fix raw websockets used in NVR streaming
+- :bug: Fix tagpoint page fake buttons
+
+
 ### 0.69.0
 
 - :sparkles: Use the Tornado server
@@ -8,7 +17,7 @@ Change Log
 - :coffin: enable-js, enable-websockets, drayer-port, and other useless config options removed.
 - :coffin: config validation no longer rejects additional properties.
 - :coffin: We no longer support starting as root and dropping permissions. Use systemd features for port 80.
-- 
+
 ### 0.68.48
 - :coffin: Remove the Chandler tag permissions system, as it is too complex to properly assess the security model. It can now access any tag.
 - :sparkles: JACK mixer has a noise gate now

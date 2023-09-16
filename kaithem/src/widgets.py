@@ -129,53 +129,6 @@ lastLoggedUserError = 0
 lastPrintedUserError = 0
 
 
-class WebInterface:
-    @cherrypy.expose
-    def ws(self):
-        pages.strictNoCrossSite()
-        # you can access the class instance through
-        handler = cherrypy.request.ws_handler
-        x = cherrypy.request.remote.ip
-        try:
-            handler.user_agent = cherrypy.request.headers["User-Agent"]
-        except Exception:
-            pass
-
-        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
-            handler.user = pages.getAcessingUser()
-            handler.cookie = cherrypy.request.cookie
-        else:
-            handler.cookie = None
-            handler.user = "__guest__"
-
-        handler.clientinfo = ClientInfo(handler.user, handler.cookie)
-        clients_info[handler.uuid] = handler.clientinfo
-
-    @cherrypy.expose
-    def wsraw(self, *a, **k):
-        pages.strictNoCrossSite()
-        # you can access the class instance through
-        handler = cherrypy.request.ws_handler
-        x = cherrypy.request.remote.ip
-        try:
-            handler.user_agent = cherrypy.request.headers["User-Agent"]
-        except:
-            pass
-
-        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
-            handler.user = pages.getAcessingUser()
-            handler.cookie = cherrypy.request.cookie
-        else:
-            handler.cookie = None
-            handler.user = "__guest__"
-        handler.clientinfo = ClientInfo(handler.user, handler.cookie)
-        clients_info[handler.uuid] = handler.clientinfo
-
-    @cherrypy.expose
-    def session_id(self):
-        return server_session_ID
-
-
 def subsc_closure(self, i, widget):
     def f(msg, raw):
         try:
@@ -514,7 +467,7 @@ class websocket_impl:
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
-def makeTornadoSocket():
+def makeTornadoSocket(wsimpl=websocket_impl):
     import tornado.websocket
 
     class WS(tornado.websocket.WebSocketHandler):
@@ -534,7 +487,8 @@ def makeTornadoSocket():
                 user = "__guest__"
 
             self.io_loop = tornado.ioloop.IOLoop.current()
-            impl = websocket_impl(self, user)
+            q = self.request.arguments
+            impl = wsimpl(self, user, **{i: q[i][0].decode() for i in q})
             impl.cookie = cookie
             impl.user_agent = user_agent
 
@@ -570,11 +524,8 @@ def makeTornadoSocket():
     return WS
 
 
-import urllib
-
-
 class rawwebsocket_impl:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, parent, user, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
         self.uuid = (
@@ -589,17 +540,12 @@ class rawwebsocket_impl:
         self.subCount = 0
         ws_connections[self.uuid] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
-        self.user = "__guest__"
-        x = cherrypy.request.remote.ip
+        self.user = user
+        self.parent = parent
 
-        if cherrypy.request.scheme == "https" or pages.isHTTPAllowed(x):
-            self.user = pages.getAcessingUser()
-        else:
-            self.user = "__guest__"
         self.usedPermissions = collections.defaultdict(lambda: 0)
 
-        params = urllib.parse.parse_qs(args[3]["QUERY_STRING"])
-        widgetName = params["widgetid"][0]
+        widgetName = kwargs["widgetid"]
 
         with subscriptionLock:
             if widgetName in widgets:
@@ -633,11 +579,11 @@ class rawwebsocket_impl:
 
         workers.do(f)
 
-    def send(self, *a, **k):
+    def send(self, b):
         with self.widget_wslock:
-            self.parent.send_data(self, *a, **k, binary=isinstance(a[0], bytes))
+            self.parent.send_data(b, binary=isinstance(b, bytes))
 
-    def closed(self, code, reason):
+    def closed(self, *a):
         with subscriptionLock:
             for i in self.subscriptions:
                 try:
@@ -648,6 +594,10 @@ class rawwebsocket_impl:
                         widgets[i].lastSubscribedTo = time.monotonic()
                 except:
                     pass
+
+
+def makeRawTornadoSocket():
+    return makeTornadoSocket(rawwebsocket_impl)
 
 
 def randID():

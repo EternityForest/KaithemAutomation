@@ -748,7 +748,7 @@ Currently this is only supported for the newer cross-framework devices.
                                 <button  type="button"  style="background-color: white;  color: darkgray;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#FFFFFF'])">Wht</button>
                                 %else:
                                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', prompt('New value?')])">Set val</button>
-                                        %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
+                                        %if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0:
                                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Set 0</button>
                                         <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 1])">Set 1</button>
                                         %endif
@@ -763,7 +763,7 @@ Currently this is only supported for the newer cross-framework devices.
                                                 <button type="button"  onmousedown="setFake('${i|h}', 1)"  onmouseup="setFake('${i|h}', null)" title="Fake 1 while held">Fake Press</button>
                                         %else:
                                                 <button  type="button"  onclick="setFake('${i|h}', prompt('New value?'))">Set fake val</button>
-                                        %if obj.tagPoints[i].max==1 and obj.tagPoints[0].min==0:
+                                        %if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0:
                                                 <button type="button"  onclick="setFake('${i|h}', 0)" title="Fake input being zero">Fake Off</button>
                                                 <button type="button"  onclick="setFake('${i|h}', 1)" title="Fake input being one">Fake On</button>
                                         %endif

@@ -27,8 +27,7 @@ rlogger.setLevel(logging.INFO)
 logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
 
-logger = logging.getLogger("ws4py")
-logger.setLevel(logging.WARNING)
+
 
 logger = logging.getLogger("aioesphomeapi.connection")
 logger.setLevel(logging.WARNING)

@@ -232,6 +232,7 @@ def webRoot():
     wsapp = tornado.web.Application(
         [
             (r"/widgets/ws", widgets.makeTornadoSocket()),
+            (r"/widgets/wsraw", widgets.makeRawTornadoSocket()),
         ]
     )
 
@@ -249,7 +250,7 @@ def webRoot():
             return None
 
     rules = [
-        Rule(PathMatches("/widgets/ws"), wsapp),
+        Rule(PathMatches("/widgets/ws.*"), wsapp),
     ]
 
     rules.append(Rule(AnyMatches(), container))

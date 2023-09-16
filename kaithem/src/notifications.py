@@ -15,7 +15,6 @@
 
 import weakref
 from . import workers
-from ws4py.websocket import WebSocket
 import time
 import json
 import logging

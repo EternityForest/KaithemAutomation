@@ -124,7 +124,6 @@ class webapproot:
     pages = usrpages.KaithemPage()
     logs = messagelogging.WebInterface()
     notifications = notifications.WI()
-    widgets = widgets.WebInterface()
     syslog = logviewer.WebInterface()
     devices = devices.WebDevices()
     chandler = cweb.Web()
