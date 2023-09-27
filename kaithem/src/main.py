@@ -42,6 +42,7 @@ from . import pylogginghandler  # noqa: F401
 
 from . import notifications  # noqa: F401
 
+from . import wsgi_adapter
 
 import atexit
 from . import util, workers
@@ -217,8 +218,6 @@ def webRoot():
 
     cherrypy.engine.start()
 
-    container = tornado.wsgi.WSGIContainer(wsgiapp)
-
     wsapp = tornado.web.Application(
         [
             (r"/widgets/ws", widgets.makeTornadoSocket()),
@@ -243,11 +242,18 @@ def webRoot():
         Rule(PathMatches("/widgets/ws.*"), wsapp),
         Rule(
             PathMatches("/maptiles/tile/.*"),
-            tornado.web.Application([("/maptiles/tile/.*",tileserver.MainHandler)]),
+            tornado.web.Application([("/maptiles/tile/.*", tileserver.MainHandler)]),
         ),
     ]
 
-    rules.append(Rule(AnyMatches(), container))
+    rules.append(
+        Rule(
+            AnyMatches(),
+            tornado.web.Application(
+                [(AnyMatches(), wsgi_adapter.WSGIHandler, {"wsgi_application": wsgiapp})]
+            ),
+        )
+    )
 
     if config["esphome-config-dir"]:
         from . import esphome_dash
