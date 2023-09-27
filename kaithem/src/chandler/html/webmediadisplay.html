@@ -1,46 +1,47 @@
 <style>
-  body {
-    background-color: black;
-    color: white;
-    text-align: center;
-  }
+    body {
+        background-color: black;
+        color: white;
+        text-align: center;
+    }
 </style>
 <script src="/static/widget.js"></script>
+<script src="/static/js/butterchurn.min.js"></script>
+<script src="/static/js/butterchurnPresetsMinimal.min.js"></script>
+<script src="/static/js/milkdrop-preset-converter.min.js"></script>
 
 <style>
-  body {
-    background-color: black;
-    overflow: hidden;
-    margin: 0px;
-    padding: 0opx;
-  }
+    body {
+        background-color: black;
+        overflow: hidden;
+        margin: 0px;
+        padding: 0opx;
+    }
 
-  .player {
-    margin: 0px;
-    padding:0px;
-    border-width:0px;
-    height:100%;
-    width:100%;
-  }
+    .player {
+        margin: 0px;
+        padding: 0px;
+        border-width: 0px;
+        height: 100%;
+        width: 100%;
+    }
 
-  audio{
-    display:none;
-  }
+    audio {
+        display: none;
+    }
 
-#overlay{
-    margin: 0px;
-    padding:0px;
-    border-width:0px;
-    height:100%;
-    width:100%;
-    z-index: 100;
-    top: 0px;
-    left: 0px;
-    background-color: transparent;
-    position: absolute;
-}
-
-
+    #overlay {
+        margin: 0px;
+        padding: 0px;
+        border-width: 0px;
+        height: 100%;
+        width: 100%;
+        z-index: 100;
+        top: 0px;
+        left: 0px;
+        background-color: transparent;
+        position: absolute;
+    }
 </style>
 
 
@@ -54,348 +55,437 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
 <script>
 
-atypes = ['.ogg', '.oga', '.aac', '.m4a', '.mp3', '.opus']
-itypes = ['.png', '.jpg', '.bmp', '.tiff', '.webp', '.gif', '.avif']
+    atypes = ['.ogg', '.oga', '.aac', '.m4a', '.mp3', '.opus']
+    itypes = ['.png', '.jpg', '.bmp', '.tiff', '.webp', '.gif', '.avif']
 
 
-class makePlayer {
-    constructor(c) {
+    class makePlayer {
+        constructor(c) {
 
-        this.isSound = function (fn) {
-            for (i of atypes) {
-                if (fn.indexOf(i) > -1) {
-                    return true;
-                }
-            }
-
-            return false;
-        };
-
-        this.isStillImage = function (fn) {
-            for (i of itypes) {
-                if (fn.indexOf(i) > -1) {
-                    return true;
-                }
-            }
-
-            return false;
-        };
-
-
-        this.isHTML = function (fn) {
-            //Mor of a guess than anything exact
-            if (fn.endsWith('.html')) {
-                return true;
-            }
-
-            if (fn.endsWith('.com')) {
-                return true;
-            }
-
-            if (fn.endsWith('.net')) {
-                return true;
-            }
-
-
-            if (fn.endsWith('.org')) {
-                return true;
-            }
-
-
-            //If the part after the last dot, or the whole thing if no dots, is longer than 4,
-            //it's not an extension
-            if (fn.split(".").slice(-1)[0].length > 4) {
-                return true;
-            }
-
-            return false;
-
-        };
-
-
-        this.cstyle ={
-            position: 'absolute',
-            top: '0',
-            bottom: '0',
-            width: '100%',
-            height: '100%',
-            overflow: 'hidden',
-            margin: '0px',
-            padding: '0px',
-            'border-width': '0px',
-            background: 'none',
-            'mix-blend-mode': 'lighten'
-        
-        }
-
-        this.vstyle = {
-            width: '100%',
-            margin: '0px',
-            padding: '0px',
-            height: 'auto',
-            "max-height": '100%',
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%,-50%)',
-            "object-fit": 'contain',
-        };
-
-        this.setStyles = function (element, styles) {
-            for (var s in styles) {
-                element.style[s] = styles[s];
-            }
-        };
-
-
-        this.currentLayer = document.createElement('div');
-        this.setStyles(this.currentLayer, this.cstyle);
-
-        this.altLayer = document.createElement('div');
-        this.setStyles(this.altLayer, this.cstyle);
-
-        this.shouldbestopped = true
-
-
-        c.appendChild(this.currentLayer);
-        c.appendChild(this.altLayer);
-        var parent = this;
-
-        //Handle when autoplay fails.
-        this.altLayer.addEventListener('click', function () {
-            parent.currentMedia.play();
-        }, true);
-
-        //Handle when autoplay fails.
-        this.altLayer.addEventListener('click', function () {
-            parent.currentMedia.play();
-        }, true);
-
-        this.currentMedia = 0;
-        this.altMedia = 0;
-        this.fadeTask = 0;
-        this.fadeStart = 0;
-        this.fadeLength = 0;
-        this.targetVolume = 0.1;
-
-
-        this.task = function () {
-
-            if(parent.currentMedia)
-            {
-                if(parent.currentMedia.duration > 0.1)
-                {
-                    if(parent.currentMedia.currentTime > parent.currentMedia.duration-0.5)
-                    {
-                        this.shouldbestopped = true
+            this.isSound = function (fn) {
+                for (i of atypes) {
+                    if (fn.indexOf(i) > -1) {
+                        return true;
                     }
                 }
-            
+
+                return false;
+            };
+
+            this.isStillImage = function (fn) {
+                for (i of itypes) {
+                    if (fn.indexOf(i) > -1) {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+
+            this.getButterchurn = function () {
+
+                if (this.butterchurn == undefined) {
+                    this.butterchurn_canvas = document.createElement('canvas')
+                    this.butterchurn_canvas.height = window.innerHeight
+                    this.butterchurn_canvas.width = window.innerWidth
+                    this.butterchurncontext = new AudioContext();
+
+
+                    var presets = {};
+                    if (window.butterchurnPresets) {
+                        Object.assign(presets, butterchurnPresets.getPresets());
+                    }
+                    if (window.butterchurnPresetsExtra) {
+                        Object.assign(presets, butterchurnPresetsExtra.getPresets());
+                    }
+
+                    Object.assign(presets, butterchurnPresetsMinimal.getPresets())
+
+                    this.presets = _(presets).toPairs().sortBy(([k, v]) => k.toLowerCase()).fromPairs().value();
+                    var presetKeys = _.keys(this.presets);
+                    var presetIndex = Math.floor(Math.random() * presetKeys.length);
+
+                    var visualizer = butterchurn.default.createVisualizer(this.butterchurncontext, this.butterchurn_canvas, {
+                        width: window.innerWidth,
+                        height: window.innerHeight,
+                        pixelRatio: window.devicePixelRatio || 1,
+                        textureRatio: 1,
+                    });
+                    function nextPreset(blendTime = 5.7) {
+                        var numPresets = presetKeys.length;
+                        presetIndex = Math.floor(Math.random() * presetKeys.length);
+
+                        visualizer.loadPreset(presets[presetKeys[presetIndex]], blendTime);
+                    }
+
+
+                    nextPreset(0);
+                    var cycleInterval = setInterval(() => nextPreset(2.7), 12000);
+                    this.butterchurn = visualizer;
+                }
+                return this.butterchurn;
             }
 
-            if (parent.fadeLength == -1) {
-                return;
+            this.isButterchurn = function (fn) {
+                //Mor of a guess than anything exact
+                if (fn.startsWith('milkdrop:')) {
+                    return true;
+                }
+                return false;
+            };
+
+            this.isHTML = function (fn) {
+                //Mor of a guess than anything exact
+                if (fn.endsWith('.html')) {
+                    return true;
+                }
+
+                if (fn.endsWith('.com')) {
+                    return true;
+                }
+
+                if (fn.endsWith('.net')) {
+                    return true;
+                }
+
+
+                if (fn.endsWith('.org')) {
+                    return true;
+                }
+
+
+                //If the part after the last dot, or the whole thing if no dots, is longer than 4,
+                //it's not an extension
+                if (fn.split(".").slice(-1)[0].length > 4) {
+                    return true;
+                }
+
+                return false;
+
+            };
+
+
+            this.cstyle = {
+                position: 'absolute',
+                top: '0',
+                bottom: '0',
+                width: '100%',
+                height: '100%',
+                overflow: 'hidden',
+                margin: '0px',
+                padding: '0px',
+                'border-width': '0px',
+                background: 'none',
+                'mix-blend-mode': 'lighten'
+
             }
-            if (parent.fadeLength == 0) {
+
+            this.vstyle = {
+                width: '100%',
+                margin: '0px',
+                padding: '0px',
+                height: 'auto',
+                "max-height": '100%',
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%,-50%)',
+                "object-fit": 'contain',
+            };
+
+            this.setStyles = function (element, styles) {
+                for (var s in styles) {
+                    element.style[s] = styles[s];
+                }
+            };
+
+
+            this.currentLayer = document.createElement('div');
+            this.setStyles(this.currentLayer, this.cstyle);
+
+            this.altLayer = document.createElement('div');
+            this.setStyles(this.altLayer, this.cstyle);
+
+            this.shouldbestopped = true
+
+
+            c.appendChild(this.currentLayer);
+            c.appendChild(this.altLayer);
+            var parent = this;
+
+
+            this.currentMedia = 0;
+            this.altMedia = 0;
+            this.fadeTask = 0;
+            this.fadeStart = 0;
+            this.fadeLength = 0;
+            this.targetVolume = 0.1;
+
+
+            this.task = function () {
+
                 if (parent.currentMedia) {
-                    parent.currentMedia.volume = parent.targetVolume;
+                    if (parent.currentMedia.duration > 0.1) {
+                        if (parent.currentMedia.currentTime > parent.currentMedia.duration - 0.5) {
+                            this.shouldbestopped = true
+                        }
+                    }
+
                 }
 
-                
-                parent.currentLayer.style.opacity= '100%'
-            
+                if (parent.fadeLength == -1) {
+                    return;
+                }
+                if (parent.fadeLength == 0) {
+                    if (parent.currentMedia) {
+                        parent.currentMedia.volume = parent.targetVolume;
+                    }
+
+
+                    parent.currentLayer.style.opacity = '100%'
+
+                    if (parent.altMedia) {
+                        parent.altMedia.volume = 0;
+                    }
+
+                    parent.altLayer.style.opacity = '0%'
+
+                    return;
+                }
+
+                var position = Math.max(Math.min((Date.now() - parent.fadeStart) / parent.fadeLength, 1), 0);
+
+                if (position == 1) {
+                    parent.fadeLength = 0;
+                }
+
+
+                parent.currentLayer.style.opacity = (position * 100) + '%';
+                parent.altLayer.style.opacity = ((1 - position) * 100) + '%';
+
+                if (parent.currentMedia) {
+                    parent.currentMedia.volume = position * parent.targetVolume;
+                }
+
                 if (parent.altMedia) {
-                    parent.altMedia.volume = 0;
+                    parent.altMedia.volume = (1 - position) * parent.targetVolume;
+                }
+
+            };
+
+            setInterval(this.task, 1000 / 24);
+
+            this.lastMedia = '';
+
+
+            this.connectNewButterchurnSource = function (sourceNode) {
+                //sourceNode.disconnect()
+
+                if (this.butterchurn == undefined) {
+                    return;
+                }
+                if (this.delayedAudible) {
+                    this.delayedAudible.disconnect();
                 }
                 
-                parent.altLayer.style.opacity= '0%'
+                    this.delayedAudible = this.butterchurncontext.createDelay();
+                
 
-                return;
-            }
+                this.delayedAudible.delayTime.value = 0.26;
 
-            var position = Math.max(Math.min((Date.now() - parent.fadeStart) / parent.fadeLength, 1), 0);
+                sourceNode.connect(this.delayedAudible)
+                this.delayedAudible.connect(this.butterchurncontext.destination);
 
-            if (position == 1) {
-                parent.fadeLength = 0;
-            }
+                this.butterchurn.connectAudio(this.delayedAudible);
 
-
-            parent.currentLayer.style.opacity = (position * 100) + '%';
-            parent.altLayer.style.opacity = ((1 - position) * 100) + '%';
-
-            if (parent.currentMedia) {
-                parent.currentMedia.volume = position * parent.targetVolume;
-            }
-
-            if (parent.altMedia) {
-                parent.altMedia.volume = (1 - position) * parent.targetVolume;
-            }
-
-        };
-
-        setInterval(this.task, 1000 / 24);
-
-        this.lastMedia = '';
-
-        this.playMedia = function (t, f, st) {
-
-            this.shouldbestopped = false
-
-            if (t.children.length > 0) {
-                t.removeChild(t.children[0]);
-            }
-
-            if (!f) {
-                return;
-            }
-
-            if (this.isSound(f)) {
-                var s = document.createElement('audio');
-                t.appendChild(s);
-            }
-
-            else if (this.isStillImage(f)) {
-                t.appendChild(document.createElement('img'));
-            }
-
-            else if (this.isHTML(f)) {
-                t.appendChild(document.createElement('iframe'));
-            }
-
-            else {
-                t.appendChild(document.createElement('video'));
+                this.butterchurncontext.resume()
             }
 
 
-            var x = "WebMediaServer?scene=" + "${kwargs['scene']}" + "&file=" + encodeURIComponent(f);
+            this.playMedia = async function (t, f, st){
 
+                this.shouldbestopped = false
 
-            if(this.isHTML(f))
-            {
-                t.children[0].src = f
-                this.setStyles(t.children[0],{
-                height: '100%', width: '100%', 'border-width':'0px',margin:'0px',padding: '0px'
-                })
-
-            }
-            else
-            {
-                t.children[0].src = x;
-                this.setStyles(t.children[0],this.vstyle)
-            }
-
-
-            if (!(this.isStillImage(f) || this.isHTML(f))) {
-                t.children[0].volume = 0;
-                t.children[0].currentTime = st;
-                t.children[0].controls = true;
-
-                try {
-                    t.children[0].play();
+                if (t.children.length > 0) {
+                    t.removeChild(t.children[0]);
                 }
-                catch (e) {
-                    //Allow retry once user clicks in normal browser
-                    this.lastMedia = '';
-                    console.log(e);
+
+                if (!f) {
+                    return;
                 }
-                return t.children[0];
-            }
-            return null;
-        };
+
+                if (this.isButterchurn(f)) {
+                    var s = document.createElement('audio');
+                    var s2 = this.getButterchurn()
+                    t.appendChild(s);
+                    t.appendChild(this.butterchurn_canvas);
+                }
 
 
-        //The session tag lets you switch to something that is the same file, restarting
-        this.switchMedia = function (v, t, startAt, sessionTag) {
+                if (this.isSound(f)) {
+                    var s = document.createElement('audio');
+                    t.appendChild(s);
+                }
 
-            if (this.lastMedia == v+sessionTag) {
+                else if (this.isStillImage(f)) {
+                    t.appendChild(document.createElement('img'));
+                }
+
+                else if (this.isHTML(f)) {
+                    t.appendChild(document.createElement('iframe'));
+                }
+
+                else {
+                    t.appendChild(document.createElement('video'));
+                }
+
+                if (this.isButterchurn(f)) {
+                    f = f.split("milkdrop:")[1]
+                }
+
+                var x = "WebMediaServer?scene=" + "${kwargs['scene']}" + "&file=" + encodeURIComponent(f);
+
+
+                if (this.isHTML(f)) {
+                    t.children[0].src = f
+                    this.setStyles(t.children[0], {
+                        height: '100%', width: '100%', 'border-width': '0px', margin: '0px', padding: '0px'
+                    })
+
+                }
+                else {
+                    t.children[0].src = x;
+                    this.setStyles(t.children[0], this.vstyle)
+                }
+
+
+                if (!(this.isStillImage(f) || this.isHTML(f))) {
+                    t.children[0].volume = 0;
+                    t.children[0].currentTime = st;
+                    t.children[0].controls = true;
+
+                    try {
+                        await t.children[0].play();
+
+                        if (this.butterchurn) {
+                            var n = this.butterchurncontext.createMediaElementSource( t.children[0])
+                            this.connectNewButterchurnSource(n)
+                        }
+                    }
+                    catch (e) {
+                        this.deffered_play = t.children[0]
+                        setInterval(async () => {
+                            if (this.deffered_play) {
+                                await this.deffered_play.play()
+
+                                if (this.butterchurn) {
+                                    var n = this.butterchurncontext.createMediaElementSource(this.deffered_play)
+                                    this.connectNewButterchurnSource(n)
+                                }
+                                this.deffered_play = false
+                            }
+                        }, 2000)
+                        //Allow retry once user clicks in normal browser
+                        //this.lastMedia = '';
+                        console.log(e);
+                    }
+                    return t.children[0];
+                }
                 return null;
-            }
-            this.lastMedia = v + sessionTag;
+            };
 
-            this.fadeStart = Date.now();
 
-            // ye switcharoo
-            var x = this.currentLayer;
-            this.currentLayer = this.altLayer;
-            this.altLayer = x;
+            //The session tag lets you switch to something that is the same file, restarting
+            this.switchMedia = async function (v, t, startAt, sessionTag) {
 
-            this.currentLayer.style.opacity = '0%';
+                if (this.lastMedia == v + sessionTag) {
+                    return null;
+                }
+                this.lastMedia = v + sessionTag;
 
-            this.fadeLength = -1;
-            this.altMedia = this.currentMedia;
-            this.currentMedia = this.playMedia(this.currentLayer, v, startAt);
+                this.fadeStart = Date.now();
 
-            this.fadeLength = Math.max(0, (t-startAt) * 1000)
-        };
+                // ye switcharoo
+                var x = this.currentLayer;
+                this.currentLayer = this.altLayer;
+                this.altLayer = x;
 
+                this.currentLayer.style.opacity = '0%';
+
+                this.fadeLength = -1;
+                this.altMedia = this.currentMedia;
+                this.currentMedia = await this.playMedia(this.currentLayer, v, startAt);
+
+                this.fadeLength = Math.max(0, (t - startAt) * 1000)
+            };
+
+            setInterval(() => {
+                if (this.butterchurn) {
+                    this.butterchurn.render();
+                }
+            }, 24)
+
+        }
     }
-}
 </script>
 
 
 <script>
-  player = new makePlayer(document.getElementById('player1'))
-  player2 = new makePlayer(document.getElementById('player2'))
+    player = new makePlayer(document.getElementById('player1'))
+    player2 = new makePlayer(document.getElementById('player2'))
 
-function f(v)
-{
-  if(v[0]=='volume')
-  {
-    player.targetVolume = v[1]
-    player2.targetVolume = v[1]
+    function f(v) {
+        if (v[0] == 'volume') {
+            player.targetVolume = v[1]
+            player2.targetVolume = v[1]
 
-  }
+        }
 
-    if(v[0]=='overlay')
-  {
-    document.getElementById('overlay').src = v[1]
+        if (v[0] == 'overlay') {
+            document.getElementById('overlay').src = v[1]
 
-  }
+        }
 
 
-  //Pretty much just for sounds
-  if(v[0]=='mediaURL')
-  {
+        //Pretty much just for sounds
+        if (v[0] == 'mediaURL') {
 
-      // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
-      // But we more importantly want to prioritize not missing the start of a short clip
-      var t = (link.now()/1000)-v[2]
-      if(t< 1)
-      {
-          t=0;
-      }
+            // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
+            // But we more importantly want to prioritize not missing the start of a short clip
+            var t = (link.now() / 1000) - v[2]
+            if (t < 1) {
+                t = 0;
+            }
 
-      //Use when it started as the session tag
-      player.switchMedia(v[1],v[3], t, v[2])
-  }
+            //Use when it started as the session tag
+            player.switchMedia(v[1], v[3], t, v[2])
+        }
 
 
-    //Pretty much just for sounds
-  if(v[0]=='slide')
-  {
+        //Pretty much just for sounds
+        if (v[0] == 'slide') {
 
-      // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
-      // But we more importantly want to prioritize not missing the start of a short clip
-      var t = (link.now()/1000)-v[2]
-      if(t< 1)
-      {
-          t=0;
-      }
+            // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
+            // But we more importantly want to prioritize not missing the start of a short clip
+            var t = (link.now() / 1000) - v[2]
+            if (t < 1) {
+                t = 0;
+            }
 
-      //Use when it started as the session tag
-      player2.switchMedia(v[1],v[3],t, v[2])
-  }
-}
-link.upd=f
-link.timeSyncInterval = 10000
+            //Use when it started as the session tag
+            player2.switchMedia(v[1], v[3], t, v[2])
+        }
+    }
+    link.upd = f
+    link.timeSyncInterval = 10000
 
-link.send(['ask'])
+    link.send(['ask'])
 
-function f2()
-{
-link.send(['ask'])
-}
+    function f2() {
+        link.send(['ask'])
+    }
 
-setInterval(f2, 1000)
+    setInterval(f2, 1000)
 
 </script>
