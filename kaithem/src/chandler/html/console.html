@@ -54,7 +54,7 @@ ${lists}
         border-width: 1px;
     }
 
-    .fadersbox{
+    .fadersbox {
         display: flex;
     }
 
@@ -235,8 +235,7 @@ ${lists}
 
             <button onclick="document.documentElement.requestFullscreen()"><i
                     class="icofont-expand"></i>Fullscreen</button>
-            <a class="button" href="docs/index" target="_blank"><i
-                    class="icofont-question-circle"></i>Help</a>
+            <a class="button" href="docs/index" target="_blank"><i class="icofont-question-circle"></i>Help</a>
             <a class="button" href="Setup"><i class="icofont-gears"></i>Settings</a>
         </div>
 
@@ -289,9 +288,12 @@ ${lists}
             <button v-on:click="showDMXSetup=0">
                 <i class="icofont-ui-close"></i>Close</button> Universe Setup
         </h3>
-        <details class="help"><summary><i class="icofont-question-circle"></i></summary>These settings take effect immediately when you click "Update Settings". To save them to disk,
+        <details class="help">
+            <summary><i class="icofont-question-circle"></i></summary>These settings take effect immediately when you
+            click "Update Settings". To save them to disk,
             use "save setup" Note: Configuring these universes requires /admin/settings.edit,
-            however you do not need that permission to use the lightboard after it's configured.</details>
+            however you do not need that permission to use the lightboard after it's configured.
+        </details>
         <button v-on:click="refreshPorts">Refresh Serial Ports</button>
         <button v-on:click="pushSettings">Update Settings</button><br>
         <br>
@@ -406,7 +408,8 @@ ${lists}
             Setup:{{universeFullSettings}}</h3>
 
         <div v-if="configuredUniverses[universeFullSettings].type=='tagpoints'">
-            <details class="help"><summary><i class="icofont-question-circle"></i></summary>
+            <details class="help">
+                <summary><i class="icofont-question-circle"></i></summary>
                 Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign tags
                 to channels. Assigning
                 tags to channels requires admin permissions unless the tag begins with /chandler. You can give channels
@@ -498,12 +501,14 @@ ${lists}
                 </label>
 
                 <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
-                    <details class="help"><summary><i class="icofont-question-circle"></i></summary>
+                    <details class="help">
+                        <summary><i class="icofont-question-circle"></i></summary>
                         The custom channel type allows you to define a different meaning for a channel depending on what
                         range it is in. This is
                         fairly common for controlling gobos and gobo rotation, etc. Ranges are defined my the inclusive
                         min and max channel
-                        of that range, plus a name for that option.</details>
+                        of that range, plus a name for that option.
+                    </details>
                     </p>
                     <h5>Ranges for channel {{i}}</h5>
                     <table border="1">
@@ -549,58 +554,60 @@ ${lists}
         <h3>
             <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture Assignments
         </h3>
-        <details class="help"><summary><i class="icofont-question-circle"></i></summary>Here is where you actually assign fixtures to channels after creating the desired fixture types.
+        <details class="help">
+            <summary><i class="icofont-question-circle"></i></summary>Here is where you actually assign fixtures to
+            channels after creating the desired fixture types.
             Clicking Update will cause the new assignments to take effect immediately. Use the save settings button to
             make them permanent.
 
-        <table border="1">
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Universe</th>
-                <th>Start Address</th>
-                <th>Delete</th>
-            </tr>
+            <table border="1">
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Universe</th>
+                    <th>Start Address</th>
+                    <th>Delete</th>
+                </tr>
 
-            <tr v-for="i in dictView(fixtureAssignments,['universe', 'channel'])">
-                <td>{{i[1].name}}</td>
-                <td>{{i[1].type}}</td>
-                <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
-                <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
-                <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button>
-            </tr>
-        </table>
+                <tr v-for="i in dictView(fixtureAssignments,['universe', 'channel'])">
+                    <td>{{i[1].name}}</td>
+                    <td>{{i[1].type}}</td>
+                    <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
+                    <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
+                    <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button>
+                </tr>
+            </table>
 
-        <table border="1">
+            <table border="1">
 
-            <tr>
-                <td>Name</td>
-                <td><input v-model="newfixname"></input>
-                </td>
-            <tr>
-                <td>Type</td>
-                <td>
-                    <select v-model="newfixtype">
-                        <option v-for="(v,i) in fixtureClasses" v-bind:value="i">{{i}}</option>
-                    </select>
+                <tr>
+                    <td>Name</td>
+                    <td><input v-model="newfixname"></input>
+                    </td>
+                <tr>
+                    <td>Type</td>
+                    <td>
+                        <select v-model="newfixtype">
+                            <option v-for="(v,i) in fixtureClasses" v-bind:value="i">{{i}}</option>
+                        </select>
 
-                </td>
-            <tr>
-                <td>Universe</td>
-                <td><input v-model="newfixuniverse" list="universes"></input>
-                </td>
-            <tr>
-                <td>Address</td>
-                <td><input type="number" min=1 v-model="newfixaddr"></input>
-                </td>
-        </table>
-        <button v-on:click="addFixtureAssignment(newfixname,newfixtype,newfixuniverse, newfixaddr)">Add and
-            Update</button>
+                    </td>
+                <tr>
+                    <td>Universe</td>
+                    <td><input v-model="newfixuniverse" list="universes"></input>
+                    </td>
+                <tr>
+                    <td>Address</td>
+                    <td><input type="number" min=1 v-model="newfixaddr"></input>
+                    </td>
+            </table>
+            <button v-on:click="addFixtureAssignment(newfixname,newfixtype,newfixuniverse, newfixaddr)">Add and
+                Update</button>
 
-        <div v-if="ferrs">
-            <h4>Errors</h4>
-            <pre>{{ferrs}}</pre>
-        </div><br>
+            <div v-if="ferrs">
+                <h4>Errors</h4>
+                <pre>{{ferrs}}</pre>
+            </div><br>
 
     </div>
 
@@ -618,8 +625,8 @@ ${lists}
         <p class="buttonbar">
             <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
                     class="icofont-trash"></i></button>
-        </details>
-        <hr>
+            </details>
+            <hr>
 
         <p class="buttonbar">
             <button v-on:click="showPages=!showPages">Toggle Compact</button>
@@ -691,9 +698,10 @@ ${lists}
 
                 <div style="display:flex; width: 100%">
                     <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
-                    <small><span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
+                    <small><span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
+                                class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
                 </div>
-                
+
                 <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue:
                     {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
 
@@ -725,11 +733,11 @@ ${lists}
         style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
         <div style="display: flex; flex-direction: row;">
 
-        <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
-                <span v-if="editingScene.blend=='monitor'">Monitor</span>
-            </span> {{editingScene.name}}</span>
-            <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-        </h3>
+            <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
+                    <span v-if="editingScene.blend=='monitor'">Monitor</span>
+                </span> {{editingScene.name}}</span>
+                <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+            </h3>
 
             <p class="buttonbar">
                 <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
@@ -741,7 +749,7 @@ ${lists}
             </p>
 
             <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
-</div>
+        </div>
 
 
         <p class="buttonbar">
@@ -807,8 +815,8 @@ ${lists}
                             </td>
 
                             <td class="desktop-only" data-label="Length:">
-                                <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:12em" list="lenoptions"
-                                    v-model="i[1].length">
+                                <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:12em"
+                                    list="lenoptions" v-model="i[1].length">
                             </td>
 
                             <td data-label="Next Cue:">
@@ -938,7 +946,9 @@ ${lists}
                 <div style="overflow: auto; max-height:30em;" class="logicbox">
                     <div>
                         <h3>Automation Logic</h3>
-                        <details class="help"><summary><i class="icofont-question-circle"></i></summary>Here you can create rules that apply whenever the scene is in this cue, to
+                        <details class="help">
+                            <summary><i class="icofont-question-circle"></i></summary>Here you can create rules that
+                            apply whenever the scene is in this cue, to
                             do things like trigger other cues when
                             this one enters or exits.
                             <a href="docs/RulesEngine">Documentation</a>
@@ -1187,8 +1197,11 @@ ${lists}
                         </div>
                         <div class="scrollbox">
                             <h5>Sound Outputs</h5>
-                            <details class="help"><summary><i class="icofont-question-circle"></i></summary>To use play videos, you must use the web remote display feature. Cue
-                                videos will play in the browser on connected remote displays.</details>
+                            <details class="help">
+                                <summary><i class="icofont-question-circle"></i></summary>To use play videos, you must
+                                use the web remote display feature. Cue
+                                videos will play in the browser on connected remote displays.
+                            </details>
                             <dl>
 
 
@@ -1223,7 +1236,8 @@ ${lists}
                 <details>
                     <summary>Cue Slides</summary>
                     <div>
-                        <details class="help"><summary><i class="icofont-question-circle"></i></summary>
+                        <details class="help">
+                            <summary><i class="icofont-question-circle"></i></summary>
                             A scene's web media display page will show whatever the current cue's slide is.
                         </details>
 
@@ -1439,6 +1453,11 @@ ${lists}
 
                 <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene
                     Properties</h4>
+                <!-- <details>
+                    <summary>Music Visualization Presets</summary>
+                    <textarea v-on:change="setvisualization(scenename,$event.target.value);"
+                        v-model="editingScene.musicVisualizations"></textarea>
+                </details> -->
 
                 <label>
                     Alpha:<input type="number" max=1 step=0.01 min=0
@@ -1570,9 +1589,12 @@ ${lists}
                 </label>
                 <div class="scrollbox" v-if="showSoundControls">
                     <h5>Sound Outputs</h5>
-                    <details class="help"><summary><i class="icofont-question-circle"></i></summary>So long as you plug the same device into the same port(on linux), it will be
+                    <details class="help">
+                        <summary><i class="icofont-question-circle"></i></summary>So long as you plug the same device
+                        into the same port(on linux), it will be
                         given the same device alias, although
-                        they will be different if JACK is used.</details>
+                        they will be different if JACK is used.
+                    </details>
                     <dl>
                         <dt>Web Player</dt>
                         <dd>
@@ -1623,7 +1645,10 @@ ${lists}
                 </table>
 
                 <h3>Display Tags</h3>
-                <details class="help"><summary><i class="icofont-question-circle"></i></summary>Lets you display some tag points in the scene overview</details>
+                <details class="help">
+                    <summary><i class="icofont-question-circle"></i></summary>Lets you display some tag points in the
+                    scene overview
+                </details>
 
                 <table border="1">
                     <tr>

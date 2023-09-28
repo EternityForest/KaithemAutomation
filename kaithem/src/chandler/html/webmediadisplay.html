@@ -6,10 +6,11 @@
     }
 </style>
 <script src="/static/widget.js"></script>
-<script src="/static/js/butterchurn/butterchurn.min.js"></script>
+<!-- <script src="/static/js/butterchurn/butterchurn.min.js"></script>
 <script src="/static/js/butterchurn/butterchurnPresetsExtra.min.js"></script>
+<script src="/static/js/butterchurn/butterchurnPresetsExtra2.min.js"></script>
 <script src="/static/js/butterchurn/butterchurnPresets.min.js"></script>
-<script src="/static/js/butterchurn/milkdrop-preset-converter.min.js"></script>
+<script src="/static/js/butterchurn/milkdrop-preset-converter.min.js"></script> -->
 
 <style>
     body {
@@ -62,7 +63,7 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
     class makePlayer {
         constructor(c) {
-
+            this.presets = {}
             this.isSound = function (fn) {
                 for (i of atypes) {
                     if (fn.indexOf(i) > -1) {
@@ -101,11 +102,20 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
                         Object.assign(presets, butterchurnPresetsExtra.getPresets());
                     }
 
-                    Object.assign(presets, butterchurnPresetsMinimal.getPresets())
+                    if (window.butterchurnPresetsExtra2) {
+                        Object.assign(presets, butterchurnPresetsExtra2.getPresets());
+                    }
 
-                    this.presets = _(presets).toPairs().sortBy(([k, v]) => k.toLowerCase()).fromPairs().value();
-                    var presetKeys = _.keys(this.presets);
-                    var presetIndex = Math.floor(Math.random() * presetKeys.length);
+                    if (presets) {
+                        this.presets = _(presets).toPairs().sortBy(([k, v]) => k.toLowerCase()).fromPairs().value();
+                    }
+                    else {
+                        this.presets = {}
+                    }
+
+                    this.presetKeys = _.keys(this.presets);
+                    this.butterchurn_options = []
+
 
                     var visualizer = butterchurn.default.createVisualizer(this.butterchurncontext, this.butterchurn_canvas, {
                         width: window.innerWidth,
@@ -113,11 +123,21 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
                         pixelRatio: window.devicePixelRatio || 1,
                         textureRatio: 1,
                     });
-                    function nextPreset(blendTime = 5.7) {
-                        var numPresets = presetKeys.length;
-                        presetIndex = Math.floor(Math.random() * presetKeys.length);
 
-                        visualizer.loadPreset(presets[presetKeys[presetIndex]], blendTime);
+                    function nextPreset(blendTime = 5.7) {
+                        var numPresets = player2.presetKeys.length;
+                        if (numPresets) {
+                            if(player2.butterchurn_options.length)
+                            {
+                                var presetIndex = Math.floor(Math.random() * player2.butterchurn_options.length);
+                                visualizer.loadPreset(player2.presets[player2.butterchurn_options[presetIndex]], blendTime);
+                            }
+                            else{
+                                var presetIndex = Math.floor(Math.random() * player2.presetKeys.length);
+                                visualizer.loadPreset(player2.presets[player2.presetKeys[presetIndex]], blendTime);
+                            }
+
+                        }
                     }
 
 
@@ -289,9 +309,9 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
                 if (this.delayedAudible) {
                     this.delayedAudible.disconnect();
                 }
-                
-                    this.delayedAudible = this.butterchurncontext.createDelay();
-                
+
+                this.delayedAudible = this.butterchurncontext.createDelay();
+
 
                 this.delayedAudible.delayTime.value = 0.26;
 
@@ -304,7 +324,7 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             }
 
 
-            this.playMedia = async function (t, f, st){
+            this.playMedia = async function (t, f, st) {
 
                 this.shouldbestopped = false
 
@@ -370,7 +390,7 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
                         await t.children[0].play();
 
                         if (this.butterchurn) {
-                            var n = this.butterchurncontext.createMediaElementSource( t.children[0])
+                            var n = this.butterchurncontext.createMediaElementSource(t.children[0])
                             this.connectNewButterchurnSource(n)
                         }
                     }
@@ -463,6 +483,11 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             player.switchMedia(v[1], v[3], t, v[2])
         }
 
+        //Pretty much just for sounds
+        if (v[0] == 'butterchurnfiles') {
+            player2.butterchurn_options = v[1]
+        }
+
 
         //Pretty much just for sounds
         if (v[0] == 'slide') {
@@ -482,6 +507,7 @@ ${module.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
     link.timeSyncInterval = 10000
 
     link.send(['ask'])
+    link.send(['initial'])
 
     function f2() {
         link.send(['ask'])

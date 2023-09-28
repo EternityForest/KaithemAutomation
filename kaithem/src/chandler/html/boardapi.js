@@ -1065,6 +1065,11 @@ appData = {
         appData.scenemeta[sc].midiSource = v;
         api_link.send(['setMidiSource', sc, v]);
     },
+    'setvisualization': function (sc, v) {
+
+        appData.scenemeta[sc].musicVisualizations = v;
+        api_link.send(['setMusicVisualizations', sc, v]);
+    },
 
     'setcommandtag': function (sc, v) {
 

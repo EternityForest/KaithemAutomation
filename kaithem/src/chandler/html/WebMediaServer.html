@@ -46,6 +46,8 @@ else:
     kaithem.web.serveFile(kwargs['file'],name= os.path.basename(kwargs['file']))
   elif 'scene' in kwargs and module.scenes_by_name[kwargs['scene']].cue.slide == kwargs['file']:
     kaithem.web.serveFile(module.scenes_by_name[kwargs['scene']].resolveSound(kwargs['file']),name= os.path.basename(kwargs['file']))
+  elif 'scene' in kwargs and kwargs['file'] in module.scenes_by_name[kwargs['scene']].musicVisualizations:
+    kaithem.web.serveFile(kwargs['file'],name= os.path.basename(kwargs['file']))
   else:
     # Todo this should be a global api
     for i in module.scenes_by_name:
@@ -60,7 +62,7 @@ else:
           # If this is a cloud asset pack asset, get it.
           # Only do this under the chandler admin permission
           kaithem.assetpacks.ensure_file(f)
-          kaithem.web.serveFile(f, name= f)
+          kaithem.web.serveFile(f, name= "file."+f.split('.')[-1])
 
   raise RuntimeError("Not allowed to access "+str(kwargs['file']))
 %>

@@ -1,5 +1,4 @@
 import os
-import getpass
 import requests
 import time
 import threading
@@ -17,11 +16,11 @@ defaultAssetPacks = [
     "https://github.com/EternityForest/Free-SFX",
     "https://github.com/EternityForest/Free-Music",
     "https://github.com/Loppansson/kenney-rpg-audio-for-godot"
-    ]
+]
 
-class AssetPacks():
 
-    def __init__(self, assetlib,assetPacks=None) -> None:
+class AssetPacks:
+    def __init__(self, assetlib, assetPacks=None) -> None:
         self.assetlib = os.path.normpath(assetlib)
         self.assetPacks = assetPacks or defaultAssetPacks
         self.assetPackFolders = {}
@@ -30,51 +29,50 @@ class AssetPacks():
 
         for i in self.assetPacks:
             url = i
-            i = i.replace('https://', '').replace('github.com/', '')
+            i = i.replace("https://", "").replace("github.com/", "")
             i = i.split("/")
-            self.assetPackFolders[os.path.join(
-                directories.vardir, 'assets', i[0] + ':' + i[1])] = i
-            self.assetPackNames[url] = i[0] + ':' + i[1]
-
-
-
+            self.assetPackFolders[
+                os.path.join(directories.vardir, "assets", i[0] + ":" + i[1])
+            ] = i
+            self.assetPackNames[url] = i[0] + ":" + i[1]
 
     def ls(self, f):
         if os.path.normpath(f).startswith(self.assetlib + "/"):
             if not os.path.exists(f):
                 os.makedirs(f, exist_ok=True)
-        
 
         ap = None
         d = f
         for i in range(30):
-            if (d == '/'):
+            if d == "/":
                 break
             if d in self.assetPackFolders:
                 ap = d
                 break
             d = os.path.dirname(d)
 
-        x = [ (i+'/' if os.path.isdir(os.path.join(f,i)) else i) for i in os.listdir(f)]
-    
-        if os.path.normpath(f)==self.assetlib:
-            for i in self.assetPackFolders.keys():
-                n=os.path.basename(i)
-                if (not n+"/" in x):
-                    x.append(n+"/")
-        if ap:
-            l = fetch_list(self.assetPackFolders[ap]
-                           [0], self.assetPackFolders[ap][1], ap)
-            t = l['tree']
-            for i in t:
+        x = [
+            (i + "/" if os.path.isdir(os.path.join(f, i)) else i) for i in os.listdir(f)
+        ]
 
+        if os.path.normpath(f) == self.assetlib:
+            for i in self.assetPackFolders.keys():
+                n = os.path.basename(i)
+                if not n + "/" in x:
+                    x.append(n + "/")
+        if ap:
+            l = fetch_list(
+                self.assetPackFolders[ap][0], self.assetPackFolders[ap][1], ap
+            )
+            t = l["tree"]
+            for i in t:
                 current = os.path.relpath(f, ap)
-                if current == '.':
-                    current = ''
-                if i['path'].startswith(current) and len(i['path']) > len(current):
-                    if not '/' in i['path'][len(os.path.relpath(f, ap))+1:]:
-                        p = os.path.basename(i['path'])
-                        if i['type'] == 'tree':
+                if current == ".":
+                    current = ""
+                if i["path"].startswith(current) and len(i["path"]) > len(current):
+                    if not "/" in i["path"][len(os.path.relpath(f, ap)) + 1 :]:
+                        p = os.path.basename(i["path"])
+                        if i["type"] == "tree":
                             p = p + "/"
                         if p not in x:
                             x.append(p)
@@ -89,7 +87,7 @@ class AssetPacks():
             ap = None
             d = f
             for i in range(30):
-                if (d == '/'):
+                if d == "/":
                     break
                 if d in self.assetPackFolders:
                     ap = d
@@ -101,8 +99,12 @@ class AssetPacks():
                     os.makedirs(os.path.dirname(f), exist_ok=True)
 
                 current = os.path.relpath(f, ap)
-                fetch_file(self.assetPackFolders[ap][0],
-                        self.assetPackFolders[ap][1], ap, current)
+                fetch_file(
+                    self.assetPackFolders[ap][0],
+                    self.assetPackFolders[ap][1],
+                    ap,
+                    current,
+                )
 
 
 def fetch_meta(owner, repo, folder, cachetime=30 * 24 * 3600):
@@ -118,7 +120,7 @@ def fetch_meta(owner, repo, folder, cachetime=30 * 24 * 3600):
         d = requests.get(url, timeout=5)
         d.raise_for_status()
 
-        with open(fn, 'w') as f:
+        with open(fn, "w") as f:
             f.write(d.text)
 
     except Exception:
@@ -139,18 +141,24 @@ def fetch_list(owner, repo, folder, cachetime=7 * 24 * 3600):
         if t > (time.time() - cachetime):
             with open(fn) as f:
                 return json.loads(f.read())
-    
+
     try:
+        branch = fetch_meta(owner, repo, folder)["default_branch"]
 
-        branch = fetch_meta(owner, repo, folder)['default_branch']
-
-        url = "https://api.github.com/repos/" + owner + "/" + \
-            repo + "/git/trees/" + branch + "?recursive=1"
+        url = (
+            "https://api.github.com/repos/"
+            + owner
+            + "/"
+            + repo
+            + "/git/trees/"
+            + branch
+            + "?recursive=1"
+        )
 
         d = requests.get(url, timeout=5)
         d.raise_for_status()
 
-        with open(fn, 'w') as f:
+        with open(fn, "w") as f:
             f.write(d.text)
     except Exception:
         if os.path.exists(fn):
@@ -167,14 +175,22 @@ def fetch_file(owner, repo, folder, path):
     if os.path.exists(fn):
         return
 
-    branch = fetch_meta(owner, repo, folder)['default_branch']
-    url = "https://raw.githubusercontent.com/" + \
-        owner + "/" + repo + "/" + branch + "/" + path
+    branch = fetch_meta(owner, repo, folder)["default_branch"]
+    url = (
+        "https://raw.githubusercontent.com/"
+        + owner
+        + "/"
+        + repo
+        + "/"
+        + branch
+        + "/"
+        + path
+    )
 
-    d = requests.get(url, timeout=5)
+    # Connection cose to try and speed things up as per
+    # https://github.com/psf/requests/issues/4023
+    d = requests.get(url, timeout=5, headers={"Connection": "close"})
     d.raise_for_status()
 
-    with open(fn, 'wb') as f:
+    with open(fn, "wb") as f:
         f.write(d.content)
-
-

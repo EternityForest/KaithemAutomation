@@ -462,7 +462,7 @@ def searchPaths(s, paths):
             path = path + "/"
 
         for dir, dirs, files in os.walk(path):
-            relpath = dir[len(path):]
+            relpath = dir[len(path) :]
             for i in files:
                 match = True
                 for j in words:
@@ -1395,6 +1395,7 @@ class ChandlerConsole:
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
                 "cuelen": scene.cuelen,
                 "midiSource": scene.midiSource,
+                "musicVisualizations": scene.musicVisualizations,
                 "defaultNext": scene.defaultNext,
                 "commandTag": scene.commandTag,
                 "soundOutput": scene.soundOutput,
@@ -1937,6 +1938,10 @@ class ChandlerConsole:
 
             if msg[0] == "setMidiSource":
                 core.scenes[msg[1]].setMidiSource(msg[2])
+
+            if msg[0] == "setMusicVisualizations":
+                core.scenes[msg[1]].setMusicVisualizations(msg[2])
+
             if msg[0] == "setDefaultNext":
                 core.scenes[msg[1]].defaultNext = str(msg[2])[:256]
             if msg[0] == "tap":
@@ -3164,6 +3169,7 @@ class Scene:
         defaultNext="",
         commandTag="",
         slideOverlayURL="",
+        musicVisualizations="",
         **ignoredParams
     ):
         if name and name in core.scenes_by_name:
@@ -3186,12 +3192,19 @@ class Scene:
 
         self.slideOverlayURL = slideOverlayURL
 
+        # Audio visualizations
+        self.musicVisualizations = musicVisualizations
+
         # The active media file being played through the remote playback mechanism.
         self.allowMediaUrlRemote = None
 
         def handleMediaLink(u, v):
+            if v[0] == "initial":
+                self.sendVisualizations()
+
             if v[0] == "ask":
                 self.mediaLink.send(["volume", self.alpha])
+
                 self.mediaLink.send(
                     [
                         "mediaURL",
@@ -3429,6 +3442,7 @@ class Scene:
             "utility": self.utility,
             "displayTags": self.displayTags,
             "midiSource": self.midiSource,
+            "musicVisualizations": self.musicVisualizations,
             "defaultNext": self.defaultNext,
             "commandTag": self.commandTag,
             "uuid": self.id,
@@ -4798,6 +4812,27 @@ class Scene:
             self.noteOff(v[1], v[2])
         if v[0] == "cc":
             self.cc(v[1], v[2], v[3])
+
+    def setMusicVisualizations(self, s):
+        if s == self.musicVisualizations:
+            return
+        
+        s2 = ""
+        for i in s.split("\n"):
+            if i.strip():
+                s2 += i.strip() + "\n"
+
+        self.musicVisualizations = s2
+        self.sendVisualizations()
+        self.pushMeta(keys={"musicVisualizations"})
+
+    def sendVisualizations(self):
+        self.mediaLink.send(
+            [
+                "butterchurnfiles",
+                [i.split("milkdrop:")[-1] for i in self.musicVisualizations.split("\n") if i],
+            ]
+        )
 
     def setAlpha(self, val, sd=False):
         val = min(1, max(0, val))

@@ -147,6 +147,17 @@ class Web():
             #cherrypy.response.headers['Content-Disposition'] = 'attachment ; filename = "' + e.f_name + '"'
             return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
+    # @cherrypy.expose
+    # def butterchurn(self, file):
+    #     if '..' in file or '/' in file or '\\' in file:
+    #         return "confuse a hacker script"
+    #     try:
+    #         return get_template("butterchurnserver.html").render(file=file, kaithem=kaithem, request= cherrypy.request)
+    #     except pages.ServeFileInsteadOfRenderingPageException as e:
+    #         #cherrypy.response.headers['Content-Type'] = e.f_MIME
+    #         #cherrypy.response.headers['Content-Disposition'] = 'attachment ; filename = "' + e.f_name + '"'
+    #         return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+
 
     @cherrypy.expose
     def static(self, file):
