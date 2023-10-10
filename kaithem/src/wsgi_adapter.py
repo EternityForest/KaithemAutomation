@@ -19,6 +19,11 @@ from . import pages
 
 _logger = logging.getLogger(__name__)
 
+# I want %20 to not be decoded with the rest of the percents.
+# As a terrible hack, i encode it to this then decode.
+slashmarkerb = b"51e0db35-6279-4d10-91ef-eae1938ac9fa"
+slashmarker = "51e0db35-6279-4d10-91ef-eae1938ac9fa"
+
 
 @web.stream_request_body
 class WSGIHandler(web.RequestHandler):
@@ -54,7 +59,7 @@ class WSGIHandler(web.RequestHandler):
             "REQUEST_METHOD": request.method,
             "SCRIPT_NAME": "",
             "PATH_INFO": to_wsgi_str(
-                escape.url_unescape(request.path, encoding=None, plus=False)
+                escape.url_unescape(request.path.replace("%2F", slashmarker), encoding=None, plus=False).replace(slashmarkerb,b'%2F')
             ),
             "QUERY_STRING": request.query,
             "REMOTE_ADDR": request.remote_ip,

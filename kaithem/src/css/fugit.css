@@ -166,7 +166,7 @@ td input,
 td select {
     margin: 0px;
     height: 1.8em;
-    width: 100%;
+    width: auto;
 }
 
 pre {

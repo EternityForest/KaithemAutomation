@@ -1,4 +1,3 @@
-
 # Copyright Daniel Dunn 2013
 # This file is part of Kaithem Automation.
 
@@ -36,13 +35,18 @@ from mako import exceptions
 errors = {}
 
 
-
 def markdownToSelfRenderingHTML(content, title):
     """Return self-rendering page body for markdown string"""
 
-    x = "<title>"+title+"</title>"+"""
+    x = (
+        "<title>"
+        + title
+        + "</title>"
+        + """
     <section id="content">
-    """+content+"""</section>
+    """
+        + content
+        + """</section>
     <script src="/static/showdown.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
     <script src="/static/js/highlight.pack.js"></script>
@@ -89,6 +93,7 @@ def markdownToSelfRenderingHTML(content, title):
     document.getElementById("content").innerHTML=converter.makeHtml(c);
     </script>
     """
+    )
     return x
 
 
@@ -99,19 +104,19 @@ def lookup(module, args):
     if "/".join(resource_path) in m:
         return _Pages[module]["/".join(resource_path)]
 
-    if "/".join(resource_path+['__index__']) in m:
-        return _Pages[module]["/".join(resource_path+['__index__'])]
+    if "/".join(resource_path + ["__index__"]) in m:
+        return _Pages[module]["/".join(resource_path + ["__index__"])]
 
     while resource_path:
         resource_path.pop()
         if "/".join(resource_path) in m:
             return _Pages[module]["/".join(resource_path)]
 
-        if "/".join(resource_path+['__index__']) in m:
-            return _Pages[module]["/".join(resource_path+['__index__'])]
-            
-        if "/".join(resource_path+['__default__']) in m:
-            return m["/".join(resource_path+['__default__'])]
+        if "/".join(resource_path + ["__index__"]) in m:
+            return _Pages[module]["/".join(resource_path + ["__index__"])]
+
+        if "/".join(resource_path + ["__default__"]) in m:
+            return m["/".join(resource_path + ["__default__"])]
     return None
 
 
@@ -123,14 +128,14 @@ def url_for_resource(module, resource):
     return s
 
 
-class CompiledPageAPIObject():
+class CompiledPageAPIObject:
     def __init__(self, p):
         self.page = p
         self.url = url_for_resource(p.module, p.resourceName)
 
     def setContent(self, c):
         """This allows self-modifying pages, as many things are best edited directly.  The intended use is for replacing the contents of custom html-elements with a simple regex.
-           One must be careful to use elements that actually can be replaced like that, which only have one instance.
+        One must be careful to use elements that actually can be replaced like that, which only have one instance.
 
         """
 
@@ -141,21 +146,21 @@ class CompiledPageAPIObject():
             raise RuntimeError("Content must be a string")
         modules_state.modulesHaveChanged()
 
-
-        self.page.resource['body'] = c
+        self.page.resource["body"] = c
         self.page.refreshFromResource()
 
-        modules_state.saveResource(self.page.module, self.page.resourceName, self.page.resource)
+        modules_state.saveResource(
+            self.page.module, self.page.resourceName, self.page.resource
+        )
 
     def getContent(self):
-        return self.page.resource['body']
+        return self.page.resource["body"]
 
 
-class CompiledPage():
-    def __init__(self, resource, m='unknown', r='unknown'):
-
+class CompiledPage:
+    def __init__(self, resource, m="unknown", r="unknown"):
         self.errors = []
-        self.printoutput = ''
+        self.printoutput = ""
 
         self.resource = resource
         self.module = m
@@ -167,102 +172,111 @@ class CompiledPage():
 
         self.localAPI = CompiledPageAPIObject(self)
         from . import kaithemobj
+
         self.kaithemobj = kaithemobj
 
         def refreshFromResource():
             # For compatibility with older versions, we provide defaults
             # In case some attributes are missing
-            if 'require-permissions' in resource:
+            if "require-permissions" in resource:
                 self.permissions = resource["require-permissions"]
             else:
                 self.permissions = []
 
+            self.theme = resource.get("theme-css-url", "")
+            self.alt_top_banner = resource.get("alt-top-banner", "")
 
-            self.theme = resource.get('theme-css-url','')
-            self.alt_top_banner = resource.get('alt-top-banner','')
-
-            if 'allow-xss' in resource:
+            if "allow-xss" in resource:
                 self.xss = resource["allow-xss"]
             else:
                 self.xss = False
 
-            if 'allow-origins' in resource:
+            if "allow-origins" in resource:
                 self.origins = resource["allow-origins"]
             else:
                 self.origins = []
 
             self.directServeFile = None
 
-            if resource['resource-type'] == 'page':
-                template = resource['body']
+            if resource["resource-type"] == "page":
+                template = resource["body"]
 
-                code_header = ''
+                code_header = ""
 
-                self.streaming= resource.get("streaming-response",False)
+                self.streaming = resource.get("streaming-response", False)
 
                 self.mime = resource.get("mimetype", "text/html")
-                if 'require-method' in resource:
-                    self.methods = resource['require-method']
+                if "require-method" in resource:
+                    self.methods = resource["require-method"]
                 else:
-                    self.methods = ['POST', 'GET']
+                    self.methods = ["POST", "GET"]
 
                 # Yes, I know this logic is ugly.
-                if 'no-navheader' in resource:
-                    if resource['no-navheader']:
-                        header = util.readfile(os.path.join(
-                            directories.htmldir, 'pageheader_nonav.html'))
+                if "no-navheader" in resource:
+                    if resource["no-navheader"]:
+                        header = util.readfile(
+                            os.path.join(directories.htmldir, "pageheader_nonav.html")
+                        )
                     else:
-                        header = util.readfile(os.path.join(
-                            directories.htmldir, 'pageheader.html'))
+                        header = util.readfile(
+                            os.path.join(directories.htmldir, "pageheader.html")
+                        )
                 else:
-                    header = util.readfile(os.path.join(
-                        directories.htmldir, 'pageheader.html'))
+                    header = util.readfile(
+                        os.path.join(directories.htmldir, "pageheader.html")
+                    )
 
-                if 'no-header' in resource:
-                    if resource['no-header']:
+                if "no-header" in resource:
+                    if resource["no-header"]:
                         header = ""
 
-                if 'auto-reload' in resource:
-                    if resource['auto-reload']:
-                        header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
+                if "auto-reload" in resource:
+                    if resource["auto-reload"]:
+                        header += (
+                            '<meta http-equiv="refresh" content="%d">'
+                            % resource["auto-reload-interval"]
+                        )
 
-
-
-                if not ('no-header' in resource) or not (resource['no-header']):
-                    footer = util.readfile(os.path.join(
-                        directories.htmldir, 'pagefooter.html'))
+                if not ("no-header" in resource) or not (resource["no-header"]):
+                    footer = util.readfile(
+                        os.path.join(directories.htmldir, "pagefooter.html")
+                    )
                 else:
                     footer = ""
 
-
-                self.d = {'kaithem': self.kaithemobj.kaithem,
-                          'page': self.localAPI, 'print': self.new_print, "_k_alt_top_banner": self.alt_top_banner}
+                self.d = {
+                    "kaithem": self.kaithemobj.kaithem,
+                    "page": self.localAPI,
+                    "print": self.new_print,
+                    "_k_alt_top_banner": self.alt_top_banner,
+                }
                 if m in modules_state.scopes:
-                    self.d['module'] = modules_state.scopes[m]
+                    self.d["module"] = modules_state.scopes[m]
 
-                if not 'template-engine' in resource or resource['template-engine'] == 'mako':
-
+                if (
+                    not "template-engine" in resource
+                    or resource["template-engine"] == "mako"
+                ):
                     # Add in the separate code
 
                     usejson = False
 
-                    if 'setupcode' in resource and resource['setupcode'].strip():
-                        code_header+="\n<%!\n" + resource['setupcode'] + "\n%>\n"
+                    if "setupcode" in resource and resource["setupcode"].strip():
+                        code_header += "\n<%!\n" + resource["setupcode"] + "\n%>\n"
                         usejson = True
 
-                    if 'code' in resource and resource['code'].strip():
-                        code_header+="\n<%\n" + resource['code'] + "\n%>\n"
+                    if "code" in resource and resource["code"].strip():
+                        code_header += "\n<%\n" + resource["code"] + "\n%>\n"
                         usejson = True
 
                     if usejson:
-                        header+="\n<%!\nimport json\n%>\n"
+                        header += "\n<%!\nimport json\n%>\n"
 
-        
                         # Don't embed a script if this *is* already a script
                         if not self.resourceName.endswith(".js"):
-                            header+= '<script>\n'
+                            header += "<script>\n"
 
-                        header+="""
+                        header += """
                         // Autogenerated by kaithem
                         %if not __jsvars__ == undefined:
                         %for i in __jsvars__:
@@ -273,10 +287,9 @@ class CompiledPage():
                         """
 
                         if not self.resourceName.endswith(".js"):
-                            header+= '</script>\n'
-                        
+                            header += "</script>\n"
 
-                            header+="""
+                            header += """
                             %if not __datalists__ == undefined:
                             %for i in __datalists__:
                             <datalist id="${i}">
@@ -289,33 +302,37 @@ class CompiledPage():
 
                             """
 
-
-
-                    templatesource = code_header+header + template + footer
+                    templatesource = code_header + header + template + footer
 
                     self.template = mako.template.Template(
-                        templatesource, uri="Template"+m+'_'+r)
+                        templatesource, uri="Template" + m + "_" + r
+                    )
 
-
-                elif resource['template-engine'] == 'markdown':
+                elif resource["template-engine"] == "markdown":
                     header = mako.template.Template(
-                        header, uri="Template"+m+'_'+r).render(**self.d)
+                        header, uri="Template" + m + "_" + r
+                    ).render(**self.d)
                     footer = mako.template.Template(
-                        footer, uri="Template"+m+'_'+r).render(**self.d)
+                        footer, uri="Template" + m + "_" + r
+                    ).render(**self.d)
 
-                    self.text = header+"\r\n" + \
-                        markdownToSelfRenderingHTML(template, r)+footer
+                    self.text = (
+                        header
+                        + "\r\n"
+                        + markdownToSelfRenderingHTML(template, r)
+                        + footer
+                    )
                 else:
                     self.text = template
 
-            elif resource['resource-type'] == 'internal-fileref':
-                self.methods = ['GET']
-                self.name = os.path.basename(
-                    modules_state.fileResourceAbsPaths[m, r])
+            elif resource["resource-type"] == "internal-fileref":
+                self.methods = ["GET"]
+                self.name = os.path.basename(modules_state.fileResourceAbsPaths[m, r])
 
                 self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
                 self.mime = self.mime = resource.get(
-                    "mimetype", mimetypes.guess_type(self.name))
+                    "mimetype", None
+                ) or mimetypes.guess_type(self.name)
 
         self.refreshFromResource = refreshFromResource
         self.refreshFromResource()
@@ -323,7 +340,7 @@ class CompiledPage():
     def new_print(self, *d):
         try:
             if len(d) == 1:
-                self.printoutput += str(d[0])+"\n"
+                self.printoutput += str(d[0]) + "\n"
             else:
                 self.printoutput += str(d)
         except:
@@ -335,14 +352,22 @@ def getPageErrors(module, resource):
     try:
         return _Pages[module][resource].errors
     except KeyError:
-        return((0, "No Error list available for page that was not compiled or loaded", "Page has not been compiled or loaded and does not exist in compiled page list"))
+        return (
+            0,
+            "No Error list available for page that was not compiled or loaded",
+            "Page has not been compiled or loaded and does not exist in compiled page list",
+        )
 
 
 def getPageOutput(module, resource):
     try:
         return _Pages[module][resource].printoutput
     except KeyError:
-        return((0, "No Error list available for page that was not compiled or loaded", "Page has not been compiled or loaded and does not exist in compiled page list"))
+        return (
+            0,
+            "No Error list available for page that was not compiled or loaded",
+            "Page has not been compiled or loaded and does not exist in compiled page list",
+        )
 
 
 _Pages = {}
@@ -364,6 +389,7 @@ def getPageInfo(module, resource):
         return _Pages[module][resource].template.module.__doc__ or ""
     except:
         return ""
+
 
 # Delete a event from the cache by module and resource
 
@@ -414,10 +440,7 @@ def makeDummyPage(resource, module):
         _Pages[module] = {}
 
     # Get the page resource in question
-    j = {
-        "resource-type": "page",
-        "body": "Content here",
-                'no-navheader': True}
+    j = {"resource-type": "page", "body": "Content here", "no-navheader": True}
     _Pages[module][resource] = CompiledPage(j, module, resource)
 
 
@@ -434,7 +457,7 @@ def getPagesFromModules():
                 # now we loop over all the resources o the module to see which ones are pages
                 for m in modules_state.ActiveModules[i].copy():
                     j = modules_state.ActiveModules[i][m]
-                    if j['resource-type'] == 'page':
+                    if j["resource-type"] == "page":
                         try:
                             _Pages[i][m] = CompiledPage(j, i, m)
                         except Exception as e:
@@ -443,11 +466,16 @@ def getPagesFromModules():
                             # When an error happens, log it and save the time
                             # Note that we are logging to the compiled event object
                             _Pages[i][m].errors.append(
-                                [time.strftime(config['time-format']), tb, "Error while initializing"])
+                                [
+                                    time.strftime(config["time-format"]),
+                                    tb,
+                                    "Error while initializing",
+                                ]
+                            )
                             try:
-                                messagebus.postMessage('system/errors/pages/' +
-                                                       i+'/' +
-                                                       m, str(tb))
+                                messagebus.postMessage(
+                                    "system/errors/pages/" + i + "/" + m, str(tb)
+                                )
                             except Exception as e:
                                 print(e)
                             # Keep only the most recent 25 errors
@@ -455,11 +483,16 @@ def getPagesFromModules():
                             # If this is the first error(high level: transition from ok to not ok)
                             # send a global system messsage that will go to the front page.
                             if len(_Pages[i][m].errors) == 1:
-                                messagebus.postMessage('/system/notifications/errors',
-                                                       "Page \""+m+"\" of module \""+i +
-                                                       "\" may need attention")
-                    elif j['resource-type'] in 'internal-fileref':
-                        if j.get('serve', False):
+                                messagebus.postMessage(
+                                    "/system/notifications/errors",
+                                    'Page "'
+                                    + m
+                                    + '" of module "'
+                                    + i
+                                    + '" may need attention',
+                                )
+                    elif j["resource-type"] in "internal-fileref":
+                        if j.get("serve", False):
                             try:
                                 _Pages[i][m] = CompiledPage(j, i, m)
                             except Exception as e:
@@ -468,11 +501,16 @@ def getPagesFromModules():
                                 # When an error happens, log it and save the time
                                 # Note that we are logging to the compiled event object
                                 _Pages[i][m].errors.append(
-                                    [time.strftime(config['time-format']), tb, "Error while initializing"])
+                                    [
+                                        time.strftime(config["time-format"]),
+                                        tb,
+                                        "Error while initializing",
+                                    ]
+                                )
                                 try:
-                                    messagebus.postMessage('system/errors/pages/' +
-                                                           i+'/' +
-                                                           m, str(tb))
+                                    messagebus.postMessage(
+                                        "system/errors/pages/" + i + "/" + m, str(tb)
+                                    )
                                 except Exception as e:
                                     print(e)
                                 # Keep only the most recent 25 errors
@@ -480,9 +518,14 @@ def getPagesFromModules():
                                 # If this is the first error(high level: transition from ok to not ok)
                                 # send a global system messsage that will go to the front page.
                                 if len(_Pages[i][m].errors) == 1:
-                                    messagebus.postMessage('/system/notifications/errors',
-                                                           "Page \""+m+"\" of module \""+i +
-                                                           "\" may need attention")
+                                    messagebus.postMessage(
+                                        "/system/notifications/errors",
+                                        'Page "'
+                                        + m
+                                        + '" of module "'
+                                        + i
+                                        + '" may need attention',
+                                    )
                         else:
                             try:
                                 del _Pages[i][m]
@@ -499,13 +542,15 @@ def streamGen(e):
             return
         yield x
 
+
 # kaithem.py has come config option that cause this file to use the method dispatcher.
-class KaithemPage():
+class KaithemPage:
     # Class encapsulating one request to a user-defined page
     exposed = True
-    
+
     def __init__(self) -> None:
         from . import kaithemobj
+
         self.kaithemobj = kaithemobj
 
     def GET(self, module, *args, **kwargs):
@@ -536,32 +581,47 @@ class KaithemPage():
             x += i + ", "
         x = x[:-2]
 
-        cherrypy.response.headers['Allow'] = x + ", HEAD, OPTIONS"
+        cherrypy.response.headers["Allow"] = x + ", HEAD, OPTIONS"
         if page.xss:
-            if 'Origin' in cherrypy.request.headers:
-                if cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins:
-                    cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
-                cherrypy.response.headers['Access-Control-Allow-Methods'] = x
+            if "Origin" in cherrypy.request.headers:
+                if (
+                    cherrypy.request.headers["Origin"] in page.origins
+                    or "*" in page.origins
+                ):
+                    cherrypy.response.headers[
+                        "Access-Control-Allow-Origin"
+                    ] = cherrypy.request.headers["Origin"]
+                cherrypy.response.headers["Access-Control-Allow-Methods"] = x
 
     def _serve(self, module, *args, **kwargs):
-
         page = lookup(module, args)
         if None == page:
-            messagebus.postMessage("/system/errors/http/nonexistant",
-                                   "Someone tried to access a page that did not exist in module %s with path %s" % (module, args))
+            messagebus.postMessage(
+                "/system/errors/http/nonexistant",
+                "Someone tried to access a page that did not exist in module %s with path %s"
+                % (module, args),
+            )
             raise cherrypy.NotFound()
 
-        if 'Origin' in cherrypy.request.headers:
-            if not  (cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins):
-                raise RuntimeError("Refusing XSS from this origin: "+cherrypy.request.headers['Origin'])
+        if "Origin" in cherrypy.request.headers:
+            if not (
+                cherrypy.request.headers["Origin"] in page.origins
+                or "*" in page.origins
+            ):
+                raise RuntimeError(
+                    "Refusing XSS from this origin: "
+                    + cherrypy.request.headers["Origin"]
+                )
             else:
-                cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
+                cherrypy.response.headers[
+                    "Access-Control-Allow-Origin"
+                ] = cherrypy.request.headers["Origin"]
 
         x = ""
         for i in page.methods:
             x += i + ", "
         x = x[:-2]
-        cherrypy.response.headers['Access-Control-Allow-Methods'] = x
+        cherrypy.response.headers["Access-Control-Allow-Methods"] = x
 
         page.lastaccessed = time.time()
         # Check user permissions
@@ -572,12 +632,16 @@ class KaithemPage():
         # Check HTTP Method
         if cherrypy.request.method not in page.methods:
             # Raise a redirect the the wrongmethod error page
-            raise cherrypy.HTTPRedirect('/errors/wrongmethod')
+            raise cherrypy.HTTPRedirect("/errors/wrongmethod")
         try:
-            cherrypy.response.headers['Content-Type'] = page.mime
+            cherrypy.response.headers["Content-Type"] = page.mime
 
             if page.directServeFile:
-                return cherrypy.lib.static.serve_file(page.directServeFile, page.mime, os.path.basename(page.directServeFile))
+                return cherrypy.lib.static.serve_file(
+                    page.directServeFile,
+                    page.mime,
+                    os.path.basename(page.directServeFile),
+                )
 
             t = page.theme
             if t in theming.cssthemes:
@@ -592,23 +656,26 @@ class KaithemPage():
                     kwargs=kwargs,
                     print=page.new_print,
                     page=page.localAPI,
-                    _k_usr_page_theme = t,
-                    _k_alt_top_banner = page.alt_top_banner
+                    _k_usr_page_theme=t,
+                    _k_alt_top_banner=page.alt_top_banner,
                 ).encode("utf-8")
             else:
-                return page.text.encode('utf-8')
+                return page.text.encode("utf-8")
 
         except self.kaithemobj.ServeFileInsteadOfRenderingPageException as e:
+            if page.streaming and hasattr(e.f_filepath, "read"):
+                cherrypy.response.headers["Content-Type"] = e.f_MIME
+                cherrypy.response.headers["Content-Disposition"] = (
+                    'attachment ; filename = "' + e.f_name + '"'
+                )
+                return streamGen(e.f_filepath)
 
-            if page.streaming and hasattr(e.f_filepath, 'read'):
-               cherrypy.response.headers['Content-Type'] =  e.f_MIME
-               cherrypy.response.headers['Content-Disposition'] =  'attachment ; filename = "' + e.f_name+ '"'
-               return streamGen(e.f_filepath)
-
-            if hasattr(e.f_filepath,'getvalue'):
-                cherrypy.response.headers['Content-Type'] =  e.f_MIME
-                cherrypy.response.headers['Content-Disposition'] =  'attachment ; filename = "' + e.f_name+ '"'
-                return(e.f_filepath.getvalue())
+            if hasattr(e.f_filepath, "getvalue"):
+                cherrypy.response.headers["Content-Type"] = e.f_MIME
+                cherrypy.response.headers["Content-Disposition"] = (
+                    'attachment ; filename = "' + e.f_name + '"'
+                )
+                return e.f_filepath.getvalue()
 
             return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
@@ -623,19 +690,24 @@ class KaithemPage():
             if isinstance(e, self.kaithemobj.ServeFileInsteadOfRenderingPageException):
                 return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
-            #tb = traceback.format_exc(chain=True)
+            # tb = traceback.format_exc(chain=True)
             tb = exceptions.text_error_template().render()
-            data = "Request from: "+cherrypy.request.remote.ip + \
-                "("+pages.getAcessingUser()+")\n" + \
-                cherrypy.request.request_line+"\n"
+            data = (
+                "Request from: "
+                + cherrypy.request.remote.ip
+                + "("
+                + pages.getAcessingUser()
+                + ")\n"
+                + cherrypy.request.request_line
+                + "\n"
+            )
             # When an error happens, log it and save the time
             # Note that we are logging to the compiled event object
-            page.errors.append(
-                [time.strftime(config['time-format']), tb, data])
+            page.errors.append([time.strftime(config["time-format"]), tb, data])
             try:
-                messagebus.postMessage('system/errors/pages/' +
-                                       module+'/' +
-                                       "/".join(args), str(tb))
+                messagebus.postMessage(
+                    "system/errors/pages/" + module + "/" + "/".join(args), str(tb)
+                )
             except Exception as e:
                 print(e)
             # Keep only the most recent 25 errors
@@ -643,7 +715,12 @@ class KaithemPage():
             # If this is the first error(high level: transition from ok to not ok)
             # send a global system messsage that will go to the front page.
             if len(page.errors) == 1:
-                messagebus.postMessage('/system/notifications/errors',
-                                       "Page \""+"/".join(args)+"\" of module \""+module +
-                                       "\" may need attention")
+                messagebus.postMessage(
+                    "/system/notifications/errors",
+                    'Page "'
+                    + "/".join(args)
+                    + '" of module "'
+                    + module
+                    + '" may need attention',
+                )
             raise (e)

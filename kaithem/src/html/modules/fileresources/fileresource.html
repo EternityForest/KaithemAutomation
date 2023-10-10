@@ -49,7 +49,7 @@
            %endif
        %else:
         %endif
-      ></input>Serve file with the same URL pattern as you would expect for a page(Needed for features in this section) <a class="gobutton" href="${usrpages.url_for_resource(module,resource)}">User accessible link</a>
+      ></input>Serve file with the same URL pattern as you would expect for a page(Needed for features in this section) at <a href="${usrpages.url_for_resource(module,resource)}">${usrpages.url_for_resource(module,resource)|h}</a>
     </label>
     
     <br>
@@ -78,7 +78,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
         %if 'mimetype' in resourceobj:
                 value= ${resourceobj['mimetype']|h}
         %else:
-                value= "text/html"
+                value= ""
         %endif
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\

@@ -431,8 +431,16 @@ class WebInterface():
                     # END BLOCK OF COPY PASTED CODE.
 
                     modules_state.fileResourceAbsPaths[root, escapedName] = dataname
-                    insertResource({'resource-type': 'internal-fileref', 'target': "$MODULERESOURCES/"+url(
-                        escapedName, modules.safeFnChars), 'serve': 'serve' in kwargs})
+                    d = {'resource-type': 'internal-fileref', 'target': "$MODULERESOURCES/"+url(
+                        escapedName, modules.safeFnChars)}
+                    
+                    # Preserve existing metadata
+                    if escapedName in modules_state.ActiveModules[root]:
+                        d2 = copy.deepcopy(modules_state.ActiveModules[root])
+                        d2.update(d)
+                        d = d2
+
+                    insertResource(d)
 
                     modules_state.modulesHaveChanged()
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root))

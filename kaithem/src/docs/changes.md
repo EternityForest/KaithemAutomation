@@ -5,6 +5,8 @@ Change Log
 
 - :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
 
+- :bug: Fix multilevel nested folders regression
+
 
 
 ### 0.69.1
