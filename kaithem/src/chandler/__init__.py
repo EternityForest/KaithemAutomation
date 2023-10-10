@@ -491,7 +491,7 @@ def getSerPorts():
 
 
 def disallow_special(s, allow="", replaceMode=None):
-    for i in "[]{}()!@#$%^&*()<>,./;':\"-=_+\\|`~?\r\n\t":
+    for i in "[]{}()!@#$%^&*()<>,./;':\"-=+\\|`~?\r\n\t":
         if i in s and i not in allow:
             if replaceMode is None:
                 raise ValueError(
@@ -3826,15 +3826,27 @@ class Scene:
                 if not self.cues[cue].sound == "__keep__":
                     # Don't stop audio of we're about to crossfade to the next track
                     if not (self.crossfade and self.cues[cue].sound):
-                        if self.cues[cue].soundFadeOut or self.cues[cue].mediaWinddown:
+                        if self.cue.soundFadeOut or self.cue.mediaWinddown:
                             fadeSound(
                                 None,
-                                length=self.cues[cue].soundFadeOut,
+                                length=self.cue.soundFadeOut,
                                 handle=str(self.id),
-                                winddown=self.cues[cue].mediaWinddown,
+                                winddown=self.cue.mediaWinddown,
                             )
                         else:
                             stopSound(str(self.id))
+                    # There is no next sound so crossfade to silence
+                    if self.crossfade and (not self.cues[cue].sound):
+                        if self.cue.soundFadeOut or self.cue.mediaWinddown:
+                            fadeSound(
+                                None,
+                                length=self.cue.soundFadeOut,
+                                handle=str(self.id),
+                                winddown=self.cue.mediaWinddown,
+                            )
+                        else:
+                            stopSound(str(self.id))
+
 
                     self.allowMediaUrlRemote = None
 
@@ -3888,6 +3900,7 @@ class Scene:
                                     )
                                     or self.cues[cue].soundFadeIn
                                     or self.cues[cue].mediaWindup
+                                    or self.cue.mediaWinddown
                                 ):
                                     spd = self.scriptContext.preprocessArgument(
                                         self.cues[cue].mediaSpeed
@@ -3902,10 +3915,11 @@ class Scene:
                                         speed=spd,
                                     )
                                 else:
+                                    fade = self.cues[cue].soundFadeIn or self.crossfade
                                     fadeSound(
                                         sound,
                                         length=max(
-                                            self.crossfade, self.cues[cue].soundFadeIn
+                                           fade, 0
                                         ),
                                         handle=str(self.id),
                                         volume=self.alpha * self.cueVolume,
@@ -3913,7 +3927,7 @@ class Scene:
                                         loop=self.cues[cue].soundLoops,
                                         start=self.cues[cue].soundStartPosition,
                                         windup=self.cues[cue].mediaWindup,
-                                        winddown=self.cues[cue].mediaWinddown,
+                                        winddown=self.cue.mediaWinddown,
                                     )
 
                             else:

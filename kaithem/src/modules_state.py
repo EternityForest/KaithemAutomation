@@ -139,6 +139,18 @@ def writeResource(obj: dict, fn: str):
 
     d, ext = serializeResource(obj)
 
+    # directories get saved just by writing a literal directory.
+    if obj['resource-type'] == 'directory':
+        if os.path.exists(fn):
+            if not os.path.isdir(fn):
+                os.remove(fn)
+                os.makedirs(fn, exist_ok=True)
+        else:
+            os.makedirs(fn, exist_ok=True)
+        return
+            
+
+
     if os.path.exists(fn):
         try:
             # Check for sameness, avoid useless write

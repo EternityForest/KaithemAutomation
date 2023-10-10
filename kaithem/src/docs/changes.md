@@ -4,9 +4,10 @@ Change Log
 ### 0.69.2
 
 - :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
-
 - :bug: Fix multilevel nested folders regression
-
+- :sparkles: -1 in cue sound fade in disables crossfading.
+- :bug: Fix sound fading out
+- :bug: Fix sound speed not getting correctly set in some cases
 
 
 ### 0.69.1

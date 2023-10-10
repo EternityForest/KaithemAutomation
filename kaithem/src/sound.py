@@ -144,7 +144,7 @@ class SoundWrapper(object):
     def stopSound(self, handle="PRIMARY"):
         pass
 
-    def isPlaying(self, handle="blah"):
+    def isPlaying(self, handle="blah", refresh=False):
         return False
 
     def pause(self, handle="PRIMARY"):
@@ -214,7 +214,7 @@ class MadPlayWrapper(SoundWrapper):
             except:
                 pass
 
-        def isPlaying(self):
+        def isPlaying(self,refresh=False):
             self.process.poll()
             return self.process.returncode == None or bool(self.loopcounter)
 
@@ -293,7 +293,7 @@ class Mpg123Wrapper(SoundWrapper):
             except:
                 pass
 
-        def isPlaying(self):
+        def isPlaying(self,refresh=False):
             self.process.poll()
             return self.process.returncode == None or bool(self.loopcounter)
 
@@ -394,7 +394,7 @@ class SOXWrapper(SoundWrapper):
             except:
                 pass
 
-        def isPlaying(self):
+        def isPlaying(self,refresh=False):
             self.process.poll()
             return self.process.returncode == None or bool(self.loopcounter)
 
@@ -453,7 +453,7 @@ class SOXWrapper(SoundWrapper):
             except KeyError:
                 pass
 
-    def isPlaying(self, channel="PRIMARY"):
+    def isPlaying(self, channel="PRIMARY",refresh=False):
         "Return true if a sound is playing on channel"
         try:
             return self.runningSounds[channel].isPlaying()
@@ -581,12 +581,13 @@ class MPVBackend(SoundWrapper):
                 self.player.isConfigured = True
 
             if (not hasattr(self.player, 'conf')) or not self.player.conf == settings_key:
-                self.player.conf = settings_key
 
-                if not speed == 1:
+
+                if (not speed == 1) or (hasattr(self.player, 'conf') and ( speed != self.player.conf[0])):
                     self.player.rpc.call(
                         'set', ['audio_pitch_correction', False], block=0.001)
                     self.player.rpc.call('set', ['speed', speed], block=0.001)
+                self.player.conf = settings_key
 
                 # For legavy reasons some stuff used tens of millions instead of actual infinite loop.
                 # But it seems mpv ignores everything past a certain number. So we replace effectively forever with
@@ -694,13 +695,14 @@ class MPVBackend(SoundWrapper):
                                 self.player.stop()
                 self.player = None
 
-        def isPlaying(self):
+        def isPlaying(self, refresh=False):
             with self.lock:
                 if not hasattr(self, 'player'):
                     return False
                 try:
-                    if not self.isPlayingCache is None:
-                        return self.isPlayingCache
+                    if not refresh:
+                        if not self.isPlayingCache is None:
+                            return self.isPlayingCache
                     c = self.player.rpc.call('get', ['eof_reached'],
                                                 block=0.001, timeout=12) == False
                     
@@ -741,6 +743,8 @@ class MPVBackend(SoundWrapper):
                     self.player.rpc.call(
                         'set', ['audio_pitch_correction', False], block=0.001)
                     self.alreadySetCorrection = True
+                # Mark as needing to be updated
+                self.player.conf = (speed, self.player.conf[1])
                 self.player.rpc.call('set', ['speed', speed], block=0.001)
 
         def getVol(self):
@@ -791,7 +795,7 @@ class MPVBackend(SoundWrapper):
             except KeyError:
                 pass
 
-    def isPlaying(self, channel="PRIMARY"):
+    def isPlaying(self, channel="PRIMARY",refresh=False):
         "Return true if a sound is playing on channel"
         try:
             return self.runningSounds[channel].isPlaying()
@@ -884,7 +888,7 @@ class MPVBackend(SoundWrapper):
 
         # if not x:
         #    return
-        if not (length or winddown):
+        if not (length or winddown or windup):
             return
 
         def f():
@@ -910,13 +914,17 @@ class MPVBackend(SoundWrapper):
 
                 tr = time.monotonic()
 
-                if x:
-                    x.setVol(max(0, v * (1 - foratio)))
+                if x and x.player:
+                    # Player might have gotten itself stopped by now
+                    try:
+                        x.setVol(max(0, v * (1 - foratio)))
 
-                    if winddown:
-                        wdratio = max(
-                            0, min(1, ((time.monotonic() - t) / winddown)))
-                        x.setSpeed(max(0.1, v * (1 - wdratio)))
+                        if winddown:
+                            wdratio = max(
+                                0, min(1, ((time.monotonic() - t) / winddown)))
+                            x.setSpeed(max(0.1, v * (1 - wdratio)))
+                    except AttributeError:
+                        print(traceback.format_exc())
 
                 if file and (handle in self.runningSounds):
                     targetVol = self.runningSounds[handle].finalGain
@@ -1013,7 +1021,7 @@ def oggSoundTest(output=None):
     t = "KaithemOggSoundTest"
     playSound("alert.ogg", output=output, handle=t)
     for i in range(100):
-        if isPlaying(t):
+        if isPlaying(t, refresh=True):
             return
         time.sleep(0.01)
     raise RuntimeError("Sound did not report as playing within 1000ms")

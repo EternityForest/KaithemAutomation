@@ -426,7 +426,7 @@ class WebInterface():
 
                     def insertResource(r):
                         modules_state.ActiveModules[root][escapedName] = r
-                        modules.saveResource(root, kwargs['name'], r)
+                        modules.saveResource(root, escapedName, r)
 
                     # END BLOCK OF COPY PASTED CODE.
 
@@ -443,7 +443,7 @@ class WebInterface():
                     insertResource(d)
 
                     modules_state.modulesHaveChanged()
-                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root))
+                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root)+"/resource/"+util.url(path[1]))
 
             # This returns a page to delete any resource by name
             if path[0] == 'deleteresource':
@@ -567,7 +567,7 @@ def addResourceTarget(module, type, name, kwargs, path):
     def insertResource(r):
         r['resource-timestamp'] = int(time.time()*1000000)
         modules_state.ActiveModules[root][escapedName] = r
-        modules.saveResource(root, name, r)
+        modules.saveResource(root, escapedName, r)
 
     with modules_state.modulesLock:
         # Check if a resource by that name is already there
