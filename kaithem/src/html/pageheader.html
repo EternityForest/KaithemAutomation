@@ -161,16 +161,15 @@ Tools</a>
 
         <a href="/helpmenu"><i class="icofont-book"></i>Help</a>
 
-        %if "auth" in cherrypy.request.cookie:
-
-        %if cherrypy.request.cookie['auth'].value in auth.Tokens:
+        %if "kaithem_auth" in cherrypy.request.cookie:
+        %if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens:
         <form style="flex-grow: 0.05;" method="POST" action="/login/logout">
         <button href="/login/logout"><i class="icofont-key"></i>Logout(${pages.getAcessingUser()[:10]|h})</button>
         </form>
 
         %else:
         <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="icofont-key"></i>Login</a>
-        %endif"
+        %endif
 
 
         %else:

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="213.33" height="213.33" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <defs>
+  <linearGradient id="b">
+   <stop stop-color="#e6e6e6" offset="0"/>
+   <stop stop-color="#ccc" offset="1"/>
+  </linearGradient>
+  <linearGradient id="e" x1=".039" x2="1.019" y1=".094" y2=".922">
+   <stop stop-color="#00b9ff" offset="0"/>
+   <stop stop-color="#15ddff" offset="1"/>
+  </linearGradient>
+  <linearGradient id="d" x1=".581" x2="-.235" y1=".148" y2=".961" xlink:href="#b"/>
+  <linearGradient id="f" x1=".385" x2="1.635" y1=".766" y2="-1.094" xlink:href="#b"/>
+  <linearGradient id="g" x1=".073" x2="1.264" y1=".039" y2="1.047">
+   <stop stop-color="#fff" stop-opacity=".5" offset="0"/>
+   <stop stop-color="#fff" stop-opacity="0" offset="1"/>
+  </linearGradient>
+ </defs>
+ <path d="m12.61 41.066 150.66-21.522s7.722-0.54 8.995 5.124c2.248 9.224 22.486 119.91 22.486 119.91s-0.28 6.77-6.154 8.644c-11.243 4.1-140.05 28.117-140.05 28.117s-6.703 0.135-11.2-3.965-32.604-125.04-32.604-130.16c0-5.125 7.87-6.15 7.87-6.15z" fill="url(#d)" fill-rule="evenodd" stroke="#000" stroke-linejoin="round" stroke-width="1.25"/>
+ <path d="M20.279 50.173c47.347-9.15 93.234-15.25 140.58-20.913 8.456 32.473 14.478 63.639 19.526 96.112-44.747 10.197-89.98 19.087-135.7 25.363C34.603 117.215 26.467 85 20.279 50.173z" fill="url(#e)" fill-rule="evenodd" stroke="#000" stroke-linejoin="round" stroke-width="1.25"/>
+ <path d="m60.63 54.742 20.44 84.105 69.103-13.51-16.06-68.852-20.439-9.588-53.044 7.845z" fill="#fff" fill-rule="evenodd" stroke="#000" stroke-width="1.25"/>
+ <path d="m113.84 47.044 20.193 9.369-12.815 5.519-7.378-14.888z" fill="url(#f)" fill-rule="evenodd" stroke="#000" stroke-linejoin="round" stroke-width="1.25"/>
+ <path d="M165.105 139.305c-.992.224-1.59 1.119-1.34 2.007l.274.976c.25.888 1.25 1.423 2.241 1.2l10.742-2.423c.992-.223 1.59-1.118 1.34-2.006l-.275-.976c-.25-.888-1.249-1.423-2.24-1.2l-10.742 2.422z" fill="#00d900" fill-rule="evenodd" stroke="#000" stroke-linejoin="round" stroke-width="1.25"/>
+ <path d="m70.248 62.702 15.411-2.3m7.385-1.725 17.016-2.875m-34.675 16.388 22.154-3.737m8.669-1.438 16.374-2.588m-45.27 17.826 15.09-2.3m9.953-1.438 25.043-3.737m-47.197 20.988 9.632-1.438m3.853-1.15 11.558-1.725m5.459-1.725 12.2-1.725m-2.568 26.163 7.705-1.15m3.853-0.288 6.1-1.437m-12.2 6.038 12.521-2.3" fill="none" stroke="#000" stroke-linejoin="round" stroke-width="1.25"/>
+ <path d="m79.17 89.079 11.546-1.65m5.361-1.237 17.318-2.474m7.01-0.824 9.072-1.65m-47.007-5.36 34.636-5.36m-41.234-3.712 7.01-1.237m5.772-1.649 7.01-1.237m5.361-1.237 17.73-2.887" fill="none" stroke="#000" stroke-width="1pt"/>
+ <path d="m132.14 33.698c-38.85 5.272-73.204 10.542-109.8 17.538 4.28 33.447 14.34 65.456 23.438 96.89 0 0 55.223-14.663 62.287-24.15 7.063-9.488-32.107-64.115 24.08-90.278z" fill="url(#g)" fill-rule="evenodd"/>
+</svg>

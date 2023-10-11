@@ -1,0 +1,136 @@
+{% extends "base_tables.html" %}
+
+{% block extra_head %}
+<style type="text/css">
+  pre { clear: right; }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script type="text/javascript">
+    $(function() {
+      /* Recent queries and bookmarks. */
+      var sql = {% if sql and not error %}`{{ sql }}`{% else %}''{% endif %};
+      var Recent = new App.Recent();
+      Recent.initialize(sql);
+
+      var bookmarks = new App.Bookmarks();
+      bookmarks.initialize();
+    });
+  </script>
+{% endblock %}
+
+{% block content_title %}<a href="{{ url_for('index', file=file) }}">{{ dataset.base_name }}</a> - Query{% endblock %}
+
+{% block content %}
+  <form action="." id="query-form" method="get" role="form">
+    <input name="ordering" type="hidden" value="" />
+    <input name="export_ordering" type="hidden" value="{% if ordering %}{{ ordering }}{% endif %}" />
+    <div class="form-group{% if error %} has-error has-feedback{% endif %}">
+      <textarea class="form-control{% if error %} is-invalid{% endif %}" id="sql" name="sql" style="height: 120px;">{% if sql %}{{ sql }}{% endif %}</textarea>
+      <small class="form-text text-muted">Use Shift + Up/Down to navigate recently-executed queries</small>
+      {% if error %}
+        <div class="invalid-feedback">{{ error }}</div>
+      {% endif %}
+    </div>
+    <button class="btn btn-primary" type="submit">Execute</button>
+    <button class="btn btn-secondary" name="export_json" type="submit">Export JSON</button>
+    <button class="btn btn-secondary" name="export_csv" type="submit">Export CSV</button>
+    <div class="btn-group">
+      <div class="dropdown">
+        <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" id="dropdownMenuButton" aria-haspopup="true" aria-expanded="false">SQL Help</button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          {% for parts, img_url in query_images %}
+            <a class="dropdown-item sql-image" href="{{ url_for('static', filename=img_url) }}">{{ ' : '.join(parts) }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="float-right">
+      <div class="btn-group">
+        <div class="dropdown">
+          <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" id="dropdownMenuButton" aria-haspopup="true" aria-expanded="false">Bookmarks</button>
+          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton" id="bookmarks"></div>
+        </div>
+        <button class="btn btn-secondary" id="add-bookmark" title="Add Bookmark" type="button">+</button>
+      </div>
+    </div>
+  </form>
+  <hr />
+
+  {% if row_count is not none and row_count >= 0 %}
+    <p>Rows modified: <code>{{ row_count }}</code></p>
+  {% endif %}
+
+  {% if data_description %}
+    {% if not data %}
+      <p>Empty result set.</p>
+    {% else %}
+      <a class="float-right" href="{{ url_for('generic_query', file=file, sql=sql) }}{% if ordering %}&ordering={{ ordering }}{% endif %}">Permalink</a>
+      <h3>
+        Results ({{ data|length }})
+      </h3>
+      <table class="table table-striped small">
+        <thead>
+          <tr>
+            {% for col_desc in data_description %}
+              <th>
+                <a class="sort-header" href="{{ url_for('generic_query', file=file, sql=sql) }}&ordering={% if loop.index == ordering %}-{% endif %}{{ loop.index }}">{{ col_desc[0] }}{% if ordering is not none %}{% if loop.index == ordering %}&#9660;{% elif loop.index == -ordering %}&#9650;{% endif %}{% endif %}</a>
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+            <tr>
+              {% for value in row %}
+                <td>
+                  {% if value is none %}<code>NULL</code>{% else %}{{ value|value_filter|safe }}{% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  {% endif %}
+  <div class="modal fade" id="sql-image-modal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"></h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="bookmark-modal" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create Bookmark</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="save-form" role="form">
+            <div class="form-group">
+              <input class="form-control" id="bookmark-name" name="name" placeholder="Bookmark name..." value="" />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="save-bookmark">Save</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

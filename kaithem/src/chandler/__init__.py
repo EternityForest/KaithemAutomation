@@ -2,6 +2,7 @@ import time
 import random
 import weakref
 import os
+import math
 import threading
 import uuid
 import logging
@@ -26,6 +27,11 @@ from . import blendmodes
 from . import fixtureslib
 
 import recur
+
+
+def ease(x):
+    x = min(1, max(0, x))
+    return -(math.cos(math.pi * x) - 1) / 2
 
 
 def dt_to_ts(dt, tz=None):
@@ -3847,7 +3853,6 @@ class Scene:
                         else:
                             stopSound(str(self.id))
 
-
                     self.allowMediaUrlRemote = None
 
                     out = self.cues[cue].soundOutput
@@ -3918,9 +3923,7 @@ class Scene:
                                     fade = self.cues[cue].soundFadeIn or self.crossfade
                                     fadeSound(
                                         sound,
-                                        length=max(
-                                           fade, 0
-                                        ),
+                                        length=max(fade, 0),
                                         handle=str(self.id),
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
@@ -4887,6 +4890,7 @@ class Scene:
             fadePosition = min(
                 (time.time() - self.enteredCue) / (self.cue.fadein * (60 / self.bpm)), 1
             )
+            fadePosition = ease(fadePosition)
         else:
             fadePosition = 1
 

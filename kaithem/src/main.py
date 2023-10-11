@@ -246,11 +246,29 @@ def webRoot():
         ),
     ]
 
+    from . import tableview
+
     rules.append(
         Rule(
             AnyMatches(),
             tornado.web.Application(
-                [(AnyMatches(), wsgi_adapter.WSGIHandler, {"wsgi_application": wsgiapp})]
+                [
+                    (
+                        KAuthMatcher("/database.*", "/admin/settings.edit"),
+                        wsgi_adapter.WSGIHandler,
+                        {"wsgi_application": tableview.get_app()},
+                    ),
+                    (
+                        PathMatches("/database.*"),
+                        tornado.web.RedirectHandler,
+                        {"url": "/login", 'permanent':False},
+                    ),
+                    (
+                        AnyMatches(),
+                        wsgi_adapter.WSGIHandler,
+                        {"wsgi_application": wsgiapp},
+                    ),
+                ]
             ),
         )
     )
@@ -267,7 +285,7 @@ def webRoot():
                 Rule(
                     PathMatches("/esphome.*"),
                     tornado.web.RedirectHandler,
-                    {"url": "/login"},
+                    {"url": "/login",'permanent':False},
                 ),
             ]
         )

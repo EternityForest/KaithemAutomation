@@ -40,11 +40,11 @@ import json
                 border-style: solid;
                 border-width: 1px;
 
-                !important
+                !important;
             }
             
             p.run {
-                !important
+                !important;
             }
             
             div.universe {
@@ -52,11 +52,10 @@ import json
                 border-radius: 5px;
                 float: left;
                 overflow: auto;
-               // border-width: 1px;
                 border-color: grey;
                 margin: 3px;
                 width: 95%;
-                display: inline-block; //background-color: rgba(128, 128, 128, 0.4);
+                display: inline-block; 
                 !important
             }
             
@@ -66,15 +65,12 @@ import json
                 float: left;
                 overflow: auto;
                 border-width: 2px;
-               // border-color: darkgrey;
                 margin: 3px;
                 display: inline-block;
-                //background-color: rgba(128, 128, 128, 0.4);
-               // !important
+
             }
             
             .indicator {
-                //border-color: black;
                 border-radius: 0.2em;
                 display: inline-block;
                 width: 0.9em;
@@ -94,7 +90,6 @@ import json
             }
             label>input{
                 border-radius: 0px;
-                //border: 1px solid rgba(0,0,0,0.3);
                 margin: 0px;
             }
             
@@ -156,7 +151,7 @@ import json
                 
                 
                 <div id="scene" style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
-                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;display:flex-item; flex: 1; margin: 0.4em; padding: 0.4em; max-height: 420px;" v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                    <div v-for="i in formatScenes()" v-if="i" style="position:relative;display:flex-item; flex: 1; margin: 0.4em; padding: 0.4em; max-height: 420px; max-width: 400px;" v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
 
                         <div style="height: 98%; text-align:center;">

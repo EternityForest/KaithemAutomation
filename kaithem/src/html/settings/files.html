@@ -70,6 +70,10 @@ Upload zip and unpack:
 <a class="button" href="/settings/hlsplayer/${util.url(os.path.join(dir,i))}">Play in browser</a>
 %endif
 
+%if i.endswith(".sqlite"):
+<a class="button" href="/database/${util.url(os.path.join(dir,i))}/">Browse</a>
+%endif
+
 %if dir.startswith(os.path.join(directories.vardir,"static")):
     %if i.endswith(".mp4"):
     <a class="button" href="/utils/video_signage?src=${util.url('/user_static/'+os.path.join(dir[len(os.path.join(directories.vardir,'static')):],i))}">Digital Signage link</a>

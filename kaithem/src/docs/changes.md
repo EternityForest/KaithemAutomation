@@ -8,6 +8,8 @@ Change Log
 - :sparkles: -1 in cue sound fade in disables crossfading.
 - :bug: Fix sound fading out
 - :bug: Fix sound speed not getting correctly set in some cases
+- :sparkles: Chandler uses sine-in-out easing for lighting fades
+- :sparkles: BETA if you have the settings permission, now you can browse edit SQLite databases(Powered by a customized sqlite-web)
 
 
 ### 0.69.1

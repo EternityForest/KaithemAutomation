@@ -1,0 +1,68 @@
+{% extends "base_table.html" %}
+
+{% block structure_tab_class %} active{% endblock %}
+
+{% block inner_content %}
+<h3>Add Column</h3>
+<form action="{{ url_for('add_column', file=file, table=table) }}" class="form" method="post">
+  <div class="form-group">
+    <label for="id_name">Column name</label>
+    <input class="form-control" id="id_name" name="name" type="text" placeholder="my_column" value="{{ name }}" />
+  </div>
+  <div class="form-group">
+    <label for="id_type">Column type</label>
+    <select class="form-control" id="id_type" name="type">
+      <option value="">Select column type</option>
+      {% for column in column_mapping %}
+      <option {% if column == col_type %}selected="selected" {% endif %}value="{{ column }}">{{ column }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="option_null">Allow NULL</label>
+    <input class="form-control" id="option_null" name="option_null" type="checkbox" checked />
+  </div>
+
+
+  <div class="form-group">
+    <label for="use_default">Use a default value(Uncheck for NULL default)</label>
+    <input class="form-control" id="use_default" name="use_default" type="checkbox" />
+  </div>
+
+  <div class="form-group">
+    <label for="default_value">Default Value</label>
+    <input class="form-control" id="default_value" name="default_value" type="text"/>
+  </div>
+
+
+  <div>
+    <details>
+      <summary>Linking help</summary>
+    Linking means that the value in this field is meant to correspond with a value found in another table, allowing you
+    to link to the row that contains the match.
+
+    The database will ensure this is always the case, and will provide some nice UI features for navigating between tables.
+    You must select a default value.
+
+    Column type is ignored.  As you might expect, links are just FOREIGN KEY constraints under the hood.
+  </details>
+
+  </div>
+
+  <div class="form-group">
+    <label for="fk_table">Link to table</label>
+    <input class="form-control" id="fk_table" name="fk_table" type="text" placeholder="Unlinked" value="" />
+    <label for="fk_field">Link Field</label>
+    <input class="form-control" id="fk_field" name="fk_field" type="text" placeholder="" value="" />
+  </div>
+
+  <button class="btn btn-primary" type="submit">Add column</button>
+  <a class="btn btn-secondary" href="{{ url_for('table_structure', file=file, table=table) }}">Cancel</a>
+</form>
+
+<hr style="padding: 16px;" />
+
+<h3 id="sql">Current Schema</h3>
+{{ table_sql|format_create_table|highlight }}
+{% endblock %}
