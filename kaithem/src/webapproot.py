@@ -300,7 +300,7 @@ class webapproot:
 
         if path:
             tn = '/'.join(path)
-            if not tn.startswith('='):
+            if (not tn.startswith('=')) and not tn.startswith('/'):
                 tn = '/'+tn
             if tn not in tagpoints.allTags:
                 raise ValueError("This tag does not exist")

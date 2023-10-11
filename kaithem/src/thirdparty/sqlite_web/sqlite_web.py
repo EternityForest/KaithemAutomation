@@ -106,7 +106,7 @@ LOG = create_logger(app)
 
 
 all_open_datasets = {}
-open_datasets_lock = threading.Lock()
+open_datasets_lock = threading.RLock()
 
 
 def resolve_dataset(name):
@@ -120,7 +120,8 @@ def resolve_dataset(name):
 def get_dataset(name):
     "Return the relevant dataset for this request"
     global resolve_dataset
-    name, ro = resolve_dataset(name)
+    name, rw = resolve_dataset(name)
+    ro = not rw
 
     with open_datasets_lock:
         if not name in all_open_datasets:

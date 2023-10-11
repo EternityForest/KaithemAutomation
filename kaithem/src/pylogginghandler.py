@@ -76,7 +76,9 @@ excludeDebug = {
     'zeep.xsd.schema': 1,
     'zeep.wsdl.wsdl': 1,
     'zeep.xsd.visitor': 1,
-    'zeep.transports': 1
+    'zeep.transports': 1,
+    'peewee': 1
+
 }
 
 for i in excludeDebug:

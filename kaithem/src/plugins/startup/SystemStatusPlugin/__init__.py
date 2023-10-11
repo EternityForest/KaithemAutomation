@@ -294,3 +294,17 @@ makeLedTagIfNonexistant(
     "/sys/class/leds/led0/brightness", "/system/board/leds/act")
 makeLedTagIfNonexistant("/sys/class/leds/ACT/brightness",
                         "/system/board/leds/act")
+
+
+errtag = tagpoints.Tag("/system/io_error_flag")
+errtag.setAlarm("An IO Error was detected that could indicate a failing disk or bad cable", "value>0", "error")
+errtag.min=0
+errtag.max=1
+errtag.subtype = 'bool'
+
+@scheduling.scheduler.everyHour
+def checkDmesg():
+    t = subprocess.check_output(['dmesg']).decode()
+    if "i/o error" in t.lower():
+        errtag.value = 1
+checkDmesg()

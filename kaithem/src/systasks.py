@@ -152,6 +152,10 @@ lastRamTestValue = 0
 bitErrorTestLock = threading.Lock()
 
 
+
+
+
+
 @scheduling.scheduler.everyHour
 def checkBitErrors():
     global ramTestData, lastRamTestValue
