@@ -332,7 +332,7 @@ class CompiledPage:
                 self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
                 self.mime = self.mime = resource.get(
                     "mimetype", None
-                ) or mimetypes.guess_type(self.name)
+                ) or mimetypes.guess_type(self.name)[0]
 
         self.refreshFromResource = refreshFromResource
         self.refreshFromResource()
