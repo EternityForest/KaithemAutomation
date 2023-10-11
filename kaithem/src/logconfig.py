@@ -27,8 +27,6 @@ rlogger.setLevel(logging.INFO)
 logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
 
-
-
 logger = logging.getLogger("aioesphomeapi.connection")
 logger.setLevel(logging.WARNING)
 
@@ -39,6 +37,14 @@ logger = logging.getLogger("aioesphomeapi.reconnect_logic")
 logger.setLevel(logging.WARNING)
 
 logger = logging.getLogger("PIL.PngImagePlugin")
+logger.setLevel(logging.WARNING)
+
+
+logger = logging.getLogger("peewee")
+logger.setLevel(logging.WARNING)
+
+
+logger = logging.getLogger("tornado.general")
 logger.setLevel(logging.WARNING)
 
 
