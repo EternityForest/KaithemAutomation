@@ -11,6 +11,8 @@ Change Log
 - :sparkles: Chandler uses sine-in-out easing for lighting fades
 - :sparkles: BETA if you have the settings permission, now you can browse edit SQLite databases(Powered by a customized sqlite-web)
 - :sparkles: We now monitor dmesg hourly to detect IO Errors
+- :sparkles: HBMQTT removed
+- :coffin: Kaithem.mqtt deprecated
 
 
 ### 0.69.1
