@@ -50,7 +50,13 @@ connectionsByBusName = weakref.WeakValueDictionary()
 def checkIfConnected(c, delay):
     time.sleep(delay)
     if not c.isConnected:
-        logging.warning("An MQTT connection to : " + str(c.server) + " was not connected after "+str(delay) + " seconds of waiting")
+        logging.warning(
+            "An MQTT connection to : "
+            + str(c.server)
+            + " was not connected after "
+            + str(delay)
+            + " seconds of waiting"
+        )
 
 
 def getWeakrefHandlers(self):
@@ -61,8 +67,9 @@ def getWeakrefHandlers(self):
             self().onDisconnected()
             return
 
-        logger.info("Connected to MQTT server: " +
-                    self().server + "result code " + str(rc))
+        logger.info(
+            "Connected to MQTT server: " + self().server + "result code " + str(rc)
+        )
         self().onStillConnected()
         # Don't block the network thread too long
 
@@ -77,6 +84,7 @@ def getWeakrefHandlers(self):
                                 self().connection.subscribe(i[1], i[2])
             except Exception:
                 logger.exception("Error subscription refresh")
+
         workers.do(subscriptionRefresh)
 
     def on_disconnect(client, *a):
@@ -90,9 +98,10 @@ def getWeakrefHandlers(self):
         try:
             s = self()
             # Everything must be fine, because we are getting messages
-            messagebus.postMessage(s.busPrefix + "/in/" + msg.topic,
-                                   msg.payload,
-                                   )
+            messagebus.postMessage(
+                s.busPrefix + "/in/" + msg.topic,
+                msg.payload,
+            )
             s.onStillConnected()
         except Exception:
             print(traceback.format_exc())
@@ -120,85 +129,19 @@ def makeThread(c, ref):
     return f2
 
 
-class HBMQTTMessage():
-    pass
 
-
-class HBMQTTWrapper():
-    def __init__(self, manager_ref, client) -> None:
-        self.client = client
-        self.ref = manager_ref()
-        from hbmqtt.mqtt.constants import QOS_0, QOS_1, QOS_2
-        self.qosmap = {0: QOS_0, 1: QOS_1, 2: QOS_2}
-        # For connect_async
-        self.connectFunction = None
-
-    def subscribe(self, topic, qos=0):
-        @asyncio.coroutine
-        def f():
-            yield from self.client.subscribe([(topic, self.qosmap[qos])])
-
-        asyncio.get_event_loop().run_until_complete(f())
-
-    def unsubscribe(self, topic):
-        @asyncio.coroutine
-        def f():
-            yield from self.client.unsubscribe([topic])
-
-        asyncio.get_event_loop().run_until_complete(f())
-
-    def publish(self, topic, payload, qos=0, retain=False):
-        @asyncio.coroutine
-        def f():
-            yield from self.client.publish(topic, payload, self.qosmap[qos], retain)
-
-        asyncio.get_event_loop().run_until_complete(f())
-
-    def connect_async(self, host, port=1883, keepalive=60, bind_address=""):
-        def connectFunction():
-
-            @asyncio.coroutine
-            def f():
-                yield from self.client.connect(host + ":" + port)
-
-            asyncio.get_event_loop().run_until_complete(f())
-        self.connectFunction = connectFunction
-
-    def connect(self, host, port=1883, keepalive=60, bind_address=""):
-        self.connect_async(host, port, keepalive, bind_address)
-        self.connectFunction()
-
-    def loop_forever(timeout=1.0, max_packets=1, retry_first_connection=False):
-        if self.connectFunction:
-            self.connectFunction()
-
-    @asyncio.coroutine
-    def run(self):
-        r = self.ref
-        from hbmqtt.client import MQTTClient, ClientException
-
-        C = MQTTClient()
-        yield from C.connect(r().server + ':' + str(r().port))
-        self.connected = True
-        # Subscribe to '$SYS/broker/uptime' with QOS=1
-        # Subscribe to '$SYS/broker/load/#' with QOS=2
-        self.on_connect(self, None, None, None)
-
-        while r():
-
-            message = yield from C.deliver_message(timeout=3)
-            packet = message.publish_packet
-            msg = HBMQTTMessage
-            msg.payload = packet.payload.data
-            msg.packet.variable_header.topic_name
-            self.on_message(None, None, msg)
-
-        yield from C.disconnect()
-
-
-class Connection():
-    def __init__(self, server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True, connectionID=''):
-
+class Connection:
+    def __init__(
+        self,
+        server,
+        port=1883,
+        password=None,
+        messageBusName=None,
+        *,
+        alertPriority="info",
+        alertAck=True,
+        connectionID=""
+    ):
         # ConnectionID is used to ensure separate *physical* connections and prevent reuse
         self.server = server
         self.port = port
@@ -208,8 +151,8 @@ class Connection():
         self.messageBusName = messageBusName
         self.connection = None
 
-        #Defensive against None
-        connectionID = connectionID or ''
+        # Defensive against None
+        connectionID = connectionID or ""
 
         self.isConnected = False
 
@@ -225,8 +168,9 @@ class Connection():
 
         if passive and (not messageBusName):
             raise ValueError(
-                "No server specified. To create a passive connection you must specify an internal messageBusName")
-        self.busPrefix = "/mqtt/" + server + ":" + str(port) + (connectionID or '')
+                "No server specified. To create a passive connection you must specify an internal messageBusName"
+            )
+        self.busPrefix = "/mqtt/" + server + ":" + str(port) + (connectionID or "")
 
         self.subscriptions = {}
         logger.info("Creating connection object to: " + self.server)
@@ -236,11 +180,13 @@ class Connection():
         # paho requires non-python stuff.
         try:
             import paho.mqtt.client as mqtt
+
             paho = True
 
         except ImportError:
             logging.exception(
-                "PahoMQTT not installed. No MQTT connection possible here. continuing with dummy.")
+                "PahoMQTT not installed. No MQTT connection possible here. continuing with dummy."
+            )
             paho = False
 
         # When we wrap a function store a weakref to the original here,
@@ -250,7 +196,7 @@ class Connection():
 
         with lock:
             if connectionID:
-                connectionID = '?' + connectionID
+                connectionID = "?" + connectionID
             self.connectionID = connectionID
 
             n = server + ":" + str(port) + connectionID
@@ -268,22 +214,25 @@ class Connection():
                 self.busPrefix = "/mqtt/" + messageBusName
 
             try:
-
                 if not virtual and not passive:
+
                     def out_handler(topic, message, timestamp, annotation):
-                        self.connection.publish(topic[len(
-                            self.busPrefix + "/out/"):], payload=message, qos=annotation[0], retain=annotation[1])
+                        self.connection.publish(
+                            topic[len(self.busPrefix + "/out/") :],
+                            payload=message,
+                            qos=annotation[0],
+                            retain=annotation[1],
+                        )
+
                 else:
                     if not passive:
                         # Virtual loopback server doesn't actually use a real server
                         def out_handler(topic, message, timestamp, annotation):
-                            t = topic[len(self.busPrefix + "/out/"):]
-                            messagebus.postMessage(
-                                self.busPrefix + "/in/" + t, message)
+                            t = topic[len(self.busPrefix + "/out/") :]
+                            messagebus.postMessage(self.busPrefix + "/in/" + t, message)
 
                 if not passive:
-                    messagebus.subscribe(
-                        self.busPrefix + "/out/#", out_handler)
+                    messagebus.subscribe(self.busPrefix + "/out/#", out_handler)
                     self.out_handler = out_handler
 
                 if not virtual and not passive:
@@ -296,8 +245,7 @@ class Connection():
                         host = x[0]
                         user = None
                     else:
-                        raise ValueError(
-                            "More than one @ symbol in server name??")
+                        raise ValueError("More than one @ symbol in server name??")
 
                     self.username = user
                     self.password = password
@@ -317,35 +265,40 @@ class Connection():
                             self.connection = mqtt.Client()
                             # We don't want the connection to stringly reference us, that would interfere with GC
                             on_connect, on_disconnect, on_message = getWeakrefHandlers(
-                                self)
+                                self
+                            )
 
                             if self.username:
-                                self.username_pw_set(
-                                    self.username, self.password)
+                                self.username_pw_set(self.username, self.password)
 
                             self.connection.connect_async(
-                                host, port=port, keepalive=60, bind_address="")
+                                host, port=port, keepalive=60, bind_address=""
+                            )
 
                             self.connection.on_connect = on_connect
                             self.connection.on_disconnect = on_disconnect
                             self.connection.on_message = on_message
 
-                            self._thread = threading.Thread(target=makeThread(
-                                self.connection, weakref.ref(self)), name=server + ":" + str(port), daemon=True)
+                            self._thread = threading.Thread(
+                                target=makeThread(self.connection, weakref.ref(self)),
+                                name=server + ":" + str(port),
+                                daemon=True,
+                            )
                             self._thread.start()
 
                     # Independant hbmqtt implementation
                     else:
-                        raise RuntimeError(
-                            "Only Paho is supported at the moment")
+                        raise RuntimeError("Only Paho is supported at the moment")
 
                     self.reconnect = reconnect
 
                     # Actually do the connection.
                     self.reconnect()
+
                     # Give it 5 mins before we print a warning.
                     def f():
-                        checkIfConnected(self,5)
+                        checkIfConnected(self, 5)
+
                     workers.do(f)
                 else:
                     self.connection = None
@@ -379,11 +332,12 @@ class Connection():
         pass
 
     def onDisconnected(self):
-        logging.warning("A connection has disconnected from MQTT server: " + self.server)
+        logging.warning(
+            "A connection has disconnected from MQTT server: " + self.server
+        )
         if self.isConnected:
             messagebus.postMessage(self.localStatusTopic, "disconnected")
         self.isConnected = False
-        
 
     def subscribeToStatus(self, f):
         messagebus.subscribe(self.localStatusTopic, f)
@@ -395,8 +349,7 @@ class Connection():
         except Exception:
             pass
         try:
-            del connections[self.server + ":" +
-                            str(self.port) + self.connectionID]
+            del connections[self.server + ":" + str(self.port) + self.connectionID]
         except Exception:
             pass
 
@@ -405,15 +358,17 @@ class Connection():
             self.connection.disconnect()
 
     def unsubscribe(self, topic, function):
-
         with self.lock:
-
             # Very expensive to search this dict like this, but unsub shouldn't happen much.
             try:
                 torm = []
                 # Find any subscriptions to the topic for this particular bus prefix and delete them
                 for i in allSubscriptions:
-                    if i[0] == self.busPrefix and i[1] == topic and allSubscriptions[i]() == function:
+                    if (
+                        i[0] == self.busPrefix
+                        and i[1] == topic
+                        and allSubscriptions[i]() == function
+                    ):
                         torm.append(i)
                 for i in torm:
                     allSubscriptions.pop(i)
@@ -440,8 +395,7 @@ class Connection():
 
             # We could not find even a single subscriber function
             # So we unsubscribe at the MQTT level
-            logging.debug("MQTT Unsubscribe from " +
-                          topic + " at " + self.server)
+            logging.debug("MQTT Unsubscribe from " + topic + " at " + self.server)
             if self.connection:
                 self.connection.unsubscribe(topic)
 
@@ -499,37 +453,42 @@ class Connection():
             with self.lock:
                 self.connection.subscribe(topic, qos)
 
-        if encoding == 'json':
+        if encoding == "json":
+
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
-                t = t[len(self.busPrefix + "/in/"):]
+                t = t[len(self.busPrefix + "/in/") :]
                 if not isinstance(m, str):
-                    m = m.decode('utf-8')
+                    m = m.decode("utf-8")
                 try:
                     m = json.loads(m)
                 except Exception:
                     logging.debug("Bad JSON:" + m[:64])
                 function()(t, m)
 
-        elif encoding == 'msgpack':
+        elif encoding == "msgpack":
+
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
-                t = t[len(self.busPrefix + "/in/"):]
+                t = t[len(self.busPrefix + "/in/") :]
                 function()(t, msgpack.unpackb(m, raw=False))
 
-        elif encoding == 'utf8':
+        elif encoding == "utf8":
+
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
-                t = t[len(self.busPrefix + "/in/"):]
+                t = t[len(self.busPrefix + "/in/") :]
                 if not isinstance(m, str):
-                    m = m.decode('utf-8')
+                    m = m.decode("utf-8")
                 function()(t, m)
 
-        elif encoding == 'raw':
+        elif encoding == "raw":
+
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
-                t = t[len(self.busPrefix + "/in/"):]
+                t = t[len(self.busPrefix + "/in/") :]
                 function()(t, m)
+
         else:
             raise ValueError("Invalid encoding: " + encoding)
 
@@ -541,7 +500,7 @@ class Connection():
         # Extra data is mostly used for unsubscription
         self.subscribeWrappers[x] = (function, wrapper, topic, internalTopic)
 
-        #logging.debug("MQTT subscribe to " + topic + " at " + self.server)
+        # logging.debug("MQTT subscribe to " + topic + " at " + self.server)
         # Ref to f exists as long as the original does because it's kept in subscribeWrappers
         messagebus.subscribe(internalTopic, wrapper)
 
@@ -552,21 +511,31 @@ class Connection():
             workers.do(backgroundSubscribeTask)
 
     def publish(self, topic, message, qos=2, encoding="json", retain=False):
-        if encoding == 'json':
+        if encoding == "json":
             message = json.dumps(message)
-        elif encoding == 'msgpack':
+        elif encoding == "msgpack":
             message = msgpack.packb(message, use_bin_type=True)
-        elif encoding == 'utf8':
+        elif encoding == "utf8":
             message = message.encode("utf8")
-        elif encoding == 'raw':
+        elif encoding == "raw":
             pass
         else:
             raise ValueError("Invalid encoding!")
-        messagebus.postMessage(self.busPrefix + "/out/" +
-                               topic, message, annotation=(qos, retain))
+        messagebus.postMessage(
+            self.busPrefix + "/out/" + topic, message, annotation=(qos, retain)
+        )
 
 
-def getConnection(server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True, connectionID=''):
+def getConnection(
+    server,
+    port=1883,
+    password=None,
+    messageBusName=None,
+    *,
+    alertPriority="info",
+    alertAck=True,
+    connectionID=""
+):
     # Kaithem is gonna monkeypatch kaithem with one that has better
     # logging
     global Connection
@@ -576,27 +545,38 @@ def getConnection(server, port=1883, password=None, messageBusName=None, *, aler
     with lock:
         x = None
 
-        connectionIDSuffix = ''
+        connectionIDSuffix = ""
         if connectionID:
-            connectionIDSuffix = '?' + connectionID
+            connectionIDSuffix = "?" + connectionID
 
         if server + ":" + str(port) + connectionIDSuffix in connections:
             x = connections[server + ":" + str(port) + connectionIDSuffix]()
 
         if x:
             if not messageBusName == x.messageBusName:
-               # We can safely use the existing one.   If t
+                # We can safely use the existing one.   If t
                 logging.warning(
-                    "Using connection that already exists, but with a different message bus name:  " + x.messageBusName)
+                    "Using connection that already exists, but with a different message bus name:  "
+                    + x.messageBusName
+                )
 
                 messageBusName = x.messageBusName
 
             if x.password or password:
                 if not x.password == password:
                     raise ValueError(
-                        "There is already a connection to the same host and user, but with a different password.")
+                        "There is already a connection to the same host and user, but with a different password."
+                    )
 
             x.configureAlert(alertPriority, alertAck)
             return x
 
-        return Connection(server, port, password=password, alertAck=True, alertPriority="info", messageBusName=messageBusName, connectionID=connectionID)
+        return Connection(
+            server,
+            port,
+            password=password,
+            alertAck=True,
+            alertPriority="info",
+            messageBusName=messageBusName,
+            connectionID=connectionID,
+        )

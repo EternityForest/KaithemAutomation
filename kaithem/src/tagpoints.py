@@ -41,9 +41,7 @@ exposedTags: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 # Setting tag.hi sets the runtime property, but we ignore it if the configuration takes precedence.
 configAttrs = {'hi', 'lo', 'min', 'max', 'interval', 'displayUnits'}
 softConfigAttrs = {
-    'overrideName', 'overrideValue', 'overridePriority', 'type', 'value',
-    'mqtt,server', 'mqtt.password', 'mqtt.port', "mqtt.messageBusName",
-    "mqtt.topic", 'mqtt.incomingPriority', 'mqtt.incomingExpiration'
+    'overrideName', 'overrideValue', 'overridePriority', 'type', 'value'
 }
 
 t = time.monotonic
@@ -222,9 +220,6 @@ class _TagPoint():
         # It can however still be overridden.  This is just a widget advisory.
         self.is_input_only = False
 
-        # How long until we expire any incoming MQTT data
-        self.incomingMQTTExpiration: Union[int, float] = 0
-
         # Start timestamp at 0 meaning never been set
         # Value, timestamp, annotation.  This is the raw value,
         # and the value could actually be a callable returning a value
@@ -286,17 +281,9 @@ class _TagPoint():
         # The "Owner" of a tag can use this to say if anyone else should write it
         self.writable = True
 
-        # Do we have anything set via the config page that would override the code-set mqtt stuff?
-        self.hasMQTTConfig: bool = False
-        self.mqttClaim: typing.Optional[Claim] = None
-        self.mqttConnection = None
 
         # When was the last time we got *real* new data
         self.lastGotValue: Union[int, float] = 0
-
-        # If set, it is the function used to revert to the MQTT settings sefibed in code, as opposed to the
-        # configured ones.
-        self.mqttDynamicConnect: typing.Optional[typing.Callable] = None
 
         self.lastError: Union[float, int] = 0
 
@@ -521,110 +508,7 @@ class _TagPoint():
 
                     self.dataSourceWidget = w
 
-    def mqttConnect(self,
-                    *,
-                    server=None,
-                    port=1883,
-                    password=None,
-                    messageBusName=None,
-                    mqttTopic=None,
-                    incomingPriority=None,
-                    incomingExpiration=0,
-                    configured=False):
 
-        port = int(port)
-
-        if incomingPriority is None:
-            incomingPriority = 50
-        incomingPriority = int(incomingPriority)
-
-        self.incomingMQTTExpiration = float(incomingExpiration)
-
-        def doConnect():
-            if server or messageBusName or password and (not server
-                                                         == '__disable__'):
-                self.mqttDisconnect(False)
-            else:
-                self.mqttDisconnect(True)
-
-            if self.mqttClaim:
-                self.mqttClaim.setPriority(incomingPriority)
-                self.mqttClaim.setExpiration(self.incomingMQTTExpiration)
-
-            from scullery import mqtt
-            n = self.name
-            if n[0] == '/':
-                n = n[1:]
-            n = "tagpoints/" + n
-
-            self.mqttPriority = int(incomingPriority)
-            self.mqttTopic = mqttTopic or n
-
-            if server or messageBusName or password and (not server
-                                                         == '__disable__'):
-                self.mqttConnection = mqtt.getConnection(
-                    server=server,
-                    port=port,
-                    password=password,
-                    messageBusName=messageBusName)
-                self.mqttConnection.subscribe(self.mqttTopic,
-                                              self._onIncomingMQTTMessage,
-                                              encoding=self.mqttEncoding)
-                self.subscribe(self._mqttHandler)
-
-        if configured:
-            # If the user deleted the configuration, go back to what was set in code
-            if not (server or messageBusName or password):
-                if self.mqttDynamicConnect:
-                    self.mqttDisconnect(False)
-                    self.mqttDynamicConnect()
-                else:
-                    self.mqttDisconnect(True)
-                self.hasMQTTConfig = False
-
-            else:
-                self.hasMQTTConfig = True
-                doConnect()
-
-        else:
-            # If this is something set in code, connect if we don't have a configured connection setup already.
-
-            if not self.hasMQTTConfig:
-                doConnect()
-            self.mqttDynamicConnect = doConnect
-
-    def mqttDisconnect(self, unclaim=True):
-        self.unsubscribe(self._mqttHandler)
-        if self.mqttConnection:
-            self.mqttConnection.unsubscribe(self.mqttTopic,
-                                            self._onIncomingMQTTMessage)
-            self.mqttConnection = None
-
-        if unclaim:
-            try:
-                self.mqttClaim.release()
-            except AttributeError:
-                pass
-
-    def _onIncomingMQTTMessage(self, topic, value):
-        if not self.mqttClaim:
-            self.mqttClaim = self.claim(value,
-                                        name="MQTTSync",
-                                        priority=self.mqttPriority,
-                                        annotation="MQTTSyncIncoming")
-            self.mqttClaim.setExpiration(self.incomingMQTTExpiration)
-        else:
-            self.mqttClaim.set(value, annotation="MQTTSyncIncoming")
-
-    def _mqttHandler(self, value, t, a):
-        # No endless l00ps.
-        if a == 'MQTTSyncIncoming':
-            return
-        # Publish local changes to the MQTT bus.
-        self.mqttConnection.publish(self.mqttTopic,
-                                    value,
-                                    retain=True,
-                                    encoding=self.mqttEncoding)
 
     @staticmethod
     def makeWeakApiHandler(wr):
@@ -1384,23 +1268,6 @@ class _TagPoint():
             p = data.get('permissions', ('', '', ''))
             # Set configured permissions, overriding runtime
             self.expose(*p, configured=True)
-
-            try:
-                self.mqttConnect(
-                    server=data.get("mqtt.server", ''),
-                    password=data.get("mqtt.password", ''),
-                    port=int(data.get("mqtt.port", '1883')),
-                    messageBusName=data.get("mqtt.messageBusName", ''),
-                    mqttTopic=data.get("mqtt.topic", ''),
-                    incomingPriority=data.get("mqtt.incomingPriority", '50'),
-                    incomingExpiration=data.get("mqtt.incomingExpiration",
-                                                '0'),
-                    configured=True)
-            except Exception:
-                messagebus.postMessage(
-                    "/system/notifications/errors",
-                    "Failed to setup MQTT tag connection in" + self.name +
-                    "\n" + traceback.format_exc())
 
     @property
     def interval(self):
@@ -2375,15 +2242,6 @@ class _StringTagPoint(_TagPoint):
     def filterValue(self, v):
         return str(v)
 
-    def _mqttHandler(self, value, t, a):
-        # No endless l00ps.
-        if a == 'MQTTSyncIncoming':
-            return
-        # Publish local changes to the MQTT bus.
-        self.mqttConnection.publish(self.mqttTopic,
-                                    value,
-                                    retain=True,
-                                    encoding='utf8')
 
     def _debugAdminPush(self, value, timestamp, annotation):
         # Immediate write, don't push yet, do that in a thread because TCP can block

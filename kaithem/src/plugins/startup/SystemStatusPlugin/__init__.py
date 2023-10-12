@@ -297,7 +297,7 @@ makeLedTagIfNonexistant("/sys/class/leds/ACT/brightness",
 
 
 errtag = tagpoints.Tag("/system/io_error_flag")
-errtag.setAlarm("An IO Error was detected that could indicate a failing disk or bad cable", "value>0", "error")
+errtag.setAlarm("An IO Error was detected that could indicate a failing disk or bad cable. This could also indicate an issue with an external device.", "value>0", "error")
 errtag.min=0
 errtag.max=1
 errtag.subtype = 'bool'

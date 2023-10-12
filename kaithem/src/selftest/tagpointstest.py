@@ -154,46 +154,6 @@ def testTags():
     if not t2.alarms['TestTagAlarm'].sm.state=='normal':
         raise RuntimeError("Alarm not normal after acknowledge")
 
-
-    t1 = tagpoints.Tag("/system/selftest/Sync1")
-    t2 = tagpoints.Tag("/system/selftest/Sync2")
-
-    t1.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
-    t2.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
-
-    t1.value=30
-    time.sleep(1)
-    if not t2.value==30:
-        raise RuntimeError("Tag MQTT sync feature failed")
-
-    #Actually means disconnect
-    t2.mqttConnect(server='')
-
-    t1.value=31
-    time.sleep(1)
-    if  t2.value==31:
-        raise RuntimeError("Tag MQTT sync feature failed to disconnect")
-
-    #Try the other way around
-    t2.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
-    t1.mqttConnect(server='')
-
-    t1.value=35
-    time.sleep(1)
-    if t2.value==35:
-        raise RuntimeError("Tag MQTT sync feature failed to disconnect")
-    
-    #Reconnect
-    t1.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
-
-    t1.value=33
-    time.sleep(1)
-    if not t2.value==33:
-        raise RuntimeError("Tag MQTT sync feature failed to reconnect")
-    
-    #Clear them for the next test 
-    t1.mqttConnect(server='')
-    t2.mqttConnect(server='')
     gc.collect()
     gc.collect()
     
@@ -220,24 +180,6 @@ def testTags():
     #Make sure the old tag is gone
     gc.collect()
     gc.collect()
-
-    t1.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
-    t2.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
-
-    t1.value="Test"
-    time.sleep(1)
-    if not t2.value=="Test":
-        raise RuntimeError("Tag MQTT sync feature failed")
-
-    t1.value=90
-    if not t1.value=='90':
-        raise RuntimeError("Int got into the string tag")
-    time.sleep(1)
-
-    if not t2.value=='90':
-        raise RuntimeError("Int got into the string tag")
-
-    
 
 
     t1 = tagpoints.Tag("/system/selftest/minmax")
