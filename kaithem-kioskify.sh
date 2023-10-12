@@ -278,7 +278,6 @@ mkdir -p /home/$(id -un 1000)/kaithem
 chown -R $(id -un 1000):$(id -un 1000) /home/$(id -un 1000)/kaithem
 chmod -R 700 /home/$(id -un 1000)/kaithem
 
-chmod 755 /opt/KaithemAutomation/dev_run.py
 
 mkdir -p /home/$(id -un 1000)/kaithem
 cd /home/$(id -un 1000)/kaithem
@@ -293,6 +292,7 @@ source virtualenv/bin/activate
 pip3 install tflite-runtime 
 pip3 install aioesphomeapi
 pip3 install esphome
+pip3 install numpy>=1.26.0
 deactivate
 
 

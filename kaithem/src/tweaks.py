@@ -23,13 +23,6 @@ import http.cookies
 import sys
 import re
 
-# Fix that one version of numpy that breaks the root logger
-try:
-    rootBackup = logging.root
-    import numpy
-    logging.root = rootBackup
-except ImportError:
-    pass
 
 #Whatever it used to be was way too high and causingh seg faults if you mess up
 sys.setrecursionlimit(256)
