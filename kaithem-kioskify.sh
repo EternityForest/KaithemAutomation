@@ -87,10 +87,9 @@ git lfs pull
 ! apt purge -y openjdk-11-jdk
 ! apt purge -y openjdk-11-jdk-headless
 ! apt purge -y bluej
-! apt purge -y rpi-wayland
 
-# Might need to use this if you get chrome file chooser crashes.  Should already be gone at start
-! apt purge -y xdg-desktop-portal
+# Might need to use this if you get chrome file chooser crashes.
+# ! apt purge -y xdg-desktop-portal
 
 ! pip3 uninstall mu-editor
 
@@ -401,46 +400,46 @@ systemctl enable kaithem.service
 
 
 
-cat << EOF >> /home/$(id -un 1000)/config/wayfire.ini
-[command]
-repeatable_binding_volume_up = KEY_VOLUMEUP
-command_volume_up = wfpanelctl volumepulse volu
-repeatable_binding_volume_down = KEY_VOLUMEDOWN
-command_volume_down = wfpanelctl volumepulse vold
-binding_mute = KEY_MUTE
-command_mute = wfpanelctl volumepulse mute
-binding_menu = <super>
-command_menu = wfpanelctl smenu menu
-binding_terminal = <ctrl> <alt> KEY_T
-command_terminal = lxterminal
-binding_bluetooth = <ctrl> <alt> KEY_B
-command_bluetooth = wfpanelctl bluetooth menu
-binding_netman = <ctrl> <alt> KEY_W
-command_netman = wfpanelctl netman menu
-binding_grim = KEY_SYSRQ
-command_grim = grim
-binding_orca = <ctrl> <alt> KEY_SPACE
-command_orca = gui-pkinst orca reboot
-binding_quit = <ctrl> <alt> KEY_DELETE
-command_quit = lxde-pi-shutdown-helper
-binding_power = KEY_POWER
-command_power = pwrkey
+# cat << EOF >> /home/$(id -un 1000)/config/wayfire.ini
+# [command]
+# repeatable_binding_volume_up = KEY_VOLUMEUP
+# command_volume_up = wfpanelctl volumepulse volu
+# repeatable_binding_volume_down = KEY_VOLUMEDOWN
+# command_volume_down = wfpanelctl volumepulse vold
+# binding_mute = KEY_MUTE
+# command_mute = wfpanelctl volumepulse mute
+# binding_menu = <super>
+# command_menu = wfpanelctl smenu menu
+# binding_terminal = <ctrl> <alt> KEY_T
+# command_terminal = lxterminal
+# binding_bluetooth = <ctrl> <alt> KEY_B
+# command_bluetooth = wfpanelctl bluetooth menu
+# binding_netman = <ctrl> <alt> KEY_W
+# command_netman = wfpanelctl netman menu
+# binding_grim = KEY_SYSRQ
+# command_grim = grim
+# binding_orca = <ctrl> <alt> KEY_SPACE
+# command_orca = gui-pkinst orca reboot
+# binding_quit = <ctrl> <alt> KEY_DELETE
+# command_quit = lxde-pi-shutdown-helper
+# binding_power = KEY_POWER
+# command_power = pwrkey
 
-[input-device:generic ft5x06 (79)]
-output = DSI-1
+# [input-device:generic ft5x06 (79)]
+# output = DSI-1
 
-[input-device:generic ft5x06 (80)]
-output = DSI-1
+# [input-device:generic ft5x06 (80)]
+# output = DSI-1
 
-[input-device:FT5406 memory based driver]
-output = DSI-1
+# [input-device:FT5406 memory based driver]
+# output = DSI-1
 
-[input]
-xkb_options=
-xkb_model=pc105
-xkb_layout=us
-xkb_variant=
-EOF
+# [input]
+# xkb_options=
+# xkb_model=pc105
+# xkb_layout=us
+# xkb_variant=
+# EOF
 
 
 # Bye bye to the screen savier.
