@@ -91,7 +91,7 @@ git lfs pull
 # Might need to use this if you get chrome file chooser crashes.
 # ! apt purge -y xdg-desktop-portal
 
-! pip3 uninstall mu-editor
+! apt purge -y mu-editor
 
 ! rm -r /opt/Wolfram
 ! rm -r /usr/share/code-the-classics
@@ -232,7 +232,7 @@ apt-get -y install vim-tiny units git wget htop lsof  git-lfs git-repair xloadim
 # For accessing CDs
 apt-get -y install  python3-cdio
 apt-get -y install abcde --no-install-recommends
-apt-get -y install glyrc imagemagick libdigest-sha-perl vorbis-tools atomicparsley eject eyed3 id3 id3v2 mkcue normalize-audio vorbisgain
+apt-get -y install glyrc imagemagick libdigest-sha-perl vorbis-tools atomicparsley eject eyed3 id3 id3v2 normalize-audio vorbisgain
 
 # This lits us capture frames from DSLRs and the like
 sudo apt-get -y install gphoto2 python3-gphoto2cffi
@@ -270,16 +270,31 @@ sudo apt-get install libatlas-base-dev libjasper-dev
 
 
 sudo apt -y install scrot mpv libmpv-dev python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth2  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage python3-setproctitle
-python3 -m pip install tflite-runtime 
 
-pip3 install aioesphomeapi
-pip3 install esphome
 
 mkdir -p /home/$(id -un 1000)/kaithem
 chown -R $(id -un 1000):$(id -un 1000) /home/$(id -un 1000)/kaithem
 chmod -R 700 /home/$(id -un 1000)/kaithem
 
 chmod 755 /opt/KaithemAutomation/dev_run.py
+
+mkdir -p /home/$(id -un 1000)/kaithem
+cd /home/$(id -un 1000)/kaithem
+
+
+# Use a venv, like we probably always should have this entire time.
+if [ ! -d virtualenv ]; then
+    virtualenv --system-site-packages virtualenv
+fi
+
+source virtualenv/bin/activate
+pip3 install tflite-runtime 
+pip3 install aioesphomeapi
+pip3 install esphome
+deactivate
+
+
+
 
 
 cat << "EOF" >  /usr/bin/ember-launch-kaithem
