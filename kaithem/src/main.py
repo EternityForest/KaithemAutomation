@@ -292,7 +292,8 @@ def webRoot():
     router = RuleRouter(rules)
 
     http_server = tornado.httpserver.HTTPServer(router)
-    http_server.listen(config["http-port"], bindto)
+    # Legacy config comptibility
+    http_server.listen(config["http-port"], bindto if not bindto=='::' else None)
 
     if config["https-port"]:
         if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):

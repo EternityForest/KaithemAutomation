@@ -13,6 +13,7 @@ Change Log
 - :sparkles: We now monitor dmesg hourly to detect IO Errors
 - :sparkles: HBMQTT removed
 - :coffin: Kaithem.mqtt deprecated
+- :sparkles: Py3.11 Sipport
 
 
 ### 0.69.1

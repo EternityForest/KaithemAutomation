@@ -303,6 +303,7 @@ cat << "EOF" >  /usr/bin/ember-launch-kaithem
 #!/bin/bash
 # Systemd utterly fails at launching this unless we give it it's own little script.
 # If we run it directly from the service, jsonrpc times out over and over again.
+source /home/$(id -un 1000)/kaithem/virtualenv/bin/activate
 /usr/bin/pw-jack /usr/bin/python3 /opt/KaithemAutomation/dev_run.py -c /home/$(id -un 1000)/kaithem/config.yaml
 EOF
 
