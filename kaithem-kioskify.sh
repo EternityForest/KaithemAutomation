@@ -69,8 +69,9 @@ git lfs pull
 ! apt purge -y oracle-java7-jdk
 ! apt purge -y tcsh
 ! apt purge -y smartsim
+! apt purge -y kicad
 
-# I would like to get rid of this but people seem to like it... leave it on distros that have it
+# I would like to get rid of this but people seem to like it so much it will stir up trouble... leave it on distros that have it
 # ! apt-get -y purge firefox
 
 
@@ -118,6 +119,10 @@ apt autoremove -y --purge
 ##############################################
 
 
+# This is all that's needed!
+sudo apt -y install pipewire-jack
+
+sudo apt -y install zram-tools
 
 cat << EOF > /etc/security/limits.conf
 @audio   -  rtprio     95
@@ -220,6 +225,8 @@ EOF
 #########################################################################
 
 
+apt-get -y install waypipe
+
 apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip xdotool neofetch
 apt-get -y install vim-tiny units git wget htop lsof  git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs dstat sysstat
 
@@ -309,7 +316,6 @@ http-port : 8002
 
 audio-paths:
     - /usr/share/tuxpaint/sounds
-    - /usr/share/public.media/
     - __default__
 EOF
 
@@ -394,8 +400,47 @@ systemctl enable kaithem.service
 ###############################################################################################################################
 
 
-# HW Acceleration
-# sudo apt-get -y install libgles2-mesa libgles2-mesa-dev xorg-dev
+
+cat << EOF >> /home/$(id -un 1000)/config/wayfire.ini
+[command]
+repeatable_binding_volume_up = KEY_VOLUMEUP
+command_volume_up = wfpanelctl volumepulse volu
+repeatable_binding_volume_down = KEY_VOLUMEDOWN
+command_volume_down = wfpanelctl volumepulse vold
+binding_mute = KEY_MUTE
+command_mute = wfpanelctl volumepulse mute
+binding_menu = <super>
+command_menu = wfpanelctl smenu menu
+binding_terminal = <ctrl> <alt> KEY_T
+command_terminal = lxterminal
+binding_bluetooth = <ctrl> <alt> KEY_B
+command_bluetooth = wfpanelctl bluetooth menu
+binding_netman = <ctrl> <alt> KEY_W
+command_netman = wfpanelctl netman menu
+binding_grim = KEY_SYSRQ
+command_grim = grim
+binding_orca = <ctrl> <alt> KEY_SPACE
+command_orca = gui-pkinst orca reboot
+binding_quit = <ctrl> <alt> KEY_DELETE
+command_quit = lxde-pi-shutdown-helper
+binding_power = KEY_POWER
+command_power = pwrkey
+
+[input-device:generic ft5x06 (79)]
+output = DSI-1
+
+[input-device:generic ft5x06 (80)]
+output = DSI-1
+
+[input-device:FT5406 memory based driver]
+output = DSI-1
+
+[input]
+xkb_options=
+xkb_model=pc105
+xkb_layout=us
+xkb_variant=
+EOF
 
 
 # Bye bye to the screen savier.
@@ -466,7 +511,6 @@ cat << EOF >  /etc/lightdm/lightdm.conf
 autologin-guest=false
 autologin-user=$(id -un 1000)
 autologin-user-timeout=0
-
 EOF
 
 
@@ -477,7 +521,7 @@ EOF
 # \_\ \/ \___|\__| \_/\_/ \___/|_|  |_|\_\/    \/\__,_|_| |_|\__,_|\__, |\___|_|   
 #                                                                  |___/           
 
-## Switch to NetworkManager
+## NetworkManager Config
 ####################################################################################################################################
 
 # This little piece of old garbage crashes everything when it sees you have switched to networkmanager and can't find it's stuff,
@@ -485,177 +529,6 @@ EOF
 ! apt-get -y remove dhcpcd-gtk
 
 apt-get -y install network-manager libnss3-tools ca-certificates avahi-daemon avahi-utils radvd
-
-apt-get -y install network-manager-gnome
-
-! systemctl disable wpa_supplicant.service
-! systemctl mask wpa_supplicant.service
-
-
-# Now we are going to get rid of any legacy wpa-supplicant type stuff and use NetworkManager
-# Unfortunately Pi still uses this stuff so we really do need it.
-
-cat << EOF > /usr/bin/import_from_wpa_config.py
-#!/usr/bin/python3
-
-import subprocess
-import re
-import os
-import configparser
-import uuid
-
-# Note: Will Not Work with PiWiz!!! They do some dhcpcd stuff.
-
-n_re = r'network\s*=\s*{([\w\s=\"-]*?)}'
-
-country_re = 'country\s*=\s*"?(...?)"?[\s$]'
-
-
-
-
-if os.path.exists("/etc/wpa_supplicant/wpa_supplicant.conf"):
-    with open("/etc/wpa_supplicant/wpa_supplicant.conf",'r') as f:
-        s=f.read()
-
-
-template = """
-# This file has been imported from a wpa_supplicant configuration
-# DO NOT MANUALLY CHANGE THIS FILE. CHANGES WILL BE OVERWRITTEN.
-# IF YOU COPY THE FILE CONTENTS, GET RID OF THIS MARKER LINE OR
-# iT WILL BE DELETED BY THE IMPORTER.
-# imported_marker = b2bdb0b4-11da-40f2-b121-e50a1fe6a7d9
-
-[connection]
-#You can change that name
-id=YourWifiNameHere
-uuid=f671d4c3-2ae0-417d-ad5a-9bc1d040b0ec
-type=wifi
-#Fake timestamp to make it think it has connected before,
-#And attemp to avoid the "only one attempt then give up" problem
-timestamp=123456
-permissions=
-
-
-[wifi]
-mac-address-blacklist=
-mode=infrastructure
-
-ssid=YourWifiNameHere
-
-#Just straight up delete this whole section
-#To connect to unsecured networks
-[wifi-security]
-auth-alg=open
-key-mgmt=wpa-psk
-psk=YourWifiPasswordHere
-
-[ipv4]
-dns-search=
-method=auto
-
-#You can do DHCP but also add manual static addresses
-#addresses=192.168.0.200/24
-
-[ipv6]
-addr-gen-mode=eui64
-dns-search=
-method=auto
-"""
-nsuid = "9cf4c103-f2bf-4ff3-a122-91cda420186b"
-
-
-valid_uuids = {}
-
-
-# Set the regulatory domain
-for i in re.findall(country_re,s):
-    subprocess.call(['iw','reg','set', i])
-
-
-try:
-    os.makedirs("/etc/NetworkManager/system-connections/",mode=16877)
-except Exception:
-    pass
-
-for i in re.findall(n_re,s):
-    c = configparser.ConfigParser()
-    c.read_string("[d]\r\n"+i)
-    c = c['d']
-    if 'ssid' in c and 'psk' in c:
-        t2 = template.replace('YourWifiNameHere',c['ssid'].replace('"','') if c['ssid'].startswith('"') else c['ssid'])
-        t2 = t2.replace('YourWifiPasswordHere',c['psk'])
-        u = uuid.uuid5(uuid.UUID(nsuid),c['ssid']+ "/" + c['psk'] )
-        valid_uuids[str(u)] = True
-        t2 = t2.replace('f671d4c3-2ae0-417d-ad5a-9bc1d040b0ec', str(u))
-
-        path = "/etc/NetworkManager/system-connections/"+"imported_wpaconf_donotedit"+c['ssid'].replace("/",'_').replace('"','').replace(" ",'_')
-
-
-        if os.path.exists(path):
-            with open(path) as f:
-                if t2==f.read():
-                    continue
-
-        with open(path,'w') as f:
-            f.write(t2)
-
-        if not os.stat(path).st_mode == '0o100600':
-            os.chmod(path, 0o100600)
-
-for i in list(os.listdir("/etc/NetworkManager/system-connections/")):
-    d = os.path.join("/etc/NetworkManager/system-connections/", i)
-
-    with open(d,'r') as f:
-        s = f.read()
-    
-    if "b2bdb0b4-11da-40f2-b121-e50a1fe6a7d9" in s:
-        # Now we know it was made be this app
-
-        valid = 0
-        for j in valid_uuids:
-            if j in s:
-                # We found one of the UUIDs that we know comes from one of our files
-                valid = 1
-        if not valid:
-             os.remove(d)
-EOF
-
-
-cat << EOF > /etc/systemd/system/import_wpa_conf_to_nm.service
-[Unit]
-Description=Import any networks found in a wpa_supplicant file to NetworkManager
-Before=NetworkManager.service
-After=raspberrypi-net-mods.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/python3 /usr/bin/import_from_wpa_config.py
-
-[Install]
-WantedBy=NetworkManager.service
-EOF
-
-chmod 755 /usr/bin/import_from_wpa_config.py
-chmod 744 /etc/systemd/system/import_wpa_conf_to_nm.service
-
-systemctl enable import_wpa_conf_to_nm.service
-systemctl start import_wpa_conf_to_nm.service
-
-
-systemctl enable NetworkManager.service
-
-
-
-# Which one? Both? Seems to work!
-! systemctl disable dhcpcd.service
-! systemctl disable dhcpcd5.service
-! systemctl mask dhcpcd.service
-! systemctl mask dhcpcd5.service
-
-! systemctl unmask wpa_supplicant.service
-
-
-! sudo apt purge -y openresolv
 
 
 # WiFi power save is not really that big of a savings
@@ -706,119 +579,6 @@ method=auto
 EOF
 
 
-#    ___ _                     _          
-#   / _ (_)_ __   _____      _(_)_ __ ___ 
-#  / /_)/ | '_ \ / _ \ \ /\ / / | '__/ _ \
-# / ___/| | |_) |  __/\ V  V /| | | |  __/
-# \/    |_| .__/ \___| \_/\_/ |_|_|  \___|
-#         |_|                             
-
-## Switch to Pipewire
-#####################################################################################################################
-apt-get install -y pipewire libspa-0.2-jack pipewire-audio-client-libraries libspa-0.2-bluetooth 
-apt-get remove -y pulseaudio-module-bluetooth 
-
-mkdir -p /etc/pipewire/media-session.d/
-touch /etc/pipewire/media-session.d/with-pulseaudio
-
-sudo touch /etc/pipewire/media-session.d/with-alsa
-sudo cp /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/
-
-su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user  disable pulseaudio.socket' $(id -un 1000)
-
-su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user  disable pulseaudio.service' $(id -un 1000)
-
-# Can't get this to work. Leave it off and things will use the ALSA virtual device it makes.
-# Some things have it already disabled.
-! su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user disable  pipewire-pulse' $(id -un 1000)
-
-
-su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user enable pipewire' $(id -un 1000)
-
-su -c 'XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user mask pulseaudio' $(id -un 1000)
-
-mkdir -p /etc/pipewire/media-session.d/with
-touch /etc/pipewire/media-session.d/with-jack
-cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
-ldconfig
-
-
-
-cat << EOF > /etc/pipewire/jack.conf
-
-# JACK client config file for PipeWire version "0.3.24" #
-
-context.properties = {
-    ## Configure properties in the system.
-    #mem.warn-mlock  = false
-    #mem.allow-mlock = true
-    #mem.mlock-all   = false
-    log.level        = 0
-}
-
-context.spa-libs = {
-    #<factory-name regex> = <library-name>
-    #
-    # Used to find spa factory names. It maps an spa factory name
-    # regular expression to a library name that should contain
-    # that factory.
-    #
-    support.* = support/libspa-support
-}
-
-context.modules = [
-    #{   name = <module-name>
-    #    [ args = { <key> = <value> ... } ]
-    #    [ flags = [ [ ifexists ] [ nofail ] ]
-    #}
-    #
-    # Loads a module with the given parameters.
-    # If ifexists is given, the module is ignored when it is not found.
-    # If nofail is given, module initialization failures are ignored.
-    #
-    #
-    # Uses RTKit to boost the data thread priority.
-    {   name = libpipewire-module-rtkit
-        args = {
-            #nice.level   = -11
-            #rt.prio      = 88
-            #rt.time.soft = 200000
-            #rt.time.hard = 200000
-        }
-        flags = [ ifexists nofail ]
-    }
-
-    # The native communication protocol.
-    {   name = libpipewire-module-protocol-native }
-
-    # Allows creating nodes that run in the context of the
-    # client. Is used by all clients that want to provide
-    # data to PipeWire.
-    {   name = libpipewire-module-client-node }
-
-    # Allows applications to create metadata objects. It creates
-    # a factory for Metadata objects.
-    {   name = libpipewire-module-metadata }
-]
-
-jack.properties = {
-     node.latency = 128/48000
-     #jack.merge-monitor  = false
-     #jack.short-name     = false
-     #jack.filter-name    = false
-}
-
-EOF
-
-cat << EOF > /etc/pipewire/media-session.d/bluez-monitor.conf
-properties = {
-    bluez5.msbc-support = true
-    bluez5.sbc-xq-support = true
-}
-EOF
-
-
-
 #   __    ___     ___           _            _   _             
 #  / _\  /   \   / _ \_ __ ___ | |_ ___  ___| |_(_) ___  _ __  
 #  \ \  / /\ /  / /_)/ '__/ _ \| __/ _ \/ __| __| |/ _ \| '_ \ 
@@ -829,6 +589,7 @@ EOF
 # Try and make the SD card not wear out.
 ###################################################################################################
 
+# X11 still exists even though Wayland is defayult
 
 systemctl mask systemd-update-utmp.service
 systemctl mask systemd-random-seed.service
@@ -837,6 +598,15 @@ systemctl disable systemd-random-seed.service
 
 ! systemctl disable systemd-readahead-collect.service
 ! systemctl disable systemd-readahead-replay.service
+
+
+
+! rm -rf  /home/$(id -un 1000)/.local/state/wireplumber/
+mkdir -p /var/run/$(id -un 1000)-wireplumber-state/
+# Make it look like it's in the same place so we can get to it easily
+ln -s /var/run/$(id -un 1000)-wireplumber-state  /home/$(id -un 1000)/.local/state/wireplumber
+
+
 
 
 
@@ -967,7 +737,6 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable var-log.mount
-
 
 
 
