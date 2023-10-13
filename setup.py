@@ -12,15 +12,22 @@ def read(fname):
 
 import os
 
-def package_files(directory, ext=''):
+
+def package_files(directory, ext=""):
     paths = []
-    for (path, directories, filenames) in os.walk(directory):
+    for path, directories, filenames in os.walk(directory):
         for filename in filenames:
             if filename.endswith(ext):
-                paths.append(os.path.join('..', path, filename))
+                paths.append(os.path.join("..", path, filename))
     return paths
 
-extra_files = package_files('kaithem/data/')+package_files('kaithem/src/','html')+package_files('kaithem/src/','js')+package_files('kaithem/src/','css')
+
+extra_files = (
+    package_files("kaithem/data/")
+    + package_files("kaithem/src/", "html")
+    + package_files("kaithem/src/", "js")
+    + package_files("kaithem/src/", "css")
+)
 setup(
     name="kaithem",
     version="0.68.42",
@@ -31,37 +38,55 @@ setup(
     keywords="automation",
     url="https://github.com/EternityForest/KaithemAutomation",
     packages=find_packages(),
-    package_data={'': extra_files+[ '**/*.txt', '**/*.yaml','**/*.html','**/*.md','**/*.json','**/*.js','**/*.css','**/*.vue','**/*.webp','**/*.png','**/*.jpg','**/*.toml','**/*.svg', '**/*.opus','**/*.mp3']},
-    long_description=read('README.md'),
+    package_data={
+        "": extra_files
+        + [
+            "**/*.txt",
+            "**/*.yaml",
+            "**/*.html",
+            "**/*.md",
+            "**/*.json",
+            "**/*.js",
+            "**/*.css",
+            "**/*.vue",
+            "**/*.webp",
+            "**/*.png",
+            "**/*.jpg",
+            "**/*.toml",
+            "**/*.svg",
+            "**/*.opus",
+            "**/*.mp3",
+        ]
+    },
+    long_description=read("README.md"),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
         "License :: OSI Approved :: GPLv3 License",
     ],
-    entry_points = {
-        'console_scripts': [
-            'kaithem = kaithem:start',
-            'kaithem._jackmanager_server = kaithem.src.thirdparty.scullery.jack_client_subprocess:main',
-            'kaithem._iceflow_server = kaithem.src.thirdparty.scullery.iceflow_server:main'                 
-        ],              
+    entry_points={
+        "console_scripts": [
+            "kaithem = kaithem:start",
+            "kaithem._jackmanager_server = kaithem.src.thirdparty.scullery.jack_client_subprocess:main",
+            "kaithem._iceflow_server = kaithem.src.thirdparty.scullery.iceflow_server:main",
+        ],
     },
-
     install_requires=[
-   'numpy',
-   'Pillow',
-   'tflite-runtime',
-   'JACK-Client',
-   'netifaces',
-   'toml',
-   'evdev',
-   'psutil',
-   'setproctitle',
-   'python-rtmidi',
-   'pyserial',
-   'msgpack',
-   'scipy',
-   'scikit-image',
-   'paho-mqtt',
-   'python-pam'
-]
+        "numpy>=1.26.0",
+        "Pillow",
+        "tflite-runtime",
+        "JACK-Client",
+        "netifaces",
+        "toml",
+        "evdev",
+        "psutil",
+        "setproctitle",
+        "python-rtmidi",
+        "pyserial",
+        "msgpack",
+        "scipy",
+        "scikit-image",
+        "paho-mqtt",
+        "python-pam",
+    ],
 )

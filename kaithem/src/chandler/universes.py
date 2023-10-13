@@ -372,7 +372,7 @@ class DMXSender():
     def run(self):
         while 1:
             try:
-                s = core.timefunc()
+                s = time.time()
                 self.port.read(self.port.inWaiting())
                 x = self.frame.wait(1)
                 if not x:
@@ -387,7 +387,7 @@ class DMXSender():
                     self.port.write(self.data)
                     self.frame.clear()
                 time.sleep(
-                    max(((1.0 / self.framerate) - (core.timefunc() - s)), 0))
+                    max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
                     self.port.close()
@@ -761,7 +761,7 @@ class RawDMXSender():
     def run(self):
         while 1:
             try:
-                s = core.timefunc()
+                s = time.time()
                 self.port.read(self.port.inWaiting())
                 x = self.frame.wait(0.1)
                 with self.lock:
@@ -781,7 +781,7 @@ class RawDMXSender():
                     if x:
                         self.frame.clear()
                 time.sleep(
-                    max(((1.0 / self.framerate) - (core.timefunc() - s)), 0))
+                    max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
                     self.port.close()
@@ -939,7 +939,7 @@ class ColorTagUniverse(Universe):
         if not c == self.lastColor or not c == self.tag.value:
             self.lastColor = c
             if self.fadeTag:
-                t = max(self.fadeEndTime - core.timefunc(),
+                t = max(self.fadeEndTime - time.time(),
                         self.interpolationTime, 0)
                 # Round to the nearest 20th of a second so we don't accidentally set the values more often than needed if it doesn't change
                 t = int(t * 20) / 20

@@ -228,7 +228,7 @@ EOF
 
 apt-get -y install waypipe
 
-apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip xdotool neofetch
+apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip xdotool neofetch sqlite3
 apt-get -y install vim-tiny units git wget htop lsof  git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs dstat sysstat
 
 # For accessing CDs
@@ -292,7 +292,7 @@ source virtualenv/bin/activate
 pip3 install tflite-runtime 
 pip3 install aioesphomeapi
 pip3 install esphome
-pip3 install numpy>=1.26.0
+pip3 install "numpy>=1.26.0"
 deactivate
 
 
