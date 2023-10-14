@@ -443,7 +443,10 @@ class WebInterface():
                     insertResource(d)
 
                     modules_state.modulesHaveChanged()
-                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root)+"/resource/"+util.url(path[1]))
+                if len(path)>1:
+                    raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root)+"/resource/"+util.url(path[1]))
+                else:
+                    raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root))
 
             # This returns a page to delete any resource by name
             if path[0] == 'deleteresource':

@@ -14,6 +14,8 @@ Change Log
 - :coffin: HBMQTT removed, along with it the embedded MQTT broker
 - :coffin: Kaithem.mqtt deprecated
 - :sparkles: Py3.11 Sipport
+- :bug: Fix module.timefunc issues in chandler.
+- :bug: Fix deleting device that has subdevice
 
 
 ### 0.69.1

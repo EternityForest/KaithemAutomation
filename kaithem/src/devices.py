@@ -1489,7 +1489,7 @@ class WebDevices():
             x = remote_devices[name]
             k = []
             for i in x.subdevices:
-                k.append.subdevices[i].name
+                k.append(subdevices[i].name)
 
             x.close()
             gc.collect()
