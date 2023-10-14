@@ -1013,6 +1013,7 @@ def load_modules_from_zip(f, replace=False):
                 )
                 bookkeeponemodule(i)
         except Exception:
+            # TODO: Do we need more cleanup before revert?
             for i in new_modules:
                 if i in backup:
                     modules_state.ActiveModules[i] = backup[i]
@@ -1045,7 +1046,16 @@ def bookkeeponemodule(module, update=False):
 
     # This does NOT use handleResourceChange because it has optimizations to do stuff one module at a time not one event at a time.
     for i in modules_state.ActiveModules[module]:
+
+        # TODO this is a bad awful hack we need to DRY this and only have one resource updater or something
+        if modules_state.ActiveModules[module][i]["resource-type"] == "internal-fileref":
+            try:
+                usrpages.updateOnePage(i, module)
+            except:
+                pass
+
         if modules_state.ActiveModules[module][i]["resource-type"] == "page":
+            # TODO: why were pages failing? Or was this just defensive?
             try:
                 usrpages.updateOnePage(i, module)
             except Exception as e:

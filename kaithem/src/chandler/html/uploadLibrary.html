@@ -1,19 +1,4 @@
----
-allow-origins: ['*']
-allow-xss: false
-auto-reload: false
-auto-reload-interval: 5.0
-dont-show-in-index: true
-mimetype: text/html
-no-header: false
-no-navheader: true
-require-method: [GET, POST]
-require-permissions: [users.chandler.admin]
-resource-timestamp: 1578394235331556
-resource-type: page
-template-engine: mako
-
----
+<%include file="/pageheader.html" />
 <%!
 #Code Here runs once when page is first rendered. Good place for import statements.
 __doc__= ""
@@ -33,3 +18,4 @@ if 'yaml' in kwargs:
         <input type="submit"></input>
     </form>
 </div>
+<%include file="/pagefooter.html" />
