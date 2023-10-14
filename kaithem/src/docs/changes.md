@@ -16,6 +16,9 @@ Change Log
 - :sparkles: Py3.11 Sipport
 - :bug: Fix module.timefunc issues in chandler.
 - :bug: Fix deleting device that has subdevice
+- :bug: Fix zombie devices messing up page width
+- :bug: Fix 
+
 
 
 ### 0.69.1

@@ -3900,10 +3900,10 @@ class Scene:
                                 # Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
                                 if not (
                                     (
-                                        (self.crossfade > 0)
+                                        ((self.crossfade > 0) and not (self.cues[cue].soundFadeIn <0))
                                         and kaithem.sound.isPlaying(str(self.id))
                                     )
-                                    or self.cues[cue].soundFadeIn
+                                    or (self.cues[cue].soundFadeIn>0)
                                     or self.cues[cue].mediaWindup
                                     or self.cue.mediaWinddown
                                 ):
@@ -3923,7 +3923,7 @@ class Scene:
                                     fade = self.cues[cue].soundFadeIn or self.crossfade
                                     fadeSound(
                                         sound,
-                                        length=max(fade, 0),
+                                        length=max(fade, 0.1),
                                         handle=str(self.id),
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
@@ -4124,7 +4124,8 @@ class Scene:
                     try:
                         # If we are doing crossfading, we have to stop slightly early for
                         # The crossfade to work
-                        slen = (TinyTag.get(path).duration - self.crossfade) + cuelen
+                        # TODO this should not stop early if the next cue overrides
+                        slen = max((TinyTag.get(path).duration - self.crossfade) + cuelen
                         v = max(0, self.randomizeModifier + slen)
                     except Exception:
                         logging.exception("Error getting length for sound " + str(path))

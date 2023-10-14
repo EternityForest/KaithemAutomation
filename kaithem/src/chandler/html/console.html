@@ -1104,7 +1104,7 @@ ${lists}
 
                             <label>Sound fade in:
                                 <input type="number" v-on:change="setSoundFadeIn(currentcueid,$event.target.value)"
-                                    style="width:3em" min=0 v-model="currentcue.soundFadeIn"
+                                    style="width:3em" min=-1 v-model="currentcue.soundFadeIn"
                                     title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use -1 to override and disable a global scene crossfade.">
 
                             </label>
