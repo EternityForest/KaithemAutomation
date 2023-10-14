@@ -226,7 +226,12 @@ d =  devices.getZombies()
 
 
 %if d:
+<details>
+<summary>
 <h2>Zombie Devices</h2>
+</summary>
+
+<div style="width: 90vw; overflow: scroll;">
 %for i in sorted(d):
 <h3>${i[0]|h}</h3>
 <pre>
@@ -237,6 +242,8 @@ d =  devices.getZombies()
 
 </p>
 %endfor
+</div>
+</details>
 %endif
 
 <%

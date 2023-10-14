@@ -82,18 +82,5 @@ if __name__=='__setup__':
     filterTag.tag.subscribe(s)
     
     
-    
-    syncTag1 = kaithem.tags['syncTag1']
-    syncTag1.mqttConnect(server='__virtual__',port=338,mqttTopic="exampleSyncTag")
-    
-    
-    
-    syncTag2 = kaithem.tags['syncTag2']
-    syncTag2.mqttConnect(server='__virtual__',port=338,mqttTopic="exampleSyncTag")
-    
-    syncTag1.value = 70
-    
-    #Look in the tags page.  syncTag2 will have gotten it's value synced from the first tag.
-
 def eventAction():
     pass
