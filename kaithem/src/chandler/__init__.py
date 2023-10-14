@@ -4125,7 +4125,7 @@ class Scene:
                         # If we are doing crossfading, we have to stop slightly early for
                         # The crossfade to work
                         # TODO this should not stop early if the next cue overrides
-                        slen = max((TinyTag.get(path).duration - self.crossfade) + cuelen
+                        slen = (TinyTag.get(path).duration - self.crossfade) + cuelen
                         v = max(0, self.randomizeModifier + slen)
                     except Exception:
                         logging.exception("Error getting length for sound " + str(path))
