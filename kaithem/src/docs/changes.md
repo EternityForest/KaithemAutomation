@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.69.21
+
+- :bug: Fix bogus "sound did not report as playing" message
+
+
 ### 0.69.20
 
 - :sparkles: Py3.11 Sipport

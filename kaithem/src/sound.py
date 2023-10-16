@@ -798,7 +798,7 @@ class MPVBackend(SoundWrapper):
     def isPlaying(self, channel="PRIMARY",refresh=False):
         "Return true if a sound is playing on channel"
         try:
-            return self.runningSounds[channel].isPlaying()
+            return self.runningSounds[channel].isPlaying(refresh)
         except KeyError:
             return False
 
