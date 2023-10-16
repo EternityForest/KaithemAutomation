@@ -164,8 +164,8 @@ sudo systemctl disable apt-daily.service
 cat << EOF > /etc/systemd/system/ember-update.timer
 [Unit]
 Description=EmberOS minimal updater, just the stuff that will break without it
-RefuseManualStart=no # Allow manual starts
-RefuseManualStop=no # Allow manual stops 
+RefuseManualStart=no
+RefuseManualStop=no
 
 [Timer]
 #Execute job if it missed a run due to machine being off
@@ -340,7 +340,7 @@ EOF
 cat << EOF > /etc/systemd/system/kaithem.service
 [Unit]
 Description=KaithemAutomation python based automation server
-After=basic.target time-sync.target sysinit.service zigbee2mqtt.service pipewire.service graphical.target pipewire-media-session.service
+After=time-sync.target sysinit.service zigbee2mqtt.service pipewire.service multi-user.target graphical.target pipewire-media-session.service
 
 
 [Service]
@@ -903,8 +903,8 @@ fi
 cat << EOF > /etc/systemd/system/ember-sdmon-cache.timer
 [Unit]
 Description=Check SD wear status on supported industrial cards
-RefuseManualStart=no # Allow manual starts
-RefuseManualStop=no # Allow manual stops 
+RefuseManualStart=no
+RefuseManualStop=no
 
 [Timer]
 Persistent=no
@@ -988,10 +988,18 @@ ExecStart=/bin/bash /usr/bin/ember-random-seed.sh
 WantedBy=sysinit.target
 EOF
 
+
+
+# This salt will hopefully add some confusion in case the HWRNG is backdoored
+# Since we aren't savibg randomness every hour
+dd if=/dev/random of=/etc/random-salt bs=256 count=1 > /dev/null
+date +%s%N >> /etc/random-salt
+
+
 cat << EOF > /usr/bin/ember-random-seed.sh
 #!/bin/bash
 # Make things still random even when we get rid of the old random seed service
-# By using HW randomnes instead
+# By using HW randomness instead
 
 #If the on chip hwrng isn't random, this might actually help if there is a real RTC installed.
 date +%s%N > /dev/random
@@ -1002,6 +1010,8 @@ dd if=/dev/hwrng of=/dev/random bs=256 count=1 > /dev/null
 else
 dd if=/dev/random of=/dev/random bs=32 count=1 > /dev/null
 fi
+
+cat /etc/random-salt > /dev/random
 
 #HWRNG might have unpredictable timing, no reason not to use the timer again.
 #Probably isn't helping much but maybe makes paranoid types feel better?
