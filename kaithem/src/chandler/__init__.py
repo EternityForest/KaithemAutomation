@@ -1104,10 +1104,10 @@ class ChandlerConsole:
         if "universes" in data:
             self.configuredUniverses = data["universes"]
             self.createUniverses(self.configuredUniverses)
-        
+
         # Compatibility with a legacy typo
-        if 'fixures' in data:
-            data['fixtures'] = data['fixures']
+        if "fixures" in data:
+            data["fixtures"] = data["fixures"]
 
         if "fixtures" in data:
             self.fixtureAssignments = data["fixtures"]
@@ -1491,7 +1491,7 @@ class ChandlerConsole:
                         "soundFadeIn": cue.soundFadeIn,
                         "soundVolume": cue.soundVolume,
                         "soundLoops": cue.soundLoops,
-                        "hasLightingData": len(cue.values)
+                        "hasLightingData": len(cue.values),
                     },
                 ]
             )
@@ -1915,8 +1915,6 @@ class ChandlerConsole:
                 if not hadVals:
                     self.pushCueMeta(msg[1])
 
-
-
             elif msg[0] == "setcuevaldata":
                 # Verify correct data
                 for i in msg[2]:
@@ -1984,7 +1982,6 @@ class ChandlerConsole:
                 self.link.send(["cuedata", msg[1], s.values])
                 self.pushCueMeta(msg[1])
 
-
             elif msg[0] == "setscenelight":
                 universes.universes[msg[1]]()[msg[2]] = float(msg[3])
 
@@ -2014,7 +2011,6 @@ class ChandlerConsole:
                 if v is None:
                     # Count of values in the metadata changed
                     self.pushCueMeta(msg[1])
-
 
             elif msg[0] == "setMidiSource":
                 core.scenes[msg[1]].setMidiSource(msg[2])
@@ -2974,11 +2970,9 @@ class Cue:
             if len(i().newDataFunctions) < 100:
                 i().newDataFunctions.append(lambda s: s.pushCueData(c.id))
 
-
     def setTrack(self, val):
         self.track = bool(val)
         self.scene().rerender = True
-
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
@@ -3198,7 +3192,6 @@ class Scene:
         self.mediaLink.echo = False
 
         self.slideOverlayURL = slideOverlayURL
-
 
         # Audio visualizations
         self.musicVisualizations = musicVisualizations
@@ -3923,10 +3916,13 @@ class Scene:
                                 # Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
                                 if not (
                                     (
-                                        ((self.crossfade > 0) and not (self.cues[cue].soundFadeIn <0))
+                                        (
+                                            (self.crossfade > 0)
+                                            and not (self.cues[cue].soundFadeIn < 0)
+                                        )
                                         and kaithem.sound.isPlaying(str(self.id))
                                     )
-                                    or (self.cues[cue].soundFadeIn>0)
+                                    or (self.cues[cue].soundFadeIn > 0)
                                     or self.cues[cue].mediaWindup
                                     or self.cue.mediaWinddown
                                 ):

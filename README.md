@@ -188,10 +188,9 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
-### 0.69.2
-Still working on cleanup after integrating Chandler and moving to Tornado
+### 0.69.20
 
-- :sparkles: Fix Py3.11 Sipport
+- :sparkles: Py3.11 Sipport
 - :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
 - :bug: Fix multilevel nested folders regression
 - :sparkles: -1 in cue sound fade in disables crossfading.
@@ -207,7 +206,9 @@ Still working on cleanup after integrating Chandler and moving to Tornado
 - :bug: Fix zombie devices messing up page width
 - :sparkles: Chandler console icons now show which cues have any lighting commands
 - :bug: Fix Chandler backtracking not happening if the cue you are going to is specified as the "next" cue for the current one
-- 
+- :bug: Fix typo that caused exported Chandler setup files to not load teh fixture assignments.  Old files will still work on the new version.
+- :coffin: Simplify locking in Chandler to only use one lock.
+
 
 ### 0.69.1
 Moving to Tornado was a rather large change, this release is mostly cleanup.

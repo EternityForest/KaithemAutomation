@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### 0.69.2
+### 0.69.20
 
 - :sparkles: Py3.11 Sipport
 - :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
