@@ -152,7 +152,7 @@ allowedCueNameSpecials = "_~."
 
 
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
-fixtureslock = threading.RLock()
+fixtureslock = core.lock
 core.fixtures = {}
 
 
@@ -208,6 +208,7 @@ def refreshFixtures(topic, val):
                         continue
                     if f.universe == val or val is None:
                         f.assign(f.universe, f.startAddress)
+            break
         except RuntimeError:
             # Should there be some kind of dict changed size problem, retry
             time.sleep(0.1)
@@ -661,17 +662,23 @@ class Fixture:
 
     def __del__(self):
         with fixtureslock:
-            del core.fixtures[self.name]
+            try:
+                del core.fixtures[self.name]
+            except KeyError:
+                pass
 
         ID = id(self)
 
         def f():
-            try:
-                if id(core.fixtures[self.name]()) == id(ID):
-                    self.assign(None, None)
-                    self.rm()
-            except Exception:
-                print(traceback.format_exc())
+            with fixtureslock:
+                try:
+                    if id(core.fixtures[self.name]()) == id(ID):
+                        self.assign(None, None)
+                        self.rm()
+                except KeyError:
+                    pass
+                except Exception:
+                    print(traceback.format_exc())
 
         kaithem.misc.do(f)
 
@@ -1097,6 +1104,10 @@ class ChandlerConsole:
         if "universes" in data:
             self.configuredUniverses = data["universes"]
             self.createUniverses(self.configuredUniverses)
+        
+        # Compatibility with a legacy typo
+        if 'fixures' in data:
+            data['fixtures'] = data['fixures']
 
         if "fixtures" in data:
             self.fixtureAssignments = data["fixtures"]
@@ -1107,7 +1118,7 @@ class ChandlerConsole:
             return {
                 "fixtureTypes": self.fixtureClasses,
                 "universes": self.configuredUniverses,
-                "fixures": self.fixtureAssignments,
+                "fixtures": self.fixtureAssignments,
             }
 
     def loadLibraryFile(self, data, _asuser=False, filename=None, errs=False):

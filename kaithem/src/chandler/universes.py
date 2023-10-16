@@ -15,7 +15,7 @@ from ..kaithemobj import kaithem
 logger = logging.getLogger("system.chandler")
 
 
-universesLock = threading.RLock()
+universesLock = core.lock
 universes = {}
 
 # MUTABLE

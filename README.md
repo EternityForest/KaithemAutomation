@@ -188,6 +188,27 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.69.2
+Still working on cleanup after integrating Chandler and moving to Tornado
+
+- :sparkles: Fix Py3.11 Sipport
+- :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
+- :bug: Fix multilevel nested folders regression
+- :sparkles: -1 in cue sound fade in disables crossfading.
+- :bug: Fix sound fading out
+- :bug: Fix sound speed not getting correctly set in some cases
+- :sparkles: Chandler uses sine-in-out easing for lighting fades
+- :sparkles: BETA if you have the settings permission, now you can browse edit SQLite databases(Powered by a customized sqlite-web)
+- :sparkles: We now monitor dmesg hourly to detect IO Errors
+- :coffin: HBMQTT removed, along with it the embedded MQTT broker
+- :coffin: Kaithem.mqtt deprecated
+- :bug: Fix module.timefunc issues in chandler.
+- :bug: Fix deleting device that has subdevice
+- :bug: Fix zombie devices messing up page width
+- :sparkles: Chandler console icons now show which cues have any lighting commands
+- :bug: Fix Chandler backtracking not happening if the cue you are going to is specified as the "next" cue for the current one
+- 
+
 ### 0.69.1
 Moving to Tornado was a rather large change, this release is mostly cleanup.
 
@@ -205,59 +226,6 @@ Moving to Tornado was a rather large change, this release is mostly cleanup.
 - :coffin: config validation no longer rejects additional properties.
 - :coffin: We no longer support starting as root and dropping permissions. Use systemd features for port 80.
 
-
-### 0.68.48
-- :coffin: Remove the Chandler tag permissions system, as it is too complex to properly assess the security model. It can now access any tag.
-- :sparkles: JACK mixer has a noise gate now
-- :sparkles: Link on settings page to take screenshot of server(Useful for checking on signage)
-- :bug: Fix hang at shutdown
-- :sparkles: New Banderole theme, probably the best example to learn theming
-- :sparkles: Control RasPi and maybe others system power and activity LEDs via the tag points interface.
-- :sparkles: auto_record datapoint on the NVRChannel for temporarily disabling recording
-- :sparkles: Devices framework now has a WeatherClient, No API key needed thanks to wttr.in! :sunny: :cloud: :rainbow:
-- :sparkles: Github based online assets library, seamlessly browse and download music and SFX right in Chandler
-- :sparkles: Basic support for ESPHome devices(BinarySensor, Number, Sensor, TextSensor, Switch) including reconnect logic
-- :bug: Fix zeroconf exceptions
-- :sparkles: Chandler is no longer a module, it is now a built in, always-there tab.  Look forward to deeper integrations!
-- :sparkles: Chandler audio cues play much faster than before
-- :sparkles: Non-writable device data points can be "faked"
-- :coffin: p class="help" deprecated, used details class="help"
-- :sparkles: simple_light and simple_dark themes are official
-  
-### 0.68.47
-- :bug: More robust responsive video
-- :sparkles: Screen rotation setting in web UI
-- :sparkles: Work on a proper theme chooser engine
-- 
-### 0.68.46
-- :bug: Video signage auto restart fixes
-- 
-### 0.68.45
-- :sparkles: Digital signage chrome error resillience
-- :bug: New versions of NumPy needed a fix for the NVR labels file loading
-
-
-### 0.68.44
-- :bug: Faster and more reliable jackmixer startup
-- :sparkles: Improve kioskify
-
-### 0.68.43
-- :bug: Remove notification for tripped->normal transition
-- :sparkles: Show tripped alerts on main page
-- :sparkles: Thread start/stop logging now shows thread ID
-- :sparkles: Chandler cue media speed, windup, and winddown, to simulate the record player spinup/down or "evil dying robot" effect.
-- :bug: Fix temperature alerts chattering on and off if near threshold
-- :coffin: Remove code view for Chandler fixture types
-- :sparkles: Can now import OP-Z fixture definitions from a file in Chandler(you can select which ones out of the file to import)
--  :coffin: BREAKING: You now run kaithem in the CLI by running dev_run.py.
--  :coffin: BREAKING: You must update Chandler to the new version in included the library, the old one will not work.
--  :coffin: EspruinoHub removed
--  :coffin: Icons other than icofont are gone
--  :sparkles: Should work on Python3.11
--  :sparkles: Can now configure / to redirect to some other page.  Use /index directly to get to the real home.
--  :bug: Fix editing file resources regression
--  :sparkles: /user_static/FN will now serve vardir/static/FN
--  :sparkles: Kaithem-kioskify script configures the whole OS as an embedded controller/signage device from a fresh Pi image
 
 
 

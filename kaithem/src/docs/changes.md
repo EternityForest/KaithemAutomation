@@ -3,6 +3,7 @@ Change Log
 
 ### 0.69.2
 
+- :sparkles: Py3.11 Sipport
 - :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
 - :bug: Fix multilevel nested folders regression
 - :sparkles: -1 in cue sound fade in disables crossfading.
@@ -13,13 +14,13 @@ Change Log
 - :sparkles: We now monitor dmesg hourly to detect IO Errors
 - :coffin: HBMQTT removed, along with it the embedded MQTT broker
 - :coffin: Kaithem.mqtt deprecated
-- :sparkles: Py3.11 Sipport
 - :bug: Fix module.timefunc issues in chandler.
 - :bug: Fix deleting device that has subdevice
 - :bug: Fix zombie devices messing up page width
 - :sparkles: Chandler console icons now show which cues have any lighting commands
 - :bug: Fix Chandler backtracking not happening if the cue you are going to is specified as the "next" cue for the current one
-
+- :bug: Fix typo that caused exported Chandler setup files to not load teh fixture assignments.  Old files will still work on the new version.
+- :coffin: Simplify locking in Chandler to only use one lock.
 
 ### 0.69.1
 Moving to Tornado was a rather large change, this release is mostly cleanup.
