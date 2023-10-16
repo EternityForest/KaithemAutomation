@@ -609,58 +609,6 @@ def _detect_ignorable(path: str):
         return True
 
 
-def handleResourceChange(module, resource):
-    t = modules_state.ActiveModules[module][resource]["resource-type"]
-    data = modules_state.ActiveModules[module][resource]["resource-type"]
-
-    if t == "permission":
-        # has its own lock
-        auth.importPermissionsFromModules()  # sync auth's list of permissions
-
-    elif t == "event":
-        evt = None
-
-        if "enable" in data:
-            try:
-                # Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
-                newevt.removeOneEvent(module, resource)
-                # Leave a delay so that effects of cleanup can fully propagate.
-                time.sleep(0.08)
-                # UMake event from resource, but use our substitute modified dict
-                evt = newevt.make_event_from_resource(module, resource, data)
-
-            except Exception:
-                messagebus.postMessage(
-                    "system/notifications/errors",
-                    "In: " + module + " " + resource + "\n" + traceback.format_exc(4),
-                )
-                raise
-        # Save but don't enable
-        else:
-            # Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
-            newevt.removeOneEvent(module, resource)
-            # Leave a delay so that effects of cleanup can fully propagate.
-            time.sleep(0.08)
-
-        # if the test compile fails, evt will be None and the function will look up the old one in the modules database
-        # And compile that. Otherwise, we avoid having to double-compile.
-        newevt.updateOneEvent(resource, module, evt)
-
-    elif t == "page":
-        usrpages.updateOnePage(resource, module)
-
-    else:
-        messagebus.postMessage(
-            "system/notifications/",
-            "In: "
-            + module
-            + " "
-            + resource
-            + "\n"
-            + "Resource modified on disk, this type requires kaithem restart to take effect",
-        )
-
-
 def reloadOneResource(module, resource):
     r = modules_state.ActiveModules[module][resource]
     if "resource-loadedfrom" in r:

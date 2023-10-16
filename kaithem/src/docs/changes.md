@@ -5,7 +5,8 @@ Change Log
 ### 0.69.21
 
 - :bug: Fix bogus "sound did not report as playing" message
-
+- :sparkles: "Make file publically acessible" option in the upload for file resources.
+- :bug: Fix disabling resource serving
 
 ### 0.69.20
 

@@ -429,9 +429,17 @@ def updateOnePage(resource, module):
             gc.collect()
         except:
             pass
+        
+        enable = True
         # Get the page resource in question
         j = modules_state.ActiveModules[module][resource]
-        _Pages[module][resource] = CompiledPage(j, module, resource)
+
+        # Don't serve file if that's not enabled
+        if j["resource-type"] == "internal-fileref":
+            if not j.get('serve', False):
+                enable = False
+        if enable:
+            _Pages[module][resource] = CompiledPage(j, module, resource)
         lookup.invalidate_cache()
 
 
