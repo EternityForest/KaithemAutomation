@@ -71,16 +71,6 @@ class KFormatter(logging.Formatter):
         return textwrap.fill(logging.Formatter.formatException(self, exc_info), initial_indent="  ", subsequent_indent="  ", width=240)
 
 
-# Suppress low level from these outrageously chatty things
-excludeDebug = {
-    'zeep.xsd.schema': 1,
-    'zeep.wsdl.wsdl': 1,
-    'zeep.xsd.visitor': 1,
-    'zeep.transports': 1,
-}
-
-for i in excludeDebug:
-    logging.getLogger(i).setLevel(logging.INFO)
 
 lastRaisedLogFailError = [0]
 
