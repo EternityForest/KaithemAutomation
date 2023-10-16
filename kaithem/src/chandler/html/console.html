@@ -41,10 +41,6 @@ ${lists}
         min-height: 4em;
     }
 
-    div.hfader input {
-        float: right;
-    }
-
     div.hfader span.indicator {
         float: right;
     }
@@ -63,9 +59,9 @@ ${lists}
         border-color: grey;
         margin: 3px;
         width: 95%;
+        min-width: 16em;
         display: inline-block;
-        flex-basis: min-content;
-        flex-grow: 1;
+        flex-basis: fit-content;
     }
 
     article.fixture {
@@ -74,6 +70,7 @@ ${lists}
         display: inline-block;
         max-width: 32em;
         flex-basis: min-content;
+        min-width: 16em;
     }
 
     .indicator {
@@ -1734,12 +1731,12 @@ ${lists}
 
 <template id="h-fader">
     <div class="hfader">
-        <span>
-            <b v-if="chinfo==undefined">{{i.ch}}</b>
-            <b v-if="chinfo" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{i.ch}}</b>
-        </span>
+        <b style="width: 98%;" v-if="chinfo==undefined">{{i.ch}}</b>
 
+        <div>
+            <b v-if="chinfo" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{i.ch}}</b>
         <button v-if="showdelete" v-on:click="rmValFromCue(i.u,i.ch)"><i class="icofont-trash"></i>Remove</button>
+        </div>
 
         <span v-if="typeof(i.v)=='string'">
             <input v-bind:disabled="chinfo&&chinfo[2]=='fine'" v-if="!monitor"
