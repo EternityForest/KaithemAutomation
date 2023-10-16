@@ -1480,6 +1480,7 @@ class ChandlerConsole:
                         "soundFadeIn": cue.soundFadeIn,
                         "soundVolume": cue.soundVolume,
                         "soundLoops": cue.soundLoops,
+                        "hasLightingData": len(cue.values)
                     },
                 ]
             )
@@ -1894,8 +1895,16 @@ class ChandlerConsole:
                     val = cues[msg[1]].scene().blendClass.default_channel_value
                 else:
                     val = 0
+
+                hadVals = len(cues[msg[1]].values)
+
                 # Allow number:name format, but we only want the name
                 cues[msg[1]].setValue(msg[2], str(msg[3]).split(":")[-1], val)
+                # Tell clients that now there is values in that cue
+                if not hadVals:
+                    self.pushCueMeta(msg[1])
+
+
 
             elif msg[0] == "setcuevaldata":
                 # Verify correct data
@@ -1952,6 +1961,7 @@ class ChandlerConsole:
                             cue.setValue("@" + msg[2], "__dest__." + str(i[0]), val)
 
                 self.link.send(["cuedata", msg[1], cue.values])
+                self.pushCueMeta(msg[1])
 
             elif msg[0] == "rmcuef":
                 s = cues[msg[1]]
@@ -1961,6 +1971,8 @@ class ChandlerConsole:
                 for i in x:
                     s.setValue(msg[2], i, None)
                 self.link.send(["cuedata", msg[1], s.values])
+                self.pushCueMeta(msg[1])
+
 
             elif msg[0] == "setscenelight":
                 universes.universes[msg[1]]()[msg[2]] = float(msg[3])
@@ -1987,6 +1999,11 @@ class ChandlerConsole:
 
                 cues[msg[1]].setValue(msg[2], ch, v)
                 self.link.send(["scv", msg[1], msg[2], ch, v])
+
+                if v is None:
+                    # Count of values in the metadata changed
+                    self.pushCueMeta(msg[1])
+
 
             elif msg[0] == "setMidiSource":
                 core.scenes[msg[1]].setMidiSource(msg[2])
@@ -2946,9 +2963,11 @@ class Cue:
             if len(i().newDataFunctions) < 100:
                 i().newDataFunctions.append(lambda s: s.pushCueData(c.id))
 
+
     def setTrack(self, val):
         self.track = bool(val)
         self.scene().rerender = True
+
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
@@ -3012,7 +3031,7 @@ class Cue:
         try:
             value = float(value)
         except Exception:
-            print(traceback.format_exc())
+            pass
 
         if isinstance(channel, (int, float)):
             pass
@@ -3168,6 +3187,7 @@ class Scene:
         self.mediaLink.echo = False
 
         self.slideOverlayURL = slideOverlayURL
+
 
         # Audio visualizations
         self.musicVisualizations = musicVisualizations
@@ -3485,18 +3505,10 @@ class Scene:
         return x.name if x else None
 
     def getParent(self, cue):
-        "Return the cue that this cue name should inherit values from or None"
+        "Return the cue that this cue name should backtrack values from or None"
         with core.lock:
             if not self.cues[cue].track:
                 return None
-            if self.cues[cue].inherit:
-                if (
-                    self.cues[cue].inherit in self.cues
-                    and not self.cues[cue].inherit == cue
-                ):
-                    return self.cues[cue].inherit
-                else:
-                    return None
 
             # This is an optimization for if we already know the index
             if self.cue and cue == self.cue.name:
@@ -3506,7 +3518,7 @@ class Scene:
 
             if not v == 0:
                 x = self.cues_ordered[v - 1]
-                if not x.nextCue or x.nextCue == cue:
+                if (not x.nextCue) or x.nextCue == cue:
                     return x.name
             return None
 
@@ -4020,7 +4032,8 @@ class Scene:
 
         if (
             self.backtrack
-            and not cue == (self.cue.nextCue or self.getDefaultNext())
+            # Track whenever the cue we are going to is not the next one in the numbering sequence
+            and not cue == (self.getDefaultNext())
             and cobj.track
         ):
             l = []

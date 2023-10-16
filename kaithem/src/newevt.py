@@ -17,6 +17,9 @@
 # ALWAYS GET _event_list_lock LAST
 # IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
+
+# Major TODO: It appears that this scope param we keep passing around does nothing
+
 import traceback
 import threading
 import sys

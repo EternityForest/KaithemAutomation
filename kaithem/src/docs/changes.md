@@ -17,8 +17,8 @@ Change Log
 - :bug: Fix module.timefunc issues in chandler.
 - :bug: Fix deleting device that has subdevice
 - :bug: Fix zombie devices messing up page width
-- :bug: Fix 
-
+- :sparkles: Chandler console icons now show which cues have any lighting commands
+- :bug: Fix Chandler backtracking not happening if the cue you are going to is specified as the "next" cue for the current one
 
 
 ### 0.69.1

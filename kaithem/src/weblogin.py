@@ -158,10 +158,14 @@ class LoginScreen():
             if 'maxgotime' in kwargs:
                 if time.time() > float(kwargs['maxgotime']):
                     raise cherrypy.HTTPRedirect("/")
+            try:
+                dest = base64.b64decode(kwargs['go']).decode()
+            except:
+                dest = '/index'
 
-            if not "/errors/loginerror" in base64.b64decode(kwargs['go']).decode():
+            if not "/errors/loginerror" in dest:
                 raise cherrypy.HTTPRedirect(
-                    base64.b64decode(kwargs['go']).decode())
+                    dest)
             else:
                 raise cherrypy.HTTPRedirect("/index")
         else:

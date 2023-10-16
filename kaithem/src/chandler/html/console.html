@@ -769,7 +769,7 @@ ${lists}
 
                     <thead>
                         <tr>
-                            <th title="Click the cue name to edit that cue">Cue Name</th>
+                            <th title="Click the cue name to edit that cue">Name</th>
                             <th class="desktop-only">Shortcut</th>
                             <th class="desktop-only">Fadein</th>
                             <th class="desktop-only" title="Length, 0 indicates until stopped">Length</th>
@@ -790,9 +790,15 @@ ${lists}
                                 <b title="Cue number, double click to change." style="width:6em"
                                     v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b>
                                 <b>{{i[1].name}}</b>
+                                <i class="icofont-light-bulb" v-if="i[1].hasLightingData" title="This cue has lighting commands"></i>
+
+                                <i class="icofont-audio" v-if="i[1].sound"></i>
+                                <i class="icofont-monitor" v-if="i[1].slide"></i>
+
                                 <span v-if="i[1].inheritRules" title="This cue has rules inherited"
                                     v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
                                         class="icofont-law-document"></i></span>
+
                                 <span v-if="i[1].rules && i[1].rules.length>0" title="This cue has rules attatched"
                                     v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
                                         class="icofont-law-document"></i></span>
