@@ -154,11 +154,6 @@ class LoggingHandler(logging.Handler):
             pass
 
     def filter(self, record) -> bool:
-
-        if record.name in excludeDebug:
-            if record.levelno <= 20:
-                return False
-
         return super().filter(record)
 
     def handle(self, record):
@@ -166,10 +161,6 @@ class LoggingHandler(logging.Handler):
         """
 
         rv = self.filter(record)
-
-        if record.name in excludeDebug:
-            if record.levelno <= 20:
-                return False
 
         if rv:
             self.emit(record)
