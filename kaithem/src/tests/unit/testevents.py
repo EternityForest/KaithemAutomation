@@ -4,7 +4,7 @@ import time
 
 modules_state.scopes['x'] = {}
 #Create an event that sets y to 0 if it is 1
-x = newevt.Event("y==1","global y\ny=0",locals(),setup="y=0")
+x = newevt.Event("y==1","global y\ny=0",setup="y=0")
 
 #Register event with polling.
 x.register()

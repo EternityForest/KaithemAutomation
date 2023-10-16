@@ -35,7 +35,7 @@ def _eventSystemTest():
     modules_state.scopes['x'] = {}
     #Create an event that sets y to 0 if it is 1
     with newevt._event_list_lock:
-        x = newevt.Event("y==1","global y\ny=0",locals(),setup="y=0")
+        x = newevt.Event("y==1","global y\ny=0",setup="y=0")
         x.module=x.resource="testevt"
         newevt.EventReferences[x.module,x.resource] = x
 

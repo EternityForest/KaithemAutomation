@@ -18,8 +18,6 @@
 # IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
 
-# Major TODO: It appears that this scope param we keep passing around does nothing
-
 import traceback
 import threading
 import sys
@@ -416,7 +414,6 @@ def parseTrigger(when):
 def Event(
     when="False",
     do="pass",
-    scope=None,
     continual=False,
     ratelimit=0,
     setup=None,
@@ -430,34 +427,32 @@ def Event(
         setup = "pass"
 
     trigger = parseTrigger(when)
-    if scope is None:
-        scope = make_eventscope()
+
 
     if trigger[0] == "!onmsg":
         return MessageEvent(
-            when, do, scope, continual, ratelimit, setup, priority, **kwargs
+            when, do, continual, ratelimit, setup, priority, **kwargs
         )
 
     elif trigger[0] == "!onchange":
         return ChangedEvalEvent(
-            when, do, scope, continual, ratelimit, setup, priority, **kwargs
+            when, do, continual, ratelimit, setup, priority, **kwargs
         )
 
     elif trigger[0] == "!edgetrigger":
         if priority == "realtime":
             return ThreadPolledEvalEvent(
-                when, do, scope, continual, ratelimit, setup, priority, **kwargs
+                when, do, continual, ratelimit, setup, priority, **kwargs
             )
         else:
             return PolledEvalEvent(
-                when, do, scope, continual, ratelimit, setup, priority, **kwargs
+                when, do, continual, ratelimit, setup, priority, **kwargs
             )
 
     elif trigger[0] == "!time":
         return RecurringEvent(
             " ".join(trigger[1:]),
             do,
-            scope,
             continual,
             ratelimit,
             setup,
@@ -522,8 +517,6 @@ def makeBackgroundErrorFunction(t, time, self):
 
 class BaseEvent:
     """Base Class representing one event.
-    scope must be a dict representing the scope in which both the trigger and action will be executed.
-    When the trigger goes from fase to true, the action will occur.
 
     setupr,when and do are some representation of an action, the specifics of which are defined by derived classes.
     optional params:
@@ -536,7 +529,6 @@ class BaseEvent:
         self,
         when: str | Callable,
         do: str | Callable,
-        scope,
         continual=False,
         ratelimit=0,
         setup: str = None,
@@ -546,7 +538,6 @@ class BaseEvent:
     ):
         # Copy in the data from args
         self.evt_persistant_data = PersistentData()
-        self.scope = scope
         self._prevstate = False
         self.ratelimit = ratelimit
         self.continual = continual
@@ -933,7 +924,6 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
         self,
         when,
         do,
-        scope,
         continual=False,
         ratelimit=0,
         setup="pass",
@@ -943,7 +933,7 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
         # This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
         BaseEvent.__init__(
-            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+            self, when, do, continual, ratelimit, setup, *args, **kwargs
         )
         self.lastran = 0
 
@@ -1000,7 +990,6 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
         self,
         when,
         do,
-        scope,
         continual=False,
         ratelimit=0,
         setup="pass",
@@ -1017,7 +1006,7 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
         # Then get rid of any extra spaces in between the command and argument.
         f = when.strip().split(" ", 1)[1].strip()
         BaseEvent.__init__(
-            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+            self, when, do, continual, ratelimit, setup, *args, **kwargs
         )
         self._init_setup_and_action(setup, do)
 
@@ -1053,7 +1042,7 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
             # Update the value of the last reading for next time
             self.old = self.latest
             # Set it up so user code will have access to the value
-            self.scope["__value"] = self.latest
+            self.pymodule.__value = self.latest
             self._on_trigger()
 
 
@@ -1062,7 +1051,6 @@ class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
         self,
         when,
         do,
-        scope,
         continual=False,
         ratelimit=0,
         setup="pass",
@@ -1070,7 +1058,7 @@ class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
         **kwargs
     ):
         BaseEvent.__init__(
-            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+            self, when, do, continual, ratelimit, setup, *args, **kwargs
         )
         self.polled = True
 
@@ -1109,7 +1097,6 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
         self,
         when,
         do,
-        scope,
         continual=False,
         ratelimit=0,
         setup="pass",
@@ -1117,7 +1104,7 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
         **kwargs
     ):
         BaseEvent.__init__(
-            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+            self, when, do, continual, ratelimit, setup, *args, **kwargs
         )
         self.runthread = True
         self.lock = threading.RLock()
@@ -1252,7 +1239,6 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
         self,
         when: Callable,
         do: Callable,
-        scope=None,
         continual=False,
         ratelimit=0,
         setup="pass",
@@ -1260,7 +1246,7 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
         **kwargs
     ):
         BaseEvent.__init__(
-            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+            self, when, do, continual, ratelimit, setup, *args, **kwargs
         )
         self.polled = True
         # Compile the trigger
@@ -1308,7 +1294,6 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
         self,
         when,
         do,
-        scope,
         continual=False,
         ratelimit=0,
         setup="pass",
@@ -1319,7 +1304,7 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
         self.trigger = when
         self.register_lock = threading.Lock()
         BaseEvent.__init__(
-            self, when, do, scope, continual, ratelimit, setup, *args, **kwargs
+            self, when, do, continual, ratelimit, setup, *args, **kwargs
         )
         self._init_setup_and_action(setup, do)
         # Bound methods aren't enough to stop GC
@@ -1509,15 +1494,6 @@ def removeModuleEvents(module):
         gc.collect(1)
         gc.collect(2)
 
-
-# Every event has it's own local scope that it uses, this creates the dict to represent it
-
-
-def make_eventscope(module=None):
-    if module:
-        return {"module": modules_state.scopes[module], "kaithem": kaithemobj.kaithem}
-    else:
-        return {"module": None, "kaithem": kaithemobj.kaithem}
 
 
 # This piece of code will update the actual event object based on the event resource definition in the module
@@ -1794,7 +1770,6 @@ def make_event_from_resource(module, resource, subst=None):
         priority = 1
     try:
         if "enable" in r:
-            scope = make_eventscope(module)
 
             if not r["enable"]:
                 # TODO: What's going on here?
@@ -1804,7 +1779,6 @@ def make_event_from_resource(module, resource, subst=None):
                     e = Event(
                         r["trigger"],
                         r["action"],
-                        scope,
                         setup=setupcode,
                         continual=continual,
                         ratelimit=ratelimit,
@@ -1815,14 +1789,11 @@ def make_event_from_resource(module, resource, subst=None):
                     )
 
                 e.disable = True
-                scope["event"] = EventInterface(e)
                 return e
 
-        scope = make_eventscope(module)
         x = Event(
             r["trigger"],
             r["action"],
-            scope,
             setup=setupcode,
             continual=continual,
             ratelimit=ratelimit,
@@ -1830,8 +1801,6 @@ def make_event_from_resource(module, resource, subst=None):
             m=module,
             r=resource,
         )
-
-        scope["event"] = modules_state.scopes[module][resource]
 
     except Exception as e:
         if not (module, resource) in __EventReferences:
