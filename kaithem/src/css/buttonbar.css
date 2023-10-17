@@ -8,7 +8,7 @@
     flex-wrap: wrap;
 }
 
-.buttonbar {
+:is(.buttonbar, .input-group) {
     flex-basis: max-content;
     display: flex;
     flex-wrap: wrap;
@@ -32,34 +32,34 @@
     --buttonbar-height: 28px;
 }
 
-.multibar .buttonbar {
+.multibar :is(.buttonbar, .input-group) {
     width: unset;
 }
 
-.buttonbar img {
+:is(.buttonbar, .input-group) img {
     display: inline;
 }
 
-.buttonbar a {
+:is(.buttonbar, .input-group) a {
     display: block;
     text-align: center;
 }
 
-.buttonbar label {
+:is(.buttonbar, .input-group) label {
     display: flex;
     flex-grow: 50;
     border: 0px;
     text-align: right;
 }
 
-.buttonbar *, .buttonbar input{
+:is(.buttonbar, .input-group) *, :is(.buttonbar, .input-group) input, :is(.buttonbar, .input-group) a{
     box-sizing: border-box;
     font-size: inherit;
     height: var(--buttonbar-height);
     padding: 0px;
 }
 
-.buttonbar :is(a, a.button, select, input, meter, button) {
+:is(.buttonbar, .input-group) :is(a, a.button, select, input, meter, button) {
     margin: 0px;
     align-items: stretch;
     border-radius: 0px;
@@ -70,13 +70,13 @@
 
 
 
-.buttonbar :only-child {
+:is(.buttonbar, .input-group) :only-child {
     flex-grow: 1;
 }
 
 
 
-.buttonbar form {
+:is(.buttonbar, .input-group) form {
     border: 0px !important;
     margin: 0px !important;
     padding: 0px !important;
@@ -86,27 +86,27 @@
     flex-basis: fit-content;
 }
 
-.buttonbar form :is(button, input[type=button], select) {
+:is(.buttonbar, .input-group) form :is(button, input[type=button], select) {
     flex-grow: 1;
 }
 
-.buttonbar :is(h1, h2, h3, h4, h5) * {
+:is(.buttonbar, .input-group) :is(h1, h2, h3, h4, h5) * {
     border: none;
 }
 
 
-.buttonbar :is(h1, h2, h3, h4, h5, h6) {
+:is(.buttonbar, .input-group) :is(h1, h2, h3, h4, h5, h6) {
         margin: 0px;
         padding: 0px;
 }
      
-.buttonbar> :is(h1, h2, h3, h4, h5, h6)>* {
+:is(.buttonbar, .input-group)> :is(h1, h2, h3, h4, h5, h6)>* {
     margin: 0px;
     padding: 0px;
 }
 
 
-.buttonbar :is(h1, h2, h3, h4, h5, h6, label) {
+:is(.buttonbar, .input-group) :is(h1, h2, h3, h4, h5, h6, label) {
     margin: 0px;
     padding: 0px;
     vertical-align: middle;
@@ -116,7 +116,7 @@
     min-width: fit-content;
 }
 
-.buttonbar p {
+:is(.buttonbar, .input-group) :is(p, .input-group-text) {
     padding-left: 4px;
     min-width: fit-content;
     flex-grow: 0.5;
@@ -127,7 +127,7 @@
 
 /*P is not growable */
 
-.buttonbar :is(meter, a, a.button, button) {
+:is(.buttonbar, .input-group) :is(meter, a, a.button, button) {
     width: fit-content;
     flex-grow: 1;
 }
@@ -135,32 +135,33 @@
 
 /*Most likely to make good use of the extra space*/
 
-.buttonbar input:not([type="submit"]),
-.buttonbar select {
+:is(.buttonbar, .input-group) input:not([type="submit"]),
+:is(.buttonbar, .input-group) select {
     flex-grow: 50;
 }
 
-.buttonbar select,
-.buttonbar button,
-.buttonbar a,
-.buttonbar p,
-.buttonbar h1,
+:is(.buttonbar, .input-group) select,
+:is(.buttonbar, .input-group) button,
+:is(.buttonbar, .input-group) a,
+:is(.buttonbar, .input-group) p,
+:is(.buttonbar, .input-group) div,
+:is(.buttonbar, .input-group) h1,
 
-.buttonbar h2,
-.buttonbar h3,
-.buttonbar h4,
-.buttonbar h5,
-.buttonbar label,
-.buttonbar meter,
-.buttonbar input[type=submit] {
+:is(.buttonbar, .input-group) h2,
+:is(.buttonbar, .input-group) h3,
+:is(.buttonbar, .input-group) h4,
+:is(.buttonbar, .input-group) h5,
+:is(.buttonbar, .input-group) label,
+:is(.buttonbar, .input-group) meter,
+:is(.buttonbar, .input-group) input[type=submit] {
     background: var(--buttonbar-convex-item-bg);
 }
 
-.buttonbar meter {
+:is(.buttonbar, .input-group) meter {
     min-height: 100%;
 }
 
-.buttonbar :is(p, h1, h2, h3, h4, h5, h6, label) {
+:is(.buttonbar, .input-group) :is(p, h1, h2, h3, h4, h5, h6, label) {
     vertical-align: middle;
     display: flex;
 }
@@ -170,32 +171,32 @@
 
 /*Exception: the first item always growable so it can be the title*/
 
-.buttonbar :is(h1, h2, h3, h4, h5, h6):first-child {
+:is(.buttonbar, .input-group) :is(h1, h2, h3, h4, h5, h6):first-child {
     flex-grow: 50;
 }
 
-.buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button):first-child,
-.buttonbar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form):first-child :first-child {
+:is(.buttonbar, .input-group)> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
+:is(.buttonbar, .input-group) :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child {
     border-radius: var(--buttonbar-border-radius) 0px 0px var(--buttonbar-border-radius);
 }
 
-.buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button):last-child,
-.buttonbar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form):last-child :last-child {
+:is(.buttonbar, .input-group)> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
+:is(.buttonbar, .input-group) :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-append):last-child :last-child {
     border-radius: 0px var(--buttonbar-border-radius) var(--buttonbar-border-radius) 0px;
 }
 
-.buttonbar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button):first-child:last-child {
+:is(.buttonbar, .input-group)> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
     border-radius: var(--buttonbar-border-radius) var(--buttonbar-border-radius) var(--buttonbar-border-radius) var(--buttonbar-border-radius);
 }
 
-.buttonbar meter::-webkit-meter-inner-element {
+:is(.buttonbar, .input-group) meter::-webkit-meter-inner-element {
     -webkit-appearance: inherit;
     box-sizing: inherit;
     border: 1px solid #aaa;
     height: 22px;
 }
 
-.buttonbar>form {
+:is(.buttonbar, .input-group)>form {
     border: none !important;
     border-radius: var(--buttonbar-border-radius);
 }
@@ -203,18 +204,18 @@
 
 /*The boder puts an ugly white line on the meter*/
 
-.buttonbar>*:not(meter), .buttonbar > form >*:not(meter) {
+:is(.buttonbar, .input-group)>*:not(meter), :is(.buttonbar, .input-group) > form >*:not(meter) {
     border: var(--buttonbar-element-border);
 }
 
 
-.buttonbar input:not([type="submit"]){
+:is(.buttonbar, .input-group) input:not([type="submit"]){
     border: var(--buttonbar-element-border);
     background: var(--buttonbar-concave-item-bg);
     box-shadow: inset 0px 0px 4px 2px #3838383b
 }
 
-.buttonbar label input:not([type="submit"]){
+:is(.buttonbar, .input-group) label input:not([type="submit"]){
     border-top: 3px solid !important;
     border-bottom: 3px solid !important;
     border-left: var(--buttonbar-element-border) !important;
@@ -225,18 +226,18 @@
 
 /*A button link while being clicked*/
 
-.buttonbar button:active,
-.buttonbar a:active {
+:is(.buttonbar, .input-group) button:active,
+:is(.buttonbar, .input-group) a:active {
     background-image: var(--buttonbar-active-item-bg) !important;
 }
 
-.buttonbar>label {
+:is(.buttonbar, .input-group)>label {
     display: inline-flex;
     border-top: var(--buttonbar-element-border);
     border-bottom: var(--buttonbar-element-border);
     align-items: center;
 }
 
-.buttonbar select {
+:is(.buttonbar, .input-group) select {
     background: none;
 }

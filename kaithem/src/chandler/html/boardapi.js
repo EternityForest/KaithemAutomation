@@ -773,6 +773,19 @@ appData = {
         this.lockedFaders[sc + ":" + u + ":" + ch] = true;
         api_link.send(['scv', sc, u, ch, val]);
     },
+
+    'setFixturePreset': function (sc, fix, preset) {
+        for (i in appData.cuevals[sc][fix])
+        {
+            if (!(preset[i] == undefined))
+                {
+                    api_link.send(['scv', sc, fix, i, preset[i]]);
+                }
+            
+        }
+    },
+
+
     'setCueValNolock': function (sc, u, ch, val) {
         api_link.send(['scv', sc, u, ch, val]);
     },

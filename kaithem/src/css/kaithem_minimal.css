@@ -15,6 +15,12 @@
 .decorative-image{
     display: none;
 }
+
+body>footer, body>header, body>main{
+    /*Override CSS frameworks*/
+    padding: 4px;
+}
+
 @media screen and (max-width: 820px) {
     .desktop-only {
         display: none;
@@ -184,8 +190,14 @@ a.button,
 label,
 a {
     font-family: inherit;
+    padding: initial;
 }
 
+
+/*Stack labels on the form elements*/
+label>:is(input, select, button, div){
+    display: block;
+}
 
 /********************Behavior****************************/
 

@@ -958,10 +958,12 @@ ${lists}
                         </details>
                     </div>
                     <div>
-                        <label>Inherit rules from cue in same scene(inherited rules run after directly set rules):
+                        <label>Inherit rules from cue in same scene(inherited rules run after directly set rules)
+                            <div>
                             <combo-box v-model="currentcue.inheritRules"
                                 v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
                                 :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
+                            </div>
 
                         </label>
                     </div>
@@ -1340,80 +1342,82 @@ ${lists}
                         <div>
                             <h5>Basic</h5>
                             <div class="labelbox">
-                                <label>Number:
+                                <label>Number
                                     <input type="number" title="Cue number" style="width:6em"
                                         v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
                                         v-model="currentcue.number">
                                 </label>
 
-                                <label>Probability:
+                                <label>Probability
                                     <input
                                         title="Probability this cue is selected in random selections. =expressions allowed"
                                         style="width:6em" v-on:change="setprobability(currentcueid,$event.target.value)"
                                         v-model="currentcue.probability" placeholder="1">
                                 </label>
 
-                                <label>Code:
+                                <label>Code
                                     <input title="Shortcut code used to quickly activate a cue" size="8"
                                         v-on:change="setshortcut(currentcueid,$event.target.value)"
                                         v-model="currentcue.shortcut">
                                 </label>
-                                <label>Track:
+                                <label>Track
                                     <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
                                         v-model="currentcue.track"
                                         title="Track values from previous cue? If false, values not present are always transparent">
                                 </label>
 
-                                <label>Reentrant:<input title="If false, dissallow entering cue if it's already running"
+                                <label>Reentrant<input title="If false, dissallow entering cue if it's already running"
                                         type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
                                         v-model="currentcue.reentrant"></label>
 
-                                <label>Fadein:
+                                <label>Fadein
                                     <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)"
                                         style="width:3em" min=0 v-model="currentcue.fadein">
                                 </label>
-                                <label>Length:
+                                <label>Length
                                     <input v-on:change="setlength(currentcueid,$event.target.value)"
                                         v-model="cuemeta[currentcueid].length" style="width:6em" min=0></input>
                                 </label>
-                                <label>Randomize Length:
+                                <label>Randomize Length
                                     <input type="number" v-on:change="setrandomize(currentcueid,$event.target.value)"
                                         title="Randomize the cue length +- this amount"
                                         v-model="cuemeta[currentcueid].lengthRandomize" style="width:4em" min=0
                                         step=0.25></input>
                                 </label>
 
-                                <label>Notes:
+                                <label>Notes
                                     <input v-on:change="setcuenotes(currentcueid,$event.target.value)"
                                         v-model="cuemeta[currentcueid].notes" style="width:12em" min=0></input>
                                 </label>
 
                                 <div class="break"></div>
                                 <h5 style="flex-basis:100%">Sound</h5>
-                                <label v-if="showSoundControls">Soundfile:
+                                <label v-if="showSoundControls">Soundfile
                                     <input placeholder="No sound file" v-model="currentcue.sound"
                                         title="File paths are resolved relative to any of the confg sound folders, searching all until a match is found"
                                         style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                                 </label>
-                                <label v-if="showSoundControls">Device:<a target="_blank"
+                                <label v-if="showSoundControls">Device<a target="_blank"
                                         href="/settings/mixer">(mixer)</a>
                                     <input title="set the output device"
                                         v-on:change="setSoundOutput(currentcueid,$event.target.value)"
                                         v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
                                 </label>
 
-                                <label v-if="showSoundControls">Length From Sound:
+                                <label v-if="showSoundControls">Length From Sound
                                     <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)"
                                         v-model="currentcue.rel_len"
                                         title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                                 </label>
 
                                 <h5 style="flex-basis:100%">Cue Advance</h5>
-                                <label> Cue:
+                                <label> Cue
+                                    <div>
                                     <combo-box v-model="cuemeta[currentcueid].next"
                                         v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)"
                                         :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
-                                </label>
+                                    </div>
+                                    </label>
 
                                 <button v-on:click="gotonext(currentcueid)">
                                     <i class="icofont-arrow-right"></i>Edit Next</button>
