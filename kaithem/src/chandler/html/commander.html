@@ -102,6 +102,12 @@ import json
                 flex-basis: 100%;
                 height: 0;
             }
+
+            .cuebutton {
+                min-width:24em;
+                max-width: 32em; 
+                flex-grow: 1;
+            }
             
             .blinking {
                 animation: blinkingText 1s infinite;
@@ -236,7 +242,7 @@ import json
                                 <div v-for="i in formatCues(1)" v-if="i[1].id" style="margin: 0.8em; padding: 0.4em; display: flex; flex-direction: column;" v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
                                     
 
-                                    <button v-on:click="jumptocue(i[1].id)" style="width:12em; flex-grow: 1;">                               
+                                    <button v-on:click="jumptocue(i[1].id)" class="cuebutton">                               
                                     <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
                                     {{i[1].name}}
                         

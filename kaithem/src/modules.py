@@ -396,57 +396,6 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                 logger.exception("err loading as pyencoded: " + fn)
                 pass
 
-        # Option to encode metadata as special script type
-        elif fn.endswith(".html") and "2b8c68ea-307c-4558-bf34-5e024c8306f4" in d:
-            isSpecialEncoded = True
-            try:
-                x = re.search(
-                    r"<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>",
-                    d,
-                )
-                data = yaml.load(x.group(1))
-                d = re.sub(
-                    r"<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>",
-                    "",
-                    d,
-                )
-                data["body"] = d.strip()
-                r = data
-                shouldRemoveExtension = True
-            except Exception:
-                isSpecialEncoded = False
-                wasProblem = True
-                logger.exception("err loading as html encoded: " + fn)
-                pass
-
-        # Option to encode metadata as special script type
-        elif fn.endswith(".html") and "kaithem.resourcemeta" in d:
-            isSpecialEncoded = True
-            try:
-                x = re.search(
-                    r"<script +type=\"kaithem.resourcemeta\">((.|[\n\r])*?)<\/script>",
-                    d,
-                )
-                if x:
-                    data = yaml.load(x.group(1))
-                    d = re.sub(
-                        r"<script +type=\"kaithem.resourcemeta\">((.|[\n\r])*?)<\/script>",
-                        "",
-                        d,
-                    )
-                    data["body"] = d.strip()
-                    r = data
-                    shouldRemoveExtension = True
-                else:
-                    isSpecialEncoded = False
-                    wasProblem = True
-                    logger.exception("err loading as html encoded: " + fn)
-
-            except Exception:
-                isSpecialEncoded = False
-                wasProblem = True
-                logger.exception("err loading as html encoded: " + fn)
-                pass
         # Markdown and most html files files start with --- and are delimited by ---
         # The first section is YAML and the second is the page body.
         elif fn.endswith(".md") or fn.endswith(".html"):

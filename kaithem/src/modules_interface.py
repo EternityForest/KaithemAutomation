@@ -44,7 +44,7 @@ syslog = logging.getLogger("system")
 searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
 
 
-prev_versions = {}
+prev_versions: dict[tuple, dict] = {}
 
 
 def validate_upload():
@@ -838,9 +838,9 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
             )
 
         # This is for the custom resource types interface stuff.
-        return modules_state.additionalTypes[resourceinquestion["resource-type"]].editpage(
-            module, resource, resourceinquestion
-        )
+        return modules_state.additionalTypes[
+            resourceinquestion["resource-type"]
+        ].editpage(module, resource, resourceinquestion)
 
 
 def permissionEditPage(module, resource):

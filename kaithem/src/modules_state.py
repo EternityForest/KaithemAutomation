@@ -14,7 +14,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 # This file is just for keeping track of state info that would otherwise cause circular issues.
-from typing import Dict
+from typing import Dict, Any
 import weakref
 import urllib
 import os
@@ -558,4 +558,4 @@ def pollMlockRequests():
 # Define a place to keep the module private scope obects.
 # Every module has a object of class object that is used so user code can share state between resources in
 # a module
-scopes: Dict[str, Dict] = {}
+scopes: Dict[str, Any] = {}

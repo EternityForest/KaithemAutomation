@@ -7,6 +7,8 @@ Change Log
 - :bug: Fix bogus "sound did not report as playing" message
 - :sparkles: "Make file publically acessible" option in the upload for file resources.
 - :bug: Fix disabling resource serving
+- :sparkles: Dmesg viewer
+
 
 ### 0.69.20
 

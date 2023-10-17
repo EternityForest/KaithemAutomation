@@ -590,6 +590,11 @@ class Settings():
         return pages.get_template("settings/processes.html").render()
 
     @cherrypy.expose
+    def dmesg(self):
+        pages.require("/admin/settings.view")
+        return pages.get_template("settings/dmesg.html").render()
+    
+    @cherrypy.expose
     def environment(self):
         pages.require("/admin/settings.view")
         return pages.get_template("settings/environment.html").render()
