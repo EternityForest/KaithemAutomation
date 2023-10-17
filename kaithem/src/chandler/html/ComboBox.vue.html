@@ -38,7 +38,7 @@ template-engine: none
 
 <template>
     <div style="display:inline-block;position:relative; overflow: visible;" style="width:0px">
-        <input style="width:85%" v-bind:value="value" v-on:input="$emit('input', $event.target.value);focused=true" v-on:change="focused=false;$emit('change',$event.target.value);" v-on:focus="focused=true;">
+        <input style="width:83%" v-bind:value="value" v-on:input="$emit('input', $event.target.value);focused=true" v-on:change="focused=false;$emit('change',$event.target.value);" v-on:focus="focused=true;">
         <button title="Show/Hide selector" style="width:14%" v-on:click="showmenu=!(showmenu|(focused));focused=false;" v-bind:class="{'highlight':showmenu}">...</button>
         <div v-if="showmenu||(focused)" class="comboboxdropdown">
             <div  v-for="i in pinned" v-if="(!value) || i[0].includes(value) || i[0].includes(value) || showmenu">
