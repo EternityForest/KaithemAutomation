@@ -30,8 +30,6 @@
     --buttonbar-convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
     --buttonbar-active-item-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
     --buttonbar-height: 28px;
-
-
 }
 
 .multibar .buttonbar {
@@ -54,10 +52,11 @@
     text-align: right;
 }
 
-.buttonbar * {
+.buttonbar *, .buttonbar input{
     box-sizing: border-box;
     font-size: inherit;
     height: var(--buttonbar-height);
+    padding: 0px;
 }
 
 .buttonbar :is(a, a.button, select, input, meter, button) {
