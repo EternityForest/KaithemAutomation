@@ -292,7 +292,7 @@ source virtualenv/bin/activate
 pip3 install tflite-runtime 
 pip3 install aioesphomeapi
 pip3 install esphome
-pip3 install "numpy>=1.26.0"
+pip3 install "numpy>=1.26.1"
 deactivate
 
 
