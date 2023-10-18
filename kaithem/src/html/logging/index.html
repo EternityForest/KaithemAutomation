@@ -66,7 +66,7 @@ function f(element)
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
             <div id="f_${i}">
                 %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
-                    <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
+                    <h3 ${'class="danger"' if 'error' in i else ''}>${i|h}</h3>
                     (logging)
                     %if i in messagelogging.toSave:
                         <form method="post" action="/logs/stoplogging/${url(i)}"><button>Stop</button></form>
@@ -74,7 +74,7 @@ function f(element)
                         [logged because it is part of a subtree that is being logged]
                     %endif
                 %else:
-                    <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
+                    <h3 ${'class="danger"' if 'error' in i else ''}>${i|h}</h3>
                     will not be saved to log file <form method="post" action="/logs/startlogging/${url(i)}"><button>Start logging</button> </form>
                 %endif
 

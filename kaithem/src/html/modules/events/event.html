@@ -32,7 +32,7 @@ using_monaco_editor = auth.getUserSetting(pages.getAcessingUser(),'usemonaco') a
 </h2>
 
 %if not (module,name) in newevt.EventReferences:
-<span class="error">Event not active, An error prevented this event from loading.</span>
+<span class="danger">Event not active, An error prevented this event from loading.</span>
 %endif
 %if version == '__draft__':
 <p class="warning">This is an unsaved recovered draft version, that could not load because of errors.
@@ -354,7 +354,7 @@ This event last ran:
 </div>
 
 %if newevt.getEventErrors(module,name):
-<h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
+<h3 class="danger">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
 <p class ="help">
 This section the most recent errors that ocurred while executing the event or trigger.
 </p>

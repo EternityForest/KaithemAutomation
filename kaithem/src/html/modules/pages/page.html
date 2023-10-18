@@ -512,10 +512,10 @@ ${str(i[1])|h}
 %endfor
 </div>
 %except:
-<pre class="error">${traceback.format_exc()|h}</pre></div>
+<pre class="danger">${traceback.format_exc()|h}</pre></div>
 %endtry
 %else:
-<p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
+<p class="danger">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
 %endif
 %endif
 

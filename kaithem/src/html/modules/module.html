@@ -153,7 +153,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
 <a class="button" href="/modules/module/${url(name)}/runeventdialog/${url(i)}"><i class="icofont-ui-play"></i>Run Now</a>
 	       %if newevt.fastGetEventErrors(name,i):
-	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
+	       <span class="danger">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif
         </div>
 	  </dt>
@@ -214,7 +214,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	       %endif
 	       >${util.split_escape(i,'/','\\')[-1]|h}</a>
 		%if usrpages.getPageErrors(name,i):
-		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
+		<span class="danger">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
     </b>
 </h3>

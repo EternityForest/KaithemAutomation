@@ -54,9 +54,9 @@ class WidgetHandler(logging.Handler):
             t = textwrap.fill(pylogginghandler.syslogger.format(r), 120)
             t = esc(t)
             if r.levelname in ["ERROR", "CRITICAL"]:
-                self.widget.write('<pre class="error">' + t + "</pre>")
+                self.widget.write('<pre class="danger">' + t + "</pre>")
             elif r.levelname in ["WARNING"]:
-                self.widget.write('<pre class="error">' + t + "</pre>")
+                self.widget.write('<pre class="danger">' + t + "</pre>")
             elif r.name == 'system.notifications.important':
                 self.widget.write('<pre class="highlight">' + t + "</pre>")
             else:
@@ -71,9 +71,9 @@ logging.getLogger().addHandler(dbg)
 def f(r):
     t = textwrap.fill(pylogginghandler.syslogger.format(r), 120)
     if r.levelname in ["ERROR", "CRITICAL"]:
-        syslogwidget.write('<pre class="error">' + t + "</pre>")
+        syslogwidget.write('<pre class="danger">' + t + "</pre>")
     elif r.levelname in ["WARNING"]:
-        syslogwidget.write('<pre class="error">' + t + "</pre>")
+        syslogwidget.write('<pre class="danger">' + t + "</pre>")
     elif r.name == 'system.notifications.important':
         syslogwidget.write('<pre class="highlight">' + t + "</pre>")
     else:

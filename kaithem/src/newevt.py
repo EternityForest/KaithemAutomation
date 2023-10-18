@@ -504,7 +504,7 @@ def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
         self.logWindow.write(
-            '<div class="error"><b>Error at '
+            '<div class="danger"><b>Error at '
             + time
             + "</b><br>"
             + "<pre>"

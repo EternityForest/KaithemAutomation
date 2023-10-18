@@ -203,7 +203,7 @@ def makeBackgroundPrintFunction(p, t, title, self):
 def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
-        self.logWindow.write('<div class="error"><b>Error at ' + time +
+        self.logWindow.write('<div class="danger"><b>Error at ' + time +
                              "</b><br>" + '<pre>' + t + '</pre></div>')
 
     return f
