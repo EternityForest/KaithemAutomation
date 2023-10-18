@@ -111,7 +111,7 @@ Several other audio file players may still work, but the only one supported and 
 ## To install all required and optional dependencies 
 
 ```bash
-sudo apt install scrot mpv libmpv-dev python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth3  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage python3-setproctitle python3-tornado
+sudo apt install scrot mpv libmpv-dev python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth3  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi python3-pycryptodome  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage python3-setproctitle python3-tornado pipewire-audio-client-libraries python3-opencv
 ```
 
 You will also need Python's tflite_runtime for deep learning image recognition in the NVR.  
@@ -123,6 +123,20 @@ model itself as we use heuristics to reduce false positives.
 If you want to use ESPHome, you need to install `pip3 install aioesphomeapi`, as this has non-python dependencies we can't easily incluse, just like tflite-runtime.
 
 Both are included by the kioskify script.
+
+## Sound on Ubuntu
+
+Kaithem does not support advanced audio features on anything other than pipewire via the JACK protocol.
+
+Out of the box, JACK apps don't work on Ubuntu. Try:
+```bash
+sudo apt install libspa-0.2-jack
+systemctl --user restart wireplumber pipewire pipewire-pulse
+sudo cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
+sudo ldconfig
+```
+
+This will make ALL jack apps go through pipewire, you won't ever need to launch jackd.
 
 
 ### Systemd service

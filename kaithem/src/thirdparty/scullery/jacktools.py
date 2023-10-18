@@ -2102,6 +2102,7 @@ def work():
                     pass
             time.sleep(5)
         except Exception:
+            time.sleep(30)
             logging.exception("Error in jack manager")
 
 
