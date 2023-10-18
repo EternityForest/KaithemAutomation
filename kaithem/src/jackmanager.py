@@ -12,6 +12,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+import traceback
 import scullery
 import os
 from scullery.jacktools import *
@@ -69,4 +70,7 @@ scullery.jacktools.dummy = False
 scullery.jacktools.manageJackProcess = False
 
 
-scullery.jacktools.startManaging()
+try:
+    scullery.jacktools.startManaging()
+except Exception:
+    messagebus.postMessage("/system/notifications/errors", "Failed to launch JACK integration. Maybe JACK is not installed\n"+traceback.format_exc())
