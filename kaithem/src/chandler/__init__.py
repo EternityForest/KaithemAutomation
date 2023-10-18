@@ -5025,5 +5025,5 @@ def loop():
             logger.exception("Wat")
 
 
-thread = threading.Thread(target=loop, name="ChandlerThread")
+thread = threading.Thread(target=loop, name="ChandlerThread", daemon=True)
 thread.start()

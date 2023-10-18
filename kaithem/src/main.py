@@ -214,7 +214,7 @@ def webRoot():
 
     cherrypy.server.unsubscribe()
     cherrypy.config.update({"environment": "embedded"})
-    # cherrypy.engine.signals.subscribe()
+    cherrypy.engine.signals.subscribe()
 
     cherrypy.engine.start()
 

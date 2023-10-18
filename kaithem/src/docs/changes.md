@@ -8,6 +8,8 @@ Change Log
 - :sparkles: "Make file publically acessible" option in the upload for file resources.
 - :bug: Fix disabling resource serving
 - :sparkles: Dmesg viewer
+- :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
+- :bug: Improve slow/hanging shutdown
 
 
 ### 0.69.20

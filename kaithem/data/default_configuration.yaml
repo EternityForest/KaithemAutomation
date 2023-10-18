@@ -175,7 +175,7 @@ about-box-banner: "This space can be customized with site specific data in the c
 #The URL from which to retrieve the CSS theme file
 #Classic
 #theme-url: /static/css/kaithem_scrapbook.css
-theme-url: /static/css/kaithem_scrapbook_green.css
+theme-url: /static/css/kaithem_simple_light.css
 
 #Deprecated codemirror stuff. We no longer use that.
 cm-theme-url: deprecated
