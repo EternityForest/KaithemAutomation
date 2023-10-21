@@ -165,7 +165,7 @@ import os
           
           <div class="buttonbar">
           <label>In:<input v-model="channel.input" list="outports"
-            v-on:input="setInput(channelname, $event.target.value)"></label>
+            v-on:change="setInput(channelname, $event.target.value)"></label>
 
           </div>
           <div class="chain">
@@ -209,7 +209,7 @@ import os
                     <td>{{param.displayName}}</td>
                     <td><input type="number" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
                         v-bind:max="param.max" :step="(param.step)"
-                        v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
+                        v-on:change="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
                     </td>
 
                     <td>{{param.value}}</td>
@@ -226,7 +226,7 @@ import os
                   <template v-if="param.type=='JackInput'">
                     <td>{{param.displayName}}</td>
                     <td><input list="inports" v-model="param.value"
-                        v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                        v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
                     </td>
                     <td>{{param.value}}</td>
                   </template>
@@ -234,7 +234,7 @@ import os
                   <template v-if="param.type=='string'">
                     <td>{{param.displayName}}</td>
                     <td><input v-model="param.value"
-                        v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                        v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
                     </td>
                     <td></td>
                   </template>
@@ -286,12 +286,12 @@ import os
         <div class="buttonbar"><meter style="flex-grow: 2;" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><p
             style="width:5em;">{{channel.level}}db</p></div>
           <div class="buttonbar"><p>Connect output: </p><input v-model="channel.output" list="inports"
-            v-on:input="setOutput(channelname, $event.target.value)"
+            v-on:change="setOutput(channelname, $event.target.value)"
             title="The output of this channel will be automatically connected to this port"></div>
 
           <div class="buttonbar"><p>FBX Threshold:</p><input style="max-width: 3em;" type="number" v-model="channel.soundFuse"
             title="Steady or increasing values above this will result in the volume being automatically lowered."
-            v-on:input="setFuse(channelname, $event.target.value)"><p>dB</p></div>
+            v-on:change="setFuse(channelname, $event.target.value)"><p>dB</p></div>
         </div>
       </div>
 

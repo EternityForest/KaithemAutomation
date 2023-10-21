@@ -10,6 +10,7 @@ Change Log
 - :sparkles: Dmesg viewer
 - :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
 - :bug: Improve slow/hanging shutdown
+- :bug: Fix Mixer processes hanging around when they should not be
 
 
 ### 0.69.20

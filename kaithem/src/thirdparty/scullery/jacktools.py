@@ -123,6 +123,7 @@ class JackClientProxy():
             except TimeoutError:
                 if timeout >8:
                     print(traceback.format_exc())
+                    self.worker.terminate()
                     self.worker.kill()
                     workers.do(self.worker.wait)
                 raise
@@ -154,6 +155,7 @@ class JackClientProxy():
 
         except TimeoutError:
             print(traceback.format_exc())
+            self.worker.terminate()
             self.worker.kill()
             workers.do(self.worker.wait)
             raise
@@ -161,6 +163,7 @@ class JackClientProxy():
 
 
     def __del__(self):
+        self.worker.terminate()
         self.worker.kill()
         workers.do(self.worker.wait)
 
@@ -272,6 +275,7 @@ class JackClientProxy():
             self.rpc.stopFlag=True
         except Exception:
             self.rpc.stopFlag=True
+            self.worker.terminate()
             self.worker.kill()
             workers.do(self.worker.wait)
             raise

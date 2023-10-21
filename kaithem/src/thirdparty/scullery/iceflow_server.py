@@ -50,7 +50,6 @@ def tryToAvoidSegfaults(t, v):
         stopAllJackUsers()
 
 
-ppid = os.getppid()
 
 
 # https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python
@@ -1270,6 +1269,9 @@ class GStreamerPipeline():
 
 gstp = None
 
+ppid = os.getppid()
+
+
 def main():
     global gstp
 
@@ -1281,9 +1283,13 @@ def main():
     #     rpc[0]("print", [str(a)])
 
     while not rpc[0].threadStopped:
-        time.sleep(10)
+        time.sleep(1)
+
         if (not check_pid(ppid)) or stopflag[0]:
             sys.exit()
+
+        if not os.getppid() ==ppid:
+            return
 
 if __name__ == '__main__':
     main()

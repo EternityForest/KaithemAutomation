@@ -70,6 +70,7 @@ class GStreamerPipeline():
             try:
                 return self.rpc.call(attr,args=a,kwargs=k, block=0.001, timeout=15)
             except Exception:
+                self.worker.terminate()
                 self.worker.kill()
                 workers.do(self.worker.wait)
                 raise
@@ -83,6 +84,7 @@ class GStreamerPipeline():
         try:
             return self.rpc.call('pullToFile',args=a,kwargs=k,block=0.001, timeout=0.5)
         except Exception:
+            self.worker.terminate()
             self.worker.kill()
             workers.do(self.worker.wait)
             raise
@@ -90,6 +92,7 @@ class GStreamerPipeline():
 
 
     def __del__(self):
+        self.worker.terminate()
         self.worker.kill()
         workers.do(self.worker.wait)
 
@@ -162,10 +165,14 @@ class GStreamerPipeline():
         try:
             x=self.rpc.call("stop",block=0.01,timeout=10)
             self.rpc.stopFlag=True
+            self.worker.terminate()
+            time.sleep(0.5)
             self.worker.kill()
 
         except Exception:
             self.rpc.stopFlag=True
+            self.worker.terminate()
+            time.sleep(0.5)
             self.worker.kill()
             workers.do(self.worker.wait)
             raise
@@ -183,7 +190,7 @@ class GStreamerPipeline():
 
         from scullery.jsonrpyc import RPC
         from subprocess import PIPE, STDOUT
-        from reap import Popen
+        from subprocess import Popen
         pipes[id(self)]=self
         self.ended=False
         f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"iceflow_server.py")

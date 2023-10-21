@@ -130,8 +130,8 @@ Kaithem does not support advanced audio features on anything other than pipewire
 
 Out of the box, JACK apps don't work on Ubuntu. Try:
 ```bash
-sudo apt install libspa-0.2-jack
-systemctl --user restart wireplumber pipewire pipewire-pulse
+sudo apt install pipewire-audio-client-libraries
+systemctl --user restart pipewire-media-session pipewire pipewire-pulse
 sudo cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
 sudo ldconfig
 ```
