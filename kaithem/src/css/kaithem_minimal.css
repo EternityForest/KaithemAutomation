@@ -376,6 +376,14 @@ textarea:disabled {
 
 details{
     margin: 0.4em;
+    border: 1px solid;
+    padding-left: 0.4em;
+    border-radius: 0.8em;
+    border-color: inherit;
+}
+
+details.help{
+    border: 1px dotted;
 }
 
 /*This is a help paragraph usually shown at the top or a sectionbox*/

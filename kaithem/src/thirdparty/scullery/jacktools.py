@@ -2321,7 +2321,7 @@ def getPorts(*a, maxWait=10, **k):
             return x
         finally:
             lock.release()
-
+    return []
 
 def getPortNamesWithAliases(*a, **k):
     if lock.acquire(timeout=10):

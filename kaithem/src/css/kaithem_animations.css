@@ -1,0 +1,7 @@
+details summary {
+    transition: margin 220ms ease-out;
+}
+  
+details[open] summary {
+    margin-bottom: 10px;
+}
