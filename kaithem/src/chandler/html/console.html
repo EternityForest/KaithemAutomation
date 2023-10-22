@@ -643,6 +643,7 @@ ${lists}
 
                     <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
                     <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
+                    <i class="icofont-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
 
 
                     <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"
@@ -1548,9 +1549,9 @@ ${lists}
                         v-model="editingScene.mqttServer"></input>
                 </label>
 
-                <label v-if="showAdvancedControls">Sync Cue Transitions:
-                    <input type="checkbox" v-on:change="setmqttfeature(scenename,'cuechange',$event.target.value)"
-                        v-model="editingScene.mqttSyncFeatures.cuechange"></input>
+                <label v-if="showAdvancedControls" title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync Group Name
+                    <input type="checkbox" v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
+                        v-model="editingScene.mqttSyncFeatures.syncGroup"></input>
                 </label>
 
                 </details>

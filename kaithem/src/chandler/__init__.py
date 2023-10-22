@@ -3752,11 +3752,12 @@ class Scene:
 
         self.scriptContext.setVar("KWARGS", kwargs)
 
-        t = time.time()
+        t = t or time.time()
 
         if cue in self.cues:
-            if self.mqttSyncFeatures.get("cuechange",False):
-                topic = f"/kaithem/chandler/scenes/{self.name}/cue"
+            gn = self.mqttSyncFeatures.get("syncGroup",False)
+            if gn:
+                topic = f"/kaithem/chandler/syncgroup/{gn}"
                 m ={
                     'time': t,
                     "cue": cue,
@@ -4363,22 +4364,30 @@ class Scene:
             self.event("$mqtt:" + topic, message)
 
     def onCueSyncMessage(self, topic, message):
-        if self.mqttSyncFeatures.get("cuechange",False):
+        gn = self.mqttSyncFeatures.get("syncGroup",False)
+        if gn:
+            topic = f"/kaithem/chandler/syncgroup/{gn}"
             m = json.loads(message)
 
             if not self.mqttNodeSessionID == m['senderSessionID']:
-                if not m['time'] < (time.time()-15):
-                    # Just ignore cues that do not have a sync match
-                    if m['cue'] in self.cues:
-                        self.gotoCue(m['cue'], t=m['time'], sendSync=False, cause="MQTT Sync")
+                # # Don't listen to old messages, those are just out of sync nonsense that could be
+                # # some error.  However if the time is like, really old.  more than 10 hours, assume that
+                # # It's because of an NTP issue and we're just outta sync.
+                # if (not ((m['time'] < (time.time()-15) )  and (abs(m['time'] - time.time() )> 36000  ))):
+             
+                # TODO: Just ignore cues that do not have a sync match
+                
+                if m['cue'] in self.cues:
+                    # Don't adjust out start time too much. It only exists to fix network latency.
+                    self.gotoCue(m['cue'], t=max(min(time.time() +0.5, m['time']),time.time()-0.5) , sendSync=False, cause="MQTT Sync")
 
 
 
     def doMqttSubscriptions(self, keepUnused=120):
         if self.mqttConnection:
-            if self.mqttSyncFeatures.get("cuechange",False):
+            if self.mqttSyncFeatures.get("syncGroup",False):
                 self.mqttConnection.subscribe(
-                    f"/kaithem/chandler/scenes/{self.name}/cue"
+                    f"/kaithem/chandler/syncgroup/{self.mqttSyncFeatures.get('syncGroup',False)}"
                 )
                                         
 
@@ -4657,17 +4666,22 @@ class Scene:
                     class Connection(mqtt.MQTTConnection):
                         def on_connect(s):
                             self.event("board.mqtt.connected")
+                            self.pushMeta(statusOnly=True)
                             return super().on_connect()
                         
                         def on_disconnect(s):
                             self.event("board.mqtt.disconnected")
+                            self.pushMeta(statusOnly=True)
                             if self.mqttServer:
                                 self.event("board.mqtt.error","Disconnected")
                             return super().on_disconnect()
 
                         def on_message(s, t, m):
-                            if t == f"/kaithem/chandler/scenes/{self.name}/cue":
-                                self.onCueSyncMessage(t, m)
+                            gn = self.mqttSyncFeatures.get("cuechange",False)
+                            if gn:
+                                topic = f"/kaithem/chandler/syncgroup/{gn}"
+                                if t == topic:
+                                    self.onCueSyncMessage(t, m)
                             
                             self.onMqttMessage(t, m)
 
@@ -4708,7 +4722,7 @@ class Scene:
 
     def setMQTTFeature(self, feature, state):
         if state:
-            self.mqttSyncFeatures[feature] = True
+            self.mqttSyncFeatures[feature] = state
         else:
             self.mqttSyncFeatures.pop(feature, None)
         self.hasNewInfo = {}
