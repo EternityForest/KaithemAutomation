@@ -2286,7 +2286,7 @@ class ChandlerConsole:
                 self.pushMeta(msg[1], keys={"backtrack"})
 
             elif msg[0] == "setmqttfeature":
-                core.scenes[msg[1]].setMQTTFeature(msg[2], bool(msg[3]))
+                core.scenes[msg[1]].setMQTTFeature(msg[2], msg[3])
                 self.pushMeta(msg[1], keys={"mqttSyncFeatures"})
 
             elif msg[0] == "setscenesoundout":
@@ -3755,15 +3755,16 @@ class Scene:
         t = t or time.time()
 
         if cue in self.cues:
-            gn = self.mqttSyncFeatures.get("syncGroup",False)
-            if gn:
-                topic = f"/kaithem/chandler/syncgroup/{gn}"
-                m ={
-                    'time': t,
-                    "cue": cue,
-                    "senderSessionID": self.mqttNodeSessionID
-                }
-                self.sendMqttMessage(topic,m)
+            if sendSync:
+                gn = self.mqttSyncFeatures.get("syncGroup",False)
+                if gn:
+                    topic = f"/kaithem/chandler/syncgroup/{gn}"
+                    m ={
+                        'time': t,
+                        "cue": cue,
+                        "senderSessionID": self.mqttNodeSessionID
+                    }
+                    self.sendMqttMessage(topic,m)
 
         with core.lock:
             with self.lock:
@@ -4677,7 +4678,7 @@ class Scene:
                             return super().on_disconnect()
 
                         def on_message(s, t, m):
-                            gn = self.mqttSyncFeatures.get("cuechange",False)
+                            gn = self.mqttSyncFeatures.get("syncGroup",False)
                             if gn:
                                 topic = f"/kaithem/chandler/syncgroup/{gn}"
                                 if t == topic:

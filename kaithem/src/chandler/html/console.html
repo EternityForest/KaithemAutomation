@@ -1550,7 +1550,7 @@ ${lists}
                 </label>
 
                 <label v-if="showAdvancedControls" title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync Group Name
-                    <input type="checkbox" v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
+                    <input v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
                         v-model="editingScene.mqttSyncFeatures.syncGroup"></input>
                 </label>
 
