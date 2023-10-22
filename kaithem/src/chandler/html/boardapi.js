@@ -878,6 +878,12 @@ appData = {
 
         api_link.send(['setfade', sc, v]);
     },
+
+
+    'settriggershortcut': function (sc, v) {
+
+        api_link.send(['setCueTriggerShortcut', sc, v]);
+    },
     'nextcue': function (sc) {
         api_link.send(['nextcue', sc]);
     },

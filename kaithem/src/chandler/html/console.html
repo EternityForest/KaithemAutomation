@@ -855,7 +855,7 @@ ${lists}
                                     title="Track values from previous cue? If false, values not present are always transparent">
                             </td>
                             <td data-label="Goto:">
-                                <button v-on:click="jumptocue(i[1].id)">Go</button>
+                                <button style="min-width: 90%;" v-on:click="jumptocue(i[1].id)">Go</button>
                             </td>
 
                         </tr>
@@ -1355,11 +1355,18 @@ ${lists}
                                         v-model="currentcue.probability" placeholder="1">
                                 </label>
 
-                                <label>Code
+                                <label>Shortcut
                                     <input title="Shortcut code used to quickly activate a cue" size="8"
                                         v-on:change="setshortcut(currentcueid,$event.target.value)"
                                         v-model="currentcue.shortcut">
                                 </label>
+
+                                <label>Trigger Shortcut
+                                    <input title="When entering this cue, trigger the shortcut in other scenes" size="8"
+                                        v-on:change="settriggershortcut(currentcueid,$event.target.value)"
+                                        v-model="currentcue.triggerShortcut">
+                                </label>
+
                                 <label>Track
                                     <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
                                         v-model="currentcue.track"
@@ -1411,7 +1418,7 @@ ${lists}
                                 </label>
 
                                 <h5 style="flex-basis:100%">Cue Advance</h5>
-                                <label> Cue
+                                <label>Next Cue
                                     <div>
                                     <combo-box v-model="cuemeta[currentcueid].next"
                                         v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)"

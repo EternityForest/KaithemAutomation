@@ -1491,6 +1491,7 @@ class ChandlerConsole:
                         "soundFadeIn": cue.soundFadeIn,
                         "soundVolume": cue.soundVolume,
                         "soundLoops": cue.soundLoops,
+                        "triggerShortcut": cue.triggerShortcut,
                         "hasLightingData": len(cue.values),
                     },
                 ]
@@ -1594,7 +1595,7 @@ class ChandlerConsole:
 
                     for i in core.activeScenes:
                         # Tell clients about any changed alpha values and stuff.
-                        if not i.id in self.scenememory:
+                        if i.id not in self.scenememory:
                             self.pushMeta(i.id)
                     self.pushConfiguredUniverses()
                 self.link.send(["serports", getSerPorts()])
@@ -2142,6 +2143,12 @@ class ChandlerConsole:
             elif msg[0] == "rmcue":
                 c = cues[msg[1]]
                 c.scene().rmCue(c.id)
+
+
+            elif msg[0] == "setCueTriggerShortcut":
+                v = msg[2]
+                cues[msg[1]].triggerShortcut = v 
+                self.pushCueMeta(msg[1])
 
             elif msg[0] == "setfadein":
                 try:
@@ -2694,7 +2701,7 @@ def getAllDeviceTagPoints():
             ]
 
 
-def shortcutCode(code, limitScene=None):
+def shortcutCode(code, limitScene=None, exclude=None):
     "API to activate a cue by it's shortcut code"
     print("SC code " + code)
     if not limitScene:
@@ -2706,10 +2713,11 @@ def shortcutCode(code, limitScene=None):
                 try:
                     x = i.scene()
                     if limitScene:
-                        if (not x is limitScene) and not (x.name == limitScene):
+                        if (x is not limitScene) and not (x.name == limitScene):
                             print("skip " + x.name, limitScene)
                             continue
-                        x.event("shortcut." + str(code)[:64])
+                        if x is not exclude:
+                            x.event("shortcut." + str(code)[:64])
 
                     if x:
                         x.go()
@@ -2745,6 +2753,7 @@ cueDefaults = {
     "values": {},
     "soundVolume": 1,
     "soundLoops": 0,
+    "triggerShortcut": "",
     "namedForSound": False,
 }
 
@@ -2788,6 +2797,7 @@ class Cue:
         "soundLoops",
         "namedForSound",
         "probability",
+        "triggerShortcut",
         "__weakref__",
     ]
 
@@ -2827,11 +2837,13 @@ class Cue:
         soundLoops=0,
         namedForSound=False,
         probability="",
+        triggerShortcut="",
         **kw
     ):
         # This is so we can loop through them and push to gui
         self.id = uuid.uuid4().hex
         self.name = name
+        self.triggerShortcut = triggerShortcut
 
         # Now unused
         # self.script = script
@@ -2919,6 +2931,7 @@ class Cue:
             "soundVolume": self.soundVolume,
             "soundLoops": self.soundLoops,
             "namedForSound": self.namedForSound,
+            "triggerShortcut": self.triggerShortcut,
         }
 
         # Cleanup defaults
@@ -4003,7 +4016,9 @@ class Scene:
 
                         else:
                             self.event("error", "File does not exist: " + sound)
-
+                sc = self.cues[cue].triggerShortcut.strip()
+                if sc:
+                    shortcutCode(sc, exclude=self)
                 self.cue = self.cues[cue]
                 self.cueTagClaim.set(self.cues[cue].name, annotation="SceneObject")
 

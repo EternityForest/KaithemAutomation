@@ -66,6 +66,24 @@ PIHOSTNAME.local:8002 using your RasPi username and Password, kaithem will run a
 If you want to change that default page, go to the Kaithem Settings and set the homepage to redirect to your URL of choice(Use PIHOSTNAME.local:8002 /index to get back to the real homepage)
 
 
+
+### Connecting Multiple Servers
+
+Most Kaithem features that can do this, rely on MQTT, as per the "No reinvented wheels" philosophy.  To set up an MQTT server,
+do this as root.  Using encryption with MQTT is harder, but many tutorials exist.  MQTT in Kaithem is powered by Paho-MQTT.
+
+```
+apt-get -y install mosquitto
+
+cat << "EOF" >> /etc/mosquitto/conf.d/kaithem.conf
+persistance false
+allow_anonymous true
+EOF
+
+systemctl restart mosquitto.service
+```
+
+
 ### Instant digital signage
 
 If you are trying to do digital signage, go to Settings > File Manager(Public webserver files) and upload a .mp4 file.
@@ -201,6 +219,17 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.70.0
+
+- :bug: Fix bogus "sound did not report as playing" message
+- :sparkles: "Make file publically acessible" option in the upload for file resources.
+- :bug: Fix disabling resource serving
+- :sparkles: Dmesg viewer
+- :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
+- :bug: Improve slow/hanging shutdown
+- :bug: Fix Mixer processes hanging around when they should not be
+
 
 ### 0.69.20
 

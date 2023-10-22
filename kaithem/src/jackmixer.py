@@ -404,6 +404,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         line = [
             "mpv",
             command,
+            "--profile=low-latency",
+            "--no-cache",
             "--ao=jack",
             "--jack-port=" + self.name + "_in",
             "--jack-name=" + n,

@@ -136,7 +136,9 @@ class Web():
 
     @cherrypy.expose
     def default(self, path, **kwargs):
-        if not path==['webmediadisplay']:
+        if path==['webmediadisplay']:
+            pass
+        else:
             pages.require('users.chandler.admin')
         if '.' not in path:
             path = path + '.html'

@@ -2,7 +2,7 @@ Change Log
 ----------
 
 
-### 0.69.21
+### 0.70.0
 
 - :bug: Fix bogus "sound did not report as playing" message
 - :sparkles: "Make file publically acessible" option in the upload for file resources.
@@ -11,7 +11,9 @@ Change Log
 - :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
 - :bug: Improve slow/hanging shutdown
 - :bug: Fix Mixer processes hanging around when they should not be
-
+- :sparkles: Let's try to stick to Semantic Versioning for future releases
+- :sparkles: Mixer can now accept m3u and m3u8 URLs as sources(Looped, high latency)
+- :sparkles: Chandler cues have a "Trigger Shortcut" option and will trigger cues in other scenes having that shortcut code.
 
 ### 0.69.20
 
