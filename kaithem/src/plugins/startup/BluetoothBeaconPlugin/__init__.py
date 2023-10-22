@@ -58,6 +58,7 @@ class EspruinoHubBLEClient(devices.Device):
 
 
     def __init__(self, name, data):
+        raise RuntimeError("This plugin not supported till it is rewritten not to use kaithem.mqtt")
         devices.Device.__init__(self, name, data)
 
         try:

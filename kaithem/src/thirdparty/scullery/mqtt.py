@@ -47,16 +47,6 @@ allSubscriptions = {}
 connectionsByBusName = weakref.WeakValueDictionary()
 
 
-def checkIfConnected(c, delay):
-    time.sleep(delay)
-    if not c.isConnected:
-        logging.warning(
-            "An MQTT connection to : "
-            + str(c.server)
-            + " was not connected after "
-            + str(delay)
-            + " seconds of waiting"
-        )
 
 
 def getWeakrefHandlers(self):
@@ -110,23 +100,7 @@ def getWeakrefHandlers(self):
 
 
 # Used to fake a crash fro unit testing purposes
-testCrashOnce = False
 
-
-def makeThread(c, ref):
-    def f2():
-        global testCrashOnce
-        try:
-            if testCrashOnce:
-                testCrashOnce = False
-                raise RuntimeError("Test crash once")
-            c.loop_forever(retry_first_connection=True)
-        except Exception:
-            if ref():
-                ref().onConnectionCrash(traceback.format_exc())
-                logger.exception("MQTT Crash")
-
-    return f2
 
 
 
@@ -252,54 +226,7 @@ class Connection:
 
                     self.configureAlert(alertPriority, alertAck)
 
-                    if paho:
-                        # Ok so the connection is supposed to do this by itself. Some condition can
-                        # Cause the loop to crash and I do not know what!
-                        def reconnect():
-                            try:
-                                if self.connection:
-                                    self.connection.disconnect()
-                            except Exception:
-                                pass
 
-                            self.connection = mqtt.Client()
-                            # We don't want the connection to stringly reference us, that would interfere with GC
-                            on_connect, on_disconnect, on_message = getWeakrefHandlers(
-                                self
-                            )
-
-                            if self.username:
-                                self.username_pw_set(self.username, self.password)
-
-                            self.connection.connect_async(
-                                host, port=port, keepalive=60, bind_address=""
-                            )
-
-                            self.connection.on_connect = on_connect
-                            self.connection.on_disconnect = on_disconnect
-                            self.connection.on_message = on_message
-
-                            self._thread = threading.Thread(
-                                target=makeThread(self.connection, weakref.ref(self)),
-                                name=server + ":" + str(port),
-                                daemon=True,
-                            )
-                            self._thread.start()
-
-                    # Independant hbmqtt implementation
-                    else:
-                        raise RuntimeError("Only Paho is supported at the moment")
-
-                    self.reconnect = reconnect
-
-                    # Actually do the connection.
-                    self.reconnect()
-
-                    # Give it 5 mins before we print a warning.
-                    def f():
-                        checkIfConnected(self, 5)
-
-                    workers.do(f)
                 else:
                     self.connection = None
                     self.configureAlert(alertPriority, alertAck)

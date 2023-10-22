@@ -652,6 +652,8 @@ ${lists}
                         title="This cue has rules attatched" v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
                             class="icofont-law-document"></i></span>
                 </button>
+                <p  class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
+
 
                 <p class="buttonbar" v-if="!i[1].utility">
                     <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
@@ -743,9 +745,11 @@ ${lists}
                 <button class="stopbutton" v-on:click="stop(scenename)"><i
                         class="icofont-ui-play-stop"></i>Stop</button>
                 <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
-            </p>
+            </p>            
+            
+            <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
 
-            <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
+
         </div>
 
 
@@ -1537,10 +1541,19 @@ ${lists}
                         v-model="editingScene.crossfade"></input>s
                 </label>
 
+                <details>
+                    <summary>MQTT Features</summary>
                 <label v-if="showAdvancedControls">MQTT Server:
                     <input style="width:25em" v-on:change="setmqtt(scenename,$event.target.value)"
                         v-model="editingScene.mqttServer"></input>
                 </label>
+
+                <label v-if="showAdvancedControls">Sync Cue Transitions:
+                    <input type="checkbox" v-on:change="setmqttfeature(scenename,'cuechange',$event.target.value)"
+                        v-model="editingScene.mqttSyncFeatures.cuechange"></input>
+                </label>
+
+                </details>
 
                 <label v-if="showAdvancedControls">Slideshow Overlay:
                     <input style="width:25em" v-on:change="setSceneSlideOverlay(scenename,$event.target.value)"

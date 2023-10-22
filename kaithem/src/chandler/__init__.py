@@ -25,8 +25,10 @@ from . import core
 from . import universes
 from . import blendmodes
 from . import fixtureslib
-
+from . import mqtt
 import recur
+
+
 
 
 def ease(x):
@@ -1409,6 +1411,7 @@ class ChandlerConsole:
                 "started": scene.started,
                 "enteredCue": scene.enteredCue,
                 "backtrack": scene.backtrack,
+                "mqttSyncFeatures": scene.mqttSyncFeatures,
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
                 "cuelen": scene.cuelen,
                 "midiSource": scene.midiSource,
@@ -2281,6 +2284,10 @@ class ChandlerConsole:
             elif msg[0] == "setbacktrack":
                 core.scenes[msg[1]].setBacktrack(bool(msg[2]))
                 self.pushMeta(msg[1], keys={"backtrack"})
+
+            elif msg[0] == "setmqttfeature":
+                core.scenes[msg[1]].setMQTTFeature(msg[2], bool(msg[3]))
+                self.pushMeta(msg[1], keys={"mqttSyncFeatures"})
 
             elif msg[0] == "setscenesoundout":
                 core.scenes[msg[1]].soundOutput = msg[2]
@@ -3184,6 +3191,7 @@ class Scene:
         commandTag="",
         slideOverlayURL="",
         musicVisualizations="",
+        mqttSyncFeatures=None,
         **ignoredParams
     ):
         if name and name in core.scenes_by_name:
@@ -3195,6 +3203,9 @@ class Scene:
         self.mqttConnection = None
 
         disallow_special(name)
+
+        self.mqttSyncFeatures  = mqttSyncFeatures or {}
+        self.mqttNodeSessionID = base64.b64encode(os.urandom(8)).decode()
 
         self.eventButtons = eventButtons[:]
         self.infoDisplay = infoDisplay
@@ -3444,6 +3455,7 @@ class Scene:
             "blend": self.blend,
             "blendArgs": self.blendArgs,
             "backtrack": self.backtrack,
+            "mqttSyncFeatures": self.mqttSyncFeatures,
             "soundOutput": self.soundOutput,
             "slideOverlayURL": self.slideOverlayURL,
             "eventButtons": self.eventButtons,
@@ -3466,7 +3478,7 @@ class Scene:
     def getStatusString(self):
         x = ""
         if self.mqttConnection:
-            if not self.mqttConnection.statusTag.value == "connected":
+            if not self.mqttConnection.is_connected:
                 x += "MQTT Disconnected "
         return x
 
@@ -3701,7 +3713,7 @@ class Scene:
 
         cue = cue.split("?")[0]
 
-        if not cue in self.cues:
+        if cue not in self.cues:
             try:
                 cue = float(cue)
             except Exception:
@@ -3740,6 +3752,18 @@ class Scene:
 
         self.scriptContext.setVar("KWARGS", kwargs)
 
+        t = time.time()
+
+        if cue in self.cues:
+            if self.mqttSyncFeatures.get("cuechange",False):
+                topic = f"/kaithem/chandler/scenes/{self.name}/cue"
+                m ={
+                    'time': t,
+                    "cue": cue,
+                    "senderSessionID": self.mqttNodeSessionID
+                }
+                self.sendMqttMessage(topic,m)
+
         with core.lock:
             with self.lock:
                 if not self.active:
@@ -3773,7 +3797,7 @@ class Scene:
                     self.cue = self.cues["default"]
                     self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
-                self.enteredCue = time.time()
+                self.enteredCue = t
 
                 # Allow specifying an "Exact" time to enter for zero-drift stuff, so things stay in sync
                 # I don't know if it's fully correct to set the timestamp before exit...
@@ -4338,7 +4362,26 @@ class Scene:
         except Exception:
             self.event("$mqtt:" + topic, message)
 
+    def onCueSyncMessage(self, topic, message):
+        if self.mqttSyncFeatures.get("cuechange",False):
+            m = json.loads(message)
+
+            if not self.mqttNodeSessionID == m['senderSessionID']:
+                if not m['time'] < (time.time()-15):
+                    # Just ignore cues that do not have a sync match
+                    if m['cue'] in self.cues:
+                        self.gotoCue(m['cue'], t=m['time'], sendSync=False, cause="MQTT Sync")
+
+
+
     def doMqttSubscriptions(self, keepUnused=120):
+        if self.mqttConnection:
+            if self.mqttSyncFeatures.get("cuechange",False):
+                self.mqttConnection.subscribe(
+                    f"/kaithem/chandler/scenes/{self.name}/cue"
+                )
+                                        
+
         if self.mqttConnection and self.scriptContext:
             # Subscribe to everything we aren't subscribed to
             for i in self.scriptContext.eventListeners:
@@ -4346,7 +4389,7 @@ class Scene:
                     x = i.split(":", 1)
                     if not x[1] in self.mqttSubscribed:
                         self.mqttConnection.subscribe(
-                            x[1], self.onMqttMessage, encoding="raw"
+                            x[1]
                         )
                         self.mqttSubscribed[x[1]] = True
 
@@ -4360,7 +4403,7 @@ class Scene:
                         continue
                     elif self.unusedMqttTopics[i] > time.monotonic() - keepUnused:
                         continue
-                    self.mqttConnection.unsubscribe(i, self.onMqttMessage)
+                    self.mqttConnection.unsubscribe(i)
                     del self.unusedMqttTopics[i]
                     torm.append(i)
                 else:
@@ -4370,20 +4413,11 @@ class Scene:
             for i in torm:
                 del self.mqttSubscribed[i]
 
-    def clearMQTT(self, keepUnused=120):
-        if self.mqttConnection and self.scriptContext:
-            torm = []
-
-            for i in self.mqttSubscribed:
-                self.mqttConnection.unsubscribe(i, self.onMqttMessage)
-                torm.append(i)
-
-            for i in torm:
-                del self.mqttSubscribed[i]
 
     def sendMqttMessage(self, topic, message):
         "JSON encodes message, and publishes it to the scene's MQTT server"
-        self.mqttConnection.publish(topic, message, encoding="json")
+        if self.mqttConnection:
+            self.mqttConnection.publish(topic, json.dumps(message))
 
     def clearDisplayTags(self):
         with core.lock:
@@ -4601,46 +4635,57 @@ class Scene:
     @typechecked
     def setMqttServer(self, mqttServer: str):
         with self.lock:
-            x = mqttServer.split(":")
+            x = mqttServer.strip().split(":")
             server = x[0]
             if len(x) > 1:
-                port = int(x[1])
+                port = int(x[-1])
+                server = x[-2]
             else:
                 port = 1883
 
             if mqttServer == self.activeMqttServer:
                 return
 
-            # Do after so we can get the err on bad format first
-            self.mqttServer = self.activeMqttServer = mqttServer
-
             self.unusedMqttTopics = {}
+
+            if self.mqttConnection:
+                self.mqttConnection.disconnect()
+                self.mqttConnection = None
+
             if mqttServer:
                 if self in core.activeScenes:
-                    # Get rid of old before we change over to new
-                    if self.mqttConnection:
-                        self.clearMQTT()
+                    class Connection(mqtt.MQTTConnection):
+                        def on_connect(s):
+                            self.event("board.mqtt.connected")
+                            return super().on_connect()
+                        
+                        def on_disconnect(s):
+                            self.event("board.mqtt.disconnected")
+                            if self.mqttServer:
+                                self.event("board.mqtt.error","Disconnected")
+                            return super().on_disconnect()
 
-                    self.mqttConnection = None
-                    self.mqttConnection = kaithem.mqtt.Connection(
+                        def on_message(s, t, m):
+                            if t == f"/kaithem/chandler/scenes/{self.name}/cue":
+                                self.onCueSyncMessage(t, m)
+                            
+                            self.onMqttMessage(t, m)
+
+                            return super().on_message(t, m)
+                     
+                    self.mqttConnection = Connection(
                         server,
                         port,
-                        alertPriority="warning",
-                        connectionID=str(uuid.uuid4()),
                     )
+
                     self.mqttSubscribed = {}
-
-                    t = self.mqttConnection.statusTag
-
-                    if t.value:
-                        self.event("board.mqtt.connect")
-                    else:
-                        self.event("board.mqtt.disconnect")
-                    t.subscribe(self.mqttStatusEvent)
 
             else:
                 self.mqttConnection = None
                 self.mqttSubscribed = {}
+
+            # Do after so we can get the err on bad format first
+            self.mqttServer = self.activeMqttServer = mqttServer
 
             self.doMqttSubscriptions()
 
@@ -4659,6 +4704,17 @@ class Scene:
             core.scenes_by_name[name] = self
             self.hasNewInfo = {}
             self.scriptContext.setVar("SCENE", self.name)
+
+
+    def setMQTTFeature(self, feature, state):
+        if state:
+            self.mqttSyncFeatures[feature] = True
+        else:
+            self.mqttSyncFeatures.pop(feature, None)
+        self.hasNewInfo = {}
+        self.doMqttSubscriptions()
+
+
 
     def setBacktrack(self, b):
         b = bool(b)

@@ -1079,6 +1079,10 @@ appData = {
         appData.scenemeta[sc].mqttServer = v;
         api_link.send(['setMqttServer', sc, v]);
     },
+
+    "setmqttfeature": function (sc, feature, v) {
+        api_link.send(['setmqttfeature', sc, feature, v]);
+    },
     'setmidi': function (sc, v) {
 
         appData.scenemeta[sc].midiSource = v;

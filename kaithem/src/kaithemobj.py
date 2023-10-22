@@ -165,19 +165,6 @@ class Kaithem():
             import pylogginghandler
             pylogginghandler.syslogger.flush()
 
-    class mqtt(object):
-        @staticmethod
-        def Connection(server, port=1883, password=None, alertPriority="info", alertAck=True, messageBusName=None, connectionID=None):
-            from . import mqtt as mqttPatch
-            from scullery import mqtt
-            return mqtt.getConnection(server=server, port=port, password=password, alertPriority=alertPriority, alertAck=alertAck, messageBusName=messageBusName, connectionID=connectionID)
-
-        @staticmethod
-        def listConnections():
-            from . import mqtt as mqttPatch
-            from scullery import mqtt
-            return mqttPatch.listConnections()
-
     class misc(object):
 
         version = version_info.__version__
