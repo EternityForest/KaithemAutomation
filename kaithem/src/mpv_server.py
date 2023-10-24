@@ -1,5 +1,5 @@
 from thirdparty import jsonrpyc
-from thirdparty import python_mpv_jsonipc as mpv
+import python_mpv_jsonipc as mpv
 
 import os
 import sys

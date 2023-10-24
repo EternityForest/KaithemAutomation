@@ -22,6 +22,10 @@ def package_files(directory, ext=""):
     return paths
 
 
+with open('requirements.txt') as f:
+    frozen_requirements = f.read().splitlines()
+
+
 extra_files = (
     package_files("kaithem/data/")
     + package_files("kaithem/src/", "html")
@@ -71,22 +75,5 @@ setup(
             "kaithem._iceflow_server = kaithem.src.thirdparty.scullery.iceflow_server:main",
         ],
     },
-    install_requires=[
-        "numpy>=1.26.0",
-        "Pillow",
-        "tflite-runtime",
-        "JACK-Client",
-        "netifaces",
-        "toml",
-        "evdev",
-        "psutil",
-        "setproctitle",
-        "python-rtmidi",
-        "pyserial",
-        "msgpack",
-        "scipy",
-        "scikit-image",
-        "paho-mqtt",
-        "python-pam",
-    ],
+    install_requires=frozen_requirements,
 )

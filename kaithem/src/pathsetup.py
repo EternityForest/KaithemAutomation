@@ -70,14 +70,23 @@ def setupPath(linuxpackage=None, force_local=False):
     startupPluginsPath = os.path.join(x, 'plugins', 'startup')
     sys.path = sys.path + [os.path.join(x, 'plugins', 'lowpriority')]
 
-    # There is actually a very good reason to change the import path here.
-    # It means we can refer to an installed copy of a library by the same name
-    # We use for the copy we include. Normally we use our version.
-    # If not, it will fall back to theirs.
-    sys.path = [os.path.join(x, 'thirdparty')] + sys.path
 
-    # Low priority modules will default to using the version installed on the user's computer.
-    sys.path = sys.path + [os.path.join(x, 'thirdparty', "lowpriority")]
+
+    # With snaps, lets not use this style of including the packages.
+    # Perhaps we'll totally leave it behind later!
+    if not os.path.normpath(__file__).startswith("/snap"):
+        sys.path = [os.path.join(x, 'thirdparty')] + sys.path
+
+        # Low priority modules will default to using the version installed on the user's computer.
+        sys.path = sys.path + [os.path.join(x, 'thirdparty', "lowpriority")]
+
+    else:
+        # Still a few old things we need in Thirdparty
+        sys.path = sys.path + [os.path.join(x, 'thirdparty')]
+
+        # Low priority modules will default to using the version installed on the user's computer.
+        sys.path = sys.path + [os.path.join(x, 'thirdparty', "lowpriority")]
+
 
 
     # Consider using importlib.util.module_for_loader() to handle

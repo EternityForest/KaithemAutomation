@@ -1,2 +1,0 @@
-I renamed a file to __init__.py to fit with kaithem's third party folder structure.
--Kaithem Author

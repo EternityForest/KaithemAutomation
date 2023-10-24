@@ -194,7 +194,7 @@ def cleanup():
 
 class Alert():
     @typechecked
-    def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: Union[int, float] = 0, autoAck: bool = False,
+    def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: Union[int, float] = 0, autoAck: Union[bool,float,int] = False,
                  permissions: list = [], ackPermissions: list = [], id=None, description: str = "", silent: bool = False
                  ):
         """

@@ -63,6 +63,10 @@ else:
     if vardir.startswith('/usr') or vardir.startswith('/nix'):
         vardir = os.path.expanduser("~/kaithem")
 
+    # Override the default for snaps
+    if vardir.startswith('/snap/'):
+        if not config['site-data-dir'].startswith("~") or config['site-data-dir'].startswith("/"):
+            vardir = os.path.expanduser("~/"+config['site-data-dir'])
 
 
     datadir = os.path.normpath(os.path.join(dn, '../data'))

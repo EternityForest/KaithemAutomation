@@ -22,6 +22,19 @@ import http.cookies
 
 import sys
 import re
+import os
+
+def test_access(i):
+    try:
+        os.listdir(i)
+        return True
+    except Exception:
+        return False
+
+
+original_path = sys.path
+# Snapcraft is putting in nonsense path entries
+sys.path = [i for i in sys.path if test_access(i)]
 
 
 #Whatever it used to be was way too high and causingh seg faults if you mess up
@@ -34,6 +47,7 @@ try:
     collections.Callable = collections.abc.Callable
     collections.MutableMapping = collections.abc.MutableMapping
     collections.Mapping = collections.abc.Mapping
+    collections.Iterable = collections.abc.Iterable
 except Exception:
     pass
 

@@ -304,7 +304,7 @@ errtag.subtype = 'bool'
 
 @scheduling.scheduler.everyHour
 def checkDmesg():
-    t = subprocess.check_output(['dmesg']).decode()
+    t = subprocess.check_output(['journalctl -k']).decode()
     if "i/o error" in t.lower():
         errtag.value = 1
 checkDmesg()
