@@ -8,3 +8,5 @@ dist/**
 
 # This is for when building under nix
 result/**
+
+.venv/**

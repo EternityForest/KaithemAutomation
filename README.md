@@ -158,6 +158,19 @@ This will make ALL jack apps go through pipewire, you won't ever need to launch 
 I'm not sure why you would ever want to use the original JACK server, so this shouldn't cause any issues.
 
 
+### VSCode Dev
+In the VS code terminal in the root of the project
+
+```bash
+virtualenv --system-site-packages .venv
+source .venv/bin/activate
+pip install -r requirements_frozen.txt 
+```
+
+Ctrl-shift-p, select the interpreter in the venv.
+
+dev_run.py can be your entry point for debug.
+
 ### Debugging
 
 It shouldn't happen, but if things get real messed up, use SIGUSR1 to dump hte state of all threads to /dev/shm/

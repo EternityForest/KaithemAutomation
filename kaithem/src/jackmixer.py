@@ -50,19 +50,6 @@ presetsDir = os.path.join(directories.mixerdir, "presets")
 
 recorder = None
 
-# Try to import a cython extension that only works on Linux
-try:
-    from . import threadpriority
-
-    setPriority = threadpriority.setThreadPriority
-except Exception:
-    log.exception("Cython import failed, gstreamer realtime priority is disabled")
-
-    def setPriority(p, po):
-        return None
-
-
-gstwrapper.Pipeline.setCurrentThreadPriority = setPriority
 
 
 def replaceClientNameForDisplay(i):
