@@ -330,6 +330,7 @@ appData = {
     },
 
     'showDMXSetup': false,
+    'showPresets': false,
     'showsceneoptions': false,
     'scenetab': 'cue',
     'configuredUniverses':
@@ -499,6 +500,17 @@ appData = {
     },
 
 
+    'lookupFixtureType': function (f)
+    {
+        for (i in appData.fixtureAssignments) {
+            if (appData.fixtureAssignments[i].name = f)
+            {
+                return appData.fixtureAssignments[i].type;    
+            }
+        }
+        return '';
+    },
+
     'addFixtureAssignment': function (name, t, univ, addr) {
         if (!name) {
             return;
@@ -560,17 +572,21 @@ appData = {
             appData.selectedFixtureType = '';
         }
     },
-    'dictView': function (dict, sorts) {
+    'dictView': function (dict, sorts, filterf) {
         //Given a dict  and a list of sort keys sorts,
-        //return a list of [key,value] pairs sorted by the sort 
+        //return a list of [key,value] pairs sorted by the sort
         //keys. Earlier sort keys take precendence.
+        
+        // the lowest precedence sort key is the actual dict key.
 
         //Keys starting with ! are interpreted as meanng to sort in descending order
 
         var o = []
         Object.keys(dict).forEach(
             function (key, index) {
-                o.push([key, dict[key]])
+                if (filterf == undefined || filterf(key, dict[key])) {
+                    o.push([key, dict[key]])
+                }
             })
 
         var l = []
@@ -597,10 +613,16 @@ appData = {
                 }
 
             }
+            // Fallback sort is the keys themselves
+            if (a[0] != b[0])
+            {
+                return (a[0] > b[0])? 1 : -1
+            }
             return 0
         });
         return (o)
     },
+
 
     'formatScenes': function () {
         return appData.dictView(appData.scenemeta, [
@@ -750,7 +772,60 @@ appData = {
     //We must track faders the user is actively touching so new data doesn't
     //Annoy you jumping them around
     'lockedFaders': {},
+    'presets': {},
 
+
+
+    'deletePreset': function (p) {
+        if (confirm("Really Delete"))
+        {
+            delete appData.presets[p];    
+            api_link.send(['preset', p, None]);
+
+        }
+    },
+
+
+    'renamePreset': function (p) {
+        var n = prompt("Preset Name?")
+
+        if (n && n.length)
+        {
+            var b = appData.presets[p]
+            if (b) {
+                delete appData.presets[p];
+                api_link.send(['preset', p, None]);
+
+                appData.presets[n] = b;
+                api_link.send(['preset', n, b]);
+            }
+        }
+    },
+
+    'savePreset': function (v) {
+        /*Prompt saving data from the cuevals dict as a preset*/
+        var v2 = {}
+
+        // Just the vals
+        for (i in v) {
+            v2[i] = v[i].v
+        }
+
+        var n = prompt("Preset Name?")
+
+        if (n && n.length)
+        {
+            appData.presets[n] = v2;
+            api_link.send(['preset', n, v2]);
+
+        }
+    },
+
+    'updatePreset': function (i,v) {
+        /*Update given a name and the modified data as would be found in the presets file*/
+        appData.presets[i] = v;
+        api_link.send(['preset', i, v]);    
+    },
     'recomputeformattedCues': function () {
         appData.formatCues(0)
 
@@ -777,9 +852,10 @@ appData = {
     'setFixturePreset': function (sc, fix, preset) {
         for (i in appData.cuevals[sc][fix])
         {
-            if (!(preset[i] == undefined))
+            if ((!(preset[i] == undefined)) && preset[i].toString().length)
                 {
-                    api_link.send(['scv', sc, fix, i, preset[i]]);
+                api_link.send(['scv', sc, fix, i, preset[i]]);
+                appData.cuevals[sc][fix][i].v = preset[i]
                 }
             
         }
@@ -1471,6 +1547,11 @@ function f(v) {
         Vue.set(appData.fixtureClasses, v[1], v[2])
     }
 
+    else if (c == "fixtureascode") {
+
+        appData.fixturescode = v[1]
+    }
+
     if (c == "fixtureAssignments") {
 
         appData.fixtureAssignments = v[1]
@@ -1489,14 +1570,18 @@ function f(v) {
         appData.allScenes.push([v[1], v[2]])
     }
     if (c == 'soundfolderlisting') {
-        if (v[1] == appData.soundfilesdir) {gas
+        if (v[1] == appData.soundfilesdir) {
             appData.soundfileslisting = v[2]
         }
+    }
+
+    if (c == 'presets') {
+        appData.presets = v[1]
     }
 }
 
 
-
+boardapi_msghandler = f
 api_link.upd = f
 api_link.send(['gasd']);
 api_link.send(['getCommands']);

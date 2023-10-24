@@ -221,7 +221,7 @@ ${lists}
 
 
         <div class="menubar buttonbar">
-
+            <button v-on:click="showPresets=!showPresets"><i class="icofont-nope"></i>Presets</button>
             <button v-on:click="showDMXSetup=!showDMXSetup"><i class="icofont-globe"></i>Universes</button>
             <button v-on:click="showhidefixtures"><i class="icofont-pencil"></i> Fixture Types</button>
             <button v-on:click="showhidefixtureassignments"><i class="icofont-light-bulb"></i>Fixtures</button>
@@ -279,6 +279,35 @@ ${lists}
 
 
 
+    <div v-if="showPresets" class="sectionbox flex-item" style="width: 32em;">
+        <h3>Presets<button v-on:click="showPresets=0">
+            <i class="icofont-ui-close"></i>Close</button>
+        </h3>
+        <details class="help">
+            <summary>Help</summary>
+            A preset is a set of values that may be quickly applied to any feature.
+            Create them in the cue values section. They are loaded and saved with the "setup" file.
+            Empty fields in a preset have no effect, they leave that value alone, so you can, for example,
+            make a preset that sets the color without setting the XY values.
+        </details>
+        <dl>
+            <template v-for="ps, i of dictView(presets,[])">
+            <dt>
+                <div class="buttonbar">
+                <h4>{{ps[0]}}</h4>
+                <button v-on:click="deletePreset(ps[0])"><i class="icofont-trash"></i>Delete</button>
+                <button v-on:click="renamePreset(ps[0])"><i class="icofont-pencil"></i>Rename</button>
+            </div>
+            </dt>
+            <dd style="display: flex; flex-wrap: wrap;">
+                <label v-for="val, field of ps[1]">
+                    {{field}}<input v-model="ps[1][field]" v-on:change="ps[1][field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
+                </label>
+            </dd>
+            </template>
+
+        </dl>
+    </div>
 
     <div v-if="showDMXSetup" class="sectionbox flex-item">
         <h3>
@@ -910,8 +939,14 @@ ${lists}
 
                     <article class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'"
                         style="border-style:solid">
-                        <h4>{{fname}}</h4>
-
+                        <div class="buttonbar" v-if="editingScene.blend!='monitor'">
+                            <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
+                            <select v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
+                                <option value="__dummy__">Presets</option>
+                                <option v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})" :value="ps[0]">{{ps[0]}}</option>
+                            </select>
+                            <button v-on:click="savePreset(h)">Save</button>
+                        </div>
                         <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
                             <i class="icofont-trash"></i>
                         </button>
@@ -1953,290 +1988,8 @@ ${lists}
 
         function f(v) {
             c = v[0]
-
-            if (c == 'scenetimers') {
-                appData.scenemeta[v[1]].timers = v[2]
-            }
-            if (c == 'cuehistory') {
-                appData.scenemeta[v[1]].history = v[2]
-            }
-            if (c == "scenemeta") {
-                if (v[2].cue) {
-                    if (appData.cuemeta[v[2].cue] == undefined) {
-                        appData.getcuemeta(v[2].cue)
-                    }
-                }
-
-                if (v[2].alpha != undefined) {
-                    if (!appData.lockedFaders[v[1]]) {
-                        Vue.set(appData.alphas, v[1], v[2].alpha);
-                    }
-                }
-
-                //Just update existing data if we can
-                if (appData.scenemeta[v[1]]) {
-                    Object.assign(appData.scenemeta[v[1]], v[2])
-                }
-                else {
-                    var meta = v[2];
-                    set(appData.scenemeta, v[1], meta);
-                }
-
-                if (appData.selectedCues[v[1]] == undefined) {
-                    Vue.set(appData.selectedCues, v[1], 'default')
-                }
-                //Make an empty list of cues as a placeholder till the real data arrives
-                if (appData.scenecues[v[1]] == undefined) {
-                    Vue.set(appData.scenecues, v[1], {});
-                };
-            }
-
-            if (c == "cuemeta") {
-                //Make an empty list of cues if it's not there yet
-                if (appData.scenecues[v[2].scene] == undefined) {
-                    Vue.set(appData.scenecues, v[2].scene, {});
-                };
-                Vue.set(appData.scenecues[v[2].scene], v[2].name, v[1]);
-
-
-                //Make an empty list of cues as a placeholder till the real data arrives
-                if (appData.cuemeta[v[1]] == undefined) {
-                    Vue.set(appData.cuemeta, v[1], {});
-                };
-                set(appData.cuemeta, v[1], v[2]);
-                appData.recomputeformattedCues();
-
-            }
-
-            if (c == "event") {
-
-                appData.evlog.push(v[1])
-                if (appData.evlog.length > 250) {
-                    appData.evlog = appData.evlog.slice(-250)
-                }
-
-                if (v[1][0].includes("error")) {
-                    appData.showevents = true;
-                }
-
-                if (appData.showevents) {
-                    if (appData.eventlogautoscroll) {
-                        var d = document.getElementById('eventlogbox');
-                        var isscrolled = d.scrollTop + d.clientHeight + 35 >= d.scrollHeight;
-
-                        if (isscrolled) {
-                            setTimeout(function () {
-                                if (d) {
-
-                                    d.scrollTop = d.scrollHeight;
-
-                                }
-                            }, 150)
-                        }
-
-                    }
-
-                }
-                var element = document.getElementById('eventlogbox_scene');
-
-                if (element) {
-                    setTimeout(function () {
-                        if (element) {
-                            element.scrollTop = element.scrollHeight - element.clientHeight;
-                        }
-                    }, 150)
-                }
-            }
-            if (c == "serports") {
-                appData.serports = v[1]
-            }
-            if (c == 'confuniverses') {
-                appData.configuredUniverses = v[1]
-            }
-            if (c == 'universe_status') {
-                appData.universes[v[1]].status = v[2]
-                appData.universes[v[1]].ok = v[3]
-                appData.universes[v[1]].telemetry = v[4]
-            }
-
-            if (c == "varchange") {
-                appData.scenemeta[v[1]]['vars'][v[2]] = v[3]
-            }
-            if (c == "delcue") {
-                c = appData.cuemeta[v[1]]
-                Vue.delete(appData.cuemeta, v[1]);
-                Vue.delete(appData.cuevals, v[1]);
-                Vue.delete(appData.scenecues[c.scene], c.name);
-                appData.recomputeformattedCues();
-            }
-
-            if (c == "cnames") {
-                Vue.set(appData.channelNames, v[1], v[2])
-            }
-            if (c == "universes") {
-                appData.universes = v[1]
-            }
-            if (c == "soundoutputs") {
-                appData.soundCards = v[1]
-            }
-
-            if (c == 'soundsearchresults') {
-                if (appData.soundsearch == v[1]) {
-                    appData.soundsearchresults = v[2]
-                }
-            }
-            if (c == 'scenecues') {
-                //Scenecues only gives us cue number and id info.
-                //So if the data isn't in cuemeta, fill in what we can
-                d = v[2]
-                for (i in v[2]) {
-                    if (appData.cuemeta[d[i][0]] == undefined) {
-                        Vue.set(appData.cuemeta, d[i][0],
-                            {
-                                'name': i,
-                                'number': d[
-                                    i][1]
-                            })
-                    }
-
-                    //Make the empty list
-                    if (appData.scenecues[v[1]] == undefined) {
-                        Vue.set(appData.scenecues, v[1], {});
-                    };
-
-
-                    Vue.set(appData.scenecues[v[1]], i, d[i][0])
-                }
-                appData.recomputeformattedCues();
-            }
-            if (c == "cuedata") {
-                d = {}
-                Vue.set(appData.cuevals, v[1], d)
-
-                for (i in v[2]) {
-
-                    if (!(i in appData.channelNames)) {
-                        api_link.send(['getcnames', i])
-                    }
-                    Vue.set(appData.cuevals[v[1]], i, {})
-
-                    for (j in v[2][i]) {
-                        y = {
-                            "u": i,
-                            'ch': j,
-                            "v": v[2][i][j]
-                        }
-                        Vue.set(appData.cuevals[v[1]][i], j, y)
-                        //The other 2 don't need to be reactive, v does
-                        Vue.set(y, 'v', v[2][i][j])
-
-                    }
-                }
-                appData.refreshcuedata()
-
-            }
-
-            else if (c == "commands") {
-                appData.availableCommands = v[1]
-            }
-
-            if (c == "scv") {
-                x = []
-
-                cue = v[1]
-                universe = v[2]
-                channel = v[3]
-                value = v[4]
-
-                if (appData.lockedFaders[cue + ":" + universe + ":" + channel] == true) {
-                    return;
-                }
-
-
-                var needRefresh = false;
-                //Empty universe dict
-                if (!appData.cuevals[cue][universe]) {
-
-                    Vue.set(appData.cuevals[cue], universe, {})
-                    needRefresh = 1;
-                }
-
-                if (v[4] !== null) {
-
-                    y = {
-                        "u": universe,
-                        'ch': channel,
-                        "v": value
-                    }
-                    Vue.set(y, 'v', value)
-                    Vue.set(appData.cuevals[cue][universe], channel, y)
-                }
-                else {
-                    Vue.delete(appData.cuevals[cue][universe], channel)
-                    needRefresh = 1;
-                }
-                if (needRefresh) {
-                    appData.refreshcuedata()
-                }
-
-            }
-
-
-            if (c == "go") {
-
-                Vue.set(appData.scenemeta[v[1]], 'active', true)
-
-            }
-            if (c == "stop") {
-
-                Vue.set(appData.scenemeta[v[1]], 'active', false)
-
-            }
-            if (c == "ferrs") {
-
-                appData.ferrs = v[1]
-
-            }
-            if (c == "fixtures") {
-
-                appData.fixtures = v[1]
-
-            }
-            if (c == "fixtureclasses") {
-
-                appData.fixtureClasses = v[1]
-            }
-            if (c == "fixtureclass") {
-
-                Vue.set(appData.fixtureClasses, v[1], v[2])
-            }
-            if (c == "fixtureascode") {
-
-                appData.fixturescode = v[1]
-            }
-
-            if (c == "fixtureAssignments") {
-
-                appData.fixtureAssignments = v[1]
-            }
-
-            if (c == "del") {
-                Vue.delete(appData.selectedCues, v[1])
-                Vue.delete(appData.scenemeta, v[1])
-                Vue.delete(appData.running_scenes, v[1])
-                Vue.delete(appData.mtimes, v[1])
-                appData.editingScene = null
-
-            }
-
-            if (c == "newscene") {
-                appData.allScenes.push([v[1], v[2]])
-            }
-            if (c == 'soundfolderlisting') {
-                if (v[1] == appData.soundfilesdir) {
-                    appData.soundfileslisting = v[2]
-                }
-            }
+            // Handling messages happens in the common shared code
+            boardapi_msghandler(v)
         }
 
 

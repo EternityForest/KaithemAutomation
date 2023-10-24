@@ -919,6 +919,8 @@ class ChandlerConsole:
         self._activeScenes = []
         self.activeScenes = []
 
+        self.presets = {}
+
         # This light board's scene memory, or the set of scenes 'owned' by this board.
         self.scenememory = {}
 
@@ -1095,6 +1097,9 @@ class ChandlerConsole:
         self.refreshFixtures()
         self.createUniverses(self.configuredUniverses)
 
+        if os.path.exists(os.path.join(saveLocation, "presets.yaml")):
+            self.presets = os.path.join(saveLocation, "presets.yaml")
+
     def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
         if not kaithem.users.checkPermission(kaithem.web.user(), "/admin/modules.edit"):
             raise ValueError("You cannot change the setup without /admin/modules.edit")
@@ -1115,12 +1120,17 @@ class ChandlerConsole:
             self.fixtureAssignments = data["fixtures"]
             self.refreshFixtures()
 
+        if "presets" in data:
+            self.presets = data["presets"]
+            self.link.send(["presets", data["presets"]])
+
     def getSetupFile(self):
         with core.lock:
             return {
                 "fixtureTypes": self.fixtureClasses,
                 "universes": self.configuredUniverses,
                 "fixtures": self.fixtureAssignments,
+                "presets": self.fixtureAssignments,
             }
 
     def loadLibraryFile(self, data, _asuser=False, filename=None, errs=False):
@@ -1574,6 +1584,7 @@ class ChandlerConsole:
 
             elif msg[0] == "gasd":
                 with core.lock:
+                    self.link.send(["presets", self.presets])
                     self.pushUniverses()
                     self.pushfixtures()
                     for i in self.scenememory:
@@ -1714,6 +1725,14 @@ class ChandlerConsole:
 
             ###
 
+
+            elif msg[0] == "preset":
+                if msg[2] is None:
+                    self.presets.pop(msg[2], None)
+                else:
+                    self.presets[msg[1]] = msg[2]
+
+
             elif msg[0] == "saveScenes":
                 self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
 
@@ -1742,6 +1761,10 @@ class ChandlerConsole:
 
                 kaithem.persist.save(
                     core.config, os.path.join(saveLocation, "config.yaml")
+                )
+
+                kaithem.persist.save(
+                    self.presets, os.path.join(saveLocation, "presets.yaml")
                 )
 
             elif msg[0] == "saveSetupPreset":

@@ -188,9 +188,10 @@ td {
 button,
 a.button,
 label,
-a {
+a, select
+ {
     font-family: inherit;
-    padding: initial;
+    padding: 6px;
 }
 
 
