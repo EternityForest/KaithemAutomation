@@ -17,7 +17,6 @@
             "type": "python",
             "request": "launch",
             "stopOnEntry": true,
-            "python": "/usr/bin/python3",
             "program": "${file}",
             "cwd": "${workspaceFolder}",
             "env": {

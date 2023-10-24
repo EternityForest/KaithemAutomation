@@ -164,12 +164,13 @@ In the VS code terminal in the root of the project
 ```bash
 virtualenv --system-site-packages .venv
 source .venv/bin/activate
-pip install -r requirements_frozen.txt 
+pip install --ignore-installed -r requirements_frozen.txt 
 ```
 
 Ctrl-shift-p, select the interpreter in the venv.
 
-dev_run.py can be your entry point for debug.
+dev_run.py can be your entry point for debug. If you get weird errors, check your debug launch config and
+make sure it's not overriding the interpreter, because then you would be running outside the virtualenv.
 
 ### Debugging
 
