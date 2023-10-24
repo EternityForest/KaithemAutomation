@@ -8,6 +8,7 @@ import os
 
 refs = []
 
+log = logging.getLogger("system")
 
 def create():
     def civilTwilight():
@@ -77,7 +78,7 @@ def create():
                         if j["time_monotonic"] > time.monotonic() - 1800:
                             return j["ip"]
             except Exception:
-                logging.exception("Err loading cache file")
+                log.exception("Err loading cache file")
 
             import requests
 
@@ -88,7 +89,7 @@ def create():
                 with open("/dev/shm/KaithemCachedPublicIP.json", "w") as f:
                     json.dump({"ip": r.text, "time_monotonic": time.monotonic()}, f)
             except Exception:
-                logging.exception("Err saving cache file")
+                log.exception("Err saving cache file")
 
             ipTag.interval = 3600
             return r.text

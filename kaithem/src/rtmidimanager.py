@@ -108,7 +108,7 @@ def doScan():
             once[0] = 1
         return
 
-    m = rtmidi.RtMidiIn()
+    m = rtmidi.RtMidiIn(rtapi=rtmidi.API_UNIX_JACK)
     torm = []
 
     present = [(i, m.getPortName(i)) for i in range(m.getPortCount())]
@@ -122,7 +122,7 @@ def doScan():
     for i in present:
         if not i in allInputs:
             try:
-                m = rtmidi.RtMidiIn()
+                m = rtmidi.RtMidiIn(rtapi=rtmidi.API_UNIX_JACK)
                 m.openPort(i[0])
 
                 def f(

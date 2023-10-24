@@ -495,12 +495,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 try:
                     jackmanager.connect(i[0], j)
                 except Exception:
-                    logging.exception("Failed to conneect airwire")
+                    log.exception("Failed to conneect airwire")
         for i in self.sendAirwires:
             try:
                 self.sendAirwires[i].connect()
             except Exception:
-                logging.exception("Failed to conneect airwire")
+                log.exception("Failed to conneect airwire")
 
     def stop(self):
         self.stopMPVThread = None
@@ -1068,7 +1068,7 @@ class MixingBoard:
                 break
             except Exception as e:
                 self.channelAlerts[name].trip("Failed to load channel")
-                logging.exception("Failed to create channel, retrying")
+                log.exception("Failed to create channel, retrying")
                 self.pushStatus(name, "failed " + str(e))
                 time.sleep(1 + i)
 
@@ -1198,7 +1198,7 @@ class MixingBoard:
                     persist.load(os.path.join(presetsDir, presetName + ".yaml"))
                 )
             else:
-                logging.error("No such preset " + str(presetName))
+                log.error("No such preset " + str(presetName))
 
             self.loadedPreset = presetName
             self.api.send(["loadedPreset", self.loadedPreset])

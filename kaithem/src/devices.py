@@ -38,6 +38,7 @@ import iot_devices.device
 
 # Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
 # edit the state because self modifying devices exist and can be saved in a module
+log = logging.getLogger("system.devices")
 
 
 from .modules_state import additionalTypes
@@ -475,7 +476,7 @@ class Device():
             if time.time() > self.errors[-1][0] + 15:
                 syslogger.error("in device: " + self.name + "\n" + s)
             else:
-                logging.error("in device: " + self.name + "\n" + s)
+                log.error("in device: " + self.name + "\n" + s)
 
         if len(self.errors) > 50:
             self.errors.pop(0)
@@ -525,7 +526,7 @@ class Device():
                     try:
                         self._kBindings[i].unsubscribe(self.tagPoints[i])
                     except Exception:
-                        logging.exception(
+                        log.exception(
                             "Could not unsub. Maybe was never created.")
 
             if hasattr(self, "tagPoints"):
@@ -537,7 +538,7 @@ class Device():
                             try:
                                 t.unsubscribe[i]
                             except Exception:
-                                logging.exception(
+                                log.exception(
                                     "Could not unsub. Maybe was never created.")
 
                     t._kOutputBindings = []
@@ -563,9 +564,9 @@ class Device():
                 try:
                     self.alerts[i].release()
                 except Exception:
-                    logging.exception("Error releasing alerts")
+                    log.exception("Error releasing alerts")
         except Exception:
-            logging.exception("Error releasing alerts")
+            log.exception("Error releasing alerts")
 
     def onDelete(self):
         "Called just before the device is deleted right after closing it."
@@ -657,7 +658,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in device_data:
                 config.update(device_data[name])
         except KeyError:
-            logging.exception(
+            log.exception(
                 'Probably a race condition. Can probably ignore this one.')
 
         with modules_state.modulesLock:
@@ -1658,7 +1659,7 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
             try:
                 desc = iot_devices.host.get_description(data['type'])
             except Exception:
-                logging.exception("err getting description")
+                log.exception("err getting description")
 
             dt = wrapCrossFramework(dt2, desc)
 
@@ -1668,7 +1669,7 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
             dt = UnsupportedDevice
         except Exception:
             dt = UnsupportedDevice
-            logging.exception("Err creating device")
+            log.exception("Err creating device")
             err = traceback.format_exc()
 
     new_data = copy.deepcopy(data)
@@ -1763,7 +1764,7 @@ def configureInputBindings(d):
             try:
                 d._kBindings[i].unsubscribe(d.tagPoints[i])
             except Exception:
-                logging.exception(
+                log.exception(
                     "Could not unsub. Maybe was never created.")
 
     for i in d.tagPoints:
@@ -1774,7 +1775,7 @@ def configureInputBindings(d):
                 try:
                     t.unsubscribe[i]
                 except Exception:
-                    logging.exception(
+                    log.exception(
                         "Could not unsub. Maybe was never created.")
 
         t._kOutputBindings = []
@@ -1846,7 +1847,7 @@ def getDeviceType(t):
             t = iot_devices.host.get_class({'type': t})
             return t or UnsupportedDevice
         except Exception:
-            logging.exception("Could not look up class")
+            log.exception("Could not look up class")
             return UnsupportedDevice
 
 

@@ -24,6 +24,27 @@ import sys
 import re
 import os
 
+
+# This is an utterly horrible workaround for numpy doing bad things to the root logger.
+# We just add code to fix it before use
+# TODO: get rid of this when the bug is gone
+# https://stackoverflow.com/questions/74621871/importing-sklearn-in-databricks-downgrades-the-python-root-logger
+old_log = logging.root
+
+
+def wrap(f):
+    def f2(*a, **k):
+        logging.root = old_log
+        f(*a, **k)
+
+
+logging.exception = wrap(logging.exception)
+logging.error = wrap(logging.error)
+logging.info = wrap(logging.info)
+logging.warning = wrap(logging.warning)
+logging.debug = wrap(logging.debug)
+
+
 def test_access(i):
     try:
         os.listdir(i)
@@ -37,12 +58,13 @@ original_path = sys.path
 sys.path = [i for i in sys.path if test_access(i)]
 
 
-#Whatever it used to be was way too high and causingh seg faults if you mess up
+# Whatever it used to be was way too high and causingh seg faults if you mess up
 sys.setrecursionlimit(256)
 
 # Compatibility with older libraries.
 try:
     import collections.abc
+
     collections.Hashable = collections.abc.Hashable
     collections.Callable = collections.abc.Callable
     collections.MutableMapping = collections.abc.MutableMapping
@@ -54,6 +76,7 @@ except Exception:
 # Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
+
     pthreading.monkey_patch()
 except Exception:
     pass
@@ -61,6 +84,7 @@ except Exception:
 # Dump stuff to stderr when we get a segfault
 try:
     import faulthandler
+
     faulthandler.enable()
 except Exception:
     logger.exception(
@@ -70,51 +94,58 @@ except Exception:
 
 # Python 3.7 doesn't support the samesite attribute, which we need.
 try:
-    http.cookies.Morsel._reserved['samesite'] = 'SameSite'
+    http.cookies.Morsel._reserved["samesite"] = "SameSite"
 except:
-    logging.exception("Samesite enable monkeypatch did not work. It is probably no longer needed on newer pythons, ignore this message")
+    logging.exception(
+        "Samesite enable monkeypatch did not work. It is probably no longer needed on newer pythons, ignore this message"
+    )
 
 threadlogger = logging.getLogger("system.threading")
 
-class rtMidiFixer():
-    def __init__(self,obj):
-        self.__obj=obj
-        
-    def __getattr__(self,attr):
-        if hasattr(self.__obj,attr):
-            return getattr(self.__obj,attr)
-        #Convert from camel to snake API
-        name = re.sub(r'(?<!^)(?=[A-Z])', '_', attr).lower()
-        return getattr(self.__obj,name)
-    
+
+class rtMidiFixer:
+    def __init__(self, obj):
+        self.__obj = obj
+
+    def __getattr__(self, attr):
+        if hasattr(self.__obj, attr):
+            return getattr(self.__obj, attr)
+        # Convert from camel to snake API
+        name = re.sub(r"(?<!^)(?=[A-Z])", "_", attr).lower()
+        return getattr(self.__obj, name)
+
     def delete(self):
-        #Let GC do this
+        # Let GC do this
         pass
-        
+
     def __del__(self):
         try:
             self.__obj.delete()
         except AttributeError:
             self.__obj.close_port()
-        self.__obj=None
-    
+        self.__obj = None
+
+
 try:
     import rtmidi
-    if hasattr(rtmidi,"MidiIn"):
-        def mget(*a,**k):
-            m=rtmidi.MidiIn(*a,**k)
+
+    if hasattr(rtmidi, "MidiIn"):
+
+        def mget(*a, **k):
+            m = rtmidi.MidiIn(*a, **k)
             return rtMidiFixer(m)
-        rtmidi.RtMidiIn =mget
-        
-        
-    if hasattr(rtmidi,"MidiOut"):
-        def moget(*a,**k):
-            m=rtmidi.MidiOut(*a,**k)
+
+        rtmidi.RtMidiIn = mget
+
+    if hasattr(rtmidi, "MidiOut"):
+
+        def moget(*a, **k):
+            m = rtmidi.MidiOut(*a, **k)
             return rtMidiFixer(m)
-        rtmidi.RtMidiOut =moget
+
+        rtmidi.RtMidiOut = moget
 except:
     logging.exception("RtMidi compatibility error")
-
 
 
 def installThreadLogging():
@@ -142,20 +173,47 @@ def installThreadLogging():
                     run_old(*args, **kw)
                 except Exception as e:
                     threadlogger.exception(
-                        "Thread stopping due to exception: "+self.name +  " with ID: " +  str(threading.current_thread().ident))
+                        "Thread stopping due to exception: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
+                    )
                     raise e
             else:
                 try:
-                    threadlogger.info("Thread starting: "+self.name +  " with ID: " +  str(threading.current_thread().ident))
+                    threadlogger.info(
+                        "Thread starting: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
+                    )
                     run_old(*args, **kw)
-                    threadlogger.info("Thread stopping: "+self.name +  " with ID: " +  str(threading.current_thread().ident))
+                    threadlogger.info(
+                        "Thread stopping: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
+                    )
 
                 except Exception as e:
                     threadlogger.exception(
-                        "Thread stopping due to exception: "+self.name +  " with ID: " +  str(threading.current_thread().ident))
+                        "Thread stopping due to exception: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
+                    )
                     from . import messagebus
-                    messagebus.postMessage("/system/notifications/errors","Thread: " + self.name + " with ID: " + str(threading.current_thread().ident) + " stopped due to exception ")
+
+                    messagebus.postMessage(
+                        "/system/notifications/errors",
+                        "Thread: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
+                        + " stopped due to exception ",
+                    )
                     raise e
+
         # Rename thread so debugging works
         try:
             if self._target:
@@ -167,6 +225,8 @@ def installThreadLogging():
             except:
                 pass
         self.run = run_with_except_hook
+
     threading.Thread.__init__ = init
+
 
 installThreadLogging()

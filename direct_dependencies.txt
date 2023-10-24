@@ -2,7 +2,7 @@
 # Can manage the rest.  You should probably be installing requirements_frozen.txt instead
 
 # core features
-numpy>=1.26.0
+numpy>=1.26.1
 cherrypy 
 cheroot
 flask
@@ -12,7 +12,6 @@ astral
 tatsu
 pam
 msgpack
-
 
 zeroconf
 colorzero
@@ -35,7 +34,6 @@ jinja2
 Pillow
 tflite-runtime
 evdev
-scikit-image
 attr
 markupsafe
 upnpclient
@@ -58,3 +56,6 @@ toml
 netifaces
 JACK-Client
 aioesphomeapi
+
+# Older is not compatible with new numpy
+scipy>=1.11.0

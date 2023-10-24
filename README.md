@@ -135,7 +135,7 @@ From inside your Kaithem folder:
 
 ```bash
 source ../kaithem_venv/bin/activate
-python3 dev_run.py
+python3 -m kaithem
 ```
 
 Then visit http://localhost:8002 and log in with your normal Linux username and password.
