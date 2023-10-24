@@ -22,7 +22,7 @@ def package_files(directory, ext=""):
     return paths
 
 
-with open('requirements.txt') as f:
+with open('requirements_frozen.txt') as f:
     frozen_requirements = f.read().splitlines()
 
 

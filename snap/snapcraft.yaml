@@ -11,37 +11,8 @@ parts:
   kaithem:
     plugin: python
     source: .
-    python-packages:
-      - tflite-runtime
-      - aioesphomeapi
-      # These are normally included with kaithem but we don't do that when doing snaps
-      
-      - tornado
-      - cherrypy
-      - flask
-      - mako
-      - python-mpv
-      - pynput
-      - cheroot
-      - autoslot
-      - colorzero
-      - ntplib
-      - ntpserver
-      - onvif
-      - peewee
-      - passlib
-      - pint
-      - tatsu
-      - textdistance
-      - tinytag
-      - toml
-      - typeguard
-      - zeroconf
-      
-    stage-snaps:
-      - mpv
-    
     stage-packages:
+      - mpv
       - python3
       - cython3
       - build-essential
@@ -88,6 +59,27 @@ parts:
       - python3-tornado
       - pipewire-audio-client-libraries
       - python3-opencv
+
+
+  # This part removes all the files in this snap which already exist in
+  # connected content and base snaps. Since these files will be available
+  # at runtime from the content and base snaps, they do not need to be
+  # included in this snap itself.
+  #
+  # More info: https://forum.snapcraft.io/t/reducing-the-size-of-desktop-snaps/17280#heading--cleanup-part
+  #
+  cleanup:
+    after:  # Make this part run last; list all your other parts here
+      - kaithem
+    plugin: nil
+    build-snaps:  # List all content-snaps and base snaps you're using here
+      - core22
+    override-prime: |
+      set -eux
+      for snap in "core22"; do  # List all content-snaps and base snaps you're using here
+          cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$SNAPCRAFT_PRIME/{}" \;
+      done
+
 
 apps:
   kaithem:
