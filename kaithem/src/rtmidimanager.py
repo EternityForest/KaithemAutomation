@@ -147,7 +147,7 @@ def doScan():
 
                 m.setCallback(f)
                 allInputs[i] = (m, f)
-            except:
+            except Exception:
                 print("Can't use MIDI:" + str(i))
 
 

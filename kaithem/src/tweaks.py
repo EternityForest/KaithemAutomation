@@ -36,6 +36,7 @@ def wrap(f):
     def f2(*a, **k):
         logging.root = old_log
         f(*a, **k)
+    return f2
 
 
 logging.exception = wrap(logging.exception)
