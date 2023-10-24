@@ -845,6 +845,7 @@ appData = {
         api_link.send(['getcuehistory', sc]);
     },
     'setCueVal': function (sc, u, ch, val) {
+        val = isNaN(parseFloat(val)) ? val : parseFloat(val)
         this.lockedFaders[sc + ":" + u + ":" + ch] = true;
         api_link.send(['scv', sc, u, ch, val]);
     },
@@ -863,6 +864,7 @@ appData = {
 
 
     'setCueValNolock': function (sc, u, ch, val) {
+        val = isNaN(parseFloat(val)) ? val : parseFloat(val)
         api_link.send(['scv', sc, u, ch, val]);
     },
     'unlockCueValFader': function (sc, u, ch) {

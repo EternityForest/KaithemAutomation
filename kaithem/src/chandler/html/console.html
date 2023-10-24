@@ -221,7 +221,7 @@ ${lists}
 
 
         <div class="menubar buttonbar">
-            <button v-on:click="showPresets=!showPresets"><i class="icofont-nope"></i>Presets</button>
+            <button v-on:click="showPresets=!showPresets"><i class="icofont-paint"></i>Presets</button>
             <button v-on:click="showDMXSetup=!showDMXSetup"><i class="icofont-globe"></i>Universes</button>
             <button v-on:click="showhidefixtures"><i class="icofont-pencil"></i> Fixture Types</button>
             <button v-on:click="showhidefixtureassignments"><i class="icofont-light-bulb"></i>Fixtures</button>
@@ -1916,10 +1916,12 @@ ${lists}
                 }
             },
             'setCueVal': function (sc, u, ch, val) {
+                val = isNaN(parseFloat(val)) ? val : parseFloat(val)
                 appData.lockedFaders[sc + ":" + u + ":" + ch] = true;
                 api_link.send(['scv', sc, u, ch, val]);
             },
             'setCueValNolock': function (sc, u, ch, val) {
+                val = isNaN(parseFloat(val)) ? val : parseFloat(val)
                 api_link.send(['scv', sc, u, ch, val]);
             },
             'unlockCueValFader': function (sc, u, ch) {

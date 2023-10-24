@@ -883,6 +883,9 @@ class ChandlerConsole:
                     self.fixtureAssignments[i[: -len(".yaml")]] = kaithem.persist.load(
                         fn
                     )
+        saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
+        if os.path.exists(os.path.join(saveLocation, "presets.yaml")):
+            self.presets = kaithem.persist.load(os.path.join(saveLocation, "presets.yaml"))
 
         # This used to be a list of [name, fixturetype, startAddress] triples
         if not isinstance(self.fixtureAssignments, dict):
@@ -1098,7 +1101,7 @@ class ChandlerConsole:
         self.createUniverses(self.configuredUniverses)
 
         if os.path.exists(os.path.join(saveLocation, "presets.yaml")):
-            self.presets = os.path.join(saveLocation, "presets.yaml")
+            self.presets = kaithem.persist.load(os.path.join(saveLocation, "presets.yaml"))
 
     def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
         if not kaithem.users.checkPermission(kaithem.web.user(), "/admin/modules.edit"):
@@ -1130,7 +1133,7 @@ class ChandlerConsole:
                 "fixtureTypes": self.fixtureClasses,
                 "universes": self.configuredUniverses,
                 "fixtures": self.fixtureAssignments,
-                "presets": self.fixtureAssignments,
+                "presets": self.presets,
             }
 
     def loadLibraryFile(self, data, _asuser=False, filename=None, errs=False):
@@ -1147,6 +1150,7 @@ class ChandlerConsole:
                 "fixtureTypes": self.fixtureClasses,
                 "universes": self.configuredUniverses,
                 "fixures": self.fixtureAssignments,
+                "presets": self.presets,
             }
 
     def loadSceneFile(self, data, _asuser=False, filename=None, errs=False):
