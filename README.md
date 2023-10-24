@@ -98,60 +98,51 @@ Audio is managed through the Kaithem mixer.  It should work out of the box if yo
 Otherwise if using HDMI, or if you want to remotely adjust volume, go to the mixer and make sure that channel has the output you want selected, and that the input matches Chromium's name. You can also add effects like EQ from this page.  Don't forget to save the setup as the default!
 
 
+## Manual Install in a virtualenv
 
-
-## NixOS
-
-This is a work in progress, but it does in fact run!!
-
-
-## Manual Setup Stuff
-See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run dev_run.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
-
-Kaithem currently requires numpy to be able to run at all. This may change at some point.
-
-
-
-The official tested versions are in requirements.txt.
-
-We log un-frozen dependencies in direct_dependencies.txt. Installing these is not guaranteed to work.
-
-
-Since there are initially no users, one is created using the name and password of the Linux user actually running the app.
-This means you must run kaithem as a user that supports logins.
-
-Note that to clone everything properly you must have git-lfs installed and set up, otherwise you won't get the tflite
-data file needed for video recognition.
-
-To set this up globally, do `sudo apt install git-lfs` then `git lfs install --skip-repo`. No I don't know why
-Git doesn't have this in the core by default.
-
-There are many optional dependancies in the .deb recommended section that enable extra features. All are available in the debian repos and do not need to be compiled, except for Cython, which is installed automatically by the postinstall script of the debian package, or can easily be manually installed with "sudo pip3 install Cython".
-
-At the moment, Cython is only used to give audio mixer gstreamer threads realtime priority.
-
-In particular, everything to do with sound is handled by dependancies, and python3-libnacl and python3-netifaces are recommended as several networking features require them.
-
-Several other audio file players may still work, but the only one supported and suggested is mpv, on Debian provided by mpv and libmpv-dev.
-
-
-## To install all required and optional dependencies 
-
+Install git-lfs if you don't have it, to clone the repo
 ```bash
-sudo apt install scrot mpv python3 cython3 build-essential python3-msgpack python3-future python3-serial  python3-tz  python3-dateutil  lm-sensors  python3-netifaces python3-jack-client  python3-gst-1.0  python3-libnacl  jack-tools  jackd2  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly  python3-psutil  fluidsynth libfluidsynth3  network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev  libbluetooth-dev libcap2-bin rtl-433  python3-toml  python3-rtmidi  gstreamer1.0-opencv  gstreamer1.0-vaapi python3-pillow python3-scipy ffmpeg python3-skimage python3-setproctitle python3-tornado pipewire-audio-client-libraries python3-opencv python3-virtualenv
+sudo apt install git-lfs
+git lfs install --skip-repo
 ```
 
-You will also need Python's tflite_runtime for deep learning image recognition in the NVR.  
-`python3 -m pip install tflite-runtime`  will do it on linux.
 
-You don't need a model! A version of efficientdet-lite0 is included.  Accuracy should be better than the bare
-model itself as we use heuristics to reduce false positives.
+### Install system packages
 
-If you want to use ESPHome, you need to install `pip3 install aioesphomeapi`, as this has non-python dependencies we can't easily incluse, just like tflite-runtime.
+Most of these have to do with audio features, not all are needed.
 
-Both are included by the kioskify script.
+```bash
+sudo apt install scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins baresip gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv
+```
 
-## Sound on Ubuntu
+
+### Actually install Kaithem
+```bash
+sudo apt install python3-virtualenv
+git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
+cd KaithemAutomation
+virtualenv --system-site-packages ../kaithem_venv
+source ../kaithem_venv/bin/activate
+pip install -r requirements_frozen.txt
+```
+
+If you are more adventurous, instead you can install direct_dependencies.py and get the unfrozen versions of everything.
+
+
+### Running Kaithem quickly
+
+From inside your Kaithem folder:
+
+```bash
+source ../kaithem_venv/bin/activate
+python3 dev_run.py
+```
+
+Then visit http://localhost:8002 and log in with your normal Linux username and password.
+
+
+
+### Sound on Ubuntu
 
 Kaithem does not support advanced audio features on anything other than pipewire via the JACK protocol.
 
@@ -162,55 +153,10 @@ systemctl --user restart pipewire-media-session pipewire pipewire-pulse
 sudo cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
 sudo ldconfig
 ```
-
+ewire-audio-client-libraries
 This will make ALL jack apps go through pipewire, you won't ever need to launch jackd.
+I'm not sure why you would ever want to use the original JACK server, so this shouldn't cause any issues.
 
-
-### Systemd service
-
-Ajdust as needed  to point to your paths and users.  Or just use emberos.
-
-Leave of the pw-jack in the front of ExecStart if you do not have PipeWire(If not on a Red Hat system or EmberOS, you likely don't yet as of now)
-
-```ini
-[Unit]
-Description=KaithemAutomation python based automation server
-After=basic.target time-sync.target sysinit.service zigbee2mqtt.service pipewire.service
-
-
-[Service]
-TimeoutStartSec=0
-ExecStart=/usr/bin/bash -o pipefail -c /usr/bin/ember-launch-kaithem
-Restart=on-failure
-RestartSec=15
-OOMScoreAdjust=-800
-Nice=-15
-#Make it try to act like a GUI program if it can because some modules might
-#make use of that.  Note that this is a bad hack hardcoding the UID.
-#Pipewire breaks without it though.
-Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus"
-Environment="XDG_RUNTIME_DIR=/run/user/1000"
-Environment="DISPLAY=:0"
-
-#This may cause some issues but I think it's a better way to go purely because of
-#The fact that we can use PipeWire instead of managing jack, without any conflicts.
-
-#Also, node red runs as pi/user 1000, lets stay standard.
-User=1000
-#Bluetooth scannning and many other things will need this
-#Setting the system time is used for integration with GPS stuff.
-AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_TIME CAP_SYS_NICE
-SecureBits=keep-caps
-
-LimitRTPRIO= 95
-LimitNICE= -20
-LimitMEMLOCK= infinity
-Type=simple
-
-[Install]
-WantedBy=multi-user.target
-
-```
 
 ### Debugging
 
@@ -238,7 +184,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
 - :bug: Improve slow/hanging shutdown
 - :bug: Fix Mixer processes hanging around when they should not be
-
 
 ### 0.69.20
 

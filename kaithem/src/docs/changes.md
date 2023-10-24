@@ -3,6 +3,9 @@ Change Log
 
 
 ### 0.70.0
+This release has some big changes to the install process, but not many to the
+functionality.  Expect a few bugs in the next few versions as we rewrite old code
+to be more in line with best practices.
 
 - :bug: Fix bogus "sound did not report as playing" message
 - :sparkles: "Make file publically acessible" option in the upload for file resources.
@@ -14,6 +17,8 @@ Change Log
 - :sparkles: Let's try to stick to Semantic Versioning for future releases
 - :sparkles: Mixer can now accept m3u and m3u8 URLs as sources(Looped, high latency)
 - :sparkles: Chandler cues have a "Trigger Shortcut" option and will trigger cues in other scenes having that shortcut code.
+- :coffin: None of that included thirdparty stuff!
+- :bug: Disenhorriblize the install instructions
 
 ### 0.69.20
 
