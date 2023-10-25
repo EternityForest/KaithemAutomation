@@ -35,7 +35,8 @@
     
     .inspector {
         background-color: rgba(255,255,255,0.5);
-        max-width: 24em;
+        max-width: 40vw;
+        width: 28em;
         border-style: solid;
         border-width: 1px;
         border-color: black;
@@ -48,6 +49,7 @@
     {
         background-color: rgba(255,255,255,0.5);
         padding: 0.5em;
+
     }
 </style>
 <template>
@@ -115,10 +117,9 @@
 
 
 
-                <div style="display:flex;flex-direction:column;align-items: center; margin:1em;">
-                    <h3>Event Actions</h3>
+                <div style="display:flex;flex-direction:column;align-items: center; margin-left:1em;">
                     <div  class="rulesbox" style="overflow:scroll">
-                        <div v-for="i in rules" style="display:flex;flex-direction:row; padding:3px;">
+                        <div v-for="i in rules" style="display:flex;flex-direction:row; flex-wrap: wrap; max-width: 70vw; margin-bottom: 1em; padding:3px;">
                             <button v-bind:class="{event:1,bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBindingIndex=rules.indexOf(i); selectedCommandIndex=-1">
                     <p class="small">When</p>
                     {{i[0]}}
@@ -170,7 +171,7 @@
 
                         </div>
                     </div>
-                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="rules.push(['cue.enter',[['goto','=SCENE','']]]);$emit('input',rules);">Add Rule</button>
+                    <button  style="width: 95%; margin-top: 0.5em;" title="Add a rule that the scene should do something when an event fires" v-on:click="rules.push(['cue.enter',[['goto','=SCENE','']]]);$emit('input',rules);">Add Rule</button>
 
                 </div>
 
