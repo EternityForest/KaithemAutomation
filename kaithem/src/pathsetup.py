@@ -22,27 +22,6 @@ import logging
 logger = logging.getLogger("system")
 
 
-def setupCython():
-    # TODO do we want unique instance ids so two apps can be on one user?
-    # Does that ever happen? Do they even need separate dirs?
-    from . import config, util
-
-    d = "/dev/shm/kaithem_pyx_"+util.getUser()
-
-    # Set up pyximport in the proper kaithem-y way
-    try:
-        import os
-        if os.path.exists("/dev/shm"):
-            if not os.path.exists(d):
-                os.mkdir(d)
-
-        import pyximport
-        pyximport.install(build_dir=d if os.path.isdir(d) else None,language_level=3)
-    except:
-        logger.exception(
-            "Could not set up pyximport. Ensure that Cython is installed if you want to use .pyx files")
-
-
 def setupPath(linuxpackage=None, force_local=False):
     global startupPluginsPath
     # There are some libraries that are actually different for 3 and 2, so we use the appropriate one
@@ -98,4 +77,3 @@ def setupPath(linuxpackage=None, force_local=False):
             
 
 setupPath(linuxpackage=os.path.abspath(__file__).startswith("/usr/bin"))
-setupCython()

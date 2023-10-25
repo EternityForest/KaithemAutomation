@@ -10,6 +10,7 @@ refs = []
 
 log = logging.getLogger("system")
 
+
 def create():
     def civilTwilight():
         try:
@@ -87,7 +88,8 @@ def create():
 
             try:
                 with open("/dev/shm/KaithemCachedPublicIP.json", "w") as f:
-                    json.dump({"ip": r.text, "time_monotonic": time.monotonic()}, f)
+                    json.dump(
+                        {"ip": r.text, "time_monotonic": time.monotonic()}, f)
             except Exception:
                 log.exception("Err saving cache file")
 

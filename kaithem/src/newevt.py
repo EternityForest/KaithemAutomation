@@ -428,11 +428,8 @@ def Event(
 
     trigger = parseTrigger(when)
 
-
     if trigger[0] == "!onmsg":
-        return MessageEvent(
-            when, do, continual, ratelimit, setup, priority, **kwargs
-        )
+        return MessageEvent(when, do, continual, ratelimit, setup, priority, **kwargs)
 
     elif trigger[0] == "!onchange":
         return ChangedEvalEvent(
@@ -451,13 +448,7 @@ def Event(
 
     elif trigger[0] == "!time":
         return RecurringEvent(
-            " ".join(trigger[1:]),
-            do,
-            continual,
-            ratelimit,
-            setup,
-            priority,
-            **kwargs
+            " ".join(trigger[1:]), do, continual, ratelimit, setup, priority, **kwargs
         )
     else:
         # Defensive programming, raise error on nonsense event type
@@ -921,20 +912,11 @@ class DirectFunctionsMixin:
 
 class MessageEvent(BaseEvent, CompileCodeStringsMixin):
     def __init__(
-        self,
-        when,
-        do,
-        continual=False,
-        ratelimit=0,
-        setup="pass",
-        *args,
-        **kwargs
+        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
     ):
         # This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
-        BaseEvent.__init__(
-            self, when, do, continual, ratelimit, setup, *args, **kwargs
-        )
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.lastran = 0
 
         # Handle whatever stupid whitespace someone puts in
@@ -987,14 +969,7 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
 
 class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
     def __init__(
-        self,
-        when,
-        do,
-        continual=False,
-        ratelimit=0,
-        setup="pass",
-        *args,
-        **kwargs
+        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
     ):
         # If the user tries to use the !onchanged trigger expression,
         # what we do is to make a function that does the actual checking and always returns false
@@ -1005,9 +980,7 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
         # What this does is to eliminate leading whitespace, split on first space,
         # Then get rid of any extra spaces in between the command and argument.
         f = when.strip().split(" ", 1)[1].strip()
-        BaseEvent.__init__(
-            self, when, do, continual, ratelimit, setup, *args, **kwargs
-        )
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self._init_setup_and_action(setup, do)
 
         x = compile(
@@ -1048,18 +1021,9 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
 class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
     def __init__(
-        self,
-        when,
-        do,
-        continual=False,
-        ratelimit=0,
-        setup="pass",
-        *args,
-        **kwargs
+        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
     ):
-        BaseEvent.__init__(
-            self, when, do, continual, ratelimit, setup, *args, **kwargs
-        )
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.polled = True
 
         # Sometimes an event is used for its setup action and never runs.
@@ -1094,18 +1058,9 @@ class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
 class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
     def __init__(
-        self,
-        when,
-        do,
-        continual=False,
-        ratelimit=0,
-        setup="pass",
-        *args,
-        **kwargs
+        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
     ):
-        BaseEvent.__init__(
-            self, when, do, continual, ratelimit, setup, *args, **kwargs
-        )
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.runthread = True
         self.lock = threading.RLock()
         self.pauseflag = threading.Event()
@@ -1245,9 +1200,7 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
         *args,
         **kwargs
     ):
-        BaseEvent.__init__(
-            self, when, do, continual, ratelimit, setup, *args, **kwargs
-        )
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.polled = True
         # Compile the trigger
         self.trigger = when
@@ -1291,21 +1244,12 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
     "This represents an event that happens on a schedule"
 
     def __init__(
-        self,
-        when,
-        do,
-        continual=False,
-        ratelimit=0,
-        setup="pass",
-        *args,
-        **kwargs
+        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
     ):
         self.polled = False
         self.trigger = when
         self.register_lock = threading.Lock()
-        BaseEvent.__init__(
-            self, when, do, continual, ratelimit, setup, *args, **kwargs
-        )
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self._init_setup_and_action(setup, do)
         # Bound methods aren't enough to stop GC
         # TODO, Maybe this method should be asyncified?
@@ -1493,7 +1437,6 @@ def removeModuleEvents(module):
         gc.collect(0)
         gc.collect(1)
         gc.collect(2)
-
 
 
 # This piece of code will update the actual event object based on the event resource definition in the module
@@ -1770,7 +1713,6 @@ def make_event_from_resource(module, resource, subst=None):
         priority = 1
     try:
         if "enable" in r:
-
             if not r["enable"]:
                 # TODO: What's going on here?
                 if not parseTrigger(r["trigger"][0]) == "!function":

@@ -12,6 +12,8 @@ astral
 tatsu
 pam
 msgpack
+pyyaml
+types-PyYaml
 
 zeroconf
 colorzero
@@ -38,6 +40,7 @@ attr
 markupsafe
 upnpclient
 requests
+types-requests
 python-dateutil
 pygments
 pytz

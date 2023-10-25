@@ -115,8 +115,8 @@ def searchModuleResources(modulename, search, max_results=100, start=0):
 
 
 def followAttributes(root, path):
-    l = util.split_escape(path, ",", escape="\\")
-    for i in l:
+    pathlist = util.split_escape(path, ",", escape="\\")
+    for i in pathlist:
         # Following references works by specifying the exact obj id
         if i.startswith("r"):
             import gc
@@ -154,7 +154,8 @@ class WebInterface:
             return pages.get_template("modules/search.html").render(
                 search=kwargs["search"],
                 name=module,
-                results=searchModuleResources(module, kwargs["search"], 100, start),
+                results=searchModuleResources(
+                    module, kwargs["search"], 100, start),
             )
         else:
             return pages.get_template("modules/search.html").render(
@@ -179,7 +180,8 @@ class WebInterface:
             cherrypy.response.headers[
                 "Content-Disposition"
             ] = 'attachment; filename="%s"' % util.url(
-                module[:-4] + "_" + modules_state.getModuleHash(module[:-4]) + ".zip"
+                module[:-4] + "_" +
+                modules_state.getModuleHash(module[:-4]) + ".zip"
             )
         cherrypy.response.headers["Content-Type"] = "application/zip"
         try:
@@ -251,10 +253,12 @@ class WebInterface:
     def deletemoduletarget(self, **kwargs):
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        modules.rmModule(kwargs["name"], "Module Deleted by " + pages.getAcessingUser())
+        modules.rmModule(
+            kwargs["name"], "Module Deleted by " + pages.getAcessingUser())
         messagebus.postMessage(
             "/system/notifications",
-            "User " + pages.getAcessingUser() + " Deleted module " + kwargs["name"],
+            "User " + pages.getAcessingUser() + " Deleted module " +
+            kwargs["name"],
         )
 
         raise cherrypy.HTTPRedirect("/modules")
@@ -272,7 +276,8 @@ class WebInterface:
                     info=" A module already exists by that name,"
                 )
             modules.newModule(kwargs["name"], kwargs.get("location", None))
-            raise cherrypy.HTTPRedirect("/modules/module/" + util.url(kwargs["name"]))
+            raise cherrypy.HTTPRedirect(
+                "/modules/module/" + util.url(kwargs["name"]))
 
     @cherrypy.expose
     def loadlibmodule(self, module, name=""):
@@ -284,7 +289,8 @@ class WebInterface:
         if name in modules_state.ActiveModules:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
-        modules.loadModule(os.path.join(directories.datadir, "modules", module), name)
+        modules.loadModule(os.path.join(
+            directories.datadir, "modules", module), name)
 
         modules_state.modulesHaveChanged()
 
@@ -317,7 +323,8 @@ class WebInterface:
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
                 newevt.manualRun((module, kwargs["name"]))
-                raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
+                raise cherrypy.HTTPRedirect(
+                    "/modules/module/" + util.url(root))
 
             if path[0] == "runeventdialog":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
@@ -356,7 +363,7 @@ class WebInterface:
                 if "objname" in kwargs:
                     objname = kwargs["objname"]
 
-                if not "objpath" in kwargs:
+                if "objpath" not in kwargs:
                     return pages.get_template("modules/modulescope.html").render(
                         kwargs=kwargs, name=root, obj=obj, objname=objname
                     )
@@ -441,7 +448,7 @@ class WebInterface:
                 pages.require("/admin/modules.edit", noautoreturn=True)
                 pages.postOnly()
 
-                if not module in external_module_locations:
+                if module not in external_module_locations:
                     folder = os.path.join(
                         directories.vardir, "modules", "data", module, "__filedata__"
                     )
@@ -457,7 +464,7 @@ class WebInterface:
                 if len(path) > 1:
                     dataname = path[1] + "/" + dataname
 
-                if not module in external_module_locations:
+                if module not in external_module_locations:
                     dataname = os.path.join(folder, dataname)
                 else:
                     dataname = os.path.join(folder, dataname)
@@ -478,7 +485,8 @@ class WebInterface:
                     # BEGIN BLOCK OF CODE COPY PASTED FROM ANOTHER PART OF CODE. I DO NOT REALLY UNDERSTAND IT
                     # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
                     escapedName = (
-                        kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
+                        kwargs["name"].replace(
+                            "\\", "\\\\").replace("/", "\\/")
                     )
                     if len(path) > 1:
                         escapedName = path[1] + "/" + escapedName
@@ -492,7 +500,8 @@ class WebInterface:
 
                     # END BLOCK OF COPY PASTED CODE.
 
-                    modules_state.fileResourceAbsPaths[root, escapedName] = dataname
+                    modules_state.fileResourceAbsPaths[root,
+                                                       escapedName] = dataname
                     d = {
                         "resource-type": "internal-fileref",
                         "serve": "serve" in kwargs,
@@ -517,7 +526,8 @@ class WebInterface:
                         + util.url(path[1])
                     )
                 else:
-                    raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
+                    raise cherrypy.HTTPRedirect(
+                        "/modules/module/" + util.url(root))
 
             # This returns a page to delete any resource by name
             if path[0] == "deleteresource":
@@ -567,7 +577,8 @@ class WebInterface:
                         + util.url(util.module_onelevelup(kwargs["name"]))
                     )
                 else:
-                    raise cherrypy.HTTPRedirect("/modules/module/" + util.url(module))
+                    raise cherrypy.HTTPRedirect(
+                        "/modules/module/" + util.url(module))
 
             # This is the target used to change the name and description(basic info) of a module
             if path[0] == "update":
@@ -576,7 +587,8 @@ class WebInterface:
                 modules_state.modulesHaveChanged()
                 with modules_state.modulesLock:
                     if "location" in kwargs and kwargs["location"]:
-                        external_module_locations[kwargs["name"]] = kwargs["location"]
+                        external_module_locations[kwargs["name"]
+                                                  ] = kwargs["location"]
                         # We can't just do a delete and then set, what if something odd happens between?
                         if (
                             not kwargs["name"] == root
@@ -714,7 +726,8 @@ def addResourceTarget(module, type, name, kwargs, path):
 
         elif type == "permission":
             insertResource(
-                {"resource-type": "permission", "description": kwargs["description"]}
+                {"resource-type": "permission",
+                    "description": kwargs["description"]}
             )
             # has its own lock
             auth.importPermissionsFromModules()  # sync auth's list of permissions
@@ -744,7 +757,8 @@ def addResourceTarget(module, type, name, kwargs, path):
 
         else:
             # If create returns None, assume it doesn't want to insert a module or handles it by itself
-            r = modules_state.additionalTypes[type].create(module, path, name, kwargs)
+            r = modules_state.additionalTypes[type].create(
+                module, path, name, kwargs)
             if r:
                 insertResource(r)
                 f = modules_state.additionalTypes[type].onload
@@ -764,7 +778,8 @@ def addResourceTarget(module, type, name, kwargs, path):
         )
         # Take the user straight to the resource page
         raise cherrypy.HTTPRedirect(
-            "/modules/module/" + util.url(module) + "/resource/" + util.url(escapedName)
+            "/modules/module/" +
+            util.url(module) + "/resource/" + util.url(escapedName)
         )
 
 
@@ -784,7 +799,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                     "versions"
                 ]["__draft__"]
                 version = "__draft__"
-            except KeyError as e:
+            except KeyError:
                 version = "__live__"
                 pass
         else:
@@ -930,14 +945,15 @@ def resourceUpdateTarget(module, resource, kwargs):
                         module, resource, r2
                     )
 
-                except Exception as e:
-                    if not "versions" in resourceobj:
+                except Exception:
+                    if "versions" not in resourceobj:
                         resourceobj["versions"] = {}
                     if "versions" in r2:
                         r2.pop("versions")
 
                     resourceobj["versions"]["__draft__"] = copy.deepcopy(r2)
-                    modules.saveResource(module, resource, resourceobj, newname)
+                    modules.saveResource(
+                        module, resource, resourceobj, newname)
 
                     messagebus.postMessage(
                         "system/errors/misc/failedeventupdate",
@@ -979,7 +995,7 @@ def resourceUpdateTarget(module, resource, kwargs):
             # Delete the draft if any
             try:
                 del resourceobj["versions"]["__draft__"]
-            except:
+            except KeyError:
                 pass
 
             modules.saveResource(module, resource, resourceobj, newname)
@@ -1018,7 +1034,8 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj["allow-origins"] = [
                 i.strip() for i in kwargs["allow-origins"].split(",")
             ]
-            resourceobj["auto-reload-interval"] = float(kwargs["autoreloadinterval"])
+            resourceobj["auto-reload-interval"] = float(
+                kwargs["autoreloadinterval"])
             # Method checkboxes
             resourceobj["require-method"] = []
             if "allow-GET" in kwargs:

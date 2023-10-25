@@ -85,6 +85,8 @@ tinytag==1.10.0
 toml==0.10.2
 tornado==6.3.3
 typeguard==4.1.5
+types-PyYAML==6.0.12.12
+types-requests==2.31.0.10
 typing_extensions==4.8.0
 upnpclient==1.0.3
 urllib3==2.0.7

@@ -17,7 +17,6 @@
 from .util import url
 from io import BytesIO as StringIO
 import zipfile
-import urllib
 import shutil
 import time
 import os
@@ -31,6 +30,7 @@ import weakref
 import ast
 import cherrypy
 import yaml
+from typing import Optional
 from . import auth, pages, directories, util, newevt, kaithemobj
 from . import usrpages, messagebus
 from .modules_state import (
@@ -96,8 +96,6 @@ def new_module_container():
     return {}
 
 
-
-
 def getInitialWhitespace(s):
     t = ""
     for i in s:
@@ -132,12 +130,12 @@ def readToplevelBlock(p, heading):
             indent = getInitialWhitespace(i)
             if not indent:
                 raise ValueError("Expected indented block after " + firstline)
-            lines.append(i[len(indent) :])
+            lines.append(i[len(indent):])
             state = "inside"
         elif state == "inside":
             if not len(indent) <= len(getInitialWhitespace(i)):
                 state = "outside"
-            lines.append(i[len(indent) :])
+            lines.append(i[len(indent):])
     if not lines:
         if state == "outside":
             raise ValueError("No such block")
@@ -169,7 +167,8 @@ def loadAllCustomResourceTypes():
                                 "/system/notifications/errors",
                                 "Error loading resource:" + str((i, j)),
                             )
-                            logger.exception("Error loading resource: " + str((i, j)))
+                            logger.exception(
+                                "Error loading resource: " + str((i, j)))
 
 
 class ResourceObject:
@@ -247,7 +246,7 @@ class ModuleObject(object):
     def __init__(self, modulename: str):
         self.__kaithem_modulename__ = modulename
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
         "When someone acesses a key, return an interface to that module."
         x = modules_state.ActiveModules[self.__kaithem_modulename__][name]
 
@@ -303,7 +302,8 @@ class ModuleObject(object):
 
                 # Make sure we recognize the resource-type, or else we can't load it.
                 if (
-                    resourcetype not in ["event", "page", "permission", "directory"]
+                    resourcetype not in [
+                        "event", "page", "permission", "directory"]
                 ) and (resourcetype not in additionalTypes):
                     raise ValueError("Unknown resource-type")
 
@@ -376,14 +376,17 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
 
             try:
                 # Get the two code blocks, then remove  them before further processing
-                action, restofthecode = readToplevelBlock(d, "def eventAction():")
+                action, restofthecode = readToplevelBlock(
+                    d, "def eventAction():")
                 setup, restofthecode = readToplevelBlock(
                     restofthecode, "if __name__ == '__setup__':"
                 )
                 # Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
                 # A syntax error preventing reading the data at all
-                data = yaml.load(readStringFromSource(restofthecode, "__data__"))
-                data["trigger"] = readStringFromSource(restofthecode, "__trigger__")
+                data = yaml.load(readStringFromSource(
+                    restofthecode, "__data__"))
+                data["trigger"] = readStringFromSource(
+                    restofthecode, "__trigger__")
                 data["setup"] = setup.strip()
                 data["action"] = action.strip()
 
@@ -443,7 +446,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
             return (None, False)
         else:
             raise
-    if not r or not "resource-type" in r:
+    if not r or "resource-type" not in r:
         if (
             "/.git" in fn
             or "/.gitignore" in fn
@@ -569,7 +572,8 @@ def reloadOneResource(module, resource):
 
 def loadOneResource(folder, relpath, module):
     try:
-        r, resourcename = readResourceFromFile(os.path.join(folder, relpath), relpath)
+        r, resourcename = readResourceFromFile(
+            os.path.join(folder, relpath), relpath)
     except Exception:
         messagebus.postMessage(
             "/system/notifications/errors",
@@ -585,7 +589,7 @@ def loadOneResource(folder, relpath, module):
     modules_state.ActiveModules[module][resourcename] = r
     fnToModuleResource[resourcename] = (module, resourcename)
 
-    if not "resource-type" in r:
+    if "resource-type" not in r:
         logger.warning("No resource type found for " + resourcename)
         return
     handleResourceChange(module, resourcename)
@@ -618,11 +622,13 @@ def loadOneResource(folder, relpath, module):
 
         if not os.path.exists(fileResourceAbsPaths[module, resourcename]):
             logger.error(
-                "Missing file resource: " + fileResourceAbsPaths[module, resourcename]
+                "Missing file resource: " +
+                fileResourceAbsPaths[module, resourcename]
             )
             messagebus.postMessage(
                 "/system/notifications/errors",
-                "Missing file resource: " + fileResourceAbsPaths[module, resourcename],
+                "Missing file resource: " +
+                fileResourceAbsPaths[module, resourcename],
             )
 
 
@@ -665,13 +671,16 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                         continue
 
                     module[resourcename] = r
-                    fnToModuleResource[resourcename] = (modulename, resourcename)
+                    fnToModuleResource[resourcename] = (
+                        modulename, resourcename)
                     if "resource-type" not in r:
-                        logger.warning("No resource type found for " + resourcename)
+                        logger.warning(
+                            "No resource type found for " + resourcename)
                         continue
                     if r["resource-type"] == "internal-fileref":
                         fileResourceAbsPaths[modulename, resourcename] = os.path.join(
-                            folder, "__filedata__", url(resourcename, safeFnChars)
+                            folder, "__filedata__", url(
+                                resourcename, safeFnChars)
                         )
 
                         if not os.path.exists(
@@ -714,9 +723,9 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                     if not resource_folder.endswith("/"):
                         resource_folder += "/"
 
-                    data_basename = f[len(resource_folder) :]
+                    data_basename = f[len(resource_folder):]
 
-                    if not f in s:
+                    if f not in s:
                         module[util.unurl(data_basename)] = {
                             "resource-type": "internal-fileref",
                             "target": "$MODULERESOURCES/" + data_basename,
@@ -749,8 +758,10 @@ def getModuleAsYamlZip(module, noFiles=True):
             if not isinstance(modules_state.ActiveModules[module][resource], dict):
                 continue
             # AFAIK Zip files fake the directories with naming conventions
-            s, ext = serializeResource(modules_state.ActiveModules[module][resource])
-            z.writestr(url(module, " ") + "/" + url(resource, safeFnChars) + ext, s)
+            s, ext = serializeResource(
+                modules_state.ActiveModules[module][resource])
+            z.writestr(url(module, " ") + "/" +
+                       url(resource, safeFnChars) + ext, s)
             if (
                 modules_state.ActiveModules[module][resource]["resource-type"]
                 == "internal-fileref"
@@ -763,7 +774,8 @@ def getModuleAsYamlZip(module, noFiles=True):
                 target = fileResourceAbsPaths[module, resource]
                 if os.path.exists(target):
                     z.write(
-                        target, module + "/__filedata__/" + url(resource, safeFnChars)
+                        target, module + "/__filedata__/" +
+                        url(resource, safeFnChars)
                     )
 
                 else:
@@ -802,10 +814,11 @@ def load_modules_from_zip(f, replace=False):
         if p not in new_modules:
             new_modules[p] = {}
         try:
-            if not "/__filedata__/" in i:
+            if "/__filedata__/" not in i:
                 try:
                     f = z.open(i)
-                    r, n = readResourceFromData(f.read().decode(), relative_name)
+                    r, n = readResourceFromData(
+                        f.read().decode(), relative_name)
                     if r is None:
                         raise RuntimeError(
                             "Attempting to decode file "
@@ -893,7 +906,8 @@ def load_modules_from_zip(f, replace=False):
                 )
                 messagebus.postMessage("/system/modules/unloaded", i)
                 messagebus.postMessage(
-                    "/system/modules/deleted", {"user": pages.getAcessingUser()}
+                    "/system/modules/deleted", {
+                        "user": pages.getAcessingUser()}
                 )
 
         try:
@@ -943,12 +957,14 @@ def bookkeeponemodule(module, update=False):
 
     # This does NOT use handleResourceChange because it has optimizations to do stuff one module at a time not one event at a time.
     for i in modules_state.ActiveModules[module]:
-
         # TODO this is a bad awful hack we need to DRY this and only have one resource updater or something
-        if modules_state.ActiveModules[module][i]["resource-type"] == "internal-fileref":
+        if (
+            modules_state.ActiveModules[module][i]["resource-type"]
+            == "internal-fileref"
+        ):
             try:
                 usrpages.updateOnePage(i, module)
-            except:
+            except Exception:
                 pass
 
         if modules_state.ActiveModules[module][i]["resource-type"] == "page":
@@ -976,14 +992,14 @@ def bookkeeponemodule(module, update=False):
         messagebus.postMessage("/system/modules/loaded", module)
 
 
-def mvResource(module, resource, toModule, toResource):
+def mvResource(module: str, resource: str, toModule: str, toResource: str):
     # Raise an error if the user ever tries to move something somewhere that does not exist.
     new = util.split_escape(toResource, "/", "\\", True)
     if not (
         "/".join(new[:-1]) in modules_state.ActiveModules[toModule] or len(new) < 2
     ):
         raise cherrypy.HTTPRedirect("/errors/nofoldeday1veerror")
-    if not toModule in modules_state.ActiveModules:
+    if toModule not in modules_state.ActiveModules:
         raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
     # If something by the name of the directory we are moving to exists but it is not a directory.
     # short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
@@ -1031,11 +1047,12 @@ def mvResource(module, resource, toModule, toResource):
     # Don't move if the file is already saved under the right name
     if os.path.exists(getResourceFn(module, resource, o)):
         shutil.move(
-            getResourceFn(module, resource, o), getResourceFn(toModule, toResource, o)
+            getResourceFn(module, resource, o), getResourceFn(
+                toModule, toResource, o)
         )
 
 
-def rmResource(module, resource, message="Resource Deleted"):
+def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
     "Delete one resource by name, message is an optional message explaining the change"
     with modulesLock:
         r = modules_state.ActiveModules[module].pop(resource)
@@ -1081,7 +1098,7 @@ def rmResource(module, resource, message="Resource Deleted"):
         )
 
 
-def newModule(name, location=None):
+def newModule(name: str, location: Optional[str] = None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
 
     # If there is no module by that name, create a blank template and the scope obj
@@ -1115,7 +1132,8 @@ def newModule(name, location=None):
             "User " + pages.getAcessingUser() + " Created Module " + name,
         )
         messagebus.postMessage(
-            "/system/modules/new", {"user": pages.getAcessingUser(), "module": name}
+            "/system/modules/new", {"user": pages.getAcessingUser(),
+                                    "module": name}
         )
 
         modules_state.modulesHaveChanged()
@@ -1125,14 +1143,16 @@ def newModule(name, location=None):
 def rmModule(module, message="deleted"):
     with modulesLock:
         x = modules_state.ActiveModules.pop(module)
-        j = {i: copy.deepcopy(x[i]) for i in x if not (isinstance(x[i], weakref.ref))}
+        j = {i: copy.deepcopy(x[i])
+             for i in x if not (isinstance(x[i], weakref.ref))}
         scopes.pop(module)
 
     # Delete any custom resource types hanging around.
     for k in j:
         if j[k].get("resource-type", None) in additionalTypes:
             try:
-                additionalTypes[j[k]["resource-type"]].ondelete(module, k, j[k])
+                additionalTypes[j[k]["resource-type"]
+                                ].ondelete(module, k, j[k])
             except Exception:
                 messagebus.postMessage(
                     "/system/modules/errors/unloading",
@@ -1158,7 +1178,8 @@ def rmModule(module, message="deleted"):
     # Get rid of any garbage cycles associated with the event.
     gc.collect()
     messagebus.postMessage("/system/modules/unloaded", module)
-    messagebus.postMessage("/system/modules/deleted", {"user": pages.getAcessingUser()})
+    messagebus.postMessage("/system/modules/deleted",
+                           {"user": pages.getAcessingUser()})
 
 
 class KaithemEvent(dict):
@@ -1187,4 +1208,5 @@ def handleResourceChange(module, resource, obj=None):
             usrpages.updateOnePage(resource, module)
 
         else:
-            additionalTypes[resourceobj["resource-type"]].update(module, resource, {})
+            additionalTypes[resourceobj["resource-type"]
+                            ].update(module, resource, {})

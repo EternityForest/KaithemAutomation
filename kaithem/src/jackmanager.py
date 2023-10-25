@@ -15,15 +15,10 @@
 import traceback
 import scullery
 import os
-from scullery.jacktools import *
 from scullery import messagebus
-from scullery import jacktools
+import scullery.jacktools
 
 __doc__ = ""
-
-# This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
-
-from . import persist, directories
 
 
 def onFail():
@@ -73,4 +68,8 @@ scullery.jacktools.manageJackProcess = False
 try:
     scullery.jacktools.startManaging()
 except Exception:
-    messagebus.postMessage("/system/notifications/errors", "Failed to launch JACK integration. Maybe JACK is not installed\n"+traceback.format_exc())
+    messagebus.postMessage(
+        "/system/notifications/errors",
+        "Failed to launch JACK integration. Maybe JACK is not installed\n"
+        + traceback.format_exc(),
+    )

@@ -22,7 +22,6 @@ import logging
 import traceback
 from . import util, scheduling, directories, workers, messagebus, midi
 from .config import config
-from . import jackmanager
 
 log = logging.getLogger("system.sound")
 
@@ -31,7 +30,7 @@ jackAPIWidget = None
 jackClientsFound = False
 
 
-def tryCloseFds(p):
+def tryCloseFds(p: subprocess.Popen):
     if not p:
         return
     try:
@@ -189,7 +188,7 @@ class MadPlayWrapper(SoundWrapper):
                     self.process.poll()
                     if self.process.returncode is None:
                         return True
-                    if not self in backend.runningSounds.values():
+                    if self not in backend.runningSounds.values():
                         return False
                     if not self.loopcounter:
                         return False
@@ -268,7 +267,7 @@ class Mpg123Wrapper(SoundWrapper):
                     self.process.poll()
                     if self.process.returncode is None:
                         return True
-                    if not self in backend.runningSounds.values():
+                    if self not in backend.runningSounds.values():
                         return False
                     if not self.loopcounter:
                         return False
@@ -352,7 +351,7 @@ class SOXWrapper(SoundWrapper):
                     self.process.poll()
                     if self.process.returncode is None:
                         return True
-                    if not self in backend.runningSounds.values():
+                    if self not in backend.runningSounds.values():
                         return False
                     if not self.loopcounter:
                         return False
@@ -533,7 +532,6 @@ class MPVBackend(SoundWrapper):
             return False
         try:
             import python_mpv_jsonipc
-
             return True
         except Exception:
             pass
@@ -615,11 +613,11 @@ class MPVBackend(SoundWrapper):
                 self.player.rpc.call("set", ["volume", vol * 100])
 
             self.volume = vol
-            self.finalGain = finalGain if not finalGain is None else vol
+            self.finalGain = finalGain if finalGain is not None else vol
 
             jp = "system:*"
             if output:
-                if not ":" in output:
+                if ":" not in output:
                     jp = output + ":*"
                 else:
                     jp = output
@@ -709,7 +707,7 @@ class MPVBackend(SoundWrapper):
                     return False
                 try:
                     if not refresh:
-                        if not self.isPlayingCache is None:
+                        if self.isPlayingCache is not None:
                             return self.isPlayingCache
                     c = (
                         self.player.rpc.call(
@@ -718,7 +716,7 @@ class MPVBackend(SoundWrapper):
                         == False
                     )
 
-                    if c == False:
+                    if c is False:
                         self.isPlayingCache = c
 
                     return c

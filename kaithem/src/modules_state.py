@@ -80,7 +80,7 @@ external_module_locations = {}
 
 def parseTarget(t, module, in_ext=False):
     if t.startswith("$MODULERESOURCES/"):
-        t = t[len("$MODULERESOURCES/") :]
+        t = t[len("$MODULERESOURCES/"):]
     return t
 
 
@@ -140,7 +140,7 @@ def writeResource(obj: dict, fn: str):
     d, ext = serializeResource(obj)
 
     # directories get saved just by writing a literal directory.
-    if obj['resource-type'] == 'directory':
+    if obj["resource-type"] == "directory":
         if os.path.exists(fn):
             if not os.path.isdir(fn):
                 os.remove(fn)
@@ -148,8 +148,6 @@ def writeResource(obj: dict, fn: str):
         else:
             os.makedirs(fn, exist_ok=True)
         return
-            
-
 
     if os.path.exists(fn):
         try:
@@ -298,7 +296,9 @@ class ResourceType:
         return True
 
 
-additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()
+additionalTypes: weakref.WeakValueDictionary[
+    str, ResourceType
+] = weakref.WeakValueDictionary()
 
 
 class HierarchyDict:
@@ -490,7 +490,7 @@ def in_folder(r, f):
 
 
 @util.lrucache(800)
-def ls_folder(m, d):
+def ls_folder(m: str, d: str):
     "List a kaithem resource folder's direct children"
     o = []
     x = ActiveModules[m]
