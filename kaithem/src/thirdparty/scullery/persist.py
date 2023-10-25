@@ -235,7 +235,7 @@ def load(filename, *,expand=True):
                 r=json.loads(f.read().decode('utf8'))
             elif x.endswith(".yaml"):
                 import yaml
-                r=yaml.load(f.read().decode('utf8'))
+                r=yaml.load(f.read().decode('utf8'), Loader=yaml.SafeLoader)
 
             elif x.endswith(".toml"):
                 import toml

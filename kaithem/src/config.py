@@ -70,12 +70,12 @@ def load():
 
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:
-        _defconfig = yaml.load(f)
+        _defconfig = yaml.load(f,Loader=yaml.SafeLoader)
 
     # Attempt to open any manually specified config file
     if argcmd.c:
         with open(argcmd.c) as f:
-            _usr_config = yaml.load(f)
+            _usr_config = yaml.load(f, yaml.SafeLoader)
             logger.info("Loaded configuration from " + argcmd.c)
     else:
         _usr_config = {}
@@ -97,13 +97,13 @@ def reload():
     global config
     c = load()
     with open(os.path.join(_dn, "config-schema.yaml")) as f:
-        jsonschema.validate(c, yaml.load(f))
+        jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
     config.update(c)
 
 
 c = load()
 with open(os.path.join(_dn, "config-schema.yaml")) as f:
-    jsonschema.validate(c, yaml.load(f))
+    jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
 config = c
 # Happy linter
 argcmd = argcmd

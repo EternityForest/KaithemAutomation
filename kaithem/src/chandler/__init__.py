@@ -17,15 +17,20 @@ from decimal import Decimal
 from tinytag import TinyTag
 from typeguard import typechecked
 import urllib
+import urllib.parse
 import numpy
 import base64
+from typing import Optional, Dict, Any
 
 from ..kaithemobj import kaithem
 from . import core
 from . import universes
 from . import blendmodes
 from . import fixtureslib
+from . import fixtures
 from . import mqtt
+from .core import disallow_special
+from .universes import getUniverse, getUniverses, rerenderUniverse
 import recur
 
 
@@ -84,8 +89,7 @@ def nbr2():
 
 kaithem.web.navBarPlugins["chandler2"] = nbr2
 
-logger = logging.getLogger("system.chandler")
-
+logger = core.logger
 soundLock = threading.Lock()
 
 
@@ -153,8 +157,6 @@ allowedCueNameSpecials = "_~."
 
 
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
-fixtureslock = core.lock
-core.fixtures = {}
 
 
 cueTransitionsLimitCount = 0
@@ -202,9 +204,9 @@ def refreshFixtures(topic, val):
     # Deal with fixtures in this universe that aren't actually attached to this object yet.
     for i in range(0, 5):
         try:
-            with fixtureslock:
-                for i in core.fixtures:
-                    f = core.fixtures[i]()
+            with core.lock:
+                for i in fixtures.fixtures:
+                    f = fixtures.fixtures[i]()
                     if not f:
                         continue
                     if f.universe == val or val is None:
@@ -225,7 +227,7 @@ def mapUniverse(u):
     u = u.split("[")[0]
 
     try:
-        x = core.fixtures[u[1:]]()
+        x = fixtures.fixtures[u[1:]]()
         if not x:
             return None
     except KeyError:
@@ -257,7 +259,7 @@ def mapChannel(u, c):
             return u, int(c)
 
     try:
-        f = core.fixtures[u[1:]]()
+        f = fixtures.fixtures[u[1:]]()
         if not f:
             return None
 
@@ -308,16 +310,9 @@ def rl_log_exc(m):
 
 boardsListLock = threading.Lock()
 
-core._activeScenes = []
-core.activeScenes = []
 
 # Index Cues by codes that we use to jump to them. This is a dict of lists of cues with that short code,
 shortcut_codes = {}
-
-core.runningTracks = weakref.WeakValueDictionary()
-
-core.scenes = weakref.WeakValueDictionary()
-core.scenes_by_name = weakref.WeakValueDictionary()
 
 
 def codeCommand(code=""):
@@ -500,22 +495,6 @@ def getSerPorts():
         return [str(traceback.format_exc())]
 
 
-def disallow_special(s, allow="", replaceMode=None):
-    for i in "[]{}()!@#$%^&*()<>,./;':\"-=+\\|`~?\r\n\t":
-        if i in s and i not in allow:
-            if replaceMode is None:
-                raise ValueError(
-                    "Special char "
-                    + i
-                    + " not allowed in this context(full str starts with "
-                    + s[:100]
-                    + ")"
-                )
-            else:
-                s = s.replace(i, replaceMode)
-    return s
-
-
 def pollsounds():
     for i in core.activeScenes:
         # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
@@ -538,8 +517,6 @@ class ObjPlugin:
 
 k_interface = ObjPlugin()
 kaithem.chandler = k_interface
-
-core.controlValues = weakref.WeakValueDictionary()
 
 
 def number_to_shortcut(number):
@@ -569,223 +546,44 @@ def getControlValue(cv, default=None):
             raise
 
 
-core.fixtureschanged = {}
-
-
-def getUniverse(u):
-    "Get strong ref to universe if it exists, else get none."
-    try:
-        oldUniverseObj = universes.universes[u]()
-    except KeyError:
-        oldUniverseObj = None
-    return oldUniverseObj
-
-
-def getUniverses():
-    "Returns dict of strong refs to universes, filtered to exclude weak refs"
-    m = universes.universes
-    u = {}
-    for i in m:
-        x = m[i]()
-        if x:
-            u[i] = x
-
-    return u
-
-
-def rerenderUniverse(i):
-    universe = getUniverse(i)
-    if universe:
-        universe.full_rerender = True
-
-
 def unpack_np_vals(v):
     "Given a set of dicts that might contain either lists or np arrays, convert to normal lists of numbers"
     return {j: [float(k) for k in v[j]] for j in v}
 
 
-class Fixture:
-    def __init__(self, name, data=None):
-        """Represents a contiguous range of channels each with a defined role in one universe.
-
-        data is the definition of the type of fixture. It can be a list of channels, or
-        a dict having a 'channels' property.
-
-        Each channel must be described by a [name, type, [arguments]] list, where type is one of:
-
-        red
-        green
-        blue
-        value
-        dim
-        custom
-        fine
-        fog
-        hue
-
-        The name must be unique per-fixture.
-        If a channel has the type "fine" it will be interpreted as the fine value of
-        the immediately preceding coarse channel, and should automatically get its value from the fractional part.
-        If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
-        with 0 being the fixture's first channel.
-        """
-        if data:
-            # Normalize and raise errors on nonsense
-            channels = json.loads(json.dumps(data))
-
-            if not isinstance(channels, list):
-                channels = channels["channels"]
-            self.channels = channels
-
-        else:
-            channels = []
-
-        self.channels = channels
-        self.universe = None
-        self.startAddress = 0
-        self.assignment = None
-        disallow_special(name, ".")
-
-        self.nameToOffset = {}
-
-        # Used for looking up channel by name
-        for i in range(len(channels)):
-            self.nameToOffset[channels[i][0]] = i
-
-        with fixtureslock:
-            if name in core.fixtures:
-                raise ValueError("Name in Use")
-            else:
-                core.fixtures[name] = weakref.ref(self)
-                self.name = name
-
-    def getChannelByName(self, name):
-        if self.startAddress:
-            return self
-
-    def __del__(self):
-        with fixtureslock:
-            try:
-                del core.fixtures[self.name]
-            except KeyError:
-                pass
-
-        ID = id(self)
-
-        def f():
-            with fixtureslock:
-                try:
-                    if id(core.fixtures[self.name]()) == id(ID):
-                        self.assign(None, None)
-                        self.rm()
-                except KeyError:
-                    pass
-                except Exception:
-                    print(traceback.format_exc())
-
-        kaithem.misc.do(f)
-
-    def rm(self):
-        try:
-            del core.fixtures[self.name]
-        except Exception:
-            print(traceback.format_exc())
-
-    def assign(self, universe, channel):
-        with core.lock:
-            # First just clear the old assignment, if any
-            if self.universe and self.startAddress:
-                oldUniverseObj = getUniverse(self.universe)
-
-                if oldUniverseObj:
-                    # Delete current assignments
-                    for i in range(
-                        self.startAddress, self.startAddress +
-                            len(self.channels)
-                    ):
-                        if i in oldUniverseObj.channels:
-                            if (
-                                oldUniverseObj.channels[i]()
-                                and oldUniverseObj.channels[i]() is self
-                            ):
-                                del oldUniverseObj.channels[i]
-                                # We just unassigned it, so it's not a hue channel anymore
-                                oldUniverseObj.hueBlendMask[i] = 0
-                            else:
-                                print(
-                                    "Unexpected channel data corruption",
-                                    universe,
-                                    i,
-                                    oldUniverseObj.channels[i](),
-                                )
-
-            self.assignment = universe, channel
-
-            self.universe = universe
-            self.startAddress = channel
-
-            universeObj = getUniverse(universe)
-
-            if not universeObj:
-                return
-
-            core.fixtureschanged = {}
-
-            universeObj.channelsChanged()
-
-            if not channel:
-                return
-            # 2 separate loops, first is just to check, so that we don't have half-completed stuff
-            for i in range(channel, channel + len(self.channels)):
-                if i in universeObj.channels:
-                    if universeObj.channels[i] and universeObj.channels[i]():
-                        if not self.name == universeObj.channels[i]().name:
-                            raise ValueError(
-                                "channel "
-                                + str(i)
-                                + " of "
-                                + self.name
-                                + " would overlap with "
-                                + universeObj.channels[i]().name
-                            )
-
-            cPointer = 0
-            for i in range(channel, channel + len(self.channels)):
-                universeObj.channels[i] = weakref.ref(self)
-                if self.channels[cPointer][1] in ("hue", "sat", "custom"):
-                    # Mark it as a hue channel that blends slightly differently
-                    universeObj.hueBlendMask[i] = 1
-                    cPointer += 1
-
-
-core.Fixture = Fixture
-
-
 class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
+    def __init__(self, sceneObj, *a, **k):
+        self.sceneObj = weakref.ref(sceneObj)
+        self.sceneName = sceneObj.name
+        self.sceneId = sceneObj.id
+        super().__init__(*a, **k)
+
     def onVarSet(self, k, v):
-        try:
-            if not k == "_" and self.sceneObj().rerenderOnVarChange:
-                self.sceneObj().recalcCueVals()
-                self.sceneObj().rerender = True
+        scene = self.sceneObj()
+        if scene:
+            try:
+                if not k == "_" and scene.rerenderOnVarChange:
+                    scene.recalcCueVals()
+                    scene.rerender = True
 
-        except Exception:
-            rl_log_exc("Error handling var set notification")
-            print(traceback.format_exc())
+            except Exception:
+                rl_log_exc("Error handling var set notification")
+                print(traceback.format_exc())
 
-        try:
-            if not k.startswith("_"):
-                for i in core.boards:
-                    if isinstance(v, (str, int, float, bool)):
-                        i().link.send(["varchange", self.scene, k, v])
-                    elif isinstance(v, collections.defaultdict):
-                        v = json.dumps(v)[:160]
-                        i().link.send(["varchange", self.scene, k, v])
-                    else:
-                        v = str(v)[:160]
-                        i().link.send(["varchange", self.scene, k, v])
-        except Exception:
-            rl_log_exc("Error handling var set notification")
-            print(traceback.format_exc())
+            try:
+                if not k.startswith("_"):
+                    for i in core.boards:
+                        if isinstance(v, (str, int, float, bool)):
+                            i().link.send(["varchange", self.sceneId, k, v])
+                        elif isinstance(v, collections.defaultdict):
+                            v = json.dumps(v)[:160]
+                            i().link.send(["varchange", self.sceneId, k, v])
+                        else:
+                            v = str(v)[:160]
+                            i().link.send(["varchange", self.sceneId, k, v])
+            except Exception:
+                rl_log_exc("Error handling var set notification")
+                print(traceback.format_exc())
 
     def event(self, e, v=None):
         kaithem.chandlerscript.ChandlerScriptContext.event(self, e, v)
@@ -978,11 +776,12 @@ class ChandlerConsole:
 
             for i in self.fixtureAssignments.values():
                 try:
-                    x = Fixture(i["name"], self.fixtureClasses[i["type"]])
+                    x = fixtures.Fixture(
+                        i["name"], self.fixtureClasses[i["type"]])
                     self.fixtures[i["name"]] = x
                     self.fixtures[i["name"]].assign(
                         i["universe"], int(i["addr"]))
-                    core.fixtures[i["name"]] = weakref.ref(x)
+                    fixtures.fixtures[i["name"]] = weakref.ref(x)
                 except Exception:
                     logger.exception("Error setting up fixture")
                     print(traceback.format_exc())
@@ -991,8 +790,8 @@ class ChandlerConsole:
             for u in universes.universes:
                 self.pushChannelNames(u)
 
-            with fixtureslock:
-                for f in core.fixtures:
+            with core.lock:
+                for f in fixtures.fixtures:
                     if f:
                         self.pushChannelNames("@" + f)
 
@@ -1011,21 +810,21 @@ class ChandlerConsole:
         u = data
         for i in u:
             if u[i]["type"] == "enttecopen" or u[i]["type"] == "rawdmx":
-                universeObjects[i] = core.EnttecOpenUniverse(
+                universeObjects[i] = universes.EnttecOpenUniverse(
                     i,
                     channels=int(u[i].get("channels", 128)),
                     portname=u[i].get("interface", None),
                     framerate=float(u[i].get("framerate", 44)),
                 )
             elif u[i]["type"] == "enttec":
-                universeObjects[i] = core.EnttecUniverse(
+                universeObjects[i] = universes.EnttecUniverse(
                     i,
                     channels=int(u[i].get("channels", 128)),
                     portname=u[i].get("interface", None),
                     framerate=float(u[i].get("framerate", 44)),
                 )
             elif u[i]["type"] == "artnet":
-                universeObjects[i] = core.ArtNetUniverse(
+                universeObjects[i] = universes.ArtNetUniverse(
                     i,
                     channels=int(u[i].get("channels", 128)),
                     address=u[i].get("interface", "255.255.255.255:6454"),
@@ -1033,7 +832,7 @@ class ChandlerConsole:
                     number=int(u[i].get("number", 0)),
                 )
             elif u[i]["type"] == "tagpoints":
-                universeObjects[i] = core.TagpointUniverse(
+                universeObjects[i] = universes.TagpointUniverse(
                     i,
                     channels=int(u[i].get("channels", 128)),
                     tagpoints=u[i].get("channelConfig", {}),
@@ -1195,11 +994,6 @@ class ChandlerConsole:
                             + " already exists. We cannot overwrite, because it was not created through this board"
                         )
                 try:
-                    # Kinda brittle and hacky, because loadinga new default scene isn't well
-                    # supported
-                    cues = data[i]["cues"]
-                    del data[i]["cues"]
-                    x = False
                     if "defaultActive" in data[i]:
                         x = data[i]["defaultActive"]
                         del data[i]["defaultActive"]
@@ -1214,12 +1008,8 @@ class ChandlerConsole:
                     else:
                         uuid = i
 
-                    s = Scene(id=uuid, defaultCue=False,
-                              defaultActive=x, **data[i])
-                    for j in cues:
-                        Cue(s, f=True, name=j, **cues[j])
-                    s.cue = s.cues["default"]
-                    # s.gotoCue("default")
+                    s = Scene(id=uuid, defaultActive=x, **data[i])
+
 
                     self.scenememory[uuid] = s
                     if x:
@@ -1298,11 +1088,11 @@ class ChandlerConsole:
                     "fixtures",
                     {
                         i: [
-                            core.fixtures[i]().universe,
-                            core.fixtures[i]().startAddress,
-                            core.fixtures[i]().channels,
+                            fixtures.fixtures[i]().universe,
+                            fixtures.fixtures[i]().startAddress,
+                            fixtures.fixtures[i]().channels,
                         ]
-                        for i in core.fixtures
+                        for i in fixtures.fixtures
                     },
                 ]
             )
@@ -1385,8 +1175,8 @@ class ChandlerConsole:
             self.link.send(["cnames", u, d])
         else:
             d = {}
-            if u[1:] in core.fixtures:
-                f = core.fixtures[u[1:]]()
+            if u[1:] in fixtures.fixtures:
+                f = fixtures.fixtures[u[1:]]()
                 for i in range(0, len(f.channels)):
                     d[f.channels[i][0]] = [u[1:]] + f.channels[i]
             self.link.send(["cnames", u, d])
@@ -1984,7 +1774,7 @@ class ChandlerConsole:
                 spacing = int(msg[5])
 
                 # Get rid of any index part, treat it like it's part of the same fixture.
-                x = core.fixtures[msg[2].split("[")[0]]()
+                x = fixtures.fixtures[msg[2].split("[")[0]]()
                 # Add every non-unused channel.  Fixtures
                 # Are stored as if they are their own universe, starting with an @ sign.
                 # Channels are stored by name and not by number.
@@ -2661,7 +2451,7 @@ class FadeCanvas:
         self.v2 = {}
         self.a2 = {}
 
-    def paint(self, fade, vals=None, alphas=None):
+    def paint(self, fade, vals: Dict[str, numpy.ndarray], alphas: Dict[str, numpy.ndarray]):
         """
         Makes v2 and a2 equal to the current background overlayed with values from scene which is any object that has dicts of dicts of vals and and
         alpha.
@@ -2680,15 +2470,16 @@ class FadeCanvas:
         for i in vals:
             effectiveFade = fade
             obj = getUniverse(i)
-
+            # TODO: How to handle nonexistant
+            if not obj:
+                continue
             # Add existing universes to canvas, skip non existing ones
             if i not in self.v:
-                if obj:
-                    size = len(obj.values)
-                    self.v[i] = makeBlankArray(size)
-                    self.a[i] = makeBlankArray(size)
-                    self.v2[i] = makeBlankArray(size)
-                    self.a2[i] = makeBlankArray(size)
+                size = len(obj.values)
+                self.v[i] = makeBlankArray(size)
+                self.a[i] = makeBlankArray(size)
+                self.v2[i] = makeBlankArray(size)
+                self.a2[i] = makeBlankArray(size)
 
             # Some universes can disable local fading, like smart bulbs wehere we have remote fading.
             # And we would rather use that. Of course, the disadvantage is we can't properly handle
@@ -2712,6 +2503,9 @@ class FadeCanvas:
         for i in self.a:
             effectiveFade = fade
             obj = getUniverse(i)
+            # TODO ?
+            if not obj:
+                continue
             if not obj.localFading:
                 effectiveFade = 1
             if i not in alphas:
@@ -2856,8 +2650,8 @@ class Cue:
     def __init__(
         self,
         parent,
-        name,
-        f=False,
+        name: str,
+        forceAdd=False,
         values=None,
         alpha=1,
         fadein=0,
@@ -2926,7 +2720,7 @@ class Cue:
         except Exception:
             self.number = 5000
         self.next_ll = None
-        parent._addCue(self, f=f)
+        parent._addCue(self, forceAdd=forceAdd)
         self.changed = {}
         self.alpha = alpha
         self.fadein = fadein
@@ -3099,6 +2893,11 @@ class Cue:
     def setValue(self, universe, channel, value):
         disallow_special(universe, allow="_@.")
 
+        scene = self.scene()
+
+        if not scene:
+            raise RuntimeError("The scene doesn't exist")
+
         try:
             value = float(value)
         except ValueError:
@@ -3130,7 +2929,7 @@ class Cue:
 
         with core.lock:
             if universe == "__variables__":
-                self.scene().scriptContext.setVar(channel, self.scene().evalExpr(value))
+                scene.scriptContext.setVar(channel, scene.evalExpr(value))
 
             reset = False
             if not (value is None):
@@ -3155,53 +2954,53 @@ class Cue:
 
             x = mapChannel(universe, channel)
 
-            if self.scene().cue == self and self.scene().isActive():
-                self.scene().rerender = True
+            if scene.cue == self and scene.isActive():
+                scene.rerender = True
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
                 if (
                     unmappeduniverse in self.values
                     and "__length__" in self.values[unmappeduniverse]
                 ):
-                    self.scene().cueValsToNumpyCache(self, False)
+                    scene.cueValsToNumpyCache(self, False)
 
                     # The FadeCanvas needs to know about this change
-                    self.scene().render(force_repaint=True)
+                    scene.render(force_repaint=True)
 
                 # Otherwise if we are changing a simple mapped channel we optimize
                 elif x:
                     universe, channel = x[0], x[1]
 
                     if (
-                        universe not in self.scene().cue_cached_alphas_as_arrays
+                        universe not in scene.cue_cached_alphas_as_arrays
                     ) and value is not None:
                         uobj = getUniverse(universe)
                         if uobj:
-                            self.scene().cue_cached_vals_as_arrays[
+                            scene.cue_cached_vals_as_arrays[
                                 universe
                             ] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                            self.scene().cue_cached_alphas_as_arrays[
+                            scene.cue_cached_alphas_as_arrays[
                                 universe
                             ] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                    if universe in self.scene().cue_cached_alphas_as_arrays:
-                        self.scene().cue_cached_alphas_as_arrays[universe][channel] = (
+                    if universe in scene.cue_cached_alphas_as_arrays:
+                        scene.cue_cached_alphas_as_arrays[universe][channel] = (
                             1 if value is not None else 0
                         )
-                        self.scene().cue_cached_vals_as_arrays[universe][
+                        scene.cue_cached_vals_as_arrays[universe][
                             channel
-                        ] = self.scene().evalExpr(value if value is not None else 0)
-                    if universe not in self.scene().affect:
-                        self.scene().affect.append(universe)
+                        ] = scene.evalExpr(value if value is not None else 0)
+                    if universe not in scene.affect:
+                        scene.affect.append(universe)
 
                     # The FadeCanvas needs to know about this change
-                    self.scene().render(force_repaint=True)
+                    scene.render(force_repaint=True)
 
-            self.scene().rerender = True
+            scene.rerender = True
 
             # For blend modes that don't like it when you
             # change the list of values without resetting
             if reset:
-                self.scene().setBlend(self.scene().blend)
+                scene.setBlend(scene.blend)
 
 
 class ClosedScene:
@@ -3209,21 +3008,20 @@ class ClosedScene:
 
 
 class Scene:
-    "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
+    "An objecting representing one scene. If noe default cue present one is made"
 
     def __init__(
         self,
-        name=None,
-        values=None,
+        name: Optional[str] = None,
+        cues=None,
         active=False,
-        alpha=1,
+        alpha: float = 1,
         priority=50,
         blend="normal",
         id=None,
         defaultActive=True,
         blendArgs=None,
         backtrack=True,
-        defaultCue=True,
         bpm=60,
         soundOutput="",
         eventButtons=[],
@@ -3251,18 +3049,18 @@ class Scene:
 
         disallow_special(name)
 
-        self.mqttSyncFeatures = mqttSyncFeatures or {}
-        self.mqttNodeSessionID = base64.b64encode(os.urandom(8)).decode()
+        self.mqttSyncFeatures: Dict[str, Any] = mqttSyncFeatures or {}
+        self.mqttNodeSessionID: str = base64.b64encode(os.urandom(8)).decode()
 
-        self.eventButtons = eventButtons[:]
+        self.eventButtons: list = eventButtons[:]
         self.infoDisplay = infoDisplay
-        self.utility = bool(utility)
+        self.utility: bool = bool(utility)
 
         # This is used for the remote media triggers feature.
         self.mediaLink = kaithem.widget.APIWidget("media_link")
-        self.mediaLink.echo = False
+        self.mediaLink.echo: bool = False
 
-        self.slideOverlayURL = slideOverlayURL
+        self.slideOverlayURL: str = slideOverlayURL
 
         # Audio visualizations
         self.musicVisualizations = musicVisualizations
@@ -3401,14 +3199,25 @@ class Scene:
         self.bpm = bpm
         self.soundOutput = soundOutput
 
-        self.cue = None
+        self.cues = {}
+
+        # The list of cues as an actual list that is maintained sorted by number
+        self.cues_ordered = []
+
+
+        if cues:
+            for j in cues:
+                Cue(self, name=j, **cues[j])
+
+        if 'default' not in self.cues:
+            Cue(self, "default")
+        self.cue = self.cues['default']
+
 
         # Used for the tap tempo algorithm
         self.lastTap = 0
         self.tapSequence = 0
 
-        # The list of cues as an actual list that is maintained sorted by number
-        self.cues_ordered = []
         # This flag is used to avoid having to repaint the canvas if we don't need to
         self.fadeInCompleted = False
         # A pointer into that list pointing at the current cue. We have to update all this
@@ -3419,10 +3228,7 @@ class Scene:
         # happened since the cue started
         self.sound_end = 0
 
-        self.cues = {}
-        if defaultCue:
-            self.cue = Cue(self, "default", values)
-            self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
+        self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
         # Used to avoid an excessive number of repeats in random cues
         self.cueHistory = []
@@ -3470,7 +3276,7 @@ class Scene:
 
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
-        self.scriptContext = None
+        self.scriptContext = self.makeScriptContext()
         self.refreshRules()
 
         self.mqttServer = mqttServer
@@ -3478,10 +3284,7 @@ class Scene:
 
         self.setMidiSource(midiSource)
 
-        if defaultCue:
-            # self.gotoCue('default',sendSync=False)
-            pass
-
+    
         if active:
             self.gotoCue("default", sendSync=False, cause="start")
             self.go()
@@ -3556,7 +3359,9 @@ class Scene:
                 self.cues_ordered.append(c)
 
             self.cues_ordered.sort(key=lambda i: i.number)
-            if self.cue:
+
+            # We inset cues before we actually have a selected cue.
+            if hasattr(self, 'cue') and self.cue:
                 try:
                     self.cuePointer = self.cues_ordered.index(self.cue)
                 except Exception:
@@ -3650,10 +3455,10 @@ class Scene:
             if len(i().newDataFunctions) < 100:
                 i().newDataFunctions.append(lambda s: self.pushCueList(i.id))
 
-    def _addCue(self, cue, prev=None, f=True):
+    def _addCue(self, cue, prev=None, forceAdd=True):
         name = cue.name
         self.insertSorted(cue)
-        if name in self.cues and not f:
+        if name in self.cues and not forceAdd:
             raise RuntimeError("Cue would overwrite existing.")
         self.cues[name] = cue
         if prev and prev in self.cues:
@@ -3797,11 +3602,14 @@ class Scene:
         else:
             kwargs = {}
 
+        k2 = {}
+
         for i in kwargs:
             if len(kwargs[i]) == 1:
-                kwargs[i] = kwargs[i][0]
+                k2[i] = kwargs[i][0]
 
-        kwargs = collections.defaultdict(lambda: "", kwargs)
+
+        kwargs = collections.defaultdict(lambda: "", k2)
 
         self.scriptContext.setVar("KWARGS", kwargs)
 
@@ -4172,10 +3980,11 @@ class Scene:
     def preloadNextCueSound(self):
         # Preload the next cue's sound if we know what it is
         nextCue = None
-        if self.cue.nextCue == "":
-            nextCue = self.getDefaultNext()
-        elif self.cue.nextCue in self.cues:
-            nextCue = self.cue.nextCue
+        if self.cue:
+            if self.cue.nextCue == "":
+                nextCue = self.getDefaultNext()
+            elif self.cue.nextCue in self.cues:
+                nextCue = self.cue.nextCue
 
         if nextCue and nextCue in self.cues:
             c = self.cues[nextCue]
@@ -4185,7 +3994,7 @@ class Scene:
             except Exception:
                 return
             if os.path.isfile(sound):
-                out = self.cue.soundOutput
+                out = c.soundOutput
                 if not out:
                     out = self.soundOutput
                 if not out:
@@ -4201,9 +4010,10 @@ class Scene:
 
     def recalcRandomizeModifier(self):
         "Recalculate the random variance to apply to the length"
-        self.randomizeModifier = random.triangular(
-            -float(self.cue.lengthRandomize), +float(self.cue.lengthRandomize)
-        )
+        if self.cue:
+            self.randomizeModifier = random.triangular(
+                -float(self.cue.lengthRandomize), +float(self.cue.lengthRandomize)
+            )
 
     def recalcCueLen(self):
         "Calculate the actual cue len, without changing the randomizeModifier"
@@ -4211,9 +4021,11 @@ class Scene:
             return
         cuelen = self.scriptContext.preprocessArgument(self.cue.length)
         v = cuelen or 0
+        v = float(v)
 
-        if str(cuelen).startswith("@"):
-            selector = recur.getConstraint(cuelen[1:])
+        cuelen_str = str(cuelen)
+        if cuelen_str.startswith("@"):
+            selector = recur.getConstraint(cuelen_str[1:])
             ref = datetime.datetime.now()
             nextruntime = selector.after(ref, True)
 
@@ -4281,8 +4093,8 @@ class Scene:
 
             fixture = None
             try:
-                if i[1:] in core.fixtures:
-                    f = core.fixtures[i[1:]]()
+                if i[1:] in fixtures.fixtures:
+                    f = fixtures.fixtures[i[1:]]()
                     if f:
                         fixture = f
             except KeyError:
@@ -4370,26 +4182,27 @@ class Scene:
                     if isinstance(cuev, str) and cuev.startswith("="):
                         self.rerenderOnVarChange = True
 
+    def makeScriptContext(self):
+
+        scriptContext = DebugScriptContext(self,
+                                           rootContext, variables=self.chandlerVars, gil=core.lock
+                                           )
+
+        scriptContext.addNamespace("pagevars")
+
+        def sendMQTT(t, m):
+            self.sendMqttMessage(t, m)
+            return True
+
+        self.wrMqttCmdSendWrapper = sendMQTT
+        scriptContext.commands["sendMQTT"] = sendMQTT
+        return scriptContext
+
     def refreshRules(self, rulesFrom=None):
         with core.lock:
             # We copy over the event recursion depth so that we can detct infinite loops
             if not self.scriptContext:
-                self.scriptContext = DebugScriptContext(
-                    rootContext, variables=self.chandlerVars, gil=core.lock
-                )
-
-                self.scriptContext.addNamespace("pagevars")
-
-                self.scriptContext.scene = self.id
-                self.scriptContext.sceneObj = weakref.ref(self)
-                self.scriptContext.sceneName = self.name
-
-                def sendMQTT(t, m):
-                    self.sendMqttMessage(t, m)
-                    return True
-
-                self.wrMqttCmdSendWrapper = sendMQTT
-                self.scriptContext.commands["sendMQTT"] = sendMQTT
+                self.scriptContext = self.makeScriptContext()
 
             self.scriptContext.clearBindings()
 
@@ -4607,15 +4420,20 @@ class Scene:
             self.subscribeCommandTags()
 
     def nextCue(self, t=None, cause="generic"):
+
+        cue = self.cue
+        if not cue:
+            return
+
         with core.lock:
-            if self.cue.nextCue and (
-                (self.evalExpr(self.cue.nextCue).split("?")[0] in self.cues)
-                or self.cue.nextCue.startswith("__")
-                or "|" in self.cue.nextCue
-                or "*" in self.cue.nextCue
+            if cue.nextCue and (
+                (self.evalExpr(cue.nextCue).split("?")[0] in self.cues)
+                or cue.nextCue.startswith("__")
+                or "|" in cue.nextCue
+                or "*" in cue.nextCue
             ):
-                self.gotoCue(self.cue.nextCue, t, cause=cause)
-            elif not self.cue.nextCue:
+                self.gotoCue(cue.nextCue, t, cause=cause)
+            elif not cue.nextCue:
                 x = self.getDefaultNext()
                 if x:
                     self.gotoCue(x, t)
@@ -4659,8 +4477,8 @@ class Scene:
 
             self.enteredCue = time.time()
 
-            if self.blend in core.blendmodes:
-                self._blend = core.blendmodes[self.blend](self)
+            if self.blend in blendmodes.blendmodes:
+                self._blend = blendmodes.blendmodes[self.blend](self)
 
             self.effectiveValues = None
 
@@ -4767,7 +4585,7 @@ class Scene:
 
             self.doMqttSubscriptions()
 
-    def setName(self, name):
+    def setName(self, name: str):
         disallow_special(name)
         if self.name == "":
             raise ValueError("Cannot name scene an empty string")
@@ -4898,8 +4716,8 @@ class Scene:
             except Exception:
                 rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
-
-            self.cue = None
+            # fALLBACK
+            self.cue = self.cues.get('default', list(self.cues.values())[0])
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
             self.doMqttSubscriptions(keepUnused=0)
 
@@ -4983,7 +4801,6 @@ class Scene:
             self.cueVolume = 1
 
         kaithem.sound.setvol(val * self.cueVolume, str(self.id))
-        self.rerender = True
 
         if not self.isActive() and val > 0:
             self.go()
@@ -4995,6 +4812,7 @@ class Scene:
             self.pushMeta(keys={"alpha", "dalpha"})
         else:
             self.pushMeta(keys={"alpha", "dalpha"})
+        self.rerender = True
 
         self.mediaLink.send(["volume", val])
 
@@ -5005,10 +4823,10 @@ class Scene:
         disallow_special(blend)
         blend = str(blend)[:256]
         self.blend = blend
-        if blend in core.blendmodes:
+        if blend in blendmodes.blendmodes:
             if self.isActive():
-                self._blend = core.blendmodes[blend](self)
-            self.blendClass = core.blendmodes[blend]
+                self._blend = blendmodes.blendmodes[blend](self)
+            self.blendClass = blendmodes.blendmodes[blend]
             self.setupBlendArgs()
         else:
             self.blendArgs = self.blendArgs or {}
@@ -5035,21 +4853,6 @@ class Scene:
             self.blendArgs[key] = val
         self.rerender = True
         self.hasNewInfo = {}
-
-    def clearValue(self, universe, channel):
-        self.rerender = True
-        try:
-            del self.values[universe][channel]
-            if not self.values[universe]:
-                x = self.values[universe]
-                del self.values[universe]
-                # Put it back if there was a write from another thread. Prob
-                # still not totally threadsafe
-                if x:
-                    self.values[universe] = x
-        except Exception:
-            print(traceback.format_exc())
-        self.valueschanged = {}
 
     def render(self, force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
@@ -5137,8 +4940,8 @@ kaithem.chandler.Scene = core.Scene
 kaithem.chandler.scenesByUUID = core.scenes
 kaithem.chandler.scenes = core.scenes_by_name
 kaithem.chandler.Universe = universes.Universe
-kaithem.chandler.blendmodes = core.blendmodes
-kaithem.chandler.fixture = Fixture
+kaithem.chandler.blendmodes = blendmodes.blendmodes
+kaithem.chandler.fixture = fixtures.Fixture
 kaithem.chandler.shortcut = shortcutCode
 
 kaithem.chandler.commands = rootContext.commands

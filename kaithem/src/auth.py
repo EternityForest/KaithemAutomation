@@ -100,7 +100,7 @@ Users  = {}
 tokenHashes: Dict[bytes, User] = {}
 
 with open(os.path.join(directories.datadir, "defaultusersettings.yaml")) as f:
-    defaultusersettings = yaml.load(f)
+    defaultusersettings = yaml.load(f, Loader=yaml.SafeLoader)
 
 
 if sys.version_info < (3, 0):

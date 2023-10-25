@@ -18,6 +18,13 @@ import os
 from scullery import messagebus
 import scullery.jacktools
 
+# Used by other stuff, yes this really is supposed to be there
+# as defensive fallback
+from scullery.jacktools import *
+
+from scullery.jacktools import Airwire, getPorts
+
+
 __doc__ = ""
 
 

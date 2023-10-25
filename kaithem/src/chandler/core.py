@@ -2,13 +2,53 @@
 import os
 import threading
 import time
-
+import weakref
+import traceback
+import logging
 from ..kaithemobj import kaithem
 
 
 lock = threading.RLock()
+logger = logging.getLogger("system.chandler")
 
 saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
+
+
+# Shared info that other modules use, it's here to avoid circular dependencies
+# Store the fictures info
+
+
+
+runningTracks = weakref.WeakValueDictionary()
+scenes = weakref.WeakValueDictionary()
+scenes_by_name = weakref.WeakValueDictionary()
+
+_activeScenes = []
+activeScenes = []
+
+fixtureschanged = {}
+controlValues = weakref.WeakValueDictionary()
+
+
+
+def disallow_special(s, allow="", replaceMode=None):
+    for i in "[]{}()!@#$%^&*()<>,./;':\"-=+\\|`~?\r\n\t":
+        if i in s and i not in allow:
+            if replaceMode is None:
+                raise ValueError(
+                    "Special char "
+                    + i
+                    + " not allowed in this context(full str starts with "
+                    + s[:100]
+                    + ")"
+                )
+            else:
+                s = s.replace(i, replaceMode)
+    return s
+
+
+
+
 
 
 config = {
@@ -27,7 +67,7 @@ boards = []
 if not os.path.exists(musicLocation):
     try:
         os.makedirs(musicLocation, mode=0o755)
-    except:
+    except Exception:
         pass
 
 

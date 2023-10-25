@@ -28,10 +28,13 @@ def listRtmidi():
                                  "python-rtmidi is missing. Most MIDI related features will not work.")
             once[0] = 1
         return []
-    m = rtmidi.RtMidiIn()
+    try:
+        m = rtmidi.RtMidiIn(rtapi=rtmidi.API_UNIX_JACK)
 
-    return [(m.getPortName(i)) for i in range(m.getPortCount())]
-
+        return [(m.getPortName(i)) for i in range(m.getPortCount())]
+    except Exception:
+        core.logger.exception("Error in MIDI system")
+        return []
 
 from kaithem.src import tagpoints
 

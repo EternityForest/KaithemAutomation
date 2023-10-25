@@ -76,8 +76,8 @@ class Universe():
 
         # These channels should blend like Hue, which is normal blending but
         # There's no "background" of zeros. If there's nothing "behind" it, we consider it
-        #100% opaque
-        #Type is bool
+        # 100% opaque
+        # Type is bool
         self.hueBlendMask = numpy.array([0.0] * count, dtype="?")
 
         self.count = count
@@ -108,7 +108,7 @@ class Universe():
                             raise ValueError("Name " + name + " is taken")
                 _universes[name] = weakref.ref(self)
                 universes = {i: _universes[i]
-                                  for i in _universes if _universes[i]()}
+                             for i in _universes if _universes[i]()}
 
         # flag to apply all scenes, even ones not marked as neding rerender
         self.full_rerender = False
@@ -148,7 +148,7 @@ class Universe():
                 del _universes[self.name]
 
             universes = {i: _universes[i]
-                              for i in _universes if _universes[i]()}
+                         for i in _universes if _universes[i]()}
 
             def alreadyClosed(*a, **k):
                 raise RuntimeError(
@@ -262,7 +262,7 @@ class EnttecUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resouurce
     # For protocol documentation.
-    def __init__(self, name, channels=128, portname="", framerate=44, number=0):
+    def __init__(self, name, channels=128, portname="", framerate: float = 44, number=0):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
@@ -323,6 +323,7 @@ class DMXSender():
         "Try to reconnect to the adapter"
         try:
             import serial
+            import serial.tools
             if not self.portname:
                 import serial.tools.list_ports
 
@@ -956,3 +957,30 @@ core.EnttecUniverse = EnttecUniverse
 core.EnttecOpenUniverse = EnttecOpenUniverse
 core.TagpointUniverse = TagpointUniverse
 core.ArtNetUniverse = ArtNetUniverse
+
+
+def getUniverse(u):
+    "Get strong ref to universe if it exists, else get none."
+    try:
+        oldUniverseObj = universes[u]()
+    except KeyError:
+        oldUniverseObj = None
+    return oldUniverseObj
+
+
+def getUniverses():
+    "Returns dict of strong refs to universes, filtered to exclude weak refs"
+    m = universes
+    u = {}
+    for i in m:
+        x = m[i]()
+        if x:
+            u[i] = x
+
+    return u
+
+
+def rerenderUniverse(i):
+    universe = getUniverse(i)
+    if universe:
+        universe.full_rerender = True

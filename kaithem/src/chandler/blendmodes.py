@@ -3,7 +3,7 @@ import time
 import random
 import math
 import weakref
-
+from typing import Any
 from ..kaithemobj import kaithem
 from . import core
 from . import universes
@@ -38,14 +38,11 @@ def getblenddesc(mode):
 
 
 class BlendMode:
+    parameters = {}
     autoStop = True
 
 
-blendmodes: weakref.WeakValueDictionary[str, BlendMode] = weakref.WeakValueDictionary()
-
-
-core.BlendMode = BlendMode
-core.blendmodes = blendmodes
+blendmodes: weakref.WeakValueDictionary[str, Any] = weakref.WeakValueDictionary()
 
 
 def makeBlankArray(l, v=0):
