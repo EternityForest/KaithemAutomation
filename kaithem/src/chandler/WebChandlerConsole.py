@@ -132,6 +132,7 @@ def getSerPorts():
 class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def __init__(self):
+        self.link = None
         super().__init__()
         self.setup_link()
 
