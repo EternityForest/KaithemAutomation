@@ -1,6 +1,6 @@
 import os
 from setuptools import setup, find_packages
-
+from kaithem.src.version_info import __version__
 
 # Utility function to read the README file.
 # Used for the long_description.  It's nice, because now 1) we have a top level
@@ -34,7 +34,7 @@ extra_files = (
 )
 setup(
     name="kaithem",
-    version="0.68.42",
+    version=__version__,
     author="Daniel Dunn",
     author_email="danny@example.com",
     description=("Home/Commercial automation server"),
