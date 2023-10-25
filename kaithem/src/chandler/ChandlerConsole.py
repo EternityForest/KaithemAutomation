@@ -4,7 +4,7 @@ from . import universes
 from . import scenes
 from . import fixtureslib
 from . import blendmodes
-from .core import disallow_special, logger
+from .core import logger
 from .universes import getUniverse, getUniverses
 from ..kaithemobj import kaithem
 from .scenes import cues, event
@@ -13,7 +13,6 @@ import yaml
 
 
 import copy
-import gc
 import os
 import threading
 import time
@@ -22,11 +21,10 @@ import uuid
 import weakref
 
 
-
 class ChandlerConsole:
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
-    def linkSend(self,*a,**k):
+    def linkSend(self, *a, **k):
         pass
 
     def loadProject(self):
@@ -109,7 +107,7 @@ class ChandlerConsole:
         # This light board's scene memory, or the set of scenes 'owned' by this board.
         self.scenememory = {}
 
-        self.ext_scenes = {}        
+        self.ext_scenes = {}
 
         self.lock = threading.RLock()
 
@@ -384,6 +382,9 @@ class ChandlerConsole:
                             + " already exists. We cannot overwrite, because it was not created through this board"
                         )
                 try:
+                    x = False
+
+                    # I think this was a legacy save format thing TODO
                     if "defaultActive" in data[i]:
                         x = data[i]["defaultActive"]
                         del data[i]["defaultActive"]
@@ -399,7 +400,6 @@ class ChandlerConsole:
                         uuid = i
 
                     s = Scene(id=uuid, defaultActive=x, **data[i])
-
 
                     self.scenememory[uuid] = s
                     if x:
@@ -725,7 +725,6 @@ class ChandlerConsole:
                 ]
             )
             x = x[100:]
-
 
     def setChannelName(self, id, name="Untitled"):
         self.channelNames[id] = name

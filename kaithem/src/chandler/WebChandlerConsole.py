@@ -187,16 +187,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif msg[0] == "getcuedata":
             s = cues[msg[1]]
-            self.link.send(["cuedata", msg[1], s.values])
+            self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "getfixtureclass":
-            self.link.send(
+            self.linkSend(
                 ["fixtureclass", msg[1], self.fixtureClasses[msg[1]]])
 
         elif msg[0] == "getfixtureclasses":
             # Send placeholder lists
-            self.link.send(
+            self.linkSend(
                 ["fixtureclasses", {i: []
                                     for i in self.fixtureClasses.keys()}]
             )
@@ -206,7 +206,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif msg[0] == "gasd":
             with core.lock:
-                self.link.send(["presets", self.presets])
+                self.linkSend(["presets", self.presets])
                 self.pushUniverses()
                 self.pushfixtures()
                 for i in self.scenememory:
@@ -236,11 +236,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     if i.id not in self.scenememory:
                         self.pushMeta(i.id)
                 self.pushConfiguredUniverses()
-            self.link.send(["serports", getSerPorts()])
+            self.linkSend(["serports", getSerPorts()])
 
             shows = os.path.join(kaithem.misc.vardir, "chandler", "shows")
             if os.path.isdir(shows):
-                self.link.send(
+                self.linkSend(
                     [
                         "shows",
                         [
@@ -254,7 +254,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             setups = os.path.join(
                 kaithem.misc.vardir, "chandler", "setups")
             if os.path.isdir(setups):
-                self.link.send(
+                self.linkSend(
                     [
                         "setups",
                         [
@@ -271,7 +271,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushUniverses()
 
         elif msg[0] == "getserports":
-            self.link.send(["serports", getSerPorts()])
+            self.linkSend(["serports", getSerPorts()])
 
         elif msg[0] == "getCommands":
             c = scenes.rootContext.commands.scriptcommands
@@ -279,7 +279,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             for i in c:
                 f = c[i]
                 commandInfo[i] = kaithem.chandlerscript.getFunctionInfo(f)
-            self.link.send(["commands", commandInfo])
+            self.linkSend(["commands", commandInfo])
 
         elif msg[0] == "getconfuniverses":
             self.pushConfiguredUniverses()
@@ -409,14 +409,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif msg[0] == "addscene":
             s = Scene(msg[1].strip())
             self.scenememory[s.id] = s
-            self.link.send(["newscene", msg[1].strip(), s.id])
+            self.linkSend(["newscene", msg[1].strip(), s.id])
             self.pushMeta(s.id)
 
         elif msg[0] == "addmonitor":
             s = Scene(msg[1].strip(), blend="monitor",
                       priority=100, active=True)
             self.scenememory[s.id] = s
-            self.link.send(["newscene", msg[1].strip(), s.id])
+            self.linkSend(["newscene", msg[1].strip(), s.id])
 
         elif msg[0] == "setconfuniverses":
             if kaithem.users.checkPermission(user, "/admin/settings.edit"):
@@ -464,23 +464,23 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif msg[0] == "setFixtureAssignment":
             self.fixtureAssignments[msg[1]] = msg[2]
-            self.link.send(["fixtureAssignments", self.fixtureAssignments])
+            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
             self.refreshFixtures()
 
         elif msg[0] == "getcuehistory":
-            self.link.send(
+            self.linkSend(
                 ["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
 
         elif msg[0] == "rmFixtureAssignment":
             del self.fixtureAssignments[msg[1]]
 
-            self.link.send(["fixtureAssignments", self.fixtureAssignments])
-            self.link.send(["fixtureAssignments", self.fixtureAssignments])
+            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
+            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
 
             self.refreshFixtures()
 
         elif msg[0] == "getfixtureassg":
-            self.link.send(["fixtureAssignments", self.fixtureAssignments])
+            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
             self.pushfixtures()
 
         elif msg[0] == "clonecue":
@@ -605,7 +605,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         cue.setValue(
                             "@" + msg[2], "__dest__." + str(i[0]), val)
 
-            self.link.send(["cuedata", msg[1], cue.values])
+            self.linkSend(["cuedata", msg[1], cue.values])
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "rmcuef":
@@ -615,11 +615,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             for i in x:
                 s.setValue(msg[2], i, None)
-            self.link.send(["cuedata", msg[1], s.values])
+            self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "listsoundfolder":
-            self.link.send(
+            self.linkSend(
                 ["soundfolderlisting", msg[1], listsoundfolder(msg[1])])
 
         elif msg[0] == "scv":
@@ -640,7 +640,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     pass
 
             cues[msg[1]].setValue(msg[2], ch, v)
-            self.link.send(["scv", msg[1], msg[2], ch, v])
+            self.linkSend(["scv", msg[1], msg[2], ch, v])
 
             if v is None:
                 # Count of values in the metadata changed
@@ -674,7 +674,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 scenes.scenes[msg[1]].addCue(n)
 
         elif msg[0] == "searchsounds":
-            self.link.send(
+            self.linkSend(
                 [
                     "soundsearchresults",
                     msg[1],
@@ -718,7 +718,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 scenes.scenes[msg[1]].cues[bn].length = 0.01
 
                 soundfolders = core.getSoundFolders()
-
+                s = None
                 for i in soundfolders:
                     s = msg[2]
                     # Make paths relative.
@@ -727,6 +727,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     if s.startswith(i):
                         s = s[len(i):]
                         break
+                if not s:
+                    raise RuntimeError("Unknown, linter said was possible")
                 scenes.scenes[msg[1]].cues[bn].sound = s
                 scenes.scenes[msg[1]].cues[bn].namedForSound = True
 

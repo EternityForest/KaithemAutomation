@@ -1,12 +1,11 @@
 import time
 import weakref
-import os
 import threading
 import traceback
 import numpy
 
 from .WebChandlerConsole import WebConsole
-from .scenes import Scene, event
+from .scenes import Scene, event, shortcutCode
 
 from ..kaithemobj import kaithem
 from . import core
@@ -17,38 +16,16 @@ from .universes import getUniverses
 from .scenes import rootContext
 
 
-def nbr():
-    return (
-        50,
-        '<a href="/chandler/commander"><i class="icofont-cheer-leader"></i>Chandler</a>',
-    )
-
-
-kaithem.web.navBarPlugins["chandler"] = nbr
-
-
-def nbr2():
-    return (50, '<a href="/chandler/editor"><i class="icofont-pencil"></i>Editor</a>')
-
-
-kaithem.web.navBarPlugins["chandler2"] = nbr2
-
 logger = core.logger
 soundLock = threading.Lock()
 
 
-
+# Locals for performance... Is this still a thing??
 float = float
 abs = abs
 int = int
 max = max
 min = min
-
-
-
-
-
-
 
 
 def refresh_scenes(t, v):
@@ -112,13 +89,6 @@ def pollsounds():
                     ):
                         i.nextCue(cause="sound")
 
-
-class ObjPlugin:
-    pass
-
-
-k_interface = ObjPlugin()
-kaithem.chandler = k_interface
 
 
 def composite(background, values, alphas, alpha):
@@ -331,17 +301,38 @@ board = WebConsole()
 core.boards.append(weakref.ref(board))
 core.board = board
 
-kaithem.chandler.board = board
-kaithem.chandler.Scene = Scene
-kaithem.chandler.scenesByUUID = scenes.scenes
-kaithem.chandler.scenes = scenes.scenes_by_name
-kaithem.chandler.Universe = universes.Universe
-kaithem.chandler.blendmodes = blendmodes.blendmodes
-kaithem.chandler.fixture = universes.Fixture
-kaithem.chandler.shortcut = scenes.shortcutCode
 
-kaithem.chandler.commands = rootContext.commands
-kaithem.chandler.event = event
+class ObjPlugin:
+    board = board
+    Scene = Scene
+    scenesByUUID = scenes.scenes
+    scenes = scenes.scenes_by_name
+    Universe = universes.Universe
+    blendmodes = blendmodes.blendmodes
+    fixture = universes.Fixture
+    shortcut = shortcutCode
+    commands = rootContext.commands
+    event = event
+
+
+k_interface = ObjPlugin()
+kaithem.chandler = k_interface
+
+def nbr():
+    return (
+        50,
+        '<a href="/chandler/commander"><i class="icofont-cheer-leader"></i>Chandler</a>',
+    )
+
+
+kaithem.web.navBarPlugins["chandler"] = nbr
+
+def nbr2():
+    return (50, '<a href="/chandler/editor"><i class="icofont-pencil"></i>Editor</a>')
+
+kaithem.web.navBarPlugins["chandler2"] = nbr2
+
+
 
 
 controluniverse = universes.Universe("control")

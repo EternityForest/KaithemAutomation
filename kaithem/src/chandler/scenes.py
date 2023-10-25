@@ -26,9 +26,16 @@ import time
 import traceback
 import urllib.parse
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 import copy
 import recur
+
+# Locals for performance... Is this still a thing??
+float = float
+abs = abs
+int = int
+max = max
+min = min
 
 allowedCueNameSpecials = "_~."
 
@@ -37,6 +44,36 @@ scenes_by_name = weakref.WeakValueDictionary()
 
 _activeScenes = []
 activeScenes = []
+
+
+def makeWrappedConnectionClass(parent):
+    self_closure_ref = parent
+
+    class Connection(mqtt.MQTTConnection):
+        def on_connect(self):
+            self_closure_ref.event("board.mqtt.connected")
+            self_closure_ref.pushMeta(statusOnly=True)
+            return super().on_connect()
+
+        def on_disconnect(self):
+            self_closure_ref.event("board.mqtt.disconnected")
+            self_closure_ref.pushMeta(statusOnly=True)
+            if self_closure_ref.mqttServer:
+                self_closure_ref.event("board.mqtt.error", "Disconnected")
+            return super().on_disconnect()
+
+        def on_message(self, t, m):
+            gn = self_closure_ref.mqttSyncFeatures.get("syncGroup", False)
+            if gn:
+                topic = f"/kaithem/chandler/syncgroup/{gn}"
+                if t == topic:
+                    self_closure_ref.onCueSyncMessage(t, m)
+
+            self_closure_ref.onMqttMessage(t, m)
+
+            return super().on_message(t, m)
+
+    return Connection
 
 
 def makeBlankArray(size: int):
@@ -67,7 +104,7 @@ class FadeCanvas:
         """
 
         # We assume a lot of these lists have the same set of universes. If it gets out of sync you
-        # probably have to stop and restart the 
+        # probably have to stop and restart the
         for i in vals:
             effectiveFade = fade
             obj = getUniverse(i)
@@ -260,7 +297,6 @@ def number_to_shortcut(number):
 
 def shortcutCode(code, limitScene=None, exclude=None):
     "API to activate a cue by it's shortcut code"
-    print("SC code " + code)
     if not limitScene:
         event("shortcut." + str(code)[:64], None)
 
@@ -273,12 +309,12 @@ def shortcutCode(code, limitScene=None, exclude=None):
                         if (x is not limitScene) and not (x.name == limitScene):
                             print("skip " + x.name, limitScene)
                             continue
-                        if x is not exclude:
+                        if (x is not exclude):
                             x.event("shortcut." + str(code)[:64])
-
-                    if x:
-                        x.go()
-                        x.gotoCue(i.name, cause="manual")
+                    else:
+                        if x and x is not exclude:
+                            x.go()
+                            x.gotoCue(i.name, cause="manual")
                 except Exception:
                     print(traceback.format_exc())
 
@@ -335,15 +371,17 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
             print(traceback.format_exc())
 
     def onTimerChange(self, timer, run):
-        self.sceneObj().runningTimers[timer] = run
-        try:
-            for i in core.boards:
-                i().link.send(
-                    ["scenetimers", self.scene, self.sceneObj().runningTimers]
-                )
-        except Exception:
-            core.rl_log_exc("Error handling timer set notification")
-            print(traceback.format_exc())
+        scene = self.sceneObj()
+        if scene:
+            scene.runningTimers[timer] = run
+            try:
+                for i in core.boards:
+                    i().link.send(
+                        ["scenetimers", self.sceneName, scene.runningTimers]
+                    )
+            except Exception:
+                core.rl_log_exc("Error handling timer set notification")
+                print(traceback.format_exc())
 
     def canGetTagpoint(self, t):
         if t not in self.tagpoints and len(self.tagpoints) > 128:
@@ -588,6 +626,12 @@ class Cue:
                 del x[i]
         return x
 
+    def getScene(self):
+        s = self.scene()
+        if not s:
+            raise RuntimeError("Scene must have been deleted")
+        return s
+
     def push(self):
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
@@ -606,13 +650,13 @@ class Cue:
                 )
 
     def clone(self, name):
-        name = self.scene().evalExpr(name)
+        name = self.getScene().evalExpr(name)
 
-        if name in self.scene().cues:
+        if name in self.getScene().cues:
             raise RuntimeError("Cannot duplicate cue names in one scene")
 
         c = Cue(
-            self.scene(),
+            self.getScene(),
             name,
             fadein=self.fadein,
             length=self.length,
@@ -631,7 +675,7 @@ class Cue:
 
     def setTrack(self, val):
         self.track = bool(val)
-        self.scene().rerender = True
+        self.getScene().rerender = True
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
@@ -643,17 +687,17 @@ class Cue:
         self.number = int((Decimal(n) * Decimal(1000)).quantize(1))
 
         # re-sort the cuelist
-        self.scene().insertSorted(None)
+        self.getScene().insertSorted(None)
 
         self.push()
 
     def setRules(self, r):
         self.rules = r
-        self.scene().refreshRules()
+        self.getScene().refreshRules()
 
     def setInheritRules(self, r):
         self.inheritRules = r
-        self.scene().refreshRules()
+        self.getScene().refreshRules()
 
     def setShortcut(self, code, push=True):
         disallow_special(code, allow="._")
@@ -693,7 +737,7 @@ class Cue:
     def setValue(self, universe, channel, value):
         disallow_special(universe, allow="_@.")
 
-        scene = self.scene()
+        scene = self.getScene()
 
         if not scene:
             raise RuntimeError("The scene doesn't exist")
@@ -958,8 +1002,10 @@ class Scene:
         # Only used for monitor scenes
         self.valueschanged = {}
         # Place to stash a blend object for new blending mode
-        self._blend = None
-        self.blendClass = None
+        # Hardcoded indicates that applyLayer reads the blend name and we
+        # have hardcoded logic there
+        self._blend: blendmodes.BlendMode = blendmodes.HardcodedBlendMode(self)
+        self.blendClass: Type[blendmodes.BlendMode] = blendmodes.HardcodedBlendMode
         self.alpha = alpha
         self.crossfade = crossfade
 
@@ -990,7 +1036,7 @@ class Scene:
         self.name = name
 
         # self.values = values or {}
-        self.canvas = None
+        self.canvas = FadeCanvas()
         self.backtrack = backtrack
         self.bpm = bpm
         self.soundOutput = soundOutput
@@ -1223,6 +1269,9 @@ class Scene:
             elif cue in self.cues:
                 name = cue
                 id = self.cues[cue].id
+            else:
+                raise RuntimeError("Cue does not seem to exist")
+            
             self.cues_ordered.remove(self.cues[name])
 
             if cue in cues:
@@ -1857,9 +1906,13 @@ class Scene:
                         # If we are doing crossfading, we have to stop slightly early for
                         # The crossfade to work
                         # TODO this should not stop early if the next cue overrides
-                        slen = (TinyTag.get(path).duration -
-                                self.crossfade) + cuelen
-                        v = max(0, self.randomizeModifier + slen)
+                        duration = TinyTag.get(path).duration
+                        if duration is not None:
+                            slen = (duration -
+                                    self.crossfade) + cuelen
+                            v = max(0, self.randomizeModifier + slen)
+                        else:
+                            raise RuntimeError("Tinytag returned None when getting length")
                     except Exception:
                         logging.exception(
                             "Error getting length for sound " + str(path))
@@ -1947,6 +2000,8 @@ class Scene:
                     cuev = cuex.values[i][j]
 
                     evaled = self.evalExpr(cuev if not (cuev is None) else 0)
+                    # This should always be a float
+                    evaled = float(evaled)
 
                     # Do the blend thing
                     if j in dest:
@@ -2043,7 +2098,7 @@ class Scene:
     def onCueSyncMessage(self, topic, message):
         gn = self.mqttSyncFeatures.get("syncGroup", False)
         if gn:
-            topic = f"/kaithem/chandler/syncgroup/{gn}"
+            # topic = f"/kaithem/chandler/syncgroup/{gn}"
             m = json.loads(message)
 
             if not self.mqttNodeSessionID == m['senderSessionID']:
@@ -2257,6 +2312,8 @@ class Scene:
             if self in activeScenes:
                 return
 
+            # Not sure if we need to remake this, keep it for defensive
+            # reasons, TODO
             self.canvas = FadeCanvas()
 
             self.manualAlpha = False
@@ -2345,31 +2402,8 @@ class Scene:
 
             if mqttServer:
                 if self in activeScenes:
-                    class Connection(mqtt.MQTTConnection):
-                        def on_connect(s):
-                            self.event("board.mqtt.connected")
-                            self.pushMeta(statusOnly=True)
-                            return super().on_connect()
 
-                        def on_disconnect(s):
-                            self.event("board.mqtt.disconnected")
-                            self.pushMeta(statusOnly=True)
-                            if self.mqttServer:
-                                self.event("board.mqtt.error", "Disconnected")
-                            return super().on_disconnect()
-
-                        def on_message(s, t, m):
-                            gn = self.mqttSyncFeatures.get("syncGroup", False)
-                            if gn:
-                                topic = f"/kaithem/chandler/syncgroup/{gn}"
-                                if t == topic:
-                                    self.onCueSyncMessage(t, m)
-
-                            self.onMqttMessage(t, m)
-
-                            return super().on_message(t, m)
-
-                    self.mqttConnection = Connection(
+                    self.mqttConnection = makeWrappedConnectionClass(self)(
                         server,
                         port,
                     )
@@ -2489,9 +2523,9 @@ class Scene:
             if not self.cue:
                 return
 
-            self._blend = None
+            # Just using this to get rid of prev value
+            self._blend = blendmodes.HardcodedBlendMode(self)
             self.hasNewInfo = {}
-            self.canvas = None
 
             try:
                 for i in self.affect:
@@ -2631,8 +2665,8 @@ class Scene:
             self.setupBlendArgs()
         else:
             self.blendArgs = self.blendArgs or {}
-            self._blend = None
-            self.blendClass = None
+            self._blend = blendmodes.HardcodedBlendMode(self)
+            self.blendClass = blendmodes.HardcodedBlendMode
         self.rerender = True
         self.hasNewInfo = {}
 

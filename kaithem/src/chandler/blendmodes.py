@@ -41,6 +41,14 @@ class BlendMode:
     parameters = {}
     autoStop = True
 
+    def __init__(self, scene) -> None:
+        pass
+
+
+class HardcodedBlendMode(BlendMode):
+    "Indicates that the blend mode is hardcoded in applyLayer"
+    pass
+
 
 blendmodes: weakref.WeakValueDictionary[str, Any] = weakref.WeakValueDictionary()
 

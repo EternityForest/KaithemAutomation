@@ -16,6 +16,12 @@ from .core import disallow_special
 from ..kaithemobj import kaithem
 logger = logging.getLogger("system.chandler")
 
+# Locals for performance... Is this still a thing??
+float = float
+abs = abs
+int = int
+max = max
+min = min
 
 universesLock = core.lock
 universes = {}
@@ -422,7 +428,7 @@ class EnttecUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resouurce
     # For protocol documentation.
-    def __init__(self, name, channels=128, portname="", framerate: float = 44, number=0):
+    def __init__(self, name, channels=128, portname="", framerate: float = 44.0, number=0):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
@@ -452,7 +458,7 @@ class DMXSender():
         the rate at which the data actually gets rendered.
     """
 
-    def __init__(self, universe, port, framerate):
+    def __init__(self, universe, port, framerate:float):
         self.frame = threading.Event()
         self.universe = universe
         self.data = message(universe().values)
@@ -582,7 +588,7 @@ class DMXSender():
 
 
 class ArtNetUniverse(Universe):
-    def __init__(self, name, channels=128, address="255.255.255.255:6454", framerate=44, number=0):
+    def __init__(self, name, channels=128, address="255.255.255.255:6454", framerate=44.0, number=0):
         self.ok = True
         self.status = "OK"
         self.number = number
@@ -620,7 +626,7 @@ class ArtNetUniverse(Universe):
 class TagpointUniverse(Universe):
     "Used for outputting lighting to Kaithem's internal Tagpoint system"
 
-    def __init__(self, name, channels=128, tagpoints={}, framerate=44, number=0):
+    def __init__(self, name, channels=128, tagpoints={}, framerate=44.0, number=0):
         self.ok = True
         self.status = "OK"
         self.number = number
@@ -814,7 +820,7 @@ class EnttecOpenUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resouurce
     # For protocol documentation.
-    def __init__(self, name, channels=128, portname="", framerate=44, number=0):
+    def __init__(self, name, channels=128, portname="", framerate=44.0, number=0):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
