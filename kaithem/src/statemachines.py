@@ -15,7 +15,6 @@
 
 
 import time
-import weakref
 import types
 import threading
 from typeguard import typechecked
@@ -149,7 +148,7 @@ class StateMachine():
             self.subscribers = {
                 i: self.subscribers[i] for i in self.subscribers if self.subscribers[i]}
 
-            if not state in self.subscribers:
+            if state not in self.subscribers:
                 self.subscribers[state] = []
             self.subscribers[state].append(util.universal_weakref(f))
 
