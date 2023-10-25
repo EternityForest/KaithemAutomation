@@ -87,8 +87,9 @@ def getWeakrefHandlers(self):
     def on_message(client, userdata, msg):
         try:
             s = self()
-            # Everything must be fine, because we are getting messages
-            s.on_message(msg.topic, msg.payload)
+            if s:
+                # Everything must be fine, because we are getting messages
+                s.on_message(msg.topic, msg.payload)
         except Exception:
             logging.exception("MQTT")
 

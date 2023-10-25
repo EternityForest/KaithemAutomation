@@ -9,7 +9,9 @@ import traceback
 import gc
 import copy
 import struct
+import json
 from . import core
+from .core import disallow_special
 
 from ..kaithemobj import kaithem
 logger = logging.getLogger("system.chandler")
@@ -20,6 +22,164 @@ universes = {}
 
 # MUTABLE
 _universes = {}
+
+
+
+fixtures = {}
+
+
+class Fixture:
+    def __init__(self, name, data=None):
+        """Represents a contiguous range of channels each with a defined role in one universe.
+
+        data is the definition of the type of fixture. It can be a list of channels, or
+        a dict having a 'channels' property.
+
+        Each channel must be described by a [name, type, [arguments]] list, where type is one of:
+
+        red
+        green
+        blue
+        value
+        dim
+        custom
+        fine
+        fog
+        hue
+
+        The name must be unique per-fixture.
+        If a channel has the type "fine" it will be interpreted as the fine value of
+        the immediately preceding coarse channel, and should automatically get its value from the fractional part.
+        If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
+        with 0 being the fixture's first channel.
+        """
+        if data:
+            # Normalize and raise errors on nonsense
+            channels = json.loads(json.dumps(data))
+
+            if not isinstance(channels, list):
+                channels = channels["channels"]
+            self.channels = channels
+
+        else:
+            channels = []
+
+        self.channels = channels
+        self.universe = None
+        self.startAddress = 0
+        self.assignment = None
+        disallow_special(name, ".")
+
+        self.nameToOffset = {}
+
+        # Used for looking up channel by name
+        for i in range(len(channels)):
+            self.nameToOffset[channels[i][0]] = i
+
+        with core.lock:
+            if name in fixtures:
+                raise ValueError("Name in Use")
+            else:
+                fixtures[name] = weakref.ref(self)
+                self.name = name
+
+    def getChannelByName(self, name):
+        if self.startAddress:
+            return self
+
+    def __del__(self):
+        with core.lock:
+            try:
+                del fixtures[self.name]
+            except KeyError:
+                pass
+
+        ID = id(self)
+
+        def f():
+            with core.lock:
+                try:
+                    if id(fixtures[self.name]()) == id(ID):
+                        self.assign(None, None)
+                        self.rm()
+                except KeyError:
+                    pass
+                except Exception:
+                    print(traceback.format_exc())
+
+        kaithem.misc.do(f)
+
+    def rm(self):
+        try:
+            del fixtures[self.name]
+        except Exception:
+            print(traceback.format_exc())
+
+    def assign(self, universe, channel):
+        with core.lock:
+            # First just clear the old assignment, if any
+            if self.universe and self.startAddress:
+                oldUniverseObj = getUniverse(self.universe)
+
+                if oldUniverseObj:
+                    # Delete current assignments
+                    for i in range(
+                        self.startAddress, self.startAddress +
+                            len(self.channels)
+                    ):
+                        if i in oldUniverseObj.channels:
+                            if (
+                                oldUniverseObj.channels[i]()
+                                and oldUniverseObj.channels[i]() is self
+                            ):
+                                del oldUniverseObj.channels[i]
+                                # We just unassigned it, so it's not a hue channel anymore
+                                oldUniverseObj.hueBlendMask[i] = 0
+                            else:
+                                print(
+                                    "Unexpected channel data corruption",
+                                    universe,
+                                    i,
+                                    oldUniverseObj.channels[i](),
+                                )
+
+            self.assignment = universe, channel
+
+            self.universe = universe
+            self.startAddress = channel
+
+            universeObj = getUniverse(universe)
+
+            if not universeObj:
+                return
+
+            core.fixtureschanged = {}
+
+            universeObj.channelsChanged()
+
+            if not channel:
+                return
+            # 2 separate loops, first is just to check, so that we don't have half-completed stuff
+            for i in range(channel, channel + len(self.channels)):
+                if i in universeObj.channels:
+                    if universeObj.channels[i] and universeObj.channels[i]():
+                        if not self.name == universeObj.channels[i]().name:
+                            raise ValueError(
+                                "channel "
+                                + str(i)
+                                + " of "
+                                + self.name
+                                + " would overlap with "
+                                + universeObj.channels[i]().name
+                            )
+
+            cPointer = 0
+            for i in range(channel, channel + len(self.channels)):
+                universeObj.channels[i] = weakref.ref(self)
+                if self.channels[cPointer][1] in ("hue", "sat", "custom"):
+                    # Mark it as a hue channel that blends slightly differently
+                    universeObj.hueBlendMask[i] = 1
+                    cPointer += 1
 
 
 class Universe():
@@ -528,7 +688,7 @@ class TagpointUniverse(Universe):
                             x += self.tagObjsByNum[i].min
                     self.claims[i].set(x)
             except:
-                rl_log_exc("Error in tagpoint universe")
+                core.rl_log_exc("Error in tagpoint universe")
                 print(traceback.format_exc())
 
 
@@ -609,7 +769,7 @@ class ArtNetSender():
                     time.sleep(
                         max(((1.0 / self.framerate) - (time.time() - s)), 0))
                 except Exception as e:
-                    rl_log_exc("Error in artnet universe")
+                    core.rl_log_exc("Error in artnet universe")
                     print(traceback.format_exc())
         self.thread = threading.Thread(target=run)
         self.thread.name = "ArtnetSenderThread_" + self.thread.name
@@ -906,7 +1066,7 @@ class ColorTagUniverse(Universe):
         Universe.__init__(self, name, 4)
         self.hidden = False
         self.tag = tag
-        self.f = core.Fixture(self.name + ".rgb",
+        self.f = Fixture(self.name + ".rgb",
                               [['R', 'red'], ['G', 'green'], ['B', 'blue']])
         self.f.assign(self.name, 1)
         self.lock = threading.RLock()
@@ -952,13 +1112,6 @@ class ColorTagUniverse(Universe):
 core.discoverColorTagDevices = discoverColorTagDevices
 
 
-core.Universe = Universe
-core.EnttecUniverse = EnttecUniverse
-core.EnttecOpenUniverse = EnttecOpenUniverse
-core.TagpointUniverse = TagpointUniverse
-core.ArtNetUniverse = ArtNetUniverse
-
-
 def getUniverse(u):
     "Get strong ref to universe if it exists, else get none."
     try:
@@ -984,3 +1137,58 @@ def rerenderUniverse(i):
     universe = getUniverse(i)
     if universe:
         universe.full_rerender = True
+
+
+
+def mapUniverse(u):
+    if not u.startswith("@"):
+        return u
+
+    u = u.split("[")[0]
+
+    try:
+        x = fixtures[u[1:]]()
+        if not x:
+            return None
+    except KeyError:
+        return None
+    return x.universe
+
+
+def mapChannel(u, c):
+    index = 1
+
+    if isinstance(c, str):
+        if c.startswith("__"):
+            return None
+        # Handle the notation for repeating fixtures
+        if "[" in c:
+            c, index = c.split("[")
+            index = int(index.split("]")[0].strip())
+
+    if not u.startswith("@"):
+        if isinstance(c, str):
+            universe = getUniverse(u)
+            if universe:
+                c = universe.channelNames.get(c, None)
+                if not c:
+                    return None
+                else:
+                    return u, int(c)
+        else:
+            return u, int(c)
+
+    try:
+        f = fixtures[u[1:]]()
+        if not f:
+            return None
+
+    except KeyError:
+        return None
+    x = f.assignment
+    if not x:
+        return
+
+    # Index advance @fixture[5] means assume @fixture is the first of 5 identical fixtures and you want #5
+    return x[0], int(x[1] + f.nameToOffset[c] + ((index - 1) * len(f.channels)))
+

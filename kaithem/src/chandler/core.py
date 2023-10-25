@@ -3,9 +3,19 @@ import os
 import threading
 import time
 import weakref
-import traceback
 import logging
 from ..kaithemobj import kaithem
+
+# when the last time we logged an error, so we can ratelimit
+lastSysloggedError = 0
+
+
+def rl_log_exc(m):
+    print(m)
+    global lastSysloggedError
+    if lastSysloggedError < time.monotonic() - 5 * 60:
+        logging.exception(m)
+    lastSysloggedError = time.monotonic()
 
 
 lock = threading.RLock()
@@ -18,17 +28,8 @@ saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
 # Store the fictures info
 
 
-
-runningTracks = weakref.WeakValueDictionary()
-scenes = weakref.WeakValueDictionary()
-scenes_by_name = weakref.WeakValueDictionary()
-
-_activeScenes = []
-activeScenes = []
-
 fixtureschanged = {}
 controlValues = weakref.WeakValueDictionary()
-
 
 
 def disallow_special(s, allow="", replaceMode=None):
