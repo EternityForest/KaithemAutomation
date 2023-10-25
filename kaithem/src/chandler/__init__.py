@@ -5,7 +5,7 @@ import threading
 import traceback
 import numpy
 
-from .ChandlerConsole import ChandlerConsole
+from .WebChandlerConsole import WebConsole
 from .scenes import Scene, event
 
 from ..kaithemobj import kaithem
@@ -327,7 +327,7 @@ def getAllDeviceTagPoints():
 lastrendered = 0
 
 
-board = ChandlerConsole()
+board = WebConsole()
 core.boards.append(weakref.ref(board))
 core.board = board
 

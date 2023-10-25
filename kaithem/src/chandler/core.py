@@ -69,7 +69,7 @@ if not os.path.exists(musicLocation):
     try:
         os.makedirs(musicLocation, mode=0o755)
     except Exception:
-        pass
+        logger.exception("Could not make music dir")
 
 
 def getSoundFolders():
@@ -119,5 +119,6 @@ class RateLimiter():
             return 0
 
         return 1
+
 
 ratelimit = RateLimiter()

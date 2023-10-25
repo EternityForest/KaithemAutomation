@@ -19,6 +19,8 @@ to be more in line with best practices.
 - :sparkles: Chandler cues have a "Trigger Shortcut" option and will trigger cues in other scenes having that shortcut code.
 - :coffin: None of that included thirdparty stuff!
 - :bug: Disenhorriblize the install instructions
+- :recycle: Refactor the Chandler Python
+- 
 
 ### 0.69.20
 
