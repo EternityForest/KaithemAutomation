@@ -129,9 +129,16 @@ pip install -r requirements_frozen.txt
 If you are more adventurous, instead you can install direct_dependencies.py and get the unfrozen versions of everything.
 
 
+To wipe a virtualenv so you can start over, do
+```bash
+pip uninstall -y -r <(pip freeze -l)
+```
+
+Be sure to only run that inside your virtualenv!!!
+
 ### Running Kaithem quickly
 
-From inside your Kaithem folder:
+From inside your Kaithem folder after installing in the venv
 
 ```bash
 source ../kaithem_venv/bin/activate
