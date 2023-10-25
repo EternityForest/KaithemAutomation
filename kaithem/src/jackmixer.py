@@ -350,7 +350,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.outputs = outputs
             self._outputs = []
             self.sends = []
-            self.sendAirwires = {}
+            self.sendAirwires: Dict = {}
 
             self.faderTag = tagpoints.Tag("/jackmixer/channels/" + name + ".fader")
             self.faderTag.subscribe(self._faderTagHandler)

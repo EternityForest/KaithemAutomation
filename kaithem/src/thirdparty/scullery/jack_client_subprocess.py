@@ -211,9 +211,12 @@ def main():
             return False
         else:
             return True
+        
     while 1:
         time.sleep(10)
         if not check_pid(ppid):
+            sys.exit()
+        if not ppid == os.getppid():
             sys.exit()
 
 if __name__ == '__main__':

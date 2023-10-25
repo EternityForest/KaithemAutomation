@@ -287,8 +287,7 @@ class JackClientProxy():
 
 
         from scullery.jsonrpyc import RPC
-        from subprocess import PIPE, STDOUT
-        from reap import Popen
+        from subprocess import PIPE, STDOUT, Popen
         self.ended=False
         f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"jack_client_subprocess.py")
         env = {}

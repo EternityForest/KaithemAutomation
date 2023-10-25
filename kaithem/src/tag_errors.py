@@ -1,6 +1,10 @@
 from . import tagpoints, messagebus
 from types import MethodType
-globalMethodRateLimit = [0]
+import time
+import traceback
+
+globalMethodRateLimit = [0.0]
+
 
 def tagErrorHandler(tag, f, val):
     try:

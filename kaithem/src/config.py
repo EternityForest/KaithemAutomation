@@ -23,6 +23,7 @@ import jsonschema
 import logging
 
 logger = logging.getLogger("system")
+config = {}
 
 ##########################################################
 # Modified code from ibt of stackoverflow. Uses literal style for scalars instead of ugly folded.
@@ -55,19 +56,18 @@ _dn = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
 #################################################################
 
+_argp = argparse.ArgumentParser()
+
+# Manually specify a confifuration file, or else there must be one in /etc/kaithem
+_argp.add_argument("-c")
+_argp.add_argument("-p")
+_argp.add_argument("--initialpackagesetup")
+_argp.add_argument("--nosecurity")
+
+argcmd = _argp.parse_args(sys.argv[1:])
+
 
 def load():
-    global argcmd
-    _argp = argparse.ArgumentParser()
-
-    # Manually specify a confifuration file, or else there must be one in /etc/kaithem
-    _argp.add_argument("-c")
-    _argp.add_argument("-p")
-    _argp.add_argument("--initialpackagesetup")
-    _argp.add_argument("--nosecurity")
-
-    argcmd = _argp.parse_args(sys.argv[1:])
-
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:
         _defconfig = yaml.load(f,Loader=yaml.SafeLoader)
@@ -94,17 +94,18 @@ def load():
 
 
 def reload():
-    global config
     c = load()
     with open(os.path.join(_dn, "config-schema.yaml")) as f:
         jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
     config.update(c)
 
 
-c = load()
-with open(os.path.join(_dn, "config-schema.yaml")) as f:
-    jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
-config = c
-# Happy linter
-argcmd = argcmd
-del c
+def initialize():
+    c = load()
+    with open(os.path.join(_dn, "config-schema.yaml")) as f:
+        jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
+    # Allow code to set config keys before this loads that can override the
+    # file
+    c.update(config)
+    config.update(c)
+

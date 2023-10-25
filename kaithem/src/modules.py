@@ -417,7 +417,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
             shouldRemoveExtension = True
 
         if not isSpecialEncoded:
-            r = yaml.load(sections[0])
+            r = yaml.load(sections[0], Loader=yaml.SafeLoader)
 
             # Catch new style save files
             if len(sections) > 1:

@@ -1,10 +1,29 @@
 import cherrypy
 import mako
+import tornado
+
+from typing import Dict, Any
 
 import os
 import traceback
 import time
 import mimetypes
+import mako.exceptions
+import sys
+import logging
+
+import pytz
+import datetime
+import dateutil.parser
+
+import cherrypy._cpreqbody
+import atexit
+import iot_devices
+
+from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches, Matcher
+
+from . import wsgi_adapter
+
 
 from . import (
     pages,
@@ -19,10 +38,16 @@ from . import (
     weblogin,
     ManageUsers,
     modules_interface,
+    modules_state,
     usrpages,
     messagelogging,
     btadmin,
     devices,
+    messagebus,
+    util,
+    systasks,
+    widgets,
+    tileserver
 )
 
 
@@ -31,6 +56,14 @@ from .config import config
 
 from cherrypy.lib.static import serve_file
 from cherrypy import _cperror
+
+
+logger = logging.getLogger("system")
+logger.setLevel(logging.INFO)
+
+
+cherrypy.engine.subscribe("stop", devices.closeAll)
+cherrypy.engine.subscribe("stop", iot_devices.host.app_exit_cleanup)
 
 
 class Errors:
@@ -231,7 +264,8 @@ class webapproot:
                     (i + "/" if os.path.isdir(os.path.join(dir, i)) else i)
                     for i in os.listdir(dir)
                 ]
-                x = "\r\n".join(['<a href="' + i + '">' + i + "</a><br>" for i in x])
+                x = "\r\n".join(
+                    ['<a href="' + i + '">' + i + "</a><br>" for i in x])
                 return x
         except Exception:
             return traceback.format_exc()
@@ -301,7 +335,7 @@ class webapproot:
         if path:
             tn = '/'.join(path)
             if (not tn.startswith('=')) and not tn.startswith('/'):
-                tn = '/'+tn
+                tn = '/' + tn
             if tn not in tagpoints.allTags:
                 raise ValueError("This tag does not exist")
             return pages.get_template("settings/tagpoint.html").render(
@@ -320,20 +354,22 @@ class webapproot:
                 tagName=path[0], data=data
             )
         else:
-            import pytz
-            import datetime
-            import dateutil.parser
+            tag = tagpoints.allTags[path[0]]()
+            if tag is None:
+                raise RuntimeError("This tag seems to no longer exist")
 
-            for i in tagpoints.allTags[path[0]]().configLoggers:
+            for i in tag.configLoggers:
                 if i.accumType == data["exportType"]:
                     tz = pytz.timezone(
-                        auth.getUserSetting(pages.getAcessingUser(), "timezone")
+                        auth.getUserSetting(
+                            pages.getAcessingUser(), "timezone")
                     )
                     logtime = tz.localize(
                         dateutil.parser.parse(data["logtime"])
                     ).timestamp()
                     raw = i.getDataRange(
-                        logtime, time.time() + 10000000, int(data["exportRows"])
+                        logtime, time.time() +
+                        10000000, int(data["exportRows"])
                     )
 
                     if data["exportFormat"] == "csv.iso":
@@ -367,7 +403,7 @@ class webapproot:
     def pagelisting(self, *path, **data):
         # Pagelisting knows to only show pages if you have permissions
         return pages.get_template("pagelisting.html").render_unicode(
-            modules=modules.ActiveModules
+            modules=modules_state.ActiveModules
         )
 
     # docs, helpmenu, and license are just static pages.
@@ -380,7 +416,8 @@ class webapproot:
                 )
                 if not p.startswith(os.path.join(directories.srcdir, "docs")):
                     raise RuntimeError("Invalid URL")
-                cherrypy.response.headers["Content-Type"] = mimetypes.guess_type(p)[0]
+                cherrypy.response.headers["Content-Type"] = mimetypes.guess_type(p)[
+                    0]
 
                 with open(p, "rb") as f:
                     return f.read()
@@ -431,46 +468,46 @@ else:
     ddn = "/usr/share/kaithem"
 
 conf = {
-        "/static": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(ddn, "static"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-            "tools.expires.on": True,
-            "tools.expires.secs": 3600 + 48,  # expire in 48 hours
-        },
-        "/static/js": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "js"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/vue": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "vue"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/css": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "css"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/docs": {
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": os.path.join(sdn, "docs"),
-            "tools.sessions.on": False,
-            "tools.addheader.on": True,
-        },
-        "/static/zip": {
-            "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-            "tools.addheader.on": True,
-        },
-        "/pages": {
-            "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-        },
-    }
+    "/static": {
+        "tools.staticdir.on": True,
+        "tools.staticdir.dir": os.path.join(ddn, "static"),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True,
+        "tools.expires.on": True,
+        "tools.expires.secs": 3600 + 48,  # expire in 48 hours
+    },
+    "/static/js": {
+        "tools.staticdir.on": True,
+        "tools.staticdir.dir": os.path.join(sdn, "js"),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True,
+    },
+    "/static/vue": {
+        "tools.staticdir.on": True,
+        "tools.staticdir.dir": os.path.join(sdn, "vue"),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True,
+    },
+    "/static/css": {
+        "tools.staticdir.on": True,
+        "tools.staticdir.dir": os.path.join(sdn, "css"),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True,
+    },
+    "/static/docs": {
+        "tools.staticdir.on": True,
+        "tools.staticdir.dir": os.path.join(sdn, "docs"),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True,
+    },
+    "/static/zip": {
+        "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
+        "tools.addheader.on": True,
+    },
+    "/pages": {
+        "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
+    },
+}
 
 if not config["favicon-png"] == "default":
     conf["/favicon.png"] = {
@@ -491,3 +528,192 @@ if not config["favicon-ico"] == "default":
         "tools.expires.on": True,
         "tools.expires.secs": 3600,  # expire in an hour
     }
+
+
+def startServer():
+    # We don't want Cherrypy writing temp files for no reason
+    cherrypy._cpreqbody.Part.maxrambytes = 64 * 1024
+
+    logger.info("Loaded core python code")
+    from . import config as cfgmodule
+
+    if not config["host"] == "default":
+        bindto = config["host"]
+    else:
+        if config["local-access-only"]:
+            bindto = "127.0.0.1"
+        else:
+            bindto = "::"
+
+    mode = int(
+        cfgmodule.argcmd.nosecurity) if cfgmodule.argcmd.nosecurity else None
+    # limit nosecurity to localhost
+    if mode == 1:
+        bindto = "127.0.0.1"
+
+    logger.info("Ports are free")
+
+    sys.modules["kaithem"] = sys.modules["__main__"]
+
+    def save():
+        if config["save-before-shutdown"]:
+            messagebus.postMessage(
+                "/system/notifications/important/", "System saving before shutting down"
+            )
+            util.SaveAllState()
+
+    # let the user choose to have the server save everything before a shutdown
+    if config["save-before-shutdown"]:
+        atexit.register(save)
+        cherrypy.engine.subscribe("exit", save)
+
+    site_config = {
+        "tools.encode.on": True,
+        "tools.encode.encoding": "utf-8",
+        "tools.decode.on": True,
+        "tools.decode.encoding": "utf-8",
+        "request.error_response": cpexception,
+        "log.screen": config["cherrypy-log-stdout"],
+        "engine.autoreload.on": False,
+    }
+
+    cnf = conf
+
+    def addheader(*args, **kwargs):
+        "This function's only purpose is to tell the browser to cache requests for an hour"
+        cherrypy.response.headers["Cache-Control"] = "max-age=28800"
+        cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
+
+        # del cherrypy.response.headers['Expires']
+
+    def pageloadnotify(*args, **kwargs):
+        systasks.aPageJustLoaded()
+
+    cherrypy.config.update(site_config)
+
+    cherrypy.tools.pageloadnotify = cherrypy.Tool(
+        "on_start_resource", pageloadnotify)
+    cherrypy.config["tools.pageloadnotify.on"] = True
+
+    cherrypy.tools.addheader = cherrypy.Tool("before_finalize", addheader)
+
+    if hasattr(cherrypy.engine, "signal_handler"):
+        del cherrypy.engine.signal_handler.handlers["SIGUSR1"]
+        cherrypy.engine.signal_handler.subscribe()
+
+    wsgiapp = cherrypy.tree.mount(root, config=cnf)
+
+    messagebus.postMessage("/system/startup", "System Initialized")
+    messagebus.postMessage(
+        "/system/notifications/important", "System Initialized")
+
+    cherrypy.server.unsubscribe()
+    cherrypy.config.update({"environment": "embedded"})
+    cherrypy.engine.signals.subscribe()
+
+    cherrypy.engine.start()
+
+    wsapp = tornado.web.Application(
+        [
+            (r"/widgets/ws", widgets.makeTornadoSocket()),
+            (r"/widgets/wsraw", widgets.makeRawTornadoSocket()),
+        ]
+    )
+
+    class KAuthMatcher(Matcher):
+        def __init__(self, path, permission) -> None:
+            super().__init__()
+            self.pm = PathMatches(path)
+            self.perm = permission
+
+        def match(self, request) -> Dict[str, Any] | None:
+            if self.pm.match(request) is not None:
+                if pages.canUserDoThis(self.perm, pages.getAcessingUser(request)):
+                    return {}
+
+            return None
+
+    rules = [
+        Rule(PathMatches("/widgets/ws.*"), wsapp),
+        Rule(
+            PathMatches("/maptiles/tile/.*"),
+            tornado.web.Application(
+                [("/maptiles/tile/.*", tileserver.MainHandler)]),
+        ),
+    ]
+
+    from . import tableview
+
+    rules.append(
+        Rule(
+            AnyMatches(),
+            tornado.web.Application(
+                [
+                    (
+                        KAuthMatcher("/database.*", "/admin/settings.edit"),
+                        wsgi_adapter.WSGIHandler,
+                        {"wsgi_application": tableview.get_app()},
+                    ),
+                    (
+                        PathMatches("/database.*"),
+                        tornado.web.RedirectHandler,
+                        {"url": "/login", 'permanent': False},
+                    ),
+                    (
+                        AnyMatches(),
+                        wsgi_adapter.WSGIHandler,
+                        {"wsgi_application": wsgiapp},
+                    ),
+                ]
+            ),
+        )
+    )
+
+    if config["esphome-config-dir"]:
+        from . import esphome_dash
+
+        rules.extend(
+            [
+                Rule(
+                    KAuthMatcher("/esphome.*", "/admin/settings.edit"),
+                    esphome_dash.start_web_server(),
+                ),
+                Rule(
+                    PathMatches("/esphome.*"),
+                    tornado.web.RedirectHandler,
+                    {"url": "/login", 'permanent': False},
+                ),
+            ]
+        )
+    router = RuleRouter(rules)
+
+    http_server = tornado.httpserver.HTTPServer(router)
+    # Legacy config comptibility
+    http_server.listen(config["http-port"],
+                       bindto if not bindto == '::' else None)
+
+    if config["https-port"]:
+        if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
+            cherrypy.server.unsubscribe()
+            messagebus.postMessage(
+                "/system/notifications",
+                "You do not have an SSL certificate set up. HTTPS is not enabled.",
+            )
+        else:
+            https_server = tornado.httpserver.HTTPServer(
+                router,
+                ssl_options={
+                    "certfile": os.path.join(directories.ssldir, "certificate.cert"),
+                    "keyfile": os.path.join(directories.ssldir, "certificate.key"),
+                },
+            )
+            https_server.listen(config["https-port"], bindto)
+
+    # Publish to the CherryPy engine as if
+    # we were using its mainloop
+    tornado.ioloop.PeriodicCallback(
+        lambda: cherrypy.engine.publish("main"), 100
+    ).start()
+    tornado.ioloop.IOLoop.instance().start()
+
+    logger.info("Cherrypy engine stopped")
