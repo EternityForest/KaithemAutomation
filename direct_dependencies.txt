@@ -15,7 +15,7 @@ msgpack
 pyyaml
 types-PyYaml
 
-zeroconf
+zeroconf>=0.119.0
 colorzero
 gpiozero
 #onvif
@@ -51,7 +51,7 @@ pyHS100
 yeelight
 
 pyserial
-python-rtmidi
+python-rtmidi==1.4.7
 paho-mqtt
 setproctitle
 psutil

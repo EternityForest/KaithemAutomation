@@ -478,14 +478,6 @@ Run a command in the system's native shell and return the output.
 Run a command in the system's native shell in the background and ignore
 the output and return codes.
 
-#### kaithem.sys.lsfiles(path)
-
-List all files under path on the server.
-
-#### kaithem.sys.lsdirs(path)
-
-List all directories under path on the server.
-
 #### kaithem.sys.which(exe)
 
 Similar to the unix which command. Returns the path to the program that
@@ -878,13 +870,6 @@ Relying on users not to do this, however, seems like a fairly bad idea, so kaith
 
 Note that even with this protection, XSS can still do anything that a guest can do.
 
-#### kaithem.web.url(url)
-
-URL enode a string.
-
-#### kaithem.web.unurl(url)
-
-Decode an URL enoded string.
 
 #### kaithem.web.goBack()
 

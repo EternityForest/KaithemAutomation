@@ -27,7 +27,8 @@ import os
 import weakref
 import datetime
 import scullery.persist
-from typing import Any
+
+from typing import Any, Callable, Optional
 
 try:
     import holidays
@@ -56,6 +57,7 @@ from . import assetlib
 from . import version_info
 
 from . import astrallibwrapper as sky
+from . import scriptbindings
 
 bootTime = time.time()
 
@@ -80,7 +82,7 @@ plugins = weakref.WeakValueDictionary()
 
 
 class TagInterface():
-    def __getitem__(self, k):
+    def __getitem__(self, k: str):
         try:
             x = tagpoints.allTagsAtomic[k]()
             if not x:
@@ -89,15 +91,15 @@ class TagInterface():
         except KeyError:
             return tagpoints.Tag(k)
 
-    def StringTag(self, k):
+    def StringTag(self, k: str):
         t = tagpoints.StringTag(k)
         return t
 
-    def ObjectTag(self, k):
+    def ObjectTag(self, k: str):
         t = tagpoints.ObjectTag(k)
         return t
 
-    def BinaryTag(self, k):
+    def BinaryTag(self, k: str):
         t = tagpoints.BinaryTag(k)
         return t
 
@@ -105,7 +107,7 @@ class TagInterface():
         return tagpoints.allTagsAtomic
 
     TagClass = tagpoints._TagPoint
-    #HysteresisFilter = tagpoints.HysteresisFilter
+    # HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter
     HighpassFilter = tagpoints.HighpassFilter
 
@@ -114,7 +116,7 @@ class SoundOutput():
     pass
 
 
-from . import scriptbindings
+
 
 class Kaithem():
     devices = devices.DeviceNamespace()
@@ -122,8 +124,8 @@ class Kaithem():
     tags = TagInterface()
     chandlerscript = scriptbindings
 
-    assetpacks = assetlib.AssetPacks(os.path.join(directories.vardir, 'assets'))
-
+    assetpacks = assetlib.AssetPacks(
+        os.path.join(directories.vardir, 'assets'))
 
     def __getattr__(self, name):
         if name in plugins:
@@ -142,7 +144,7 @@ class Kaithem():
 
     class users(object):
         @staticmethod
-        def checkPermission(user, permission):
+        def checkPermission(user, permission: str):
             try:
                 if pages.canUserDoThis(permission, user):
                     return True
@@ -171,27 +173,27 @@ class Kaithem():
         version_info = version_info.__version_info__
 
         @staticmethod
-        def lorem():
-            return(random.choice(sentences))
+        def lorem() -> str:
+            return (random.choice(sentences))
             # return ("""lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae laoreet eros. Integer nunc nisl, ultrices et commodo sit amet, dapibus vitae sem. Nam vel odio metus, ac cursus nulla. Pellentesque scelerisque consequat massa, non mollis dolor commodo ultrices. Vivamus sit amet sapien non metus fringilla pretium ut vitae lorem. Donec eu purus nulla, quis venenatis ipsum. Proin rhoncus laoreet ullamcorper. Etiam fringilla ligula ut erat feugiat et pulvinar velit fringilla.""")
 
         @staticmethod
-        def do(f):
+        def do(f: Callable):
             workers.do(f)
 
         @staticmethod
-        def location():
+        def location() -> tuple[float, float]:
             lat, lon = geolocation.getCoords()
             if not lon or not lat:
                 raise RuntimeError("No location set")
-            return((lat, lon))
+            return ((lat, lon))
 
         @staticmethod
         def uptime():
             return time.time() - bootTime
 
         @staticmethod
-        def errors(f):
+        def errors(f: Callable):
             try:
                 f()
             except Exception as e:
@@ -202,19 +204,13 @@ class Kaithem():
         def breakpoint():
             breakpoint.breakpoint()
 
-        @staticmethod
-        def mkdir(d):
-            util.ensure_dir2(d)
-
         effwords = util.eff_wordlist
 
         vardir = directories.vardir
         datadir = directories.datadir
 
-
-
     # In modules.py, we insert a resource API object.
-    #kaithemobj.kaithem.resource = ResourceAPI()
+    # kaithemobj.kaithem.resource = ResourceAPI()
 
     class time(object):
 
@@ -227,11 +223,11 @@ class Kaithem():
         #         if not l:
         #             return False
         #         zones = [l]
-            
+
         #     else:
         #         for i in zones:
         #             h = holidays.country_holidays(i)
-                        
+
         #             try:
         #                 h = h[datetime.datetime.now()]
         #             except KeyError:
@@ -261,39 +257,39 @@ class Kaithem():
 
         @staticmethod
         def month():
-            return(unitsofmeasure.Month())
+            return (unitsofmeasure.Month())
 
         @staticmethod
         def day():
-            return(time.localtime().tm_mday)
+            return (time.localtime().tm_mday)
 
         @staticmethod
         def year():
-            return(time.localtime().tm_year)
+            return (time.localtime().tm_year)
 
         @staticmethod
         def hour():
-            return(time.localtime().tm_hour)
+            return (time.localtime().tm_hour)
 
         @staticmethod
         def minute():
-            return(time.localtime().tm_min)
+            return (time.localtime().tm_min)
 
         @staticmethod
         def second():
-            return(time.localtime().tm_sec)
+            return (time.localtime().tm_sec)
 
         @staticmethod
-        def isdst(self):
+        def isdst():
             # It returns 1 or 0, cast to bool because that's just weird.
-            return(bool(time.localtime().tm_isdst))
+            return (bool(time.localtime().tm_isdst))
 
         @staticmethod
         def dayofweek():
             return (unitsofmeasure.DayOfWeek())
 
         @staticmethod
-        def sunsetTime(lat=None, lon=None, date=None):
+        def sunsetTime(lat: Optional[float] = None, lon: Optional[float] = None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -459,15 +455,7 @@ class Kaithem():
             subprocess.Popen(cmd, shell=True)
 
         @staticmethod
-        def lsdirs(path):
-            return util.get_immediate_subdirectories(path)
-
-        @staticmethod
-        def lsfiles(path):
-            return util.get_files(path)
-
-        @staticmethod
-        def which(exe):
+        def which(exe: str):
             return util.which(exe)
 
         @staticmethod
@@ -476,20 +464,14 @@ class Kaithem():
                 if util.which('sensors'):
                     return (subprocess.check_output('sensors').decode('utf8'))
                 else:
-                    return('"sensors" command failed(lm_sensors not available)')
+                    return ('"sensors" command failed(lm_sensors not available)')
             except Exception:
-                return('sensors call failed')
-
+                return ('sensors call failed')
 
     class states(object):
         StateMachine = statemachines.StateMachine
 
     class web(object):
-        # TODO: Deprecate webresource stuff
-        @staticmethod
-        def resource(name):
-            return pages.webResources[name].url
-
         controllers = pages.nativeHandlers
 
         navBarPlugins = pages.navBarPlugins
@@ -508,14 +490,6 @@ class Kaithem():
                 page.setContent(c)
             else:
                 return pages.get_template("freeboard/app.html").render(plugins=plugins)
-
-        @staticmethod
-        def unurl(s):
-            return util.unurl(s)
-
-        @staticmethod
-        def url(s):
-            return util.url(s)
 
         @staticmethod
         def goBack():
@@ -625,20 +599,20 @@ class Kaithem():
         @staticmethod
         def preload(*args, **kwargs):
             pass
-            #TODO Make this work again
-            #return sound.preload(*args, **kwargs)
+            # TODO Make this work again
+            # return sound.preload(*args, **kwargs)
 
     class message():
         @staticmethod
-        def post(topic, message):
+        def post(topic: str, message):
             messagebus.postMessage(topic, message)
 
         @staticmethod
-        def subscribe(topic, callback):
+        def subscribe(topic: str, callback: Callable):
             messagebus.subscribe(topic, callback)
 
         @staticmethod
-        def unsubscribe(topic, callback):
+        def unsubscribe(topic: str, callback: Callable):
             messagebus.unsubscribe(topic, callback)
 
     class persist():
