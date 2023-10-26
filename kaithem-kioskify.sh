@@ -289,10 +289,7 @@ if [ ! -d virtualenv ]; then
 fi
 
 source virtualenv/bin/activate
-pip3 install tflite-runtime 
-pip3 install aioesphomeapi
-pip3 install esphome
-pip3 install "numpy>=1.26.1"
+pip3 install --ignore-installed -r /opt/KaithemAutomation/requirements_frozen.txt
 deactivate
 
 

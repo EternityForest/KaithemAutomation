@@ -83,7 +83,7 @@
                 once[0]=1
             return []
     
-        m=rtmidi.RtMidiIn()
+        m=rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
     
         return [(m.getPortName(i)) for i in range(m.getPortCount())]
 

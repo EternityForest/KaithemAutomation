@@ -29,7 +29,7 @@ def listRtmidi():
             once[0] = 1
         return []
     try:
-        m = rtmidi.RtMidiIn(rtapi=rtmidi.API_UNIX_JACK)
+        m = rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
 
         return [(m.getPortName(i)) for i in range(m.getPortCount())]
     except Exception:

@@ -193,7 +193,7 @@ class GStreamerPipeline:
             time.sleep(0.5)
             self.worker.kill()
             workers.do(self.worker.wait)
-            raise
+            
 
     def addJackMixerSendElements(self, *a, **k):
         a, b = self.rpc.call(

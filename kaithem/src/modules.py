@@ -384,7 +384,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                 # Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
                 # A syntax error preventing reading the data at all
                 data = yaml.load(readStringFromSource(
-                    restofthecode, "__data__"))
+                    restofthecode, "__data__"), Loader=yaml.SafeLoader)
                 data["trigger"] = readStringFromSource(
                     restofthecode, "__trigger__")
                 data["setup"] = setup.strip()
@@ -404,7 +404,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
         elif fn.endswith(".md") or fn.endswith(".html"):
             isSpecialEncoded = True
             try:
-                data = yaml.load(sections[1])
+                data = yaml.load(sections[1], Loader=yaml.SafeLoader)
                 data["body"] = sections[2]
                 r = data
                 shouldRemoveExtension = True

@@ -95,8 +95,11 @@ def onMidiMessageTuple(m, d):
 
 once = [0]
 
+scanning_connection = None
 
 def doScan():
+    global scanning_connection
+
     try:
         import rtmidi
     except ImportError:
@@ -108,10 +111,15 @@ def doScan():
             once[0] = 1
         return
 
-    m = rtmidi.RtMidiIn(rtapi=rtmidi.API_UNIX_JACK)
+    if not scanning_connection:
+        scanning_connection = rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
+    
     torm = []
-
-    present = [(i, m.getPortName(i)) for i in range(m.getPortCount())]
+    try:
+        present = [(i, scanning_connection.getPortName(i)) for i in range(scanning_connection.getPortCount())]
+    except Exception:
+        scanning_connection = None
+        raise
 
     for i in allInputs:
         if not i in present:
@@ -122,7 +130,7 @@ def doScan():
     for i in present:
         if not i in allInputs:
             try:
-                m = rtmidi.RtMidiIn(rtapi=rtmidi.API_UNIX_JACK)
+                m = rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
                 m.openPort(i[0])
 
                 def f(
