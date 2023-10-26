@@ -61,7 +61,7 @@ h1{
 
 body {
     color: #412f1b;
-    border-color: #837b58;
+    border-color: #412f1b42;
 }
 
 div.card {
@@ -71,6 +71,16 @@ div.card {
   border-color: rgba(65, 85, 27, 0.39);
   border-radius: 15px;
   backdrop-filter:none;
+}
+
+details
+{
+  border-color: #412f1b42;
+}
+
+details[open]
+{
+  border-color: #412f1b;
 }
 
 .highlight {
@@ -126,7 +136,7 @@ section, article{
     border-width: 1px;
     border-radius: 10px;
     backdrop-filter: blur(1px);
-    border-color: #412f1b;
+    border-color: #412f1b42;
   }
 
 
@@ -262,7 +272,7 @@ input, button,textarea,select{
   background-color: transparent;
   border-style: solid;
   border-width: 2px;
-  border-color: #412f1b;
+  border-color: #412f1b42;
   border-radius: 12px;
 }
 

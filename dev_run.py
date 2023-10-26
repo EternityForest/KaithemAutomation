@@ -1,4 +1,8 @@
 #!/usr/bin/python3
 import kaithem
-kaithem.initialize_app()
+
+# This object is the same as the "kaithem" object in pages and events
+api = kaithem.initialize_app()
+
+
 kaithem.start_server()
