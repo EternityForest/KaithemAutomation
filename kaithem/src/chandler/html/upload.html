@@ -6,7 +6,7 @@ __doc__= ""
 <%
 if 'yaml' in kwargs:
    x = kwargs['yaml'].file.read()
-   module.board.loadSceneFile(x,_asuser=True, filename=kwargs['yaml'].filename,errs=True)
+   module.board.loadSceneFile(x, filename=kwargs['yaml'].filename,errs=True)
 
 %>
 <h2>Upload a scene file</h2>

@@ -335,7 +335,7 @@ class ChandlerConsole:
                 "presets": self.presets,
             }
 
-    def loadSceneFile(self, data, _asuser=False, filename=None, errs=False):
+    def loadSceneFile(self, data, filename:str, errs=False):
         data = yaml.load(data, Loader=yaml.SafeLoader)
 
         # Detect if the user is trying to upload a single scenefile, if so, wrap it in a multi-dict of scenes to keep the reading code
