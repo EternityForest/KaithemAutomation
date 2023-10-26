@@ -14,7 +14,6 @@ parts:
     stage-packages:
       - mpv
       - python3
-      - build-essential
       - lm-sensors
       - python3-gst-1.0
       - python3-libnacl
