@@ -371,24 +371,7 @@ how to remove the virtical space around the range input in IE*/
   }
 }
 
-
-/* flicker */
-/* 
-html {
-  
-  animation-name: blink-2;
-  animation-duration: 6.2s;
-  animation-timing-function: linear;
-  animation-delay: 0s;
-  animation-iteration-count: infinite;
-  animation-direction: normal;
-  animation-fill-mode: none;
-    
-  /* shorthand
-  animation: blink-2 6.2s linear 0s infinite normal none;*/
-}
 @keyframes blink-2 {
-    
   0% {
     
   }
@@ -422,4 +405,4 @@ html {
   30% {
     backdrop-filter:none;
  }
-} */
+}

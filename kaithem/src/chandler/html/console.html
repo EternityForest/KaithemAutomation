@@ -173,7 +173,7 @@ ${lists}
 
 </script>
 
-<div id="app" style="display:flex; flex-wrap:wrap;">
+<div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
     <div v-if="showevents" class="sectionbox flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
         <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
             Log
@@ -639,7 +639,7 @@ ${lists}
     </div>
 
     <div v class="sectionbox flex-item"
-        style="overflow: auto; width:20%; min-width: 15em; flex-grow: 1; height:90%; resize:both;">
+        style="overflow: auto; width:20%; min-width: 22em; max-width: 32em; flex-grow: 1; height:90%; resize:both;">
         <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
         <div class="buttonbar">
@@ -649,15 +649,12 @@ ${lists}
                 v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
             <button v-on:click="shortcut()">Go!</button>
         </div>
-        <p class="buttonbar">
+        <div class="buttonbar">
             <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
                     class="icofont-trash"></i></button>
-            <hr>
+            <button v-on:click="showPages=!showPages">Compact</button>
 
-        <p class="buttonbar">
-            <button v-on:click="showPages=!showPages">Toggle Compact</button>
-
-        </p>
+            </div>
         <hr>
         <div id="scene" style="overflow: auto; max-height:450px;">
             <div v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;"
@@ -753,13 +750,13 @@ ${lists}
     </div>
 
     <div class="sectionbox flex-item" v-if="!(editingScene && cuemeta[editingScene.cue])"
-        style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
+        style="display:inline-block;  max-width:98vw; resize:both; overflow:auto;">
         <h2>No Scene selected</h2>
     </div>
 
 
     <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
-        style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
+        style="display:inline-block; max-width:98vw; resize:both; overflow:auto; flex-grow: 5;">
         <div style="display: flex; flex-direction: row;">
 
             <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
@@ -837,7 +834,7 @@ ${lists}
 
 
                             <td class="desktop-only" data-label="Shortcut:">
-                                <p class="buttonbar" style="width: 12em;">
+                                <p class="buttonbar" style="width: 8em;">
                                     <input title="Shortcut code" size="8"
                                         v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
                                         step=0.1 v-model="i[1].shortcut">
@@ -852,7 +849,7 @@ ${lists}
                             </td>
 
                             <td class="desktop-only" data-label="Length:">
-                                <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:12em"
+                                <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em"
                                     list="lenoptions" v-model="i[1].length">
                             </td>
 

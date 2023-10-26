@@ -1,3 +1,4 @@
+<%include file="/pageheader.html" />
 <%
 if 'yaml' in kwargs:
    x = kwargs['yaml'].file.read()
@@ -13,3 +14,5 @@ if 'yaml' in kwargs:
         <input type="submit"></input>
     </form>
 </div>
+<%include file="/pagefooter.html" />
+
