@@ -1,4 +1,5 @@
 import os
+import re
 from setuptools import setup, find_packages
 
 # Utility function to read the README file.
@@ -9,7 +10,15 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-import os
+# https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
+VERSIONFILE="kaithem/__version__.py"
+verstrline = open(VERSIONFILE, "rt").read()
+VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    verstr = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
 
 def package_files(directory, ext=""):
@@ -33,7 +42,7 @@ extra_files = (
 )
 setup(
     name="kaithem",
-    version="0.68.20",
+    version=verstr,
     author="Daniel Dunn",
     author_email="danny@example.com",
     description=("Home/Commercial automation server"),

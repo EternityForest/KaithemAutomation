@@ -54,7 +54,7 @@ from . import midi
 from . import gpio
 from . import theming
 from . import assetlib
-from . import version_info
+from kaithem import __version__
 
 from . import astrallibwrapper as sky
 from . import scriptbindings
@@ -169,8 +169,8 @@ class Kaithem():
 
     class misc(object):
 
-        version = version_info.__version__
-        version_info = version_info.__version_info__
+        version = __version__.__version__
+        version_info = __version__.__version_info__
 
         @staticmethod
         def lorem() -> str:

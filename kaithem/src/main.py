@@ -18,11 +18,12 @@ import logging
 import os
 import sys
 
-from . import version_info 
+from kaithem import __version__ 
 from . import config
 
-__version__ = version_info.__version__
-__version_info__ = version_info.__version_info__
+__version_info__ = __version__.__version_info__
+__version__ = __version__.__version__
+
 
 
 def initialize():
