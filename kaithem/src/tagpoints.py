@@ -24,7 +24,8 @@ import dateutil.parser
 from typing import Callable, Tuple, Union, Dict, List, Any, Optional, TypeVar, Type
 from typeguard import typechecked
 
-def makeTagInfoHelper(t):
+
+def makeTagInfoHelper(t: TagPointClass):
     def f():
         x = t.currentSource
         if x == 'default':
@@ -33,10 +34,12 @@ def makeTagInfoHelper(t):
             return '(' + x + ')'
     return f
 
+
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
 
-exposedTags: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
+exposedTags: weakref.WeakValueDictionary[str,
+                                         TagPointClass] = weakref.WeakValueDictionary()
 
 # These are the atrtibutes of a tag that can be overridden by configuration.
 # Setting tag.hi sets the runtime property, but we ignore it if the configuration takes precedence.
@@ -56,13 +59,9 @@ allTagsAtomic: Dict[str, weakref.ref[TagPointClass]] = {}
 
 providers = {}
 
-subscriberErrorHandlers: List[Callable] = []
+subscriberErrorHandlers: List[Callable[..., Any]] = []
 
 hasUnsavedData = [0]
-
-# Allows use to recalc entire lists of tags on the creation of another tag,
-# For dependancy resolution
-recalcOnCreate: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 
 defaultDisplayUnits = {
     "temperature": "degC|degF",
@@ -107,7 +106,7 @@ def normalizeTagName(name: str, replacementChar: Optional[str] = None) -> str:
 
 
 class TagProvider():
-    def mount(self, path):
+    def mount(self, path: str):
         if not self.path.endswith("/"):
             self.path.append("/")
         self.path = path
@@ -200,7 +199,7 @@ class TagPointClass():
     @typechecked
     def __init__(self, name: str):
         global allTagsAtomic
-        name = normalizeTagName(name)
+        name: str = normalizeTagName(name)
         if name in allTags:
             raise RuntimeError(
                 "Tag with this name already exists, use the getter function to get it instead"
@@ -261,8 +260,8 @@ class TagPointClass():
         # We give that to other tags in case the alarm polling depends on other tags.
 
         # We need it so we don't get GCed
-        self._alarmGCRefs: Dict[str, Tuple[Callable, object, Callable,
-                                           Callable]] = {}
+        self._alarmGCRefs: Dict[str, Tuple[Callable[..., Any], object, Callable[..., Any],
+                                           Callable[..., Any]]] = {}
 
         self.name: str = name
         # The cached actual value from the claims
@@ -279,11 +278,10 @@ class TagPointClass():
         # This is only used for fast stream mode
         self.subscribers_atomic: List[weakref.ref] = []
 
-        self.poller: Union[None, Callable] = None
+        self.poller: Union[None, Callable[..., Any]] = None
 
         # The "Owner" of a tag can use this to say if anyone else should write it
         self.writable = True
-
 
         # When was the last time we got *real* new data
         self.lastGotValue: Union[int, float] = 0
@@ -294,7 +292,7 @@ class TagPointClass():
         # This is not a precisely defined concept
         self.owner: str = ""
 
-        self.handler: typing.Optional[typing.Callable] = None
+        self.handler: typing.Optional[typing.Callable[..., Any]] = None
 
         from . import kaithemobj
 
@@ -304,7 +302,7 @@ class TagPointClass():
             self.originEvent = None
 
         # Used for the expressions in alert conditions and such
-        self.evalContext: dict = {
+        self.evalContext: Dict[str, Any] = {
             "math": math,
             "time": time,
             # Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
@@ -326,8 +324,8 @@ class TagPointClass():
         except ImportError:
             pass
 
-        self.lastPushedValue: Union[float, int, None] = None
-        self.onSourceChanged: Union[typing.Callable, None] = None
+        self.lastPushedValue: Optional[float] = None
+        self.onSourceChanged: Union[typing.Callable[..., Any], None] = None
 
         with lock:
             allTags[name] = weakref.ref(self)
@@ -365,12 +363,6 @@ class TagPointClass():
             messagebus.postMessage("/system/tags/created",
                                    self.name,
                                    synchronous=True)
-            if self.name in recalcOnCreate:
-                for i in recalcOnCreate[self.name]:
-                    try:
-                        i()
-                    except Exception:
-                        logging.exception("????")
 
         if self.name.startswith("="):
             self.exprClaim = createGetterFromExpression(self.name, self)
@@ -380,7 +372,6 @@ class TagPointClass():
             if hasattr(d, 'data'):
                 d = d.data.copy()
             self.setConfigData(d)
-
 
     @property
     def meterWidget(self):
@@ -510,8 +501,6 @@ class TagPointClass():
                     self.dataSourceAutoControl.attach(self._weakApiHandler)
 
                     self.dataSourceWidget = w
-
-
 
     @staticmethod
     def makeWeakApiHandler(wr):
@@ -1063,7 +1052,6 @@ class TagPointClass():
                 x()
 
         obj.recalcFunction = recalcPoll
-        
 
         # Store our new modified context.
         obj.context = context
@@ -1301,9 +1289,9 @@ class TagPointClass():
 
     @subtype.setter
     def subtype(self, val):
-       self._subtype=val
-       if val=='bool':
-            self.min=0
+        self._subtype = val
+        if val == 'bool':
+            self.min = 0
             self.max = 1
 
     @property
@@ -1329,7 +1317,7 @@ class TagPointClass():
 
     @classmethod
     def Tag(cls: Type[T], name: str, defaults={}) -> T:
-        name = normalizeTagName(name)
+        name: str = normalizeTagName(name)
         rval = None
         with lock:
             if name in allTags:
@@ -1350,12 +1338,11 @@ class TagPointClass():
 
             if not rval:
                 rval = cls(name)
-                
 
             return rval
 
     @property
-    def currentSource(self):
+    def currentSource(self) -> str:
 
         # Avoid the lock by using retru in case claim disappears
         for i in range(0, 1000):
@@ -1739,7 +1726,7 @@ class TagPointClass():
                 logging.exception("Error handling changed source")
 
     def claim(self,
-              value,
+              value: Any,
               name=None,
               priority=None,
               timestamp=None,
@@ -1920,7 +1907,7 @@ class TagPointClass():
 
     # Get the specific claim object for this class
     def claimFactory(self,
-                     value,
+                     value: Any,
                      name: str,
                      priority: int,
                      timestamp,
@@ -1974,8 +1961,8 @@ class TagPointClass():
             self.lock.release()
 
 
+default_bool_enum = {-1: None, 0: False, 1: True}
 
-default_bool_enum = {-1: None, 0: False, 1:True}
 
 class NumericTagPointClass(TagPointClass):
     defaultData = 0
@@ -1984,14 +1971,14 @@ class NumericTagPointClass(TagPointClass):
     @typechecked
     def __init__(self,
                  name: str,
-                 min: Union[float, int, None] = None,
-                 max: Union[float, int, None] = None):
+                 min: Optional[float] = None,
+                 max: Optional[float] = None):
 
         # Real active compouted vals after the dynamic/configured override logic
-        self._hi: Union[None, float, int] = None
-        self._lo: Union[None, float, int] = None
-        self._min: Union[None, float, int] = min
-        self._max: Union[None, float, int] = max
+        self._hi: Optional[float] = None
+        self._lo: Optional[float] = None
+        self._min: Optional[float] = min
+        self._max: Optional[float] = max
         # Pipe separated list of how to display value
         self._displayUnits: Union[str, None] = None
         self._unit: str = ""
@@ -2025,7 +2012,8 @@ class NumericTagPointClass(TagPointClass):
                     self._meterWidget = x
                     return self._meterWidget
 
-            self._meterWidget = widgets.Meter(extraInfo=makeTagInfoHelper(self))
+            self._meterWidget = widgets.Meter(
+                extraInfo=makeTagInfoHelper(self))
 
             def f(v, t, a):
                 self._debugAdminPush(v, t, a)
@@ -2085,12 +2073,12 @@ class NumericTagPointClass(TagPointClass):
         return float(v)
 
     def claimFactory(self,
-                     value,
-                     name,
-                     priority,
-                     timestamp,
-                     annotation,
-                     expiration=0):
+                     value: float | Callable[..., Optional[float]],
+                     name: str,
+                     priority: float,
+                     timestamp: float,
+                     annotation: Any,
+                     expiration: float = 0):
         return NumericClaim(self, value, name, priority, timestamp, annotation,
                             expiration)
 
@@ -2099,7 +2087,7 @@ class NumericTagPointClass(TagPointClass):
         return self._min if self._min is not None else -10**18
 
     @min.setter
-    def min(self, v: Union[None, float, int]):
+    def min(self, v: Optional[float]):
         self._dynConfigValues['min'] = v
 
         if not v == self.configOverrides.get('min', v):
@@ -2113,7 +2101,7 @@ class NumericTagPointClass(TagPointClass):
         return self._max if self._max is not None else 10**18
 
     @max.setter
-    def max(self, v: Union[None, float, int]):
+    def max(self, v: Optional[float]):
         self._dynConfigValues['max'] = v
         if not v == self.configOverrides.get('max', v):
             return
@@ -2130,7 +2118,7 @@ class NumericTagPointClass(TagPointClass):
             return x
 
     @hi.setter
-    def hi(self, v: Union[None, float, int]):
+    def hi(self, v: Optional[float]):
         self._dynConfigValues['hi'] = v
         if not v == self.configOverrides.get('hi', v):
             return
@@ -2146,7 +2134,7 @@ class NumericTagPointClass(TagPointClass):
         return self._lo
 
     @lo.setter
-    def lo(self, v: Union[None, float, int]):
+    def lo(self, v: Optional[float]):
         self._dynConfigValues['lo'] = v
         if not v == self.configOverrides.get('lo', v):
             return
@@ -2246,7 +2234,6 @@ class StringTagPointClass(TagPointClass):
     def filterValue(self, v):
         return str(v)
 
-
     def _debugAdminPush(self, value, timestamp, annotation):
         # Immediate write, don't push yet, do that in a thread because TCP can block
 
@@ -2299,7 +2286,8 @@ class StringTagPointClass(TagPointClass):
                     self._spanWidget = x
                     return self._spanWidget
 
-            self._spanWidget = widgets.DynamicSpan(extraInfo=makeTagInfoHelper(self))
+            self._spanWidget = widgets.DynamicSpan(
+                extraInfo=makeTagInfoHelper(self))
 
             def f(v, t, a):
                 self._debugAdminPush(v, t, a)
@@ -2353,7 +2341,7 @@ class ObjectTagPointClass(TagPointClass):
         else:
             # test validity
             json.dumps(v)
-            
+
         return v
 
     def _debugAdminPush(self, value, timestamp, annotation):
@@ -2463,7 +2451,7 @@ class Claim():
     @typechecked
     def __init__(self,
                  tag: TagPointClass,
-                 value,
+                 value: Any,
                  name: str = 'default',
                  priority: Union[int, float] = 50,
                  timestamp: Union[int, float, None] = None,
@@ -2472,7 +2460,7 @@ class Claim():
 
         self.name = name
         self.tag = tag
-        self.vta = value, timestamp, annotation
+        self.vta: Tuple[Any, float, Any] = value, timestamp, annotation
 
         # If the value is a callable, this is the cached result plus the timestamp for the cache, separate
         # From the vta timestamp of when that callable actually got set.
@@ -2541,7 +2529,7 @@ class Claim():
             return True
         return False
 
-    def expirePoll(self, force=False):
+    def expirePoll(self, force: bool = False):
         # Quick check and slower locked check.  If we are too old, set our effective
         # priority to the expired priority.
 
@@ -2593,7 +2581,7 @@ class Claim():
                 raise RuntimeError(
                     "Cannot get lock to set priority, waited 90s")
 
-    def setExpiration(self, expiration, expiredPriority=1):
+    def setExpiration(self, expiration: float, expiredPriority: float = 1):
         """Set the time in seconds before this claim is regarded as stale, and what priority to revert to in the stale state.
             Note that that if you use a getter with this, it will constantly poll in the background
         """
@@ -2647,7 +2635,7 @@ class Claim():
     def annotation(self):
         return self.vta[2]
 
-    def set(self, value, timestamp=None, annotation=None):
+    def set(self, value, timestamp: Optional[float] = None, annotation: Any = None):
 
         # Not threadsafe here if multiple threads use the same claim, value, timestamp, and annotation can
         self.vta = (value, self.timestamp, self.annotation)
@@ -2692,7 +2680,7 @@ class Claim():
             self.poller.unregister()
             self.poller = None
 
-    def setPriority(self, priority, realPriority=True):
+    def setPriority(self, priority: float, realPriority: bool = True):
         if self.tag.lock.acquire(timeout=60):
             try:
                 if realPriority:
@@ -2722,7 +2710,7 @@ class NumericClaim(Claim):
     @typechecked
     def __init__(self,
                  tag: TagPointClass,
-                 value,
+                 value: float | Callable[..., Optional[float]],
                  name: str = 'default',
                  priority: Union[int, float] = 50,
                  timestamp: Union[int, float, None] = None,
@@ -2732,7 +2720,7 @@ class NumericClaim(Claim):
         Claim.__init__(self, tag, value, name, priority, timestamp, annotation,
                        expiration)
 
-    def setAs(self, value, unit, timestamp=None, annotation=None):
+    def setAs(self, value: float, unit: str, timestamp: Optional[float] = None, annotation: Any = None):
         "Convert a value in the given unit to the tag's native unit"
         self.set(convert(value, unit, self.tag.unit), timestamp, annotation)
 

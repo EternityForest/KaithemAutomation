@@ -51,7 +51,7 @@ class Zigbee2MQTT(iot_devices.device.Device):
         self.set_config_default("device.friendly_name", '__all__')
 
         try:
-            from scullery import mqtt
+            from .scullery import mqtt
 
             #Ensure a new real connection.  This makes sure we get any retained messages.
             self.connection = mqtt.getConnection(

@@ -207,7 +207,7 @@ class GStreamerPipeline:
         # If del can't find this it would to an infinite loop
         self.worker = None
 
-        from scullery.jsonrpyc import RPC
+        from .jsonrpyc import RPC
         from subprocess import PIPE, STDOUT
         from subprocess import Popen
 

@@ -5,6 +5,8 @@ import time
 import weakref
 import logging
 from ..kaithemobj import kaithem
+from typing import Optional, Dict, List
+
 
 # when the last time we logged an error, so we can ratelimit
 lastSysloggedError = 0
@@ -32,7 +34,7 @@ fixtureschanged = {}
 controlValues = weakref.WeakValueDictionary()
 
 
-def disallow_special(s, allow="", replaceMode=None):
+def disallow_special(s: str, allow: str = "", replaceMode: Optional[str] = None) -> str:
     for i in "[]{}()!@#$%^&*()<>,./;':\"-=+\\|`~?\r\n\t":
         if i in s and i not in allow:
             if replaceMode is None:
@@ -46,10 +48,6 @@ def disallow_special(s, allow="", replaceMode=None):
             else:
                 s = s.replace(i, replaceMode)
     return s
-
-
-
-
 
 
 config = {
@@ -72,9 +70,10 @@ if not os.path.exists(musicLocation):
         logger.exception("Could not make music dir")
 
 
-def getSoundFolders():
+def getSoundFolders() -> Dict[str, str]:
     "path:displayname dict"
-    soundfolders = {i.strip(): i.strip() for i in config['soundFolders']}
+    soundfolders: Dict[str, str] = {
+        i.strip(): i.strip() for i in config['soundFolders']}
 
     soundfolders[kaithem.assetpacks.assetlib] = 'Online Assets Library'
 

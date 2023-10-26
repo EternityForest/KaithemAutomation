@@ -13,24 +13,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import scullery.messagebus
+from . scullery import messagebus
 import traceback
 import cherrypy
 import weakref
 import logging
 
-postMessage = scullery.messagebus.postMessage
-post = scullery.messagebus.postMessage
-subscribe = scullery.messagebus.subscribe
-unsubscribe = scullery.messagebus.unsubscribe
-normalize_topic = scullery.messagebus.normalize_topic
-log = scullery.messagebus.log
-MessageBus = scullery.messagebus.MessageBus
+postMessage = messagebus.postMessage
+post = messagebus.postMessage
+subscribe = messagebus.subscribe
+unsubscribe = messagebus.unsubscribe
+normalize_topic = messagebus.normalize_topic
+log = messagebus.log
+MessageBus = messagebus.MessageBus
 
 
 def handleMsgbusError(f, topic, message):
     try:
-        scullery.messagebus.log.exception(
+        messagebus.log.exception(
             "Error in subscribed function for "
             + topic
             + " with message "
@@ -63,5 +63,5 @@ def _shouldReRaiseAttrErr():
     return cherrypy.engine.state == cherrypy.engine.states.STARTED
 
 
-scullery.messagebus.subscriberErrorHandlers = [handleMsgbusError]
-scullery.messagebus._shouldReRaiseAttrErr = _shouldReRaiseAttrErr
+messagebus.subscriberErrorHandlers = [handleMsgbusError]
+messagebus._shouldReRaiseAttrErr = _shouldReRaiseAttrErr

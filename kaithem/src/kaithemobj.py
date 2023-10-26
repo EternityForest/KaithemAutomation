@@ -26,7 +26,7 @@ import yaml
 import os
 import weakref
 import datetime
-import scullery.persist
+from .scullery import persist as sculleryPersist
 
 from typing import Any, Callable, Optional
 
@@ -106,7 +106,11 @@ class TagInterface():
     def __iter__(self):
         return tagpoints.allTagsAtomic
 
-    TagClass = tagpoints.TagPointClass
+    TagPointClass = tagpoints.TagPointClass
+    StringTagPointClass = tagpoints.StringTagPointClass
+    ObjectTagPointClass = tagpoints.ObjectTagPointClass
+    BinaryTagPointClass = tagpoints.BinaryTagPointClass
+
     # HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter
     HighpassFilter = tagpoints.HighpassFilter
@@ -588,11 +592,7 @@ class Kaithem():
         @staticmethod
         def setvol(*args, **kwargs):
             return sound.setvol(*args, **kwargs)
-
-        @staticmethod
-        def setEQ(*args, **kwargs):
-            return sound.setEQ(*args, **kwargs)
-
+        
         @staticmethod
         def fadeTo(*args, **kwargs):
             return sound.fadeTo(*args, **kwargs)
@@ -617,7 +617,7 @@ class Kaithem():
             messagebus.unsubscribe(topic, callback)
 
     class persist():
-        unsaved = scullery.persist.unsavedFiles
+        unsaved = sculleryPersist.unsavedFiles
 
         @staticmethod
         def load(*args, **kwargs):

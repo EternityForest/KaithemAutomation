@@ -1,7 +1,6 @@
 <%!
 from kaithem.src.config import config
 from kaithem.src import auth,util,notifications,pages,modules,modules_state,theming,devices,persist
-import scullery.persist
 import cherrypy,socket,base64
 %>
 
@@ -154,7 +153,7 @@ import cherrypy,socket,base64
           %endif
 
 
-          %if  scullery.persist.unsavedFiles:
+          %if  persist.unsavedFiles:
           <span title="Something has an unsaved file">*</span>
           %endif
 Tools</a>

@@ -65,7 +65,7 @@ def makeWrappedConnectionClass(parent: Scene):
                 self_closure_ref.event("board.mqtt.error", "Disconnected")
             return super().on_disconnect()
 
-        def on_message(self, t, m):
+        def on_message(self, t: str, m: bytes):
             gn = self_closure_ref.mqttSyncFeatures.get("syncGroup", False)
             if gn:
                 topic = f"/kaithem/chandler/syncgroup/{gn}"
@@ -415,9 +415,9 @@ def checkPermissionsForSceneData(data, user):
             )
 
 
-cues = weakref.WeakValueDictionary()
+cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
-cueDefaults = {
+cueDefaults: Dict[str, int | float | Dict[Any, Any] | List[Any] | bool | None | str] = {
     "fadein": 0,
     "soundFadeOut": 0,
     "soundFadeIn": 0,
@@ -545,7 +545,7 @@ class Cue:
         self.notes = ""
 
         # Rules created via the GUI logic editor
-        self.rules = rules or []
+        self.rules: Optional[List[List[Any]]] = rules or []
 
         disallow_special(name, allowedCueNameSpecials)
         if name[0] in "1234567890 \t_":
@@ -900,7 +900,8 @@ class Scene:
         self.utility: bool = bool(utility)
 
         # This is used for the remote media triggers feature.
-        self.mediaLink: kaithem.widget.APIWidget = kaithem.widget.APIWidget("media_link")
+        self.mediaLink: kaithem.widget.APIWidget = kaithem.widget.APIWidget(
+            "media_link")
         self.mediaLink.echo = False
 
         self.slideOverlayURL: str = slideOverlayURL
@@ -1047,7 +1048,7 @@ class Scene:
         self.cues = {}
 
         # The list of cues as an actual list that is maintained sorted by number
-        self.cues_ordered = []
+        self.cues_ordered: List[Cue] = []
 
         if cues:
             for j in cues:
@@ -1082,8 +1083,8 @@ class Scene:
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
-        self.cue_cached_vals_as_arrays = {}
-        self.cue_cached_alphas_as_arrays = {}
+        self.cue_cached_vals_as_arrays: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.cue_cached_alphas_as_arrays: Dict[str, numpy.typing.NDArray[Any]] = {}
 
         self.rerenderOnVarChange = False
 
@@ -1363,7 +1364,7 @@ class Scene:
 
         return random.choices(names, weights=weights)[0]
 
-    def _parseCueName(self, cue):
+    def _parseCueName(self, cue: str):
         if cue == "__shuffle__":
             x = [i.name for i in self.cues_ordered if not (
                 i.name == self.cue.name)]

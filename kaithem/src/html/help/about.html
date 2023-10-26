@@ -12,7 +12,7 @@
     import threading
     
     import kaithem
-    from scullery import workers as sworkers
+    from kaithem.src.scullery import workers as sworkers
     from kaithem.src import unitsofmeasure
     from kaithem.src import newevt
     from kaithem.src import systasks
@@ -23,7 +23,6 @@
     from kaithem.src import workers
     from kaithem.src.config import config
 
-    import scullery.workers
     if os.name != "nt":
         import fcntl
         import struct
@@ -329,7 +328,7 @@ except Exception:
             <td>Thread pool latency</td>
             <td>
                 %try:
-                ${round(scullery.workers.testLatency()*1000,3)}ms
+                ${round(sworkers.testLatency()*1000,3)}ms
                 %except Exception as e:
                 ${e|h}
                 %endtry
@@ -391,7 +390,7 @@ except Exception:
         </tr>
         <tr>
             <td>Tasks in thread pool queue</td>
-            <td>${scullery.workers.waitingtasks()}</td>
+            <td>${sworkers.waitingtasks()}</td>
         </tr>
         </table>
 

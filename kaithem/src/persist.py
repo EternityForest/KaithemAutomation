@@ -18,8 +18,8 @@ import stat
 import os
 import json
 from pwd import getpwuid, getpwnam
-from scullery.persist import *
-from scullery.messagebus import subscribe, postMessage
+from .scullery.persist import *
+from .scullery.messagebus import subscribe, postMessage
 
 import weakref
 import threading

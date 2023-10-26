@@ -22,7 +22,7 @@ import logging
 import types
 from . import workers, util
 
-from scullery import messagebus
+from .scullery import messagebus
 
 logger = logging.getLogger("system.scheduling")
 

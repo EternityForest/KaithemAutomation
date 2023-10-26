@@ -105,6 +105,9 @@ This does nothing except print a notice. It's there so you can find the
 function in breakpoint.py, and put a breakpoint there.
 
 
+### kaithem.tags
+Acess tag points, see Tag Points docs.
+
 
 ### kaithem.devices
 

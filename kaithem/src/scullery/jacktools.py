@@ -163,9 +163,10 @@ class JackClientProxy():
 
 
     def __del__(self):
-        self.worker.terminate()
-        self.worker.kill()
-        workers.do(self.worker.wait)
+        if self.worker:
+            self.worker.terminate()
+            self.worker.kill()
+            workers.do(self.worker.wait)
 
     def onPortRegistered(self,name, is_input, shortname, is_audio, registered):
         def f():
@@ -286,7 +287,7 @@ class JackClientProxy():
         self.worker = None
 
 
-        from scullery.jsonrpyc import RPC
+        from .jsonrpyc import RPC
         from subprocess import PIPE, STDOUT, Popen
         self.ended=False
         f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"jack_client_subprocess.py")
@@ -2250,6 +2251,7 @@ def _checkJackClient(err=True):
                 firstConnect = True
 
             print("Remaking client")
+            print(traceback.format_exc())
             try:
                 _jackclient.close()
                 _jackclient = None

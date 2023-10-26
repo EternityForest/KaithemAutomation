@@ -1,5 +1,5 @@
 from . import tagpoints
-from scullery import messagebus
+from .scullery import messagebus
 from . import scheduling
 import traceback
 

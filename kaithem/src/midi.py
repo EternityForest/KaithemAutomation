@@ -14,7 +14,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from scullery.fluidsynth import *
+from .scullery.fluidsynth import *
 from . import directories
 import os
 import logging
@@ -23,7 +23,7 @@ import weakref
 # https://musical-artifacts.com/artifacts/639
 
 
-from scullery import fluidsynth
+from .scullery import fluidsynth
 
 # Babyfont is small enough to include but doesn't sound as good.
 if not os.path.isfile("/usr/share/sounds/sf2/FluidR3_GM.sf2"):

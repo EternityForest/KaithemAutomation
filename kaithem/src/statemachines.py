@@ -224,8 +224,7 @@ class StateMachine():
                 self.states[state]['timer'] = [time, dest]
 
     def removeState(self, name):
-        with self.lock:
-            del self.states[name]['rules'][start]
+        raise RuntimeError("Not supported now")
 
     @typechecked
     def addRule(self, start: str, event: Union[str, Callable], to: Union[str, Callable]):

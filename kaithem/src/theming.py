@@ -1,7 +1,7 @@
 from .config import config
 from . import directories
-from scullery import persist
-from scullery import messagebus
+from .scullery import persist
+from .scullery import messagebus
 
 import os
 import logging

@@ -13,16 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import traceback
-import scullery
 import os
-from scullery import messagebus
-import scullery.jacktools
+from .scullery import messagebus
+from .scullery import jacktools
 
 # Used by other stuff, yes this really is supposed to be there
 # as defensive fallback
-from scullery.jacktools import *
+from .scullery.jacktools import *
 
-from scullery.jacktools import Airwire, getPorts
+from .scullery.jacktools import Airwire, getPorts
 
 
 __doc__ = ""
@@ -37,8 +36,8 @@ def onStart():
     messagebus.postMessage("/system/sound/jackstart", "JACK server connected")
 
 
-scullery.jacktools.onJackFailure = onFail
-scullery.jacktools.onJackStart = onStart
+jacktools.onJackFailure = onFail
+jacktools.onJackStart = onStart
 
 
 def checkIfProcessRunning(processName):
@@ -66,14 +65,14 @@ pipewireprocess1 = None
 pipewireprocess2 = None
 
 
-scullery.jacktools.useAdditionalSoundcards = "no"
-scullery.jacktools.usePulse = True
-scullery.jacktools.dummy = False
-scullery.jacktools.manageJackProcess = False
+jacktools.useAdditionalSoundcards = "no"
+jacktools.usePulse = True
+jacktools.dummy = False
+jacktools.manageJackProcess = False
 
 
 try:
-    scullery.jacktools.startManaging()
+    jacktools.startManaging()
 except Exception:
     messagebus.postMessage(
         "/system/notifications/errors",

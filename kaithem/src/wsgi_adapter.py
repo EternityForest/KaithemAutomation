@@ -8,6 +8,7 @@ import itertools
 import logging
 import sys
 import tempfile
+import traceback
 from concurrent import futures
 from io import BytesIO
 
@@ -16,8 +17,12 @@ from tornado.iostream import StreamClosedError
 from tornado.wsgi import to_wsgi_str
 from . import auth
 from . import pages
+import cherrypy
 
 _logger = logging.getLogger(__name__)
+
+# need for debugging
+cherrypy._cprequest.Request.throw_errors = True
 
 # I want %20 to not be decoded with the rest of the percents.
 # As a terrible hack, i encode it to this then decode.
@@ -59,7 +64,8 @@ class WSGIHandler(web.RequestHandler):
             "REQUEST_METHOD": request.method,
             "SCRIPT_NAME": "",
             "PATH_INFO": to_wsgi_str(
-                escape.url_unescape(request.path.replace("%2F", slashmarker), encoding=None, plus=False).replace(slashmarkerb,b'%2F')
+                escape.url_unescape(request.path.replace(
+                    "%2F", slashmarker), encoding=None, plus=False).replace(slashmarkerb, b'%2F')
             ),
             "QUERY_STRING": request.query,
             "REMOTE_ADDR": request.remote_ip,
@@ -81,6 +87,22 @@ class WSGIHandler(web.RequestHandler):
         for key, value in request.headers.items():
             environ["HTTP_" + key.replace("-", "_").upper()] = value
         return environ
+
+    def write_error(self, status_code, **kwargs):
+        if status_code == 500:
+            excp = kwargs['exc_info'][1]
+            tb = kwargs['exc_info'][2]
+            stack = traceback.extract_tb(tb)
+            clean_stack = [i for i in stack if i[0][-6:] !=
+                           'gen.py' and i[0][-13:] != 'concurrent.py']
+            error_msg = '{}\n  Exception: {}'.format(
+                ''.join(traceback.format_list(clean_stack)), excp)
+            
+            self.write(error_msg)
+
+            # do something with this error now... e.g., send it to yourself
+            # on slack, or log it.
+            logging.error(error_msg)  # do something with your error...
 
     def prepare(self):
         # Accept up to 2GB upload data.

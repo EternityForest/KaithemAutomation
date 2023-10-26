@@ -22,6 +22,7 @@ import logging
 import traceback
 from . import util, scheduling, directories, workers, messagebus, midi
 from .config import config
+from typing import List, Any, Optional, Dict
 
 log = logging.getLogger("system.sound")
 
@@ -30,21 +31,23 @@ jackAPIWidget = None
 jackClientsFound = False
 
 
-def tryCloseFds(p: subprocess.Popen):
-    if not p:
-        return
-    try:
-        p.stdout.close()
-    except Exception:
-        pass
-    try:
-        p.stderr.close()
-    except Exception:
-        pass
-    try:
-        p.stdin.close()
-    except Exception:
-        pass
+def tryCloseFds(p: Optional[subprocess.Popen[Any]]):
+    if p:
+        try:
+            if p.stdout:
+                p.stdout.close()
+        except Exception:
+            pass
+        try:
+            if p.stderr:
+                p.stderr.close()
+        except Exception:
+            pass
+        try:
+            if p.stdin:
+                p.stdin.close()
+        except Exception:
+            pass
 
 
 sound_paths = [""]
@@ -63,7 +66,7 @@ sound_paths.append(os.path.join(directories.vardir, "static"))
 sound_paths.append(os.path.join(directories.vardir, "assets"))
 
 
-def soundPath(fn, extrapaths=[]):
+def soundPath(fn: str, extrapaths: List[str] = []) -> str:
     "Get the full path of a sound file by searching"
     filename = util.search_paths(fn, extrapaths)
     if not filename:
@@ -121,341 +124,45 @@ class SoundWrapper(object):
             except KeyError:
                 pass
 
-    def getPosition(self, channel="PRIMARY"):
+    def getPosition(self, channel: str = "PRIMARY"):
         "Return true if a sound is playing on channel"
         try:
             return self.runningSounds[channel].position()
         except KeyError:
             return False
 
-    def setVolume(self, vol, channel="PRIMARY"):
+    def setVolume(self, vol: float, channel: str = "PRIMARY"):
         pass
 
-    def setSpeed(self, speed, channel="PRIMARY", *a, **kw):
+    def setSpeed(self, speed: float, channel: str = "PRIMARY", *a, **kw):
         pass
 
-    def setEQ(self, channel="PRIMARY"):
+    def playSound(self, filename: str, handle: str = "PRIMARY", **kwargs):
         pass
 
-    def playSound(self, filename, handle="PRIMARY", **kwargs):
+    def stopSound(self, handle: str = "PRIMARY"):
         pass
 
-    def stopSound(self, handle="PRIMARY"):
-        pass
-
-    def isPlaying(self, handle="blah", refresh=False):
+    def isPlaying(self, handle: str = "blah", refresh: bool = False):
         return False
 
-    def pause(self, handle="PRIMARY"):
+    def pause(self, handle: str = "PRIMARY"):
         pass
 
-    def resume(self, handle="PRIMARY"):
+    def resume(self, handle: str = "PRIMARY"):
         pass
 
-    def fadeTo(self, handle="PRIMARY", **kw):
+    def fadeTo(self, handle: str = "PRIMARY", **kw):
         self.playSound(self, handle, **kw)
 
-    def preload(self, filename):
+    def preload(self, filename: str):
         pass
 
-    def seek(self, position, channel="PRIMARY"):
+    def seek(self, position: float, channel: str = "PRIMARY"):
         try:
             return self.runningSounds[channel].seek(position)
         except KeyError:
             pass
-
-
-class MadPlayWrapper(SoundWrapper):
-    backendname = "MadPlay Sound Player"
-
-    # What this does is it keeps a reference to the sound player process and
-    # If the object is destroyed it destroys the process stopping the sound
-    # It also abstracts checking if its playing or not.
-    class MadPlaySoundContainer(object):
-        def __init__(self, filename, **kwargs):
-            f = open(os.devnull, "w")
-            g = open(os.devnull, "w")
-            cmd = ["madplay", filename]
-            self.loopcounter = (
-                -1
-                if kwargs.get("loop", False) is True
-                else kwargs.get("loop", False) - 1
-            )
-            if self.loopcounter:
-                self.end = False
-
-                def loop_play_again():
-                    self.process.poll()
-                    if self.process.returncode is None:
-                        return True
-                    if self not in backend.runningSounds.values():
-                        return False
-                    if not self.loopcounter:
-                        return False
-                    if self.end:
-                        return
-                    self.loopcounter -= 1
-                    try:
-                        self.process.terminate()
-                        tryCloseFds(self.process)
-                    except Exception:
-                        pass
-                    self.process = subprocess.Popen(cmd, stdout=f, stderr=g)
-                    return True
-
-                self.loop_repeat_func = loop_play_again
-                scheduling.RepeatWhileEvent(loop_play_again, 0.05).register()
-            self.process = subprocess.Popen(cmd, stdout=f, stderr=g)
-
-        def __del__(self):
-            try:
-                self.process.terminate()
-                tryCloseFds(self.process)
-                del self.loop_repeat_func
-            except Exception:
-                pass
-
-        def isPlaying(self, refresh=False):
-            self.process.poll()
-            return self.process.returncode is None or bool(self.loopcounter)
-
-    def playSound(self, filename, handle="PRIMARY", extraPaths=[], **kwargs):
-        # Those old sound handles won't garbage collect themselves
-        self.deleteStoppedSounds()
-        fn = soundPath(filename, extraPaths)
-
-        # Play the sound with a background process and keep a reference to it
-        self.runningSounds[handle] = self.MadPlaySoundContainer(fn, **kwargs)
-
-    def stopSound(self, handle="PRIMARY"):
-        # Delete the sound player reference object and its destructor will stop the sound
-        if handle in self.runningSounds:
-            # Instead of using a lock lets just catch the error is someone else got there first.
-            try:
-                del self.runningSounds[handle]
-            except KeyError:
-                pass
-
-    def stopAllSounds(self):
-        x = list(self.runningSounds.keys())
-        for i in x:
-            try:
-                self.runningSounds[i].end = True
-                self.runningSounds.pop(i)
-            except KeyError:
-                raise
-
-
-class Mpg123Wrapper(SoundWrapper):
-    backendname = "MPG123 Sound Player"
-
-    # What this does is it keeps a reference to the sound player process and
-    # If the object is destroyed it destroys the process stopping the sound
-    # It also abstracts checking if its playing or not.
-    class Mpg123SoundContainer(object):
-        def __init__(self, filename, **kwargs):
-            f = open(os.devnull, "w")
-            g = open(os.devnull, "w")
-            cmd = ["mpg123", filename]
-            self.loopcounter = (
-                -1 if kwargs.get("loop") is True else kwargs.get("loop") - 1
-            )
-            if self.loopcounter:
-                self.end = False
-
-                def loop_play_again():
-                    self.process.poll()
-                    if self.process.returncode is None:
-                        return True
-                    if self not in backend.runningSounds.values():
-                        return False
-                    if not self.loopcounter:
-                        return False
-                    if self.end:
-                        return
-                    self.loopcounter -= 1
-                    try:
-                        self.process.terminate()
-                    except Exception:
-                        pass
-                    tryCloseFds(self.process)
-
-                    self.process = subprocess.Popen(cmd, stdout=f, stderr=g)
-                    return True
-
-                self.loop_repeat_func = loop_play_again
-                scheduling.RepeatWhileEvent(loop_play_again, 0.05).register()
-            self.process = subprocess.Popen(cmd, stdout=f, stderr=g)
-
-        def __del__(self):
-            try:
-                self.process.terminate()
-                del self.loop_repeat_func
-                tryCloseFds(self.process)
-            except Exception:
-                pass
-
-        def isPlaying(self, refresh=False):
-            self.process.poll()
-            return self.process.returncode is None or bool(self.loopcounter)
-
-    def playSound(self, filename, handle="PRIMARY", extraPaths=[], **kwargs):
-        # Those old sound handles won't garbage collect themselves
-        self.deleteStoppedSounds()
-
-        fn = soundPath(filename, extraPaths)
-
-        # Play the sound with a background process and keep a reference to it
-        self.runningSounds[handle] = self.Mpg123SoundContainer(fn, **kwargs)
-
-    def stopSound(self, handle="PRIMARY"):
-        # Delete the sound player reference object and its destructor will stop the sound
-        if handle in self.runningSounds:
-            # Instead of using a lock lets just catch the error is someone else got there first.
-            try:
-                del self.runningSounds[handle]
-            except KeyError:
-                pass
-
-    def stopAllSounds(self):
-        x = list(self.runningSounds.keys())
-        for i in x:
-            try:
-                self.runningSounds[i].end = True
-                self.runningSounds.pop(i)
-            except KeyError:
-                raise
-
-
-class SOXWrapper(SoundWrapper):
-    backendname = "SOund eXchange"
-
-    # What this does is it keeps a reference to the sound player process and
-    # If the object is destroyed it destroys the process stopping the sound
-    # It also abstracts checking if its playing or not.
-    class SOXSoundContainer(object):
-        def __init__(self, filename, vol, start, end, loop=1):
-            f = open(os.devnull, "w")
-            g = open(os.devnull, "w")
-            self.started = time.time()
-            self.process = subprocess.Popen(
-                ["play", filename, "vol", str(vol), "trim", str(start), str(end)],
-                stdout=f,
-                stderr=g,
-            )
-            self.loopcounter = -1 if loop is True else loop - 1
-            if self.loopcounter:
-                self.end = False
-
-                def loop_play_again():
-                    self.process.poll()
-                    if self.process.returncode is None:
-                        return True
-                    if self not in backend.runningSounds.values():
-                        return False
-                    if not self.loopcounter:
-                        return False
-                    if self.end:
-                        return
-                    self.loopcounter -= 1
-                    try:
-                        self.process.terminate()
-                    except Exception:
-                        pass
-                    tryCloseFds(self.process)
-                    self.process = subprocess.Popen(
-                        [
-                            "play",
-                            filename,
-                            "vol",
-                            str(vol),
-                            "trim",
-                            str(start),
-                            str(end),
-                        ],
-                        stdout=f,
-                        stderr=g,
-                    )
-                    return True
-
-                self.loop_repeat_func = loop_play_again
-                scheduling.RepeatWhileEvent(loop_play_again, 0.02).register()
-            else:
-                self.process = subprocess.Popen(
-                    ["play", filename, "vol", str(vol), "trim", str(start), str(end)],
-                    stdout=f,
-                    stderr=g,
-                )
-
-        def __del__(self):
-            try:
-                self.process.terminate()
-                del self.loop_repeat_func
-                tryCloseFds(self.process)
-            except Exception:
-                pass
-
-        def isPlaying(self, refresh=False):
-            self.process.poll()
-            return self.process.returncode is None or bool(self.loopcounter)
-
-        def position(self):
-            return self.started
-
-    def stopAllSounds(self):
-        x = list(self.runningSounds.keys())
-        for i in x:
-            try:
-                self.runningSounds[i].end = True
-                self.runningSounds.pop(i)
-            except KeyError:
-                raise
-
-    def playSound(self, filename, handle="PRIMARY", extraPaths=[], **kwargs):
-        if "volume" in kwargs:
-            # odd way of throwing errors on non-numbers
-            v = float(kwargs["volume"])
-        else:
-            v = 1
-
-        if "start" in kwargs:
-            # odd way of throwing errors on non-numbers
-            start = float(kwargs["start"])
-        else:
-            start = 0
-
-        if "end" in kwargs:
-            # odd way of throwing errors on non-numbers
-            end = float(kwargs["end"])
-        else:
-            end = "-0"
-
-        # Those old sound handles won't garbage collect themselves
-        self.deleteStoppedSounds()
-        # Raise an error if the file doesn't exist
-        fn = soundPath(filename, extraPaths)
-
-        # Play the sound with a background process and keep a reference to it
-        self.runningSounds[handle] = self.SOXSoundContainer(
-            fn, v, start, end, loop=kwargs.get("loop", 1)
-        )
-
-    def stopSound(self, handle="PRIMARY"):
-        # Delete the sound player reference object and its destructor will stop the sound
-        if handle in self.runningSounds:
-            # Instead of using a lock lets just catch the error is someone else got there first.
-            try:
-                self.runningSounds[i].end = True
-                del self.runningSounds[handle]
-            except KeyError:
-                pass
-
-    def isPlaying(self, channel="PRIMARY", refresh=False):
-        "Return true if a sound is playing on channel"
-        try:
-            return self.runningSounds[channel].isPlaying()
-        except KeyError:
-            return False
 
 
 objectPoolLock = threading.RLock()
@@ -477,7 +184,8 @@ class RemoteMPV:
         from subprocess import PIPE, STDOUT
         from reap import Popen
 
-        f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpv_server.py")
+        f = os.path.join(os.path.dirname(
+            os.path.abspath(__file__)), "mpv_server.py")
         self.lock = threading.RLock()
         env = {}
         env.update(os.environ)
@@ -589,7 +297,8 @@ class MPVBackend(SoundWrapper):
                 not hasattr(self.player, "conf")
             ) or not self.player.conf == settings_key:
                 if (not speed == 1) or (
-                    hasattr(self.player, "conf") and (speed != self.player.conf[0])
+                    hasattr(self.player, "conf") and (
+                        speed != self.player.conf[0])
                 ):
                     self.player.rpc.call(
                         "set", ["audio_pitch_correction", False], block=0.001
@@ -601,7 +310,8 @@ class MPVBackend(SoundWrapper):
                 # But it seems mpv ignores everything past a certain number. So we replace effectively forever with
                 # actually forever to get the same effect, assuming that was user intent.
                 if not (loop == -1 or loop > 900000000):
-                    self.player.rpc.call("set", ["loop_playlist", int(max(loop, 1))])
+                    self.player.rpc.call(
+                        "set", ["loop_playlist", int(max(loop, 1))])
                 else:
                     self.player.rpc.call("set", ["loop_playlist", "inf"])
 
@@ -635,7 +345,8 @@ class MPVBackend(SoundWrapper):
                 )
                 self.player.rpc.call("set", ["pause", False])
                 if start:
-                    self.player.rpc.call("call", ["seek", str(start), "absolute"])
+                    self.player.rpc.call(
+                        "call", ["seek", str(start), "absolute"])
 
         def __del__(self):
             self.stop()
@@ -721,7 +432,8 @@ class MPVBackend(SoundWrapper):
 
                     return c
                 except Exception:
-                    logging.exception("Error getting playing status, assuming closed")
+                    logging.exception(
+                        "Error getting playing status, assuming closed")
                     return False
 
         def position(self):
@@ -730,7 +442,8 @@ class MPVBackend(SoundWrapper):
         def wait(self):
             with self.lock:
                 # Block until sound is finished playing.
-                self.player.rpc.call("wait_for_playback", block=0.001, timeout=3)
+                self.player.rpc.call("wait_for_playback",
+                                     block=0.001, timeout=3)
 
         def seek(self, position):
             pass
@@ -741,7 +454,8 @@ class MPVBackend(SoundWrapper):
                 if final:
                     self.finalGain = volume
                 self.player.lastvol = volume
-                self.player.rpc.call("set", ["volume", volume * 100], block=0.001)
+                self.player.rpc.call(
+                    "set", ["volume", volume * 100], block=0.001)
 
         def setSpeed(self, speed):
             with self.lock:
@@ -758,9 +472,6 @@ class MPVBackend(SoundWrapper):
             with self.lock:
                 return self.player.rpc.call("get", ["volume"], block=0.001)
 
-        def setEQ(self, eq):
-            pass
-
         def pause(self):
             with self.lock:
                 self.player.rpc.call("set", ["pause", True])
@@ -771,16 +482,16 @@ class MPVBackend(SoundWrapper):
 
     def playSound(
         self,
-        filename,
-        handle="PRIMARY",
-        extraPaths=[],
-        volume=1,
-        finalGain=None,
-        output="",
-        loop=1,
-        start=0,
-        speed=1,
-        **kw
+        filename: str,
+        handle: str = "PRIMARY",
+        extraPaths: List[str] = [],
+        volume: float = 1,
+        finalGain: Optional[float] = None,
+        output: str = "",
+        loop: float = 1,
+        start: float = 0,
+        speed: float = 1,
+        **kw: Dict[str, Any]
     ):
         # Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
@@ -842,13 +553,6 @@ class MPVBackend(SoundWrapper):
         except KeyError:
             pass
 
-    def setEQ(self, eq, channel="PRIMARY"):
-        "Return true if a sound is playing on channel"
-        try:
-            return self.runningSounds[channel].setEQ(eq)
-        except KeyError:
-            pass
-
     def pause(self, channel="PRIMARY"):
         "Return true if a sound is playing on channel"
         try:
@@ -865,15 +569,15 @@ class MPVBackend(SoundWrapper):
 
     def fadeTo(
         self,
-        file,
-        length=1.0,
-        block=False,
-        handle="PRIMARY",
-        output="",
-        volume=1,
-        windup=0,
-        winddown=0,
-        speed=1,
+        file: str,
+        length: float = 1.0,
+        block: bool = False,
+        handle: str = "PRIMARY",
+        output: str = "",
+        volume: float = 1,
+        windup: float = 0,
+        winddown: float = 0,
+        speed: float = 1,
         **kwargs
     ):
         x = self.runningSounds.pop(handle, None)
@@ -943,11 +647,14 @@ class MPVBackend(SoundWrapper):
 
                 if file and (handle in self.runningSounds):
                     targetVol = self.runningSounds[handle].finalGain
-                    self.setVolume(min(1, targetVol * firatio), handle, final=False)
+                    self.setVolume(min(1, targetVol * firatio),
+                                   handle, final=False)
 
                     if windup:
-                        wuratio = max(0, min(1, ((time.monotonic() - t) / windup)))
-                        self.setSpeed(max(0.1, min(1, wuratio * speed)), handle)
+                        wuratio = max(
+                            0, min(1, ((time.monotonic() - t) / windup)))
+                        self.setSpeed(
+                            max(0.1, min(1, wuratio * speed)), handle)
 
                 # Don't overwhelm the backend with commands
                 time.sleep(max(1 / 48.0, time.monotonic() - tr))
@@ -973,9 +680,6 @@ class MPVBackend(SoundWrapper):
 
 
 l = {
-    "sox": SOXWrapper,
-    "mpg123": Mpg123Wrapper,
-    "madplay": MadPlayWrapper,
     "mpv": MPVBackend,
 }
 
@@ -1048,7 +752,6 @@ resolveSound = soundPath
 pause = backend.pause
 resume = backend.resume
 setvol = backend.setVolume
-setEQ = backend.setEQ
 position = backend.getPosition
 fadeTo = backend.fadeTo
 readySound = backend.readySound

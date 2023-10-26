@@ -22,6 +22,7 @@ import copy
 import subprocess
 import os
 import time
+import traceback
 
 from . import (
     widgets,
@@ -373,6 +374,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             # self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
         except Exception:
+            print(traceback.format_exc())
             # Ensure fully cleaned up if any failure
             self.stop()
             raise
@@ -1156,6 +1158,8 @@ class MixingBoard:
             self.channelStatus[cn] = s
         else:
             s = self.channelStatus.get(cn, "not running")
+
+        print(f"Channel {cn} status {s}")
 
         self.api.send(["status", cn, s])
 

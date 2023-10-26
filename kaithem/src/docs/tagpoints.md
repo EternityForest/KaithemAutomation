@@ -339,6 +339,12 @@ you get to 7.
 Once at 7, the output will be 7, and positive changes will be ignored till you get back up to 10.  If you go to 11, the back of the window will then move to 8.
 
 
+### The Tag Point Classes
+
+TagPointClass, StringTagPointClass,ObjectTagPointClass, and BinaryTagPointClass  exist under kaithem.tags.
+
+Subclassing is a bad plan but you mak want them for type hinting.
+
 ## The raw data API endpoint
 
 Go to the URL of this form:

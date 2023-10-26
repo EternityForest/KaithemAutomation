@@ -637,7 +637,7 @@ class BaseChandlerScriptContext():
         #
         try:
             depth = self.eventRecursionDepth.d
-        except Exception:
+        except AttributeError:
             # Hasn't been set in this thread
             depth = 0
 
