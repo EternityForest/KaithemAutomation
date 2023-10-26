@@ -835,7 +835,7 @@ ${lists}
 
                             <td class="desktop-only" data-label="Shortcut:">
                                 <p class="buttonbar" style="width: 8em;">
-                                    <input title="Shortcut code" size="8"
+                                    <input title="Shortcut code" style="max-width: 4.5em;"
                                         v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
                                         step=0.1 v-model="i[1].shortcut">
                                     <button style="opacity:0.3" title="Generate a shortcut code from the cue's number"
