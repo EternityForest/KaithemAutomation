@@ -4,7 +4,8 @@ import time
 import pytz
 import math
 
-def ease(x):
+
+def ease(x: float):
     x = min(1, max(0, x))
     return -(math.cos(math.pi * x) - 1) / 2
 

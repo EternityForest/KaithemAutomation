@@ -324,7 +324,7 @@ else:
 </tr>
 <tr><th>Current Values</th></tr>
 
-%if tag and isinstance(tag,tagpoints._NumericTagPoint):
+%if tag and isinstance(tag,tagpoints.NumericTagPointClass):
 <tr>
     <td>${tag.type|h}</td>
     <td>${tag.interval}</td>
@@ -336,7 +336,7 @@ else:
 </tr>
 %endif
 
-%if tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
+%if tag and isinstance(tag,(tagpoints.StringTagPointClass, tagpoints.ObjectTagPointClass)):
 <tr>
     <td>${tag.type}</td>
     <td>${tag.interval}</td>
@@ -407,17 +407,17 @@ else:
 
 <td><input name="value" value="${configData.get('value','')}"></td>
 
-%if tag and isinstance(tag,tagpoints._NumericTagPoint):
+%if tag and isinstance(tag,tagpoints.NumericTagPointClass):
     %try:
     <td>${tag.meterWidget.render()}</td>
     %except Exception as e:
     ${e|h}</td>
     %endtry
 
-%elif tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
+%elif tag and isinstance(tag,(tagpoints.StringTagPointClass, tagpoints.ObjectTagPointClass)):
     <td>${tag.spanWidget.render()}</td>
 
-%elif tag and isinstance(tag,(tagpoints._BinaryTagPoint)):
+%elif tag and isinstance(tag,(tagpoints.BinaryTagPointClass)):
 <td>${len(tag.value)} bytes at page load</td>
 %else:
     <td>No live preview</td>
@@ -566,7 +566,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
     <td>
         <select name="logger_${n}:accumulate">
             <option value="latest" ${'selected' if i['accumulate']=='latest' else ''}>Latest</option>
-            %if isinstance(tag,tagpoints._NumericTagPoint):
+            %if isinstance(tag,tagpoints.NumericTagPointClass):
             <option value="mean" ${'selected' if i['accumulate']=='mean' else ''}>Average</option>
             <option value="min" ${'selected' if i['accumulate']=='min' else ''}>Minimum</option>
             <option value="max" ${'selected' if i['accumulate']=='max' else ''}>Maximum</option>
@@ -590,7 +590,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
 
 <table border=1>
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
-    %if isinstance(tag,tagpoints._NumericTagPoint):
+    %if isinstance(tag,tagpoints.NumericTagPointClass):
         %for i in combineLogs({(i.accumType,i.target):i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):
         <tr>
             <td>${i[0]}</td>

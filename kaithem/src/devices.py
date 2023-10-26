@@ -415,7 +415,7 @@ class Device():
         self.alerts: Dict[str, alerts.Alert] = {}
 
         # A list of all the tag points owned by the device
-        self.tagPoints: Dict[str, tagpoints._TagPoint] = {}
+        self.tagPoints: Dict[str, tagpoints.TagPointClass] = {}
         # Where we stash our claims on the tags
         self.tagClaims: Dict[str, tagpoints.Claim] = {}
 

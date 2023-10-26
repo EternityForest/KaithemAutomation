@@ -1,4 +1,5 @@
 
+from __future__ import annotations
 import numpy
 import time
 import threading
@@ -10,6 +11,7 @@ import gc
 import copy
 import struct
 import json
+from typing import Dict 
 from . import core
 from .core import disallow_special
 
@@ -24,10 +26,10 @@ max = max
 min = min
 
 universesLock = core.lock
-universes = {}
+universes: Dict[str, weakref.ref[Universe]] = {}
 
 # MUTABLE
-_universes = {}
+_universes: Dict[str, weakref.ref[Universe]] = {}
 
 
 
@@ -35,7 +37,7 @@ fixtures = {}
 
 
 class Fixture:
-    def __init__(self, name, data=None):
+    def __init__(self, name: str, data=None):
         """Represents a contiguous range of channels each with a defined role in one universe.
 
         data is the definition of the type of fixture. It can be a list of channels, or
@@ -1118,7 +1120,7 @@ class ColorTagUniverse(Universe):
 core.discoverColorTagDevices = discoverColorTagDevices
 
 
-def getUniverse(u):
+def getUniverse(u: str) -> Universe:
     "Get strong ref to universe if it exists, else get none."
     try:
         oldUniverseObj = universes[u]()
@@ -1127,7 +1129,7 @@ def getUniverse(u):
     return oldUniverseObj
 
 
-def getUniverses():
+def getUniverses() -> Dict[str, Universe]:
     "Returns dict of strong refs to universes, filtered to exclude weak refs"
     m = universes
     u = {}

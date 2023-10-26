@@ -91,22 +91,22 @@ class TagInterface():
         except KeyError:
             return tagpoints.Tag(k)
 
-    def StringTag(self, k: str):
+    def StringTag(self, k: str) -> tagpoints.StringTagPointClass:
         t = tagpoints.StringTag(k)
         return t
 
-    def ObjectTag(self, k: str):
+    def ObjectTag(self, k: str) -> tagpoints.ObjectTagPointClass:
         t = tagpoints.ObjectTag(k)
         return t
 
-    def BinaryTag(self, k: str):
+    def BinaryTag(self, k: str) -> tagpoints.BinaryTagPointClass:
         t = tagpoints.BinaryTag(k)
         return t
 
     def __iter__(self):
         return tagpoints.allTagsAtomic
 
-    TagClass = tagpoints._TagPoint
+    TagClass = tagpoints.TagPointClass
     # HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter
     HighpassFilter = tagpoints.HighpassFilter
@@ -123,6 +123,7 @@ class Kaithem():
     context = threading.local()
     tags = TagInterface()
     chandlerscript = scriptbindings
+    widget = widgets
 
     assetpacks = assetlib.AssetPacks(
         os.path.join(directories.vardir, 'assets'))
@@ -648,7 +649,6 @@ class obj():
     pass
 
 
-Kaithem.widget = widgets
 Kaithem.globals = obj()  # this is just a place to stash stuff.
 
 

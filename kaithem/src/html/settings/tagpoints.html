@@ -59,7 +59,7 @@ Page:
 %for i in paginate(sorted(filteredTags ), pageNumber):
 %if i in tagpoints.allTags:
 
-%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.NumericTagPointClass):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a>
     %if tagpoints.allTagsAtomic[i]().configLoggers:
@@ -71,7 +71,7 @@ Page:
 </tr>
 %endif
 
-%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._StringTagPoint):
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.StringTagPointClass):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} </td>
@@ -80,7 +80,7 @@ Page:
 </tr>
 %endif
 
-%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._ObjectTagPoint):
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.ObjectTagPointClass):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} </td>
@@ -89,7 +89,7 @@ Page:
 </tr>
 %endif
 
-%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._BinaryTagPoint):
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.BinaryTagPointClass):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td><span style="color: grey">Value is binary data</span></td>

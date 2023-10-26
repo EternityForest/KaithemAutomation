@@ -6,12 +6,14 @@ from setuptools import setup, find_packages
 # Used for the long_description.  It's nice, because now 1) we have a top level
 # README file and 2) it's easier to type in the README file than to put a raw
 # string in below ...
+
+
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
 # https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
-VERSIONFILE="kaithem/__version__.py"
+VERSIONFILE = "kaithem/__version__.py"
 verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VSRE, verstrline, re.M)

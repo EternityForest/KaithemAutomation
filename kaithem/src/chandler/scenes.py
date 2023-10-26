@@ -1,4 +1,5 @@
 
+from __future__ import annotations
 from .core import disallow_special
 from .universes import getUniverse, rerenderUniverse, mapUniverse, mapChannel
 from ..kaithemobj import kaithem
@@ -9,6 +10,7 @@ from . import blendmodes
 from . import mqtt
 from .mathutils import number_to_note, dt_to_ts, ease
 import numpy
+import numpy.typing
 from tinytag import TinyTag
 from typeguard import typechecked
 
@@ -26,7 +28,7 @@ import time
 import traceback
 import urllib.parse
 import uuid
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, Iterable, List
 import copy
 import recur
 
@@ -39,14 +41,15 @@ min = min
 
 allowedCueNameSpecials = "_~."
 
-scenes = weakref.WeakValueDictionary()
-scenes_by_name = weakref.WeakValueDictionary()
+scenes: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
+scenes_by_name: weakref.WeakValueDictionary[str,
+                                            Scene] = weakref.WeakValueDictionary()
 
 _activeScenes = []
 activeScenes = []
 
 
-def makeWrappedConnectionClass(parent):
+def makeWrappedConnectionClass(parent: Scene):
     self_closure_ref = parent
 
     class Connection(mqtt.MQTTConnection):
@@ -84,12 +87,12 @@ def makeBlankArray(size: int):
 class FadeCanvas:
     def __init__(self):
         "Handles calculating the effect of one scene over a background. This doesn't do blend modes, it just interpolates."
-        self.v = {}
-        self.a = {}
-        self.v2 = {}
-        self.a2 = {}
+        self.v: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.a: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.v2: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.a2: Dict[str, numpy.typing.NDArray[Any]] = {}
 
-    def paint(self, fade, vals: Dict[str, numpy.ndarray], alphas: Dict[str, numpy.ndarray]):
+    def paint(self, fade: float | int, vals: Dict[str, numpy.typing.NDArray[Any]], alphas: Dict[str, numpy.typing.NDArray[Any]]):
         """
         Makes v2 and a2 equal to the current background overlayed with values from scene which is any object that has dicts of dicts of vals and and
         alpha.
@@ -178,7 +181,7 @@ rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
 
 # Index Cues by codes that we use to jump to them. This is a dict of lists of cues with that short code,
-shortcut_codes = {}
+shortcut_codes: Dict[str, List[Cue]] = {}
 
 
 def codeCommand(code=""):
@@ -228,7 +231,7 @@ def setAlphaCommand(scene="=SCENE", alpha=1):
     return True
 
 
-def ifCueCommand(scene, cue):
+def ifCueCommand(scene: str, cue: str):
     "True if the scene is running that cue"
     return (
         True
@@ -288,14 +291,14 @@ def doTransitionRateLimit():
     cueTransitionsLimitCount += 2
 
 
-def number_to_shortcut(number):
+def number_to_shortcut(number: int | float | str):
     s = str((Decimal(number) / 1000).quantize(Decimal("0.001")))
     # https://stackoverflow.com/questions/11227620/drop-trailing-zeros-from-decimal
     s = s.rstrip("0").rstrip(".") if "." in s else s
     return s
 
 
-def shortcutCode(code, limitScene=None, exclude=None):
+def shortcutCode(code: str, limitScene: Optional[Scene] = None, exclude: Optional[Scene] = None):
     "API to activate a cue by it's shortcut code"
     if not limitScene:
         event("shortcut." + str(code)[:64], None)
@@ -319,7 +322,7 @@ def shortcutCode(code, limitScene=None, exclude=None):
                     print(traceback.format_exc())
 
 
-def event(s, value=None, info=""):
+def event(s: str, value=None, info=""):
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
     with core.lock:
@@ -361,7 +364,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
 
-    def event(self, e, v=None):
+    def event(self, e: str, v: str | float | int | bool | None = None):
         kaithem.chandlerscript.ChandlerScriptContext.event(self, e, v)
         try:
             for i in core.boards:
@@ -568,9 +571,9 @@ class Cue:
         self.length = length
         self.rel_length = rel_length
         self.lengthRandomize = lengthRandomize
-        self.values = values or {}
-        self.scene = weakref.ref(parent)
-        self.nextCue = nextCue or ""
+        self.values: Dict[str, Dict[str, str | int | float]] = values or {}
+        self.scene: weakref.ref[Scene] = weakref.ref(parent)
+        self.nextCue: str = nextCue or ""
         # Note: This refers to tracking as found on lighting gear, not the old concept of track from
         # the first version
         self.track = track
@@ -897,7 +900,7 @@ class Scene:
         self.utility: bool = bool(utility)
 
         # This is used for the remote media triggers feature.
-        self.mediaLink = kaithem.widget.APIWidget("media_link")
+        self.mediaLink: kaithem.widget.APIWidget = kaithem.widget.APIWidget("media_link")
         self.mediaLink.echo = False
 
         self.slideOverlayURL: str = slideOverlayURL
@@ -956,7 +959,7 @@ class Scene:
         self.midiSource = ""
         self.defaultNext = str(defaultNext).strip()
 
-        self.id = id or uuid.uuid4().hex
+        self.id: str = id or uuid.uuid4().hex
 
         # TagPoint for managing the current cue
         self.cueTag = kaithem.tags.StringTag(
@@ -1271,7 +1274,7 @@ class Scene:
                 id = self.cues[cue].id
             else:
                 raise RuntimeError("Cue does not seem to exist")
-            
+
             self.cues_ordered.remove(self.cues[name])
 
             if cue in cues:
@@ -1319,7 +1322,7 @@ class Scene:
             if len(i().newDataFunctions) < 100:
                 i().newDataFunctions.append(lambda s: s.pushCueData(cue.id))
 
-    def pushMeta(self, cue=False, statusOnly=False, keys=None):
+    def pushMeta(self, cue: str | bool = False, statusOnly: bool = False, keys: None | Iterable[str] = None):
         # Push cue first so the client already has that data when we jump to the new display
         if cue and self.cue:
             for i in core.boards:
@@ -1333,12 +1336,12 @@ class Scene:
                         self.id, statusOnly=statusOnly, keys=keys)
                 )
 
-    def event(self, s, value=None, info=""):
+    def event(self, s: str, value: str | float | int | bool | None = None, info=""):
         # No error loops allowed!
         if not s == "script.error":
             self._event(s, value, info)
 
-    def _event(self, s, value=None, info=""):
+    def _event(self, s: str, value: str | float | int | bool | None = None, info=""):
         "Manually trigger any script bindings on an event"
         try:
             if self.scriptContext:
@@ -1429,7 +1432,7 @@ class Scene:
                     break
         return cue
 
-    def gotoCue(self, cue, t=None, sendSync=True, generateEvents=True, cause="generic"):
+    def gotoCue(self, cue: str, t: Optional[float] = None, sendSync=True, generateEvents=True, cause="generic"):
         "Goto cue by name, number, or string repr of number"
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
@@ -1912,7 +1915,8 @@ class Scene:
                                     self.crossfade) + cuelen
                             v = max(0, self.randomizeModifier + slen)
                         else:
-                            raise RuntimeError("Tinytag returned None when getting length")
+                            raise RuntimeError(
+                                "Tinytag returned None when getting length")
                     except Exception:
                         logging.exception(
                             "Error getting length for sound " + str(path))
@@ -2089,13 +2093,13 @@ class Scene:
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
 
-    def onMqttMessage(self, topic, message):
+    def onMqttMessage(self, topic: str, message: bytes):
         try:
             self.event("$mqtt:" + topic, json.loads(message.decode("utf-8")))
         except Exception:
             self.event("$mqtt:" + topic, message)
 
-    def onCueSyncMessage(self, topic, message):
+    def onCueSyncMessage(self, topic: str, message: str):
         gn = self.mqttSyncFeatures.get("syncGroup", False)
         if gn:
             # topic = f"/kaithem/chandler/syncgroup/{gn}"

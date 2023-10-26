@@ -75,7 +75,7 @@ def combineLogs(a):
 <table border=1>
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
 
-    %if isinstance(tag,tagpoints._NumericTagPoint):
+    %if isinstance(tag,tagpoints.NumericTagPointClass):
         %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
         <tr>
             <td>${i[1]}</td>

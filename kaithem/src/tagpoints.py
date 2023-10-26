@@ -1,3 +1,4 @@
+from __future__ import annotations
 import typing
 from . import widgets
 from .unitsofmeasure import convert, unitTypes
@@ -20,7 +21,7 @@ import copy
 import dateutil
 import dateutil.parser
 
-from typing import Callable, Tuple, Union, Dict, List, Any, Optional
+from typing import Callable, Tuple, Union, Dict, List, Any, Optional, TypeVar, Type
 from typeguard import typechecked
 
 def makeTagInfoHelper(t):
@@ -50,8 +51,8 @@ t = time.monotonic
 # We just accept that creating and deleting tags and claims is slow.
 lock = threading.RLock()
 
-allTags: Dict[str, weakref.ref] = {}
-allTagsAtomic: Dict[str, weakref.ref] = {}
+allTags: Dict[str, weakref.ref[TagPointClass]] = {}
+allTagsAtomic: Dict[str, weakref.ref[TagPointClass]] = {}
 
 providers = {}
 
@@ -121,7 +122,7 @@ class TagProvider():
             del providers[self.path]
 
     def getTag(self, tagName):
-        return _TagPoint(tagName)
+        return TagPointClass(tagName)
 
 
 configTags: Dict[str, object] = {}
@@ -159,8 +160,10 @@ def gcEmptyConfigTags():
 # _ and . allowed
 ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
+T = TypeVar('T', bound='TagPointClass')
 
-class _TagPoint():
+
+class TagPointClass():
     """
         A Tag Point is a named object that can be chooses from a set of data sources based on priority,
         filters that data, and returns it on a push or a pull basis.
@@ -203,7 +206,7 @@ class _TagPoint():
                 "Tag with this name already exists, use the getter function to get it instead"
             )
         # Dependancu tracking, if a tag depends on other tags, such as =expression based ones
-        self.sourceTags: Dict[str, _TagPoint] = {}
+        self.sourceTags: Dict[str, TagPointClass] = {}
 
         self.dataSourceWidget = None
 
@@ -387,11 +390,11 @@ class _TagPoint():
     # In reality value, timestamp, annotation are all stored together as a tuple
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> float:
         return self.vta[1]
 
     @property
-    def annotation(self):
+    def annotation(self) -> Any:
         return self.vta[2]
 
     def isDynamic(self) -> bool:
@@ -1093,15 +1096,15 @@ class _TagPoint():
 
             if 'type' in data:
                 if data['type'] == 'number' and not isinstance(
-                        self, _NumericTagPoint):
+                        self, NumericTagPointClass):
                     raise RuntimeError(
                         "Tag already exists and is not a numeric tag")
                 if data['type'] == 'string' and not isinstance(
-                        self, _StringTagPoint):
+                        self, StringTagPointClass):
                     raise RuntimeError(
                         "Tag already exists and is not a string tag")
                 if data['type'] == 'object' and not isinstance(
-                        self, _TagPoint):
+                        self, TagPointClass):
                     raise RuntimeError(
                         "Tag already exists and is not an object tag")
 
@@ -1325,7 +1328,7 @@ class _TagPoint():
                                  "Code default")
 
     @classmethod
-    def Tag(cls, name: str, defaults={}):
+    def Tag(cls: Type[T], name: str, defaults={}) -> T:
         name = normalizeTagName(name)
         rval = None
         with lock:
@@ -1347,6 +1350,7 @@ class _TagPoint():
 
             if not rval:
                 rval = cls(name)
+                
 
             return rval
 
@@ -1439,7 +1443,7 @@ class _TagPoint():
     @typechecked
     def subscribe(self, f: Callable, immediate=False):
 
-        if isinstance(f, _TagPoint) and (f.unreliable or self.unreliable):
+        if isinstance(f, TagPointClass) and (f.unreliable or self.unreliable):
             f = f.fastPush
 
         timestamp = time.monotonic()
@@ -1973,7 +1977,7 @@ class _TagPoint():
 
 default_bool_enum = {-1: None, 0: False, 1:True}
 
-class _NumericTagPoint(_TagPoint):
+class NumericTagPointClass(TagPointClass):
     defaultData = 0
     type = 'number'
 
@@ -1996,7 +2000,7 @@ class _NumericTagPoint(_TagPoint):
         self.enum = {}
 
         self._setupMeter()
-        _TagPoint.__init__(self, name)
+        TagPointClass.__init__(self, name)
 
     def processValue(self, value: Union[float, int]):
 
@@ -2222,7 +2226,7 @@ class _NumericTagPoint(_TagPoint):
             self._meterWidget.write(self.value)
 
 
-class _StringTagPoint(_TagPoint):
+class StringTagPointClass(TagPointClass):
     defaultData = ''
     unit = "string"
     type = 'string'
@@ -2233,7 +2237,7 @@ class _StringTagPoint(_TagPoint):
         self.guiLock = threading.Lock()
         self._spanWidget = None
 
-        _TagPoint.__init__(self, name)
+        TagPointClass.__init__(self, name)
 
     def processValue(self, value):
 
@@ -2319,7 +2323,7 @@ class _StringTagPoint(_TagPoint):
             self.lock.release()
 
 
-class _ObjectTagPoint(_TagPoint):
+class ObjectTagPointClass(TagPointClass):
     defaultData: object = {}
     type = 'object'
 
@@ -2329,7 +2333,7 @@ class _ObjectTagPoint(_TagPoint):
 
         self.validate = None
         self._spanWidget = None
-        _TagPoint.__init__(self, name)
+        TagPointClass.__init__(self, name)
 
     def processValue(self, value):
 
@@ -2427,7 +2431,7 @@ class _ObjectTagPoint(_TagPoint):
             self.lock.release()
 
 
-class _BinaryTagPoint(_TagPoint):
+class BinaryTagPointClass(TagPointClass):
     defaultData: bytes = b''
     type = 'binary'
 
@@ -2436,7 +2440,7 @@ class _BinaryTagPoint(_TagPoint):
         self.guiLock = threading.Lock()
 
         self.validate = None
-        _TagPoint.__init__(self, name)
+        TagPointClass.__init__(self, name)
 
     def processValue(self, value):
         if isinstance(value, bytes):
@@ -2458,7 +2462,7 @@ class Claim():
 
     @typechecked
     def __init__(self,
-                 tag: _TagPoint,
+                 tag: TagPointClass,
                  value,
                  name: str = 'default',
                  priority: Union[int, float] = 50,
@@ -2717,7 +2721,7 @@ class NumericClaim(Claim):
 
     @typechecked
     def __init__(self,
-                 tag: _TagPoint,
+                 tag: TagPointClass,
                  value,
                  name: str = 'default',
                  priority: Union[int, float] = 50,
@@ -2871,7 +2875,7 @@ class HighpassFilter(LowpassFilter):
 #             return self.state
 
 
-def createGetterFromExpression(e: str, t: _TagPoint, priority=98) -> Claim:
+def createGetterFromExpression(e: str, t: TagPointClass, priority=98) -> Claim:
 
     try:
         for i in t.sourceTags:
@@ -2918,7 +2922,7 @@ def configTagFromData(name: str, data: dict):
     except Exception:
         logger.exception("Deleting tag config")
 
-    tag: Optional(_TagPoint) = None
+    tag: Optional(TagPointClass) = None
     # Create or get the tag
     if t == "number":
         tag = Tag(name)
@@ -2960,7 +2964,7 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
                     traceback.format_exc())
 
 
-Tag = _NumericTagPoint.Tag
-ObjectTag = _ObjectTagPoint.Tag
-StringTag = _StringTagPoint.Tag
-BinaryTag = _BinaryTagPoint.Tag
+Tag = NumericTagPointClass.Tag
+ObjectTag = ObjectTagPointClass.Tag
+StringTag = StringTagPointClass.Tag
+BinaryTag = BinaryTagPointClass.Tag
