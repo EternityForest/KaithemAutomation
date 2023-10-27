@@ -579,9 +579,7 @@ def reloadOneResource(module, resource):
 
 
 def validate(r):
-    "Unused for now"
-    return
-
+    "Clean up any old dict keys"
     try:
         if r["resource-type"] == "page":
             schemas.get_validator("resources/page").validate(r)

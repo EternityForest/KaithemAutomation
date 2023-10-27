@@ -78,6 +78,10 @@
         "setupcode": {
             "type": "string",
             "description": "Per-reload code. Saved in it's own section"
+        },
+        "versions":{
+            "type": "object",
+            "description": "Used to store old versions of the file.  Should not actually be saved."
         }
     },
     "required": [

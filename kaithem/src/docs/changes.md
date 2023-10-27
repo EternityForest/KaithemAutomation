@@ -23,7 +23,8 @@ best reliability.
 - :bug: Disenhorriblize the install instructions
 - :recycle: Refactor the Chandler Python
 - :coffin: Remove non-MPV audio backends
- 
+- :coffin: Remove codemirror config options
+
 
 ### 0.69.20
 
