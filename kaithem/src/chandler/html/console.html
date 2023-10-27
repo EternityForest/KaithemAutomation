@@ -1443,7 +1443,7 @@ ${lists}
                                 </label>
                                 <label v-if="showSoundControls">Device<a target="_blank"
                                         href="/settings/mixer">(mixer)</a>
-                                    <input title="set the output device"
+                                    <input title="set the output device" list="soundcards"
                                         v-on:change="setSoundOutput(currentcueid,$event.target.value)"
                                         v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
                                 </label>
