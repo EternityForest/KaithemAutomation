@@ -31,6 +31,7 @@ from . import (
     messagebus,
     scheduling,
     devices,
+    schemas
 )
 from .modules import external_module_locations
 from . import modules
@@ -1049,6 +1050,8 @@ def resourceUpdateTarget(module, resource, kwargs):
                 if i[:10] == "Permission":
                     if kwargs[i] == "true":
                         resourceobj["require-permissions"].append(i[10:])
+
+            # schemas.get_validator('resources/page').validate(resourceobj)
 
             modules.saveResource(module, resource, resourceobj, newname)
 

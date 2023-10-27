@@ -205,7 +205,7 @@ class CompiledPage:
 
                 self.streaming = resource.get("streaming-response", False)
 
-                self.mime = resource.get("mimetype", "text/html")
+                self.mime = resource.get("mimetype", "text/html") or "text/html"
                 if "require-method" in resource:
                     self.methods = resource["require-method"]
                 else:
@@ -331,8 +331,8 @@ class CompiledPage:
 
                 self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
                 self.mime = self.mime = resource.get(
-                    "mimetype", None
-                ) or mimetypes.guess_type(self.name)[0]
+                    "mimetype", ''
+                ).strip() or mimetypes.guess_type(self.name)[0]
 
         self.refreshFromResource = refreshFromResource
         self.refreshFromResource()

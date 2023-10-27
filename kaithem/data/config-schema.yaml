@@ -7,15 +7,20 @@ properties:
         type: integer
         minimum: 0
         maximum: 65536
+        default: 8002
+        description: "Port for the web server"
 
     https-port:
         type: integer
         minimum: 0
         maximum: 65536
+        default: 8001
 
     host:
         type: string
-    
+        default: "default"
+        description: "IP to bind to. Default all interfaces unless local-access-only set"
+
     advertise-webui:
         type: boolean
 
@@ -210,12 +215,6 @@ properties:
         type: string
 
     theme-url:
-        type: string
-
-    cm-theme-url:
-        type: string
-
-    cm-theme:
         type: string
 
     monaco-theme-url:
