@@ -692,7 +692,7 @@ else:
 # MPV is alwaus auto chosen if available!!!
 # All the others are deprecated!!
 for i in ["mpv"] + list(config["audio-backends"]):
-    if not i in l:
+    if i not in l:
         continue
     try:
         if util.which(i) or l[i].testAvailable():
