@@ -10,12 +10,6 @@ http-port : 8002
 #What host to bind to. Default is determined by local-access-only
 host: "default"
 
-#If true, makes an MDNS service
-advertise-webui: yes
-
-#default means kaithem_HOSTNAME
-webui-servicename: default
-
 #The directory in which certificate.cert and certificate.key, used for the SSL, are to be found.
 #Relative to the site-data-dir(or use an absolute path)
 ssl-dir : ssl
@@ -177,10 +171,6 @@ about-box-banner: "This space can be customized with site specific data in the c
 #theme-url: /static/css/kaithem_scrapbook.css
 theme-url: /static/css/kaithem_simple_light.css
 
-#Deprecated codemirror stuff. We no longer use that.
-cm-theme-url: deprecated
-cm-theme: deprecated
-
 #URL of a monaco theme to use
 monaco-theme-url: /static/js/monaco-theme.js
 
@@ -194,6 +184,7 @@ full-time-intervals: no
 #Should be a path. If it is relative, starts in the datadir
 favicon-png: img/favicon.png
 favicon-ico: img/favicon.png
+
 #This is the file which contains a list of strings for kaithem.lorem and a few other places.
 #Used for the quotes in the login screen
 #Must be a YAML file containing a list of strings.

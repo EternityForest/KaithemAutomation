@@ -1,0 +1,113 @@
+$schema: http://json-schema.org/draft-04/schema#
+type: object
+properties:
+  number:
+    type: integer
+
+  fadein:
+    type: integer
+    default: 0
+
+  soundFadeOut:
+    type: integer
+    default: 0
+
+  soundFadeIn:
+    type: integer
+    default: 0
+
+  length:
+    type: integer
+    default: 0
+
+  track:
+    type: boolean
+    default: true
+
+  nextCue:
+    type: string
+    default: ''
+
+  sound:
+    type: string
+    default: ''
+
+  slide:
+    type: string
+    default: ''
+
+  notes:
+    type: string
+    default: ''
+
+  soundOutput:
+    type: string
+    default: ''
+
+  soundStartPosition:
+    type: integer
+    default: 0
+
+  mediaSpeed:
+    type: integer
+    default: 1
+
+  mediaWindup:
+    type: integer
+    default: 0
+
+  mediaWinddown:
+    type: integer
+    default: 0
+
+  rel_length:
+    type: boolean
+    default: false
+
+  lengthRandomize:
+    type: integer
+    default: 0
+
+  inheritRules:
+    type: string
+    default: ''
+      
+  rules:
+    type: array
+    default: []
+
+  probability:
+    type: string
+    default: ''
+
+  values:
+    type: object
+
+    additionalProperties:
+      type: object
+      additionalProperties:
+        type:
+          anyOf:
+            - string
+            - integer
+            - float
+            - "null"
+      
+  soundVolume:
+    type: integer
+    default: 1
+
+  soundLoops:
+    type: integer
+    default: 0
+
+  triggerShortcut:
+    type: string
+    default: ''
+      
+  namedForSound:
+    type: boolean
+    default: false
+
+required:
+  - number

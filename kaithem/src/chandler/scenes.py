@@ -8,6 +8,7 @@ from . import core
 from . import universes
 from . import blendmodes
 from . import mqtt
+from .. import schemas
 from .mathutils import number_to_note, dt_to_ts, ease
 import numpy
 import numpy.typing
@@ -419,33 +420,6 @@ def checkPermissionsForSceneData(data, user):
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
-cueDefaults: Dict[str, int | float | Dict[Any, Any] | List[Any] | bool | None | str] = {
-    "fadein": 0,
-    "soundFadeOut": 0,
-    "soundFadeIn": 0,
-    "length": 0,
-    "track": True,
-    "nextCue": "",
-    "sound": "",
-    "slide": "",
-    "notes": "",
-    "soundOutput": "",
-    "soundStartPosition": 0,
-    "mediaSpeed": 1,
-    "mediaWindup": 0,
-    "mediaWinddown": 1,
-    "rel_length": False,
-    "lengthRandomize": 0,
-    "inheritRules": "",
-    "rules": [],
-    "probability": "",
-    "values": {},
-    "soundVolume": 1,
-    "soundLoops": 0,
-    "triggerShortcut": "",
-    "namedForSound": False,
-}
-
 
 class Cue:
     "A static set of values with a fade in and out duration"
@@ -594,43 +568,14 @@ class Cue:
         self.push()
 
     def serialize(self):
-        x = {
-            "fadein": self.fadein,
-            "length": self.length,
-            "lengthRandomize": self.lengthRandomize,
-            "shortcut": self.shortcut,
-            "values": self.values,
-            "nextCue": self.nextCue,
-            "track": self.track,
-            "notes": self.notes,
-            "number": self.number,
-            "sound": self.sound,
-            "soundOutput": self.soundOutput,
-            "soundStartPosition": self.soundStartPosition,
-            "slide": self.slide,
-            "mediaSpeed": self.mediaSpeed,
-            "mediaWindup": self.mediaWindup,
-            "mediaWinddown": self.mediaWinddown,
-            "rel_length": self.rel_length,
-            "probability": self.probability,
-            "rules": self.rules,
-            "reentrant": self.reentrant,
-            "inheritRules": self.inheritRules,
-            "soundFadeIn": self.soundFadeIn,
-            "soundFadeOut": self.soundFadeOut,
-            "soundVolume": self.soundVolume,
-            "soundLoops": self.soundLoops,
-            "namedForSound": self.namedForSound,
-            "triggerShortcut": self.triggerShortcut,
-        }
+        x2 = {}
+        # The schema decides what properties we save
+        for i in schemas.get_schema("chandler/cue")['properties']:
+            x2[i] = getattr(self, i)
 
-        # Cleanup defaults
-        if x["shortcut"] == number_to_shortcut(self.number):
-            del x["shortcut"]
-        for i in cueDefaults:
-            if str(x[i]) == str(cueDefaults[i]):
-                del x[i]
-        return x
+        schemas.supress_defaults("chandler/cue", x2)
+
+        return x2
 
     def getScene(self):
         s = self.scene()

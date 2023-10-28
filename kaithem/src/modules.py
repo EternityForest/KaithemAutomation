@@ -32,7 +32,7 @@ import cherrypy
 import yaml
 from typing import Optional
 from . import auth, pages, directories, util, newevt, kaithemobj
-from . import usrpages, messagebus
+from . import usrpages, messagebus, schemas
 from .modules_state import (
     modulesLock,
     scopes,
@@ -343,16 +343,24 @@ class ResourceAPI(object):
 kaithemobj.kaithem.resource = ResourceAPI()
 
 
-def readResourceFromFile(fn: str, relative_name: str, ver: int = 1):
+def readResourceFromFile(fn: str, relative_name: str, ver: int = 1, modulename=Optional[str]):
     """Relative name is rel to the folder, aka the part of the path that actually belongs in
-    the resource name
+    the resource name.
+
+    Modulename is there because this function will one day auto-migrate to new versions of the file
+    format.
     """
     with open(fn, "rb") as f:
         d = f.read().decode("utf-8")
 
     x = readResourceFromData(d, relative_name, ver, filename=fn)
     # logger.debug("Loaded resource from file "+fn)
-    return x
+    original = copy.deepcopy(x[0])
+    validate(x[0])
+    if not (x[0] == original):
+        logger.info(f"Resource {x[1]} is in an older format and should be migrated to the new file type")
+    # For now don't break anything by actually changing the data.
+    return (original, x[1])
 
 
 # Backwards compatible resource loader.
@@ -570,10 +578,23 @@ def reloadOneResource(module, resource):
         )
 
 
+def validate(r):
+    "Clean up any old dict keys"
+    try:
+        if r["resource-type"] == "page":
+            schemas.get_validator("resources/page").validate(r)
+            schemas.clean_data_inplace("resources/page", r)
+
+    except Exception:
+        print("Ignoring invalid resource and loading anyway for now")
+        print(traceback.format_exc())
+        print(str(r)[10240])
+
+
 def loadOneResource(folder, relpath, module):
     try:
         r, resourcename = readResourceFromFile(
-            os.path.join(folder, relpath), relpath)
+            os.path.join(folder, relpath), relpath, module)
     except Exception:
         messagebus.postMessage(
             "/system/notifications/errors",
@@ -592,6 +613,8 @@ def loadOneResource(folder, relpath, module):
     if "resource-type" not in r:
         logger.warning("No resource type found for " + resourcename)
         return
+    
+    validate(r)
     handleResourceChange(module, resourcename)
 
     if r["resource-type"] == "internal-fileref":
