@@ -88,7 +88,7 @@ def rateLimitedRaise(e):
 class LoggingHandler(logging.Handler):
     def __init__(self, name, folder, fn, bufferlen=25000,
                  level=30, contextlevel=10, contextbuffer=0,
-                 entries_per_file=25000, keep=10, compress='none', doprint=True):
+                 entries_per_file=25000, keep=10, compress='none', doprint=True, exclude_print=''):
         """Implements a memory-buffered context logger with automatic log rotation.
         Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
         When that happens,logs are dumped to a file named fn_TIMESTAMP.FRACTIONALPART.log,
@@ -112,6 +112,7 @@ class LoggingHandler(logging.Handler):
         self.name = name
         self.fn = fn
         self.doprint = doprint
+        self.exclude_print = exclude_print
 
         self.folder = folder
         self.bufferlen = bufferlen
@@ -169,7 +170,8 @@ class LoggingHandler(logging.Handler):
     def emit(self, record):
         # We handle all logs that make it to the root logger, and do the filtering ourselves
         if self.doprint:
-            print(self.format(record))
+            if not self.exclude_print or (not (record.name == self.exclude_print or record.name.startswith(self.exclude_print + "."))):
+                print(self.format(record))
         if not (record.name == self.name or record.name.startswith(self.name + ".")) and not self.name == '':
             return
         self.callback(record)
@@ -395,6 +397,8 @@ if os.path.exists("/dev/shm"):
 # We may want to name it after when kaithem booted, and reduce to 10KB, or make it configurable.
 # Or, we may want to read old debug log info at boot, and save it, so we have a chance to look through
 # and diagnose really odd errors.
+
+# We also print everything not printed in the root here
 if os.path.exists("/dev/shm"):
     shmhandler = LoggingHandler("", fn="kaithemlog",
                                 folder="/dev/shm/kaithemdbglog_" + getpass.getuser() + "/", level=0,
@@ -402,5 +406,6 @@ if os.path.exists("/dev/shm"):
                                 bufferlen=0,
                                 keep=10**6,
                                 compress="none",
-                                doprint=False)
+                                doprint=True,
+                                exclude_print="system")
     shmhandler.isShmHandler = True
