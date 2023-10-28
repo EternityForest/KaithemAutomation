@@ -65,7 +65,9 @@ def makeWrappedConnectionClass(parent: Scene):
                 self_closure_ref.event("board.mqtt.error", "Disconnected")
             return super().on_disconnect()
 
-        def on_message(self, t: str, m: bytes):
+        def on_message(self, t: str, m: str | bytes):
+            if isinstance(m, bytes):
+                m = m.decode()
             gn = self_closure_ref.mqttSyncFeatures.get("syncGroup", False)
             if gn:
                 topic = f"/kaithem/chandler/syncgroup/{gn}"
@@ -571,7 +573,8 @@ class Cue:
         self.length = length
         self.rel_length = rel_length
         self.lengthRandomize = lengthRandomize
-        self.values: Dict[str, Dict[str, str | int | float]] = values or {}
+        self.values: Dict[str, Dict[str | int,
+                                    str | int | float]] = values or {}
         self.scene: weakref.ref[Scene] = weakref.ref(parent)
         self.nextCue: str = nextCue or ""
         # Note: This refers to tracking as found on lighting gear, not the old concept of track from
@@ -737,7 +740,7 @@ class Cue:
             if push:
                 self.push()
 
-    def setValue(self, universe, channel, value):
+    def setValue(self, universe: str, channel: str | int, value: str | float):
         disallow_special(universe, allow="_@.")
 
         scene = self.getScene()
@@ -761,7 +764,7 @@ class Cue:
             # If it looks like an int, cast it even if it's a string,
             # We get a lot of raw user input that looks like that.
             try:
-                channel = float(channel)
+                channel = int(channel)
             except ValueError:
                 pass
         else:
@@ -1039,7 +1042,6 @@ class Scene:
         self.defaultalpha = alpha
         self.name = name
 
-        # self.values = values or {}
         self.canvas = FadeCanvas()
         self.backtrack = backtrack
         self.bpm = bpm
@@ -1083,8 +1085,10 @@ class Scene:
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
-        self.cue_cached_vals_as_arrays: Dict[str, numpy.typing.NDArray[Any]] = {}
-        self.cue_cached_alphas_as_arrays: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.cue_cached_vals_as_arrays: Dict[str,
+                                             numpy.typing.NDArray[Any]] = {}
+        self.cue_cached_alphas_as_arrays: Dict[str,
+                                               numpy.typing.NDArray[Any]] = {}
 
         self.rerenderOnVarChange = False
 
