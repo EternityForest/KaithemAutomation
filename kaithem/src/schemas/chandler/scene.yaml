@@ -1,0 +1,110 @@
+$schema: http://json-schema.org/draft-04/schema#
+type: object
+properties:
+  active:
+    type: boolean
+    
+  alpha:
+    type: integer
+
+  backtrack:
+    type: boolean
+    description: |
+      When jumping to a cue other than the next one, 
+      apply values from previous cues as if you got there without jumping.
+
+  blend:
+    type: string
+
+  blendArgs:
+    type: object
+    additionalProperties: true
+
+  bpm:
+    type: integer
+
+  commandTag:
+    type: string
+
+  crossfade:
+    type: integer
+
+  cues:
+    type: object
+    required:
+      - default
+
+  defaultNext:
+    type: string
+
+  displayTags:
+    type: array
+    items: {}
+    additionalItems: true
+
+  eventButtons:
+    type: array
+    items: {}
+    additionalItems: true
+
+  infoDisplay:
+    type: string
+
+  midiSource:
+    type: string
+
+  mqttServer:
+    type: string
+
+  mqttSyncFeatures:
+    type: object
+    additionalProperties: true
+
+  musicVisualizations:
+    type: string
+  notes:
+    type: string
+
+  priority:
+    type: integer
+
+  slideOverlayURL:
+    type: string
+
+  soundOutput:
+    type: string
+
+  utility:
+    type: boolean
+
+  uuid:
+    type: string
+
+
+
+additionalProperties: true
+
+required:
+  - active
+  - alpha
+  - backtrack
+  - blend
+  - blendArgs
+  - bpm
+  - commandTag
+  - crossfade
+  - cues
+  - defaultNext
+  - displayTags
+  - eventButtons
+  - infoDisplay
+  - midiSource
+  - mqttServer
+  - mqttSyncFeatures
+  - musicVisualizations
+  - notes
+  - priority
+  - slideOverlayURL
+  - soundOutput
+  - utility
+  - uuid

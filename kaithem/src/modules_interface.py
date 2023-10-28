@@ -1052,7 +1052,6 @@ def resourceUpdateTarget(module, resource, kwargs):
                         resourceobj["require-permissions"].append(i[10:])
 
             schemas.get_validator('resources/page').validate(resourceobj)
-
             modules.saveResource(module, resource, resourceobj, newname)
 
         else:
