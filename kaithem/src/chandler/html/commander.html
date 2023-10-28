@@ -257,7 +257,7 @@ import json
                                     <cue-countdown :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
                                     </div>
 
-                                    <div  style="width:12em; font-family:Monospace;" v-if="i[1].length && (!i[1].rel_len)">
+                                    <div  style="width:12em; font-family:Monospace;" v-if="i[1].length && (!i[1].rel_length)">
                                     {{formatInterval(i[1].length * (editingScene.bpm/60) )}}
                                     </div>
 

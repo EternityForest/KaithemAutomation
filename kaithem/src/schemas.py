@@ -2,6 +2,7 @@ import os
 import yaml
 from jsonschema import Draft202012Validator, validators
 from typing import Dict, Any
+from functools import cache
 
 
 def extend_with_default(validator_class):
@@ -25,10 +26,12 @@ def extend_with_default(validator_class):
 DefaultValidatingValidator = extend_with_default(Draft202012Validator)
 
 
+@cache
 def get_schema(schemaName: str):
-    fn = os.path.join(os.path.dirname(os.path.normpath(__file__)),'schemas', schemaName+".yaml")
+    fn = os.path.join(os.path.dirname(os.path.normpath(
+        __file__)), 'schemas', schemaName + ".yaml")
     with open(fn) as f:
-        return yaml.load(f,Loader=yaml.SafeLoader)
+        return yaml.load(f, Loader=yaml.SafeLoader)
 
 
 def get_validator(schemaName: str):
@@ -72,7 +75,7 @@ def supress_defaults(schemaName: str, data: Dict[str, Any]):
         if (i in sc['properties']) and 'default' in sc['properties'][i]:
 
             d = sc['properties'][i]['default']
-            if d==data[i]:
+            if d == data[i]:
                 to_remove.append(i)
 
     for i in to_remove:

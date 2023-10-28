@@ -1129,8 +1129,8 @@ ${lists}
 
 
                             <label>Length relative to media file:
-                                <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)"
-                                    v-model="currentcue.rel_len"
+                                <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
+                                    v-model="currentcue.rel_length"
                                     title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                             </label>
 
@@ -1449,8 +1449,8 @@ ${lists}
                                 </label>
 
                                 <label v-if="showSoundControls">Length From Sound
-                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)"
-                                        v-model="currentcue.rel_len"
+                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
+                                        v-model="currentcue.rel_length"
                                         title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                                 </label>
 

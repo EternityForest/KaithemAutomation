@@ -7,6 +7,8 @@ from . import blendmodes
 from .core import logger
 from .universes import getUniverse, getUniverses
 from ..kaithemobj import kaithem
+from ..import schemas
+
 from .scenes import cues, event
 
 import yaml
@@ -652,44 +654,34 @@ class ChandlerConsole:
     def pushCueMeta(self, cueid):
         try:
             cue = cues[cueid]
+
+            scene = cue.scene()
+            if not scene:
+                raise RuntimeError("Cue belongs to nonexistant scene")
+            
+            # Stuff that never gets saved, it's runtime UI stuff
+            d = {
+                "next": cue.nextCue if cue.nextCue else "",
+                "scene": scene.id,
+                "number": cue.number / 1000.0,
+                "prev": scene.getParent(cue.name),
+                "hasLightingData": len(cue.values),
+                "defaultNext": scene.getAfter(cue.name),
+            }
+
+            # All the stuff that's just a straight 1 to 1 copy of the attributes
+            # are the same as whats in the save file
+            for i in schemas.get_schema("chandler/cue")['properties']:
+                d[i] = getattr(cue, i)
+
+            # not metadata, sent separately
+            d.pop('values')
+
             self.linkSend(
                 [
                     "cuemeta",
                     cueid,
-                    {
-                        "fadein": cue.fadein,
-                        "alpha": cue.alpha,
-                        "length": cue.length,
-                        "lengthRandomize": cue.lengthRandomize,
-                        "next": cue.nextCue if cue.nextCue else "",
-                        "name": cue.name,
-                        "id": cueid,
-                        "sound": cue.sound,
-                        "slide": cue.slide,
-                        "soundOutput": cue.soundOutput,
-                        "soundStartPosition": cue.soundStartPosition,
-                        "mediaSpeed": cue.mediaSpeed,
-                        "mediaWindup": cue.mediaWindup,
-                        "mediaWinddown": cue.mediaWinddown,
-                        "rel_len": cue.rel_length,
-                        "track": cue.track,
-                        "notes": cue.notes,
-                        "scene": cue.scene().id,
-                        "shortcut": cue.shortcut,
-                        "number": cue.number / 1000.0,
-                        "defaultNext": cue.scene().getAfter(cue.name),
-                        "prev": cue.scene().getParent(cue.name),
-                        "probability": cue.probability,
-                        "rules": cue.rules,
-                        "reentrant": cue.reentrant,
-                        "inheritRules": cue.inheritRules,
-                        "soundFadeOut": cue.soundFadeOut,
-                        "soundFadeIn": cue.soundFadeIn,
-                        "soundVolume": cue.soundVolume,
-                        "soundLoops": cue.soundLoops,
-                        "triggerShortcut": cue.triggerShortcut,
-                        "hasLightingData": len(cue.values),
-                    },
+                    d,
                 ]
             )
         except Exception:

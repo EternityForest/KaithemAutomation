@@ -60,6 +60,7 @@ properties:
     type: integer
     default: 0
 
+  # Todo: migrate to CamelCase or migrate others to snake_case?
   rel_length:
     type: boolean
     default: false
