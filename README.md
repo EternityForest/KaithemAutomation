@@ -104,48 +104,48 @@ Install git-lfs if you don't have it, to clone the repo
 ```bash
 sudo apt install git-lfs
 git lfs install --skip-repo
+
+git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
+cd KaithemAutomation
+git lfs pull
 ```
+
+Now you have the repo cloned, all the relevant commands are in the Makefile.
+This is an interpreted package, but we use Make anyway to keep commands in one handy place.
 
 
 ### Install system packages
 
-Most of these have to do with audio features, not all are needed.
+Many of these have to do with audio features, not all are needed. See Makefile for what is actually
+installed. This also installs virtualenv support.
 
 ```bash
-sudo apt install scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins baresip gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv
+make install-system-dependencies
 ```
 
 
 ### Actually install Kaithem
 ```bash
-sudo apt install python3-virtualenv
-git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
-cd KaithemAutomation
-virtualenv --system-site-packages ../kaithem_venv
-source ../kaithem_venv/bin/activate
-pip install -r requirements_frozen.txt
-```
+# Show the menu of Kaithem commands
+make help
 
-If you are more adventurous, instead you can install direct_dependencies.py and get the unfrozen versions of everything.
+# Makes a virtualenv right in the cloned Kaithem folder
+# Skip this if installing elsewhere
+make .venv
 
+# Grab Pip dependencies
+make install-dependencies
 
-To wipe a virtualenv so you can start over, do
-```bash
-pip uninstall -y -r <(pip freeze -l)
-```
-
-Be sure to only run that inside your virtualenv!!!
-
-### Running Kaithem quickly
-
-From inside your Kaithem folder after installing in the venv
-
-```bash
-source ../kaithem_venv/bin/activate
-python3 -m kaithem
+# Run the file(Launches dev_run in a virtualenv)
+make run
 ```
 
 Then visit http://localhost:8002 and log in with your normal Linux username and password.
+
+### Dependencies
+
+direct_dependencies.txt tracks what we actually need.  requirements_frozen is what the makefile uses.
+
 
 
 
