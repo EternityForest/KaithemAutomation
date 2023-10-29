@@ -11,32 +11,47 @@ import os%>
 
     <div style="position: absolute; top: 0%; right: 0%; height: 6em; width: 10em;" class="decorative-image-corner-ur decorative-image"></div>
 <dl>
-<h3>Settings</h3>
+<h3><i class="icofont-gears"></i>Settings</h3>
+<dl>
 <dt><a href="/settings/save"><i class="icofont-save"></i>Save server state to disk</a></dt>
 <dd>Commit in-memory data for users and logs to disk.</dd>
 <dt><a href="/settings/account"><i class="icofont-ui-user"></i>My Account</a></dt>
 <dd>View and edit your account and security info
 <dt><a href="/settings/system"><i class="icofont-ui-settings"></i>System Settings</a></dt>
 <dd>View and edit system global settings</dd>
-<dt><a href="/settings/profiler"><i class="icofont-pie-chart"></i>Profiler</a></dt>
-<dd>Measure and profile the application performance(Depends on the module yappi.)
-<p class="warning">WARNING: Yappi has High CPU use, may crash on rasPi or similar.</p></dd>
+<p class="warning">WARNING: Yappi has High CPU use, may crash on rasPi or similar.</p>
 <dt><a href="/auth/"><i class="icofont-ui-user-group"></i>Users and Groups</a></dt>
 <dd>Manage users, Groups, and Permissions</dd>
 <dt><a href="/settings/theming"><i class="icofont-adjust"></i>Appearance and Theming</a></dt>
 <dd>Manage theming    <a href="/aerolabs_blockrain"><i class="icofont-game-controller"></i></a></dd>
 <dt>Idle Status Reporting</dt>
 <dd>Show idle/screen lock status of this browser in the admin page. Mostly useful for kiosks. <button onclick="IdleDetector.requestPermission()">Enable reporting idle status</button></dd>
+</dl>
 
 <h3><i class="icofont-quill-pen"></i>Logging</h3>
+<dl><
 <dt><a href="/syslog"><i class="icofont-listing-box"></i>System Logs</a></dt>
 <dd>View system and debug logs</dd>
 <dt><a href="/logs"><i class="icofont-bus-alt-2"></i>Message Bus Logs</a></dt>
 <dd>View recent logs from the message bus, choose what topics are logged to the system log.</dd>
 <dt><a href="/settings/loginfailures"><i class="icofont-error"></i>Failed Login Attempts</a></dt>
 <dd>View IPs that have recently attempted to log in with an incorrect password</dd>
+</dl>
+
+<h3><i class="icofont-folder-open"></i>File Management</h3>
+<dl>
+<dt><a href="/settings/files">File Manager</a></dt>
+<dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
+
+<dt><a href="/settings/files/${directories.vardir|u}">File Manager(Kaithem var dir)</a></dt>
+<dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
+
+<dt><a href="/settings/files/${directories.vardir|u}/static">File Manager(Public webserver files)</a></dt>
+<dd>Manage files made available to clients at <a href="/user_static">/user_static</a></dd>
+</dl>
 
 <h3><i class="icofont-light-bulb"></i>Status</h3>
+<dl>
 <dt><a href="/tagpoints"><i class="icofont-chart-flow-2"></i>Tag Points</a></dt>
 <dd>View Tagpoints</dd>
 <dt><a href="/settings/processes"><i class="icofont-monitor"></i>Processes</a></dt>
@@ -47,16 +62,25 @@ import os%>
 <dd>View Kaithem Threads on the server.</dd>
 <dt><a href="/settings/gpio"><i class="icofont-circuit"></i>GPIO</a></dt>
 <dd>View GPIO that kaithem is using and spy on the status.</dd>
-
-
+<dt><a href="/settings/profiler"><i class="icofont-pie-chart"></i>Profiler</a></dt>
+<dd>Measure and profile the application performance(Depends on the module yappi.)</dd>
 <dt><a href="/settings/screenshot"><i class="icofont-ui-camera"></i>Server Screenshot</a></dt>
 <dd>Get a screenshot of what's on the server</dd>
 
+<dt><a href="/settings/settime">Set Time</a></dt>
+<dd>Set time based on time reported by browser(Kaithem must run as root)
+</dd>
+</dl>
+
 <h3><i class="icofont-tools"></i>Utilities</h3>
+<dl>
+<dt>Object Inspector(Explore starting from the list of modules)</dt>
+
+<dd><form method="post" action="/modules/module/DUMMY/obj/sysmodule/?objpath=amodules&objname=modules"><button>Inspect</button></form>
+</dd>
 
 <dt><a href="/settings/gcsweep">Trigger Python garbage collection</a></dt>
 <dd>Try this if you have objects sticking around when you think they should not be.</dd>
-
 
 <dt><a href="/settings/broadcast">Broadcast Center</a></dt>
 <dd>Send text alerts to ALL users, guests, kiosks, and signs browsing the kaithem server, if they are on a page using the widget API</dd>
@@ -66,33 +90,27 @@ import os%>
 <dd>Maps without a cloud service! Load a Map Server from the modules library to enable this.</dd>
 
 
+<dt><form method="post" action="/settings/updateytdl"><button>Update yt-dlp</button></form></dt>
+<dd>Updates or installs yt-dlp.  May require python3-pip if youtube-dl is not already installled.  Try this if file manager video
+    downloads don't work.</dd>
+
 <dt><a href="/settings/imgmap">Image Map Editor</a></dt>
 <dd>Basic utility for making HTML5 image maps</dd>
 
 <dt><a href="/settings/mdns">MDNS</a></dt>
 <dd>View HTTP services on the LAN</dd>
+
 <dt><a href="/settings/upnp">UPnP Scanner</a></dt>
 <dd>View all port mappings reported by UPnP routers</dd>
+
 <dt><a href="/settings/console">BASH Shell</a></dt>
 <dd>Run short scripts in the system shell via the web interface. Unix only.</dd>
-<dt><a href="/settings/files">File Manager</a></dt>
-<dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
-
-<dt><a href="/settings/files/${directories.vardir|u}">File Manager(Kaithem var dir)</a></dt>
-<dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
-
-<dt><a href="/settings/files/${directories.vardir|u}/static">File Manager(Public webserver files)</a></dt>
-<dd>Manage files made available to clients at <a href="/user_static">/user_static</a></dd>
-
-
-<dt><a href="/settings/mixer">JACK Mixer</a></dt>
-<dd>Web-based audio mixing board. Requires JACK and GStreamer, and only works on Linux.</dd>
-</dl>
 
 <dt>Bluetooth Manager</dt>
 <dd>Scan for and pair BT devices. Requires that Kaithem be root or have passwordless sudo. Currently
     only supports the "Just Works" pairing method used by things like speakers and gamepads, not suitable for keyboards
-    or things that handle sensitive data.<form method="post" action="/settings/bt/scan"><button>Scan now(Takes ~15s)</button></form>
+    or things that handle sensitive data.<form method="post" action="/settings/bt/scan">
+        <button>Scan now(Takes ~15s)</button>
 
     </form>
 </dd>
@@ -103,31 +121,22 @@ import os%>
     Usually kaithem just has to be in the netdev group.
 </dd> -->
 
-<dt><a href="/settings/settime">Set Time</a></dt>
-<dd>Set time based on time reported by browser(Kaithem must run as root)
-</dd>
 
 
-<dt><form method="post" action="/settings/updateytdl"><button>Update yt-dlp</button></form></dt>
-<dd>Updates or installs yt-dlp.  May require python3-pip if youtube-dl is not already installled.  Try this if file manager video
-    downloads don't work.</dd>
 
 
-<dt>Object Inspector(Explore starting from the list of modules)</dt>
 
-<dd><form method="post" action="/modules/module/DUMMY/obj/sysmodule/?objpath=amodules&objname=modules"><button>Inspect</button></form>
-</dd>
 
 <dt><a href="/settings/environment">Environment</a></dt>
 <dd>Environment vars as seen by kaithem
 </dd>
-</dl>
+
 
 
 <dt><form method="post" action="/settings/stopsounds"><button>Stop All Sounds currently playing</button></form></dt>
 <dd>Click to stop all sounds playing on the server.</dd>
 
-</dl>
+</dt>
 
 
 <h3>Places</h3>

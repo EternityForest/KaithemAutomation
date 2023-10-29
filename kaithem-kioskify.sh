@@ -283,14 +283,12 @@ mkdir -p /home/$(id -un 1000)/kaithem
 cd /home/$(id -un 1000)/kaithem
 
 
-# Use a venv, like we probably always should have this entire time.
-if [ ! -d virtualenv ]; then
-    virtualenv --system-site-packages virtualenv
+if [ ! -d /home/$(id -un 1000)/kaithem/.venv ]; then
+    su $(id -un 1000) virtualenv --system-site-packages /home/$(id -un 1000)/kaithem/.venv
 fi
 
-source virtualenv/bin/activate
-pip3 install --ignore-installed -r /opt/KaithemAutomation/requirements_frozen.txt
-deactivate
+# As the 1000 user, in a virtualenv
+su $(id -un 1000) /home/$(id -un 1000)/kaithem/.venv/bin/python -m pip install --ignore-installed -r /opt/KaithemAutomation/requirements_frozen.txt
 
 
 
@@ -302,7 +300,7 @@ cat << "EOF" >  /usr/bin/ember-launch-kaithem
 # If we run it directly from the service, jsonrpc times out over and over again.
 # Since Kaithem has it's own volume stuff, do this hacky thing to fix pi insisting that 40% is the right setting.
 amixer set Master 100%
-/usr/bin/pw-jack /home/$(id -un 1000)/kaithem/virtualenv/bin/python /opt/KaithemAutomation/dev_run.py -c /home/$(id -un 1000)/kaithem/config.yaml
+/usr/bin/pw-jack /home/$(id -un 1000)/kaithem/.venv/bin/python /opt/KaithemAutomation/dev_run.py -c /home/$(id -un 1000)/kaithem/config.yaml
 EOF
 
 chmod 755 /usr/bin/ember-launch-kaithem
