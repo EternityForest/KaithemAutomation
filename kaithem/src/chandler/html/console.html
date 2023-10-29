@@ -1,4 +1,4 @@
-<%include file="/pageheader.html" />
+<%include file="/pageheader.html"/>
 
 ${lists}
 
@@ -536,7 +536,7 @@ ${lists}
                         min and max channel
                         of that range, plus a name for that option.
                     </details>
-                    </p>
+                    
                     <h5>Ranges for channel {{i}}</h5>
                     <table border="1">
                         <tr>
@@ -602,7 +602,7 @@ ${lists}
                 <td>{{i[1].type}}</td>
                 <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
                 <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
-                <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button>
+                <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button></td>
             </tr>
         </table>
 
@@ -612,6 +612,7 @@ ${lists}
                 <td>Name</td>
                 <td><input v-model="newfixname"></input>
                 </td>
+            </tr>
             <tr>
                 <td>Type</td>
                 <td>
@@ -620,14 +621,18 @@ ${lists}
                     </select>
 
                 </td>
+            </tr>
+
             <tr>
                 <td>Universe</td>
-                <td><input v-model="newfixuniverse" list="universes"></input>
+                <td><input v-model="newfixuniverse" list="universes">
                 </td>
+            </tr>
             <tr>
                 <td>Address</td>
-                <td><input type="number" min=1 v-model="newfixaddr"></input>
+                <td><input type="number" min="1" v-model="newfixaddr">
                 </td>
+            </tr>
         </table>
         <button v-on:click="addFixtureAssignment(newfixname,newfixtype,newfixuniverse, newfixaddr)">Add and
             Update</button>
@@ -720,7 +725,7 @@ ${lists}
                         <td style="width:8em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
                             {{formatInterval((v-unixtime))}}
                         </td>
-                    <tr>
+                    </tr>
                 </table>
 
                 <div style="display:flex; width: 100%">
@@ -762,7 +767,7 @@ ${lists}
 
             <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
                     <span v-if="editingScene.blend=='monitor'">Monitor</span>
-                </span> {{editingScene.name}}</span>
+                 {{editingScene.name}}</span>
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
             </h3>
 
