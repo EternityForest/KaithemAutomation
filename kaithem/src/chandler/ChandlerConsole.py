@@ -660,7 +660,9 @@ class ChandlerConsole:
                 raise RuntimeError("Cue belongs to nonexistant scene")
             
             # Stuff that never gets saved, it's runtime UI stuff
-            d = {
+            d2 = {
+                "id": cueid,
+                "name": cue.name,
                 "next": cue.nextCue if cue.nextCue else "",
                 "scene": scene.id,
                 "number": cue.number / 1000.0,
@@ -669,10 +671,14 @@ class ChandlerConsole:
                 "defaultNext": scene.getAfter(cue.name),
             }
 
+            d = {}
             # All the stuff that's just a straight 1 to 1 copy of the attributes
             # are the same as whats in the save file
             for i in schemas.get_schema("chandler/cue")['properties']:
                 d[i] = getattr(cue, i)
+
+            # Important that d2 takes priority
+            d.update(d2)
 
             # not metadata, sent separately
             d.pop('values')
