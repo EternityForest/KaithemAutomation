@@ -34,7 +34,7 @@ install: # Install all dependendcies from the frozen requirements into the venv
 	@cd ${ROOT_DIR}
 	@${INTERPRETER} -m pip install --ignore-installed -r requirements_frozen.txt
 	@pip install --editable .
-	
+
 .venv: # Create the virtualenv in the project folder
 	@cd ${ROOT_DIR}
 	@virtualenv .venv
@@ -52,5 +52,5 @@ dev-freeze-dependencies: # Create requirements_frozen.txt
 	@cd ${ROOT_DIR}
 	@.venv/bin/python -m pip freeze -l > requirements_frozen.txt
 	# If kaithem itself installed here, avoid circular nonsense
-	@sed -i '/kaithem=.*/d' ./requirements_frozen.txt
+	@sed -i '/.*kaithem.*/d' ./requirements_frozen.txt
 

@@ -1,4 +1,4 @@
-aioesphomeapi==18.1.0
+aioesphomeapi==18.2.0
 annotated-types==0.6.0
 astral==3.2
 async-timeout==4.0.3
