@@ -1,9 +1,16 @@
 import os
 import yaml
+import json
 from jsonschema import Draft202012Validator, validators
 from typing import Dict, Any
 from functools import cache
 
+
+def json_roundtrip(d):
+    # Python converts int dict keys to strings.
+    # We avoid undefined behavior by first serializing as
+    # a canonical JSON
+    return json.loads(json.dumps(d))
 
 def extend_with_default(validator_class):
     validate_properties = validator_class.VALIDATORS["properties"]
@@ -37,6 +44,11 @@ def get_schema(schemaName: str):
 def get_validator(schemaName: str):
     sc = get_schema(schemaName)
     return Draft202012Validator(sc)
+
+
+def validate(schemaName: str, data: Any):
+    data = json_roundtrip(data)
+    get_validator(schemaName).validate(data)
 
 
 def clean_data_inplace(schemaName: str, data: Dict[str, Any], deprecated_only: bool = False):

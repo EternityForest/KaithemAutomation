@@ -1,23 +1,30 @@
 $schema: http://json-schema.org/draft-04/schema#
 type: object
+
+# All of these keys correspond 
 properties:
   number:
     type: integer
+    description: The actual value times 1000, because we use fixed point rather than deal with decimals.
+
+  shortcut:
+    type: string
+    default: ''
 
   fadein:
-    type: integer
+    type: number
     default: 0
 
   soundFadeOut:
-    type: integer
+    type: number
     default: 0
 
   soundFadeIn:
-    type: integer
+    type: number
     default: 0
 
   length:
-    type: integer
+    type: number
     default: 0
 
   track:
@@ -45,19 +52,19 @@ properties:
     default: ''
 
   soundStartPosition:
-    type: integer
+    type: number
     default: 0
 
   mediaSpeed:
-    type: integer
+    type: number
     default: 1
 
   mediaWindup:
-    type: integer
+    type: number
     default: 0
 
   mediaWinddown:
-    type: integer
+    type: number
     default: 0
 
   # Todo: migrate to CamelCase or migrate others to snake_case?
@@ -65,8 +72,13 @@ properties:
     type: boolean
     default: false
 
+  reentrant:
+    description: "If false, the system will block entering the cue if already in the cue"
+    type: boolean
+    default: false
+
   lengthRandomize:
-    type: integer
+    type: number
     default: 0
 
   inheritRules:
@@ -80,22 +92,23 @@ properties:
   probability:
     type: string
     default: ''
+    description: When the cue is a possibility for random selection, determines the weight.  Unset has weight 1.
 
   values:
     type: object
-
+    default: {}
     additionalProperties:
       type: object
       additionalProperties:
-        type:
-          anyOf:
-            - string
-            - integer
-            - float
-            - "null"
+        anyOf:
+          - { "type": "number" }
+          - { "type": "string" } 
+          - { "type": "null" } 
       
   soundVolume:
-    type: integer
+    anyOf:
+      - { "type": "number" }
+      - { "type": "string" } 
     default: 1
 
   soundLoops:

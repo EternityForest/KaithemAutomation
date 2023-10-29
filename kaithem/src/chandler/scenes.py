@@ -68,14 +68,16 @@ def makeWrappedConnectionClass(parent: Scene):
 
         def on_message(self, t: str, m: str | bytes):
             if isinstance(m, bytes):
-                m = m.decode()
+                m2 = m.decode()
+            else:
+                m2=str(m)
             gn = self_closure_ref.mqttSyncFeatures.get("syncGroup", False)
             if gn:
                 topic = f"/kaithem/chandler/syncgroup/{gn}"
                 if t == topic:
-                    self_closure_ref.onCueSyncMessage(t, m)
+                    self_closure_ref.onCueSyncMessage(t, m2)
 
-            self_closure_ref.onMqttMessage(t, m)
+            self_closure_ref.onMqttMessage(t, m2)
 
             return super().on_message(t, m)
 
@@ -311,6 +313,9 @@ def shortcutCode(code: str, limitScene: Optional[Scene] = None, exclude: Optiona
             for i in shortcut_codes[code]:
                 try:
                     x = i.scene()
+                    if not x:
+                        continue
+
                     if limitScene:
                         if (x is not limitScene) and not (x.name == limitScene):
                             print("skip " + x.name, limitScene)
@@ -420,149 +425,108 @@ def checkPermissionsForSceneData(data, user):
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
+# All the properties that can be saved and loaded are actually defined in the schema,
+cue_schema = schemas.get_schema("chandler/cue")
+
 
 class Cue:
     "A static set of values with a fade in and out duration"
-    __slots__ = [
-        "id",
-        "changed",
-        "next_ll",
-        "alpha",
-        "fadein",
-        "length",
-        "lengthRandomize",
-        "name",
-        "values",
-        "scene",
-        "nextCue",
-        "track",
-        "notes",
-        "shortcut",
-        "number",
-        "inherit",
-        "sound",
-        "slide",
-        "rel_length",
-        "soundOutput",
-        "soundStartPosition",
-        "mediaSpeed",
-        "mediaWindup",
-        "mediaWinddown",
-        "onEnter",
-        "onExit",
-        "associations",
-        "rules",
-        "reentrant",
-        "inheritRules",
-        "soundFadeIn",
-        "soundFadeOut",
-        "soundVolume",
-        "soundLoops",
-        "namedForSound",
-        "probability",
-        "triggerShortcut",
-        "__weakref__",
-    ]
+    __slots__ = list(cue_schema['properties'].keys()) + ["id",
+                                                         "changed",
+                                                         "next_ll",
+                                                         "name",
+                                                         "scene",
+                                                         "inherit",
+                                                         "onEnter",
+                                                         "onExit",
+                                                         "__weakref__"]
 
     def __init__(
         self,
-        parent,
+        parent: Scene,
         name: str,
+        number: Optional[int] = None,
         forceAdd=False,
-        values=None,
-        alpha=1,
-        fadein=0,
-        length=0,
-        track=True,
-        nextCue=None,
         shortcut="",
-        sound="",
-        slide="",
-        soundOutput="",
-        soundStartPosition=0,
-        mediaSpeed=1,
-        mediaWindup=0,
-        mediaWinddown=0,
-        rel_length=False,
         id=None,
-        number=None,
-        lengthRandomize=0,
-        script="",
         onEnter=None,
         onExit=None,
-        rules=None,
-        reentrant=True,
-        soundFadeIn=0,
-        notes="",
-        soundFadeOut=0,
-        inheritRules="",
-        soundVolume=1,
-        soundLoops=0,
-        namedForSound=False,
-        probability="",
-        triggerShortcut="",
         **kw
     ):
-        # This is so we can loop through them and push to gui
-        self.id = uuid.uuid4().hex
-        self.name = name
-        self.triggerShortcut = triggerShortcut
 
-        # Now unused
-        # self.script = script
-        self.onEnter = onEnter
-        self.onExit = onExit
-        self.inheritRules = inheritRules or ""
-        self.reentrant = True
-        self.soundVolume = soundVolume
-        self.soundLoops = soundLoops
-        self.namedForSound = namedForSound
-        self.probability = probability
-        self.notes = ""
+        # declare vars
+        self.name: str
+        self.number: int
+        self.inheritRules: str
+        self.reentrant: bool
+        self.soundVolume: float | str
+        self.soundLoops: int
+        self.namedForSound: bool
+        self.notes: str
+        self.alpha: float
+        self.fadein: float
+        self.soundFadeOut: float
+        self.soundFadeIn: float
+        self.length: float | str
+        self.rel_length: bool
+        self.lengthRandomize: float
+        self.nextCue: str
+        self.track: bool
+        self.shortcut: str
+        self.sound: str
+        self.slide: str
+        self.soundOutput: str
+        self.soundStartPosition: str
+        self.mediaSpeed: str
+        self.mediaWindup: str
+        self.mediaWinddown: str
+        self.probability: float | str
+        self.values: Dict[str, Dict[str | int, str | int | float |  None]]
 
-        # Rules created via the GUI logic editor
-        self.rules: Optional[List[List[Any]]] = rules or []
+        if id:
+            disallow_special(id)
 
         disallow_special(name, allowedCueNameSpecials)
         if name[0] in "1234567890 \t_":
             name = "x" + name
 
-        if id:
-            disallow_special(id)
-        self.inherit = None
-        cues[self.id] = self
+        # This is so we can loop through them and push to gui
+        self.id = id or uuid.uuid4().hex
+        self.name = name
+
         # Odd circular dependancy
         try:
             self.number = number or parent.cues_ordered[-1].number + 5000
         except Exception:
             self.number = 5000
+
+        # Most of the data is loaded here based on what's in the schema
+        for i in cue_schema['properties']:
+            # number is special because of auto increment
+            if not i == 'number':
+                if i in kw:
+                    setattr(self, i, kw[i])
+                else:
+                    setattr(self, i, cue_schema['properties'][i]['default'])
+
+        for i in kw:
+            if i not in cue_schema['properties']:
+                logging.error("Unknown cue data key " + str(i) +
+                              " loading anyway but data may be lost")
+
+        # Now unused
+        # self.script = script
+        self.onEnter = onEnter
+        self.onExit = onExit
+
+        cues[self.id] = self
+
+
         self.next_ll = None
         parent._addCue(self, forceAdd=forceAdd)
         self.changed = {}
-        self.alpha = alpha
-        self.fadein = fadein
-        self.soundFadeOut = soundFadeOut
-        self.soundFadeIn = soundFadeIn
 
-        self.length = length
-        self.rel_length = rel_length
-        self.lengthRandomize = lengthRandomize
-        self.values: Dict[str, Dict[str | int,
-                                    str | int | float]] = values or {}
         self.scene: weakref.ref[Scene] = weakref.ref(parent)
-        self.nextCue: str = nextCue or ""
-        # Note: This refers to tracking as found on lighting gear, not the old concept of track from
-        # the first version
-        self.track = track
-        self.shortcut = None
-        self.sound = sound or ""
-        self.slide = slide or ""
-        self.soundOutput = soundOutput or ""
-        self.soundStartPosition = soundStartPosition
-        self.mediaSpeed = mediaSpeed
-        self.mediaWindup = mediaWindup
-        self.mediaWinddown = mediaWinddown
-
         self.setShortcut(shortcut, False)
 
         self.push()
@@ -600,9 +564,7 @@ class Cue:
                     lambda s: s.link.send(["scv", self.id, u, ch, v])
                 )
 
-    def clone(self, name):
-        name = self.getScene().evalExpr(name)
-
+    def clone(self, name: str):
         if name in self.getScene().cues:
             raise RuntimeError("Cannot duplicate cue names in one scene")
 
@@ -615,6 +577,7 @@ class Cue:
             values=copy.deepcopy(self.values),
             nextCue=self.nextCue,
             rel_length=self.rel_length,
+            track=self.track
         )
 
         for i in core.boards:
@@ -642,7 +605,7 @@ class Cue:
 
         self.push()
 
-    def setRules(self, r):
+    def setRules(self, r: Optional[List[List[Any]]]):
         self.rules = r
         self.getScene().refreshRules()
 
@@ -848,8 +811,7 @@ class Scene:
         self.utility: bool = bool(utility)
 
         # This is used for the remote media triggers feature.
-        self.mediaLink: kaithem.widget.APIWidget = kaithem.widget.APIWidget(
-            "media_link")
+        self.mediaLink = kaithem.widget.APIWidget()
         self.mediaLink.echo = False
 
         self.slideOverlayURL: str = slideOverlayURL

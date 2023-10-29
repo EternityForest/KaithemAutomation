@@ -246,6 +246,7 @@ class ChandlerConsole:
 
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
                     d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
+    
 
         self.loadDict(d)
         self.refreshFixtures()
@@ -361,6 +362,21 @@ class ChandlerConsole:
             self.loadDict(data, errs)
 
     def loadDict(self, data, errs=False):
+
+        # Note that validation could include integer keys, but we handle that
+        for i in data:
+            try:
+                schemas.validate("chandler/scene", data[i])
+            except Exception:
+                logger.exception(f"Error Validating scene {i}, loading anyway")
+
+            cues = data[i].get('cues', {})
+            for j in cues:
+                try:
+                    schemas.validate("chandler/cue", cues[j])
+                except Exception:
+                    logger.exception(f"Error Validating cue {j}, loading anyway")
+
         with core.lock:
             for i in data:
                 # New versions don't have a name key at all, the name is the key
