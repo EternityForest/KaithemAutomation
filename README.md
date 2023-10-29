@@ -44,61 +44,7 @@ or access the full help via the web interface!
 *  [FAQ(old)](kaithem/src/docs/faq.md)
 
 
-
-
-## Setup the easy way, even works headless!
-
-Get a fresh RasPi OS image.  Use the raspi imager tool to set up the network stuff.
-
-SSH in and run these commands.  They reconfigure a whole lot of stuff, including protecting the disk against excessive writes.
-
-```
-cd /opt
-sudo git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
-cd KaithemAutomation
-sudo bash kaithem-kioskify.sh
-sudo reboot now
-```
-
-Now it will boot into a fullscreen kiosk browser pointed at Kaithem's home page.  Log in at
-PIHOSTNAME.local:8002 using your RasPi username and Password, kaithem will run as your default user(uid1000).
-
-If you want to change that default page, go to the Kaithem Settings and set the homepage to redirect to your URL of choice(Use PIHOSTNAME.local:8002 /index to get back to the real homepage)
-
-
-
-### Connecting Multiple Servers
-
-Most Kaithem features that can do this, rely on MQTT, as per the "No reinvented wheels" philosophy.  To set up an MQTT server,
-do this as root.  Using encryption with MQTT is harder, but many tutorials exist.  MQTT in Kaithem is powered by Paho-MQTT.
-
-```
-apt-get -y install mosquitto
-
-cat << "EOF" >> /etc/mosquitto/conf.d/kaithem.conf
-persistance false
-allow_anonymous true
-EOF
-
-systemctl restart mosquitto.service
-```
-
-
-### Instant digital signage
-
-If you are trying to do digital signage, go to Settings > File Manager(Public webserver files) and upload a .mp4 file.
-It will detect that the file is in the public folder and give you a digital signage link button.
-
-Set your homepage to redirect to that link, you should be done!
-
-#### Signage with audio
-
-Audio is managed through the Kaithem mixer.  It should work out of the box if you're using the headphone jack.
-
-Otherwise if using HDMI, or if you want to remotely adjust volume, go to the mixer and make sure that channel has the output you want selected, and that the input matches Chromium's name. You can also add effects like EQ from this page.  Don't forget to save the setup as the default!
-
-
-## Manual Install in a virtualenv
+## How to run it!
 
 Install git-lfs if you don't have it, to clone the repo
 ```bash
@@ -124,7 +70,7 @@ make install-system-dependencies
 ```
 
 
-### Actually install Kaithem
+### Install kaithem in the project folder virtualenv
 ```bash
 # Show the menu of Kaithem commands
 make help
@@ -142,12 +88,6 @@ make run
 
 Then visit http://localhost:8002 and log in with your normal Linux username and password.
 
-### Dependencies
-
-direct_dependencies.txt tracks what we actually need.  requirements_frozen is what the makefile uses.
-
-
-
 
 ### Sound on Ubuntu
 
@@ -160,36 +100,119 @@ systemctl --user restart pipewire-media-session pipewire pipewire-pulse
 sudo cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
 sudo ldconfig
 ```
-ewire-audio-client-libraries
 This will make ALL jack apps go through pipewire, you won't ever need to launch jackd.
 I'm not sure why you would ever want to use the original JACK server, so this shouldn't cause any issues.
 
 
-### VSCode Dev
-In the VS code terminal in the root of the project
+### Run at boot with a systemd file
+
+Something like this should work, just fill in the blanks. 
+Running kaithem as root is neither tested anymore nor recommended.
 
 ```bash
-virtualenv --system-site-packages .venv
-source .venv/bin/activate
-pip install --ignore-installed -r requirements_frozen.txt 
+# run as root
+
+cat << EOF > /etc/systemd/system/kaithem.service
+[Unit]
+Description=KaithemAutomation python based automation server
+After=time-sync.target sysinit.service zigbee2mqtt.service pipewire.service multi-user.target graphical.target pipewire-media-session.service
+
+
+[Service]
+TimeoutStartSec=0
+ExecStart=<YOUR-VENV-HERE>/bin/python -m kaithem -c <YOUR_CONFIG_FILE>
+Restart=on-failure
+RestartSec=15
+OOMScoreAdjust=-800
+Nice=-15
+
+#Make it try to act like a GUI program if it can because some modules might
+#make use of that.  Note that this is a bad hack hardcoding the UID.
+#Pipewire breaks without it though.
+
+Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus"
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="DISPLAY=:0"
+
+User=<YOUR-USER-NAME>
+
+LimitRTPRIO= 95
+LimitNICE= -20
+LimitMEMLOCK= infinity
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable kaithem.service
 ```
 
-Ctrl-shift-p, select the interpreter in the venv.
 
+## Setup a kiosk the easy way on a headless Pi!
+
+Get a fresh RasPi OS image.  Use the raspi imager tool to set up the network stuff.
+
+SSH in and run these commands.  They reconfigure a whole lot of stuff, including protecting the disk against excessive writes, so only run this on a fresh image dedicated to the cause.
+
+```
+cd /opt
+sudo git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
+cd KaithemAutomation
+sudo bash kaithem-kioskify.sh
+sudo reboot now
+```
+
+Now it will boot into a fullscreen kiosk browser pointed at Kaithem's home page.  Log in at
+PIHOSTNAME.local:8002 using your RasPi username and Password, kaithem will run as your default user(uid1000).
+
+If you want to change that default page, go to the Kaithem Settings and set the homepage to redirect to your URL of choice(Use PIHOSTNAME.local:8002 /index to get back to the real homepage).
+
+To update, do a `sudo git pull --rebase` in /opt/KaithemAutomation, 
+then rerun `sudo bash kaithem-kioskify.sh`
+
+
+
+### Connecting Multiple Servers
+
+Most Kaithem features that can do this, rely on MQTT, as per the "No reinvented wheels" philosophy.  To set up an MQTT server,
+do this as root.  Using encryption with MQTT is harder, but many tutorials exist.  MQTT in Kaithem is powered by Paho-MQTT.
+
+```bash
+apt-get -y install mosquitto
+
+cat << "EOF" >> /etc/mosquitto/conf.d/kaithem.conf
+persistance false
+allow_anonymous true
+EOF
+
+systemctl restart mosquitto.service
+```
+
+
+### Instant digital signage
+
+If you are trying to do digital signage, go to Settings > File Manager(Public webserver files) and upload a .mp4 file.
+It will detect that the file is in the public folder and give you a digital signage link button.
+
+Set your homepage to redirect to that link, you should be done!
+
+#### Signage with audio
+
+Audio is managed through the Kaithem mixer.  It should work out of the box if you're using the headphone jack.
+
+Otherwise if using HDMI, or if you want to remotely adjust volume, go to the mixer and make sure that channel has the output you want selected, and that the input matches Chromium's name. You can also add effects like EQ from this page.  Don't forget to save the setup as the default!
+
+
+
+### VSCode Dev
 dev_run.py can be your entry point for debug. If you get weird errors, check your debug launch config and
 make sure it's not overriding the interpreter, because then you would be running outside the virtualenv.
 
-### Debugging
 
-It shouldn't happen, but if things get real messed up, use SIGUSR1 to dump hte state of all threads to /dev/shm/
-"killall -s USR1 kaithem" works if you have setproctitle.
+### Dependencies
+To update dependencies, run `make dev-update-dependencies`. this installs `direct_dependencies.txt` in the project folder .venv.  When you're happy with the result, run `make dev-freeze-dependencies` to update the frozen requirements file.
 
-#### with GDB
-If using GDB python, you may need to use "handle SIG32 nostop" to suppress abboying notifications:
-
-gdb python3
-$handle SIG32 nostop
-$run YOUR_KAITHEM_PY_FILE
 
 
 
