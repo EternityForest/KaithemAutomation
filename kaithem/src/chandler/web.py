@@ -148,6 +148,9 @@ class Web():
         try:
             return get_template(path).render(module=core, kaithem=kaithem, kwargs=kwargs, request= cherrypy.request)
         except pages.ServeFileInsteadOfRenderingPageException as e:
+            if not isinstance(e.f_filepath, (str, os.PathLike)):
+                # bytesio not a real path....
+                return e.f_filepath
             #cherrypy.response.headers['Content-Type'] = e.f_MIME
             #cherrypy.response.headers['Content-Disposition'] = 'attachment ; filename = "' + e.f_name + '"'
             return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)

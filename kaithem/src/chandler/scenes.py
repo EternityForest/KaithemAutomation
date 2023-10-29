@@ -46,6 +46,9 @@ scenes: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
 scenes_by_name: weakref.WeakValueDictionary[str,
                                             Scene] = weakref.WeakValueDictionary()
 
+cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
+core.cuesByID = cues
+
 _activeScenes = []
 activeScenes = []
 
@@ -423,7 +426,6 @@ def checkPermissionsForSceneData(data, user):
             )
 
 
-cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
 # All the properties that can be saved and loaded are actually defined in the schema,
 cue_schema = schemas.get_schema("chandler/cue")
