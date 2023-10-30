@@ -22,8 +22,6 @@ KAITHEM_USER:= $(shell id -un $(KAITHEM_UID))
 # The dir the makefile is in
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-INTERPRETER:=$(shell bash scripts/makefile_choose_interpreter.sh)
-
 export KAITHEM_UID
 export KAITHEM_USER
 
@@ -72,7 +70,7 @@ dev-install: dev-make-venv # Install Kaithem and all it's dependencies in the Ve
 
 dev-run: # Run the kaithem app.
 	@cd ${ROOT_DIR}
-	@${INTERPRETER} -m kaithem	
+	@.venv/bin/python -m kaithem	
 
 dev-update-dependencies: .venv # Install latest version of dependencies into the venv. New versions might break something!
 	@cd ${ROOT_DIR}
