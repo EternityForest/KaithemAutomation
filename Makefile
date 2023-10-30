@@ -67,7 +67,7 @@ dev-make-venv: ${ROOT_DIR}/.venv # Make the virtualenv in this project folder.
 dev-install: dev-make-venv # Install Kaithem and all it's dependencies in the Venv.
 	@cd ${ROOT_DIR}
 	@.venv/bin/python -m pip install --ignore-installed -r requirements_frozen.txt
-	@pip install --editable .
+	@.venv/bin/python -m pip install --editable .
 
 
 dev-run: # Run the kaithem app.

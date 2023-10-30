@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Install Kaithem, with all optional features.
-## Runs as user $KAITHEM_UID
+## Runs as your user
 ## This doesn't install system dependencies, it is meant to be run from the Makefile
 
 ##############################################################################################################
@@ -16,6 +16,8 @@ mkdir -p ~/kaithem
 
 if [ ! -d ~/kaithem/.venv ]; then
     virtualenv --system-site-packages ~/kaithem/.venv
+else
+    echo "Found venv"
 fi
 
 # As the $KAITHEM_UID user, in a virtualenv
