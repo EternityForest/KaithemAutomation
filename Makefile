@@ -49,14 +49,6 @@ help: # Show help for each of the available commands
 	@echo "user- commands affect your user"
 	@echo
 	@grep -E '^[a-zA-Z0-9\. -]+:.*#'  Makefile | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#'| fold -w 60 -s)\n\n"; done
-	@echo
-	@echo "To install Kaithem as a specific user, use make KAITHEM_USER=name <command>"
-	@echo  "The default selected user will be uid1000, which will normally be the user account"
-	@echo "On a single-user system"
-	@echo "Use CONFIRM=1 to bypass prompts for scripted install"
-	@echo
-	@echo "Selected user for install is $(KAITHEM_UID)/$(KAITHEM_USER)"
-
 
 
 
@@ -98,7 +90,7 @@ dev-freeze-dependencies: # Create requirements_frozen.txt
 	@sed -i '/.*kaithem.*/d' ./requirements_frozen.txt
 
 
-user-install-kaithem: root-install-system-dependencies # Install kaithem to run as your user. Note that it only runs when you are logged in.
+user-install-kaithem: # Install kaithem to run as your user. Note that it only runs when you are logged in.
 	@cd ${ROOT_DIR}
 	@echo "Kaithem will be installed to /home/$(id -un $KAITHEM_UID)/kaithem/.venv"
 	@bash ./scripts/install-kaithem.sh
