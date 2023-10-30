@@ -121,7 +121,7 @@ root-use-pipewire-jack: # Make JACK clients work with pipewire
 
 root-install-sd-protection: # Reconfigure a Pi system or similar to not write to the SD so much.  User specific things apply to KAITHEM_USER
 	@cd ${ROOT_DIR}
-	@bash ./scripts/install-sd-protect.sh
+	@bash ./scripts/linux-sd-protect.sh
 
 root-install-kiosk: # Sets up a pi(or similar) as a kiosk machine pointing to KIOSK_HOMEPAGE(default is kaithem at localhost:8002)
 	@cd ${ROOT_DIR}
@@ -129,7 +129,7 @@ root-install-kiosk: # Sets up a pi(or similar) as a kiosk machine pointing to KI
 
 root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
 	@cd ${ROOT_DIR}
-	@bash ./scripts/install-linux-tweaks.sh
+	@bash ./scripts/linux-tweaks.sh
 
 root-enable-anon-mqtt: # Set up an MQTT broker for anonymous login acccess
 	@cd ${ROOT_DIR}
