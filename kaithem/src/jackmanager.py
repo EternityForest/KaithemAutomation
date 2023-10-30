@@ -14,8 +14,8 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import traceback
 import os
-from .scullery import messagebus
-from .scullery import jacktools
+from kaithem.src.scullery import messagebus
+from kaithem.src.scullery import jacktools
 
 # Used by other stuff, yes this really is supposed to be there
 # as defensive fallback

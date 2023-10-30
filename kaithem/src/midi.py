@@ -23,7 +23,7 @@ import weakref
 # https://musical-artifacts.com/artifacts/639
 
 
-from .scullery import fluidsynth
+from kaithem.src.scullery import fluidsynth
 
 # Babyfont is small enough to include but doesn't sound as good.
 if not os.path.isfile("/usr/share/sounds/sf2/FluidR3_GM.sf2"):

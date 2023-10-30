@@ -23,7 +23,7 @@ import traceback
 import json
 import asyncio
 
-from .scullery import messagebus, workers, util
+from kaithem.src.scullery import messagebus, workers, util
 
 try:
     import msgpack

@@ -14,7 +14,7 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 from .scullery.mqtt import Connection as BaseConnection
-from .scullery import mqtt
+from kaithem.src.scullery import mqtt
 from . import tagpoints, messagebus, alerts, util, workers
 import threading, weakref
 

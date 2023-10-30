@@ -18,7 +18,7 @@
 
 from .scullery.workers import EXIT, do
 from . import config as cfg
-from .scullery import workers
+from kaithem.src.scullery import workers
 
 import traceback
 import cherrypy

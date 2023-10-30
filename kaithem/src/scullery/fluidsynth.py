@@ -113,7 +113,7 @@ def findGMInstrument(name, look_in_soundfont=None, bank=None):
 
 
 def waitForJack():
-    from .scullery import jacktools
+    from kaithem.src.scullery import jacktools
     for i in range(10):
         if not jacktools.getPorts():
             time.sleep(1)

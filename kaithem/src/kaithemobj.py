@@ -26,7 +26,7 @@ import yaml
 import os
 import weakref
 import datetime
-from .scullery import persist as sculleryPersist
+from kaithem.src.scullery import persist as sculleryPersist
 
 from typing import Any, Callable, Optional
 

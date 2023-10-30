@@ -1,6 +1,6 @@
 from multiprocessing import RLock
 from mako.lookup import TemplateLookup
-from .scullery import iceflow, workers
+from kaithem.src.scullery import iceflow, workers
 import os
 import time
 import threading
