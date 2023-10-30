@@ -59,7 +59,7 @@ ${ROOT_DIR}/.venv: # Create the virtualenv in the project folder
 	@virtualenv .venv
 
 update: # Fetch new code into this project folder
-	git pull --rebase
+	git pull
 
 dev-make-venv: ${ROOT_DIR}/.venv # Make the virtualenv in this project folder.
 	@echo "Making venv if not present"
@@ -70,7 +70,7 @@ dev-install: dev-make-venv # Install Kaithem and all it's dependencies in the Ve
 	@pip install --editable .
 
 
-dev-run: .venv # Run the kaithem app.
+dev-run: # Run the kaithem app.
 	@cd ${ROOT_DIR}
 	@${INTERPRETER} -m kaithem	
 
@@ -81,7 +81,6 @@ dev-update-dependencies: .venv # Install latest version of dependencies into the
 dev-clean-venv: # Cleans the .venv in the project folder
 	@cd ${ROOT_DIR}
 	@.venv/bin/python -m pip uninstall -y -r <(pip freeze -l)
-
 
 dev-freeze-dependencies: # Create requirements_frozen.txt
 	@cd ${ROOT_DIR}
@@ -111,6 +110,9 @@ user-restart-pipewire:
 
 user-kaithem-status: # Get the status of the running kaithem instance
 	@systemctl --user status kaithem.service
+
+
+
 
 root-install-system-dependencies: # Install non-python libraries using apt
 	@sudo apt install python3-virtualenv scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins baresip gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv

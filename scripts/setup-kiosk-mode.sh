@@ -14,12 +14,6 @@
 set -x
 set -e
 
-if [ -z "${KIOSK_HOME}" ]; then
-else
-    echo "KIOSK_HOME not defined"
-    exit 1
-fi
-
 # Require root
 if [ "$(id -u)" -ne 0 ]; then
         echo 'This script must be run by root' >&2
