@@ -51,7 +51,7 @@ EOF
 
 
 mkdir -p ~/.config/systemd/user/
-cat << EOF > ~/.config/systemd/user/
+cat << EOF > ~/.config/systemd/user/kaithem.service
 [Unit]
 Description=KaithemAutomation python based automation server
 After=time-sync.target sysinit.service mosquitto.service zigbee2mqtt.service pipewire.service multi-user.target graphical.target pipewire-media-session.service wireplumber.service

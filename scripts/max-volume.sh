@@ -1,17 +1,37 @@
 #!/bin/bash
 
-cat << "EOF" > maxvolume.service
+# Crappy hack
+mkdir -p ~/bin
+
+cat << EOF >> ~/bin/maxvolume
+#!/bin/bash
+/bin/amixer set Master 100%
+/bin/amixer -c 1 set PCM 100%
+/bin/amixer -c 0 set PCM 100%
+/bin/amixer set Headphone 100%
+/bin/amixer set Speaker 100%
+exit 0
+EOF
+
+chmod 755 ~/bin/maxvolume
+
+mkdir -p ~/.config/systemd/user/
+cat << "EOF" > ~/.config/systemd/user/maxvolume.service
 [Unit]
 After=wireplumber.service pipewire-media-session.service
 Description=Set pipewire audio level to 100%
 
 [Service]
-ExecStart=/bin/amixer set Master 100%
+ExecStart=/bin/bash /home/%u/bin/maxvolume
 Type=OneShot
 
 [Install]
 WantedBy=default.target
 EOF
 
-systemctl --user edit --full --force maxvolume.service
 systemctl --user enable --now maxvolume.service
+
+
+
+
+

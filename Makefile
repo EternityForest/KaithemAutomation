@@ -70,7 +70,7 @@ dev-install: dev-make-venv # Install Kaithem and all it's dependencies in the Ve
 
 dev-run: # Run the kaithem app.
 	@cd ${ROOT_DIR}
-	@.venv/bin/python -m kaithem	
+	@pw-jack .venv/bin/python -m kaithem	
 
 dev-update-dependencies: .venv # Install latest version of dependencies into the venv. New versions might break something!
 	@cd ${ROOT_DIR}

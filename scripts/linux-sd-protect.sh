@@ -77,13 +77,36 @@ Before=local-fs.target
 What=tmpfs
 Where=/home/$(id -un $KAITHEM_UID)/.cache/lxsession/
 Type=tmpfs
-Options=defaults,noatime,nosuid,nodev,noexec,mode=0755,size=32M
+Options=defaults,noatime,nosuid,nodev,noexec,mode=0755,size=32M,uid=$KAITHEM_UID
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 systemctl enable home-$(id -un $KAITHEM_UID)-.cache-lxsession.mount
+
+
+
+! rm -rf /home/$(id -un $KAITHEM_UID)/.local/state/wireplumber/
+mkdir -p /home/$(id -un $KAITHEM_UID)/.local/state/wireplumber/
+
+cat << EOF > /etc/systemd/system/home-$(id -un $KAITHEM_UID)-.local-state-wireplumber.mount
+[Unit]
+Description=Flash saver ramdisk
+Before=local-fs.target
+
+[Mount]
+What=tmpfs
+Where=/home/$(id -un $KAITHEM_UID)/.local/state/wireplumber/
+Type=tmpfs
+Options=defaults,noatime,nosuid,nodev,noexec,mode=0777,size=32M,uid=$KAITHEM_UID
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable home-$(id -un $KAITHEM_UID)-.cache-lxsession.mount
+
 
 
 cat << EOF > /etc/logrotate.d/lxsessionrunlog
