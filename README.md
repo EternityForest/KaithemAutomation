@@ -66,7 +66,7 @@ Many of these have to do with audio features, not all are needed. See Makefile f
 installed. This also installs virtualenv support.
 
 ```bash
-make install-system-dependencies
+make root-install-system-dependencies
 ```
 
 
@@ -75,78 +75,50 @@ make install-system-dependencies
 # Show the menu of Kaithem commands
 make help
 
-# Makes a virtualenv right in the cloned Kaithem folder
-# Skip this if installing elsewhere
-make .venv
-
-# Grab Pip dependencies
-make install-dependencies
+# Grab Pip dependencies and install into this cloned project folder
+make dev-install
 
 # Run the file(Launches dev_run in a virtualenv)
-make run
+make dev-run
 ```
 
 Then visit http://localhost:8002 and log in with your normal Linux username and password.
 
 
-### Sound on Ubuntu
+### Sound Mixing Broken?
 
 Kaithem does not support advanced audio features on anything other than pipewire via the JACK protocol.
 
-Out of the box, JACK apps don't work on Ubuntu. Try:
+Out of the box, JACK apps might not work on Ubuntu. Try:
 ```bash
-sudo apt install pipewire-audio-client-libraries
-systemctl --user restart pipewire-media-session pipewire pipewire-pulse
-sudo cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
-sudo ldconfig
+sudo make use-pipewire-jack
+make restart-pipewire
 ```
 This will make ALL jack apps go through pipewire, you won't ever need to launch jackd.
 I'm not sure why you would ever want to use the original JACK server, so this shouldn't cause any issues.
 
 
-### Run at boot with a systemd file
+### Sound Too Quiet?
 
-Something like this should work, just fill in the blanks. 
-Running kaithem as root is neither tested anymore nor recommended.
+Pipewire likes to set volume to 40% at boot, at the ALSA level. Try:
 
 ```bash
-# run as root
-
-cat << EOF > /etc/systemd/system/kaithem.service
-[Unit]
-Description=KaithemAutomation python based automation server
-After=time-sync.target sysinit.service zigbee2mqtt.service pipewire.service multi-user.target graphical.target pipewire-media-session.service
-
-
-[Service]
-TimeoutStartSec=0
-ExecStart=<YOUR-VENV-HERE>/bin/python -m kaithem -c <YOUR_CONFIG_FILE>
-Restart=on-failure
-RestartSec=15
-OOMScoreAdjust=-800
-Nice=-15
-
-#Make it try to act like a GUI program if it can because some modules might
-#make use of that.  Note that this is a bad hack hardcoding the UID.
-#Pipewire breaks without it though.
-
-Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus"
-Environment="XDG_RUNTIME_DIR=/run/user/1000"
-Environment="DISPLAY=:0"
-
-User=<YOUR-USER-NAME>
-
-LimitRTPRIO= 95
-LimitNICE= -20
-LimitMEMLOCK= infinity
-Type=simple
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl enable kaithem.service
+sudo make root-max-volume-at-boot
 ```
+
+Specify KAITHEM_USER if you're not just running as the default user.
+
+
+### Install globally and run at boot
+
+To run as the defaut user(uid1000) at boot
+
+```bash
+sudo make root-install-kaithem
+```
+
+To select a different user(Only one user at a time works), pass `KAITHEM_USER=name` to make.
+
 
 
 ## Setup a kiosk the easy way on a headless Pi!
@@ -155,16 +127,18 @@ Get a fresh RasPi OS image.  Use the raspi imager tool to set up the network stu
 
 SSH in and run these commands.  They reconfigure a whole lot of stuff, including protecting the disk against excessive writes, so only run this on a fresh image dedicated to the cause.
 
-```
+```bash
 cd /opt
 sudo git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
 cd KaithemAutomation
-sudo bash kaithem-kioskify.sh
+sudo make root-kioskify
 sudo reboot now
 ```
 
 Now it will boot into a fullscreen kiosk browser pointed at Kaithem's home page.  Log in at
 PIHOSTNAME.local:8002 using your RasPi username and Password, kaithem will run as your default user(uid1000).
+
+To change the page, you can pass KIOSK_HOME=url to make.
 
 If you want to change that default page, go to the Kaithem Settings and set the homepage to redirect to your URL of choice(Use PIHOSTNAME.local:8002 /index to get back to the real homepage).
 
