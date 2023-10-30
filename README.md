@@ -91,8 +91,8 @@ Kaithem does not support advanced audio features on anything other than pipewire
 
 Out of the box, JACK apps might not work on Ubuntu. Try:
 ```bash
-sudo make use-pipewire-jack
-make restart-pipewire
+sudo make root-use-pipewire-jack
+make user-restart-pipewire
 ```
 This will make ALL jack apps go through pipewire, you won't ever need to launch jackd.
 I'm not sure why you would ever want to use the original JACK server, so this shouldn't cause any issues.
@@ -103,21 +103,18 @@ I'm not sure why you would ever want to use the original JACK server, so this sh
 Pipewire likes to set volume to 40% at boot, at the ALSA level. Try:
 
 ```bash
-sudo make root-max-volume-at-boot
+make user-max-volume-at-boot
 ```
-
-Specify KAITHEM_USER if you're not just running as the default user.
+as whatever user you plan to run kaithem under.
 
 
 ### Install globally and run at boot
 
-To run as the defaut user(uid1000) at boot
+To run as a systemd user service(Runs as soon as you log in, use autologin or lingering to run at boot)
 
 ```bash
-sudo make root-install-kaithem
+make user-install-kaithem
 ```
-
-To select a different user(Only one user at a time works), pass `KAITHEM_USER=name` to make.
 
 
 
@@ -127,11 +124,21 @@ Get a fresh RasPi OS image.  Use the raspi imager tool to set up the network stu
 
 SSH in and run these commands.  They reconfigure a whole lot of stuff, including protecting the disk against excessive writes, so only run this on a fresh image dedicated to the cause.
 
+
+As the default user, run:
+
 ```bash
-cd /opt
-sudo git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
-cd KaithemAutomation
-sudo make root-kioskify
+sudo make root-install-system-dependencies
+sudo make root-use-pipewire-jack
+
+# Note: These root functions assume that everything will run under the
+# default user. If installing as a different user, pass KAITHEM_USER to make. 
+sudo make root-install-sd-protection
+sudo make root-install-linux-tweaks
+sudo make root-install-kiosk
+
+make user-max-volume-at-boot
+make user-install-kaithem
 sudo reboot now
 ```
 
@@ -142,8 +149,7 @@ To change the page, you can pass KIOSK_HOME=url to make.
 
 If you want to change that default page, go to the Kaithem Settings and set the homepage to redirect to your URL of choice(Use PIHOSTNAME.local:8002 /index to get back to the real homepage).
 
-To update, do a `sudo git pull --rebase` in /opt/KaithemAutomation, 
-then rerun `sudo bash kaithem-kioskify.sh`
+To update, do a `make update` in /opt/KaithemAutomation,  then rerun `make user-install-kaithem`.
 
 
 ### No sound from the browser?

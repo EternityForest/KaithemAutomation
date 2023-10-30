@@ -46,6 +46,7 @@ help: # Show help for each of the available commands
 	@echo "Most use the virtualenv in the project folder, unless you are already in a different venv"
 	@echo "dev- commands always use the .venv in this project folder"
 	@echo "root- commands require root and affect the whole system, and probably only work on Debian/PiOs/Ubuntu"
+	@echo "user- commands affect your user"
 	@echo
 	@grep -E '^[a-zA-Z0-9\. -]+:.*#'  Makefile | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#'| fold -w 60 -s)\n\n"; done
 	@echo
@@ -65,10 +66,8 @@ ${ROOT_DIR}/.venv: # Create the virtualenv in the project folder
 	@cd ${ROOT_DIR}
 	@virtualenv .venv
 
-restart-pipewire:
-	@echo "Tries to restart everything, including some that may fail because they're not installed"
-	@systemctl --user restart pipewire pipewire-pulse wireplumber pipewire-media-session
-
+update: # Fetch new code into this project folder
+	git pull --rebase
 
 dev-make-venv: ${ROOT_DIR}/.venv # Make the virtualenv in this project folder.
 	@echo "Making venv if not present"
@@ -99,16 +98,36 @@ dev-freeze-dependencies: # Create requirements_frozen.txt
 	@sed -i '/.*kaithem.*/d' ./requirements_frozen.txt
 
 
+user-install-kaithem: root-install-system-dependencies # Install kaithem to run as your user. Note that it only runs when you are logged in.
+	@cd ${ROOT_DIR}
+	@echo "Kaithem will be installed to /home/$(id -un $KAITHEM_UID)/kaithem/.venv"
+	@bash ./scripts/install-kaithem.sh
+
+user-max-volume-at-boot: #Install a service that sets the max volume when you log in.
+	@cd ${ROOT_DIR}
+	@sudo -u $(KAITHEM_USER) bash ./scripts/max-volume.sh
+
+
+user-kaithem-force-restart: # Force kill the process and restart it.
+	@killall -9 kaithem
+	@systemctl --user restart kaithem.service
+
+user-restart-pipewire:
+	@echo "Tries to restart everything, including some that may fail because they're not installed"
+	@systemctl --user restart pipewire pipewire-pulse wireplumber pipewire-media-session
+
+
+user-kaithem-status: # Get the status of the running kaithem instance
+	@systemctl --user status kaithem.service
+
 root-install-system-dependencies: # Install non-python libraries using apt
 	@sudo apt install python3-virtualenv scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins baresip gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv
 
-root-use-pipewire-jack: # Reconfigure a Pi system or similar to not write to the SD so much.
+root-use-pipewire-jack: # Make JACK clients work with pipewire
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-pipewire-jack.sh
 
-
-
-root-install-sd-protection: # Reconfigure a Pi system or similar to not write to the SD so much.
+root-install-sd-protection: # Reconfigure a Pi system or similar to not write to the SD so much.  User specific things apply to KAITHEM_USER
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-kaithem.sh
 
@@ -116,30 +135,12 @@ root-install-kiosk: # Sets up a pi(or similar) as a kiosk machine pointing to KI
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-kaithem.sh
 
-root-install-kaithem: root-install-system-dependencies # Install kaithem to run as KAITHEM_USER. Only one user at a time can run at boot.
-	@cd ${ROOT_DIR}
-	@echo "Kaithem will be installed to /home/$(id -un $KAITHEM_UID)/kaithem/.venv"
-	@bash ./scripts/install-kaithem.sh
-
-root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices.
+root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-kaithem.sh
-
-root-kioskify: root-install-sd-protection root-use-pipewire-jack root-install-linux-tweaks root-install-kaithem # INstall kaithem, kiosk, and all config tweaks. Only use on dedicated devices.
-	@echo "Making this system into a Kaithem based kiosk.  Please restart when done"
-
-root-max-volume-at-boot: #Install a service that sets the max volume at boot, running on the kaithem user.
-	@cd ${ROOT_DIR}
-	@sudo -u $(KAITHEM_USER) bash ./scripts/max-volume.sh
 
 root-enable-anon-mqtt: # Set up an MQTT broker for anonymous login acccess
 	@cd ${ROOT_DIR}
 	@bash ./scripts/setup-anon-mosquitto.sh
 
-root-kaithem-status: # Get the status of the running kaithem instance
-	@systemctl status kaithem.service
-	@journalctl -u kaithem.service
 
-root-kaithem-force-restart: # Force kill the process and restart it.
-	@sudo killall -9 kaithem
-	@sudo systemctl restart kaithem.service

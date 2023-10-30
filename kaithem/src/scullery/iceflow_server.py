@@ -1288,7 +1288,7 @@ def main():
         if (not check_pid(ppid)) or stopflag[0]:
             sys.exit()
 
-        if not os.getppid() ==ppid:
+        if not os.getppid() == ppid:
             return
 
 if __name__ == '__main__':

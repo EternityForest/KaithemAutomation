@@ -27,8 +27,6 @@
 set -x
 set -e
 
-amixer set Master 100%
-alsactl store
 
 # Require root
 if [ "$(id -u)" -ne 0 ]; then

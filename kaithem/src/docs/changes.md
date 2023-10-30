@@ -26,7 +26,7 @@ best reliability.
 - :coffin: Remove codemirror config options
 - :coffin: Remove reap library
 - :coffin: Remove old jackd2 stuff 
-- :coffin: Remove r
+- :coffin: Remove embedded python3 docs
 
 
 ### 0.69.20
