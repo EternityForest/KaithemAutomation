@@ -146,6 +146,13 @@ To update, do a `sudo git pull --rebase` in /opt/KaithemAutomation,
 then rerun `sudo bash kaithem-kioskify.sh`
 
 
+### No sound from the browser?
+
+Go to the kaithem GUI and select your output for the kiosk mixer channel.
+
+If there is no mixer channel, make one and set the input to Chromium.  Or wait a minute, mixer channels somethines don't load immediately at boot. Then save it as the default.
+
+
 
 ### Connecting Multiple Servers
 
@@ -153,15 +160,7 @@ Most Kaithem features that can do this, rely on MQTT, as per the "No reinvented 
 do this as root.  Using encryption with MQTT is harder, but many tutorials exist.  MQTT in Kaithem is powered by Paho-MQTT.
 
 ```bash
-apt-get -y install mosquitto
 
-cat << "EOF" >> /etc/mosquitto/conf.d/kaithem.conf
-persistance false
-allow_anonymous true
-EOF
-
-systemctl restart mosquitto.service
-```
 
 
 ### Instant digital signage

@@ -43,3 +43,6 @@ while not rpc.threadStopped:
     time.sleep(10)
     if not check_pid(ppid):
         sys.exit()
+
+    if not os.getppid() == ppid:
+        sys.exit()

@@ -146,11 +146,14 @@ import os
       </table>
     </div>
 
+    <div v-if="!ui_ready">
+      <h3>Loading Mixer Channels</h3>
+      <p>This may take a while if kaithem has just booted up.</p>
+    </div>
 
-    <div v-if="activePane=='mixer'">
+
+    <div v-if="activePane=='mixer' && ui_ready">
       <div class="channel" v-for="(channel,channelname) in channels">
-        
-        
         <div v-if="channel.type=='audio' || !channel.type">
           <div>
             <h3 style="display: inline-block;">{{channelname}}({{channel.channels}}) 
@@ -349,6 +352,7 @@ import os
       data: {
         message: 'Hello Vue!',
         fxSearch: '',
+        ui_ready: false,
         inports: {},
         outports: {},
         channels: channels,
@@ -514,6 +518,9 @@ import os
         delete app.$data.outports[msg[1]]
       }
 
+      if (msg[0] == "ui_ready") {
+        app.ui_ready = true;
+      }
 
       if (msg[0] == "inports") {
         app.inports = msg[1];

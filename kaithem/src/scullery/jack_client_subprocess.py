@@ -18,7 +18,7 @@ portInfoByID = weakref.WeakValueDictionary()
 
 
 class PortInfo():
-    def __init__(self, name, isInput, sname, isAudio,aliases=None):
+    def __init__(self, name, isInput, sname, isAudio, aliases=None):
         self.isOutput = self.is_output = not isInput
         self.isInput = self.is_input = isInput
         self.isAudio = self.is_audio = isAudio
@@ -26,20 +26,21 @@ class PortInfo():
         self.shortname = sname
         self.clientName = name[:-len(":" + sname)]
         portInfoByID[id(self)] = self
-        self.aliases=aliases or []
+        self.aliases = aliases or []
 
     def toDict(self):
-        return({
+        return ({
             'name': self.name,
             'isInput': self.is_input,
             'sname': self.shortname,
             'isAudio': self.isAudio,
-            'aliases':self.aliases
+            'aliases': self.aliases
         })
 
 
 def portToInfo(p):
-    return PortInfo(p.name,p.is_input,p.shortname, p.is_audio,list(p.aliases))
+    return PortInfo(p.name, p.is_input, p.shortname, p.is_audio, list(p.aliases))
+
 
 import threading
 lock = threading.Lock()
@@ -67,56 +68,56 @@ def f():
 f()
 
 
-
-#We can't ship port objects on the wire, we have to do this instead.
-#Anything that would normally take a port object must take a name instead.
+# We can't ship port objects on the wire, we have to do this instead.
+# Anything that would normally take a port object must take a name instead.
 class JackClientProxy():
     def __getattr__(self, attr):
         def f(*a, **k):
-            x = getattr(self.worker, attr)(*a, **k)
-            if isinstance(x,jack.Port):
-                x=portToInfo(x).toDict()
+            x = getattr(self.clientObj, attr)(*a, **k)
+            if isinstance(x, jack.Port):
+                x = portToInfo(x).toDict()
             return x
         return f
 
     def get_ports(self, *a, **k):
-        x = self.worker.get_ports(*a, **k)
+        x = self.clientObj.get_ports(*a, **k)
         x = [portToInfo(i).toDict() for i in x]
         return x
 
-    
     def get_all_connections(self, p):
-        p= self.worker.get_port_by_name(p)
-        x = self.worker.get_all_connections(p)
+        p = self.clientObj.get_port_by_name(p)
+        x = self.clientObj.get_all_connections(p)
         x = [portToInfo(i).toDict() for i in x]
         return x
 
     def init(self, *a, **k):
-        self.worker = jack.Client("Overseer"+str(time.monotonic()), no_start_server=True)
-        jackclient.worker.set_port_connect_callback(onPortConnect)
-        jackclient.worker.set_port_registration_callback(onPortRegistered, only_available=False)
-        jackclient.activate()
+        self.clientObj = jack.Client(
+            "Overseer" + str(time.monotonic()), no_start_server=True)
+        self.clientObj.set_port_connect_callback(onPortConnect)
+        self.clientObj.set_port_registration_callback(
+            onPortRegistered, only_available=False)
+        self.clientObj.activate()
 
     def __init__(self) -> None:
-        self.worker = None
+        self.clientObj = None
 
     def disconnect(self, f, t):
         global realConnections
         if lock.acquire(timeout=30):
 
             try:
-                f = self.worker.get_port_by_name(f)
-                t = self.worker.get_port_by_name(t)
+                f = self.clientObj.get_port_by_name(f)
+                t = self.clientObj.get_port_by_name(t)
             except jack.JackError:
                 return
 
             try:
-                if not self.worker:
+                if not self.clientObj:
                     return
                 try:
                     # This feels race conditionful but i think it is important so that we don't try to double-disconnect.
                     # Be defensive with jack, the whole thing seems britttle
-                    self.worker.disconnect(f, t)
+                    self.clientObj.disconnect(f, t)
 
                 except Exception:
                     pass
@@ -127,16 +128,15 @@ class JackClientProxy():
         global realConnections
         if lock.acquire(timeout=10):
             try:
-                if not self.worker:
-                    return
-                
-                #Ignore the nuisance of no longer existing ports. Airwires will get them if they come back.
-                try:
-                    f = self.worker.get_port_by_name(f)
-                    t = self.worker.get_port_by_name(t)
-                except jack.JackError:
+                if not self.clientObj:
                     return
 
+                # Ignore the nuisance of no longer existing ports. Airwires will get them if they come back.
+                try:
+                    f = self.clientObj.get_port_by_name(f)
+                    t = self.clientObj.get_port_by_name(t)
+                except jack.JackError:
+                    return
 
                 f_input = f.is_input
 
@@ -144,8 +144,8 @@ class JackClientProxy():
                     if not t.is_output:
                         # Do a retry, there seems to be a bug somewhere
                         try:
-                            f = self.worker.get_port_by_name(f.name)
-                            t = self.worker.get_port_by_name(t.name)
+                            f = self.clientObj.get_port_by_name(f.name)
+                            t = self.clientObj.get_port_by_name(t.name)
                         except Exception:
                             return
                         if f.is_input:
@@ -160,39 +160,38 @@ class JackClientProxy():
                 t = t.name
                 try:
                     if f_input:
-                        self.worker.connect(t, f)
+                        self.clientObj.connect(t, f)
                     else:
-                        self.worker.connect(f, t)
+                        self.clientObj.connect(f, t)
                 except Exception:
                     print(traceback.format_exc())
             finally:
                 lock.release()
 
 
-
-
-
 def onPortRegistered(port, registered):
     if not port:
         return
     try:
-        rpc.call('onPortRegistered', [port.name,port.is_input,
+        rpc.call('onPortRegistered', [port.name, port.is_input,
                  port.shortname, port.is_audio, registered])
     except Exception:
         print(traceback.format_exc())
         raise
 
+
 def onPortConnect(a, b, c):
     rpc.call("onPortConnected", [a.is_output, a.name, b.name, c])
 
+
 jackclient = None
 rpc = None
+
 
 def main():
     global jackclient
     global rpc
     jackclient = JackClientProxy()
-
 
     rpc = jsonrpyc.RPC(jackclient)
 
@@ -201,9 +200,8 @@ def main():
 
     ppid = os.getppid()
 
-
-    #https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python
-    def check_pid(pid):        
+    # https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python
+    def check_pid(pid):
         """ Check For the existence of a unix pid. """
         try:
             os.kill(pid, 0)
@@ -211,13 +209,14 @@ def main():
             return False
         else:
             return True
-        
+
     while 1:
         time.sleep(10)
         if not check_pid(ppid):
             sys.exit()
         if not ppid == os.getppid():
             sys.exit()
+
 
 if __name__ == '__main__':
     main()

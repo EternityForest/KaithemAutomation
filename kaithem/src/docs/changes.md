@@ -24,6 +24,9 @@ best reliability.
 - :recycle: Refactor the Chandler Python
 - :coffin: Remove non-MPV audio backends
 - :coffin: Remove codemirror config options
+- :coffin: Remove reap library
+- :coffin: Remove old jackd2 stuff 
+- :coffin: Remove r
 
 
 ### 0.69.20

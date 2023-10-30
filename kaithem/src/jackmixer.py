@@ -249,7 +249,7 @@ class FluidSynthChannel(BaseChannel):
             self.input.connect()
             self.output.connect()
         else:
-            self.aiirwire.connect()
+            self.airwire.connect()
 
 
 class Recorder(gstwrapper.Pipeline):
@@ -387,7 +387,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             or command.endswith(".m3u8")
         ):
             return
-        from reap import Popen
+        from subprocess import Popen
 
         n = self.name + "_src"
         line = [
@@ -468,6 +468,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         break
                 if not jackmanager.getPorts():
                     return
+                
         self.start(timeout=wait)
 
     def connect(self, restore=[]):
@@ -1004,7 +1005,6 @@ class MixingBoard:
                 self.pushStatus(i, "error " + str(e))
 
     def sendState(self):
-        with self.lock:
             inPorts = jackmanager.getPortNamesWithAliases(is_audio=True, is_input=True)
             outPorts = jackmanager.getPortNamesWithAliases(
                 is_audio=True, is_output=True
@@ -1021,21 +1021,28 @@ class MixingBoard:
             self.api.send(["midiinports", {i: {} for i in midiInPorts}])
             self.api.send(["midioutports", {i: {} for i in midiOutPorts}])
 
-            self.api.send(["channels", self.channels])
-
-            for i in self.channels:
-                self.pushStatus(i)
-
             self.api.send(["effectTypes", effectTemplates])
 
-            self.api.send(["loadedPreset", self.loadedPreset])
+            if self.lock.acquire(timeout=5):
+                try:
+                    self.api.send(["channels", self.channels])
 
-            self.sendPresets()
+                    for i in self.channels:
+                        self.pushStatus(i)
 
-            if recorder:
-                self.api.send(["recordingStatus", "recording"])
-            else:
-                self.api.send(["recordingStatus", "off"])
+
+                    self.api.send(["loadedPreset", self.loadedPreset])
+
+                    self.sendPresets()
+
+                    if recorder:
+                        self.api.send(["recordingStatus", "recording"])
+                    else:
+                        self.api.send(["recordingStatus", "off"])
+                    self.api.send(["ui_ready"])
+                finally:
+                    self.lock.release()
+
 
     def sendPresets(self):
         if os.path.isdir(presetsDir):
@@ -1064,7 +1071,7 @@ class MixingBoard:
 
         for i in range(3):
             try:
-                self._createChannelAttempt(name, data, wait=(3**i + 4))
+                self._createChannelAttempt(name, data, wait=(3**i + 6))
                 self.channelAlerts[name].release()
                 self.pushStatus(name, "running")
                 break
@@ -1158,9 +1165,6 @@ class MixingBoard:
             self.channelStatus[cn] = s
         else:
             s = self.channelStatus.get(cn, "not running")
-
-        print(f"Channel {cn} status {s}")
-
         self.api.send(["status", cn, s])
 
     def setFader(self, channel, level):
@@ -1206,6 +1210,7 @@ class MixingBoard:
 
             self.loadedPreset = presetName
             self.api.send(["loadedPreset", self.loadedPreset])
+
 
     def f(self, user, data):
         def f2():

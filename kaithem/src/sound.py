@@ -14,12 +14,15 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess
+
 import os
 import time
 import threading
 import collections
 import logging
 import traceback
+from subprocess import PIPE, STDOUT, Popen
+
 from . import util, scheduling, directories, workers, messagebus, midi
 from .config import config
 from typing import List, Any, Optional, Dict
@@ -181,8 +184,6 @@ class RemoteMPV:
         self.worker = None
         self.stopping = False
         from jsonrpyc import RPC
-        from subprocess import PIPE, STDOUT
-        from reap import Popen
 
         f = os.path.join(os.path.dirname(
             os.path.abspath(__file__)), "mpv_server.py")

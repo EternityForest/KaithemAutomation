@@ -19,7 +19,9 @@ endif
 
 KAITHEM_USER:= $(shell id -un $(KAITHEM_UID))
 
+# The dir the makefile is in
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
 INTERPRETER:=$(shell bash scripts/makefile_choose_interpreter.sh)
 
 export KAITHEM_UID
@@ -30,7 +32,7 @@ KIOSK_HOME:="http://localhost:8002"
 endif
 
 export KIOSK_HOME
-
+export ROOT_DIR
 
 default: help 
 
@@ -133,3 +135,11 @@ root-max-volume-at-boot: #Install a service that sets the max volume at boot, ru
 root-enable-anon-mqtt: # Set up an MQTT broker for anonymous login acccess
 	@cd ${ROOT_DIR}
 	@bash ./scripts/setup-anon-mosquitto.sh
+
+root-kaithem-status: # Get the status of the running kaithem instance
+	@systemctl status kaithem.service
+	@journalctl -u kaithem.service
+
+root-kaithem-force-restart: # Force kill the process and restart it.
+	@sudo killall -9 kaithem
+	@sudo systemctl restart kaithem.service
