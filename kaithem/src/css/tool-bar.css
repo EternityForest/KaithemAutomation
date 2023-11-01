@@ -1,0 +1,256 @@
+.multibar {
+    flex-basis: content;
+    flex-grow: 5;
+    flex-direction: row;
+    display: flex;
+    height: fit-content;
+    flex-basis: max-content;
+    flex-wrap: wrap;
+}
+
+:is(.tool-bar, .input-group) {
+    flex-basis: max-content;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    --tool-bar-border-radius: 12px;
+    border-radius: var(--tool-bar-border-radius);
+    min-height: var(--tool-bar-height);
+    margin: 0.6em;
+    flex-grow: 1;
+    vertical-align: middle;
+    height: fit-content;
+    align-items: center;
+    align-content: center;
+    width: auto;
+    box-sizing: border-box;
+    background-clip: content-box;
+    --tool-bar-element-border: 1px solid rgba(159, 172, 214, 0.767);
+    --tool-bar-concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
+    --tool-bar-convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
+    --tool-bar-active-item-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+    --tool-bar-height: 28px;
+}
+
+
+.tool-bar{
+    gap: 0px;
+}
+
+.tool-bar *{
+    box-shadow: none;
+    display: inline-block;
+}
+
+.tool-bar form{
+    display: inline-block;
+}
+.multibar :is(.tool-bar, .input-group) {
+    width: unset;
+}
+
+:is(.tool-bar, .input-group) img {
+    display: inline;
+}
+
+:is(.tool-bar, .input-group) a {
+    display: block;
+    text-align: center;
+}
+
+:is(.tool-bar, .input-group) label {
+    display: flex;
+    flex-grow: 50;
+    border: 0px;
+    text-align: right;
+}
+
+:is(.tool-bar, .input-group) *, :is(.tool-bar, .input-group) input, :is(.tool-bar, .input-group) a{
+    box-sizing: border-box;
+    font-size: inherit;
+    height: var(--tool-bar-height);
+    padding: 0px;
+}
+
+:is(.tool-bar, .input-group) :is(a, a.button, select, input, meter, button) {
+    margin: 0px;
+    align-items: stretch;
+    border-radius: 0px;
+    flex-shrink: 1;
+    border-radius: 0px;
+    flex-basis: fit-content;
+}
+
+
+
+:is(.tool-bar, .input-group) :only-child {
+    flex-grow: 1;
+}
+
+
+
+:is(.tool-bar, .input-group) form {
+    border: 0px !important;
+    margin: 0px !important;
+    padding: 0px !important;
+    flex-grow: 50;
+    border: 0px !important;
+    display: flex;
+    flex-basis: fit-content;
+}
+
+:is(.tool-bar, .input-group) form :is(button, input[type=button], select) {
+    flex-grow: 1;
+}
+
+:is(.tool-bar, .input-group) :is(h1, h2, h3, h4, h5) * {
+    border: none;
+}
+
+
+:is(.tool-bar, .input-group) :is(h1, h2, h3, h4, h5, h6) {
+        margin: 0px;
+        padding: 0px;
+}
+     
+:is(.tool-bar, .input-group)> :is(h1, h2, h3, h4, h5, h6)>* {
+    margin: 0px;
+    padding: 0px;
+}
+
+
+:is(.tool-bar, .input-group) :is(h1, h2, h3, h4, h5, h6, label) {
+    margin: 0px;
+    padding: 0px;
+    vertical-align: middle;
+    text-align: center;
+    display: flex;
+    flex-grow: 0.5;
+    min-width: fit-content;
+}
+
+:is(.tool-bar, .input-group) :is(p, .input-group-text) {
+    padding-left: 4px;
+    min-width: fit-content;
+    flex-grow: 0.5;
+    margin: 0px;
+}
+
+
+
+/*P is not growable */
+
+:is(.tool-bar, .input-group) :is(meter, a, a.button, button) {
+    width: fit-content;
+    flex-grow: 1;
+}
+
+
+/*Most likely to make good use of the extra space*/
+
+:is(.tool-bar, .input-group) input:not([type="submit"]),
+:is(.tool-bar, .input-group) select {
+    flex-grow: 50;
+}
+
+:is(.tool-bar, .input-group) select,
+:is(.tool-bar, .input-group) button,
+:is(.tool-bar, .input-group) a,
+:is(.tool-bar, .input-group) p,
+:is(.tool-bar, .input-group) div,
+:is(.tool-bar, .input-group) h1,
+
+:is(.tool-bar, .input-group) h2,
+:is(.tool-bar, .input-group) h3,
+:is(.tool-bar, .input-group) h4,
+:is(.tool-bar, .input-group) h5,
+:is(.tool-bar, .input-group) label,
+:is(.tool-bar, .input-group) meter,
+:is(.tool-bar, .input-group) input[type=submit] {
+    background: var(--tool-bar-convex-item-bg);
+}
+
+:is(.tool-bar, .input-group) meter {
+    min-height: 100%;
+}
+
+:is(.tool-bar, .input-group) :is(p, h1, h2, h3, h4, h5, h6, label) {
+    vertical-align: middle;
+    display: flex;
+}
+
+
+
+
+/*Exception: the first item always growable so it can be the title*/
+
+:is(.tool-bar, .input-group) :is(h1, h2, h3, h4, h5, h6):first-child {
+    flex-grow: 50;
+}
+
+:is(.tool-bar, .input-group)> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
+:is(.tool-bar, .input-group) :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child {
+    border-radius: var(--tool-bar-border-radius) 0px 0px var(--tool-bar-border-radius);
+}
+
+:is(.tool-bar, .input-group)> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
+:is(.tool-bar, .input-group) :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-append):last-child :last-child {
+    border-radius: 0px var(--tool-bar-border-radius) var(--tool-bar-border-radius) 0px;
+}
+
+:is(.tool-bar, .input-group)> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
+    border-radius: var(--tool-bar-border-radius) var(--tool-bar-border-radius) var(--tool-bar-border-radius) var(--tool-bar-border-radius);
+}
+
+:is(.tool-bar, .input-group) meter::-webkit-meter-inner-element {
+    -webkit-appearance: inherit;
+    box-sizing: inherit;
+    border: 1px solid #aaa;
+    height: 22px;
+}
+
+:is(.tool-bar, .input-group)>form {
+    border: none !important;
+    border-radius: var(--tool-bar-border-radius);
+}
+
+
+/*The boder puts an ugly white line on the meter*/
+
+:is(.tool-bar, .input-group)>*:not(meter), :is(.tool-bar, .input-group) > form >*:not(meter) {
+    border: var(--tool-bar-element-border);
+}
+
+
+:is(.tool-bar, .input-group) input:not([type="submit"]){
+    border: var(--tool-bar-element-border);
+    background: var(--tool-bar-concave-item-bg);
+    box-shadow: inset 0px 0px 4px 2px #3838383b
+}
+
+:is(.tool-bar, .input-group) label input:not([type="submit"]){
+    border-top: 3px solid !important;
+    border-bottom: 3px solid !important;
+    border-left: var(--tool-bar-element-border) !important;
+    border-right: var(--tool-bar-element-border) !important;
+    border-color: rgba(170, 170, 170, 0.445) !important;
+}
+
+
+/*A button link while being clicked*/
+
+:is(.tool-bar, .input-group) button:active,
+:is(.tool-bar, .input-group) a:active {
+    background-image: var(--tool-bar-active-item-bg) !important;
+}
+
+:is(.tool-bar, .input-group)>label {
+    display: inline-flex;
+    border-top: var(--tool-bar-element-border);
+    border-bottom: var(--tool-bar-element-border);
+    align-items: center;
+}
+
+:is(.tool-bar, .input-group) select {
+    background: none;
+}

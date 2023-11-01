@@ -45,7 +45,7 @@ __doc__= "#Python Code here runs every page load"
               </datalist>
 
 
-              <div class="buttonbar" style="width:100%">
+              <div class="tool-bar" style="width:100%">
                 <button v-on:click="tab='playback'" :class="{'highlight': tab=='playback'}"><i class="icofont-files-stack"></i>Recordings</button>
                 <button v-on:click="tab='cameras'" :class="{'highlight': tab=='cameras'}"><i class="icofont-cc-camera"></i>Cameras</button>
                 <button v-on:click="tab='multiview'" :class="{'highlight': tab=='multiview'}"><i class="icofont-table"></i>Wall Builder</button>
@@ -56,7 +56,7 @@ __doc__= "#Python Code here runs every page load"
               <div style="display: flex; flex-wrap: wrap;">
                 <div v-if="tab=='multiview'"  style="">
 
-                  <div class="buttonbar" style="width:100%">
+                  <div class="tool-bar" style="width:100%">
                   
                     <button v-on:click="goFSWall()"><i class="icofont-expand"></i>Fullscreen</button>
 
@@ -162,7 +162,7 @@ __doc__= "#Python Code here runs every page load"
 
                 <div v-if="tab=='playback'"  style="display: flex; flex-wrap: wrap;">
                   <div>
-                  <div class="buttonbar">
+                  <div class="tool-bar">
                         <p>Starting:</p><input v-model="searchtime" type="date">
                         <input v-model="searchcam" list="cameras" placeholder="All Cameras">
                         <button v-on:click="getFiles(searchcam, searchtime)"><i class="icofont-binoculars"></i>Search</button>

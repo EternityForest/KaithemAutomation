@@ -27,7 +27,8 @@ best reliability.
 - :coffin: Remove reap library
 - :coffin: Remove old jackd2 stuff 
 - :coffin: Remove embedded python3 docs
-
+- :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
+- :sparkles: The tool-bar CSS class has been changed to tool-bar
 
 ### 0.69.20
 
@@ -434,7 +435,7 @@ especially when using plain HTTP.
 ### 0.68.0
 This release is primarily all about theming.
 
-- New .buttonbar and .multibar CSS classes majorly reduce visual clutter
+- New .tool-bar and .multibar CSS classes majorly reduce visual clutter
 - New default theme aims to be somewhere between material, mid 2000s forums, and early iOS
 - No more ugly default inset/outset borders, we use gradients and box shadows
 - Link underlines are gone

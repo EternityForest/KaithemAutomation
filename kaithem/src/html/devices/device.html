@@ -323,7 +323,7 @@ settings individually for every tag.  Leave blank to disable.  These are used to
 Currently this is only supported for the newer cross-framework devices.
  </details>
 
-<div class="buttonbar">
+<div class="tool-bar">
 <label>Read:<input name="kaithem.read_perms" list="k_perms" value="${data.get('kaithem.read_perms','')|h}" placeholder="__never__"></label>
 <label>Write:<input name="kaithem.write_perms" list="k_perms" value="${data.get('kaithem.write_perms','')|h}" placeholder="__never__"></label>
 </div>
@@ -464,10 +464,10 @@ Currently this is only supported for the newer cross-framework devices.
         <img id="img" style="display: none; width: 100%; border: none;">
 
         <h4>Regions</h4>
-        <div class="buttonbar" id="regions">
+        <div class="tool-bar" id="regions">
         </div>
 
-        <div class="buttonbar">
+        <div class="tool-bar">
                 <button type="button" onclick="gotoRegionEdit(false)">Region Editor</button>
                 <button type="button" onclick="setRegion()">New Region</button>
                 <button type="button" onclick="deleteRegion()">Delete selected region</button>
@@ -673,7 +673,7 @@ Currently this is only supported for the newer cross-framework devices.
                 just delete it's entry in the regions box.  A proper deletion feature coming soon.
 
         </details>
-        <div class="buttonbar">
+        <div class="tool-bar">
                 <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
         </div>
  
@@ -726,7 +726,7 @@ Currently this is only supported for the newer cross-framework devices.
                 %if obj.tagPoints[i].activeClaim().priority > 50.5:
                         Overridden: ${obj.tagPoints[i].activeClaim().name}
                 %else:
-                <div style="display: flex; flex-wrap: wrap;" class="buttonbar">
+                <div style="display: flex; flex-wrap: wrap;" class="tool-bar">
                         %if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable:
                                 %if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean':
                                 <button  type="button"  onclick="_generic_ws_channel.send(['set', '${i|h}', 0])">Off</button>
@@ -783,20 +783,20 @@ Currently this is only supported for the newer cross-framework devices.
         %endif
 
         %if obj.tagPoints[i].subtype == 'color':
-        <div class="buttonbar">
+        <div class="tool-bar">
                 <button  type="button"   style="background-color: #fafafa;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#fafafa'])">Argent</button>
                 <button  type="button"   style="background-color: #ffe066;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#ffe066'])">Or</button>
                 <button  type="button"   style="background-color: #f0dc82;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#f0dc82'])">Buff</button>
                 <button  type="button"   style="background-color: #7c1c05;  color: lightblue;"" onclick="_generic_ws_channel.send(['set', '${i|h}', '#7c1c05'])">Copper</button>
         </div>
-        <div class="buttonbar">
+        <div class="tool-bar">
                 <button  type="button"  style="background-color: #d7374a;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#d7374a'])">Gules</button>
                 <button  type="button"  style="background-color: #333333; color: lightblue;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#333333'])">Sable</button>
                 <button  type="button"  style="background-color: #377cd7;"  onclick="_generic_ws_channel.send(['set', '${i|h}', '#377cd7'])">Azure</button>
                 <button  type="button"   style="background-color: #26c061;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#26c061'])">Vert</button>
                 <button  type="button"   style="background-color: #854296;  color: lightblue;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#854296'])">Purpure</button>               
         </div>
-        <div  class="buttonbar">
+        <div  class="tool-bar">
                 <button  type="button"   style="background-color: #85185b;  color: lightblue;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#85185b'])">Murrey</button>
                 <button  type="button"   style="background-color: #b63a3a;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#b63a3a'])">Sanguine</button>
                 <button  type="button"   style="background-color: #cc7f19;" onclick="_generic_ws_channel.send(['set', '${i|h}', '#cc7f19'])">Tenné</button>

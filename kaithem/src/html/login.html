@@ -1,25 +1,28 @@
-
-<%include file="/pageheader_nonav.html"/>
-<%!
-from kaithem.src import kaithemobj
-%>
-<title>Login</title>
-<main>
+<%include file="/pageheader_nonav.html" />
+<%! from kaithem.src import kaithemobj %>
+  <title>Login</title>
+  <main>
     <div class="decorative-image-login decorative-image" style="height: 12em; width: 12em; margin: auto;"></div>
     <h2 style="text-align: center;">Please Log In</h2>
     <section>
-    <div style="text-align: center;">
-      If you have not configured any users, your login credentials are the same as the Linux user this is running under. 
-      <form method="POST" action="/login/login?go=${target}" name="login"> <p>
-        <span style="font-weight: bold;">Username:</span>
-        <input name="username"><br>
-        <span style="font-weight: bold;">Password:</span>&nbsp;
-		<input name="password" type="password" placeholder="password"></p>
-        <input value="Login as Registered User"type="submit" placeholder="password">
-      </form>
-	</div>
-</section>
-<section class="kflavortext" style="white-space: pre-line;text-align: center;"><i>${kaithemobj.kaithem.misc.lorem().strip()}</i></section>
+      <div style="text-align: center;">
+        If you have not configured any users, your login credentials are the same as the Linux user this is running
+        under.
+        <form method="POST" action="/login/login?go=${target}" name="login" class="table rows">
+            <label>Username:
+              <input name="username">
+            </label><br>
 
-</main>
-<%include file="/pagefooter.html"/>
+            <label>Password:
+              <input name="password" type="password" placeholder="password">
+            </label>
+            <input value="Login as Registered User" type="submit" placeholder="password">
+        </form>
+      </div>
+    </section>
+    <section class="kflavortext" style="white-space: pre-line;text-align: center;">
+      <i>${kaithemobj.kaithem.misc.lorem().strip()}</i>
+    </section>
+
+  </main>
+  <%include file="/pagefooter.html" />

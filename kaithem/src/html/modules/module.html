@@ -53,7 +53,7 @@ WordHash: ${getModuleWordHash(name)}</br>
 
 
 
-<p class="pathnav buttonbar">
+<p class="pathnav tool-bar">
 <%
 temp_p = ""
 %>
@@ -69,7 +69,7 @@ temp_p+= i+'/'
 </p>
 
 
-<div class="buttonbar">
+<div class="tool-bar">
     <p><i class="icofont-ui-add"></i>Add:</p>
     <a class="button" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
     <a class="button" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
@@ -132,7 +132,7 @@ continue
 
 %if module[i]['resource-type'] == 'event':
 	  <dt>
-        <div class="buttonbar style="display:inline-flex">
+        <div class="tool-bar style="display:inline-flex">
     <h3>
 <a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
     <i class="icofont-flag-alt-1"></i><b>\
@@ -204,7 +204,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 
 	%if module[i]['resource-type'] == 'page':
 	  <dt>
-        <div class="buttonbar style="display:inline-flex">
+        <div class="tool-bar style="display:inline-flex">
 
 <h3>
           <a href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
@@ -241,7 +241,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
        %if module[i]['resource-type'] == 'permission':
 
       <dt>
-        <div class="buttonbar style="display:inline-flex">
+        <div class="tool-bar style="display:inline-flex">
   <h3>
     
 <a href="/modules/module/${url(name)}/resource/${url(i)}">    <i class="icofont-key"></i>\
@@ -256,7 +256,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
     %if module[i]['resource-type'] == 'internal-fileref':
 
        <dt>\
-        <div class="buttonbar style="display:inline-flex">
+        <div class="tool-bar style="display:inline-flex">
 
     <h3>
     <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
@@ -281,7 +281,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 
      <dt>\
 
-  <div class="buttonbar">
+  <div class="tool-bar">
       <h3>
   <a class="deviceslink" href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
   </h3>
@@ -304,7 +304,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 %if module[i]['resource-type'] == 'directory':
 
       <dt>
-<div class="buttonbar">
+<div class="tool-bar">
 <h3>
     <a href="/modules/module/${url(name)}/resource/${url(i)}#resources"><i class="icofont-document-folder"></i><b></b>${util.split_escape(i,'/')[-1]|h}</b></a>
 </h3>

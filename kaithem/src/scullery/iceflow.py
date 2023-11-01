@@ -1,5 +1,7 @@
 import threading, os, weakref
-
+from .jsonrpyc import RPC
+from subprocess import PIPE, STDOUT
+from subprocess import Popen
 from . import workers
 
 
@@ -207,10 +209,6 @@ class GStreamerPipeline:
         # If del can't find this it would to an infinite loop
         self.worker = None
 
-        from .jsonrpyc import RPC
-        from subprocess import PIPE, STDOUT
-        from subprocess import Popen
-
         pipes[id(self)] = self
         self.ended = False
         f = os.path.join(
@@ -223,7 +221,7 @@ class GStreamerPipeline:
         env["GST_DEBUG"] = "0"
 
         self.rpc = None
-        if which("kaithem._iceflow_server"):
+        if which("kaithem._iceflow_server") and False:
             self.worker = Popen(
                 ["kaithem._iceflow_server"],
                 stdout=PIPE,

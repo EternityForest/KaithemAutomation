@@ -45,7 +45,7 @@ Page:
 %for i in range(int(len(filteredTags)/500)+1):
 <a href="/tagpoints?pageNumber=${i}&searchFilter=${searchFilter|u}">${'<b>'+str(i)+'</b>' if i==pageNumber else str(i)}</a>
 %endfor
-<div class="buttonbar">
+<div class="tool-bar">
     <form method="post" action="/tagpoints?pageNumber=${pageNumber}">
         <input name="searchFilter" value="${searchFilter|h}" size="8"> <input type="submit" value="Search">
     </form>
@@ -111,7 +111,7 @@ Page:
 %endfor
 </table>
 
-<div class="menubar buttonbar">
+<div class="menubar tool-bar">
     <form method="POST" action="/tagpoints">
         <input name="new_numtag"><input type="submit" value="New Number Tag">
     </form>

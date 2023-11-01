@@ -1063,8 +1063,18 @@ def disconnect(f, t):
         finally:
             lock.release()
     else:
-        lpass
+        pass
 
+
+def disconnect_all_from(p: str):
+    "Disconnect everything to do wth given port"
+    for i in realConnections:
+        if i[0] == p or i[0].startswith(p+':'):
+            disconnect(*i)
+        elif i[1] == p or i[1].startswith(p+':'):
+            disconnect(*i)
+  
+        
 # This is an easy place to get a bazillion sounds queued up all waiting on the lock. This stops that.
 awaiting = [0]
 awaitingLock = threading.Lock()

@@ -20,7 +20,7 @@
 
 <template>
     <div style="display:inline-block;position:relative; overflow: visible;">
-    <div class="buttonbar">
+    <div class="tool-bar">
         <input v-bind:value="value" v-on:input="$emit('input', $event.target.value); focused = true"
             v-on:change="focused = false; $emit('change', $event.target.value);" v-on:focus="focused = true;">
         <button title="Show/Hide selector" style="width:3em;" v-on:click="showmenu = !(showmenu | (focused)); focused = false;"

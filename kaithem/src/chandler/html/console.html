@@ -209,7 +209,7 @@ ${lists}
 
     <div id="optionsblock" class="multibar" style="flex-basis: 98%">
 
-        <div class="menubar buttonbar">
+        <div class="menubar tool-bar">
 
             <button v-on:click="saveToDisk()"
                 title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><i
@@ -220,7 +220,7 @@ ${lists}
         </div>
 
 
-        <div class="menubar buttonbar">
+        <div class="menubar tool-bar">
             <button v-on:click="showPresets=!showPresets"><i class="icofont-paint"></i>Presets</button>
             <button v-on:click="showDMXSetup=!showDMXSetup"><i class="icofont-globe"></i>Universes</button>
             <button v-on:click="showhidefixtures"><i class="icofont-pencil"></i> Fixture Types</button>
@@ -236,7 +236,7 @@ ${lists}
             <a class="button" href="Setup"><i class="icofont-gears"></i>Settings</a>
         </div>
 
-        <div class="menubar buttonbar">
+        <div class="menubar tool-bar">
             <p><b>Keys:</b></p>
             <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><i
                     class="icofont-pencil"></i>Edit Mode</button>
@@ -257,7 +257,7 @@ ${lists}
 
     <div v-if="showimportexport" class="sectionbox flex-item">
         <h3>Import/Export controls</h3>
-        <div class="buttonbar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
+        <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
             <a class="button" href="download" title="Download your scenes as a file"><i
                     class="icofont-diskette"></i>Scenes</a>
             <a class="button" href="downloadSetup" title="Download your scenes as a file"><i
@@ -266,7 +266,7 @@ ${lists}
                     class="icofont-diskette"></i>Fixture Lib</a>
         </div>
 
-        <div class="buttonbar" style="padding:0.25em; border-width:2px;"><b>Upload:</b>
+        <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Upload:</b>
             <a class="button" href="upload" title="Upload a scenes file"><i class="icofont-folder-open"></i>Scenes</a>
             <a class="button" href="uploadSetup" title="Upload a scenes file"><i
                     class="icofont-folder-open"></i>Setup</a>
@@ -293,7 +293,7 @@ ${lists}
         <dl>
             <template v-for="ps, i of dictView(presets,[])">
                 <dt>
-                    <div class="buttonbar">
+                    <div class="tool-bar">
                         <h4>{{ps[0]}}</h4>
                         <button v-on:click="deletePreset(ps[0])"><i class="icofont-trash"></i>Delete</button>
                         <button v-on:click="renamePreset(ps[0])"><i class="icofont-pencil"></i>Rename</button>
@@ -648,14 +648,14 @@ ${lists}
         style="overflow: auto; width:20%; min-width: 22em; max-width: 32em; flex-grow: 1; height:90%; resize:both;">
         <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
-        <div class="buttonbar">
+        <div class="tool-bar">
             <input size=8
                 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
                 aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"
                 v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
             <button v-on:click="shortcut()">Go!</button>
         </div>
-        <div class="buttonbar">
+        <div class="tool-bar">
             <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
                     class="icofont-trash"></i></button>
             <button v-on:click="showPages=!showPages">Compact</button>
@@ -688,7 +688,7 @@ ${lists}
                 <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
-                <p class="buttonbar" v-if="!i[1].utility">
+                <p class="tool-bar" v-if="!i[1].utility">
                     <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
                             class="icofont-ui-play"></i>Go!</button>
                     <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
@@ -697,7 +697,7 @@ ${lists}
                 </p>
                 <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
-                <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
+                <p class="tool-bar" v-if="i[1].eventButtons.length > 0">
                     <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                 </p>
 
@@ -747,7 +747,7 @@ ${lists}
 
 
         <hr>
-        <p class="buttonbar">
+        <p class="tool-bar">
             <input v-model="newscenename" placeholder="New scene name" size="4">
             <button v-on:click="addScene()"><i class="icofont-ui-add"></i>Add</button>
             <button v-on:click="addMonitorScene()"><i class="icofont-binoculars"></i>Add Monitor</button>
@@ -771,7 +771,7 @@ ${lists}
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
             </h3>
 
-            <p class="buttonbar">
+            <p class="tool-bar">
                 <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
                 <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
                 <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
@@ -786,7 +786,7 @@ ${lists}
         </div>
 
 
-        <p class="buttonbar">
+        <p class="tool-bar">
             <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
                 title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
 
@@ -841,7 +841,7 @@ ${lists}
 
 
                             <td class="desktop-only" data-label="Shortcut:">
-                                <p class="buttonbar" style="width: 8em;">
+                                <p class="tool-bar" style="width: 8em;">
                                     <input title="Shortcut code" style="max-width: 4.5em;"
                                         v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
                                         step=0.1 v-model="i[1].shortcut">
@@ -902,7 +902,7 @@ ${lists}
                 </table>
             </div>
 
-            <p class="buttonbar">
+            <p class="tool-bar">
                 <input v-model="newcuename" placeholder="New cue name">
                 <button v-on:click="addcue(scenename,newcuename)">
                     <i class="icofont-ui-add"></i>Add Cue</button>
@@ -925,7 +925,7 @@ ${lists}
 
             <details open>
                 <summary>Cue Channel Values</summary>
-                <p class="buttonbar">
+                <p class="tool-bar">
                     <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
                             class="icofont-settings"></i>Normal View</button>
                     <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
@@ -943,7 +943,7 @@ ${lists}
 
                     <article class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'"
                         style="border-style:solid">
-                        <div class="buttonbar" v-if="editingScene.blend!='monitor'">
+                        <div class="tool-bar" v-if="editingScene.blend!='monitor'">
                             <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
                             <select
                                 v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
@@ -1174,7 +1174,7 @@ ${lists}
 
                             <br>
                         </div>
-                        <p class="buttonbar">
+                        <p class="tool-bar">
                             <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
                                 v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
                                 style="width:60%;">
@@ -1259,7 +1259,7 @@ ${lists}
 
                                 <dt>Web Player</dt>
                                 <dd>
-                                    <p class="buttonbar">
+                                    <p class="tool-bar">
                                         <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set for
                                             Cue</button>
                                         <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set as
@@ -1271,7 +1271,7 @@ ${lists}
                                 <template v-for="i of soundCards">
                                     <dt>{{i || "UNSET" }}</dt>
                                     <dd>
-                                        <p class="buttonbar">
+                                        <p class="tool-bar">
                                             <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button>
                                             <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
                                                 Default</button>
@@ -1302,7 +1302,7 @@ ${lists}
 
 
                         </div>
-                        <p class="buttonbar">
+                        <p class="tool-bar">
                             <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
                                 v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
                                 style="width:60%;">
@@ -1670,7 +1670,7 @@ ${lists}
                         <dl>
                             <dt>Web Player</dt>
                             <dd>
-                                <p class="buttonbar">
+                                <p class="tool-bar">
                                     <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set for
                                         Cue</button>
                                     <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set as Scene
@@ -1681,7 +1681,7 @@ ${lists}
                             <template v-for="i of soundCards">
                                 <dt>{{i || "UNSET"}}</dt>
                                 <dd>
-                                    <p class="buttonbar">
+                                    <p class="tool-bar">
                                         <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
                                             Default</button>
                                         <button v-on:click="testSoundCard(i,0,48000)">Test</button>

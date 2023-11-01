@@ -111,7 +111,7 @@ else:
 %endif
 <div class="sectionbox" style="${greyout} margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         
-    <div class="buttonbar">
+    <div class="tool-bar">
         <h3
             title="${devObj.deviceTypeName}"
 
@@ -158,13 +158,13 @@ else:
     </div>
         %if 'color' in devObj.tagpoints and devObj.tagpoints['color'].subtype=='color':
 
-        <div class="buttonbar">
+        <div class="tool-bar">
             <button  type="button"   style="background-color: #fafafa;" onclick="req('settarget/${url(i)}/color?value=%23fafafa')">Argent</button>
             <button  type="button"   style="background-color: #ffe066;" onclick="req('settarget/${url(i)}/color?value=%23ffe066')">Or</button>
             <button  type="button"   style="background-color: #f0dc82;" onclick="req('settarget/${url(i)}/color?value=%23f0dc82')">Buff</button>
             <button  type="button"   style="background-color: #7c1c05;  color: lightblue;"" onclick="req('settarget/${url(i)}/color?value=%237c1c05')">Copper</button>
         </div>
-        <div class="buttonbar">
+        <div class="tool-bar">
                 <button  type="button"  style="background-color: #d7374a;"  onclick="req('settarget/${url(i)}/color?value=%23d7374a')">Gules</button>
                 <button  type="button"  style="background-color: #333333; color: lightblue;"  onclick="req('settarget/${url(i)}/color?value=%23333333')">Sable</button>
                 <button  type="button"  style="background-color: #377cd7;"  onclick="req('settarget/${url(i)}/color?value=%23377cd7')">Azure</button>
@@ -172,7 +172,7 @@ else:
                 <button  type="button"   style="background-color: #854296;  color: lightblue;" onclick="req('settarget/${url(i)}/color?value=%23854296')">Purpure</button>               
         </div>
 
-        <div class="buttonbar">
+        <div class="tool-bar">
             <button  type="button" onclick="req('dimtarget/${url(i)}/color?value=0.1')">10%</button>
             <button  type="button" onclick="req('dimtarget/${url(i)}/color?value=0.2')">20%</button>
             <button  type="button" onclick="req('dimtarget/${url(i)}/color?value=0.5')">50%</button>
@@ -267,7 +267,7 @@ del d
 <h2>Create New Device</h2>
 
 <form method="post" action="customCreateDevicePage">
-<div class="buttonbar">
+<div class="tool-bar">
 <label>Name:<input name="name" size="6" aria-label="new device name"></label>
 <label>Type:<input name="type" size="8" placeholder="Click for dropdown" list="deviceTypes" aria-label="new device type"></label>
 <input type="submit">

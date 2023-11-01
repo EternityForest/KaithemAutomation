@@ -222,7 +222,7 @@ setInterval(onresize, 5000)
 %if 'controls' in kwargs:
 <link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">
 
-    <div class="buttonbar" style="opacity:40%">
+    <div class="tool-bar" style="opacity:40%">
             <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
             <button type="button"  id="recbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',true)">Record</button>
             <button type="button"  id="stoprecbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',false)">Stop Record</button>

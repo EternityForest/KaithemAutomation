@@ -140,7 +140,7 @@
 
     <div class="sectionbox flex-item" style="overflow: auto; max-width:98vw;">
 
-        <div class="buttonbar">
+        <div class="tool-bar">
             <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
                 Scenes</h3>
             <input size=8
@@ -157,7 +157,7 @@
 
         <div id="scene" style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
             <div v-for="i in formatScenes()" v-if="i"
-                style="position:relative;display:flex-item; flex: 1; margin: 0.4em; padding: 0.4em; max-height: 420px; max-width: 400px;"
+                style="position:relative;display:flex-item; flex: 1; margin: 0.4em; padding: 0.4em; max-height: 420px; max-width: 400px; min-width: 180px;"
                 v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
 
@@ -198,7 +198,7 @@
                         </div>
 
 
-                        <p v-if="!i[1].utility" class="buttonbar" style="flex-grow: 0.15">
+                        <p v-if="!i[1].utility" class="tool-bar" style="flex-grow: 0.15">
                             <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
                                     class="icofont-ui-play"></i></button>
                             <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i></button>
@@ -211,7 +211,7 @@
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                             v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]"><br>
 
-                        <p class="buttonbar" v-if="i[1].eventButtons.length > 0">
+                        <p class="tool-bar" v-if="i[1].eventButtons.length > 0">
                             <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </p>
 

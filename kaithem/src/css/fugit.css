@@ -71,12 +71,12 @@ body {
     backdrop-filter: blur(3px);
 }
 
-.navbar .buttonbar {
+.navbar .tool-bar {
     width: 100%;
     backdrop-filter: blur(2px);
 }
 
-.navbar .buttonbar a {
+.navbar .tool-bar a {
     text-align: center;
 }
 
@@ -362,7 +362,7 @@ meter::-webkit-meter-bar{
 meter::-webkit-meter-optimum-value{
     background-color:#ffd477;
 }
-.buttonbar {
+.tool-bar {
     box-shadow: none;
     flex-basis: max-content;
     display: flex;
@@ -378,16 +378,16 @@ meter::-webkit-meter-optimum-value{
     align-content: center;
     backdrop-filter: blur(1px);
     box-sizing: border-box;
-    --buttonbar-element-border: #ffd477 solid 1px;
-    --buttonbar-concave-item-bg: rgba(0, 0, 0, 0.5);
-    --buttonbar-convex-item-bg: rgba(0, 0, 0, 0.5);
-    --buttonbar-active-item-bg: rgba(0, 0, 0, 0.5);
-    --buttonbar-border-radius: 0px;
+    --tool-bar-element-border: #ffd477 solid 1px;
+    --tool-bar-concave-item-bg: rgba(0, 0, 0, 0.5);
+    --tool-bar-convex-item-bg: rgba(0, 0, 0, 0.5);
+    --tool-bar-active-item-bg: rgba(0, 0, 0, 0.5);
+    --tool-bar-border-radius: 0px;
 }
 
-.menubar:is(.buttonbar),
-.navbar .buttonbar {
-    --buttonbar-convex-item-bg: rgba(0, 0, 0, 0.8)
+.menubar:is(.tool-bar),
+.navbar .tool-bar {
+    --tool-bar-convex-item-bg: rgba(0, 0, 0, 0.8)
 }
 
 .highlight, .highlight i {

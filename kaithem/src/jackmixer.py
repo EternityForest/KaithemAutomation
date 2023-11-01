@@ -21,7 +21,6 @@ import logging
 import copy
 import subprocess
 import os
-import time
 import traceback
 
 from . import (
@@ -37,6 +36,8 @@ from . import (
 from . import jackmanager, gstwrapper, mixerfx
 
 import threading
+
+direct_pw = True
 
 global_api = widgets.APIWidget()
 global_api.require("/users/mixer.edit")
@@ -257,7 +258,7 @@ class Recorder(gstwrapper.Pipeline):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
         self.src = self.addElement(
-            "jackaudiosrc",
+            "pipewire",
             port_pattern="fgfcghfhftyrtw5ew453xvrt",
             client_name="krecorder",
             connect=0,
@@ -321,18 +322,27 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.doingFeedbackCutoff = False
 
             if not input or not input.startswith("rtplisten://"):
-                self.src = self.addElement(
-                    "jackaudiosrc",
-                    buffer_time=10,
-                    latency_time=10,
-                    do_timestamp=True,
-                    port_pattern="fgfcghfhftyrtw5ew453xvrt",
-                    client_name=name + "_in",
-                    connect=0,
-                    slave_method=2,
-                )
+                if not direct_pw:
+                    self.src = self.addElement(
+                        "jackaudiosrc",
+                        buffer_time=10,
+                        latency_time=10,
+                        do_timestamp=True,
+                        port_pattern="fgfcghfhftyrtw5ew453xvrt",
+                        client_name=name + "_in",
+                        connect=0,
+                        slave_method=2,
+                        low_latency=True
+                    )
+                else:
+                    self.src = self.addElement('pipewiresrc',
+                                               blocksize=128,
+                                               client_name=name + "_in",
+                                               do_timestamp=True
+                                               )
+                    
                 self.capsfilter = self.addElement(
-                    "capsfilter", caps="audio/x-raw,channels=" + str(channels)
+                    "capsfilter", caps="audio/x-raw,channels=" + str(channels),
                 )
             else:
                 self.src = self.addElement("udpsrc", port=int(input.split("://")[1]))
@@ -448,17 +458,28 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 pattern = self.outputs[0]
 
             # TODO maybe we can use the low latency flag if we implement feature detection
-            self.sink = self.addElement(
-                "jackaudiosink",
-                buffer_time=10,
-                latency_time=10,
-                sync=False,
-                slave_method=2,
-                port_pattern=pattern,
-                client_name=self.name + "_out",
-                connect=0,
-                blocksize=self.channels * 128,
-            )
+            if not direct_pw:
+                self.sink = self.addElement(
+                    "jackaudiosink",
+                    buffer_time=10,
+                    latency_time=10,
+                    sync=False,
+                    slave_method=2,
+                    port_pattern=pattern,
+                    client_name=self.name + "_out",
+                    connect=0,
+                    blocksize=self.channels * 128,
+                    low_latency=True
+                )
+            else:
+                self.sink = self.addElement(
+                    'pipewiresink',
+                    client_name=self.name + "_out",
+                    blocksize=128,
+                    sync=False,
+                    mode=2,
+                )
+            
 
             # I think It doesn't like it if you start without jack
             if self.usingJack:
@@ -470,6 +491,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     return
                 
         self.start(timeout=wait)
+        # We unfortunately can't suppress auto connect in this version
+        jackmanager.disconnect_all_from(self.name+"_in")
+        jackmanager.disconnect_all_from(self.name+"_out")
+
 
     def connect(self, restore=[]):
         self._outputs = []
@@ -505,6 +530,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             except Exception:
                 log.exception("Failed to conneect airwire")
 
+
+        # do it here, after things are set up
+        self.faderTag.value = self.initialFader
+        self.setFader(self.faderTag.value)
+
+            
     def stop(self):
         self.stopMPVThread = None
         with self.lock:
@@ -603,8 +634,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 i["id"] = str(uuid.uuid4())
             if i["type"] == "fader":
                 self.fader = self.addElement("volume")
-                # We have to set it here and can't rely on the tagpoint, it only does anything on *changes*
-                self.fader.set_property("volume", 10 ** (float(d["fader"]) / 20))
+                # Set to 0 until all is set up\
+                self.initialFader = d['fader']
+                self.fader.set_property("volume", 0.0)
             # Special case this, it's made of multiple gstreamer blocks and also airwires
             elif i["type"] == "send":
                 self.addSend(
@@ -710,8 +742,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 if i.get("silenceMainChain", False):
                     self.addElement("volume", volume=0)
 
-        self.faderTag.value = d["fader"]
-        self.setFader(self.faderTag.value)
 
         self.setInput(d["input"])
         self.setOutputs(d["output"].split(","))

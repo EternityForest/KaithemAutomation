@@ -389,7 +389,7 @@ theme-item-animation-leave-active can work as a CSS class by itself, to animate 
 
 #### Buttonbar
 
-A div with class buttonbar filled with buttons, inputs, p, labels, headings, and links, produces the bars frequently seen
+A div with class tool-bar filled with buttons, inputs, p, labels, headings, and links, produces the bars frequently seen
 
   
 

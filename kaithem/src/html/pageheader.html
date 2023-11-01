@@ -23,7 +23,7 @@ import cherrypy,socket,base64
 
 
   <div id="kaithem-main-dropdown-panel" class="sectionbox top-navbar-dropdown" style="z-index: 5; display:none; position: absolute; left:2em; top:3em;width: 35wv;">
-    <div class="buttonbar">
+    <div class="tool-bar">
       <button onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='none'"><i class="icofont-ui-close"></i>Close</button>
     </div>
   <iframe  id="kaithem-main-dropdown-iframe" style="height: 80vh; width: 100%; max-height: 80vh;" height="80%"></iframe>
@@ -31,7 +31,7 @@ import cherrypy,socket,base64
 
 
 
-    <div class="buttonbar" style="position: relative;">
+    <div class="tool-bar" style="position: relative;">
       %if pages.canUserDoThis("/admin/mainpage.view"):
       <button style="flex-grow: 0" onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='block';document.getElementById('kaithem-main-dropdown-iframe').src='/dropdownpanel'">
         <i class="icofont-dotted-down"></i></button>

@@ -1,4 +1,4 @@
-@import "buttonbar.css";
+@import "tool-bar.css";
 
 /* Using a string */
 
@@ -248,7 +248,7 @@ h3:first-of-type {
 }
 
 
-.navbar .buttonbar a {
+.navbar .tool-bar a {
     text-align: center;
 }
 
@@ -441,12 +441,12 @@ a.button {
     display: inline-block;
 }
 
-.buttonbar {
-    --buttonbar-element-border: 1px solid rgba(136, 153, 190, 0.733);
+.tool-bar {
+    --tool-bar-element-border: 1px solid rgba(136, 153, 190, 0.733);
 }
 
 
-button, a.buttonbar{
+button, a.tool-bar{
     border-style: solid;
 }
 summary h2:first-child {
