@@ -32,7 +32,8 @@ ${{kaithem.web.freeboard(page, kwargs, plugins)}}
 
 
 defaulthtml = """
-<%def name="title()">{basename}</%def>
+<%inherit file="/pagetemplate.html" />
+<%block name="title">{basename}</%block>
 
 <main>
   <h2>{basename}</h2>
@@ -48,14 +49,20 @@ ${result}
 """
 
 vueApp = """
+<%inherit file="/pagetemplate.html" />
+<%block name="title">{basename}</%block>
+
+<main>
 <script src="/static/js/vue3.js"></script>
 
-<h2>{basename}</h2>
-<title>{basename}</title>
 
-<section>
-  <div id="app">\{\{message\}\}</div>
+<section id="app">
+<h2>{basename}</h2>
+
+\{\{message\}\}
 </section>
+
+</main>
 
 <script>
   const { createApp, ref } = Vue;

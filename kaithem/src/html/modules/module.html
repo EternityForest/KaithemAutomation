@@ -206,18 +206,18 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	  <dt>
         <div class="tool-bar style="display:inline-flex">
 
-<h3>
-          <a href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
+
+          <a aria-role="header" href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
             <i class="icofont-page"></i><b\
 	       %if i.startswith('__'):
 	       class="specialentry page"\
 	       %endif
-	       >${util.split_escape(i,'/','\\')[-1]|h}</a>
+	       >${util.split_escape(i,'/','\\')[-1]|h}</b>
+</a>
 		%if usrpages.getPageErrors(name,i):
 		<span class="danger">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
-    </b>
-</h3>
+          
 		<a class="button" href="${usrpages.url_for_resource(name,i)}"><i class="icofont-ui-play"></i>Go to page</a><a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
         </div>
     </dt>

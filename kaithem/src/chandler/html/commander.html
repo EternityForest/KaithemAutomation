@@ -164,24 +164,27 @@
                 <div style="height: 98%; text-align:center;">
                     <div style="flex-direction: column; display: flex; text-align: center;">
 
-                        <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==scenename}"
-                                v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
-                                {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span>
+                        <div class="tool-bar">
+                            <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==scenename}"
+                                    v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
+                                    {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span>
 
 
-                        <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
+                                    <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
 
 
-                        <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"
-                            v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i
-                                class="icofont-law-document"></i></span>
-                        <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0"
-                            title="This cue has rules attatched"
-                            v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i
-                                class="icofont-law-document"></i></span>
-                                <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                                    <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"
+                                        v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i
+                                            class="icofont-law-document"></i></span>
+                                    <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0"
+                                        title="This cue has rules attatched"
+                                        v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i
+                                            class="icofont-law-document"></i></span>
+                                    <cue-countdown :unixtime="unixtime" :scene="i[1]"
+                                        :cue="cuemeta[i[1].cue]"></cue-countdown>
 
-                        </button></h3>
+                                </button></h3>
+                        </div>
 
                         <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
@@ -215,8 +218,7 @@
                             <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </p>
 
-                        <small
-                            v-if="i[1].active&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext)">
+                        <small v-if="i[1].active&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext)">
                             Next Cue:
                             {{(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext||'').split('?')[0]}}
                         </small>
