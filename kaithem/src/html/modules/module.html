@@ -133,12 +133,11 @@ continue
 %if module[i]['resource-type'] == 'event':
 	  <dt>
         <div class="tool-bar style="display:inline-flex">
-    <h3>
 <a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
     <i class="icofont-flag-alt-1"></i><b>\
 
 
-${util.split_escape(i,'/','\\')[-1]|h}</a>\
+${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
 	       %if not module[i].get('enable',"True"):
 	       (disabled)
 	       %endif
@@ -147,8 +146,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a>\
            %except Exception as e:
            ${e|h}
            %endtry
-       </b>
-    </h3>
+       
 
 <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
 <a class="button" href="/modules/module/${url(name)}/runeventdialog/${url(i)}"><i class="icofont-ui-play"></i>Run Now</a>

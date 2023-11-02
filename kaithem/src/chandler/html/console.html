@@ -37,7 +37,7 @@ ${lists}
         border-color: rgba(0, 0, 0, 0.1);
         margin: 3px;
         float: left;
-        min-width: 15em;
+        min-width: 13.5em;
         min-height: 4em;
     }
 
@@ -952,7 +952,7 @@ ${lists}
                     Any
                     changes made here may be overwritten by the code at any time.</span>
 
-                <details open>
+                <details open class="undecorated">
                     <summary>Cue Channel Values</summary>
                     <p class="tool-bar">
                         <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
@@ -1017,7 +1017,7 @@ ${lists}
                 </details>
 
 
-                <details>
+                <details class="undecorated">
                     <summary><i class="icofont-law-document"></i>Cue Logic</summary>
 
                     <div style="overflow: auto; max-height:30em;" class="logicbox">
@@ -1098,7 +1098,7 @@ ${lists}
 
                 <div>
 
-                    <details>
+                    <details class="undecorated">
                         <summary>Cue Data</summary>
                         <div>
                             <textarea rows=50 cols=25 v-model="cuedatafield"
@@ -1110,7 +1110,7 @@ ${lists}
 
 
 
-                    <details>
+                    <details class="undecorated">
                         <summary>Cue Sound/Media</summary>
                         <div>
                             <div>
@@ -1316,7 +1316,7 @@ ${lists}
                     </details>
 
 
-                    <details>
+                    <details class="undecorated">
                         <summary>Cue Slides</summary>
                         <div>
                             <details class="help">
@@ -1415,13 +1415,13 @@ ${lists}
 
 
 
-                    <details>
+                    <details class="undecorated">
                         <summary>Cue Properties
                         </summary>
 
                         <div>
                             <h5>Basic</h5>
-                            <div class="labelbox">
+                            <fieldset>
                                 <label>Number
                                     <input type="number" title="Cue number" style="width:6em"
                                         v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
@@ -1477,8 +1477,9 @@ ${lists}
                                         v-model="cuemeta[currentcueid].notes" style="width:12em" min=0></input>
                                 </label>
 
-                                <div class="break"></div>
-                                <h5 style="flex-basis:100%">Sound</h5>
+                            </fieldset>
+                            <h5 style="flex-basis:100%">Sound</h5>
+                            <fieldset>
                                 <label v-if="showSoundControls">Soundfile
                                     <input placeholder="No sound file" v-model="currentcue.sound"
                                         title="File paths are resolved relative to any of the confg sound folders, searching all until a match is found"
@@ -1496,8 +1497,9 @@ ${lists}
                                         v-model="currentcue.rel_length"
                                         title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                                 </label>
-
-                                <h5 style="flex-basis:100%">Cue Advance</h5>
+                            </fieldset>
+                            <h5 style="flex-basis:100%">Cue Advance</h5>
+                            <fieldset>
                                 <label>Next Cue
                                     <div>
                                         <combo-box v-model="cuemeta[currentcueid].next"
@@ -1517,7 +1519,7 @@ ${lists}
                                     <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">
                                         {{i}}</option>
                                 </datalist>
-                            </div>
+                            </fieldset>
                         </div>
                     </details>
 
@@ -1525,7 +1527,7 @@ ${lists}
 
                 </div>
                 <h3>Global Scene Properties</h3>
-                <details>
+                <details class="undecorated">
                     <summary>Scene Notes</summary>
 
 
@@ -1537,7 +1539,7 @@ ${lists}
                     </div>
                 </details>
 
-                <details>
+                <details class="undecorated">
                     <summary>Scene Settings</summary>
 
                     <div>
@@ -1618,7 +1620,7 @@ ${lists}
                                 v-model="editingScene.crossfade"></input>s
                         </label>
 
-                        <details>
+                        <details class="undecorated">
                             <summary>MQTT Features</summary>
                             <label v-if="showAdvancedControls">MQTT Server:
                                 <input style="width:25em" v-on:change="setmqtt(scenename,$event.target.value)"
@@ -1802,7 +1804,7 @@ ${lists}
 
                 </details>
 
-                <details>
+                <details class="undecorated">
                     <summary>Event History</summary>
                     <div>
                         <button v-on:click="refreshhistory(scenename)">Refresh</button>

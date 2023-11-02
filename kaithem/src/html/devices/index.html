@@ -6,70 +6,6 @@ import os, gc
 from kaithem.src import directories
 import urllib.parse
 
-def url(u):
-    return urllib.parse.quote(u,safe='')
-
-def devStatString(d):
-    #TODO this should be the responsibility of the individual devices
-    "Misc status info that we can gather from the device typy"
-    s = []
-
-    if 'status' in d.tagPoints:
-        s.append(str(d.tagPoints['status']())[:32])
-
-
-    try:
-        if len(d.tagPoints) < 14:
-            for i in d.tagPoints:
-                if hasattr(d.tagPoints[i],'meterWidget'):
-                    if d.tagPoints[i].type == "number":
-                        s.append(d.tagPoints[i].meterWidget.render_oneline(label=i+": "))
-
-
-        else:
-            if 'rssi' in d.tagPoints:
-                s.append(d.tagPoints['rssi'].meterWidget.render_oneline(label="RSSI: "))
-            if 'battery' in d.tagPoints:
-                s.append(d.tagPoints['battery'].meterWidget.render_oneline(label="Battery: "))
-            if 'powered' in d.tagPoints:
-                s.append(d.tagPoints['powered'].meterWidget.render_oneline(label="Powered: "))
-
-            if 'switch' in d.tagPoints:
-                s.append(d.tagPoints['switch'].meterWidget.render_oneline(label="Switch: "))
-            if 'running' in d.tagPoints:
-                s.append(d.tagPoints['running'].meterWidget.render_oneline(label="Running: "))
-            if 'record' in d.tagPoints:
-                s.append(d.tagPoints['record'].meterWidget.render_oneline(label="Recording: "))
-            if 'temperature' in d.tagPoints:
-                s.append(d.tagPoints['temperature'].meterWidget.render_oneline(label="Temperature: "))
-            if 'humidity' in d.tagPoints:
-                s.append(d.tagPoints['humidity'].meterWidget.render_oneline(label="Humidity: "))
-            if 'uv_index' in d.tagPoints:
-                s.append(d.tagPoints['uv_index'].meterWidget.render_oneline(label="UV Index: "))
-            if 'wind' in d.tagPoints:
-                s.append(d.tagPoints['wind'].meterWidget.render_oneline(label="Wind: "))
-
-            if 'open' in d.tagPoints:
-                s.append(d.tagPoints['open'].meterWidget.render_oneline(label="Open: "))
-
-            if 'on' in d.tagPoints:
-                s.append(d.tagPoints['on'].meterWidget.render_oneline(label="On: "))
-
-            if 'leak' in d.tagPoints:
-                s.append(d.tagPoints['leak'].meterWidget.render_oneline(label="Leak: "))
-
-            
-    except Exception as e:
-        s.append(str(e))
-
-   
-
-    if hasattr(d,'pclient'):
-        s.append(" offline" if  deviceData[i]().pclient and deviceData[i]().pclient.remoteAddress==None else "")
-
-
-    return ''.join(['<div>'+i+"</div>" for i in s])
-    
 %>
 <script src="/static/widget.js"></script>
 
@@ -109,9 +45,8 @@ else:
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
 <hr style="width: 100%;">
 %endif
-<div class="sectionbox" style="${greyout} margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
+<article class="sectionbox" style="${greyout} margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         
-    <div class="tool-bar">
         <h3
             title="${devObj.deviceTypeName}"
 
@@ -119,7 +54,8 @@ else:
             class="highlight specialentry"
             %endif
 
-        >
+        >    <div class="tool-bar">
+
             <a href="device/${url(i)}/manage">${devObj.title|h}
 
                 %if len(devObj.errors):
@@ -135,7 +71,6 @@ else:
 
             
 
-        </h3>
           
 
         %if 'switch' in devObj.tagpoints:
@@ -155,7 +90,9 @@ else:
         %endif
 
 
-    </div>
+    </div>        
+</h3>
+
         %if 'color' in devObj.tagpoints and devObj.tagpoints['color'].subtype=='color':
 
         <div class="tool-bar">
@@ -195,7 +132,7 @@ else:
     </p>
     %endif
     
-    </div>
+    </article>
 
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
 %for j in devObj.subdevices:

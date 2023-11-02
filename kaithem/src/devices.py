@@ -29,6 +29,7 @@ import cherrypy
 import copy
 import asyncio
 from typing import Dict, Optional, Union, Any, Callable
+import urllib.parse
 
 from . import pages, workers, tagpoints, alerts
 from . import persist, directories, messagebus, widgets, unitsofmeasure
@@ -57,9 +58,9 @@ driversLocation = os.path.join(directories.vardir, "devicedrivers")
 recent_scanned_tags = {}
 
 
-def log_scanned_tag(v:str, *args):
+def log_scanned_tag(v: str, *args):
     recent_scanned_tags[v] = time.time()
-    if len(recent_scanned_tags)>15:
+    if len(recent_scanned_tags) > 15:
         recent_scanned_tags.pop(next(iter(recent_scanned_tags)))
 
 
@@ -79,10 +80,10 @@ dbgd = weakref.WeakValueDictionary()
 def closeAll(*a):
     for i in list(remote_devices_atomic.keys()):
         try:
-            c= remote_devices_atomic[i]
+            c = remote_devices_atomic[i]
         except KeyError:
             continue
-        c= c()
+        c = c()
         if c:
             c.close()
 
@@ -495,9 +496,10 @@ class Device():
             if v[2] is not None:
                 self.tagPoints[v[1]].value = v[2]
 
-        if v[0] == 'fake':                
+        if v[0] == 'fake':
             if v[2] is not None:
-                self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(v[2], "faked", priority=50.5)
+                self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(
+                    v[2], "faked", priority=50.5)
 
             else:
                 if hasattr(self.tagPoints[v[1]], "_k_ui_fake"):
@@ -1193,7 +1195,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
             do = False
             with open(os.path.join(fl, i2), "r") as f:
-                if not f.read()==kwargs[i]:
+                if not f.read() == kwargs[i]:
                     do = True
 
             if do:
@@ -1236,6 +1238,77 @@ def updateDevice(devname, kwargs, saveChanges=True):
         messagebus.postMessage("/devices/added/", name)
 
 
+def url(u):
+    return urllib.parse.quote(u, safe='')
+
+
+def devStatString(d):
+    # TODO this should be the responsibility of the individual devices
+    "Misc status info that we can gather from the device typy"
+    s = []
+
+    if 'status' in d.tagPoints:
+        s.append(str(d.tagPoints['status']())[:32])
+
+    try:
+        if len(d.tagPoints) < 14:
+            for i in d.tagPoints:
+                if hasattr(d.tagPoints[i], 'meterWidget'):
+                    if d.tagPoints[i].type == "number":
+                        s.append(d.tagPoints[i].meterWidget.render_oneline(
+                            label=i + ": "))
+
+        else:
+            if 'rssi' in d.tagPoints:
+                s.append(d.tagPoints['rssi'].meterWidget.render_oneline(
+                    label="RSSI: "))
+            if 'battery' in d.tagPoints:
+                s.append(d.tagPoints['battery'].meterWidget.render_oneline(
+                    label="Battery: "))
+            if 'powered' in d.tagPoints:
+                s.append(d.tagPoints['powered'].meterWidget.render_oneline(
+                    label="Powered: "))
+
+            if 'switch' in d.tagPoints:
+                s.append(d.tagPoints['switch'].meterWidget.render_oneline(
+                    label="Switch: "))
+            if 'running' in d.tagPoints:
+                s.append(d.tagPoints['running'].meterWidget.render_oneline(
+                    label="Running: "))
+            if 'record' in d.tagPoints:
+                s.append(d.tagPoints['record'].meterWidget.render_oneline(
+                    label="Recording: "))
+            if 'temperature' in d.tagPoints:
+                s.append(d.tagPoints['temperature'].meterWidget.render_oneline(
+                    label="Temperature: "))
+            if 'humidity' in d.tagPoints:
+                s.append(d.tagPoints['humidity'].meterWidget.render_oneline(
+                    label="Humidity: "))
+            if 'uv_index' in d.tagPoints:
+                s.append(d.tagPoints['uv_index'].meterWidget.render_oneline(
+                    label="UV Index: "))
+            if 'wind' in d.tagPoints:
+                s.append(d.tagPoints['wind'].meterWidget.render_oneline(
+                    label="Wind: "))
+
+            if 'open' in d.tagPoints:
+                s.append(d.tagPoints['open'].meterWidget.render_oneline(
+                    label="Open: "))
+
+            if 'on' in d.tagPoints:
+                s.append(
+                    d.tagPoints['on'].meterWidget.render_oneline(label="On: "))
+
+            if 'leak' in d.tagPoints:
+                s.append(d.tagPoints['leak'].meterWidget.render_oneline(
+                    label="Leak: "))
+
+    except Exception as e:
+        s.append(str(e))
+        
+    return ''.join(['<div>' + i + "</div>" for i in s])
+
+
 class WebDevices():
     @cherrypy.expose
     def index(self):
@@ -1244,7 +1317,7 @@ class WebDevices():
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         return pages.get_template("devices/index.html").render(
-            deviceData=remote_devices_atomic)
+            deviceData=remote_devices_atomic, devStatString=devStatString, url=url)
 
     @cherrypy.expose
     def device(self, name, *args, **kwargs):

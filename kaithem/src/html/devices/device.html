@@ -121,7 +121,7 @@ specialKeys={
 
 <details>
 <summary>
-<h2>Basic</h2>
+<b>Basic</b>
 </summary>
 <table border="1"  style="width:100%">
 
@@ -153,7 +153,7 @@ specialKeys={
 
 %if hasattr(obj,"device_type") and obj.device_type == "ESPHomeDevice":
 <details>
-        <summary><h2>ESPHome Web UI</h2></summary>
+        <summary><b>ESPHome Web UI</b></summary>
         Only works if this page is loaded over plain HTTP, due to browser restrictions.
         Use the <a href="http://${data.get('device.hostname','')}">Direct link</a> if the embedded viewer fails.
         <iframe src="http://${data.get('device.hostname','')}"   class="embedpage" style="width: 98%; height: 30em;"></iframe>
@@ -162,7 +162,7 @@ specialKeys={
 
 <details>
         <summary>
-        <h2>Notes</h2>
+        <b>Notes</b>
         </summary>
         <details class="help"><summary><i class="icofont-question-circle"></i></summary>The notes do not show up in the main devices list. Use it to make your devices more self-describing without
                 cluttering the overview page.
@@ -174,7 +174,7 @@ specialKeys={
 
 <details>
         <summary>
-<h2><i class="icofont-question-circle"></i>Help</h2>
+<b><i class="icofont-question-circle"></i>Help</b>
 </summary>
 %if hasattr(obj,'description') and obj.description:
 
@@ -211,7 +211,7 @@ ${obj.readme|h}
 <details>
 
 <summary>
-<h2><i class="icofont-link"></i>Bindings(${len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[])) })</h2>
+<b><i class="icofont-link"></i>Bindings(${len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[])) })</b>
 </summary>
 
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
@@ -248,7 +248,7 @@ ${json.dumps(data.get('kaithem.output_bindings',[])) or '[]'|h}
 <details>
 
 <summary>
-<h2><i class="icofont-ui-settings"></i>Settings</h2>
+<b><i class="icofont-ui-settings"></i>Settings</b>
 </summary>
 
 %try:
@@ -337,7 +337,7 @@ Currently this is only supported for the newer cross-framework devices.
 
 <details>
 <summary>
-<h2><i class="icofont-ui-text-chat"></i>Alerts</h2>
+<b><i class="icofont-ui-text-chat"></i>Alerts</b>
 </summary>
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>This section lists all alerts supported by the device.
 </details>
@@ -381,9 +381,9 @@ Currently this is only supported for the newer cross-framework devices.
 
 %if hasattr( obj,"text_config_files"):
 %for i in obj.text_config_files:
-<details open>
+<details>
         <summary>
-        <h2><i class="icofont-file-alt"></i>${i|h}</h2>
+        <b><i class="icofont-file-alt"></i>${i|h}</b>
         </summary>
 <textarea data-editor="${i.split('.')[-1]}" style="height: 40em; width:90%;" name="filedata.${i}">${read(obj.get_config_folder()+"/"+i)|h}</textarea>
 </details>
@@ -394,7 +394,7 @@ Currently this is only supported for the newer cross-framework devices.
 %if obj.get_config_folder(create=False):
 <details>
         <summary>
-        <h2><i class="icofont-file-alt"></i>Config Folder</h2>
+        <b><i class="icofont-file-alt"></i>Config Folder</b>
         </summary>
 <a class="button" href="/settings/files/${url(obj.get_config_folder())}"><i class="icofont-ui-folder"></i>Browse</a>
 </details>
@@ -406,7 +406,7 @@ Currently this is only supported for the newer cross-framework devices.
 %if hasattr(obj,'metadata') and obj.metadata:
 <details>
 <summary>
-<h2><i class="icofont-ui-text-chat"></i>Metadata</h2>
+<b><i class="icofont-ui-text-chat"></i>Metadata</b>
 </summary>
 <table border="1" style="width:100%">
 <tr><th>Name</th><th>Value</th></tr>
@@ -426,7 +426,7 @@ Currently this is only supported for the newer cross-framework devices.
 %endif
 </details>
 
-<h2><i class="icofont-chart-flow-2"></i>Tag Points</h2>
+<b><i class="icofont-chart-flow-2"></i>Tag Points</b>
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>This section lists all the tag points owned.  Controls do not work if
         the tag has been overriden by some high priority claim.
 </details>

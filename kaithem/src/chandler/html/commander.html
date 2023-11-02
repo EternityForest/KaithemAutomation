@@ -156,7 +156,7 @@
 
 
         <div id="scene" style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
-            <div v-for="i in formatScenes()" v-if="i"
+            <article v-for="i in formatScenes()" v-if="i"
                 style="position:relative;display:flex-item; flex: 1; margin: 0.4em; padding: 0.4em; max-height: 420px; max-width: 400px; min-width: 180px;"
                 v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
@@ -257,7 +257,7 @@
                 </div>
 
 
-            </div>
+            </article>
         </div>
 
     </div>
@@ -274,7 +274,7 @@
 
             <div style="display:flex; flex-wrap:wrap; flex-direction: row;">
 
-                <div v-for="i in formatCues(1)" v-if="i[1].id"
+                <article v-for="i in formatCues(1)" v-if="i[1].id"
                     style="margin: 0.8em; padding: 0.4em; display: flex; flex-direction: column; min-height: 8em;"
                     v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
 
@@ -301,7 +301,7 @@
 
                     <div v-if="i[1].notes.length>0" style="max-width: 10em;">({{i[1].notes}})</div>
 
-                </div>
+                </article>
 
             </div>
 
