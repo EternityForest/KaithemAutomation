@@ -23,6 +23,8 @@ import subprocess
 import os
 import traceback
 
+from .scullery import iceflow
+
 from . import (
     widgets,
     messagebus,
@@ -53,6 +55,24 @@ presetsDir = os.path.join(directories.mixerdir, "presets")
 recorder = None
 
 
+class DummySource(iceflow.GStreamerPipeline):
+    "Nasty hack. When gstreamer is disconnected it stops.  So we have a special silent thing to always connect to"
+    def __init__(self):
+        iceflow.GStreamerPipeline.__init__(self)
+        self.addElement('audiotestsrc', volume=0)
+        self.addElement('pipewiresink', client_name="SILENCE")
+
+
+try:
+    ds = DummySource()
+    ds.start()
+    for i in range(25):
+        if [i.name for i in jackmanager.getPorts() if i.name.startswith("SILENCE")]:
+            break
+        time.sleep(0.1)
+except Exception:
+    log.exception("Dummy source")
+    
 
 def replaceClientNameForDisplay(i):
     x = i.split(":")[0]
@@ -258,7 +278,7 @@ class Recorder(gstwrapper.Pipeline):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
         self.src = self.addElement(
-            "pipewire",
+            "jackaudiosrc",
             port_pattern="fgfcghfhftyrtw5ew453xvrt",
             client_name="krecorder",
             connect=0,
@@ -292,7 +312,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     ):
         try:
             self.name = name
-            gstwrapper.Pipeline.__init__(self, name, realtime=70)
+            gstwrapper.Pipeline.__init__(self, name)
             self.board = board
             self.levelTag = tagpoints.Tag("/jackmixer/channels/" + name + ".level")
             self.levelTag.min = -90
@@ -336,9 +356,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     )
                 else:
                     self.src = self.addElement('pipewiresrc',
-                                               blocksize=128,
+                                               blocksize=512,
                                                client_name=name + "_in",
-                                               do_timestamp=True
+                                               do_timestamp=True,
+                                               always_copy=True
                                                )
                     
                 self.capsfilter = self.addElement(
@@ -386,7 +407,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         except Exception:
             print(traceback.format_exc())
             # Ensure fully cleaned up if any failure
-            self.stop()
+            try:
+                self.stop()
+            except Exception:
+                raise
             raise
 
     def mpv_input_loop(self):
@@ -492,8 +516,27 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 
         self.start(timeout=wait)
         # We unfortunately can't suppress auto connect in this version
+        # use this hack.  Wait till ports show up then disconnect.
+        for i in range(25):
+            if [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_in:")]:
+                break
+            time.sleep(0.1)
+
+        for i in range(25):
+            if [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_out:")]:
+                break
+            time.sleep(0.1)
+
+        self.silencein = jackmanager.Airwire('SILENCE', self.name+"_in")
+        self.silencein.connect()
+
         jackmanager.disconnect_all_from(self.name+"_in")
         jackmanager.disconnect_all_from(self.name+"_out")
+
+        # do it here, after things are set up
+        self.faderTag.value = self.initialFader
+        self.setFader(self.faderTag.value)
+        self.setFader(self.faderTag.value)
 
 
     def connect(self, restore=[]):
@@ -529,12 +572,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.sendAirwires[i].connect()
             except Exception:
                 log.exception("Failed to conneect airwire")
-
-
-        # do it here, after things are set up
-        self.faderTag.value = self.initialFader
-        self.setFader(self.faderTag.value)
-
             
     def stop(self):
         self.stopMPVThread = None
@@ -1163,7 +1200,7 @@ class MixingBoard:
                 p.addLevelDetector()
                 p.finalize(wait)
 
-                p.connect(restore=backup)
+                #p.connect(restore=backup)
                 self.pushStatus(name, "running")
             except Exception:
                 if p:

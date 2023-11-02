@@ -441,6 +441,7 @@ _realConnections = {}
 
 
 def findReal():
+    global realConnections, _realConnections
     with lock:
         p = _jackclient.get_ports(is_output=True)
         pl = {}
@@ -450,7 +451,6 @@ def findReal():
                     pl[i.name, j.name] = True
             except Exception:
                 log.exception("Err")
-        global realConnections, _realConnections
         with portsListLock:
             _realConnections = pl
             realConnections = _realConnections.copy()
@@ -867,7 +867,7 @@ def stopManaging():
             pass
         _reconnecterThreadObject = None
 
-postedCheck = False
+postedCheck = True
 
 firstConnect = False
 
@@ -888,7 +888,6 @@ def _checkJackClient(err=True):
 
             if not postedCheck:
                 postedCheck = True
-                messagebus.postMessage("/system/jack/started", "")
 
             return True
         except Exception:
@@ -1030,6 +1029,10 @@ def disconnect(f, t):
                 if isinstance(t, PortInfo):
                     t = t.name
 
+                # Horrid hack to keep dummy connections around to not make gst stop
+                if "SILENCE" in f:
+                    return
+
                 # This feels race conditionful but i think it is important so that we don't try to double-disconnect.
                 # Be defensive with jack, the whole thing seems britttle
                   # Let other side handle figuring out which is which
@@ -1038,6 +1041,7 @@ def disconnect(f, t):
                     # We must make a new one and retry should this ever happen
                     try:
                         _jackclient.disconnect(f, t, timeout=5)
+                        #subprocess.check_call(['pw-jack', 'jack_disconnect', f, t])
                         break
                     except TimeoutError:
                         if (i % 6) == 5:
@@ -1068,7 +1072,8 @@ def disconnect(f, t):
 
 def disconnect_all_from(p: str):
     "Disconnect everything to do wth given port"
-    for i in realConnections:
+    findReal()
+    for i in list(realConnections.keys()):
         if i[0] == p or i[0].startswith(p+':'):
             disconnect(*i)
         elif i[1] == p or i[1].startswith(p+':'):

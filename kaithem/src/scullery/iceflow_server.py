@@ -1248,6 +1248,9 @@ class GStreamerPipeline():
                 value = Gst.Caps(value)
                 self.weakrefs[str(value)] = value
 
+            if prop.startswith("_"):
+                prop = prop[1:]
+                
             prop = prop.replace("_", "-")
 
             prop = prop.split(":")

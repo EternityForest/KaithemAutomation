@@ -218,7 +218,7 @@ class GStreamerPipeline:
         self.lock = threading.RLock()
         env = {}
         env.update(os.environ)
-        env["GST_DEBUG"] = "0"
+        env["GST_DEBUG"] = "*:1"
 
         self.rpc = None
         if which("kaithem._iceflow_server") and False:
@@ -237,6 +237,9 @@ class GStreamerPipeline:
         self.rpc = RPC(
             target=self, stdin=self.worker.stdout, stdout=self.worker.stdin, daemon=True
         )
+        # We have no way of knowing when it's actually ready and listening for commands if gstreamer
+        # needs to load
+        time.sleep(1)
 
     def print(self, s):
         print(s)

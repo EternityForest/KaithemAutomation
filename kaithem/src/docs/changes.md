@@ -28,7 +28,10 @@ best reliability.
 - :coffin: Remove old jackd2 stuff 
 - :coffin: Remove embedded python3 docs
 - :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
-- :sparkles: The tool-bar CSS class has been changed to tool-bar
+- :sparkles: The buttonbar CSS class has been changed to tool-bar
+- :coffin: Remove embedded python3 docs
+- :sparkles: jackmixer now uses pipewire directly
+
 
 ### 0.69.20
 
