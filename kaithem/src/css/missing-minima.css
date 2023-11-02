@@ -1,0 +1,79 @@
+@import "missing.min.css";
+/*@import "tool-bar.css";*/
+
+/* Using a string */
+
+@import "/static/fonts/icofont/icofont.min.css";
+
+summary h2:first-child,summary h3:first-child, summary h4:first-child {
+    display: inline;
+   }
+
+tool-bar *, tool-bar form{
+    display: inline-block;
+}
+
+[class^=icofont-]{
+    margin: 4px;
+}
+
+
+:root{
+    --line-length: 90rem;
+    --border-radius: 1em;
+}
+
+header{
+    --eff-line-length: 75rem;
+}
+
+/*Hide unless set to something*/
+.decorative-image{
+    display: none;
+}
+
+article, section{
+    border-radius: var(--border-radius);
+    border: 1px solid;
+    border-color: var(--graphical-fg);
+    padding: calc(var(--gap) / 3);
+    margin: calc(var(--gap) / 2);
+}
+
+button{
+    border-radius: 2em;
+    padding: calc(var(--rhythm)/4);
+}
+
+.undecorated{
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    backdrop-filter: none;
+}
+
+.tool-bar > :is(h1,h2,h3,h4,h5,h6){
+    margin-top: 0px;
+}
+
+/* Firefox */
+*{
+    scrollbar-width: auto;
+    scrollbar-color: var(--graphical-fg) var(--interactive-bg);
+}
+
+/* Other browsers */
+*::-webkit-scrollbar{
+    width: 11px;
+}
+
+*::-webkit-scrollbar-track{
+    background: var(--interactive-bg);
+    border-radius:  var(--border-radius);
+}
+
+*::-webkit-scrollbar-thumb{
+    background-color:  var(--graphical-fg);
+    border-radius:  var(--border-radius);
+    border: none;
+}
