@@ -92,11 +92,15 @@ Kaithem does not support advanced audio features on anything other than pipewire
 Out of the box, JACK apps might not work on Ubuntu. Try:
 ```bash
 sudo make root-use-pipewire-jack
-make user-restart-pipewire
 ```
+
+And then rebooting. In theory you can just restart the services, but it seems to need a reboot to take effect.
+
 This will make ALL jack apps go through pipewire, you won't ever need to launch jackd.
 I'm not sure why you would ever want to use the original JACK server, so this shouldn't cause any issues.
 
+Unfortunately, it doesn't work on pi, you'll need to prefix stuff that should use jack with pw-jack.
+Kaithem's installer does this automatically.
 
 ### Sound Too Quiet?
 

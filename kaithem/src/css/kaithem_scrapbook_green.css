@@ -1,3 +1,4 @@
+@import "missing.min.css";
 @import "kaithem_minimal.css";
 
 /* Using a string */
@@ -5,6 +6,9 @@
 @import "kaithem_fuge_icons.css";
 @import "kaithem_animations.css";
 
+:root{
+    --line-length: 95vw;
+}
 /* Using a string */
 
 html {
