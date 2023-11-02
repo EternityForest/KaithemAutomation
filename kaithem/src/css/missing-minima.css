@@ -1,4 +1,4 @@
-@import "missing.min.css";
+@import "picnic.min.css";
 /*@import "tool-bar.css";*/
 
 /* Using a string */
@@ -34,10 +34,7 @@ header{
 
 article, section{
     border-radius: var(--border-radius);
-    border: 1px solid;
     border-color: var(--graphical-fg);
-    padding: calc(var(--gap) / 3);
-    margin: calc(var(--gap) / 2);
 }
 
 button{
@@ -56,6 +53,16 @@ button{
     margin-top: 0px;
 }
 
+.tool-bar {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 0.8em;
+}
+
+.tool-bar *{
+    height: 2em;
+}
 /* Firefox */
 *{
     scrollbar-width: auto;

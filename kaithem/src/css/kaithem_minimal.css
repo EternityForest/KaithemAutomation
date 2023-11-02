@@ -2,6 +2,10 @@
 /* Using a string */
 @import "/static/fonts/icofont/icofont.min.css";
 
+:root{
+    --graphical-fg: rgba(36, 30, 30, 0.219);
+}
+
 /*****************Typography****************************/
 /* lora-regular - latin_cyrillic_latin-ext_cyrillic-ext */
 /*https://allthingssmitty.com/2016/10/03/responsive-table-layout/*/
@@ -162,7 +166,7 @@ h3 a.button {
 
 td input,
 td select {
-    border: 1px solid;
+    border: 1px solid var(--graphical-fg);
     box-sizing: border-box;
     margin: 0px;
     height: 1.8em;
@@ -252,7 +256,7 @@ dialog {
     top: 50%;
     bottom: 50%;
     border: 3px solid;
-    border-color: inherit;
+    border-color: var(--graphical-fg);
     z-index: 1000;
 }
 
@@ -312,7 +316,7 @@ details {
     border: 1px solid;
     padding-left: 0.4em;
     border-radius: 0.8em;
-    border-color: inherit;
+    border-color: var(--graphical-fg);
 }
 
 details.help {
@@ -360,7 +364,7 @@ td details {
 
 /*A link styled to look like a button*/
 a.button {
-    border-color: rgba(36, 30, 30, 0.219);
+    border-color: var(--graphical-fg);
     text-decoration: none;
     border: 1px solid;
     color: #000000;
@@ -416,7 +420,7 @@ iframe {
 table {
     border-style: solid;
     border-width: 1px;
-    border-color: #00000059;
+    border-color: var(--graphical-fg);
     border-collapse: collapse;
     margin: 0.4em;
 }
@@ -567,26 +571,33 @@ div.k-laterality-reminder-right:hover {
     overflow-x: auto;
 }
 
+header{
+    border-radius: 0px 0px inherit inherit;
+}
+
+header{
+    border-radius: inherit inherit 0px 0px;
+}
+
+
 article>header, section>header, .card>header,
 article>footer, section>footer, .card>footer
 {
     background-color: #d0d0d036;
-    border-bottom: 1px solid;
     width: 100%;
     padding: 0.6em;
-    border-radius: inherit;
     box-sizing: border-box;
     margin: 0px;
 }
+
 article>header, section>header, .card>header
 {
     box-sizing: border-box;
+    border-bottom: 1px solid var(--graphical-fg);
 }
 article>footer, section>footer, .card>footer
 {
-    border-top: 1px solid;
-    margin: 0px;
-    width: 100%;
+    border-top: 1px solid var(--graphical-fg);
 }
 
 article:has(header){

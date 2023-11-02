@@ -239,37 +239,41 @@ ${lists}
         </header>
         <div style="overflow: auto; max-height:450px;">
             <article v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;"
-                v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
-                <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"
-                    style="font-weight:bold; width: 100%">
+                <header>
+                    <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"
+                        style="font-weight:bold; width: 100%">
 
-                    <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext" class="grey">
-                        (external)</span>
-
-
-                    <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
-                    <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
-                    <i class="icofont-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
+                        <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext" class="grey">
+                            (external)</span>
 
 
-                    <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"
-                        v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
-                            class="icofont-law-document"></i></span>
-                    <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0"
-                        title="This cue has rules attatched" v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
-                            class="icofont-law-document"></i></span>
-                </button>
-                <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
+                        <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
+                        <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
+                        <i class="icofont-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
 
 
-                <p class="tool-bar" v-if="!i[1].utility">
-                    <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
-                            class="icofont-ui-play"></i>Go!</button>
-                    <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
-                    <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
-                    <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i>Stop</button>
-                </p>
+                        <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"
+                            v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
+                                class="icofont-law-document"></i></span>
+                        <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0"
+                            title="This cue has rules attatched"
+                            v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
+                                class="icofont-law-document"></i></span>
+                    </button>
+                    <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
+
+
+                    <p class="tool-bar" v-if="!i[1].utility">
+                        <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
+                                class="icofont-ui-play"></i>Go!</button>
+                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
+                        <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
+                        <button class="stopbutton" v-on:click="stop(i[0])"><i
+                                class="icofont-ui-play-stop"></i>Stop</button>
+                    </p>
+                </header>
                 <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
                 <p class="tool-bar" v-if="i[1].eventButtons.length > 0">
@@ -303,20 +307,23 @@ ${lists}
                     </tr>
                 </table>
 
+                
                 <div style="display:flex; width: 100%">
                     <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                     <small><span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
                                 class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
                 </div>
 
-                <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue:
-                    {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}</span>
+                <footer>
 
-                <small v-if="i[1].priority!=50">Priority:<b>{{i[1].priority}}</b></small>
-                <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
-                <small
-                    v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
+                    <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue:
+                        {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}</span>
 
+                    <small v-if="i[1].priority!=50">Priority:<b>{{i[1].priority}}</b></small>
+                    <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
+                    <small
+                        v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
+                </footer>
             </article>
         </div>
 
@@ -789,37 +796,37 @@ ${lists}
         <section class="flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
             style="display:inline-block; max-width:90em; resize:both; overflow:auto; flex-grow: 5;">
             <header>
-            <div style="display: flex; flex-direction: row;">
+                <div style="display: flex; flex-direction: row;">
 
-                <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
-                        <span v-if="editingScene.blend=='monitor'">Monitor</span>
-                        {{editingScene.name}}</span>
-                    <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-                </h3>
+                    <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
+                            <span v-if="editingScene.blend=='monitor'">Monitor</span>
+                            {{editingScene.name}}</span>
+                        <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                    </h3>
+
+                    <p class="tool-bar">
+                        <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
+                        <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
+                        <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
+                        <button class="stopbutton" v-on:click="stop(scenename)"><i
+                                class="icofont-ui-play-stop"></i>Stop</button>
+                        <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+                    </p>
+
+                    <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
+
+
+                </div>
+
 
                 <p class="tool-bar">
-                    <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
-                    <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
-                    <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
-                    <button class="stopbutton" v-on:click="stop(scenename)"><i
-                            class="icofont-ui-play-stop"></i>Stop</button>
-                    <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+                    <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
+                        title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
+
+                    <input v-model="cuefilter" placeholder="Search Cues" />
+                    <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
                 </p>
-
-                <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
-
-
-            </div>
-
-
-            <p class="tool-bar">
-                <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
-                    title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
-
-                <input v-model="cuefilter" placeholder="Search Cues" />
-                <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
-            </p>
-        </header>
+            </header>
 
 
             <div id="cuesbox">
