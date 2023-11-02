@@ -198,8 +198,7 @@ div.kmainpagebody {}
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
-div.sectionbox,
-section {
+.sectionbox, section{
     border-style: solid;
     background: var(--box-bg);
     border-width: 1px;
@@ -210,15 +209,14 @@ section {
     padding-bottom: 0.5%;
     padding-right: 1%;
     padding-left: 0.5%;
+    box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.7)
 }
 
 
-div.card {
+div.card, article {
     border-style: solid;
-    background: bl var(--box-bg);
     border-width: 1px;
     border-radius: 15px;
-    backdrop-filter: blur(1px);
     border-color: #00000011;
     padding-top: 0.2%;
     padding-bottom: 0.5%;
@@ -261,11 +259,6 @@ section.fancy section{
 
     backdrop-filter: unset;
     box-shadow: unset;
-}
-
-div.sectionbox,
-section {
-    box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.7)
 }
 
 

@@ -1,4 +1,4 @@
-<%include file="/pageheader.html" />
+<%inherit file="/pagetemplate.html" />
 
 ${lists}
 
@@ -20,7 +20,7 @@ ${lists}
     <option>@2:30PM every Friday</option>
 </datalist>
 
-<title>Chandler Console</title>
+<%block name="title">Chandler Editor</%block>
 
 
 <style>
@@ -125,8 +125,7 @@ ${lists}
         }
     }
 
-    .multibar > *
-    {
+    .multibar>* {
         display: inline-flex;
     }
 </style>
@@ -177,42 +176,8 @@ ${lists}
 
 
 </script>
-
-<div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
-    <section v-if="showevents" class="flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
-        <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
-            Log
-        </h2>
-        <input v-model="evfilt" placeholder="Filter events"><label>Autoscroll<input type="checkbox"
-                v-model="eventlogautoscroll"></label><br>
-        <div class="scrollbox" id="eventlogbox" style="height:6em">
-            <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b> at
-                {{i[1]}}:
-
-                <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
-                <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
-                <pre v-if="i[4]">{{i[4]}}</pre>
-            </div>
-        </div>
-
-        <label>Send Global Event:
-            <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
-        </label>
-
-        <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
-
-        <select v-model="evtypetosend">
-            <option value="int">Integer</option>
-            <option value="float">Real Number</option>
-            <option value="str">Text</option>
-        </select>
-
-        <button v-on:click="sendev('__global__')">Send</button>
-    </section>
-
-
-    <div id="optionsblock" class="multibar" style="flex-basis: 98%">
+<div id="app" style="display: flex; flex-wrap: wrap;">
+    <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
         <div class="menubar tool-bar">
 
@@ -249,405 +214,9 @@ ${lists}
                     class="icofont-tick-mark"></i>Send Events</button>
         </div>
 
-    </div>
-
-
-    <datalist id="serports">
-        <option v-for="i of serports" v-bind:value="i"></option>
-    </datalist>
-
-
-
-
-
-    <section v-if="showimportexport" class="flex-item">
-        <h3>Import/Export controls</h3>
-        <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
-            <a class="button" href="download" title="Download your scenes as a file"><i
-                    class="icofont-diskette"></i>Scenes</a>
-            <a class="button" href="downloadSetup" title="Download your scenes as a file"><i
-                    class="icofont-diskette"></i>Setup</a>
-            <a class="button" href="downloadLibrary" title="Download your scenes as a file"><i
-                    class="icofont-diskette"></i>Fixture Lib</a>
-        </div>
-
-        <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Upload:</b>
-            <a class="button" href="upload" title="Upload a scenes file"><i class="icofont-folder-open"></i>Scenes</a>
-            <a class="button" href="uploadSetup" title="Upload a scenes file"><i
-                    class="icofont-folder-open"></i>Setup</a>
-            <a class="button" href="uploadLibrary" title="Upload a scenes file"><i
-                    class="icofont-folder-open"></i>Fixture Lib</a>
-        </div>
     </section>
 
 
-
-
-
-    <section v-if="showPresets" class="flex-item" style="width: 32em;">
-        <h3>Presets<button v-on:click="showPresets=0">
-                <i class="icofont-ui-close"></i>Close</button>
-        </h3>
-        <details class="help">
-            <summary>Help</summary>
-            A preset is a set of values that may be quickly applied to any feature.
-            Create them in the cue values section. They are loaded and saved with the "setup" file.
-            Empty fields in a preset have no effect, they leave that value alone, so you can, for example,
-            make a preset that sets the color without setting the XY values.
-        </details>
-        <dl>
-            <template v-for="ps, i of dictView(presets,[])">
-                <dt>
-                    <div class="tool-bar">
-                        <h4>{{ps[0]}}</h4>
-                        <button v-on:click="deletePreset(ps[0])"><i class="icofont-trash"></i>Delete</button>
-                        <button v-on:click="renamePreset(ps[0])"><i class="icofont-pencil"></i>Rename</button>
-                    </div>
-                </dt>
-                <dd style="display: flex; flex-wrap: wrap;">
-                    <label v-for="val, field of ps[1]">
-                        {{field}}<input v-model="ps[1][field]"
-                            v-on:change="ps[1][field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
-                    </label>
-                </dd>
-            </template>
-
-        </dl>
-    </section>
-
-    <div v-if="showDMXSetup" class="sectionbox flex-item">
-        <h3>
-            <button v-on:click="showDMXSetup=0">
-                <i class="icofont-ui-close"></i>Close</button> Universe Setup
-        </h3>
-        <details class="help">
-            <summary><i class="icofont-question-circle"></i></summary>These settings take effect immediately when you
-            click "Update Settings". To save them to disk,
-            use "save setup" Note: Configuring these universes requires /admin/settings.edit,
-            however you do not need that permission to use the lightboard after it's configured.
-        </details>
-        <button v-on:click="refreshPorts">Refresh Serial Ports</button>
-        <button v-on:click="pushSettings">Update Settings</button><br>
-        <br>
-
-        <h4>Universe Status</h4>
-        <table border="1">
-            <tr>
-                <th>Universe</th>
-                <th>Status</th>
-            </tr>
-            <tr v-for="(v,i) in universes">
-                <td>{{i}}</td>
-                <td v-bind:style="{'color':v.ok?'green':'red'}">{{v.status}}</td>
-            </tr>
-        </table>
-        <br>
-
-        <h4>Serial Ports</h4>
-        <span v-for="i in serports">{{i}}<br></span>
-        <br>
-
-        <h4>Configure Universes</h4>
-        <p>If tag point universes do nothing, check that the priority is not just being overrriden. It should be at
-            least 50. Also note that you should avoid using this to create new tags,
-            as they may be destroyed and recreated as cues come and go, which could cause odd behavior. To add tags to a
-            universe, use the extra options button.
-        </p>
-
-        <datalist id="artnettargets">
-        </datalist>
-
-        <datalist id="utypes">
-            <option value="enttecopen" title="Enttec Open DMX and most cheap FTDI based adapters, or raw serial ports">
-            </option>
-            <option value="tagpoints" title="Control tagpoints based on the values"></option>
-            <option value="smartbulb" title="A smart bulb from kaithem's device manager'"></option>
-
-            <option value="enttec"></option>
-            <option value="artnet"></option>
-        </datalist>
-
-        <table border=1>
-            <tr>
-                <th>Universe</th>
-                <th>Type</th>
-                <th>Interface</th>
-                <th>Framerate</th>
-                <th>Channels</th>
-                <th>Number(artnet)/Priority(tags)</th>
-                <th>Actions</th>
-                <th>Actions</th>
-
-            </tr>
-            <tr v-for="(v,i) in configuredUniverses">
-                <td>{{i}}</td>
-                <td>
-                    <input list="utypes" v-model="v.type" title="The type of universe. Usually enttec or artnet">
-                </td>
-
-                <td v-if="v.type!='artnet'">
-                    <input list="serports" v-model="v.interface"
-                        title="The interface device that describes where to send the data. Usually a serial port, or a device name from the device manager for smartbulbs"
-                        placeholder="Default">
-                </td>
-                <td v-if="v.type=='artnet'">
-                    <input list="artnettargets" v-model="v.interface"
-                        title="A destination ip:port in the case of ArtNet." placeholder="Default">
-                </td>
-
-
-                <td>
-                    <input type=number min=0 max=480 step=0.1 v-model="v.framerate" title="The max frame rate">
-                </td>
-
-                <td>
-                    <input type=number min=0 max=512 v-model="v.channels" title="The number of channels to send">
-                </td>
-
-                <td>
-                    <input type=number min=0 max=65535 v-model="v.number"
-                        title="The universe number. Mostly used for ArtNet">
-                </td>
-
-
-
-                <td>
-                    <button v-on:click="universeFullSettings=i">More Options</button>
-                </td>
-
-                <td>
-                    <button v-on:click="deleteUniverse(i)">Del</button>
-                </td>
-            </tr>
-        </table>
-        <input placeholder="New Universe Name" v-model="newuniversename">
-        <button
-            v-on:click="configuredUniverses[newuniversename]={type:'enttec',framerate:44,channels:512, number:1, channelConfig:{}}">Add</button>
-
-
-    </div>
-
-
-    <dialog id='soundpreviewdialog'>
-        <iframe id="textpreview" style="height:24em; width: 24em;"></iframe>
-        <audio controls id="soundpreview"></audio>
-        <button v-on:click="closePreview">OK</button>
-    </dialog>
-
-
-    <section v-if="universeFullSettings" class="flex-item">
-        <h3><button v-on:click="universeFullSettings=0"><i class="icofont-ui-close"></i>Close</button>Universe
-            Setup:{{universeFullSettings}}</h3>
-
-        <div v-if="configuredUniverses[universeFullSettings].type=='tagpoints'">
-            <details class="help">
-                <summary><i class="icofont-question-circle"></i></summary>
-                Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign tags
-                to channels. Assigning
-                tags to channels requires admin permissions unless the tag begins with /chandler. You can give channels
-                names in addition
-                to numbers by using number:name syntax.
-            </details>
-            <table border="1">
-                <tr>
-                    <th>Channel Number</th>
-                    <th>Tagpoint Name</th>
-                    <th>Action</th>
-                </tr>
-                <tr v-for="(v,i) in configuredUniverses[universeFullSettings]['channelConfig'] || {}">
-                    <td><b>{{i}}</b></td>
-                    <td><input v-model="configuredUniverses[universeFullSettings]['channelConfig'][i]"
-                            list="tagslisting">
-                    </td>
-                    <td><button
-                            v-on:click="delete configuredUniverses[universeFullSettings]['channelConfig'][i]">Delete</button>
-                    </td>
-
-                </tr>
-
-                <tr>
-                    <td><input placeholder="CH # or number:Name" v-model="newTagPointChannelNumber"></td>
-                    <td><input placeholder="Tagpoint" v-model="newTagPoint" list="tagslisting"></td>
-                    <td><button
-                            v-on:click="configuredUniverses[universeFullSettings]['channelConfig'][newTagPointChannelNumber]=newTagPoint">Add</button>
-                    </td>
-                </tr>
-
-
-            </table>
-
-        </div>
-    </section>
-
-
-
-    <section v-if="showFixtureSetup" class="flex-item">
-        <h3><button v-on:click="showhidefixtures()"><i class="icofont-ui-close"></i>Close</button>Fixture
-            Setup</h3>
-
-        <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
-            :options="useBlankDescriptions(fixtureClasses)"></combo-box>
-        <button v-on:click="addfixturetype"><i class="icofont-ui-add"></i>Add fixture type</button>
-        <a class="button" href="UseOPZDMX">Import from OP-Z format library</a>
-
-        <div v-if="selectedFixtureClass">
-
-            <button v-on:click="delfixturetype"><i class="icofont-trash"></i>Delete Fixture Type</button>
-
-            <button>Rename</button>
-            <h3>Channels in Fixture Type</h3>
-            <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
-                <h4>{{i}}.</h4>
-                <label>Name:
-                    <input v-on:change="pushfixture(selectedFixtureClass)"
-                        v-model="fixtureClasses[selectedFixtureClass][i][0]">
-                </label>
-                <label>Type:
-                    <select v-on:change="pushfixture(selectedFixtureClass)"
-                        v-model="fixtureClasses[selectedFixtureClass][i][1]" v-on:change="chTypeChanged(i)">
-                        <option>red</option>
-                        <option>green</option>
-                        <option>blue</option>
-                        <option>uv</option>
-                        <option>white</option>
-                        <option>intensity</option>
-                        <option>custom</option>
-                        <option>fine</option>
-                        <option>unused</option>
-                        <option>fixed</option>
-
-                    </select>
-                </label>
-
-                <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fine'">
-                    Matching Coarse:
-                    <input v-on:change="pushfixture(selectedFixtureClass)"
-                        title="The corresponding coarse channel for this fine channel" min=0 max=64 type="number"
-                        v-model="fixtureClasses[selectedFixtureClass][i][2]">
-                </label>
-
-                <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fixed'">
-                    Fixed Value:
-                    <input v-on:change="pushfixture(selectedFixtureClass)" title="The fixed DMX channel value" min=0
-                        max=256 type="number" v-model="fixtureClasses[selectedFixtureClass][i][2]">
-                </label>
-
-                <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
-                    <details class="help">
-                        <summary><i class="icofont-question-circle"></i></summary>
-                        The custom channel type allows you to define a different meaning for a channel depending on what
-                        range it is in. This is
-                        fairly common for controlling gobos and gobo rotation, etc. Ranges are defined my the inclusive
-                        min and max channel
-                        of that range, plus a name for that option.
-                    </details>
-
-                    <h5>Ranges for channel {{i}}</h5>
-                    <table border="1">
-                        <tr>
-                            <th>Min Val</th>
-                            <th>Max Val</th>
-                            <th>Option Name</th>
-                            <th>Actions</th>
-                        </tr>
-                        <tr v-for="(w,j) in fixtureClasses[selectedFixtureClass][i].slice(2)">
-                            <td>
-                                <input v-on:change="pushfixture(selectedFixtureClass)"
-                                    v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][0]" type="number">
-                            </td>
-                            <td>
-                                <input v-on:change="pushfixture(selectedFixtureClass)"
-                                    v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][1]" type="number">
-                            </td>
-                            <td>
-                                <input v-on:change="pushfixture(selectedFixtureClass)"
-                                    v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][2]">
-                            </td>
-                            <td>
-                                <button
-                                    v-on:click="del(fixtureClasses[selectedFixtureClass][i],j+2);pushfixture(selectedFixtureClass)">Del</button>
-                            </td>
-                        </tr>
-                    </table>
-                    <button
-                        v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName']);pushfixture(selectedFixtureClass)">Add
-                        Range</button>
-                </div>
-            </div>
-            <button
-                v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red',0]);pushfixture(selectedFixtureClass);">Add
-                Channel</button>
-        </div>
-    </section>
-
-
-    <section v-if="showfixtureassg" class="flex-item">
-
-        <h3>
-            <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture Assignments
-        </h3>
-        <details class="help">
-            <summary><i class="icofont-question-circle"></i></summary>Here is where you actually assign fixtures to
-            channels after creating the desired fixture types.
-            Clicking Update will cause the new assignments to take effect immediately. Use the save settings button to
-            make them permanent.
-        </details>
-
-        <table border="1">
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Universe</th>
-                <th>Start Address</th>
-                <th>Delete</th>
-            </tr>
-
-            <tr v-for="i in dictView(fixtureAssignments,['universe', 'channel'])">
-                <td>{{i[1].name}}</td>
-                <td>{{i[1].type}}</td>
-                <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
-                <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
-                <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button></td>
-            </tr>
-        </table>
-
-        <table border="1">
-
-            <tr>
-                <td>Name</td>
-                <td><input v-model="newfixname"></input>
-                </td>
-            </tr>
-            <tr>
-                <td>Type</td>
-                <td>
-                    <select v-model="newfixtype">
-                        <option v-for="(v,i) in fixtureClasses" v-bind:value="i">{{i}}</option>
-                    </select>
-
-                </td>
-            </tr>
-
-            <tr>
-                <td>Universe</td>
-                <td><input v-model="newfixuniverse" list="universes">
-                </td>
-            </tr>
-            <tr>
-                <td>Address</td>
-                <td><input type="number" min="1" v-model="newfixaddr">
-                </td>
-            </tr>
-        </table>
-        <button v-on:click="addFixtureAssignment(newfixname,newfixtype,newfixuniverse, newfixaddr)">Add and
-            Update</button>
-
-        <div v-if="ferrs">
-            <h4>Errors</h4>
-            <pre>{{ferrs}}</pre>
-        </div><br>
-
-    </section>
 
     <section v class="flex-item"
         style="overflow: auto; width:20%; min-width: 22em; max-width: 28em; flex-grow: 1; height:90%; resize:both;">
@@ -667,8 +236,8 @@ ${lists}
 
         </div>
         <hr>
-        <div id="scene" style="overflow: auto; max-height:450px;">
-            <div v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;"
+        <div style="overflow: auto; max-height:450px;">
+            <article v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;"
                 v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
                 <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"
@@ -747,7 +316,7 @@ ${lists}
                 <small
                     v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
 
-            </div>
+            </article>
         </div>
 
 
@@ -760,524 +329,1399 @@ ${lists}
 
     </section>
 
-    <section class="flex-item" v-if="!(editingScene && cuemeta[editingScene.cue])"
-        style="display:inline-block;  max-width:98vw; resize:both; overflow:auto;">
-        <h2>No Scene selected</h2>
-    </section>
 
-
-    <section class="flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
-        style="display:inline-block; max-width:60em; resize:both; overflow:auto; flex-grow: 5;">
-        <div style="display: flex; flex-direction: row;">
-
-            <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
-                    <span v-if="editingScene.blend=='monitor'">Monitor</span>
-                    {{editingScene.name}}</span>
-                <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-            </h3>
-
-            <p class="tool-bar">
-                <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
-                <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
-                <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
-                <button class="stopbutton" v-on:click="stop(scenename)"><i
-                        class="icofont-ui-play-stop"></i>Stop</button>
-                <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
-            </p>
-
-            <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
-
-
-        </div>
-
-
-        <p class="tool-bar">
-            <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
-                title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
-
-            <input v-model="cuefilter" placeholder="Search Cues" />
-            <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
-        </p>
-        <hr>
-
-
-        <div id="cuesbox">
-
-            <div style="overflow-y: auto;max-height:12em;">
-                <table class="reflow" border="1" style="resize:both; width:98%;">
-
-                    <thead>
-                        <tr>
-                            <th title="Click the cue name to edit that cue">Name</th>
-                            <th class="desktop-only">Shortcut</th>
-                            <th class="desktop-only">Fadein</th>
-                            <th class="desktop-only" title="Length, 0 indicates until stopped">Length</th>
-                            <th title="The next cue, after this one ends">Next</th>
-                            <th class="desktop-only">Randomize</th>
-                            <th class="desktop-only">Track</th>
-                            <th>Jump to</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr v-for="i in formatCues(1)" v-if="i[1].id"
-                            v-bind:class="{'highlight' : selectedCues[scenename]==i[1].name}">
-                            <td class="rowname" data-label="Cue: " style=" user-select: none;"
-                                title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)">
-                                <i v-if="cuemeta[editingScene.cue].name==i[1].name" class="icofont-ui-play"></i>
-                                <span v-if="selectedCues[scenename]==i[1].name"><i class="icofont-pencil"></i></span>
-                                <b title="Cue number, double click to change." style="width:6em"
-                                    v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b>
-                                <b>{{i[1].name}}</b>
-                                <i class="icofont-light-bulb" v-if="i[1].hasLightingData"
-                                    title="This cue has lighting commands"></i>
-
-                                <i class="icofont-audio" v-if="i[1].sound"></i>
-                                <i class="icofont-monitor" v-if="i[1].slide"></i>
-
-                                <span v-if="i[1].inheritRules" title="This cue has rules inherited"
-                                    v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
-                                        class="icofont-law-document"></i></span>
-
-                                <span v-if="i[1].rules && i[1].rules.length>0" title="This cue has rules attatched"
-                                    v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
-                                        class="icofont-law-document"></i></span>
-                            </td>
-
-
-                            <td class="desktop-only" data-label="Shortcut:">
-                                <p class="tool-bar" style="width: 8em;">
-                                    <input title="Shortcut code" style="max-width: 4.5em;"
-                                        v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
-                                        step=0.1 v-model="i[1].shortcut">
-                                    <button style="opacity:0.3" title="Generate a shortcut code from the cue's number"
-                                        v-on:click="apiCommand(i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
-                                </p>
-                            </td>
-
-                            <td class="desktop-only" data-label="Fade In:">
-                                <input type="number" v-on:change="setfadein(i[1].id,$event.target.value)"
-                                    style="width:3em" min=0 v-model="i[1].fadein">
-                            </td>
-
-                            <td class="desktop-only" data-label="Length:">
-                                <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em"
-                                    list="lenoptions" v-model="i[1].length">
-                            </td>
-
-                            <td data-label="Next Cue:">
-                                <select style="width:98%" v-model="i[1].next"
-                                    v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off
-                                    title="Select a cue to activate when this one ends"
-                                    v-on:change="setnext(i[1].id,$event.target.value)">
-                                    <option value="">&gt&gt&gt</option>
-                                    <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}:
-                                        {{j[1].name}}</option>
-                                    <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
-
-                                    <option value="__random__">RANDOM</option>
-                                    <option value="__shuffle__">SHUFFLE</option>
-
-                                </select>
-
-                                <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off
-                                    list="cues_in_scene" title="Select a cue to activate when this one ends"
-                                    v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
-                                    v-bind:placeholder="i[1].defaultnext">
-                                </input>
-                            </td>
+    <main style="display:flex; flex-wrap:wrap; justify-content: center;">
 
 
 
-                            <td class="desktop-only" data-label="Randomize">
-                                <input type="number" v-on:change="setrandomize(i[1].id,$event.target.value)"
-                                    style="width:3em" min=0 v-model="i[1].lengthRandomize">
-                            </td>
-                            <td class="desktop-only" data-label="Track vals from prev: ">
-                                <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track"
-                                    title="Track values from previous cue? If false, values not present are always transparent">
-                            </td>
-                            <td data-label="Goto:">
-                                <button style="min-width: 90%;" v-on:click="jumptocue(i[1].id)">Go</button>
-                            </td>
 
-                        </tr>
-                    </tbody>
+        <section v-if="showevents" class="flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
+            <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
+                Log
+            </h2>
+            <input v-model="evfilt" placeholder="Filter events"><label>Autoscroll<input type="checkbox"
+                    v-model="eventlogautoscroll"></label><br>
+            <div class="scrollbox" id="eventlogbox" style="height:6em">
+                <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
+                    v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b>
+                    at
+                    {{i[1]}}:
 
-                </table>
+                    <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
+                    <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
+                    <pre v-if="i[4]">{{i[4]}}</pre>
+                </div>
             </div>
 
-            <p class="tool-bar">
-                <input v-model="newcuename" placeholder="New cue name">
-                <button v-on:click="addcue(scenename,newcuename)">
-                    <i class="icofont-ui-add"></i>Add Cue</button>
-                <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
-                    <i class="icofont-ui-copy"></i>Clone Cue</button>
-                <button v-on:click="rmcue(currentcueid)">
-                    <i class="icofont-trash"></i>Delete Current</button>
+            <label>Send Global Event:
+                <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
+            </label>
+
+            <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+
+            <select v-model="evtypetosend">
+                <option value="int">Integer</option>
+                <option value="float">Real Number</option>
+                <option value="str">Text</option>
+            </select>
+
+            <button v-on:click="sendev('__global__')">Send</button>
+        </section>
+
+
+
+
+        <datalist id="serports">
+            <option v-for="i of serports" v-bind:value="i"></option>
+        </datalist>
+
+
+
+
+        <section v-if="showimportexport" class="flex-item">
+            <h3>Import/Export controls</h3>
+            <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
+                <a class="button" href="download" title="Download your scenes as a file"><i
+                        class="icofont-diskette"></i>Scenes</a>
+                <a class="button" href="downloadSetup" title="Download your scenes as a file"><i
+                        class="icofont-diskette"></i>Setup</a>
+                <a class="button" href="downloadLibrary" title="Download your scenes as a file"><i
+                        class="icofont-diskette"></i>Fixture Lib</a>
+            </div>
+
+            <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Upload:</b>
+                <a class="button" href="upload" title="Upload a scenes file"><i
+                        class="icofont-folder-open"></i>Scenes</a>
+                <a class="button" href="uploadSetup" title="Upload a scenes file"><i
+                        class="icofont-folder-open"></i>Setup</a>
+                <a class="button" href="uploadLibrary" title="Upload a scenes file"><i
+                        class="icofont-folder-open"></i>Fixture Lib</a>
+            </div>
+        </section>
+
+
+
+
+
+        <section v-if="showPresets" class="flex-item" style="width: 32em;">
+            <h3>Presets<button v-on:click="showPresets=0">
+                    <i class="icofont-ui-close"></i>Close</button>
+            </h3>
+            <details class="help">
+                <summary>Help</summary>
+                A preset is a set of values that may be quickly applied to any feature.
+                Create them in the cue values section. They are loaded and saved with the "setup" file.
+                Empty fields in a preset have no effect, they leave that value alone, so you can, for example,
+                make a preset that sets the color without setting the XY values.
+            </details>
+            <dl>
+                <template v-for="ps, i of dictView(presets,[])">
+                    <dt>
+                        <div class="tool-bar">
+                            <h4>{{ps[0]}}</h4>
+                            <button v-on:click="deletePreset(ps[0])"><i class="icofont-trash"></i>Delete</button>
+                            <button v-on:click="renamePreset(ps[0])"><i class="icofont-pencil"></i>Rename</button>
+                        </div>
+                    </dt>
+                    <dd style="display: flex; flex-wrap: wrap;">
+                        <label v-for="val, field of ps[1]">
+                            {{field}}<input v-model="ps[1][field]"
+                                v-on:change="ps[1][field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
+                        </label>
+                    </dd>
+                </template>
+
+            </dl>
+        </section>
+
+        <div v-if="showDMXSetup" class="sectionbox flex-item">
+            <h3>
+                <button v-on:click="showDMXSetup=0">
+                    <i class="icofont-ui-close"></i>Close</button> Universe Setup
+            </h3>
+            <details class="help">
+                <summary><i class="icofont-question-circle"></i></summary>These settings take effect immediately when
+                you
+                click "Update Settings". To save them to disk,
+                use "save setup" Note: Configuring these universes requires /admin/settings.edit,
+                however you do not need that permission to use the lightboard after it's configured.
+            </details>
+            <button v-on:click="refreshPorts">Refresh Serial Ports</button>
+            <button v-on:click="pushSettings">Update Settings</button><br>
+            <br>
+
+            <h4>Universe Status</h4>
+            <table border="1">
+                <tr>
+                    <th>Universe</th>
+                    <th>Status</th>
+                </tr>
+                <tr v-for="(v,i) in universes">
+                    <td>{{i}}</td>
+                    <td v-bind:style="{'color':v.ok?'green':'red'}">{{v.status}}</td>
+                </tr>
+            </table>
+            <br>
+
+            <h4>Serial Ports</h4>
+            <span v-for="i in serports">{{i}}<br></span>
+            <br>
+
+            <h4>Configure Universes</h4>
+            <p>If tag point universes do nothing, check that the priority is not just being overrriden. It should be at
+                least 50. Also note that you should avoid using this to create new tags,
+                as they may be destroyed and recreated as cues come and go, which could cause odd behavior. To add tags
+                to a
+                universe, use the extra options button.
             </p>
+
+            <datalist id="artnettargets">
+            </datalist>
+
+            <datalist id="utypes">
+                <option value="enttecopen"
+                    title="Enttec Open DMX and most cheap FTDI based adapters, or raw serial ports">
+                </option>
+                <option value="tagpoints" title="Control tagpoints based on the values"></option>
+                <option value="smartbulb" title="A smart bulb from kaithem's device manager'"></option>
+
+                <option value="enttec"></option>
+                <option value="artnet"></option>
+            </datalist>
+
+            <table border=1>
+                <tr>
+                    <th>Universe</th>
+                    <th>Type</th>
+                    <th>Interface</th>
+                    <th>Framerate</th>
+                    <th>Channels</th>
+                    <th>Number(artnet)/Priority(tags)</th>
+                    <th>Actions</th>
+                    <th>Actions</th>
+
+                </tr>
+                <tr v-for="(v,i) in configuredUniverses">
+                    <td>{{i}}</td>
+                    <td>
+                        <input list="utypes" v-model="v.type" title="The type of universe. Usually enttec or artnet">
+                    </td>
+
+                    <td v-if="v.type!='artnet'">
+                        <input list="serports" v-model="v.interface"
+                            title="The interface device that describes where to send the data. Usually a serial port, or a device name from the device manager for smartbulbs"
+                            placeholder="Default">
+                    </td>
+                    <td v-if="v.type=='artnet'">
+                        <input list="artnettargets" v-model="v.interface"
+                            title="A destination ip:port in the case of ArtNet." placeholder="Default">
+                    </td>
+
+
+                    <td>
+                        <input type=number min=0 max=480 step=0.1 v-model="v.framerate" title="The max frame rate">
+                    </td>
+
+                    <td>
+                        <input type=number min=0 max=512 v-model="v.channels" title="The number of channels to send">
+                    </td>
+
+                    <td>
+                        <input type=number min=0 max=65535 v-model="v.number"
+                            title="The universe number. Mostly used for ArtNet">
+                    </td>
+
+
+
+                    <td>
+                        <button v-on:click="universeFullSettings=i">More Options</button>
+                    </td>
+
+                    <td>
+                        <button v-on:click="deleteUniverse(i)">Del</button>
+                    </td>
+                </tr>
+            </table>
+            <input placeholder="New Universe Name" v-model="newuniversename">
+            <button
+                v-on:click="configuredUniverses[newuniversename]={type:'enttec',framerate:44,channels:512, number:1, channelConfig:{}}">Add</button>
+
+
         </div>
 
-        <hr>
+
+        <dialog id='soundpreviewdialog'>
+            <iframe id="textpreview" style="height:24em; width: 24em;"></iframe>
+            <audio controls id="soundpreview"></audio>
+            <button v-on:click="closePreview">OK</button>
+        </dialog>
 
 
-        <div v-if="currentcue && scenetab !='blend'">
-            <h3>Editing Cue: {{currentcue.name}}</h3>
+        <section v-if="universeFullSettings" class="flex-item">
+            <h3><button v-on:click="universeFullSettings=0"><i class="icofont-ui-close"></i>Close</button>Universe
+                Setup:{{universeFullSettings}}</h3>
+
+            <div v-if="configuredUniverses[universeFullSettings].type=='tagpoints'">
+                <details class="help">
+                    <summary><i class="icofont-question-circle"></i></summary>
+                    Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign
+                    tags
+                    to channels. Assigning
+                    tags to channels requires admin permissions unless the tag begins with /chandler. You can give
+                    channels
+                    names in addition
+                    to numbers by using number:name syntax.
+                </details>
+                <table border="1">
+                    <tr>
+                        <th>Channel Number</th>
+                        <th>Tagpoint Name</th>
+                        <th>Action</th>
+                    </tr>
+                    <tr v-for="(v,i) in configuredUniverses[universeFullSettings]['channelConfig'] || {}">
+                        <td><b>{{i}}</b></td>
+                        <td><input v-model="configuredUniverses[universeFullSettings]['channelConfig'][i]"
+                                list="tagslisting">
+                        </td>
+                        <td><button
+                                v-on:click="delete configuredUniverses[universeFullSettings]['channelConfig'][i]">Delete</button>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+                        <td><input placeholder="CH # or number:Name" v-model="newTagPointChannelNumber"></td>
+                        <td><input placeholder="Tagpoint" v-model="newTagPoint" list="tagslisting"></td>
+                        <td><button
+                                v-on:click="configuredUniverses[universeFullSettings]['channelConfig'][newTagPointChannelNumber]=newTagPoint">Add</button>
+                        </td>
+                    </tr>
 
 
-            <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any
-                changes made here may be overwritten by the code at any time.</span>
+                </table>
 
-            <details open>
-                <summary>Cue Channel Values</summary>
-                <p class="tool-bar">
-                    <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
-                            class="icofont-settings"></i>Normal View</button>
-                    <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
-                            class="icofont-listing-box"></i>Channels</button>
-                </p>
-                <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
-                    <article class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'"
-                        >
-                        <h3>{{uname}}</h3>
-                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
-                            :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
-                        </h-fader>
-                    </article>
+            </div>
+        </section>
 
 
-                    <article class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'"
-                        >
-                        <div class="tool-bar" v-if="editingScene.blend!='monitor'">
-                            <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
-                            <select
-                                v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
-                                <option value="__dummy__">Presets</option>
-                                <option
-                                    v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
-                                    :value="ps[0]">{{ps[0]}}</option>
-                            </select>
-                            <button v-on:click="savePreset(h)">Save</button>
-                        </div>
-                        <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
-                            <i class="icofont-trash"></i>
-                        </button>
 
-                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
-                            :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
-                        </h-fader>
-                    </article>
+        <section v-if="showFixtureSetup" class="flex-item">
+            <h3><button v-on:click="showhidefixtures()"><i class="icofont-ui-close"></i>Close</button>Fixture
+                Setup</h3>
+
+            <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
+                :options="useBlankDescriptions(fixtureClasses)"></combo-box>
+            <button v-on:click="addfixturetype"><i class="icofont-ui-add"></i>Add fixture type</button>
+            <a class="button" href="UseOPZDMX">Import from OP-Z format library</a>
+
+            <div v-if="selectedFixtureClass">
+
+                <button v-on:click="delfixturetype"><i class="icofont-trash"></i>Delete Fixture Type</button>
+
+                <button>Rename</button>
+                <h3>Channels in Fixture Type</h3>
+                <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
+                    <h4>{{i}}.</h4>
+                    <label>Name:
+                        <input v-on:change="pushfixture(selectedFixtureClass)"
+                            v-model="fixtureClasses[selectedFixtureClass][i][0]">
+                    </label>
+                    <label>Type:
+                        <select v-on:change="pushfixture(selectedFixtureClass)"
+                            v-model="fixtureClasses[selectedFixtureClass][i][1]" v-on:change="chTypeChanged(i)">
+                            <option>red</option>
+                            <option>green</option>
+                            <option>blue</option>
+                            <option>uv</option>
+                            <option>white</option>
+                            <option>intensity</option>
+                            <option>custom</option>
+                            <option>fine</option>
+                            <option>unused</option>
+                            <option>fixed</option>
+
+                        </select>
+                    </label>
+
+                    <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fine'">
+                        Matching Coarse:
+                        <input v-on:change="pushfixture(selectedFixtureClass)"
+                            title="The corresponding coarse channel for this fine channel" min=0 max=64 type="number"
+                            v-model="fixtureClasses[selectedFixtureClass][i][2]">
+                    </label>
+
+                    <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fixed'">
+                        Fixed Value:
+                        <input v-on:change="pushfixture(selectedFixtureClass)" title="The fixed DMX channel value" min=0
+                            max=256 type="number" v-model="fixtureClasses[selectedFixtureClass][i][2]">
+                    </label>
+
+                    <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
+                        <details class="help">
+                            <summary><i class="icofont-question-circle"></i></summary>
+                            The custom channel type allows you to define a different meaning for a channel depending on
+                            what
+                            range it is in. This is
+                            fairly common for controlling gobos and gobo rotation, etc. Ranges are defined my the
+                            inclusive
+                            min and max channel
+                            of that range, plus a name for that option.
+                        </details>
+
+                        <h5>Ranges for channel {{i}}</h5>
+                        <table border="1">
+                            <tr>
+                                <th>Min Val</th>
+                                <th>Max Val</th>
+                                <th>Option Name</th>
+                                <th>Actions</th>
+                            </tr>
+                            <tr v-for="(w,j) in fixtureClasses[selectedFixtureClass][i].slice(2)">
+                                <td>
+                                    <input v-on:change="pushfixture(selectedFixtureClass)"
+                                        v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][0]" type="number">
+                                </td>
+                                <td>
+                                    <input v-on:change="pushfixture(selectedFixtureClass)"
+                                        v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][1]" type="number">
+                                </td>
+                                <td>
+                                    <input v-on:change="pushfixture(selectedFixtureClass)"
+                                        v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][2]">
+                                </td>
+                                <td>
+                                    <button
+                                        v-on:click="del(fixtureClasses[selectedFixtureClass][i],j+2);pushfixture(selectedFixtureClass)">Del</button>
+                                </td>
+                            </tr>
+                        </table>
+                        <button
+                            v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName']);pushfixture(selectedFixtureClass)">Add
+                            Range</button>
+                    </div>
                 </div>
+                <button
+                    v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red',0]);pushfixture(selectedFixtureClass);">Add
+                    Channel</button>
+            </div>
+        </section>
 
-                <div v-if="scenetab=='channels'">
-                    <h4>Add Channel by Universe and Name/Number</h4>
-                    <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
-                    <combo-box v-bind:options="getChannelCompletions(newcueu)" v-model="newcuevnumber">
-                    </combo-box>
+
+        <section v-if="showfixtureassg" class="flex-item">
+
+            <h3>
+                <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture
+                Assignments
+            </h3>
+            <details class="help">
+                <summary><i class="icofont-question-circle"></i></summary>Here is where you actually assign fixtures to
+                channels after creating the desired fixture types.
+                Clicking Update will cause the new assignments to take effect immediately. Use the save settings button
+                to
+                make them permanent.
+            </details>
+
+            <table border="1">
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Universe</th>
+                    <th>Start Address</th>
+                    <th>Delete</th>
+                </tr>
+
+                <tr v-for="i in dictView(fixtureAssignments,['universe', 'channel'])">
+                    <td>{{i[1].name}}</td>
+                    <td>{{i[1].type}}</td>
+                    <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
+                    <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
+                    <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button></td>
+                </tr>
+            </table>
+
+            <table border="1">
+
+                <tr>
+                    <td>Name</td>
+                    <td><input v-model="newfixname"></input>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Type</td>
+                    <td>
+                        <select v-model="newfixtype">
+                            <option v-for="(v,i) in fixtureClasses" v-bind:value="i">{{i}}</option>
+                        </select>
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Universe</td>
+                    <td><input v-model="newfixuniverse" list="universes">
+                    </td>
+                </tr>
+                <tr>
+                    <td>Address</td>
+                    <td><input type="number" min="1" v-model="newfixaddr">
+                    </td>
+                </tr>
+            </table>
+            <button v-on:click="addFixtureAssignment(newfixname,newfixtype,newfixuniverse, newfixaddr)">Add and
+                Update</button>
+
+            <div v-if="ferrs">
+                <h4>Errors</h4>
+                <pre>{{ferrs}}</pre>
+            </div><br>
+
+        </section>
 
 
-                    <button v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to Cue</button>
 
-                    <h4>Add Fixture</h4>
+        <section class="flex-item" v-if="!(editingScene && cuemeta[editingScene.cue])"
+            style="display:inline-block;  max-width:98vw; resize:both; overflow:auto;">
+            <h2>No Scene selected</h2>
+        </section>
 
-                    <table>
-                        <tr v-for="(v,i) in fixtures">
-                            <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
-                            <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
-                                        class="icofont-ui-add"></i>Add</button>
-                            </td>
-                            <td><button v-on:click="addRangeEffect(i)"><i class="icofont-ui-add"></i>Add Range
-                                    Effect</button>
-                            </td>
-                        </tr>
+
+        <section class="flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
+            style="display:inline-block; max-width:60em; resize:both; overflow:auto; flex-grow: 5;">
+            <div style="display: flex; flex-direction: row;">
+
+                <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
+                        <span v-if="editingScene.blend=='monitor'">Monitor</span>
+                        {{editingScene.name}}</span>
+                    <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                </h3>
+
+                <p class="tool-bar">
+                    <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
+                    <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
+                    <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
+                    <button class="stopbutton" v-on:click="stop(scenename)"><i
+                            class="icofont-ui-play-stop"></i>Stop</button>
+                    <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+                </p>
+
+                <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
+
+
+            </div>
+
+
+            <p class="tool-bar">
+                <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
+                    title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
+
+                <input v-model="cuefilter" placeholder="Search Cues" />
+                <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
+            </p>
+            <hr>
+
+
+            <div id="cuesbox">
+
+                <div style="overflow-y: auto;max-height:12em;">
+                    <table class="reflow" border="1" style="resize:both; width:98%;">
+
+                        <thead>
+                            <tr>
+                                <th title="Click the cue name to edit that cue">Name</th>
+                                <th class="desktop-only">Shortcut</th>
+                                <th class="desktop-only">Fadein</th>
+                                <th class="desktop-only" title="Length, 0 indicates until stopped">Length</th>
+                                <th title="The next cue, after this one ends">Next</th>
+                                <th class="desktop-only">Randomize</th>
+                                <th class="desktop-only">Track</th>
+                                <th>Jump to</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr v-for="i in formatCues(1)" v-if="i[1].id"
+                                v-bind:class="{'highlight' : selectedCues[scenename]==i[1].name}">
+                                <td class="rowname" data-label="Cue: " style=" user-select: none;"
+                                    title="Click the cue name to edit that cue"
+                                    v-on:click="selectcue(scenename,i[1].name)">
+                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name" class="icofont-ui-play"></i>
+                                    <span v-if="selectedCues[scenename]==i[1].name"><i
+                                            class="icofont-pencil"></i></span>
+                                    <b title="Cue number, double click to change." style="width:6em"
+                                        v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b>
+                                    <b>{{i[1].name}}</b>
+                                    <i class="icofont-light-bulb" v-if="i[1].hasLightingData"
+                                        title="This cue has lighting commands"></i>
+
+                                    <i class="icofont-audio" v-if="i[1].sound"></i>
+                                    <i class="icofont-monitor" v-if="i[1].slide"></i>
+
+                                    <span v-if="i[1].inheritRules" title="This cue has rules inherited"
+                                        v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
+                                            class="icofont-law-document"></i></span>
+
+                                    <span v-if="i[1].rules && i[1].rules.length>0" title="This cue has rules attatched"
+                                        v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
+                                            class="icofont-law-document"></i></span>
+                                </td>
+
+
+                                <td class="desktop-only" data-label="Shortcut:">
+                                    <p class="tool-bar" style="width: 8em;">
+                                        <input title="Shortcut code" style="max-width: 4.5em;"
+                                            v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
+                                            step=0.1 v-model="i[1].shortcut">
+                                        <button style="opacity:0.3"
+                                            title="Generate a shortcut code from the cue's number"
+                                            v-on:click="apiCommand(i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
+                                    </p>
+                                </td>
+
+                                <td class="desktop-only" data-label="Fade In:">
+                                    <input type="number" v-on:change="setfadein(i[1].id,$event.target.value)"
+                                        style="width:3em" min=0 v-model="i[1].fadein">
+                                </td>
+
+                                <td class="desktop-only" data-label="Length:">
+                                    <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em"
+                                        list="lenoptions" v-model="i[1].length">
+                                </td>
+
+                                <td data-label="Next Cue:">
+                                    <select style="width:98%" v-model="i[1].next"
+                                        v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off
+                                        title="Select a cue to activate when this one ends"
+                                        v-on:change="setnext(i[1].id,$event.target.value)">
+                                        <option value="">&gt&gt&gt</option>
+                                        <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}:
+                                            {{j[1].name}}</option>
+                                        <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
+
+                                        <option value="__random__">RANDOM</option>
+                                        <option value="__shuffle__">SHUFFLE</option>
+
+                                    </select>
+
+                                    <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off
+                                        list="cues_in_scene" title="Select a cue to activate when this one ends"
+                                        v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
+                                        v-bind:placeholder="i[1].defaultnext">
+                                    </input>
+                                </td>
+
+
+
+                                <td class="desktop-only" data-label="Randomize">
+                                    <input type="number" v-on:change="setrandomize(i[1].id,$event.target.value)"
+                                        style="width:3em" min=0 v-model="i[1].lengthRandomize">
+                                </td>
+                                <td class="desktop-only" data-label="Track vals from prev: ">
+                                    <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)"
+                                        v-model="i[1].track"
+                                        title="Track values from previous cue? If false, values not present are always transparent">
+                                </td>
+                                <td data-label="Goto:">
+                                    <button style="min-width: 90%;" v-on:click="jumptocue(i[1].id)">Go</button>
+                                </td>
+
+                            </tr>
+                        </tbody>
+
                     </table>
                 </div>
-            </details>
+
+                <p class="tool-bar">
+                    <input v-model="newcuename" placeholder="New cue name">
+                    <button v-on:click="addcue(scenename,newcuename)">
+                        <i class="icofont-ui-add"></i>Add Cue</button>
+                    <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
+                        <i class="icofont-ui-copy"></i>Clone Cue</button>
+                    <button v-on:click="rmcue(currentcueid)">
+                        <i class="icofont-trash"></i>Delete Current</button>
+                </p>
+            </div>
+
+            <hr>
 
 
-            <details>
-                <summary><i class="icofont-law-document"></i>Cue Logic</summary>
+            <div v-if="currentcue && scenetab !='blend'">
+                <h3>Editing Cue: {{currentcue.name}}</h3>
 
-                <div style="overflow: auto; max-height:30em;" class="logicbox">
-                    <div>
-                        <h3>Automation Logic</h3>
-                        <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>Here you can create rules that
-                            apply whenever the scene is in this cue, to
-                            do things like trigger other cues when
-                            this one enters or exits.
-                            <a href="docs/RulesEngine">Documentation</a>
-                        </details>
-                    </div>
-                    <div>
-                        <label>Inherit rules from cue in same scene(inherited rules run after directly set rules)
-                            <div>
-                                <combo-box v-model="currentcue.inheritRules"
-                                    v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
-                                    :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
+
+                <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code.
+                    Any
+                    changes made here may be overwritten by the code at any time.</span>
+
+                <details open>
+                    <summary>Cue Channel Values</summary>
+                    <p class="tool-bar">
+                        <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
+                                class="icofont-settings"></i>Normal View</button>
+                        <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
+                                class="icofont-listing-box"></i>Channels</button>
+                    </p>
+                    <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
+                        <article class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'">
+                            <h3>{{uname}}</h3>
+                            <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
+                                :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
+                            </h-fader>
+                        </article>
+
+
+                        <article class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'">
+                            <div class="tool-bar" v-if="editingScene.blend!='monitor'">
+                                <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
+                                <select
+                                    v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
+                                    <option value="__dummy__">Presets</option>
+                                    <option
+                                        v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
+                                        :value="ps[0]">{{ps[0]}}</option>
+                                </select>
+                                <button v-on:click="savePreset(h)">Save</button>
                             </div>
+                            <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
+                                <i class="icofont-trash"></i>
+                            </button>
 
-                        </label>
-                    </div>
-                    <script-editor :completers="completers" v-bind:example_events="example_events"
-                        v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
-                        v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
-                        v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"
-                        v-bind:parentscene="editingScene.name">
-                    </script-editor>
-
-                    <div style="display:flex;flex-wrap:wrap;">
-                        <div style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
-                            <h3>Scene Variables</h3>
-                            <table border="1">
-
-                                <tr v-for="(v,i) in editingScene.vars">
-                                    <td>{{i}}</td>
-                                    <td>{{v}}</td>
-                                <tr>
-                            </table>
-                        </div>
-
-                        <div style="border-style:solid;flex-grow:1;margin:0.5em;padding:0.5em;">
-                            <h3>Timers</h3>
-                            <table border="1" style="width:98%">
-
-                                <tr v-for="(v,i) in editingScene.timers">
-                                    <td>{{i}}</td>
-                                    <td style="width:8em;"
-                                        v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
-                                        {{formatInterval((v-unixtime))}}
-                                    </td>
-                                <tr>
-                            </table>
-                        </div>
+                            <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
+                                :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
+                            </h-fader>
+                        </article>
                     </div>
 
+                    <div v-if="scenetab=='channels'">
+                        <h4>Add Channel by Universe and Name/Number</h4>
+                        <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
+                        <combo-box v-bind:options="getChannelCompletions(newcueu)" v-model="newcuevnumber">
+                        </combo-box>
 
 
+                        <button v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to Cue</button>
 
-                    <h3>Event Log</h3>
-                    <div class="scrollbox" id="eventlogbox" style="height:6em">
-                        <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                            v-for="i in evlog" v-if="i[0].search(editingScene.name)">{{i[2]}}: <b>{{i[0]}}</b> at
-                            {{i[1]}}:
+                        <h4>Add Fixture</h4>
 
-                            <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
-                            <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
-                            <pre v-if="i[4]">{{i[4]}}</pre>
-                        </div>
+                        <table>
+                            <tr v-for="(v,i) in fixtures">
+                                <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
+                                <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
+                                            class="icofont-ui-add"></i>Add</button>
+                                </td>
+                                <td><button v-on:click="addRangeEffect(i)"><i class="icofont-ui-add"></i>Add Range
+                                        Effect</button>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
+                </details>
 
-                </div>
-            </details>
-
-
-
-
-            <div>
 
                 <details>
-                    <summary>Cue Data</summary>
-                    <div>
-                        <textarea rows=50 cols=25 v-model="cuedatafield"
-                            v-on:change="setcuevaldata(currentcueid,$event.target.value)">
+                    <summary><i class="icofont-law-document"></i>Cue Logic</summary>
 
-                                </textarea>
+                    <div style="overflow: auto; max-height:30em;" class="logicbox">
+                        <div>
+                            <h3>Automation Logic</h3>
+                            <details class="help">
+                                <summary><i class="icofont-question-circle"></i></summary>Here you can create rules that
+                                apply whenever the scene is in this cue, to
+                                do things like trigger other cues when
+                                this one enters or exits.
+                                <a href="docs/RulesEngine">Documentation</a>
+                            </details>
+                        </div>
+                        <div>
+                            <label>Inherit rules from cue in same scene(inherited rules run after directly set rules)
+                                <div>
+                                    <combo-box v-model="currentcue.inheritRules"
+                                        v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
+                                        :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
+                                </div>
+
+                            </label>
+                        </div>
+                        <script-editor :completers="completers" v-bind:example_events="example_events"
+                            v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
+                            v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
+                            v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"
+                            v-bind:parentscene="editingScene.name">
+                        </script-editor>
+
+                        <div style="display:flex;flex-wrap:wrap;">
+                            <div style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
+                                <h3>Scene Variables</h3>
+                                <table border="1">
+
+                                    <tr v-for="(v,i) in editingScene.vars">
+                                        <td>{{i}}</td>
+                                        <td>{{v}}</td>
+                                    <tr>
+                                </table>
+                            </div>
+
+                            <div style="border-style:solid;flex-grow:1;margin:0.5em;padding:0.5em;">
+                                <h3>Timers</h3>
+                                <table border="1" style="width:98%">
+
+                                    <tr v-for="(v,i) in editingScene.timers">
+                                        <td>{{i}}</td>
+                                        <td style="width:8em;"
+                                            v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                            {{formatInterval((v-unixtime))}}
+                                        </td>
+                                    <tr>
+                                </table>
+                            </div>
+                        </div>
+
+
+
+
+                        <h3>Event Log</h3>
+                        <div class="scrollbox" id="eventlogbox" style="height:6em">
+                            <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
+                                v-for="i in evlog" v-if="i[0].search(editingScene.name)">{{i[2]}}: <b>{{i[0]}}</b> at
+                                {{i[1]}}:
+
+                                <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
+                                <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
+                                <pre v-if="i[4]">{{i[4]}}</pre>
+                            </div>
+                        </div>
+
                     </div>
                 </details>
 
 
 
-                <details>
-                    <summary>Cue Sound/Media</summary>
-                    <div>
+
+                <div>
+
+                    <details>
+                        <summary>Cue Data</summary>
                         <div>
-                            <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
-                            <label>Sound:
-                                <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
-                                    v-on:change="setSoundfile(currentcueid,currentcue.sound)">
-                            </label>
+                            <textarea rows=50 cols=25 v-model="cuedatafield"
+                                v-on:change="setcuevaldata(currentcueid,$event.target.value)">
 
-                            <label>Sound start:
-                                <input v-model="currentcue.soundStartPosition" style="width:4em;"
-                                    v-on:change="setCueSoundStart(currentcueid,currentcue.soundStartPosition)">s into
-                                file.
-                            </label>
+                                </textarea>
+                        </div>
+                    </details>
 
 
-                            <label>Media Speed:
-                                <input type="number" v-model="currentcue.mediaSpeed" style="width:4em;"
-                                    v-on:change="setCueMediaSpeed(currentcueid,currentcue.mediaSpeed)">
-                            </label>
+
+                    <details>
+                        <summary>Cue Sound/Media</summary>
+                        <div>
+                            <div>
+                                <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
+                                <label>Sound:
+                                    <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
+                                        v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                                </label>
+
+                                <label>Sound start:
+                                    <input v-model="currentcue.soundStartPosition" style="width:4em;"
+                                        v-on:change="setCueSoundStart(currentcueid,currentcue.soundStartPosition)">s
+                                    into
+                                    file.
+                                </label>
 
 
-                            <label>Media Windup:
-                                <input type="number" v-model="currentcue.mediaWindup" style="width:4em;"
-                                    v-on:change="setCueMediaWindup(currentcueid,currentcue.mediaWindup)">
-                            </label>
-
-                            <label>Media Winddown:
-                                <input type="number" v-model="currentcue.mediaWinddown" style="width:4em;"
-                                    v-on:change="setCueMediaWinddown(currentcueid,currentcue.mediaWinddown)">
-                            </label>
+                                <label>Media Speed:
+                                    <input type="number" v-model="currentcue.mediaSpeed" style="width:4em;"
+                                        v-on:change="setCueMediaSpeed(currentcueid,currentcue.mediaSpeed)">
+                                </label>
 
 
-                            <br>
-                            <label>Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
+                                <label>Media Windup:
+                                    <input type="number" v-model="currentcue.mediaWindup" style="width:4em;"
+                                        v-on:change="setCueMediaWindup(currentcueid,currentcue.mediaWindup)">
+                                </label>
 
-                                <datalist id="soundcards">
-                                    <option value="scenewebplayer">Play media file in web player</option>
-                                    <option v-for="i of soundCards" v-bind:value="i"></option>
-                                    <option value="@auto"></option>
-                                    <option value="@pulse:hw:0,0"></option>
-                                    <option value="@alsa:hw:0,0"></option>
+                                <label>Media Winddown:
+                                    <input type="number" v-model="currentcue.mediaWinddown" style="width:4em;"
+                                        v-on:change="setCueMediaWinddown(currentcueid,currentcue.mediaWinddown)">
+                                </label>
 
+
+                                <br>
+                                <label>Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
+
+                                    <datalist id="soundcards">
+                                        <option value="scenewebplayer">Play media file in web player</option>
+                                        <option v-for="i of soundCards" v-bind:value="i"></option>
+                                        <option value="@auto"></option>
+                                        <option value="@pulse:hw:0,0"></option>
+                                        <option value="@alsa:hw:0,0"></option>
+
+                                    </datalist>
+
+
+                                    <input
+                                        title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device"
+                                        v-on:change="setSoundOutput(currentcueid,$event.target.value)"
+                                        v-model="cuemeta[currentcueid].soundOutput" placeholder="default"
+                                        list="soundcards"></input>
+                                </label><br>
+
+
+                                <label>Length relative to media file:
+                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
+                                        v-model="currentcue.rel_length"
+                                        title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
+                                </label>
+
+
+
+                                <label>Fade sound after end(If going to silence):
+                                    <input type="number" v-on:change="setSoundFadeOut(currentcueid,$event.target.value)"
+                                        style="width:3em" min=0 v-model="currentcue.soundFadeOut"
+                                        title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend">
+
+                                </label><br>
+
+
+                                <label>Sound fade in:
+                                    <input type="number" v-on:change="setSoundFadeIn(currentcueid,$event.target.value)"
+                                        style="width:3em" min=-1 v-model="currentcue.soundFadeIn"
+                                        title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use -1 to override and disable a global scene crossfade.">
+
+                                </label>
+
+                                <label>Volume modifier for this cue(=expression allowed):
+                                    <input v-on:change="setCueVolume(currentcueid,$event.target.value)"
+                                        style="width:5em" min=0 v-model="currentcue.soundVolume">
+                                </label>
+
+                                <label>Loop Sound(-1 for forever)
+                                    <input v-on:change="setCueLoops(currentcueid,$event.target.value)" style="width:5em"
+                                        min=-1 v-model="currentcue.soundLoops">
+                                </label>
+
+
+                                <br>
+                            </div>
+                            <p class="tool-bar">
+                                <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
+                                    v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
+                                    style="width:60%;">
+                                <button v-on:click="doSoundSearch(soundsearch)">Search</button>
+                                <button v-on:click="soundsearch=''">Clear Search</button>
+                            </p>
+                            <div style="max-height:25em; overflow:auto;">
+
+
+                                <div v-if="soundsearch">
+                                    <table border="1">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Add to Current</th>
+                                            <th>Add to New</th>
+                                            <th>Preview</th>
+                                        </tr>
+                                        <tr v-for="i in soundsearchresults">
+                                            <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
+                                            <td><button
+                                                    v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
+                                            </td>
+                                            <td><button
+                                                    v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
+                                            </td>
+                                            <td><button
+                                                    v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <div v-if="soundsearch==''">
+                                    <h4>
+                                        <a title="View in file manager"
+                                            v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
+                                            target="_blank">{{soundfilesdir}}</a>
+                                    </h4>
+
+                                    <ul>
+                                        <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
+                                        <li v-on:click="setSoundfileDir(soundfilesdir)">
+                                            <a><i class="icofont-refresh"></i>Refresh</a>
+                                        </li>
+                                        <li v-if="soundfilesdir"
+                                            v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
+                                            <a>..</a>
+                                        </li>
+                                        <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
+                                            <a>{{i[1] || i[0]}}</a>
+                                        </li>
+                                    </ul>
+
+                                    <table border="1">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Add to Current</th>
+                                            <th>Add to New</th>
+                                            <th>Preview</th>
+                                        </tr>
+                                        <tr v-for="i in soundfileslisting[1]">
+                                            <td>{{i}}</td>
+                                            <td><button
+                                                    v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
+                                            </td>
+                                            <td><button
+                                                    v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button>
+                                            <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button>
+
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="scrollbox">
+                                <h5>Sound Outputs</h5>
+                                <details class="help">
+                                    <summary><i class="icofont-question-circle"></i></summary>To use play videos, you
+                                    must
+                                    use the web remote display feature. Cue
+                                    videos will play in the browser on connected remote displays.
+                                </details>
+                                <dl>
+
+
+                                    <dt>Web Player</dt>
+                                    <dd>
+                                        <p class="tool-bar">
+                                            <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set for
+                                                Cue</button>
+                                            <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set as
+                                                Scene Default</button>
+                                        </p>
+                                    </dd>
+
+
+                                    <template v-for="i of soundCards">
+                                        <dt>{{i || "UNSET" }}</dt>
+                                        <dd>
+                                            <p class="tool-bar">
+                                                <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button>
+                                                <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
+                                                    Default</button>
+                                                <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                            </p>
+                                        </dd>
+                                    </template>
+                                </dl>
+                            </div>
+                        </div>
+                    </details>
+
+
+                    <details>
+                        <summary>Cue Slides</summary>
+                        <div>
+                            <details class="help">
+                                <summary><i class="icofont-question-circle"></i></summary>
+                                A scene's web media display page will show whatever the current cue's slide is.
+                            </details>
+
+                            <div>
+                                <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
+                                <label>Slide:
+                                    <input placeholder="No picture file" v-model="currentcue.slide" style="width:32em;"
+                                        v-on:change="setCueSlide(currentcueid,currentcue.slide)">
+                                </label>
+
+
+                            </div>
+                            <p class="tool-bar">
+                                <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
+                                    v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
+                                    style="width:60%;">
+                                <button v-on:click="doSoundSearch(soundsearch)">Search</button>
+                                <button v-on:click="soundsearch=''">Clear Search</button>
+                            </p>
+                            <div style="max-height:25em; overflow:auto;">
+
+
+                                <div v-if="soundsearch">
+                                    <table border="1">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Add to Current</th>
+                                            <th>Add to New</th>
+                                            <th>Preview</th>
+                                        </tr>
+                                        <tr v-for="i in soundsearchresults">
+                                            <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
+                                            <td><button
+                                                    v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
+                                            </td>
+                                            <td><button
+                                                    v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
+                                            </td>
+
+                                            <td><button
+                                                    v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
+
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <div v-if="soundsearch==''">
+                                    <h4>
+                                        <a title="View in file manager"
+                                            v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
+                                            target="_blank">{{soundfilesdir}}</a>
+                                    </h4>
+
+                                    <ul>
+                                        <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
+                                        <li v-on:click="setSoundfileDir(soundfilesdir)">
+                                            <a><i class="icofont-refresh"></i>Refresh</a>
+                                        </li>
+                                        <li v-if="soundfilesdir"
+                                            v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
+                                            <a>..</a>
+                                        </li>
+                                        <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
+                                            <a>{{i[1] || i[0]}}</a>
+                                        </li>
+                                    </ul>
+
+                                    <table border="1">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Add to Current</th>
+                                            <th>Add to New</th>
+                                            <th>Preview</th>
+                                        </tr>
+                                        <tr v-for="i in soundfileslisting[1]">
+                                            <td>{{i}}</td>
+                                            <td><button
+                                                    v-on:click="setCueSlide(currentcueid,soundfilesdir+i)">Set</button>
+                                            </td>
+                                            <td><button
+                                                    v-on:click="newCueFromSlide(scenename,soundfilesdir+i)">New</button>
+                                            </td>
+
+                                            <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button></td>
+
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+
+
+                    <details>
+                        <summary>Cue Properties
+                        </summary>
+
+                        <div>
+                            <h5>Basic</h5>
+                            <div class="labelbox">
+                                <label>Number
+                                    <input type="number" title="Cue number" style="width:6em"
+                                        v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
+                                        v-model="currentcue.number">
+                                </label>
+
+                                <label>Probability
+                                    <input
+                                        title="Probability this cue is selected in random selections. =expressions allowed"
+                                        style="width:6em" v-on:change="setprobability(currentcueid,$event.target.value)"
+                                        v-model="currentcue.probability" placeholder="1">
+                                </label>
+
+                                <label>Shortcut
+                                    <input title="Shortcut code used to quickly activate a cue" size="8"
+                                        v-on:change="setshortcut(currentcueid,$event.target.value)"
+                                        v-model="currentcue.shortcut">
+                                </label>
+
+                                <label>Trigger Shortcut
+                                    <input title="When entering this cue, trigger the shortcut in other scenes" size="8"
+                                        v-on:change="settriggershortcut(currentcueid,$event.target.value)"
+                                        v-model="currentcue.triggerShortcut">
+                                </label>
+
+                                <label>Track
+                                    <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
+                                        v-model="currentcue.track"
+                                        title="Track values from previous cue? If false, values not present are always transparent">
+                                </label>
+
+                                <label>Reentrant<input title="If false, dissallow entering cue if it's already running"
+                                        type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
+                                        v-model="currentcue.reentrant"></label>
+
+                                <label>Fadein
+                                    <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)"
+                                        style="width:3em" min=0 v-model="currentcue.fadein">
+                                </label>
+                                <label>Length
+                                    <input v-on:change="setlength(currentcueid,$event.target.value)"
+                                        v-model="cuemeta[currentcueid].length" style="width:6em" min=0></input>
+                                </label>
+                                <label>Randomize Length
+                                    <input type="number" v-on:change="setrandomize(currentcueid,$event.target.value)"
+                                        title="Randomize the cue length +- this amount"
+                                        v-model="cuemeta[currentcueid].lengthRandomize" style="width:4em" min=0
+                                        step=0.25></input>
+                                </label>
+
+                                <label>Notes
+                                    <input v-on:change="setcuenotes(currentcueid,$event.target.value)"
+                                        v-model="cuemeta[currentcueid].notes" style="width:12em" min=0></input>
+                                </label>
+
+                                <div class="break"></div>
+                                <h5 style="flex-basis:100%">Sound</h5>
+                                <label v-if="showSoundControls">Soundfile
+                                    <input placeholder="No sound file" v-model="currentcue.sound"
+                                        title="File paths are resolved relative to any of the confg sound folders, searching all until a match is found"
+                                        style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                                </label>
+                                <label v-if="showSoundControls">Device<a target="_blank"
+                                        href="/settings/mixer">(mixer)</a>
+                                    <input title="set the output device" list="soundcards"
+                                        v-on:change="setSoundOutput(currentcueid,$event.target.value)"
+                                        v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
+                                </label>
+
+                                <label v-if="showSoundControls">Length From Sound
+                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
+                                        v-model="currentcue.rel_length"
+                                        title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
+                                </label>
+
+                                <h5 style="flex-basis:100%">Cue Advance</h5>
+                                <label>Next Cue
+                                    <div>
+                                        <combo-box v-model="cuemeta[currentcueid].next"
+                                            v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)"
+                                            :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
+                                    </div>
+                                </label>
+
+                                <button v-on:click="gotonext(currentcueid)">
+                                    <i class="icofont-arrow-right"></i>Edit Next</button>
+                                <button
+                                    title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
+                                    v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
+                                    <i class="icofont-copy"></i>Clone to Next</button>
+
+                                <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
+                                    <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">
+                                        {{i}}</option>
                                 </datalist>
-
-
-                                <input
-                                    title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device"
-                                    v-on:change="setSoundOutput(currentcueid,$event.target.value)"
-                                    v-model="cuemeta[currentcueid].soundOutput" placeholder="default"
-                                    list="soundcards"></input>
-                            </label><br>
-
-
-                            <label>Length relative to media file:
-                                <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
-                                    v-model="currentcue.rel_length"
-                                    title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                            </label>
-
-
-
-                            <label>Fade sound after end(If going to silence):
-                                <input type="number" v-on:change="setSoundFadeOut(currentcueid,$event.target.value)"
-                                    style="width:3em" min=0 v-model="currentcue.soundFadeOut"
-                                    title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend">
-
-                            </label><br>
-
-
-                            <label>Sound fade in:
-                                <input type="number" v-on:change="setSoundFadeIn(currentcueid,$event.target.value)"
-                                    style="width:3em" min=-1 v-model="currentcue.soundFadeIn"
-                                    title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use -1 to override and disable a global scene crossfade.">
-
-                            </label>
-
-                            <label>Volume modifier for this cue(=expression allowed):
-                                <input v-on:change="setCueVolume(currentcueid,$event.target.value)" style="width:5em"
-                                    min=0 v-model="currentcue.soundVolume">
-                            </label>
-
-                            <label>Loop Sound(-1 for forever)
-                                <input v-on:change="setCueLoops(currentcueid,$event.target.value)" style="width:5em"
-                                    min=-1 v-model="currentcue.soundLoops">
-                            </label>
-
-
-                            <br>
-                        </div>
-                        <p class="tool-bar">
-                            <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
-                                v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
-                                style="width:60%;">
-                            <button v-on:click="doSoundSearch(soundsearch)">Search</button>
-                            <button v-on:click="soundsearch=''">Clear Search</button>
-                        </p>
-                        <div style="max-height:25em; overflow:auto;">
-
-
-                            <div v-if="soundsearch">
-                                <table border="1">
-                                    <tr>
-                                        <th>File</th>
-                                        <th>Add to Current</th>
-                                        <th>Add to New</th>
-                                        <th>Preview</th>
-                                    </tr>
-                                    <tr v-for="i in soundsearchresults">
-                                        <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
-                                        <td><button
-                                                v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
-                                        </td>
-                                        <td><button
-                                                v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
-                                        </td>
-                                        <td><button
-                                                v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-
-                            <div v-if="soundsearch==''">
-                                <h4>
-                                    <a title="View in file manager"
-                                        v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
-                                        target="_blank">{{soundfilesdir}}</a>
-                                </h4>
-
-                                <ul>
-                                    <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
-                                    <li v-on:click="setSoundfileDir(soundfilesdir)">
-                                        <a><i class="icofont-refresh"></i>Refresh</a>
-                                    </li>
-                                    <li v-if="soundfilesdir"
-                                        v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
-                                        <a>..</a>
-                                    </li>
-                                    <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
-                                        <a>{{i[1] || i[0]}}</a>
-                                    </li>
-                                </ul>
-
-                                <table border="1">
-                                    <tr>
-                                        <th>File</th>
-                                        <th>Add to Current</th>
-                                        <th>Add to New</th>
-                                        <th>Preview</th>
-                                    </tr>
-                                    <tr v-for="i in soundfileslisting[1]">
-                                        <td>{{i}}</td>
-                                        <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
-                                        </td>
-                                        <td><button v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button>
-                                        <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button>
-
-                                        </td>
-                                    </tr>
-                                </table>
                             </div>
                         </div>
-                        <div class="scrollbox">
+                    </details>
+
+
+
+                </div>
+                <h3>Global Scene Properties</h3>
+                <details>
+                    <summary>Scene Notes</summary>
+
+
+
+                    <div style="overflow: auto; max-height:30em;">
+                        <h4>Scene Notes</h4>
+                        <textarea v-model:value="editingScene.notes"></textarea><br>
+                        <button v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Scene Settings</summary>
+
+                    <div>
+
+                        <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene
+                            Properties</h4>
+                        <!-- <details>
+                    <summary>Music Visualization Presets</summary>
+                    <textarea v-on:change="setvisualization(scenename,$event.target.value);"
+                        v-model="editingScene.musicVisualizations"></textarea>
+                </details> -->
+
+                        <label>
+                            Alpha:<input type="number" max=1 step=0.01 min=0
+                                v-on:change="setalpha(scenename,parseFloat($event.target.value));"
+                                v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
+                        </label>
+
+                        <label v-if="showLightingControls">Default Alpha:
+                            <input type="number" style="width:4em" max=1 step=0.01 min=0
+                                v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
+                                v-model="editingScene.dalpha"></input>
+                        </label>
+                        <label v-if="showLightingControls">Blend Mode:
+                            <select title="This setting controls blending multiple scenes together"
+                                v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend">
+
+                                <option title="Alpha blend with scenes below">normal</option>
+                                <option
+                                    title="Highest Takes Priority, only affect lights if the value is higher than the others">
+                                    HTP</option>
+                                <option title="Limit maximum level">inhibit</option>
+                                <option title="Transparently monitor values">monitor</option>
+
+                                <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}</option>
+
+                            </select>
+                        </label>
+
+                        <label>Priority:
+                            <input type='number' min=0 max=100 style="width:3em"
+                                v-on:change="setpriority(scenename,parseFloat($event.target.value))"
+                                v-model="editingScene.priority">
+                        </label>
+                        <label>BPM:
+                            <input type='number' min=0 max=100 style="width:5em"
+                                v-on:change="setbpm(scenename,parseFloat($event.target.value))"
+                                v-model="editingScene.bpm">
+                        </label>
+                        <button v-on:click="tap(scenename)">
+                            <i class="icofont-hand-drag1"></i>Tap</button><br>
+
+
+                        <label title="Check this box to make the scene active at startup">Active By Default:
+                            <input type="checkbox"
+                                v-on:change="apiCommand(scenename,'setdefaultactive',$event.target.checked)"
+                                v-model="editingScene.defaultActive"></input>
+                        </label>
+
+                        <label v-if="showLightingControls"
+                            title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack:
+                            <input type="checkbox"
+                                v-on:change="apiCommand(scenename,'setbacktrack', $event.target.checked)"
+                                v-model="editingScene.backtrack"></input>
+                        </label>
+
+                        <label v-if="showSoundControls"> Sound Output: <input
+                                title="If not set by a cue, the global setting for the scene is used"
+                                v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
+                                v-model="editingScene.soundOutput" placeholder="default"
+                                list="soundcards"></input></label>
+                        </br>
+
+                        <label>
+                            Crossfade for non-silent Sounds :
+                            <input type="number" style="width:4em" max=1 step=0.01 min=0
+                                v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
+                                v-model="editingScene.crossfade"></input>s
+                        </label>
+
+                        <details>
+                            <summary>MQTT Features</summary>
+                            <label v-if="showAdvancedControls">MQTT Server:
+                                <input style="width:25em" v-on:change="setmqtt(scenename,$event.target.value)"
+                                    v-model="editingScene.mqttServer"></input>
+                            </label>
+
+                            <label v-if="showAdvancedControls"
+                                title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync
+                                Group Name
+                                <input v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
+                                    v-model="editingScene.mqttSyncFeatures.syncGroup"></input>
+                            </label>
+
+                        </details>
+
+                        <label v-if="showAdvancedControls">Slideshow Overlay:
+                            <input style="width:25em" v-on:change="setSceneSlideOverlay(scenename,$event.target.value)"
+                                v-model="editingScene.slideOverlayURL"></input>
+                        </label>
+
+
+
+                        <label v-if="showAdvancedControls" title="Recieve note events from a MIDI input device">MIDI
+                            Source:
+                            <input list="midiinputs" style="width:25em"
+                                v-on:change="setmidi(scenename,$event.target.value)"
+                                v-model="editingScene.midiSource"></input>
+                        </label>
+
+                        <label title="Recieve shortcut codes from a command-type tag">
+                            Command Tag:<input placeholder="Tagpoint"
+                                v-on:change="setcommandtag(scenename,$event.target.value)"
+                                v-model="editingScene.commandTag" list="commandtagslisting">
+                        </label>
+
+                        <label title="You can use this with __random__ to create a shuffle effect.">Default cue advance:
+                            <input style="width:25em" list="nextcueoptions"
+                                v-on:change="setdefaultnext(scenename,$event.target.value)"
+                                v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
+                        </label>
+
+                        <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
+                            <input style="width:25em" v-on:change="setinfodisplay(scenename,$event.target.value)"
+                                v-model="editingScene.infoDisplay"></input>
+                        </label>
+
+                        <label>Utility Scene(No controls):
+                            <input type="checkbox" v-on:change="setutility(scenename,currentcue.utility)"
+                                v-model="currentcue.utility"
+                                title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                        </label>
+
+
+
+                        <hr v-if="editingScene.blend!='normal'"
+                            style="border-style:solid;border-width:1px;border-color:grey;">
+                        <p>{{editingScene.blendDesc}}</p>
+                        <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
+                            <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
+                                v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
+                                v-model="editingScene.blendArgs[k]"></input>
+
+                        </label><br>
+
+                        <label v-if="showAdvancedControls">Send event to this scene:
+                            <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
+                                title="Event Name">
+
+                            <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+
+                            <select v-model="evtypetosend">
+                                <option value="int">Integer</option>
+                                <option value="float">Real Number</option>
+                                <option value="str">Text</option>
+                            </select>
+
+                            <button v-on:click="sendev(scenename)">Send</button>
+                        </label>
+                        <div class="scrollbox" v-if="showSoundControls">
                             <h5>Sound Outputs</h5>
                             <details class="help">
-                                <summary><i class="icofont-question-circle"></i></summary>To use play videos, you must
-                                use the web remote display feature. Cue
-                                videos will play in the browser on connected remote displays.
+                                <summary><i class="icofont-question-circle"></i></summary>So long as you plug the same
+                                device
+                                into the same port(on linux), it will be
+                                given the same device alias, although
+                                they will be different if JACK is used.
                             </details>
                             <dl>
-
-
                                 <dt>Web Player</dt>
                                 <dd>
                                     <p class="tool-bar">
                                         <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set for
                                             Cue</button>
                                         <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set as
-                                            Scene Default</button>
+                                            Scene
+                                            Default</button>
                                     </p>
                                 </dd>
 
-
                                 <template v-for="i of soundCards">
-                                    <dt>{{i || "UNSET" }}</dt>
+                                    <dt>{{i || "UNSET"}}</dt>
                                     <dd>
                                         <p class="tool-bar">
-                                            <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button>
                                             <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
                                                 Default</button>
                                             <button v-on:click="testSoundCard(i,0,48000)">Test</button>
@@ -1286,517 +1730,109 @@ ${lists}
                                 </template>
                             </dl>
                         </div>
-                    </div>
-                </details>
 
 
-                <details>
-                    <summary>Cue Slides</summary>
-                    <div>
+                        <h3>Event Buttons</h3>
+                        <table border="1">
+                            <tr>
+                                <th>Label</th>
+                                <th>Event to send</th>
+                                <th>Acton</th>
+                            </tr>
+                            <tr v-for="(v,i) in editingScene.eventButtons">
+                                <td><input v-model="v[0]"
+                                        v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
+                                </td>
+                                <td><input v-model="v[1]"
+                                        v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
+                                </td>
+                                <td><button
+                                        v-on:click="editingScene.eventButtons.splice(i, 1); setEventButtons(scenename, editingScene.eventButtons);">Delete</button>
+                            </tr>
+
+
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><button
+                                        v-on:click="editingScene.eventButtons.push(['','']); setEventButtons(scenename, editingScene.eventButtons);">Add
+                                        Button</button>
+                            </tr>
+                        </table>
+
+                        <h3>Display Tags</h3>
                         <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>
-                            A scene's web media display page will show whatever the current cue's slide is.
+                            <summary><i class="icofont-question-circle"></i></summary>Lets you display some tag points
+                            in
+                            the
+                            scene overview
                         </details>
 
-                        <div>
-                            <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
-                            <label>Slide:
-                                <input placeholder="No picture file" v-model="currentcue.slide" style="width:32em;"
-                                    v-on:change="setCueSlide(currentcueid,currentcue.slide)">
-                            </label>
+                        <table border="1">
+                            <tr>
+                                <th>Label</th>
+                                <th>Tag to display</th>
+                                <th>Acton</th>
+                            </tr>
+                            <tr v-for="(v,i) in editingScene.displayTags">
+                                <td><input v-model="v[0]"
+                                        v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                </td>
+                                <td><input list="tagslisting" v-model="v[1]"
+                                        v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                </td>
+                                <td><button
+                                        v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button>
+                                </td>
+                            </tr>
 
 
-                        </div>
-                        <p class="tool-bar">
-                            <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
-                                v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
-                                style="width:60%;">
-                            <button v-on:click="doSoundSearch(soundsearch)">Search</button>
-                            <button v-on:click="soundsearch=''">Clear Search</button>
-                        </p>
-                        <div style="max-height:25em; overflow:auto;">
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><button
+                                        v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add
+                                        Tag</button>
+                            </tr>
+                        </table>
 
 
-                            <div v-if="soundsearch">
-                                <table border="1">
-                                    <tr>
-                                        <th>File</th>
-                                        <th>Add to Current</th>
-                                        <th>Add to New</th>
-                                        <th>Preview</th>
-                                    </tr>
-                                    <tr v-for="i in soundsearchresults">
-                                        <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
-                                        <td><button
-                                                v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
-                                        </td>
-                                        <td><button
-                                                v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
-                                        </td>
 
-                                        <td><button
-                                                v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
-
-                                    </tr>
-                                </table>
-                            </div>
-
-                            <div v-if="soundsearch==''">
-                                <h4>
-                                    <a title="View in file manager"
-                                        v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
-                                        target="_blank">{{soundfilesdir}}</a>
-                                </h4>
-
-                                <ul>
-                                    <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
-                                    <li v-on:click="setSoundfileDir(soundfilesdir)">
-                                        <a><i class="icofont-refresh"></i>Refresh</a>
-                                    </li>
-                                    <li v-if="soundfilesdir"
-                                        v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
-                                        <a>..</a>
-                                    </li>
-                                    <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
-                                        <a>{{i[1] || i[0]}}</a>
-                                    </li>
-                                </ul>
-
-                                <table border="1">
-                                    <tr>
-                                        <th>File</th>
-                                        <th>Add to Current</th>
-                                        <th>Add to New</th>
-                                        <th>Preview</th>
-                                    </tr>
-                                    <tr v-for="i in soundfileslisting[1]">
-                                        <td>{{i}}</td>
-                                        <td><button v-on:click="setCueSlide(currentcueid,soundfilesdir+i)">Set</button>
-                                        </td>
-                                        <td><button v-on:click="newCueFromSlide(scenename,soundfilesdir+i)">New</button>
-                                        </td>
-
-                                        <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button></td>
-
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
                     </div>
+
                 </details>
-
-
 
                 <details>
-                    <summary>Cue Properties
-                    </summary>
-
+                    <summary>Event History</summary>
                     <div>
-                        <h5>Basic</h5>
-                        <div class="labelbox">
-                            <label>Number
-                                <input type="number" title="Cue number" style="width:6em"
-                                    v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
-                                    v-model="currentcue.number">
-                            </label>
+                        <button v-on:click="refreshhistory(scenename)">Refresh</button>
+                        <h3>Cue History</h3>
+                        <table border="1" v-if="scenemeta[scenename].history">
+                            <tr>
+                                <th>Cue</th>
+                                <th>Time</th>
+                            </tr>
+                            <tr v-for="v,i of scenemeta[scenename].history">
+                                <td>{{v[0]}}</td>
+                                <td>{{(new Date(v[1]*1000)).toLocaleString() }}</td>
+                            </tr>
 
-                            <label>Probability
-                                <input
-                                    title="Probability this cue is selected in random selections. =expressions allowed"
-                                    style="width:6em" v-on:change="setprobability(currentcueid,$event.target.value)"
-                                    v-model="currentcue.probability" placeholder="1">
-                            </label>
-
-                            <label>Shortcut
-                                <input title="Shortcut code used to quickly activate a cue" size="8"
-                                    v-on:change="setshortcut(currentcueid,$event.target.value)"
-                                    v-model="currentcue.shortcut">
-                            </label>
-
-                            <label>Trigger Shortcut
-                                <input title="When entering this cue, trigger the shortcut in other scenes" size="8"
-                                    v-on:change="settriggershortcut(currentcueid,$event.target.value)"
-                                    v-model="currentcue.triggerShortcut">
-                            </label>
-
-                            <label>Track
-                                <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
-                                    v-model="currentcue.track"
-                                    title="Track values from previous cue? If false, values not present are always transparent">
-                            </label>
-
-                            <label>Reentrant<input title="If false, dissallow entering cue if it's already running"
-                                    type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
-                                    v-model="currentcue.reentrant"></label>
-
-                            <label>Fadein
-                                <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)"
-                                    style="width:3em" min=0 v-model="currentcue.fadein">
-                            </label>
-                            <label>Length
-                                <input v-on:change="setlength(currentcueid,$event.target.value)"
-                                    v-model="cuemeta[currentcueid].length" style="width:6em" min=0></input>
-                            </label>
-                            <label>Randomize Length
-                                <input type="number" v-on:change="setrandomize(currentcueid,$event.target.value)"
-                                    title="Randomize the cue length +- this amount"
-                                    v-model="cuemeta[currentcueid].lengthRandomize" style="width:4em" min=0
-                                    step=0.25></input>
-                            </label>
-
-                            <label>Notes
-                                <input v-on:change="setcuenotes(currentcueid,$event.target.value)"
-                                    v-model="cuemeta[currentcueid].notes" style="width:12em" min=0></input>
-                            </label>
-
-                            <div class="break"></div>
-                            <h5 style="flex-basis:100%">Sound</h5>
-                            <label v-if="showSoundControls">Soundfile
-                                <input placeholder="No sound file" v-model="currentcue.sound"
-                                    title="File paths are resolved relative to any of the confg sound folders, searching all until a match is found"
-                                    style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
-                            </label>
-                            <label v-if="showSoundControls">Device<a target="_blank" href="/settings/mixer">(mixer)</a>
-                                <input title="set the output device" list="soundcards"
-                                    v-on:change="setSoundOutput(currentcueid,$event.target.value)"
-                                    v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
-                            </label>
-
-                            <label v-if="showSoundControls">Length From Sound
-                                <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
-                                    v-model="currentcue.rel_length"
-                                    title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                            </label>
-
-                            <h5 style="flex-basis:100%">Cue Advance</h5>
-                            <label>Next Cue
-                                <div>
-                                    <combo-box v-model="cuemeta[currentcueid].next"
-                                        v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)"
-                                        :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
-                                </div>
-                            </label>
-
-                            <button v-on:click="gotonext(currentcueid)">
-                                <i class="icofont-arrow-right"></i>Edit Next</button>
-                            <button
-                                title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
-                                v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
-                                <i class="icofont-copy"></i>Clone to Next</button>
-
-                            <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
-                                <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">
-                                    {{i}}</option>
-                            </datalist>
-                        </div>
+                        </table>
                     </div>
                 </details>
 
-
+                <div
+                    v-if="scenecues[scenename][selectedCues[scenename]]==undefined || cuemeta[scenecues[scenename][selectedCues[scenename]]]==undefined">
+                    Cue data not found...
+                </div>
 
             </div>
-            <h3>Global Scene Properties</h3>
-            <details>
-                <summary>Scene Notes</summary>
-
-
-
-                <div style="overflow: auto; max-height:30em;">
-                    <h4>Scene Notes</h4>
-                    <textarea v-model:value="editingScene.notes"></textarea><br>
-                    <button v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
-                </div>
-            </details>
-
-            <details>
-                <summary>Scene Settings</summary>
-
-                <div>
-
-                    <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene
-                        Properties</h4>
-                    <!-- <details>
-                    <summary>Music Visualization Presets</summary>
-                    <textarea v-on:change="setvisualization(scenename,$event.target.value);"
-                        v-model="editingScene.musicVisualizations"></textarea>
-                </details> -->
-
-                    <label>
-                        Alpha:<input type="number" max=1 step=0.01 min=0
-                            v-on:change="setalpha(scenename,parseFloat($event.target.value));"
-                            v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
-                    </label>
-
-                    <label v-if="showLightingControls">Default Alpha:
-                        <input type="number" style="width:4em" max=1 step=0.01 min=0
-                            v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
-                            v-model="editingScene.dalpha"></input>
-                    </label>
-                    <label v-if="showLightingControls">Blend Mode:
-                        <select title="This setting controls blending multiple scenes together"
-                            v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend">
-
-                            <option title="Alpha blend with scenes below">normal</option>
-                            <option
-                                title="Highest Takes Priority, only affect lights if the value is higher than the others">
-                                HTP</option>
-                            <option title="Limit maximum level">inhibit</option>
-                            <option title="Transparently monitor values">monitor</option>
-
-                            <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}</option>
-
-                        </select>
-                    </label>
-
-                    <label>Priority:
-                        <input type='number' min=0 max=100 style="width:3em"
-                            v-on:change="setpriority(scenename,parseFloat($event.target.value))"
-                            v-model="editingScene.priority">
-                    </label>
-                    <label>BPM:
-                        <input type='number' min=0 max=100 style="width:5em"
-                            v-on:change="setbpm(scenename,parseFloat($event.target.value))" v-model="editingScene.bpm">
-                    </label>
-                    <button v-on:click="tap(scenename)">
-                        <i class="icofont-hand-drag1"></i>Tap</button><br>
-
-
-                    <label title="Check this box to make the scene active at startup">Active By Default:
-                        <input type="checkbox"
-                            v-on:change="apiCommand(scenename,'setdefaultactive',$event.target.checked)"
-                            v-model="editingScene.defaultActive"></input>
-                    </label>
-
-                    <label v-if="showLightingControls"
-                        title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack:
-                        <input type="checkbox" v-on:change="apiCommand(scenename,'setbacktrack', $event.target.checked)"
-                            v-model="editingScene.backtrack"></input>
-                    </label>
-
-                    <label v-if="showSoundControls"> Sound Output: <input
-                            title="If not set by a cue, the global setting for the scene is used"
-                            v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
-                            v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input></label>
-                    </br>
-
-                    <label>
-                        Crossfade for non-silent Sounds :
-                        <input type="number" style="width:4em" max=1 step=0.01 min=0
-                            v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
-                            v-model="editingScene.crossfade"></input>s
-                    </label>
-
-                    <details>
-                        <summary>MQTT Features</summary>
-                        <label v-if="showAdvancedControls">MQTT Server:
-                            <input style="width:25em" v-on:change="setmqtt(scenename,$event.target.value)"
-                                v-model="editingScene.mqttServer"></input>
-                        </label>
-
-                        <label v-if="showAdvancedControls"
-                            title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync
-                            Group Name
-                            <input v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
-                                v-model="editingScene.mqttSyncFeatures.syncGroup"></input>
-                        </label>
-
-                    </details>
-
-                    <label v-if="showAdvancedControls">Slideshow Overlay:
-                        <input style="width:25em" v-on:change="setSceneSlideOverlay(scenename,$event.target.value)"
-                            v-model="editingScene.slideOverlayURL"></input>
-                    </label>
-
-
-
-                    <label v-if="showAdvancedControls" title="Recieve note events from a MIDI input device">MIDI Source:
-                        <input list="midiinputs" style="width:25em" v-on:change="setmidi(scenename,$event.target.value)"
-                            v-model="editingScene.midiSource"></input>
-                    </label>
-
-                    <label title="Recieve shortcut codes from a command-type tag">
-                        Command Tag:<input placeholder="Tagpoint"
-                            v-on:change="setcommandtag(scenename,$event.target.value)" v-model="editingScene.commandTag"
-                            list="commandtagslisting">
-                    </label>
-
-                    <label title="You can use this with __random__ to create a shuffle effect.">Default cue advance:
-                        <input style="width:25em" list="nextcueoptions"
-                            v-on:change="setdefaultnext(scenename,$event.target.value)"
-                            v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
-                    </label>
-
-                    <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
-                        <input style="width:25em" v-on:change="setinfodisplay(scenename,$event.target.value)"
-                            v-model="editingScene.infoDisplay"></input>
-                    </label>
-
-                    <label>Utility Scene(No controls):
-                        <input type="checkbox" v-on:change="setutility(scenename,currentcue.utility)"
-                            v-model="currentcue.utility"
-                            title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
-                    </label>
-
-
-
-                    <hr v-if="editingScene.blend!='normal'"
-                        style="border-style:solid;border-width:1px;border-color:grey;">
-                    <p>{{editingScene.blendDesc}}</p>
-                    <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
-                        <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
-                            v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
-                            v-model="editingScene.blendArgs[k]"></input>
-
-                    </label><br>
-
-                    <label v-if="showAdvancedControls">Send event to this scene:
-                        <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
-                            title="Event Name">
-
-                        <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
-
-                        <select v-model="evtypetosend">
-                            <option value="int">Integer</option>
-                            <option value="float">Real Number</option>
-                            <option value="str">Text</option>
-                        </select>
-
-                        <button v-on:click="sendev(scenename)">Send</button>
-                    </label>
-                    <div class="scrollbox" v-if="showSoundControls">
-                        <h5>Sound Outputs</h5>
-                        <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>So long as you plug the same
-                            device
-                            into the same port(on linux), it will be
-                            given the same device alias, although
-                            they will be different if JACK is used.
-                        </details>
-                        <dl>
-                            <dt>Web Player</dt>
-                            <dd>
-                                <p class="tool-bar">
-                                    <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set for
-                                        Cue</button>
-                                    <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set as Scene
-                                        Default</button>
-                                </p>
-                            </dd>
-
-                            <template v-for="i of soundCards">
-                                <dt>{{i || "UNSET"}}</dt>
-                                <dd>
-                                    <p class="tool-bar">
-                                        <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
-                                            Default</button>
-                                        <button v-on:click="testSoundCard(i,0,48000)">Test</button>
-                                    </p>
-                                </dd>
-                            </template>
-                        </dl>
-                    </div>
-
-
-                    <h3>Event Buttons</h3>
-                    <table border="1">
-                        <tr>
-                            <th>Label</th>
-                            <th>Event to send</th>
-                            <th>Acton</th>
-                        </tr>
-                        <tr v-for="(v,i) in editingScene.eventButtons">
-                            <td><input v-model="v[0]"
-                                    v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
-                            </td>
-                            <td><input v-model="v[1]"
-                                    v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
-                            </td>
-                            <td><button
-                                    v-on:click="editingScene.eventButtons.splice(i, 1); setEventButtons(scenename, editingScene.eventButtons);">Delete</button>
-                        </tr>
-
-
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td><button
-                                    v-on:click="editingScene.eventButtons.push(['','']); setEventButtons(scenename, editingScene.eventButtons);">Add
-                                    Button</button>
-                        </tr>
-                    </table>
-
-                    <h3>Display Tags</h3>
-                    <details class="help">
-                        <summary><i class="icofont-question-circle"></i></summary>Lets you display some tag points in
-                        the
-                        scene overview
-                    </details>
-
-                    <table border="1">
-                        <tr>
-                            <th>Label</th>
-                            <th>Tag to display</th>
-                            <th>Acton</th>
-                        </tr>
-                        <tr v-for="(v,i) in editingScene.displayTags">
-                            <td><input v-model="v[0]"
-                                    v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
-                            </td>
-                            <td><input list="tagslisting" v-model="v[1]"
-                                    v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
-                            </td>
-                            <td><button
-                                    v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button>
-                            </td>
-                        </tr>
-
-
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td><button
-                                    v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add
-                                    Tag</button>
-                        </tr>
-                    </table>
-
-
-
-                </div>
-
-            </details>
-
-            <details>
-                <summary>Event History</summary>
-                <div>
-                    <button v-on:click="refreshhistory(scenename)">Refresh</button>
-                    <h3>Cue History</h3>
-                    <table border="1" v-if="scenemeta[scenename].history">
-                        <tr>
-                            <th>Cue</th>
-                            <th>Time</th>
-                        </tr>
-                        <tr v-for="v,i of scenemeta[scenename].history">
-                            <td>{{v[0]}}</td>
-                            <td>{{(new Date(v[1]*1000)).toLocaleString() }}</td>
-                        </tr>
-
-                    </table>
-                </div>
-            </details>
-
-            <div
-                v-if="scenecues[scenename][selectedCues[scenename]]==undefined || cuemeta[scenecues[scenename][selectedCues[scenename]]]==undefined">
-                Cue data not found...
+            <div v-if="showevents" style="height:25em">
             </div>
 
-        </div>
-        <div v-if="showevents" style="height:25em">
-        </div>
-
-    </section>
+        </section>
+    </main>
 </div>
-
 
 
 <template id="cue-cd">
@@ -2081,4 +2117,3 @@ ${core.boards[0]().link.render('api_link')}
 
 
 </script>
-<%include file="pagefooter.html" />
