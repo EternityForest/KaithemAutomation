@@ -27,7 +27,14 @@ tokens = ['if', 'for']
 for i in tokens:
     d= rep(i, d)
 
+d = re.sub(r"%else:$", "{% endif %}", d, flags=re.MULTILINE)
+
 d = re.sub(r"\$\{(.+?)\}", lambda m: "{{ " + m[1] + " }}", d)
 
 
+
+
 print(d)
+
+with open(sys.argv[1]+".jinja2", 'w') as f:
+    f.write(d)

@@ -21,6 +21,7 @@ import traceback
 import copy
 import mimetypes
 import cherrypy
+import weakref
 from . import (
     auth,
     pages,
@@ -31,7 +32,8 @@ from . import (
     messagebus,
     scheduling,
     devices,
-    schemas
+    schemas,
+    unitsofmeasure
 )
 from .modules import external_module_locations
 from . import modules
@@ -46,6 +48,64 @@ searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
 
 
 prev_versions: dict[tuple, dict] = {}
+
+
+
+def get_time(ev):
+  try:
+      if not newevt.EventReferences[ev].nextruntime:
+          return 0
+      return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0,newevt.EventReferences[ev].tz)
+  except Exception as e:
+      return -1
+
+#n is the module name
+#f is the folder we are checking if it is in, including the module name
+#r is the path of the resource
+def in_folder(r,f,n):
+    #Get the path as a list, including the module name
+    r = [n]+util.split_escape(r,'/','\\')
+    #Get the path of the folder
+    f = util.split_escape(f,'/','\\')
+    #make sure the resource path is one longer than module
+    if not len(r)==len(f)+1:
+        return False
+    x = 0
+    for i in f:
+        if not r[x] == i:
+           return False
+        x +=1
+    return True
+
+
+def getDesc(module):
+    try:
+        return module['__description']['text']
+    except Exception:
+        return "No module description found"
+    
+
+module_page_context = {
+    "siFormatNumber" : unitsofmeasure.siFormatNumber,
+    "url": util.url,
+    "fileResourceAbsPaths": modules.fileResourceAbsPaths,
+    "external_module_locations": modules.external_module_locations,
+    "getModuleHash": modules_state.getModuleHash,
+    "getModuleWordHash": modules_state.getModuleWordHash,
+    'pages': pages,
+    'newevt': newevt,
+    'usrpages': usrpages,
+    'unitsofmeasure': unitsofmeasure,
+    'util': util,
+    'scheduling': scheduling,
+    'modules_state': modules_state,
+    'modules': modules,
+    'os': os,
+    "weakref": weakref,
+    "getDesc": getDesc,
+    "in_folder": in_folder,
+    "get_time": get_time
+}
 
 
 def validate_upload():
@@ -317,6 +377,7 @@ class WebInterface:
                 name=root,
                 path=modulepath,
                 fullpath=fullpath,
+                **module_page_context
             )
 
         else:
@@ -851,6 +912,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 name=module,
                 path=util.split_escape(resource, "\\"),
                 fullpath=module + "/" + resource,
+                **module_page_context
             )
 
         # This is for the custom resource types interface stuff.

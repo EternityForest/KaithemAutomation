@@ -1,21 +1,6 @@
-<%!
-from kaithem.src.unitsofmeasure import siFormatNumber
-from kaithem.src.util import url
-from kaithem.src.modules import fileResourceAbsPaths, external_module_locations
-from kaithem.src.modules_state import getModuleHash,getModuleWordHash
-from kaithem.src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,modules
-import time,os,weakref
-%>
 
 <%include file="/pageheader.html"/>
 
-<%
-def getDesc():
-    try:
-        return module['__description']['text']
-    except:
-        return "No module description found"
-%>
 <h2>Module ${name|h}</h2>
 <title>Module: ${name|h}</title>
 <section class="flex undecorated">
@@ -34,7 +19,7 @@ WordHash: ${getModuleWordHash(name)}</br>
 <h4>Name:</h4>
 <input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
-<textarea name="description" class="description" rows=5>${getDesc()|h}</textarea>
+<textarea name="description" class="description" rows=5>${getDesc(module)|h}</textarea>
 <h4>Save Location(blank=default):</h4>
 <input name="location" title="Enter a directory name on the server's local filesystem" value="${external_module_locations.get(name,"")|h}"></input>
 <hr>
@@ -91,33 +76,6 @@ temp_p+= i+'/'
     <form style="display:inline-flex;" action="/modules/search/${url(name)}"><p><i class="icofont-ui-search"></p></i><input size=8 name="search" placeholder="Search this module"/><input  type=submit value="search"/></form>
 </div>
     
-<%!
-def get_time(ev):
-  try:
-      if not newevt.EventReferences[ev].nextruntime:
-          return 0
-      return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0,newevt.EventReferences[ev].tz)
-  except Exception as e:
-      return -1
-
-#n is the module name
-#f is the folder we are checking if it is in, including the module name
-#r is the path of the resource
-def in_folder(r,f,n):
-     #Get the path as a list, including the module name
-     r = [n]+util.split_escape(r,'/','\\')
-     #Get the path of the folder
-     f = util.split_escape(f,'/','\\')
-     #make sure the resource path is one longer than module
-     if not len(r)==len(f)+1:
-	  return False
-     x = 0
-     for i in f:
-	  if not r[x] == i:
-	       return False
-	  x +=1
-     return True
-%>
 <dl>
 %if path and len(util.split_escape(path[0],"/","\\"))>1:
 <dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
