@@ -65,7 +65,7 @@
     text-align: right;
 }
 
-:is(.tool-bar, .input-group) *, :is(.tool-bar, .input-group) input, :is(.tool-bar, .input-group) a{
+:is(.tool-bar, .input-group) > *, :is(.tool-bar, .input-group) input, :is(.tool-bar, .input-group) > a{
     box-sizing: border-box;
     font-size: inherit;
     height: var(--tool-bar-height);

@@ -32,12 +32,14 @@ ${{kaithem.web.freeboard(page, kwargs, plugins)}}
 
 
 defaulthtml = """
-<h2>{basename}</h2>
-<title>{basename}</title>
+<%def name="title()">{basename}</%def>
 
-<section>
-  Content here
-</section>
+<main>
+  <h2>{basename}</h2>
+  <section>
+    Content here
+  </section>
+</main>
 """
 
 
@@ -76,7 +78,9 @@ def default(basename, **kw):
         'require-method': ['GET', 'POST'],
         'require-permissions': [],
         'resource-timestamp': int(time.time()*1000000),
-        'resource-type': 'page'
+        'resource-type': 'page',
+        'no-navheader': True,
+        'no-header': True,
     }
 
 
@@ -87,7 +91,9 @@ def vue(basename, **kw):
         'require-method': ['GET', 'POST'],
         'require-permissions': [],
         'resource-timestamp': int(time.time()*1000000),
-        'resource-type': 'page'
+        'resource-type': 'page',
+        'no-navheader': True,
+        'no-header': True,
     }
 
 

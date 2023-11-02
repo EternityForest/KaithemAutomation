@@ -12,7 +12,7 @@ from . import blendmodes
 
 from .. import directories
 _Lookup = TemplateLookup(
-    directories=[os.path.join(os.path.dirname(__file__), 'html'), directories.htmldir])
+    directories=[os.path.join(os.path.dirname(__file__), 'html'), os.path.join(directories.htmldir, "makocomponents")])
 
 get_template = _Lookup.get_template
 

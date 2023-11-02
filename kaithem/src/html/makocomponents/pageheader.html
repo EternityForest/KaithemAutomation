@@ -4,12 +4,12 @@ from kaithem.src import auth,util,notifications,pages,modules,modules_state,them
 import cherrypy,socket,base64
 %>
 
-
-
 <!DOCTYPE html>
 <html>
 
 <head>
+  <title><%block name="title">KaithemAutomation</%block></title>
+
   <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" type="text/css" href="${_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}">
@@ -182,4 +182,4 @@ Tools</a>
     </div>
     %endif
     </header>
-    <main>
+<main>

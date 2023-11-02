@@ -1,4 +1,4 @@
-<%include file="/pageheader.html"/>
+<%include file="/pageheader.html" />
 
 ${lists}
 
@@ -124,6 +124,11 @@ ${lists}
             opacity: 0.5;
         }
     }
+
+    .multibar > *
+    {
+        display: inline-flex;
+    }
 </style>
 
 <script src="/static/js/vue2.js"></script>
@@ -174,7 +179,7 @@ ${lists}
 </script>
 
 <div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
-    <div v-if="showevents" class="sectionbox flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
+    <section v-if="showevents" class="flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
         <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
             Log
         </h2>
@@ -204,7 +209,7 @@ ${lists}
         </select>
 
         <button v-on:click="sendev('__global__')">Send</button>
-    </div>
+    </section>
 
 
     <div id="optionsblock" class="multibar" style="flex-basis: 98%">
@@ -255,7 +260,7 @@ ${lists}
 
 
 
-    <div v-if="showimportexport" class="sectionbox flex-item">
+    <section v-if="showimportexport" class="flex-item">
         <h3>Import/Export controls</h3>
         <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
             <a class="button" href="download" title="Download your scenes as a file"><i
@@ -273,13 +278,13 @@ ${lists}
             <a class="button" href="uploadLibrary" title="Upload a scenes file"><i
                     class="icofont-folder-open"></i>Fixture Lib</a>
         </div>
-    </div>
+    </section>
 
 
 
 
 
-    <div v-if="showPresets" class="sectionbox flex-item" style="width: 32em;">
+    <section v-if="showPresets" class="flex-item" style="width: 32em;">
         <h3>Presets<button v-on:click="showPresets=0">
                 <i class="icofont-ui-close"></i>Close</button>
         </h3>
@@ -308,7 +313,7 @@ ${lists}
             </template>
 
         </dl>
-    </div>
+    </section>
 
     <div v-if="showDMXSetup" class="sectionbox flex-item">
         <h3>
@@ -430,7 +435,7 @@ ${lists}
     </dialog>
 
 
-    <div v-if="universeFullSettings" class="sectionbox flex-item">
+    <section v-if="universeFullSettings" class="flex-item">
         <h3><button v-on:click="universeFullSettings=0"><i class="icofont-ui-close"></i>Close</button>Universe
             Setup:{{universeFullSettings}}</h3>
 
@@ -472,11 +477,11 @@ ${lists}
             </table>
 
         </div>
-    </div>
+    </section>
 
 
 
-    <div v-if="showFixtureSetup" class="sectionbox flex-item">
+    <section v-if="showFixtureSetup" class="flex-item">
         <h3><button v-on:click="showhidefixtures()"><i class="icofont-ui-close"></i>Close</button>Fixture
             Setup</h3>
 
@@ -536,7 +541,7 @@ ${lists}
                         min and max channel
                         of that range, plus a name for that option.
                     </details>
-                    
+
                     <h5>Ranges for channel {{i}}</h5>
                     <table border="1">
                         <tr>
@@ -573,10 +578,10 @@ ${lists}
                 v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red',0]);pushfixture(selectedFixtureClass);">Add
                 Channel</button>
         </div>
-    </div>
+    </section>
 
 
-    <div v-if="showfixtureassg" class="sectionbox flex-item">
+    <section v-if="showfixtureassg" class="flex-item">
 
         <h3>
             <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture Assignments
@@ -642,10 +647,10 @@ ${lists}
             <pre>{{ferrs}}</pre>
         </div><br>
 
-    </div>
+    </section>
 
-    <div v class="sectionbox flex-item"
-        style="overflow: auto; width:20%; min-width: 22em; max-width: 32em; flex-grow: 1; height:90%; resize:both;">
+    <section v class="flex-item"
+        style="overflow: auto; width:20%; min-width: 22em; max-width: 28em; flex-grow: 1; height:90%; resize:both;">
         <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
         <div class="tool-bar">
@@ -753,21 +758,21 @@ ${lists}
             <button v-on:click="addMonitorScene()"><i class="icofont-binoculars"></i>Add Monitor</button>
         </p>
 
-    </div>
+    </section>
 
-    <div class="sectionbox flex-item" v-if="!(editingScene && cuemeta[editingScene.cue])"
+    <section class="flex-item" v-if="!(editingScene && cuemeta[editingScene.cue])"
         style="display:inline-block;  max-width:98vw; resize:both; overflow:auto;">
         <h2>No Scene selected</h2>
-    </div>
+    </section>
 
 
-    <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
-        style="display:inline-block; max-width:98vw; resize:both; overflow:auto; flex-grow: 5;">
+    <section class="flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
+        style="display:inline-block; max-width:60em; resize:both; overflow:auto; flex-grow: 5;">
         <div style="display: flex; flex-direction: row;">
 
             <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
                     <span v-if="editingScene.blend=='monitor'">Monitor</span>
-                 {{editingScene.name}}</span>
+                    {{editingScene.name}}</span>
                 <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
             </h3>
 
@@ -933,7 +938,7 @@ ${lists}
                 </p>
                 <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
                     <article class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'"
-                        style="border-style:solid">
+                        >
                         <h3>{{uname}}</h3>
                         <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
                             :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
@@ -942,7 +947,7 @@ ${lists}
 
 
                     <article class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'"
-                        style="border-style:solid">
+                        >
                         <div class="tool-bar" v-if="editingScene.blend!='monitor'">
                             <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
                             <select
@@ -1789,7 +1794,7 @@ ${lists}
         <div v-if="showevents" style="height:25em">
         </div>
 
-    </div>
+    </section>
 </div>
 
 

@@ -26,7 +26,7 @@ from . import auth, config
 from . import directories, util
 
 
-_Lookup = TemplateLookup(directories=[directories.htmldir])
+_Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(directories.htmldir, "makocomponents")])
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])

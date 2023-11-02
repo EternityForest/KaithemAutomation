@@ -540,7 +540,8 @@ section {
 
 article {
     border-style: solid;
-    border-width: 2px;
+    border-width: 1px;
+    border-radius: 12px;
     padding-top: 0.4em;
     padding-bottom: 0.5%;
     padding-right: 1%;

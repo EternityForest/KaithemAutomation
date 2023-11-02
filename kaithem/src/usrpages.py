@@ -30,9 +30,13 @@ import sys
 
 from .config import config
 
-from mako import exceptions
+from mako.lookup import TemplateLookup
 
 errors = {}
+
+# Used for including builtin components
+component_lookup = TemplateLookup(directories=[
+                                  directories.htmldir, os.path.join(directories.htmldir, "makocomponents")])
 
 
 def markdownToSelfRenderingHTML(content, title):
@@ -205,7 +209,8 @@ class CompiledPage:
 
                 self.streaming = resource.get("streaming-response", False)
 
-                self.mime = resource.get("mimetype", "text/html") or "text/html"
+                self.mime = resource.get(
+                    "mimetype", "text/html") or "text/html"
                 if "require-method" in resource:
                     self.methods = resource["require-method"]
                 else:
@@ -215,15 +220,18 @@ class CompiledPage:
                 if "no-navheader" in resource:
                     if resource["no-navheader"]:
                         header = util.readfile(
-                            os.path.join(directories.htmldir, "pageheader_nonav.html")
+                            os.path.join(directories.htmldir, 'makocomponents',
+                                         "pageheader_nonav.html")
                         )
                     else:
                         header = util.readfile(
-                            os.path.join(directories.htmldir, "pageheader.html")
+                            os.path.join(directories.htmldir, 'makocomponents',
+                                         "pageheader.html")
                         )
                 else:
                     header = util.readfile(
-                        os.path.join(directories.htmldir, "pageheader.html")
+                        os.path.join(directories.htmldir,
+                                     'makocomponents', "pageheader.html")
                     )
 
                 if "no-header" in resource:
@@ -239,7 +247,7 @@ class CompiledPage:
 
                 if not ("no-header" in resource) or not (resource["no-header"]):
                     footer = util.readfile(
-                        os.path.join(directories.htmldir, "pagefooter.html")
+                        os.path.join(directories.htmldir, 'makocomponents', "pagefooter.html")
                     )
                 else:
                     footer = ""
@@ -262,7 +270,8 @@ class CompiledPage:
                     usejson = False
 
                     if "setupcode" in resource and resource["setupcode"].strip():
-                        code_header += "\n<%!\n" + resource["setupcode"] + "\n%>\n"
+                        code_header += "\n<%!\n" + \
+                            resource["setupcode"] + "\n%>\n"
                         usejson = True
 
                     if "code" in resource and resource["code"].strip():
@@ -305,16 +314,13 @@ class CompiledPage:
                     templatesource = code_header + header + template + footer
 
                     self.template = mako.template.Template(
-                        templatesource, uri="Template" + m + "_" + r
-                    )
+                        templatesource, uri="Template" + m + "_" + r, lookup=component_lookup)
 
                 elif resource["template-engine"] == "markdown":
                     header = mako.template.Template(
-                        header, uri="Template" + m + "_" + r
-                    ).render(**self.d)
+                        header, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.d)
                     footer = mako.template.Template(
-                        footer, uri="Template" + m + "_" + r
-                    ).render(**self.d)
+                        footer, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.d)
 
                     self.text = (
                         header
@@ -327,7 +333,8 @@ class CompiledPage:
 
             elif resource["resource-type"] == "internal-fileref":
                 self.methods = ["GET"]
-                self.name = os.path.basename(modules_state.fileResourceAbsPaths[m, r])
+                self.name = os.path.basename(
+                    modules_state.fileResourceAbsPaths[m, r])
 
                 self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
                 self.mime = self.mime = resource.get(
@@ -376,8 +383,8 @@ _page_list_lock = threading.Lock()
 
 def getPageHTMLDoc(m, r):
     try:
-        if hasattr(_Pages[module][resource].template.module, "__html_doc__"):
-            return str(_Pages[module][resource].template.module.__html_doc__)
+        if hasattr(_Pages[m][r].template.module, "__html_doc__"):
+            return str(_Pages[m][r].template.module.__html_doc__)
     except:
         pass
 
@@ -429,7 +436,7 @@ def updateOnePage(resource, module):
             gc.collect()
         except:
             pass
-        
+
         enable = True
         # Get the page resource in question
         j = modules_state.ActiveModules[module][resource]
@@ -482,7 +489,8 @@ def getPagesFromModules():
                             )
                             try:
                                 messagebus.postMessage(
-                                    "system/errors/pages/" + i + "/" + m, str(tb)
+                                    "system/errors/pages/" +
+                                    i + "/" + m, str(tb)
                                 )
                             except Exception as e:
                                 print(e)
@@ -517,7 +525,8 @@ def getPagesFromModules():
                                 )
                                 try:
                                     messagebus.postMessage(
-                                        "system/errors/pages/" + i + "/" + m, str(tb)
+                                        "system/errors/pages/" +
+                                        i + "/" + m, str(tb)
                                     )
                                 except Exception as e:
                                     print(e)
@@ -711,10 +720,12 @@ class KaithemPage:
             )
             # When an error happens, log it and save the time
             # Note that we are logging to the compiled event object
-            page.errors.append([time.strftime(config["time-format"]), tb, data])
+            page.errors.append(
+                [time.strftime(config["time-format"]), tb, data])
             try:
                 messagebus.postMessage(
-                    "system/errors/pages/" + module + "/" + "/".join(args), str(tb)
+                    "system/errors/pages/" + module +
+                    "/" + "/".join(args), str(tb)
                 )
             except Exception as e:
                 print(e)

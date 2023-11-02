@@ -29,32 +29,28 @@ from cherrypy.lib.static import serve_file
 from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 
 
-
-
-
-
 upnpsettingsfile = os.path.join(
     directories.vardir, "core.settings", "upnpsettings.yaml")
 
 upnpsettings = persist.getStateFile(upnpsettingsfile)
 
 
-
-redirectsfn = os.path.join(directories.vardir, "core.settings", "httpredirects.toml")
+redirectsfn = os.path.join(
+    directories.vardir, "core.settings", "httpredirects.toml")
 
 if os.path.exists(redirectsfn):
     redirects = persist.load(redirectsfn)
 else:
     redirects = {
-            "/": {
-                "url": ""
-            }
+        "/": {
+            "url": ""
         }
+    }
+
 
 def setRedirect(url):
     redirects['/']['url'] = url
     persist.save(redirects, redirectsfn)
-
 
 
 displayfn = os.path.join(directories.vardir, "core.settings", "display.toml")
@@ -63,26 +59,26 @@ if os.path.exists(displayfn):
     display = persist.load(displayfn)
 else:
     display = {
-            "__first__": {
-                "rotate": ""
-            }
+        "__first__": {
+            "rotate": ""
         }
+    }
+
 
 def setScreenRotate(direction):
-    if not direction in ('','left','right','normal','invert'):
+    if not direction in ('', 'left', 'right', 'normal', 'invert'):
         raise RuntimeError("Security!!!")
-    os.system('''DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate '''+direction)
+    os.system('''DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate ''' + direction)
     display['__first__']['rotate'] = direction
     persist.save(display, displayfn, private=True)
 
 
-if display.get('__first__',{}).get('rotate',''):
+if display.get('__first__', {}).get('rotate', ''):
     try:
-        os.system("DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate "+  display.get('__first__',{}).get('rotate',''))
+        os.system("DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate " +
+                  display.get('__first__', {}).get('rotate', ''))
     except Exception:
         pass
-
-
 
 
 NULL = 0
@@ -165,7 +161,10 @@ class Settings():
     @cherrypy.expose
     def mixer(self, *a, **k):
         pages.require("/users/mixer.edit",)
-        return pages.get_template("settings/mixer.html").render()
+        from kaithem.src import jackmixer, directories
+        return pages.get_template("settings/mixer.html").render(os=os, 
+                                                                jackmixer=jackmixer, 
+                                                                directories=directories)
 
     @cherrypy.expose
     def wifi(self, *a, **k):
@@ -178,7 +177,6 @@ class Settings():
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
-    
 
     @cherrypy.expose
     def screenshot(self):
@@ -487,7 +485,6 @@ class Settings():
         util.SaveAllState()
         raise cherrypy.HTTPRedirect('/')
 
-
     @cherrypy.expose
     def settime(self):
         pages.require("/admin/settings.edit")
@@ -546,21 +543,19 @@ class Settings():
         systasks.doUPnP()
         raise cherrypy.HTTPRedirect('/settings/system')
 
-
     @cherrypy.expose
     def changeredirecttarget(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         setRedirect(kwargs['url'])
         raise cherrypy.HTTPRedirect('/settings/system')
-    
+
     @cherrypy.expose
     def changerotationtarget(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         setScreenRotate(kwargs['rotate'])
         raise cherrypy.HTTPRedirect('/settings/system')
-    
 
     @cherrypy.expose
     def settheming(self, **kwargs):
@@ -570,7 +565,6 @@ class Settings():
         theming.file['web']['csstheme'] = kwargs['cssfile']
         theming.saveTheme()
         raise cherrypy.HTTPRedirect('/settings/theming')
-
 
     @cherrypy.expose
     def ip_geolocate(self, **kwargs):
@@ -593,7 +587,7 @@ class Settings():
     def dmesg(self):
         pages.require("/admin/settings.view")
         return pages.get_template("settings/dmesg.html").render()
-    
+
     @cherrypy.expose
     def environment(self):
         pages.require("/admin/settings.view")
