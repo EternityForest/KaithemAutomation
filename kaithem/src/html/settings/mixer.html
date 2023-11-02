@@ -8,8 +8,7 @@
     margin: 0.2em;
     vertical-align: top;
     width: 24em;
-    padding: 0.2em;
-
+    flex-grow: 0.1;
   }
 
   .chain {
@@ -21,7 +20,6 @@
 
   .effect {
 
-    border-radius: 8px;
     margin: 0.5em;
   }
 
@@ -38,305 +36,304 @@ ${jackmixer.global_api.render("gapi")}
 
 
 <div id="app">
-<main>
-<section style="width: 98%;">
+
+    <section style="width: 98%;">
+      <header>
+        <datalist id="effectTypes">
+          <option value="fader">Fader</option>
+          <option value="3beq">3-Band EQ</option>
+        </datalist>
+
+        <datalist id="inports">
+          <option v-for="i in sortedConnectables(inports)">{{i}}</option>
+        </datalist>
+
+        <datalist id="outports">
+          <option v-for="i in sortedConnectables(outports)">{{i}}</option>
+          <option>krecorder</option>
+        </datalist>
+
+        <datalist id="presets">
+          <option v-for="i in presets" v-bind:value="i"></option>
+          <option value="default"></option>
+        </datalist>
+        <div class="tool-bar">
+
+          <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
+          <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
+          <button class="{bold: activePane=='status'}" v-on:click="activePane='status'">Status</button>
+
+          <button v-on:click="showAddEffect=true">Show Effects Menu</button>
+          <p>Preset:</p><input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
+            v-on:click="confirmSavePreset(loadedPreset)">Save</button>
+
+        </div>
+      </header>
+
+        <div v-if="activePane=='status'">
+          <h3>Audio ports</h3>
+          <h4>Outputs(Sinks)</h4>
+          <table>
+            <tr v-for="v,i in inports">
+              <td>{{i}}</td>
+            </tr>
+          </table>
+          <h4>Inputs(Sources)</h4>
+          <table>
+            <tr v-for="v,i in outports">
+              <td>{{i}}</td>
+            </tr>
+          </table>
+
+
+          <h3>MIDI ports</h3>
+          <h4>Outputs(Sinks)</h4>
+          <table>
+            <tr v-for="v,i in midioutports">
+              <td>{{i}}</td>
+            </tr>
+          </table>
+          <h4>Inputs(Sources)</h4>
+          <table>
+            <tr v-for="v,i in midiinports">
+              <td>{{i}}</td>
+            </tr>
+          </table>
+
+
+        </div>
+
+        <div v-if="activePane=='presets'">
+          <h2>Presets</h2>
+          <details class="help">
+            <summary><i class="icofont-question-circle"></i></summary>Presets let you load and save the entire state
+            of
+            the mixing board. When kaithem boots, the preset
+            named "default" will be loaded if it exists. Presets are saved immediately to
+            vardir/system.mixer/presets
+          </details>
 
 
 
+          <table border="1">
+            <tr>
+              <th>Name</th>
+              <th>Actions</th>
+            </tr>
+            <tr v-for="i in presets">
+              <td>{{i}}</td>
+              <td>
+                <button v-on:click="confirmLoadPreset(i)">Load</button>
+              </td>
+              <td>
+                <button v-on:click="confirmDeletePreset(i)">Delete</button>
+              </td>
+            </tr>
 
-  <div>
-    <datalist id="effectTypes">
-      <option value="fader">Fader</option>
-      <option value="3beq">3-Band EQ</option>
-    </datalist>
+            <tr>
+              <td>
+                <input list="presets" v-model="newpresetname" placeholder="New Preset">
+              </td>
+              <td><button v-on:click="createPreset(newpresetname)">Save</button></td>
+              <td></td>
+            </tr>
 
-    <datalist id="inports">
-      <option v-for="i in sortedConnectables(inports)">{{i}}</option>
-    </datalist>
+          </table>
+        </div>
 
-    <datalist id="outports">
-      <option v-for="i in sortedConnectables(outports)">{{i}}</option>
-      <option>krecorder</option>
-    </datalist>
-
-    <datalist id="presets">
-      <option v-for="i in presets" v-bind:value="i"></option>
-      <option value="default"></option>
-    </datalist>
-    <div class="tool-bar">
-
-      <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
-      <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
-      <button class="{bold: activePane=='status'}" v-on:click="activePane='status'">Status</button>
-
-      <button v-on:click="showAddEffect=true">Show Effects Menu</button>
-      <p>Preset:</p><input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
-        v-on:click="confirmSavePreset(loadedPreset)">Save</button>
-
-    </div>
-
-    <div v-if="activePane=='status'">
-      <h3>Audio ports</h3>
-      <h4>Outputs(Sinks)</h4>
-      <table>
-        <tr v-for="v,i in inports">
-          <td>{{i}}</td>
-        </tr>
-      </table>
-      <h4>Inputs(Sources)</h4>
-      <table>
-        <tr v-for="v,i in outports">
-          <td>{{i}}</td>
-        </tr>
-      </table>
+        <div v-if="!ui_ready">
+          <h3>Loading Mixer Channels</h3>
+          <p>This may take a while if kaithem has just booted up.</p>
+        </div>
 
 
-      <h3>MIDI ports</h3>
-      <h4>Outputs(Sinks)</h4>
-      <table>
-        <tr v-for="v,i in midioutports">
-          <td>{{i}}</td>
-        </tr>
-      </table>
-      <h4>Inputs(Sources)</h4>
-      <table>
-        <tr v-for="v,i in midiinports">
-          <td>{{i}}</td>
-        </tr>
-      </table>
+        <div class="flex" v-if="activePane=='mixer' && ui_ready">
+          <article class="channel card" v-for="(channel,channelname) in channels">
+            <header>
+              <div v-if="channel.type=='audio' || !channel.type">
+                <div>
+                  <h3 style="display: inline-block;">{{channelname}}({{channel.channels}})
+                  </h3>
+                  <small>{{channelStatus[channelname]}}</small>
+                </div>
+                <div class="menubar tool-bar">
+                  <button v-on:click="confirmDelete(channelname)">Delete</button>
+                  <button v-on:click="ding(channelname)">Ding</button>
+                  <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
+                </div>
 
+                <div class="tool-bar">
+                  <label>In:<input v-model="channel.input" list="outports"
+                      v-on:change="setInput(channelname, $event.target.value)"></label>
 
-    </div>
-
-    <div v-if="activePane=='presets'">
-      <h2>Presets</h2>
-      <details class="help">
-        <summary><i class="icofont-question-circle"></i></summary>Presets let you load and save the entire state
-        of
-        the mixing board. When kaithem boots, the preset
-        named "default" will be loaded if it exists. Presets are saved immediately to
-        vardir/system.mixer/presets
-      </details>
+                </div>
+            </header>
+            <div class="chain">
+              <div v-for="effect, index in channel.effects" class="effect">
+                <details>
+                  <summary>
+                    <div class="menubar tool-bar" style="width: 85%; display: inline-flex;">
+                      <p v-bind:title="effect.id">
+                        <b>{{effect.displayType}}</b>
+                      </p>
+                      <button v-on:click="moveEffectUp(channelname, index)">Up</button>
+                      <button v-on:click="moveEffectDown(channelname, index)">Down</button>
+                      <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
+                    </div>
+                  </summary>
 
 
 
-      <table border="1">
-        <tr>
-          <th>Name</th>
-          <th>Actions</th>
-        </tr>
-        <tr v-for="i in presets">
-          <td>{{i}}</td>
-          <td>
-            <button v-on:click="confirmLoadPreset(i)">Load</button>
-          </td>
-          <td>
-            <button v-on:click="confirmDeletePreset(i)">Delete</button>
-          </td>
-        </tr>
+                  <table style="width:98%;margin:auto;" border=1>
+                    <tr v-for="param in sortedParams(effect.params)" class="param">
+                      <template v-if="param.type=='float'">
+                        <td>{{param.displayName}}</td>
+                        <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                            v-bind:max="param.max" :step="(param.step)"
+                            v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
+                        </td>
 
-        <tr>
-          <td>
-            <input list="presets" v-model="newpresetname" placeholder="New Preset">
-          </td>
-          <td><button v-on:click="createPreset(newpresetname)">Save</button></td>
-          <td></td>
-        </tr>
+                        <td>{{param.value}}</td>
+                      </template>
 
-      </table>
-    </div>
+                      <template v-if="param.type=='int'">
+                        <td>{{param.displayName}}</td>
+                        <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                            v-bind:max="param.max" :step="(param.step)"
+                            v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
+                        </td>
 
-    <div v-if="!ui_ready">
-      <h3>Loading Mixer Channels</h3>
-      <p>This may take a while if kaithem has just booted up.</p>
-    </div>
+                        <td>{{param.value}}</td>
+                      </template>
 
+                      <template v-if="param.type=='string.int'">
+                        <td>{{param.displayName}}</td>
+                        <td><input type="number" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                            v-bind:max="param.max" :step="(param.step)"
+                            v-on:change="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
+                        </td>
 
-    <div v-if="activePane=='mixer' && ui_ready">
-      <article class="channel" v-for="(channel,channelname) in channels">
-        <div v-if="channel.type=='audio' || !channel.type">
-          <div>
-            <h3 style="display: inline-block;">{{channelname}}({{channel.channels}})
-            </h3>
-            <small>{{channelStatus[channelname]}}</small>
-          </div>
-          <div class="menubar tool-bar">
-            <button v-on:click="confirmDelete(channelname)">Delete</button>
-            <button v-on:click="ding(channelname)">Ding</button>
-            <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
-          </div>
+                        <td>{{param.value}}</td>
+                      </template>
 
-          <div class="tool-bar">
-            <label>In:<input v-model="channel.input" list="outports"
-                v-on:change="setInput(channelname, $event.target.value)"></label>
+                      <template v-if="param.type=='bool'">
+                        <td>{{param.displayName}}</td>
+                        <td><input type="checkbox" v-model.bool="param.value"
+                            v-on:input="setParam(channelname,effect.id,param.name,$event.target.checked)">
+                        </td>
+                        <td>{{param.value}}</td>
+                      </template>
 
-          </div>
-          <div class="chain">
-            <div v-for="effect, index in channel.effects" class="effect">
-              <details>
-                <summary>
-                  <div class="menubar tool-bar" style="width: 85%; display: inline-flex;">
-                    <p v-bind:title="effect.id">
-                      <b>{{effect.displayType}}</b>
-                    </p>
-                    <button v-on:click="moveEffectUp(channelname, index)">Up</button>
-                    <button v-on:click="moveEffectDown(channelname, index)">Down</button>
-                    <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
+                      <template v-if="param.type=='JackInput'">
+                        <td>{{param.displayName}}</td>
+                        <td><input list="inports" v-model="param.value"
+                            v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
+                        </td>
+                        <td>{{param.value}}</td>
+                      </template>
+
+                      <template v-if="param.type=='string'">
+                        <td>{{param.displayName}}</td>
+                        <td><input v-model="param.value"
+                            v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
+                        </td>
+                        <td></td>
+                      </template>
+
+                      <template v-if="param.type=='enum'">
+                        <td>{{param.displayName}}</td>
+                        <td><select v-model="param.value"
+                            v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                            <option v-for="i of param.options" :value="i[1]">{{i[0]}}</option>
+                          </select>
+                        </td>
+                        <td></td>
+                      </template>
+
+                    </tr>
+                  </table>
+                </details>
+
+              </div>
+
+              <div class="effect" v-if="showAddEffect">
+                <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
+                <div class="tool-bar"><input v-model="fxSearch" placeholder="Search"><button
+                    v-on:click="fxSearch=''">X</button></div>
+                <div style="height:8em;overflow: scroll;">
+                  <div v-for="i in effectTypes"
+                    v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
+                    <h4>{{i.displayType}}</h4>
+                    <p>{{i.help}}</p>
+                    <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
                   </div>
-                </summary>
-
-
-
-                <table style="width:98%;margin:auto;" border=1>
-                  <tr v-for="param in sortedParams(effect.params)" class="param">
-                    <template v-if="param.type=='float'">
-                      <td>{{param.displayName}}</td>
-                      <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
-                          v-bind:max="param.max" :step="(param.step)"
-                          v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
-                      </td>
-
-                      <td>{{param.value}}</td>
-                    </template>
-
-                    <template v-if="param.type=='int'">
-                      <td>{{param.displayName}}</td>
-                      <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
-                          v-bind:max="param.max" :step="(param.step)"
-                          v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
-                      </td>
-
-                      <td>{{param.value}}</td>
-                    </template>
-
-                    <template v-if="param.type=='string.int'">
-                      <td>{{param.displayName}}</td>
-                      <td><input type="number" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
-                          v-bind:max="param.max" :step="(param.step)"
-                          v-on:change="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
-                      </td>
-
-                      <td>{{param.value}}</td>
-                    </template>
-
-                    <template v-if="param.type=='bool'">
-                      <td>{{param.displayName}}</td>
-                      <td><input type="checkbox" v-model.bool="param.value"
-                          v-on:input="setParam(channelname,effect.id,param.name,$event.target.checked)">
-                      </td>
-                      <td>{{param.value}}</td>
-                    </template>
-
-                    <template v-if="param.type=='JackInput'">
-                      <td>{{param.displayName}}</td>
-                      <td><input list="inports" v-model="param.value"
-                          v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
-                      </td>
-                      <td>{{param.value}}</td>
-                    </template>
-
-                    <template v-if="param.type=='string'">
-                      <td>{{param.displayName}}</td>
-                      <td><input v-model="param.value"
-                          v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
-                      </td>
-                      <td></td>
-                    </template>
-
-                    <template v-if="param.type=='enum'">
-                      <td>{{param.displayName}}</td>
-                      <td><select v-model="param.value"
-                          v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
-                          <option v-for="i of param.options" :value="i[1]">{{i[0]}}</option>
-                        </select>
-                      </td>
-                      <td></td>
-                    </template>
-
-                  </tr>
-                </table>
-              </details>
-
-            </div>
-
-            <div class="effect" v-if="showAddEffect">
-              <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
-              <div class="tool-bar"><input v-model="fxSearch" placeholder="Search"><button
-                  v-on:click="fxSearch=''">X</button></div>
-              <div style="height:8em;overflow: scroll;">
-                <div v-for="i in effectTypes"
-                  v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
-                  <h4>{{i.displayType}}</h4>
-                  <p>{{i.help}}</p>
-                  <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
                 </div>
               </div>
+
             </div>
 
-          </div>
-          <p>{{channelname}} Level:</p>
+            <footer>
+              <p>{{channelname}} Level:</p>
+              <div class="tool-bar">
+                <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
+                  orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;"
+                  v-bind:title="channel.fader">
+
+                <button v-on:click="setMute(channelname, !channel.mute)" title="Mute channel" type="checkbox"
+                  style="width: 1em;">
+                  <i v-if="channel.mute" class="icofont-ui-mute" style="color: red; background-color:black"></i>
+                  <i v-if="!channel.mute" class="icofont-ui-mute"></i>
+
+                </button>
+
+              </div>
+
+              <div class="tool-bar"><meter style="flex-grow: 2;" min="-70" max="10" high="-5"
+                  v-bind:value="channel.level"></meter>
+                <p style="width:5em;">{{channel.level}}db</p>
+              </div>
+              <div class="tool-bar">
+                <p>Connect output: </p><input v-model="channel.output" list="inports"
+                  v-on:change="setOutput(channelname, $event.target.value)"
+                  title="The output of this channel will be automatically connected to this port">
+              </div>
+
+              <div class="tool-bar">
+                <p>FBX Threshold:</p><input style="max-width: 3em;" type="number" v-model="channel.soundFuse"
+                  title="Steady or increasing values above this will result in the volume being automatically lowered."
+                  v-on:change="setFuse(channelname, $event.target.value)">
+                <p>dB</p>
+              </div>
+            </footer>
+        </article>
+
+
+        <article class="channel card">
+          <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
+
+          <h3>New Channel</h3>
+          <p class="tool-bar">
+            <input v-model="newchannelname" style="max-width: 8em;"><button
+              v-on:click="api.send(['addChannel', newchannelname,1])">Add
+              Mono</button>
+            <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
+          </p>
+          <h3>Recorder ({{recordStatus}})</h3>
+          <details class="help">
+            <summary><i class="icofont-question-circle"></i></summary>Jack name: krecorder, channels will
+            autoconnect.
+            <br>Files in <a
+              href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a>
+          </details>
           <div class="tool-bar">
-            <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
-              orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;"
-              v-bind:title="channel.fader">
-
-            <button v-on:click="setMute(channelname, !channel.mute)" title="Mute channel" type="checkbox"
-              style="width: 1em;">
-              <i v-if="channel.mute" class="icofont-ui-mute" style="color: red; background-color:black"></i>
-              <i v-if="!channel.mute" class="icofont-ui-mute"></i>
-
-            </button>
-
+            <p>Channels:</p><input aria-label="Channels" type="number" v-model="recordChannels" style="max-width: 3em;">
+            <p>File Prefix:</p><input v-model="recordName" size=1>
+            <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
+            <button v-on:click="api.send(['stopRecord'])">Stop</button>
           </div>
-
-          <div class="tool-bar"><meter style="flex-grow: 2;" min="-70" max="10" high="-5"
-              v-bind:value="channel.level"></meter>
-            <p style="width:5em;">{{channel.level}}db</p>
-          </div>
-          <div class="tool-bar">
-            <p>Connect output: </p><input v-model="channel.output" list="inports"
-              v-on:change="setOutput(channelname, $event.target.value)"
-              title="The output of this channel will be automatically connected to this port">
-          </div>
-
-          <div class="tool-bar">
-            <p>FBX Threshold:</p><input style="max-width: 3em;" type="number" v-model="channel.soundFuse"
-              title="Steady or increasing values above this will result in the volume being automatically lowered."
-              v-on:change="setFuse(channelname, $event.target.value)">
-            <p>dB</p>
-          </div>
-        </div>
-      </article>
-
-
-      <article class="channel">
-        <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
-
-        <h3>New Channel</h3>
-        <p class="tool-bar">
-          <input v-model="newchannelname" style="max-width: 8em;"><button
-            v-on:click="api.send(['addChannel', newchannelname,1])">Add
-            Mono</button>
-          <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
-        </p>
-        <h3>Recorder ({{recordStatus}})</h3>
-        <details class="help">
-          <summary><i class="icofont-question-circle"></i></summary>Jack name: krecorder, channels will
-          autoconnect.
-          <br>Files in <a
-            href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a>
-        </details>
-        <div class="tool-bar">
-          <p>Channels:</p><input aria-label="Channels" type="number" v-model="recordChannels" style="max-width: 3em;">
-          <p>File Prefix:</p><input v-model="recordName" size=1>
-          <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
-          <button v-on:click="api.send(['stopRecord'])">Stop</button>
-        </div>
-      </article>
-    </div>
-  </div>
+        </article>
+</div>
 </section>
-</main>
 </div>
 
 

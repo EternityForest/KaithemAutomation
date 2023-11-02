@@ -176,7 +176,7 @@ ${lists}
 
 
 </script>
-<div id="app" style="display: flex; flex-wrap: wrap;">
+<div id="app" class="flex">
     <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
         <div class="menubar tool-bar">
@@ -220,22 +220,23 @@ ${lists}
 
     <section v class="flex-item"
         style="overflow: auto; width:20%; min-width: 22em; max-width: 28em; flex-grow: 1; height:90%; resize:both;">
-        <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
+        <header>
+            <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
-        <div class="tool-bar">
-            <input size=8
-                title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
-                aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"
-                v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
-            <button v-on:click="shortcut()">Go!</button>
-        </div>
-        <div class="tool-bar">
-            <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
-                    class="icofont-trash"></i></button>
-            <button v-on:click="showPages=!showPages">Compact</button>
+            <div class="tool-bar">
+                <input size=8
+                    title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
+                    aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"
+                    v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
+                <button v-on:click="shortcut()">Go!</button>
+            </div>
+            <div class="tool-bar">
+                <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
+                        class="icofont-trash"></i></button>
+                <button v-on:click="showPages=!showPages">Compact</button>
 
-        </div>
-        <hr>
+            </div>
+        </header>
         <div style="overflow: auto; max-height:450px;">
             <article v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;"
                 v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
@@ -786,7 +787,8 @@ ${lists}
 
 
         <section class="flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
-            style="display:inline-block; max-width:60em; resize:both; overflow:auto; flex-grow: 5;">
+            style="display:inline-block; max-width:90em; resize:both; overflow:auto; flex-grow: 5;">
+            <header>
             <div style="display: flex; flex-direction: row;">
 
                 <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
@@ -817,7 +819,7 @@ ${lists}
                 <input v-model="cuefilter" placeholder="Search Cues" />
                 <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
             </p>
-            <hr>
+        </header>
 
 
             <div id="cuesbox">

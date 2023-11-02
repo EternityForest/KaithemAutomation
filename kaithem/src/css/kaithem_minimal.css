@@ -1,24 +1,28 @@
 @import "tool-bar.css";
-
 /* Using a string */
-
 @import "/static/fonts/icofont/icofont.min.css";
 
 /*****************Typography****************************/
-
-
 /* lora-regular - latin_cyrillic_latin-ext_cyrillic-ext */
-
-
 /*https://allthingssmitty.com/2016/10/03/responsive-table-layout/*/
-
-.decorative-image{
+.decorative-image {
     display: none;
 }
 
-body>footer, body>header, body>main{
+body>footer,
+body>header,
+body>main {
     /*Override CSS frameworks*/
     padding: 4px;
+    margin: auto;
+}
+
+form{
+    text-align: center;
+}
+
+body>main{
+    width: min(45em, 100vw);
 }
 
 @media screen and (max-width: 820px) {
@@ -35,9 +39,7 @@ body>footer, body>header, body>main{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
 /* lora-italic - latin_cyrillic_latin-ext_cyrillic-ext */
-
 @font-face {
     font-family: 'Lora';
     font-style: italic;
@@ -46,9 +48,7 @@ body>footer, body>header, body>main{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
 /* lora-700 - latin_cyrillic_latin-ext_cyrillic-ext */
-
 @font-face {
     font-family: 'Lora';
     font-style: normal;
@@ -57,9 +57,7 @@ body>footer, body>header, body>main{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
 /* lora-700italic - latin_cyrillic_latin-ext_cyrillic-ext */
-
 @font-face {
     font-family: 'Lora';
     font-style: italic;
@@ -68,9 +66,7 @@ body>footer, body>header, body>main{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
 /* b612-regular - latin */
-
 @font-face {
     font-family: 'B612';
     font-style: normal;
@@ -79,9 +75,7 @@ body>footer, body>header, body>main{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
 /* b612-italic - latin */
-
 @font-face {
     font-family: 'B612';
     font-style: italic;
@@ -90,9 +84,7 @@ body>footer, body>header, body>main{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
 /* b612-700 - latin */
-
 @font-face {
     font-family: 'B612';
     font-style: normal;
@@ -101,11 +93,11 @@ body>footer, body>header, body>main{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-dd{
+dd {
     margin-bottom: 1.5em;
 }
-/* b612-700italic - latin */
 
+/* b612-700italic - latin */
 @font-face {
     font-family: 'B612';
     font-style: italic;
@@ -113,7 +105,6 @@ dd{
     src: local('B612 Bold Italic'), local('B612Mono-BoldItalic'), url('/static/fonts/b612/b612-v4-latin-700italic.woff2') format('woff2');
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
-
 
 @font-face {
     font-family: 'Lato';
@@ -139,26 +130,27 @@ dd{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
 body {
     font-family: Lato;
     line-height: 1.6;
     font-size: 18px;
     margin: 0px;
     color: #444;
-    --box-bg: rgba(0,0,0,0);
+    --box-bg: rgba(0, 0, 0, 0);
 }
 
-h1,h2,h3
-{
+h1,
+h2,
+h3 {
     font-family: Lora;
 }
 
-h3 button, h3 a.button
-{
+h3 button,
+h3 a.button {
     font-size: 100%;
     font-family: Lora;
 }
+
 .nonavtopbannercontainer h1 {
     font-size: 100%;
 }
@@ -168,8 +160,6 @@ h3 button, h3 a.button
     font-size: small;
 }
 
-
-
 td input,
 td select {
     border: 1px solid;
@@ -177,49 +167,44 @@ td select {
     margin: 0px;
     height: 1.8em;
     width: auto;
-
 }
 
 td {
     padding: 1px;
 }
 
-
 button,
 a.button,
 label,
-a, select
- {
+a,
+select {
     font-family: inherit;
     padding: 6px;
 }
 
-
 /*Stack labels on the form elements*/
-label>:is(input, select, button, div){
+label>:is(input, select, button, div) {
     display: block;
 }
 
-/********************Behavior****************************/
+label:has(*) {
+    display: inline-block;
+}
 
+/********************Behavior****************************/
 body {
     /* Disables pull-to-refresh but allows overscroll glow effects. */
     overscroll-behavior-y: contain;
 }
 
-
 /********************Basic Layout******************************/
 h1,
 h2,
-h3
- {
+h3 {
     margin-bottom: 12px;
     margin-top: 28px;
     text-align: center;
-
 }
-
-
 
 h2 {
     margin-top: 32px;
@@ -229,16 +214,16 @@ hr {
     background-color: transparent;
 }
 
-
 h2:first-of-type,
 h3:first-of-type {
     margin-top: 0px;
 }
 
-.navbar{
+.navbar {
     max-width: 98vw;
     margin: auto;
 }
+
 .navbar div {
     text-align: center;
     font-size: 16px;
@@ -246,7 +231,6 @@ h3:first-of-type {
     flex-shrink: 0;
     margin: 2px;
 }
-
 
 .navbar .tool-bar a {
     text-align: center;
@@ -256,32 +240,28 @@ input[type=checkbox] {
     min-width: 2em;
 }
 
-
-
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-
 p.menubar,
 div.menubar {
     opacity: 90%;
     width: 98%;
 }
 
-dialog{
-position: fixed;
-top:50%;
-bottom: 50%;
-border: 3px solid;
-border-color: inherit;
-z-index: 1000;
+dialog {
+    position: fixed;
+    top: 50%;
+    bottom: 50%;
+    border: 3px solid;
+    border-color: inherit;
+    z-index: 1000;
 }
 
-
-
-span, button{
+span,
+button {
     color: inherit;
 }
-/*********************Code editing************************/
 
+/*********************Code editing************************/
 @font-face {
     font-family: hack;
     src: url(/static/hack.ttf);
@@ -297,9 +277,7 @@ span, button{
     background: rgb(250, 255, 244);
 }
 
-
 /* Line Numbers */
-
 .monaco-editor .line-numbers {
     background-color: rgb(210, 220, 200);
     color: rgb(55, 30, 0) !important;
@@ -309,9 +287,7 @@ span, button{
     background: rgba(150, 200, 120, 0.1) !important;
 }
 
-
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-
 p.menubar div.menubar {
     margin: 2px;
     border-style: solid;
@@ -321,61 +297,17 @@ p.menubar div.menubar {
     flex-wrap: wrap;
 }
 
-
 /*This div is the container for most of the built in widgets. */
-
 div.widgetcontainer {
     display: inline-block;
-    background-color: rgba(70, 90, 70, 0.25);
-    padding-top: 0px;
-    border-style: solid;
-    border-width: 2px;
-    color: rgb(0, 0, 0);
-    padding: 5px;
-    border-radius: 22px;
-    margin: 2px;
-    vertical-align: text-top;
 }
 
-input.modulename {
-    width: 70%
-}
-
-input.pythoncode {
-    width: 100%
-}
-
-
-/*A text area meant for describing something*/
-
-textarea.description {
-    width: 70%;
-}
-
-textarea.pythoncode {
-    width: 100%;
-    overflow: "scroll";
-    font-size: 125%;
-}
-
-textarea.htmlcode {
-    width: 100%;
-    overflow: "scroll";
-    font-size: 125%;
-}
-
-textarea.code {
-    width: 100%;
-    overflow: "scroll";
-    font-size: 125%;
-}
 
 textarea:disabled {
     background-color: #D0D0D0
 }
 
-
-details{
+details {
     margin: 0.4em;
     border: 1px solid;
     padding-left: 0.4em;
@@ -383,12 +315,11 @@ details{
     border-color: inherit;
 }
 
-details.help{
+details.help {
     border: 1px dotted;
 }
 
 /*This is a help paragraph usually shown at the top or a sectionbox*/
-
 p.help,
 div.help {
     margin: 0px;
@@ -408,8 +339,6 @@ div.help {
     display: inline-block;
 }
 
-
-
 p.help:hover,
 div.help:hover {
     opacity: 100%;
@@ -425,13 +354,11 @@ div.help:hover {
     z-index: 100;
 }
 
-
-
-td details{
+td details {
     display: inline-block;
 }
-/*A link styled to look like a button*/
 
+/*A link styled to look like a button*/
 a.button {
     border-color: rgba(36, 30, 30, 0.219);
     text-decoration: none;
@@ -445,19 +372,17 @@ a.button {
     --tool-bar-element-border: 1px solid rgba(136, 153, 190, 0.733);
 }
 
-
-button, a.tool-bar{
+button,
+a.tool-bar {
     border-style: solid;
 }
+
 summary h2:first-child {
- display: inline;
+    display: inline;
 }
 
 /*****************************General***********************************************************************************/
-
-
 /*These can be applied to jus about anything for highlighting and emphasis*/
-
 .error,
 .danger {
     color: #900000;
@@ -469,10 +394,7 @@ summary h2:first-child {
     background-color: rgba(255, 255, 0, 0.2);
 }
 
-
-
 /*This is used for /important notifications*/
-
 .highlight {
     color: rgb(0, 50, 0);
     background-color: rgba(100, 150, 50, 0.2);
@@ -484,17 +406,13 @@ summary h2:first-child {
     color: rgb(80, 80, 80);
 }
 
-
 /**Basic styling**/
-
-
-
-iframe{
+iframe {
     border-style: solid;
     border-width: 1px;
 }
-/*Tables*/
 
+/*Tables*/
 table {
     border-style: solid;
     border-width: 1px;
@@ -503,9 +421,7 @@ table {
     margin: 0.4em;
 }
 
-
 /*This makes tables easier to read by coloring alternate rows differently.*/
-
 table tr:nth-child(odd) td {
     background-color: rgba(255, 255, 255, 0.1);
 }
@@ -514,50 +430,26 @@ table tr:nth-child(even) td {
     background-color: rgba(0, 0, 0, 0.1);
 }
 
-
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
-
 div.sectionbox,
- section {
+section {
     border-style: solid;
     border-width: 2px;
-    padding-top: 0.4em;
-    padding-bottom: 0.5%;
-    padding-right: 1%;
-    padding-left: 0.5%;
     margin-left: auto;
     margin-right: auto;
     margin-top: 0.8em;
     margin-bottom: 0.2em;
-    width: min(45em, 100vw);
     min-width: min-content;
     box-sizing: border-box;
     max-width: 96%;
     overflow-x: auto;
 }
 
-.undecorated{
+.undecorated {
     border: none;
     box-shadow: none;
     background: transparent;
-}
-
-
-article {
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 12px;
-    padding-top: 0.4em;
-    padding-bottom: 0.5%;
-    padding-right: 1%;
-    padding-left: 0.5%;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 0.8em;
-    margin-bottom: 0.2em;
-    box-sizing: border-box;
-    max-width: 96%;
-    overflow-x: auto;
+    backdrop-filter: none;
 }
 
 
@@ -565,34 +457,11 @@ article {
 div.sectionbox div.sectionbox,
 section section,
 div.sectionbox section,
-section div.sectionbox
-
-{
+section div.sectionbox {
     border: none;
 }
 
 
-div.card {
-    border-style: solid;
-    background: var(--box-bg);
-    border-width: 1px;
-    border-color:  rgba(36, 30, 30, 0.219);;
-    border-radius: 15px;
-    backdrop-filter: blur(1px);
-    padding-top: 0.2%;
-    padding-bottom: 0.5%;
-    padding-right: 1%;
-    padding-left: 0.5%;
-}
-
-
-
-
-div.sectionbox.flex-item,
-section.flex-item {
-    margin: 1.2em;
-    flex-grow: 1;
-}
 
 div.sectionbox h2,
 section h2,
@@ -601,9 +470,7 @@ section h3 {
     text-align: left;
 }
 
-
 /* A scrollable div */
-
 div.scrollbox {
     border-style: solid;
     border-width: 2px;
@@ -643,6 +510,85 @@ div.k-laterality-reminder-right:hover {
     background-color: rgba(255, 255, 0, 0.6);
 }
 
-.highlight{
+.highlight {
     background-color: #78dba479 !important;
+}
+
+
+/*Utilities */
+
+.w-25{
+    width: 25%;
+    box-sizing: border-box;
+}
+
+.w-50{
+    width: 50%;
+    box-sizing: border-box;
+}
+
+.flex{
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 0.8em;
+}
+
+
+.flex>* {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    margin-left: 0px;
+    margin-right: 0px;
+    flex-basis: min-content;
+}
+
+.flex>*:first-child{
+    margin-left: 0.8em;
+}
+.flex>*:last-child{
+    margin-right: 0.8em;
+}
+
+.flex>*:only-child{
+    margin: auto;
+}
+
+.card{
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 12px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0.8em;
+    margin-bottom: 0.2em;
+    box-sizing: border-box;
+    max-width: 96%;
+    overflow-x: auto;
+}
+
+article>header, section>header, .card>header,
+article>footer, section>footer, .card>footer
+{
+    background-color: #d0d0d036;
+    border-bottom: 1px solid;
+    width: 100%;
+    padding: 0.6em;
+    border-radius: inherit;
+    box-sizing: border-box;
+    margin: 0px;
+}
+article>header, section>header, .card>header
+{
+    box-sizing: border-box;
+}
+article>footer, section>footer, .card>footer
+{
+    border-top: 1px solid;
+    margin: 0px;
+    width: 100%;
+}
+
+article:has(header){
+    padding: 0px;
 }

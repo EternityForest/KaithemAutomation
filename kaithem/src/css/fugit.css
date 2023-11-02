@@ -186,10 +186,6 @@ section {
     backdrop-filter: blur(1px) brightness(0.3);
     background-color: rgba(0, 0, 0, 0.3);
     border-color: #ffd477;
-    padding-top: 0.2%;
-    padding-bottom: 0.5%;
-    padding-right: 1%;
-    padding-left: 0.5%;
     background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAHRJREFUKFNVTzsVgEAMSwYWTKAAEahAIyrwgAJUsDCEl7TwHjfc9dJ8Wq7LqG2/SBCCQAAC8BaEWxJEY26bIFBFLNg/l6o3hFhZ8hUVUB7t0/JEtATzNOg47zbIBH1oayTbV9LKseYPNaCjflu8lMC93bcsHiEmMBAIk7iGAAAAAElFTkSuQmCC) repeat;
 }
 
@@ -390,7 +386,7 @@ meter::-webkit-meter-optimum-value{
     --tool-bar-convex-item-bg: rgba(0, 0, 0, 0.8)
 }
 
-.highlight, .highlight i {
+.highlight, .highlight * {
     text-shadow: none;
     font-weight: bolder;
     color: black !important;
@@ -407,8 +403,8 @@ meter::-webkit-meter-optimum-value{
     text-shadow: none;
     font-weight: bolder;
     background-color: black;
-    color: #ffd477 !important;
-    background: black !important;
+    color: #ffd477 ;
+    background: black ;
 }
 
 .highlight button,
@@ -417,8 +413,8 @@ meter::-webkit-meter-optimum-value{
     text-shadow: none;
     font-weight: bolder;
     background-color: black;
-    color: #ffd477 !important;
-    background: #black !important;
+    color: #ffd477 ;
+    background: black;
 }
 
 

@@ -45,8 +45,8 @@ else:
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
 <hr style="width: 100%;">
 %endif
-<article class="sectionbox" style="${greyout} margin: 1em; border-radius: inherit;  flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
-        
+<article class="card" style="${greyout} margin: 1em; flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
+        <header class="flex">
         <h3
             title="${devObj.deviceTypeName}"
 
@@ -54,7 +54,7 @@ else:
             class="highlight specialentry"
             %endif
 
-        >    <div class="tool-bar">
+        >    
 
             <a href="device/${url(i)}/manage">${devObj.title|h}
 
@@ -90,9 +90,8 @@ else:
         %endif
 
 
-    </div>        
-</h3>
 
+</header>
         %if 'color' in devObj.tagpoints and devObj.tagpoints['color'].subtype=='color':
 
         <div class="tool-bar">

@@ -18,7 +18,8 @@ def getDesc():
 %>
 <h2>Module ${name|h}</h2>
 <title>Module: ${name|h}</title>
-<section>
+<section class="flex undecorated">
+<section class="card">
     <details class="help"><summary><i class="icofont-question-circle"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
 
 MD5 Sum: ${getModuleHash(name)}</br>
@@ -26,8 +27,8 @@ WordHash: ${getModuleWordHash(name)}</br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file</a><br>
 <form action="/modules/module/${url(name)}/obj/module" method="post"><button>The module namespace object(requires edit permission, beware shoulder surfers)</button></form>
 </section>
-<h3>Basic Information</h3>
-<div class="sectionbox">
+
+<section class="card w-50">
     <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
 <h4>Name:</h4>
@@ -43,7 +44,8 @@ WordHash: ${getModuleWordHash(name)}</br>
 <p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif>
 </form>
-</div>
+</section>
+</section>
 
 
 

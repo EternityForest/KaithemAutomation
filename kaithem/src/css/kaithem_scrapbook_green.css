@@ -205,10 +205,6 @@ div.kmainpagebody {}
     border-radius: 15px;
     backdrop-filter: blur(1px);
     border-color: #00000059;
-    padding-top: 0.2%;
-    padding-bottom: 0.5%;
-    padding-right: 1%;
-    padding-left: 0.5%;
     box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.7)
 }
 
@@ -218,10 +214,6 @@ div.card, article {
     border-width: 1px;
     border-radius: 15px;
     border-color: #00000011;
-    padding-top: 0.2%;
-    padding-bottom: 0.5%;
-    padding-right: 1%;
-    padding-left: 0.5%;
     box-shadow: 2px 2px 8px -3px rgba(43, 39, 85, 0.4)
 }
 
@@ -448,18 +440,6 @@ span.pre {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-p.pathnav {
-    background-color: rgba(140, 200, 140, 0.2);
-    background-color: rgba(255, 25, 255, 0.1);
-    border-radius: 5px;
-    margin-bottom: 5px;
-    margin-top: 5px;
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 7px;
-    padding: 3px;
-    cursor: help;
-}
 
 p.resource-docstring {
     color: rgb(55, 55, 55);
