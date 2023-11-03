@@ -212,8 +212,8 @@
     --brown-7: #956b47;
     --brown-8: #825b3a;
     --brown-9: #6f4b2d;
-    --brown-10:#5e3a21;
-    --brown-11:#4e2b15;
+    --brown-10: #5e3a21;
+    --brown-11: #4e2b15;
     --brown-12: #422412;
 
     --sand-0: #f8fafb;
@@ -226,8 +226,8 @@
     --sand-7: #736a53;
     --sand-8: #5f5746;
     --sand-9: #4b4639;
-    --sand-10:#38352d;
-    --sand-11:#252521;
+    --sand-10: #38352d;
+    --sand-11: #252521;
     --sand-12: #121210;
 
     --camo-0: #f9fbe7;
@@ -260,70 +260,84 @@
 }
 
 :root {
-	/* Colors */
-	--fg: var(--gray-12); /* Text. */
-	--muted-fg: var(--gray-10); /* Secondary text color. Will be
+    /* Colors */
+    --fg: var(--gray-12);
+    /* Text. */
+    --muted-fg: var(--gray-10);
+    /* Secondary text color. Will be
 		used with a background of --c-bg and --c-bg-2 -- check contrast! */
-	--faded-fg: var(--gray-6); /* Disabled text color. */
-	--graphical-fg: var(--plain-graphical-fg); /* Graphical elements. Will not
+    --faded-fg: var(--gray-6);
+    /* Disabled text color. */
+    --graphical-fg: var(--plain-graphical-fg);
+    /* Graphical elements. Will not
 		be used as a text color. */
-	
-	--plain-fg: var(--blue-10);
-	--info-fg: var(--blue-11);
-	--ok-fg: var(--green-11);
-	--bad-fg: var(--red-11);
-	--warn-fg: var(--yellow-11);
 
-	--plain-graphical-fg: var(--gray-6);
-	--info-graphical-fg: var(--blue-6);
-	--ok-graphical-fg: var(--green-6);
-	--bad-graphical-fg: var(--red-6);
-	--warn-graphical-fg: var(--yellow-6);
-	
-	--bg: var(--gray-0); /* Page background. */
-	--box-bg: var(--plain-bg); /* Background for blocks: cards, admonitions etc. */
-	--interactive-bg: var(--gray-4); /* Background for interactive elements */
+    --plain-fg: var(--blue-10);
+    --info-fg: var(--blue-11);
+    --ok-fg: var(--green-11);
+    --bad-fg: var(--red-11);
+    --warn-fg: var(--yellow-11);
 
-	--plain-bg: var(--gray-1);
-	--info-bg: var(--blue-1);
-	--ok-bg: var(--green-1);
-	--bad-bg: var(--red-1);
-	--warn-bg: var(--yellow-1);
+    --plain-graphical-fg: var(--gray-6);
+    --info-graphical-fg: var(--blue-6);
+    --ok-graphical-fg: var(--green-6);
+    --bad-graphical-fg: var(--red-6);
+    --warn-graphical-fg: var(--yellow-6);
 
-	--accent: var(--blue-10); /* Accent color. Will be used *as a text color* with a
+    --bg: var(--gray-0);
+    /* Page background. */
+    --box-bg: var(--plain-bg);
+    /* Background for blocks: cards, admonitions etc. */
+    --interactive-bg: var(--gray-4);
+    /* Background for interactive elements */
+
+    --plain-bg: var(--gray-1);
+    --info-bg: var(--blue-1);
+    --ok-bg: var(--green-1);
+    --bad-bg: var(--red-1);
+    --warn-bg: var(--yellow-1);
+
+    --accent: var(--blue-10);
+    /* Accent color. Will be used *as a text color* with a
 		background of --c-bg and --c-bg-2 -- check contrast! */
-	--muted-accent: var(--blue-7); /* Muted accent color. Will not be used for text. */
+    --muted-accent: var(--blue-7);
+    /* Muted accent color. Will not be used for text. */
 
-	/* Lengths */
-	--rhythm: 1.4rem; /* Vertical rhythm, line height. */
-	--line-length: 70rem; /* Maximum line length for prose. */
-	--border-radius: .8rem;
+    /* Lengths */
+    --rhythm: 1.4rem;
+    /* Vertical rhythm, line height. */
+    --line-length: 70rem;
+    /* Maximum line length for prose. */
+    --border-radius: .8rem;
 
-	/* Fonts */
-	--main-font: 'Source Sans 3', 'Source Sans Pro', -apple-system, system-ui, sans-serif;
-	--secondary-font: var(--main-font); /* Headings etc. */
-	--mono-font: 'M Plus Code Latin', monospace, monospace; /* monospace twice stops browsers from
+    /* Fonts */
+    --main-font: 'Source Sans 3', 'Source Sans Pro', -apple-system, system-ui, sans-serif;
+    --secondary-font: var(--main-font);
+    /* Headings etc. */
+    --mono-font: 'M Plus Code Latin', monospace, monospace;
+    /* monospace twice stops browsers from
 		shrinking this */
-	
-	/* Density */
-	--density: 1;
 
-	/* Width */
-	--full-width: 100vw;
+    /* Density */
+    --density: 1;
 
-	/* Do not set these. */
-	--eff-line-length: /* Effective line length for prose. */
-		min(
-			calc( var(--full-width) - (2 * var(--rhythm)) ),
-			var(--line-length)
-		);
+    /* Width */
+    --full-width: 100vw;
 
-	--gutter-width: /* Width of spaces at each side of page content. */
-		calc(
-			(
-				var(--full-width)        /* Viewport width */
-				- var(--eff-line-length) /* minus line width */
-			) / 2);                      /* Divide by 2: there are two page margins */
+    /* Do not set these. */
+    --eff-line-length:
+        /* Effective line length for prose. */
+        min(calc(var(--full-width) - (2 * var(--rhythm))),
+            var(--line-length));
+
+    --gutter-width:
+        /* Width of spaces at each side of page content. */
+        calc((var(--full-width)
+                /* Viewport width */
+                - var(--eff-line-length)
+                /* minus line width */
+            ) / 2);
+    /* Divide by 2: there are two page margins */
 
 
     /*Not in te original missing.css system*/
@@ -332,7 +346,7 @@
 }
 
 
-:root{
+:root {
     --graphical-fg: rgba(36, 30, 30, 0.219);
     --bg: whitesmoke;
     --fg: #444
@@ -346,18 +360,17 @@
     display: none;
 }
 
-header, footer,
+header,
+footer,
 main {
-    /*Override CSS frameworks*/
-    padding: 4px;
     margin: auto;
 }
 
-form{
+form {
     text-align: center;
 }
 
-main{
+main {
     width: min(45em, 100vw);
 }
 
@@ -466,13 +479,16 @@ dd {
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
+html{
+background: var(--bg);
+}
+
 body {
     font-family: Lato;
     line-height: 1.6;
     font-size: 18px;
     margin: 0px;
     color: var(--fg);
-    background: var(--bg);
     --box-bg: rgba(0, 0, 0, 0);
 }
 
@@ -706,7 +722,7 @@ a.button {
 }
 
 .tool-bar {
-    --tool-bar-element-border: 1px solid  var(--border-color);
+    --tool-bar-element-border: 1px solid var(--border-color);
 }
 
 button,
@@ -718,7 +734,10 @@ summary h2:first-child {
     display: inline;
 }
 
-footer >p, header>p, header>div, footer>div{
+footer>p,
+header>p,
+header>div,
+footer>div {
     margin: 6px;
 }
 
@@ -774,12 +793,14 @@ table tr:nth-child(even) td {
 table {
     border-collapse: separate;
     border-spacing: 0;
-    border-radius: var(--border-radius);;
+    border-radius: var(--border-radius);
+    ;
     border: none;
 }
 
 tbody {
-    border-radius: var(--border-radius);;
+    border-radius: var(--border-radius);
+    ;
 }
 
 td {
@@ -792,48 +813,52 @@ th {
 
 table tr th,
 table tr td {
-    border-right: 1px solid  var(--border-color);
-    border-bottom: 1px solid  var(--border-color);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
     padding: 4px;
 }
 
 table tr th:first-child,
 table tr td:first-child {
-    border-left: 1px solid  var(--border-color);
+    border-left: 1px solid var(--border-color);
 }
 
 table tr th,
 table tr:first-child td {
-    border-top: 1px solid  var(--border-color);
+    border-top: 1px solid var(--border-color);
     text-align: left;
 }
 
 
 /* top-left border-radius */
 
- :is(table, thead:first-child, tbody:first-child):first-child>tr:first-child :first-child:is(td, th) {
-    border-top-left-radius: var(--border-radius);;
+:is(table, thead:first-child, tbody:first-child):first-child>tr:first-child :first-child:is(td, th) {
+    border-top-left-radius: var(--border-radius);
+    ;
 }
 
 
 /* top-right border-radius */
 
- :is(table, thead:first-child, tbody:first-child)>tr:first-child :last-child:is(td, th) {
-    border-top-right-radius: var(--border-radius);;
+:is(table, thead:first-child, tbody:first-child)>tr:first-child :last-child:is(td, th) {
+    border-top-right-radius: var(--border-radius);
+    ;
 }
 
 
 /* bottom-left border-radius */
 
- :is(table, tbody)>tr:last-child :first-child:is(td, th) {
-    border-bottom-left-radius: var(--border-radius);;
+:is(table, tbody)>tr:last-child :first-child:is(td, th) {
+    border-bottom-left-radius: var(--border-radius);
+    ;
 }
 
 
 /* bottom-right border-radius */
 
- :is(table, tbody)>tr:last-child :last-child:is(td, th) {
-    border-bottom-right-radius: var(--border-radius);;
+:is(table, tbody)>tr:last-child :last-child:is(td, th) {
+    border-bottom-right-radius: var(--border-radius);
+    ;
 }
 
 
@@ -881,48 +906,9 @@ div.k-laterality-reminder-right:hover {
     background-color: #78dba479 !important;
 }
 
-
-/*Utilities */
-
-.undecorated {
-    border: none;
-    box-shadow: none;
-    background: transparent;
-    backdrop-filter: none;
-}
-
-.padded{
-    padding: 6px;
-}
-
-
-.flex{
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-}
-
-
-.flex>* {
-    box-sizing: border-box;
-    flex: 1 1 auto;
-    flex-basis: min-content;
-}
-
-.flex>*:first-child{
-    margin-left: 0.8em;
-}
-.flex>*:last-child{
-    margin-right: 0.8em;
-}
-
-.flex>*:only-child{
-    margin: auto;
-}
-
 /* Components */
 
-.card{
+.card {
     border-style: solid;
     border-width: 1px;
     border-radius: var(--border-radius);
@@ -942,59 +928,362 @@ div.k-laterality-reminder-right:hover {
 .window {
     border-style: solid;
     border-width: 1px;
-    margin-left: auto;
-    margin-right: auto;
     margin-top: 0.8em;
     margin-bottom: 0.2em;
     min-width: min-content;
     box-sizing: border-box;
-    max-width: 96%;
-    overflow-x: auto;
+    max-width: 99%;
+    overflow: auto;
     border-radius: var(--border-radius);
     border-color: var(--border-color);
     text-align: left;
+    flex-grow: 1;
+    flex-basis: min-content;
+    resize: both;
 }
 
-.window + .window
-{
-    margin: 0.8em;
+
+
+/*Flex rows and cols */
+.max-content{
+    width: max-content;
+    height: min-content;
+    flex-basis:max-content;
+}
+.min-content{
+    width: min-content;
+    height: min-content;
+    flex-basis:min-content;
+}
+
+
+.flex-cols {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+}
+
+.flex-cols>* {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    flex-basis: fit-content;
+}
+
+.flex-cols footer, .flex-cols header{
+    flex-grow: 0;
+}
+
+.flex-rows {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap:12px;
+    align-items: stretch;
+    justify-content: space-between;
+}
+
+
+.flex-rows>* {
+    box-sizing: border-box;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: fit-content;
+    margin: 0px;
+}
+
+.flex-rows>*:only-child {
+    margin: auto;
+}
+
+/*Grid and sizing*/
+
+.col-1,
+.col-2,
+.col-3,
+.col-4,
+.col-5,
+.col-6,
+.col-7,
+.col-8,
+.col-9,
+.col-10,
+.col-11,
+.col-12 {
+    flex-grow: .5;
+    flex-basis: unset;
+}
+
+.col-1 {
+    width: 4.33%;
+}
+
+.col-2 {
+    width: 12.66%;
+}
+
+.col-3 {
+    width: 21%;
+}
+
+.col-4 {
+    width: 29.33%;
+}
+
+.col-5 {
+    width: 37.66%;
+}
+
+.col-6 {
+    width: 46%;
+}
+
+.col-7 {
+    width: 54.33%;
+}
+
+.col-8 {
+    width: 62.66%;
+}
+
+.col-9 {
+    width: 71%;
+}
+
+.col-10 {
+    width: 79.33%;
+}
+
+.col-11 {
+    width: 87.66%;
+}
+
+.col-12 {
+    width: 96%;
+}
+
+/*Sizes that are relative to approximately the width of a phone screem*/
+.w-sm-full{
+    width: 8cm;
+    max-width: calc(min(11cm, 96vw));
+    flex-basis: 11cm;
+    flex-shrink: 1;
+}
+
+.w-sm-half{
+    width: 3.5cm;
+    max-width: calc(min(5cm, 48vw));
+    flex-basis: 3.5cm;
+}
+
+.w-sm-double{
+    width: 16cm;
+    max-width: calc(min(28cm, 96vw));
+    flex-basis: 16cm;
+    flex-shrink: 1;
+    flex-grow: 1;
+}
+
+.w-full {
+    width: 100%;
+    box-sizing: border-box;
+    flex-basis: 100%;
+}
+
+.h-full{
+    height: 100vh
+}
+
+.h-half{
+    height: 46vh;
+}
+
+.h-quarter{
+    height: 22vh;
+}
+
+.h-1rem{
+    height: 1rem;
+}
+.h-2rem{
+    height: 2rem;
+}
+.h-4rem{
+    height: 4rem;
+}
+.h-6rem{
+    height: 6rem;
+}
+.h-12rem{
+    height: 12rem;
+}
+.h-24rem{
+    height: 24rem;
+}
+.h-36rem{
+    height: 36rem;
+}
+.h-48rem{
+    height: 48rem;
+}
+.h-60rem{
+    height: 60rem;
+}
+
+.flex-cols>.h-1rem{
+    flex-basis: 1rem;
+}
+.flex-cols>.h-2rem{
+    flex-basis: 2rem;
+}
+.flex-cols>.h-4rem{
+    flex-basis: 4rem;
+}
+.flex-cols>.h-6rem{
+    flex-basis: 6rem;
+}
+.flex-cols>.h-12rem{
+    flex-basis: 12rem;
+}
+.flex-cols>.h-24rem{
+    flex-basis: 24rem;
+}
+.flex-cols>.h-36rem{
+    flex-basis: 36rem;
+}
+.flex-cols>.h-48rem{
+    flex-basis: 48rem;
+}
+.flex-cols>.h-60rem{
+    flex-basis: 60rem;
+}
+
+/*Simple utilities */
+
+.paper{
+    background: var(--bg);
+}
+
+.v-center {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.h-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.undecorated {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    backdrop-filter: none;
+}
+
+.padding {
+    padding: 6px;
+}
+
+.nopadding {
+    padding: 6px;
+}
+
+.nogrow{
+    flex-grow: 0;
+}
+
+.noshrink{
+    flex-grow: 0;
+}
+
+.grow{
+    flex-grow: 1;
+}
+
+.margin {
+    margin: 12px;
+}
+
+.nomargin {
+    margin: 0px;
+}
+
+.block {
+    display: block;
+}
+
+.inline {
+    display: inline;
+}
+
+.inline.block,
+.inline-block {
+    display: inline-block;
+}
+
+.inline-flex,
+.flex-rows.inline,
+.flex-cols.inline,
+.tool-bar.inline {
+    display: inline-flex;
 }
 
 
 
+.align-left{
+    text-align: left;
+    justify-content: space-around;
+}
 
-header{
+.align-right{
+    text-align: right;
+    justify-content: right;
+}
+
+.align-center{
+    text-align: center;
+    justify-content: center;
+}
+
+
+header {
     border-radius: 0px 0px inherit inherit;
 }
 
-header{
+header {
     border-radius: inherit inherit 0px 0px;
 }
 
 
-header, footer
-{
+header,
+footer {
     background-color: #d0d0d036;
     width: 100%;
-    padding: 0.6em;
+    padding: 0px;
     box-sizing: border-box;
     margin: 0px;
+    flex-grow: 0;
 }
 
-header
-{
+header {
     box-sizing: border-box;
     border-bottom: 1px solid var(--border-color);
 }
 
-footer{
+header>*:only-child
+{
+    width: 100%;
+    padding: 6px;
+    margin: 0px;
+}
+
+footer {
     border-top: 1px solid var(--border-color);
 }
 
-.scroll{
+.scroll {
     overflow: scroll;
     max-height: 75vh;
-    max-width: 96vw;
 }
 
 
@@ -1016,14 +1305,23 @@ select,
 p,
 div {
     color: var(--fg);
-    border-color: var(--border-color);;
+    border-color: var(--border-color);
+    ;
 }
 
-h1,h2,h3,h4,h5,h6{
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     color: var(--graphical-fg);
 }
 
-table, tr, td, th, thead{
+table,
+tr,
+td,
+th,
+thead {
     border-color: var(--border-color);
 }
-

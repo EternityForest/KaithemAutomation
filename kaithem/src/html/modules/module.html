@@ -4,7 +4,7 @@
 <h2>Module ${name|h}</h2>
 <title>Module: ${name|h}</title>
 <section class="window flex undecorated">
-<section class="window card">
+<section class="card col-6">
     <details class="help"><summary><i class="icofont-question-circle"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
 
 MD5 Sum: ${getModuleHash(name)}</br>
@@ -13,7 +13,7 @@ WordHash: ${getModuleWordHash(name)}</br>
 <form action="/modules/module/${url(name)}/obj/module" method="post"><button>The module namespace object(requires edit permission, beware shoulder surfers)</button></form>
 </section>
 
-<section class="window card w-50">
+<section class="card col-6">
     <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
 <h4>Name:</h4>
@@ -92,7 +92,7 @@ continue
 
 %if module[i]['resource-type'] == 'event':
 	  <dt>
-        <div class="tool-bar style="display:inline-flex">
+        <div class="tool-bar inline">
 <a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">
     <i class="icofont-flag-alt-1"></i><b>\
 
@@ -101,7 +101,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
 	       %if not module[i].get('enable',"True"):
 	       (disabled)
 	       %endif
-           <span class=error title="This event has loaded normally, but has been stopped, likely by calling stop() on it's interface.">${"(stopped)" if (newevt.EventReferences[name,i].disable) else ""}</span>
+           <span class="error" title="This event has loaded normally, but has been stopped, likely by calling stop() on it's interface.">${"(stopped)" if (newevt.EventReferences[name,i].disable) else ""}</span>
 
        
 
@@ -153,7 +153,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
 
 	%if module[i]['resource-type'] == 'page':
 	  <dt>
-        <div class="tool-bar style="display:inline-flex">
+        <div class="tool-bar inline">
 
 
           <a aria-role="header" href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
@@ -190,7 +190,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
        %if module[i]['resource-type'] == 'permission':
 
       <dt>
-        <div class="tool-bar style="display:inline-flex">
+        <div class="tool-bar inline">
   <h3>
     
 <a href="/modules/module/${url(name)}/resource/${url(i)}">    <i class="icofont-key"></i>\
@@ -205,7 +205,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
     %if module[i]['resource-type'] == 'internal-fileref':
 
        <dt>\
-        <div class="tool-bar style="display:inline-flex">
+        <div class="tool-bar inline">
 
     <h3>
     <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>

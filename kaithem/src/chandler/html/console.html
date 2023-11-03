@@ -176,7 +176,7 @@ ${lists}
 
 
 </script>
-<div id="app" class="flex">
+<div id="app" class="flex-rows">
     <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
         <div class="menubar tool-bar">
@@ -216,10 +216,10 @@ ${lists}
 
     </section>
 
+    <main style="display:flex; flex-wrap:wrap; justify-content: center;">
 
-
-    <section class="flex-item window"
-        style="overflow: auto; width:20%; min-width: 22em; max-width: 28em; flex-grow: 1; height:90%; resize:both;">
+    <section class="window w-sm-full flex-cols h-48rem"
+        style="resize:both;">
         <header>
             <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
@@ -237,7 +237,8 @@ ${lists}
 
             </div>
         </header>
-        <div style="overflow: auto; max-height:450px;">
+
+        <div style="overflow: auto;" class="h-36rem">
             <article v-for="i in formatScenes()" v-if="i" style="position:relative; margin-bottom: 0.6em;"
                 v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
@@ -328,22 +329,17 @@ ${lists}
         </div>
 
 
-        <hr>
-        <p class="tool-bar">
-            <input v-model="newscenename" placeholder="New scene name" size="4">
-            <button v-on:click="addScene()"><i class="icofont-ui-add"></i>Add</button>
-            <button v-on:click="addMonitorScene()"><i class="icofont-binoculars"></i>Add Monitor</button>
-        </p>
+        <footer>
+            <p class="tool-bar">
+                <input v-model="newscenename" placeholder="New scene name" size="4">
+                <button v-on:click="addScene()"><i class="icofont-ui-add"></i>Add</button>
+                <button v-on:click="addMonitorScene()"><i class="icofont-binoculars"></i>Add Monitor</button>
+            </p>
+         </footer>
 
     </section>
 
-
-    <main style="display:flex; flex-wrap:wrap; justify-content: center;">
-
-
-
-
-        <section class="window" v-if="showevents" class="flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
+        <section class="window paper" v-if="showevents" class="flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
             <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
                 Log
             </h2>
@@ -793,8 +789,7 @@ ${lists}
         </section>
 
 
-        <section class="flex-item window" v-if="editingScene && cuemeta[editingScene.cue]"
-            style="display:inline-block; max-width:90em; resize:both; overflow:auto; flex-grow: 5;">
+        <section class="window" v-if="editingScene && cuemeta[editingScene.cue]">
             <header>
                 <div style="display: flex; flex-direction: row;">
 
@@ -804,14 +799,14 @@ ${lists}
                         <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
                     </h3>
 
-                    <p class="tool-bar">
+                    <div class="tool-bar">
                         <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
                         <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
                         <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
                         <button class="stopbutton" v-on:click="stop(scenename)"><i
                                 class="icofont-ui-play-stop"></i>Stop</button>
                         <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
-                    </p>
+                    </div>
 
                     <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
 
@@ -1842,8 +1837,9 @@ ${lists}
             </div>
 
         </section>
-    </main>
+</main>
 </div>
+
 
 
 <template id="cue-cd">

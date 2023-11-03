@@ -4,8 +4,8 @@
 <main>
     <h2>Module {{ name| escape }}</h2>
     <title>Module: {{ name| escape }}</title>
-    <section class="window flex undecorated">
-        <section class="window card">
+    <section class="window flex-rows undecorated">
+        <section class="card col-6">
             <details class="help">
                 <summary>
                     <i class="icofont-question-circle"></i>
@@ -23,7 +23,7 @@
                 <button>The module namespace object(requires edit permission, beware shoulder surfers)</button>
             </form>
         </section>
-        <section class="window card w-50">
+        <section class="card col-6">
             <form action="/modules/module/{{ url(name) }}/update" method="POST" name="user">
                 <h4>Name:</h4>
                 <input required="required" class="modulename" name="name" type="text" value="{{ name| escape }}">
@@ -45,7 +45,6 @@
             </form>
         </section>
     </section>
-    <br>
     <section class="window">
         <div class="pathnav tool-bar">
 
@@ -102,7 +101,7 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'event' %}
             <dt>
-                <div class="tool-bar" style="display:inline-flex">
+                <div class="tool-bar inline">
                     <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#setupheading">
                         <i class="icofont-flag-alt-1"></i>
                         <b>
@@ -157,7 +156,7 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'page' %}
             <dt>
-                <div class="tool-bar" style="display:inline-flex">
+                <div class="tool-bar inline">
                     <a aria-role="header" href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#pagebody">
                         <i class="icofont-page"></i>
                         <b>{{ util.split_escape(i,'/','\\')[-1] | escape }}</b>
@@ -185,7 +184,7 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'permission' %}
             <dt>
-                <div class="tool-bar style=" display:inline-flex">
+                <div class="tool-bar inline">
                     <h3>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="icofont-key"></i>\
                             {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
@@ -197,7 +196,7 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'internal-fileref' %}
             <dt>
-                <div class="tool-bar style=" display:inline-flex">
+                <div class="tool-bar inline">
                     <h3>
                         <a
                             href="/modules/module/{{ url(name) }}/getfileresource/{{ url(i) }}">{{ util.split_escape(i,'/','\\')[-1] | escape }}</a>

@@ -37,7 +37,7 @@ ${jackmixer.global_api.render("gapi")}
 
 <div id="app">
 
-    <section style="width: 98%;">
+    <section>
       <header>
         <datalist id="effectTypes">
           <option value="fader">Fader</option>
@@ -172,7 +172,7 @@ ${jackmixer.global_api.render("gapi")}
               <div v-for="effect, index in channel.effects" class="effect">
                 <details>
                   <summary>
-                    <div class="menubar tool-bar" style="width: 85%; display: inline-flex;">
+                    <div class="menubar tool-bar inline" style="width: 85%;">
                       <p v-bind:title="effect.id">
                         <b>{{effect.displayType}}</b>
                       </p>
@@ -184,7 +184,7 @@ ${jackmixer.global_api.render("gapi")}
 
 
 
-                  <table style="width:98%;margin:auto;" border=1>
+                  <table class="col-12 h-center" border=1>
                     <tr v-for="param in sortedParams(effect.params)" class="param">
                       <template v-if="param.type=='float'">
                         <td>{{param.displayName}}</td>

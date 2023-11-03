@@ -12,6 +12,10 @@ Apply these to pretty much anything.
 This item conveys help text. May be hidden in some user preference modes.  Must NOT contain essential functional content.
 In particular, Fugit hides help text as it interferes with the cyberpunk look.
 
+### .warning, .danger
+
+Levels of badness that should make text red and such.
+
 
 ## Components
 
@@ -35,19 +39,71 @@ Make a link look like it's a button.
 
 ## Utilities
 
+### .paper
+This object should have it's own background, it is like a popup you're going to put over something else.
+
 ### .undecorated
 Remove borders, backgrounds, shadows, and backdrop filters.
 
-### .flex
-Makes a class into a flex container. It will wrap, and row orientation.  Use this to hold
-a lot of cards or other elements, when you'd rather just leave it up to the theme how to lay them out.
-
-Margins or gaps will be added to child elements.
+### .flex-rows
+Makes a class into a flex container. It will wrap, and have row orientation with margin between elements.
+The theme is allowed to do whatever else it wants here to make itemw look nice, it assumes you're doing something
+simple like a card collection.
 
 ### .scroll
 
 The element is a scroll box. It will stay smaller than the viewport, and show scrollbars for content within.
 
+### .inline
+Makes an element inline.  When combined with .block gives inline block. 
+When combined with .flex, gives .inline-flex.
+
+May be used on .tool-bar to make it inline.
+
+### .block
+Makes it a block.
+
+### .flex
+Make it a flex container
+
+### .padding
+The element will have a reasonable theme dependent amount of padding.
+
+### align-left, align-center, align-right
+These apply to both text content, and flex items.
+
+
+## Sizing Utilities
+
+### col-1 through col-12
+
+These elements will take be the given fraction(out of 12 columns) of the parent.
+Does not use CSS grids, just sets width.  The size will be a little smaller than the given size, for nice margins.
+
+### w-full
+100% width, flex-basis 100%, border-box sizing.
+
+### w-sm-full
+This represents the full width of a small screen. The size is not an exact size, it represents
+"full width on mobile, and a nice sidebar width on a large screen".
+
+
+### .h-1rem to .h-60rem
+Used for fixed heights. The sizes are 1,2,4,6,12,24,36,48 and 60.  A limited number are chosen
+to not bloat things.  They are taken from the Highly Composite Number sequence.  Sets height
+and flex-basis(Only for children of flex-cols), max still grow or shrink.
+
+
+### .max-content and .min-content
+
+Set width, height, and flex basis to follow the max and min content.
+
+### .nogrow and .noshrink
+Flex-grow and flex-shrink set to 0
+
+### .grow
+
+Flex-grow set to 1
 
 ## Decorative Images
 

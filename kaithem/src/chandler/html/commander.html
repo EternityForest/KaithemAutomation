@@ -38,30 +38,22 @@
     p.scene {
         border-style: solid;
         border-width: 1px;
-
-        !important;
     }
 
-    p.run {
-        !important;
-    }
 
     div.universe {
         border-style: solid;
         border-radius: 5px;
-        float: left;
         overflow: auto;
         border-color: grey;
         margin: 3px;
         width: 95%;
         display: inline-block;
-        !important
     }
 
     div.fixture {
         border-style: solid;
         border-radius: 5px;
-        float: left;
         overflow: auto;
         border-width: 2px;
         margin: 3px;
@@ -142,31 +134,31 @@
 
 <div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
 
-    <div class="window flex-item" style="overflow: auto; max-width:98vw; flex-grow:1">
+    <div class="window w-full" style="overflow: auto; max-width:98vw; flex-grow:1">
+        <header>
+            <div class="tool-bar">
+                <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
+                    Scenes</h3>
+                <input size=8
+                    title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
+                    aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"
+                    v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
+                <button v-on:click="shortcut()">Go!</button>
+                <button v-on:click="showPages=!showPages">Toggle Compact</button>
 
-        <div class="tool-bar">
-            <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
-                Scenes</h3>
-            <input size=8
-                title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
-                aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"
-                v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
-            <button v-on:click="shortcut()">Go!</button>
-            <button v-on:click="showPages=!showPages">Toggle Compact</button>
-
-        </div>
+            </div>
+        </header>
 
 
 
-
-        <div id="scene" style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
+        <div style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
             <article v-for="i in formatScenes()" v-if="i"
                 style="position:relative;display:flex-item; flex: 1; margin: 0.4em; max-height: 420px; max-width: 400px; min-width: 180px;"
                 v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
 
 
-                <header class="flex">
+                <header class="flex-rows">
                     <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==scenename}"
                             v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
                             {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span>
@@ -260,32 +252,33 @@
     </div>
 
 
-    <div class="window flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
+    <div class="window" v-if="editingScene && cuemeta[editingScene.cue]"
         style="display:inline-block;" class="scroll">
-        <h3>{{editingScene.name}}
-            <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-        </h3>
-
+        <header>
+            <h3>{{editingScene.name}}
+                <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+            </h3>
+        </header>
 
         <div id="cuesbox">
 
-            <div class="flex">
+            <div class="flex-rows align-left">
 
-                <article v-for="i in formatCues(1)" v-if="i[1].id"
+                <article class="w-sm-full" v-for="i in formatCues(1)" v-if="i[1].id"
                     style="margin: 0.8em; display: flex; flex-direction: column; min-height: 8em;"
                     v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
 
+                    <header>
+                        <button class="h-2rem" v-on:click="jumptocue(i[1].id)" class="cuebutton">
+                            <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
+                            {{i[1].name}}
 
-                    <button v-on:click="jumptocue(i[1].id)" class="cuebutton">
-                        <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
-                        {{i[1].name}}
+                            <div v-if="cuemeta[editingScene.cue].name==i[1].name">
+                                <cue-countdown :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
+                            </div>
 
-                        <div v-if="cuemeta[editingScene.cue].name==i[1].name">
-                            <cue-countdown :unixtime="unixtime" :scene="editingScene" :cue="i[1]"></cue-countdown>
-                        </div>
-
-                    </button>
-
+                        </button>
+                    </header>
                     <img style="max-width: 6em; max-height: 6em; display:block;border:none; margin: auto;"
                         onerror='this.style.display = "none"' v-if="i[1].sound"
                         :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].id)"></img>
@@ -305,8 +298,8 @@
         </div>
     </div>
 
-    <div style="width:99%;">
-        <div class="scrollbox" style="border:none;" id="eventlogbox">
+    <div class="w-full">
+        <div class="scroll h-12rem w-full" id="eventlogbox">
             <div v-if="i[0].indexOf('err')>-1" v-for="i in evlog.slice().reverse()">
                 {{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}:
                 <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>

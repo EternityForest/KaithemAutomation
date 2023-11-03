@@ -1,4 +1,4 @@
-@import "missing.min.css";
+@import "missing.css";
 /*@import "tool-bar.css";*/
 
 /* Using a string */
@@ -124,4 +124,29 @@ button{
     box-sizing: border-box;
     max-width: 96%;
     overflow-x: auto;
+}
+
+
+.window {
+    border-style: solid;
+    border-width: 1px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0.8em;
+    margin-bottom: 0.2em;
+    min-width: min-content;
+    box-sizing: border-box;
+    max-width: 96%;
+    overflow-x: auto;
+    border-radius: var(--border-radius);
+    border-color: var(--border-color);
+    text-align: left;
+}
+
+.window-body {
+    padding: 6px;
+    width: auto;
+    height: auto;
+    margin: 0px;
+    display: block;
 }
