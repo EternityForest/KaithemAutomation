@@ -74,11 +74,11 @@ dev-run: # Run the kaithem app.
 
 dev-update-dependencies: .venv # Install latest version of dependencies into the venv. New versions might break something!
 	@cd ${ROOT_DIR}
-	@.venv/bin/python -m pip install --ignore-installed  -U -r direct-dependencies.txt
+	@.venv/bin/python -m pip install --ignore-installed  -U -r direct_dependencies.txt
 
 dev-clean-venv: # Cleans the .venv in the project folder
 	@cd ${ROOT_DIR}
-	@.venv/bin/python -m pip uninstall -y -r <(pip freeze -l)
+	@bash -c ".venv/bin/python -m pip uninstall -y -r <(pip freeze -l)"
 
 dev-freeze-dependencies: # Create requirements_frozen.txt
 	@cd ${ROOT_DIR}

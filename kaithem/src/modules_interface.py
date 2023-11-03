@@ -22,6 +22,7 @@ import copy
 import mimetypes
 import cherrypy
 import weakref
+from .util import url
 from . import (
     auth,
     pages,
@@ -50,32 +51,44 @@ searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
 prev_versions: dict[tuple, dict] = {}
 
 
-
 def get_time(ev):
-  try:
-      if not newevt.EventReferences[ev].nextruntime:
-          return 0
-      return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0,newevt.EventReferences[ev].tz)
-  except Exception as e:
-      return -1
+    try:
+        if not newevt.EventReferences[ev].nextruntime:
+            return 0
+        return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz)
+    except Exception as e:
+        return -1
 
-#n is the module name
-#f is the folder we are checking if it is in, including the module name
-#r is the path of the resource
-def in_folder(r,f,n):
-    #Get the path as a list, including the module name
-    r = [n]+util.split_escape(r,'/','\\')
-    #Get the path of the folder
-    f = util.split_escape(f,'/','\\')
-    #make sure the resource path is one longer than module
-    if not len(r)==len(f)+1:
+# n is the module name
+# f is the folder we are checking if it is in, including the module name
+# r is the path of the resource
+
+
+def in_folder(r, f, n):
+    # Get the path as a list, including the module name
+    r = [n] + util.split_escape(r, '/', '\\')
+    # Get the path of the folder
+    f = util.split_escape(f, '/', '\\')
+    # make sure the resource path is one longer than module
+    if not len(r) == len(f) + 1:
         return False
     x = 0
     for i in f:
         if not r[x] == i:
-           return False
-        x +=1
+            return False
+        x += 1
     return True
+
+
+def get_f_size(name, i):
+    try:
+        return unitsofmeasure.siFormatNumber(os.path.getsize(modules_state.fileResourceAbsPaths[name, i]))
+    except Exception:
+        return "Could not get size"
+
+
+def urlForPath(module, path):
+    return "/modules/module/" + url(module) + "/resource/" + "/".join([url(i.replace("\\", "\\\\").replace("/", "\\/")) for i in util.split_escape(path[0], "/", "\\")[:-1]])
 
 
 def getDesc(module):
@@ -83,10 +96,14 @@ def getDesc(module):
         return module['__description']['text']
     except Exception:
         return "No module description found"
-    
+
+
+def sorted_module_path_list(name: str, path: list):
+    return sorted(sorted(modules_state.ls_folder(name, '/'.join(path))), key=lambda x: (modules_state.ActiveModules[name][x]['resource-type'], x))
+
 
 module_page_context = {
-    "siFormatNumber" : unitsofmeasure.siFormatNumber,
+    "siFormatNumber": unitsofmeasure.siFormatNumber,
     "url": util.url,
     "fileResourceAbsPaths": modules.fileResourceAbsPaths,
     "external_module_locations": modules.external_module_locations,
@@ -104,7 +121,11 @@ module_page_context = {
     "weakref": weakref,
     "getDesc": getDesc,
     "in_folder": in_folder,
-    "get_time": get_time
+    "get_time": get_time,
+    "urlForPath": urlForPath,
+    "sorted_module_path_list": sorted_module_path_list,
+    "get_f_size": get_f_size,
+    "hasattr": hasattr
 }
 
 
@@ -372,6 +393,15 @@ class WebInterface:
         # If we are not performing an action on a module just going to its page
         if not path:
             pages.require("/admin/modules.view")
+
+            return pages.get_jinja_template("modules/module.html.j2").render(
+                module=modules_state.ActiveModules[root],
+                name=root,
+                path=modulepath,
+                fullpath=fullpath,
+                **module_page_context
+            )
+
             return pages.get_template("modules/module.html").render(
                 module=modules_state.ActiveModules[root],
                 name=root,

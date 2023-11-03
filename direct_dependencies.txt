@@ -8,6 +8,7 @@ cheroot
 flask
 tornado
 mako
+jinja2
 astral
 tatsu
 pam

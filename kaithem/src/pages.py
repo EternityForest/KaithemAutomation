@@ -22,6 +22,7 @@ import time
 import logging
 import os
 import mimetypes
+import jinja2
 from . import auth, config
 from . import directories, util
 
@@ -30,6 +31,17 @@ _Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(director
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])
+
+_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(directories.htmldir, "makocomponents")], encoding='utf-8', followlinks=False)
+
+env = jinja2.Environment(
+    loader=_jl,
+    autoescape=jinja2.select_autoescape()
+)
+
+
+def get_jinja_template(n):
+    return _jl.load(env, n)
 
 
 def get_vardir_template(fn):

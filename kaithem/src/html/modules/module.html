@@ -27,7 +27,7 @@ WordHash: ${getModuleWordHash(name)}</br>
 <input type="submit" value="Save Changes"></input>
 %else:
 <p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
-%endif>
+%endif
 </form>
 </section>
 </section>
@@ -78,9 +78,9 @@ temp_p+= i+'/'
     
 <dl>
 %if path and len(util.split_escape(path[0],"/","\\"))>1:
-<dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
+<dt class="specialentry"><a href="urlForPath(module, path)#resources">..</a></dt>
 %endif
-%for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: (module[x]['resource-type'],x)):
+%for i in sorted_module_path_list(name, path):
 %if in_folder(i,fullpath,name):
 
 %if not 'resource-type' in module[i]:
@@ -101,11 +101,8 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
 	       %if not module[i].get('enable',"True"):
 	       (disabled)
 	       %endif
-           %try:
-           <span class=error title="This event has loaded normally, but has been stopped, likely by calling stop() on it's interface.">${"(stopped)" if (newevt.EventReferences[name,i].disable) else ""}</span>\
-           %except Exception as e:
-           ${e|h}
-           %endtry
+           <span class=error title="This event has loaded normally, but has been stopped, likely by calling stop() on it's interface.">${"(stopped)" if (newevt.EventReferences[name,i].disable) else ""}</span>
+
        
 
 <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
@@ -119,29 +116,23 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
 
           <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
 	       Trigger:  <code>${module[i]['trigger']|h}</code><br>
-            %try:
 
     		    Last Ran:
     		    %if newevt.getEventLastRan(name,i):
     		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
     		    (${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
 
-                %try:
-                %if newevt.EventReferences[name,i].lastcompleted>newevt.EventReferences[name,i].lastexecuted:
+                %if newevt.getEventCompleted(name, i): 
                 <code>Completed in ${round(newevt.EventReferences[name,i].lastcompleted-newevt.EventReferences[name,i].lastexecuted,3)|h}s</code>
                 %else:
                 <span class="highlight">Still Running</span>
                 %endif
-                %except Exception as e:
-                ${e|h}
-                %endtry
+    
 
     		    %else:
     		    This event has not ran since it loaded.
     		    %endif
-            %except Exception as e:
-            <b>${e.__class__|h} getting last runtime. Event likely has an error and has never been fully initialized</b>
-            %endtry
+
 
 		    %if module[i]['trigger'].startswith("!time") and module[i].get('enable',"True"):
 		    <br><b>Next Run:</b>
@@ -223,11 +214,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
 
     <a class="button" href="/modules/module/${url(name)}/deleteresource/${url(i)}"><i class="icofont-ui-delete"></i>Delete</a>
     <p>
-    %try:
-    <span>Size: ${siFormatNumber(os.path.getsize(fileResourceAbsPaths[name,i]))}</span>\
-    %except Exception as e:
-    <span>File could not be acessed: ${e}</span>\
-    %endtry
+    <span>Size: ${get_f_size(name,i)}</span>
     </p>
     </div>
 
@@ -270,7 +257,7 @@ ${util.split_escape(i,'/','\\')[-1]|h}</a></b>\
 </div>
 <dt>
 
-	%endif
+%endif
 %endif
 %endfor
 </div>
