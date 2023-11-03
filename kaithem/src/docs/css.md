@@ -47,8 +47,14 @@ Remove borders, backgrounds, shadows, and backdrop filters.
 
 ### .flex-rows
 Makes a class into a flex container. It will wrap, and have row orientation with margin between elements.
-The theme is allowed to do whatever else it wants here to make itemw look nice, it assumes you're doing something
+The theme is allowed to do whatever else it wants here to make items look nice, it assumes you're doing something
 simple like a card collection.
+
+### .flex-cols
+Same as above but flex as columns.
+
+### .nogaps
+Set gap to zero, set all children to have zero margins.
 
 ### .scroll
 
@@ -64,10 +70,13 @@ May be used on .tool-bar to make it inline.
 Makes it a block.
 
 ### .flex
-Make it a flex container
+display: flex.
 
 ### .padding
 The element will have a reasonable theme dependent amount of padding.
+
+### .margin
+The element will have a reasonable theme dependent amount of margin.
 
 ### align-left, align-center, align-right
 These apply to both text content, and flex items.
@@ -92,6 +101,12 @@ This represents the full width of a small screen. The size is not an exact size,
 Used for fixed heights. The sizes are 1,2,4,6,12,24,36,48 and 60.  A limited number are chosen
 to not bloat things.  They are taken from the Highly Composite Number sequence.  Sets height
 and flex-basis(Only for children of flex-cols), max still grow or shrink.
+
+### .max-h-1rem to .max-h-60rem
+Can be 1,2,4,6,12,24, sets max-height
+
+### .min-h-1rem to .min-h-24rem
+Can be 1,2,4,6,12,24, sets min-height
 
 
 ### .max-content and .min-content

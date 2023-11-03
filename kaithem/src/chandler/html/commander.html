@@ -262,10 +262,9 @@
 
         <div id="cuesbox">
 
-            <div class="flex-rows align-left">
+            <div class="flex-rows align-left padding">
 
-                <article class="w-sm-full" v-for="i in formatCues(1)" v-if="i[1].id"
-                    style="margin: 0.8em; display: flex; flex-direction: column; min-height: 8em;"
+                <article class="w-sm-full flex-cols min-h-6rem" v-for="i in formatCues(1)" v-if="i[1].id"
                     v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
 
                     <header>
