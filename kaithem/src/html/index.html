@@ -76,7 +76,7 @@ ${alertsapi.render("alertapi")}
 <main>
     <h2>Active/Unacknowledged Alerts</h2>
 
-    <div class="scrollbox sectionbox" style="max-height: 25em;height:auto;width:fit-content;">
+    <div class="scrollbox window" style="max-height: 25em;height:auto;width:fit-content;">
         <details class="help"><summary><i class="icofont-question-circle"></i></summary>Anyone who can see the main page can see all alarms, regardless of alarm-specific permssions, as alarms are not meant for private data.</details>
 
         <%
@@ -161,7 +161,7 @@ ${alertsapi.render("alertapi")}
 
             <h2> System Notifications</h2>
             <div id="app">
-                <div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content;" id="notifications">
+                <div class="scrollbox window" style="max-height: 25em; block-size: fit-content;" id="notifications">
                     <transition-group name="notificationstg" tag="div">
                             <div v-for="i in notifications.slice().reverse()" :key="i[0]">
                                 <div v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
