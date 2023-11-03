@@ -431,6 +431,10 @@ class webapproot:
         return pages.get_template("help/makoreference.html").render()
 
     @cherrypy.expose
+    def themetest(self, *path, **data):
+        return pages.get_template("help/themetest.html").render()
+
+    @cherrypy.expose
     def about(self, *path, **data):
         return pages.get_template("help/about.html").render()
 

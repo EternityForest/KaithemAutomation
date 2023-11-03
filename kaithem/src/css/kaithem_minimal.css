@@ -334,6 +334,8 @@
 
 :root{
     --graphical-fg: rgba(36, 30, 30, 0.219);
+    --bg: whitesmoke;
+    --fg: #444
 }
 
 
@@ -469,7 +471,8 @@ body {
     line-height: 1.6;
     font-size: 18px;
     margin: 0px;
-    color: #444;
+    color: var(--fg);
+    background: var(--bg);
     --box-bg: rgba(0, 0, 0, 0);
 }
 
@@ -715,6 +718,10 @@ summary h2:first-child {
     display: inline;
 }
 
+footer >p, header>p, header>div, footer>div{
+    margin: 6px;
+}
+
 /*****************************General***********************************************************************************/
 /*These can be applied to jus about anything for highlighting and emphasis*/
 .error,
@@ -829,33 +836,6 @@ table tr:first-child td {
     border-bottom-right-radius: var(--border-radius);;
 }
 
-/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
-.window {
-    border-style: solid;
-    border-width: 1px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 0.8em;
-    margin-bottom: 0.2em;
-    min-width: min-content;
-    box-sizing: border-box;
-    max-width: 96%;
-    overflow-x: auto;
-    border-radius: var(--border-radius);
-    border-color: var(--border-color);
-}
-
-.undecorated {
-    border: none;
-    box-shadow: none;
-    background: transparent;
-    backdrop-filter: none;
-}
-
-
-.window {
-    text-align: left;
-}
 
 /* A scrollable div */
 div.scrollbox {
@@ -904,15 +884,17 @@ div.k-laterality-reminder-right:hover {
 
 /*Utilities */
 
-.w-25{
-    width: 25%;
-    box-sizing: border-box;
+.undecorated {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    backdrop-filter: none;
 }
 
-.w-50{
-    width: 50%;
-    box-sizing: border-box;
+.padded{
+    padding: 6px;
 }
+
 
 .flex{
     display: flex;
@@ -938,6 +920,8 @@ div.k-laterality-reminder-right:hover {
     margin: auto;
 }
 
+/* Components */
+
 .card{
     border-style: solid;
     border-width: 1px;
@@ -954,10 +938,30 @@ div.k-laterality-reminder-right:hover {
     border-color: var(--border-color);
 }
 
+/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
+.window {
+    border-style: solid;
+    border-width: 1px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0.8em;
+    margin-bottom: 0.2em;
+    min-width: min-content;
+    box-sizing: border-box;
+    max-width: 96%;
+    overflow-x: auto;
+    border-radius: var(--border-radius);
+    border-color: var(--border-color);
+    text-align: left;
+}
+
 .window + .window
 {
     margin: 0.8em;
 }
+
+
+
 
 header{
     border-radius: 0px 0px inherit inherit;
@@ -1022,3 +1026,4 @@ h1,h2,h3,h4,h5,h6{
 table, tr, td, th, thead{
     border-color: var(--border-color);
 }
+
