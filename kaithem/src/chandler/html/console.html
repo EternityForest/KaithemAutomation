@@ -218,7 +218,7 @@ ${lists}
 
 
 
-    <section v class="flex-item"
+    <section class="flex-item window"
         style="overflow: auto; width:20%; min-width: 22em; max-width: 28em; flex-grow: 1; height:90%; resize:both;">
         <header>
             <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
@@ -343,7 +343,7 @@ ${lists}
 
 
 
-        <section v-if="showevents" class="flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
+        <section class="window" v-if="showevents" class="flex-item" style="position:fixed; z-index:99; bottom:0px; width:78%;">
             <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
                 Log
             </h2>
@@ -386,7 +386,7 @@ ${lists}
 
 
 
-        <section v-if="showimportexport" class="flex-item">
+        <section v-if="showimportexport" class="flex-item window">
             <h3>Import/Export controls</h3>
             <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
                 <a class="button" href="download" title="Download your scenes as a file"><i
@@ -411,7 +411,7 @@ ${lists}
 
 
 
-        <section v-if="showPresets" class="flex-item" style="width: 32em;">
+        <section v-if="showPresets" class="flex-item window" style="width: 32em;">
             <h3>Presets<button v-on:click="showPresets=0">
                     <i class="icofont-ui-close"></i>Close</button>
             </h3>
@@ -442,7 +442,7 @@ ${lists}
             </dl>
         </section>
 
-        <div v-if="showDMXSetup" class="sectionbox flex-item">
+        <div v-if="showDMXSetup" class="window flex-item">
             <h3>
                 <button v-on:click="showDMXSetup=0">
                     <i class="icofont-ui-close"></i>Close</button> Universe Setup
@@ -565,7 +565,7 @@ ${lists}
         </dialog>
 
 
-        <section v-if="universeFullSettings" class="flex-item">
+        <section v-if="universeFullSettings" class="flex-item window">
             <h3><button v-on:click="universeFullSettings=0"><i class="icofont-ui-close"></i>Close</button>Universe
                 Setup:{{universeFullSettings}}</h3>
 
@@ -613,7 +613,7 @@ ${lists}
 
 
 
-        <section v-if="showFixtureSetup" class="flex-item">
+        <section v-if="showFixtureSetup" class="flex-item window">
             <h3><button v-on:click="showhidefixtures()"><i class="icofont-ui-close"></i>Close</button>Fixture
                 Setup</h3>
 
@@ -715,7 +715,7 @@ ${lists}
         </section>
 
 
-        <section v-if="showfixtureassg" class="flex-item">
+        <section v-if="showfixtureassg" class="flex-item window">
 
             <h3>
                 <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture
@@ -787,13 +787,13 @@ ${lists}
 
 
 
-        <section class="flex-item" v-if="!(editingScene && cuemeta[editingScene.cue])"
+        <section class="flex-item window" v-if="!(editingScene && cuemeta[editingScene.cue])"
             style="display:inline-block;  max-width:98vw; resize:both; overflow:auto;">
             <h2>No Scene selected</h2>
         </section>
 
 
-        <section class="flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
+        <section class="flex-item window" v-if="editingScene && cuemeta[editingScene.cue]"
             style="display:inline-block; max-width:90em; resize:both; overflow:auto; flex-grow: 5;">
             <header>
                 <div style="display: flex; flex-direction: row;">

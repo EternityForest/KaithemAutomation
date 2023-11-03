@@ -9,7 +9,7 @@ body {
     background-color: #EEEEEE;
 }
 
-section, div.sectionbox, button{
+.window, button{
     border-color: gainsboro;
     border-style: solid;
 }

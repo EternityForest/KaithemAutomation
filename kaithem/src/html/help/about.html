@@ -168,11 +168,11 @@ except Exception:
     Includes external open-source libraries by third parties.
     </section>
 
-    <div class="sectionbox">${config['about-box-banner']}</div>
-    <section>
+    <div class="window">${config['about-box-banner']}</div>
+    <section class="window">
     <b>Version:</b> ${kaithemobj.kaithem.misc.version|h}
     </section>
-    <section>
+    <section class="window">
         <b>LAN access QR(${lanip[1]}):</b><br>
         <div id="lanqr"></div>
         <script>
@@ -180,7 +180,7 @@ except Exception:
         </script>
     </section>
     <br>
-<div class="sectionbox">
+<div class="window">
 <p>
 
 
@@ -497,7 +497,7 @@ def module_version(m):
 
 
 <h2>Acknowledgements</h2>
-<div class="sectionbox">
+<div class="window">
     <h3>General</h3>
 Kaithem is powered by CherryPy, Mako, and Tornado, and too many libs to list here! See the legal page for the full list!
 

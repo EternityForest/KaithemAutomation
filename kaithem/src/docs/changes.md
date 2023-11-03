@@ -32,7 +32,7 @@ best reliability.
 - :coffin: Remove embedded python3 docs
 - :sparkles: jackmixer now uses pipewire directly
 - :coffin: The page header including in user pages is deprecated.  Use <%inherit file="/pagetemplate.html" /> in your code.
-
+- :coffin: BREAKING: the styling on .sectionbox, section, and article is gone. Use .window and .card.
 
 
 ### 0.69.20

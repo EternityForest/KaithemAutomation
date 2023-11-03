@@ -290,42 +290,6 @@ color:black;
 border-width: 3px;
 }
 
-/*The pane containing the content of a tab*/
-tab-panel tab-pane
-{
-    padding: 0.25em;
-    border-style:solid;
-    border-width: 1px;
-    border-color: grey;
-}
-
-/*The div at the top of the panel that contains the tabs you click on. We can select it like this because the only children of tab panels should be tab-pane and this
-div*/
-tab-panel div
-    {
-        border-style:solid;
-        margin-bottom:  0.4em ;
-        border-radius:9px;
-        list-style-type:none;
-        display: table;
-        border-color:grey;
-    }
-
-/*one of the tabs in the tab strip. No, I'm not sure what's really going on here. I copied and pasted from the code that does the navigation bar.*/
-tab-panel div span
-    {
-        font-weight: bold;
-        padding: 0.05em;
-        color: grey;
-        display:inline;
-        border-width:1px;
-        border-style: none solid none none;
-        display: table-cell;
-        text-align:center;
-        border-color: grey;
-        cursor: pointer;
-    }
-
 /*Widget Styles*/
 
 /*This div is the container for most of the built in widgets. */

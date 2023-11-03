@@ -25,14 +25,14 @@ ${obj.__class__|h}
 
 %if isinstance(obj, (weakref.ref)):
 <h3>Weak Reference</h3>
-<section>
+<section class="window">
 <form method="post" action="?objname=${objname}()&objpath=${objpath},c"><button>Referrent</button></form>
 </section>
 %endif
 
 %if hasattr(obj,'__dict__'):
 <h3>Object Attributes</h3>
-<section>
+<section class="window">
 <dl>
 %for i in sorted(obj.__dict__.keys(), key=str):
 <dt><form method="post" action="?objname=${objname}.${i}&objpath=${objpath},a${i}"><button>${i|h}</button></form></dt>
@@ -54,7 +54,7 @@ ${obj.__class__|h}
 
 
 <h3>Objects Referring to this Object</h3>
-<div class="sectionbox">
+<div class="window">
 <form method="post" action="?objname=${objname}&objpath=${objpath}&gcinfo=1"><button>Get Info</button></form>
 %if getGC:
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>Greyed entries may be less interesting and more likely the rendering of this page itself.</details>
@@ -84,7 +84,7 @@ style="color:grey;"
 %try:
 
 <h3>Object Attributes</h3>
-<div class="sectionbox">
+<div class="window">
 <dl>
 %for i in obj.__slots__:
 <dt><form method="post" action="?objname=${objname}.${i}&objpath=${objpath},a${i}"><button>${i|h}</button></form></dt>
@@ -115,7 +115,7 @@ ${traceback.format_exc()|h}
 
 %if hasattr(obj,'__doc__'):
 <h3>Documentation String</h3>
-<div class="sectionbox">
+<div class="window">
 <pre>${obj.__doc__}</pre>
 </div>
 %endif
@@ -150,7 +150,7 @@ ${getsource(obj)|h}
 
 %if isinstance(obj, (dict,weakref.WeakValueDictionary, weakref.WeakKeyDictionary)):
 <h3>Dict Contents (${len(obj)} items)</h3>
-<div class="sectionbox">
+<div class="window">
 <dl>
 %for i in sorted(obj.keys(),key=str):
 %if isinstance(i,str):

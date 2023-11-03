@@ -3,8 +3,8 @@
 
 <h2>Module ${name|h}</h2>
 <title>Module: ${name|h}</title>
-<section class="flex undecorated">
-<section class="card">
+<section class="window flex undecorated">
+<section class="window card">
     <details class="help"><summary><i class="icofont-question-circle"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
 
 MD5 Sum: ${getModuleHash(name)}</br>
@@ -13,7 +13,7 @@ WordHash: ${getModuleWordHash(name)}</br>
 <form action="/modules/module/${url(name)}/obj/module" method="post"><button>The module namespace object(requires edit permission, beware shoulder surfers)</button></form>
 </section>
 
-<section class="card w-50">
+<section class="window card w-50">
     <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
 <h4>Name:</h4>
@@ -36,7 +36,7 @@ WordHash: ${getModuleWordHash(name)}</br>
 
 <br>
 
-<div class="sectionbox">
+<section class="window">
 
 
 

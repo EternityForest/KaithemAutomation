@@ -15,7 +15,7 @@ class="specialentry"\
 <form action="/auth/updateuser/${urlesc(username)}" method="POST" name="user"  autocomplete="off">
 
 <h3>Basic</h3>
-<div class="sectionbox">
+<div class="window">
 <p class="warning">For performance reasons, your password is stored hashed with an ordinary cryptographic hash, rather than a password strengthening algorithm.
     Do not use weak or reused passwords on public systems!!!!</p>
 Username:<input required="required" id="un" name="username" type="text" value="${username}"></input><br>
@@ -74,7 +74,7 @@ checked="on"
 
 
 <h3>Groups</h3>
-<div class="sectionbox">
+<div class="window">
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>
 User ${username} is a member of the following groups:<br>
 (Check or uncheck to set membership)</details>
@@ -93,7 +93,7 @@ User ${username} is a member of the following groups:<br>
 
 %try:
 <h3>Login History <button type="button" onclick="document.getElementById('historybox').style.display='block'">Show</button></h3>
-<div class="sectionbox" style="display: none;"  id="historybox">
+<div class="window" style="display: none;"  id="historybox">
 %for i in reversed(auth.Users[username]['loginhistory']):
 <b>${unitsofmeasure.strftime(i[0])|h}: login from ${i[1]|h}</b><br>
 %endfor
@@ -108,7 +108,7 @@ Err in login history${traceback.format_exc()}
 
 %try:
     <h3>Telemetry<button type="button" onclick="document.getElementById('telemetrybox').style.display='block'">Show</button> </h3>
-    <div class="sectionbox" style="display: none;" id="telemetrybox">
+    <div class="window" style="display: none;" id="telemetrybox">
     User ${username} has open WebSocket connections from these addresses:<br>
     <dl>
     %for i in widgets.ws_connections.values():

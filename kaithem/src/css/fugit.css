@@ -37,7 +37,7 @@ iframe{
 html {
     background-color: #000000;
     opacity: 0.8;
-    background-image: linear-gradient(#4b3700 1px, transparent 1px), linear-gradient(to right, #4b3700 1px, #000000 1px);
+    background-image: linear-gradient(#4b37002e 1px, transparent 1px), linear-gradient(to right, #4b37002e 1px, #000000 1px);
     background-size: 20px 20px;
     min-height: 100vh;
     padding: 0px;
@@ -177,11 +177,11 @@ pre {
 div.kmainpagebody {}
 
 
-/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
-
-div.sectionbox,
-section {
+.window{
+    -webkit-animation: flicker-4 15s linear infinite both;
+    animation: flicker-4 15s linear infinite both;
     border-style: solid;
+    box-shadow: none;
     border-width: 1px;
     backdrop-filter: blur(1px) brightness(0.3);
     background-color: rgba(0, 0, 0, 0.3);
@@ -194,10 +194,6 @@ img,video {
 }
 
 
-div.sectionbox,
-section {
-    position: relative;
-}
 
 .error,
 .danger {
@@ -228,11 +224,6 @@ table tr:nth-child(odd) td {
 
 table tr:nth-child(even) td {
     background-color: rgba(230, 215, 0, 0.082);
-}
-
-div.sectionbox,
-section {
-    box-shadow: none;
 }
 
 
@@ -300,10 +291,8 @@ textarea:disabled {
 
 /*This is a help paragraph usually shown at the top or a sectionbox*/
 
-p.help, div.help{
-    background-color: black;
-    background: black;
-
+.help{
+display: none;
 }
 
 
@@ -450,59 +439,6 @@ p.resource-docstring {
     color: #ffd477;
     background-color: transparent;
 }
-
-
-/*Tab panel stuff*/
-
-
-/*The tab that is actively selected*/
-
-.selected-tab {
-    font-size: 135%;
-    font-weight: bold;
-    color: #ffd477;
-    border-width: 3px;
-}
-
-
-/*The pane containing the content of a tab*/
-
-tab-panel tab-pane {
-    padding: 0.25em;
-    border-style: solid;
-    border-width: 1px;
-    border-color: #ffd477;
-}
-
-
-/*The div at the top of the panel that contains the tabs you click on. We can select it like this because the only children of tab panels should be tab-pane and this
-div*/
-
-tab-panel div {
-    border-style: solid;
-    margin-bottom: 0.4em;
-    list-style-type: none;
-    display: table;
-    border-color: #ffd477;
-}
-
-
-/*one of the tabs in the tab strip. No, I'm not sure what's really going on here. I copied and pasted from the code that does the navigation bar.*/
-
-tab-panel div span {
-    font-weight: bold;
-    padding: 0.05em;
-    color: #ffd477;
-    display: inline;
-    border-width: 1px;
-    border-style: none solid none none;
-    display: table-cell;
-    text-align: center;
-    border-color: #ffd477;
-    cursor: pointer;
-}
-
-
 /*Widget Styles*/
 
 
@@ -1247,9 +1183,4 @@ body::after{
 img {
 	-webkit-animation: flicker-4 7s linear infinite both;
 	        animation: flicker-4 7s linear infinite both;
-}
-
-section, div.sectionbox {
-	-webkit-animation: flicker-4 15s linear infinite both;
-	        animation: flicker-4 15s linear infinite both;
 }

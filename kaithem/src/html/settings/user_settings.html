@@ -6,7 +6,7 @@ import pytz
 <h1>My Account</h1>
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
 <h2>Security</h2>
-<div class="sectionbox">
+<div class="window">
 Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pages.getAcessingUser(), 'restrict-lan')}</br>
 
 
@@ -25,7 +25,7 @@ Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pag
 </div>
 
 <h2>Basic Info</h2>
-<div class="sectionbox">
+<div class="window">
 <form action='/settings/changeinfo' method='post'>
 <h3>Contact Info</h3>
 <table border=1>
@@ -39,7 +39,7 @@ Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pag
 <form action='/settings/changeprefs' method='post'>
 
 
-<div class="sectionbox">
+<div class="window">
 
 <h2>Web Services</h2>
 <h3>CORS Access</h3>
@@ -54,7 +54,7 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
 
 </div>
 <h2>Time Formatting(Current: <span style="color: darkgreen">${unitsofmeasure.strftime()}</span>)</h2>
-<div class="sectionbox">
+<div class="window">
 <table border=1>
 <%tz = auth.getUserSetting(pages.getAcessingUser(),'timezone')%>
 <tr>
@@ -78,7 +78,7 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
 </div>
 
 <h2>General Options</h2>
-<div class="sectionbox">
+<div class="window">
 <table border=1>
 <tr>
 <td>Enable Monaco Code Editor(Ace is still used as fallback on mobile)</td>
@@ -107,7 +107,7 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
 
 </div>
 <h2>My Permissions</h2>
-<div class="sectionbox">
+<div class="window">
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>These are the permissions you have been granted.</details>
 %for i in sorted(auth.Users[pages.getAcessingUser()].permissions):
 <h3
@@ -132,7 +132,7 @@ You can currently make HTTP requests containing up to ${unitsofmeasure.siFormatN
 
 %try:
 <h3>Login History</h3>
-<div class="sectionbox">
+<div class="window">
 %for i in (auth.Users[pages.getAcessingUser()]['loginhistory']):
 <b>${unitsofmeasure.strftime(i[0])|h}: login from ${i[1]|h}</b><br>
 %endfor

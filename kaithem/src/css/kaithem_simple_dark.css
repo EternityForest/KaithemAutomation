@@ -40,10 +40,12 @@ body {
 iframe{
     background-color: rgb(229 229 229);
 }
-section, div.sectionbox, button, textarea, input, div.tool-bar, p.tool-bar{
+
+.window, button, textarea, input, div.tool-bar, p.tool-bar{
 background-color: #2c302f;
 color: rgb(180 178 177);
 }
+
 
 
 [class*=" icofont-"],

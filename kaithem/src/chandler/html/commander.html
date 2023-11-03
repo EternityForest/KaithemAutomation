@@ -6,6 +6,10 @@
 
 
 <style>
+
+    main{
+        width: 100%;
+    }
     .grey {
         color: grey;
         font-size: 70%;
@@ -136,9 +140,9 @@
 <script type="text/javascript" src="/static/widget.js"></script>
 
 
-<div id="app" style="display:flex; flex-wrap:wrap;">
+<div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
 
-    <div class="sectionbox flex-item" style="overflow: auto; max-width:98vw;">
+    <div class="window flex-item" style="overflow: auto; max-width:98vw; flex-grow:1">
 
         <div class="tool-bar">
             <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
@@ -207,7 +211,7 @@
                         <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i></button>
                     </p>
 
-                    <input v-if="!i[1].utility" type="range" style="width: 100%" max=1 step=0.01 min=0
+                    <input v-if="!i[1].utility" type="range" style="width: 98%" max=1 step=0.01 min=0
                         v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);"
                         :value="alphas[i[0]]"><br>
 
@@ -256,8 +260,8 @@
     </div>
 
 
-    <div class="sectionbox flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
-        style="display:inline-block; width:75%; max-width:98vw; overflow:auto;">
+    <div class="window flex-item" v-if="editingScene && cuemeta[editingScene.cue]"
+        style="display:inline-block;" class="scroll">
         <h3>{{editingScene.name}}
             <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
         </h3>
@@ -265,7 +269,7 @@
 
         <div id="cuesbox">
 
-            <div style="display:flex; flex-wrap:wrap; flex-direction: row;">
+            <div class="flex">
 
                 <article v-for="i in formatCues(1)" v-if="i[1].id"
                     style="margin: 0.8em; display: flex; flex-direction: column; min-height: 8em;"
