@@ -102,6 +102,13 @@ def sorted_module_path_list(name: str, path: list):
     return sorted(sorted(modules_state.ls_folder(name, '/'.join(path))), key=lambda x: (modules_state.ActiveModules[name][x]['resource-type'], x))
 
 
+def breadcrumbs(path):
+    temp_p = ''
+    for i in util.split_escape(path, "/", "\\"):
+        temp_p += i +"/"
+        yield temp_p[:-1]
+
+
 module_page_context = {
     "siFormatNumber": unitsofmeasure.siFormatNumber,
     "url": util.url,
@@ -125,7 +132,8 @@ module_page_context = {
     "urlForPath": urlForPath,
     "sorted_module_path_list": sorted_module_path_list,
     "get_f_size": get_f_size,
-    "hasattr": hasattr
+    "hasattr": hasattr,
+    "breadcrumbs": breadcrumbs
 }
 
 
@@ -394,21 +402,13 @@ class WebInterface:
         if not path:
             pages.require("/admin/modules.view")
 
-            return pages.get_jinja_template("modules/module.html.j2").render(
-                module=modules_state.ActiveModules[root],
-                name=root,
-                path=modulepath,
-                fullpath=fullpath,
-                **module_page_context
-            )
-
-            return pages.get_template("modules/module.html").render(
-                module=modules_state.ActiveModules[root],
-                name=root,
-                path=modulepath,
-                fullpath=fullpath,
-                **module_page_context
-            )
+            return pages.render_jinja_template("modules/module.j2.html",
+                                               module=modules_state.ActiveModules[root],
+                                               name=root,
+                                               path=modulepath,
+                                               fullpath=fullpath,
+                                               **module_page_context
+                                               )
 
         else:
             if path[0] == "runevent":
@@ -937,13 +937,15 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 
         if resourceinquestion["resource-type"] == "directory":
             pages.require("/admin/modules.view")
-            return pages.get_template("modules/module.html").render(
-                module=modules_state.ActiveModules[module],
-                name=module,
-                path=util.split_escape(resource, "\\"),
-                fullpath=module + "/" + resource,
-                **module_page_context
-            )
+
+            return pages.render_jinja_template("modules/module.j2.html",
+                                               module=modules_state.ActiveModules[module],
+                                               name=module,
+                                               path=util.split_escape(
+                                                   resource, "\\"),
+                                               fullpath=module + "/" + resource,
+                                               **module_page_context
+                                               )
 
         # This is for the custom resource types interface stuff.
         return modules_state.additionalTypes[

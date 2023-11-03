@@ -25,23 +25,30 @@ import mimetypes
 import jinja2
 from . import auth, config
 from . import directories, util
-
+from typing import Dict
 
 _Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(directories.htmldir, "makocomponents")])
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])
 
-_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(directories.htmldir, "makocomponents")], encoding='utf-8', followlinks=False)
+
+# 
+
+_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
 
 env = jinja2.Environment(
     loader=_jl,
-    autoescape=jinja2.select_autoescape()
+    autoescape=False
 )
 
+import importlib
 
-def get_jinja_template(n):
-    return _jl.load(env, n)
+
+def render_jinja_template(n, **kw):
+    return _jl.load(env, n).render(imp0rt=importlib.import_module,
+                                   list = list, sorted=sorted, len= len,
+                                    **kw)
 
 
 def get_vardir_template(fn):
