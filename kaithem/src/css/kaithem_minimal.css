@@ -366,10 +366,6 @@ main {
     margin: auto;
 }
 
-form {
-    text-align: center;
-}
-
 main {
     width: min(45em, 100vw);
 }
@@ -990,6 +986,7 @@ div.k-laterality-reminder-right:hover {
     flex-basis: fit-content;
     margin: 0px;
 }
+
 /*Grid and sizing*/
 
 .col-1,
@@ -1208,7 +1205,7 @@ div.k-laterality-reminder-right:hover {
 /*Simple utilities */
 
 .paper{
-    background: var(--bg);
+    background: var(--box-bg);
 }
 
 .v-center {
@@ -1222,11 +1219,12 @@ div.k-laterality-reminder-right:hover {
 }
 
 .undecorated {
-    border: none;
-    box-shadow: none;
-    background: transparent;
-    backdrop-filter: none;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
 }
+
 
 .nogaps{
     gap: 0px;
@@ -1244,7 +1242,7 @@ div.k-laterality-reminder-right:hover {
 }
 
 .nogrow{
-    flex-grow: 0;
+    flex-grow: 0 !important;
 }
 
 .noshrink{

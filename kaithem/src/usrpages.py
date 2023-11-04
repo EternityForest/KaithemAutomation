@@ -27,10 +27,21 @@ from . import util, pages, directories, messagebus, systasks, modules_state, the
 import mako
 import cherrypy
 import sys
+import importlib
+import jinja2
 
 from .config import config
 
 from mako.lookup import TemplateLookup
+
+
+_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
+
+env = jinja2.Environment(
+    loader=_jl,
+    autoescape=False
+)
+
 
 errors = {}
 
@@ -169,6 +180,7 @@ class CompiledPage:
         self.resource = resource
         self.module = m
         self.resourceName = r
+        self.useJinja = False
 
         # This API is available as 'page' from within
         # Mako template code.   It's main use is for self modifying pages, mostly just for implementing
@@ -252,14 +264,14 @@ class CompiledPage:
                 else:
                     footer = ""
 
-                self.d = {
+                self.scope = {
                     "kaithem": self.kaithemobj.kaithem,
                     "page": self.localAPI,
                     "print": self.new_print,
                     "_k_alt_top_banner": self.alt_top_banner,
                 }
                 if m in modules_state.scopes:
-                    self.d["module"] = modules_state.scopes[m]
+                    self.scope["module"] = modules_state.scopes[m]
 
                 if (
                     not "template-engine" in resource
@@ -315,12 +327,18 @@ class CompiledPage:
 
                     self.template = mako.template.Template(
                         templatesource, uri="Template" + m + "_" + r, lookup=component_lookup)
+                    
+                elif resource['template-engine'] == 'jinja2':
+                    if "setupcode" in resource and resource["setupcode"].strip():
+                        exec(resource['setupcode'], None, self.scope)
+                    self.template = env.from_string(template)
+                    self.useJinja = True
 
                 elif resource["template-engine"] == "markdown":
                     header = mako.template.Template(
-                        header, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.d)
+                        header, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.scope)
                     footer = mako.template.Template(
-                        footer, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.d)
+                        footer, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.scope)
 
                     self.text = (
                         header
@@ -665,16 +683,17 @@ class KaithemPage:
                 t = theming.cssthemes[t].css_url
 
             if hasattr(page, "template"):
-                return page.template.render(
-                    kaithem=self.kaithemobj.kaithem,
-                    request=cherrypy.request,
-                    module=modules_state.scopes[module],
-                    path=args,
-                    kwargs=kwargs,
-                    print=page.new_print,
-                    page=page.localAPI,
-                    _k_usr_page_theme=t,
-                    _k_alt_top_banner=page.alt_top_banner,
+                if not page.useJinja:
+                    return page.template.render(
+                        kaithem=self.kaithemobj.kaithem,
+                        request=cherrypy.request,
+                        module=modules_state.scopes[module],
+                        path=args,
+                        kwargs=kwargs,
+                        print=page.new_print,
+                        page=page.localAPI,
+                        _k_usr_page_theme=t,
+                        _k_alt_top_banner=page.alt_top_banner,
                 ).encode("utf-8")
             else:
                 return page.text.encode("utf-8")

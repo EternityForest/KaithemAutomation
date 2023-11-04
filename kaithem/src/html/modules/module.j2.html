@@ -4,8 +4,8 @@
 <main>
     <h2>Module {{ name| escape }}</h2>
     <title>Module: {{ name| escape }}</title>
-    <section class="window flex-rows undecorated">
-        <section class="card col-6">
+    <section class="flex-rows">
+        <section class="window col-6 padding">
             <details class="help">
                 <summary>
                     <i class="icofont-question-circle"></i>
@@ -23,7 +23,7 @@
                 <button>The module namespace object(requires edit permission, beware shoulder surfers)</button>
             </form>
         </section>
-        <section class="card col-6">
+        <section class="window col-6">
             <form action="/modules/module/{{ url(name) }}/update" method="POST" name="user">
                 <h4>Name:</h4>
                 <input required="required" class="modulename" name="name" type="text" value="{{ name| escape }}">
@@ -45,8 +45,8 @@
             </form>
         </section>
     </section>
-    <section class="window">
-        <div class="pathnav tool-bar">
+    <section class="window padding">
+        <div class="pathnav tool-bar w-full">
 
             <a class="button" href="/modules/module/{{ url(name) }}#resources">{{ name| escape }}</a>
             {% if path %}
@@ -55,7 +55,7 @@
             {% endfor %}
             {% endif %}
         </div>
-        <div class="tool-bar">
+        <div class="tool-bar w-full">
             <p>
                 <i class="icofont-ui-add"></i>Add:
             </p>
@@ -101,7 +101,7 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'event' %}
             <dt>
-                <div class="tool-bar inline">
+                <div class="tool-bar w-full inline">
                     <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#setupheading">
                         <i class="icofont-flag-alt-1"></i>
                         <b>
@@ -111,10 +111,10 @@
                     {% if not module[i].get('enable',"True") %}(disabled){% endif %}
                     <span class="error"
                         title="This event has loaded normally, but has been stopped, likely by calling stop() on it's interface.">{{ "(stopped)" if (newevt.EventReferences[name,i].disable) else "" }}</span>
-                    <a class="button" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="icofont-ui-delete"></i>Delete</a>
-                    <a class="button" href="/modules/module/{{ url(name) }}/runeventdialog/{{ url(i) }}"><i
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/runeventdialog/{{ url(i) }}"><i
                             class="icofont-ui-play"></i>Run Now</a>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="icofont-ui-delete"></i>Delete</a>
                     {% if newevt.fastGetEventErrors(name,i) %}
                     <span class="danger">[{{ len(newevt.fastGetEventErrors(name,i) ) }} Errors]</span>
                     {% endif %}
@@ -156,7 +156,7 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'page' %}
             <dt>
-                <div class="tool-bar inline">
+                <div class="tool-bar w-full inline">
                     <a aria-role="header" href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#pagebody">
                         <i class="icofont-page"></i>
                         <b>{{ util.split_escape(i,'/','\\')[-1] | escape }}</b>
@@ -164,9 +164,9 @@
                     {% if usrpages.getPageErrors(name,i) %}
                     <span class="danger">[{{ len(usrpages.getPageErrors(name,i) ) }} Errors]</span>
                     {% endif %}
-                    <a class="button" href="{{ (usrpages.url_for_resource(name,i) ) }}">
+                    <a class="button nogrow" href="{{ (usrpages.url_for_resource(name,i) ) }}">
                         <i class="icofont-ui-play"></i>Go to page </a>
-                    <a class="button" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
                         <i class="icofont-ui-delete"></i>
                         Delete</a>
                 </div>
@@ -184,26 +184,26 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'permission' %}
             <dt>
-                <div class="tool-bar inline">
+                <div class="tool-bar w-full inline">
                     <h3>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="icofont-key"></i>\
                             {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
-                    <a class="button" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="icofont-ui-delete"></i>Delete</a>
                 </div>
             </dt>
             {% endif %}
             {% if module[i]['resource-type'] == 'internal-fileref' %}
             <dt>
-                <div class="tool-bar inline">
+                <div class="tool-bar w-full inline">
                     <h3>
                         <a
                             href="/modules/module/{{ url(name) }}/getfileresource/{{ url(i) }}">{{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
                     <a class="settingsbuttton"
                         href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">Properties</a>
-                    <a class="button" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="icofont-ui-delete"></i>Delete</a>
                     <p>
                         <span>Size: {{ get_f_size(name,i) }}</span>
@@ -213,12 +213,12 @@
             {% endif %}
             {% if module[i]['resource-type'] == 'device' %}
             <dt>
-                <div class="tool-bar">
+                <div class="tool-bar w-full">
                     <h3>
                         <a class="deviceslink"
                             href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">{{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
-                    <a class="button" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="icofont-ui-delete"></i>Delete</a>
                     <br>
                 </div>
@@ -227,23 +227,24 @@
             {% if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref','device'] and not i.startswith("__") %}
             <dt>
                 <span></span>\
-                <a class="button" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                         class="icofont-ui-delete"></i>Delete</a>
             </dt>
             {% endif %}
             {% if module[i]['resource-type'] == 'directory' %}
             <dt>
-                <div class="tool-bar">
+                <div class="tool-bar w-full">
                     <h3>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
                                 class="icofont-document-folder"></i><b></b>{{ util.split_escape(i,'/')[-1] | escape }}</b></a>
                     </h3>
-                    <a class="button" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">Delete</a>
+                    <a class="button nogrow"
+                        href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">Delete</a>
                 </div>
             </dt>
             {% endif %}
             {% endif %}
             {% endfor %}
-    </div>
+            </div>
 </main>
 {% endblock %}
