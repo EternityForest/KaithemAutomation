@@ -16,14 +16,14 @@ properties:
   blend:
     type: string
 
-  blendArgs:
+  blend_args:
     type: object
     additionalProperties: true
 
   bpm:
     type: number
 
-  commandTag:
+  command_tag:
     type: string
 
   crossfade:
@@ -34,44 +34,45 @@ properties:
     required:
       - default
 
-  defaultNext:
+  default_next:
     type: string
 
-  displayTags:
+  display_tags:
     type: array
     items: {}
     additionalItems: true
 
-  eventButtons:
+  event_buttons:
     type: array
     items: {}
     additionalItems: true
 
-  infoDisplay:
+  info_display:
     type: string
 
-  midiSource:
+  midi_source:
     type: string
 
-  mqttServer:
+  mqtt_server:
     type: string
 
-  mqttSyncFeatures:
+  mqtt_sync_features:
     type: object
     additionalProperties: true
 
-  musicVisualizations:
+  music_visualizations:
     type: string
+
   notes:
     type: string
 
   priority:
     type: number
 
-  slideOverlayURL:
+  slide_overlay_url:
     type: string
 
-  soundOutput:
+  sound_output:
     type: string
 
   utility:
@@ -89,22 +90,22 @@ required:
   - alpha
   - backtrack
   - blend
-  - blendArgs
+  - blend_args
   - bpm
-  - commandTag
+  - command_tag
   - crossfade
   - cues
-  - defaultNext
-  - displayTags
-  - eventButtons
-  - infoDisplay
-  - midiSource
-  - mqttServer
-  - mqttSyncFeatures
-  - musicVisualizations
+  - default_next
+  - display_tags
+  - event_buttons
+  - info_display
+  - midi_source
+  - mqtt_server
+  - mqtt_sync_features
+  - music_visualizations
   - notes
   - priority
-  - slideOverlayURL
-  - soundOutput
+  - slide_overlay_url
+  - sound_output
   - utility
   - uuid

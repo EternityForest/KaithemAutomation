@@ -115,10 +115,10 @@ To use this, add a layer below containing the base colors. The flicker layer wil
         lp = t60 * 0.05
         self.wind = 1 * lp + self.wind * (1 - lp)
 
-        if random.random() < self.scene.blendArgs["gustiness"] * t60:
+        if random.random() < self.scene.blend_args["gustiness"] * t60:
             self.wind = max(random.normalvariate(1.3, 1), 1.2)
         if random.random() < 0.08:
-            rr = self.scene.blendArgs["agility"]
+            rr = self.scene.blend_args["agility"]
             self.riserate = random.normalvariate(rr, rr / (4.0))
 
         # Get the per-universe time interval
@@ -126,8 +126,8 @@ To use this, add a layer below containing the base colors. The flicker layer wil
         self.last_per[u] = time.time()
 
         ctr = 0
-        tc = self.scene.blendArgs["topple_chance"]
-        lps = self.scene.blendArgs["lowpass"]
+        tc = self.scene.blend_args["topple_chance"]
+        lps = self.scene.blend_args["lowpass"]
 
         # This algorithm is pretty tricky and I'm not sure how to properly implement it in numpy.
         # So we're doing it one pixel at a time in python
@@ -136,7 +136,7 @@ To use this, add a layer below containing the base colors. The flicker layer wil
         heights = self.heights[u]
         heights_lp = self.heights_lp[u]
 
-        group = int(self.scene.blendArgs["group"])
+        group = int(self.scene.blend_args["group"])
         for k in numpy.nonzero(values)[0]:
             k = int(k)
             # Detect RGB groups of N, put them all together.
@@ -221,20 +221,20 @@ class vary_blendmode_np(BlendMode):
         # It's always changing so always rerender
         self.scene.rerender = True
         if time.time() > self.ntt:
-            interval = self.scene.blendArgs["interval"]
-            rnd = self.scene.blendArgs["rinterval"]
-            avg = self.scene.blendArgs["mode"]
+            interval = self.scene.blend_args["interval"]
+            rnd = self.scene.blend_args["rinterval"]
+            avg = self.scene.blend_args["mode"]
             nv = numpy.random.triangular(0, max(min(1, 1 - avg), 0), 1, values.shape)
             self.vals[u] = 1 - (nv * (values / 255.0))
             self.ntt = time.time() + random.triangular(
                 interval - rnd, interval + rnd, interval
             )
 
-        lp = t60 * self.scene.blendArgs["speed"]
+        lp = t60 * self.scene.blend_args["speed"]
         if uobj:
             if not uobj.localFading:
                 lp = 1
-                uobj.interpolationTime = (1 / 60) / self.scene.blendArgs["speed"]
+                uobj.interpolationTime = (1 / 60) / self.scene.blend_args["speed"]
 
         self.vals_lp[u] = self.vals_lp[u] * (1 - lp) + self.vals[u] * lp
         old *= numpy.minimum(
@@ -308,14 +308,14 @@ class sparks_blendmode(BlendMode):
         lastk = ctr = 0
         x = False
         t = time.time()
-        group = self.scene.blendArgs["group"]
+        group = self.scene.blend_args["group"]
         # Groups of 3 are supposed to come on at the same time because of RGB triples.
         for k in numpy.nonzero(alphas)[0]:
             if (not (ctr % group)) or k - lastk > 1:
                 ctr = 0
-                nv = random.triangular(1 - self.scene.blendArgs["variation"], 1)
+                nv = random.triangular(1 - self.scene.blend_args["variation"], 1)
                 if t > self.sparktimes.get(k, 0):
-                    c = self.scene.blendArgs["interval"]
+                    c = self.scene.blend_args["interval"]
                     x = True
                     self.sparktimes[k] = t + random.uniform(max(c / 3.0, 0.35), c * 2)
                 else:
@@ -329,7 +329,7 @@ class sparks_blendmode(BlendMode):
         t = time.time() - self.last_per[u]
         self.last = time.time()
         # Calculate the decay constant
-        k = 1 / self.scene.blendArgs["fadetime"]
+        k = 1 / self.scene.blend_args["fadetime"]
         y = math.e ** -(k * t)
         # Exponential decay equation.
         self.vals_lp[u] *= y

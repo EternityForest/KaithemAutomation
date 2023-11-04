@@ -65,7 +65,7 @@ def makeWrappedConnectionClass(parent: Scene):
         def on_disconnect(self):
             self_closure_ref.event("board.mqtt.disconnected")
             self_closure_ref.pushMeta(statusOnly=True)
-            if self_closure_ref.mqttServer:
+            if self_closure_ref.mqtt_server:
                 self_closure_ref.event("board.mqtt.error", "Disconnected")
             return super().on_disconnect()
 
@@ -73,8 +73,8 @@ def makeWrappedConnectionClass(parent: Scene):
             if isinstance(m, bytes):
                 m2 = m.decode()
             else:
-                m2=str(m)
-            gn = self_closure_ref.mqttSyncFeatures.get("syncGroup", False)
+                m2 = str(m)
+            gn = self_closure_ref.mqtt_sync_features.get("syncGroup", False)
             if gn:
                 topic = f"/kaithem/chandler/syncgroup/{gn}"
                 if t == topic:
@@ -223,7 +223,7 @@ def gotoCommand(scene="=SCENE", cue=""):
 
     # We don't want to handle other bindings after a goto, leaving a scene stops execution.
     scenes_by_name[scene].scriptContext.stopAfterThisHandler()
-    scenes_by_name[scene].gotoCue(cue, cause=newcause)
+    scenes_by_name[scene].goto_cue(cue, cause=newcause)
     return True
 
 
@@ -328,7 +328,7 @@ def shortcutCode(code: str, limitScene: Optional[Scene] = None, exclude: Optiona
                     else:
                         if x and x is not exclude:
                             x.go()
-                            x.gotoCue(i.name, cause="manual")
+                            x.goto_cue(i.name, cause="manual")
                 except Exception:
                     print(traceback.format_exc())
 
@@ -418,13 +418,12 @@ def checkPermissionsForSceneData(data, user):
                 "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: pages. User:"
                 + str(kaithem.web.user())
             )
-    if "mqttServer" in data and data["mqttServer"].strip():
+    if "mqtt_server" in data and data["mqtt_server"].strip():
         if not kaithem.users.check_permission(user, "/admin/modules.edit"):
             raise ValueError(
                 "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: MQTT:"
                 + str(kaithem.web.user())
             )
-
 
 
 # All the properties that can be saved and loaded are actually defined in the schema,
@@ -475,15 +474,16 @@ class Cue:
         self.next_cue: str
         self.track: bool
         self.shortcut: str
+        self.trigger_shortcut: str
         self.sound: str
         self.slide: str
         self.sound_output: str
-        self.sound_start_position: str
+        self.sound_start_position: str|float
         self.media_speed: str
         self.media_wind_up: str
         self.media_wind_down: str
         self.probability: float | str
-        self.values: Dict[str, Dict[str | int, str | int | float |  None]]
+        self.values: Dict[str, Dict[str | int, str | int | float | None]]
 
         if id:
             disallow_special(id)
@@ -523,8 +523,7 @@ class Cue:
 
         cues[self.id] = self
 
-
-        self.next_ll = None
+        self.next_ll: Optional[Cue] = None
         parent._addCue(self, forceAdd=forceAdd)
         self.changed = {}
 
@@ -573,11 +572,11 @@ class Cue:
         c = Cue(
             self.getScene(),
             name,
-            fadein=self.fade_in,
+            fade_in=self.fade_in,
             length=self.length,
-            lengthRandomize=self.length_randomize,
+            length_randomize=self.length_randomize,
             values=copy.deepcopy(self.values),
-            nextCue=self.next_cue,
+            next_cue=self.next_cue,
             rel_length=self.rel_length,
             track=self.track
         )
@@ -650,7 +649,7 @@ class Cue:
             if push:
                 self.push()
 
-    def setValue(self, universe: str, channel: str | int, value: str | float):
+    def set_value(self, universe: str, channel: str | int, value: str | float):
         disallow_special(universe, allow="_@.")
 
         scene = self.getScene()
@@ -775,24 +774,24 @@ class Scene:
         priority=50,
         blend="normal",
         id=None,
-        defaultActive=True,
-        blendArgs=None,
+        default_active=True,
+        blend_args=None,
         backtrack=True,
         bpm=60,
-        soundOutput="",
-        eventButtons=[],
-        displayTags=[],
-        infoDisplay="",
+        sound_output="",
+        event_buttons=[],
+        display_tags=[],
+        info_display="",
         utility=False,
         notes="",
-        mqttServer="",
+        mqtt_server="",
         crossfade=0,
-        midiSource="",
-        defaultNext="",
-        commandTag="",
-        slideOverlayURL="",
-        musicVisualizations="",
-        mqttSyncFeatures=None,
+        midi_source="",
+        default_next="",
+        command_tag="",
+        slide_overlay_url="",
+        music_visualizations="",
+        mqtt_sync_features=None,
         **ignoredParams
     ):
         if name and name in scenes_by_name:
@@ -805,21 +804,21 @@ class Scene:
 
         disallow_special(name)
 
-        self.mqttSyncFeatures: Dict[str, Any] = mqttSyncFeatures or {}
+        self.mqtt_sync_features: Dict[str, Any] = mqtt_sync_features or {}
         self.mqttNodeSessionID: str = base64.b64encode(os.urandom(8)).decode()
 
-        self.eventButtons: list = eventButtons[:]
-        self.infoDisplay = infoDisplay
+        self.event_buttons: list = event_buttons[:]
+        self.info_display = info_display
         self.utility: bool = bool(utility)
 
         # This is used for the remote media triggers feature.
         self.mediaLink = kaithem.widget.APIWidget()
         self.mediaLink.echo = False
 
-        self.slideOverlayURL: str = slideOverlayURL
+        self.slide_overlay_url: str = slide_overlay_url
 
         # Audio visualizations
-        self.musicVisualizations = musicVisualizations
+        self.music_visualizations = music_visualizations
 
         # The active media file being played through the remote playback mechanism.
         self.allowMediaUrlRemote = None
@@ -836,7 +835,7 @@ class Scene:
                         "mediaURL",
                         self.allowMediaUrlRemote,
                         self.enteredCue,
-                        max(0, self.cue.soundFadeIn or self.crossfade),
+                        max(0, self.cue.sound_fade_in or self.crossfade),
                     ]
                 )
                 self.mediaLink.send(
@@ -844,10 +843,10 @@ class Scene:
                         "slide",
                         self.cue.slide,
                         self.enteredCue,
-                        max(0, self.cue.fadein or self.crossfade),
+                        max(0, self.cue.fade_in or self.crossfade),
                     ]
                 )
-                self.mediaLink.send(["overlay", self.slideOverlayURL])
+                self.mediaLink.send(["overlay", self.slide_overlay_url])
 
             if v[0] == "error":
                 self.event(
@@ -859,18 +858,18 @@ class Scene:
         self.lock = threading.RLock()
         self.randomizeModifier = 0
 
-        self.commandTagSubscriptions = []
-        self.commandTag = commandTag
+        self.command_tagSubscriptions = []
+        self.command_tag = command_tag
 
         self.displayTagSubscriptions = []
-        self.displayTags = []
+        self.display_tags = []
         self.displayTagValues = {}
         self.displayTagMeta = {}
-        self.setDisplayTags(displayTags)
+        self.setDisplayTags(display_tags)
 
         self.notes = notes
-        self.midiSource = ""
-        self.defaultNext = str(defaultNext).strip()
+        self.midi_source = ""
+        self.default_next = str(default_next).strip()
 
         self.id: str = id or uuid.uuid4().hex
 
@@ -885,7 +884,7 @@ class Scene:
 
         self.cueVolume = 1
 
-        # Allow GotoCue
+        # Allow goto_cue
         def cueTagHandler(val, timestamp, annotation):
             # We generated this event, that means we don't have to respond to it
             if annotation == "SceneObject":
@@ -895,7 +894,7 @@ class Scene:
                 self.stop()
             else:
                 # Just goto the cue
-                self.gotoCue(val, cause="tagpoint")
+                self.goto_cue(val, cause="tagpoint")
 
         self.cueTagHandler = cueTagHandler
 
@@ -954,9 +953,9 @@ class Scene:
         self.canvas = FadeCanvas()
         self.backtrack = backtrack
         self.bpm = bpm
-        self.soundOutput = soundOutput
+        self.sound_output = sound_output
 
-        self.cues = {}
+        self.cues: Dict[str, Cue] = {}
 
         # The list of cues as an actual list that is maintained sorted by number
         self.cues_ordered: List[Cue] = []
@@ -974,7 +973,7 @@ class Scene:
         self.tapSequence = 0
 
         # This flag is used to avoid having to repaint the canvas if we don't need to
-        self.fadeInCompleted = False
+        self.fade_in_completed = False
         # A pointer into that list pointing at the current cue. We have to update all this
         # every time we change the lists
         self.cuePointer = 0
@@ -1008,9 +1007,9 @@ class Scene:
 
         self.priority = priority
         # Used by blend modes
-        self.blendArgs = blendArgs or {}
+        self.blend_args = blend_args or {}
         self.setBlend(blend)
-        self.defaultActive = defaultActive
+        self.default_active = default_active
 
         # Used to indicate that the most recent frame has changed something about the scene
         # Metadata that GUI clients need to know about.
@@ -1036,13 +1035,13 @@ class Scene:
         self.scriptContext = self.makeScriptContext()
         self.refreshRules()
 
-        self.mqttServer = mqttServer
+        self.mqtt_server = mqtt_server
         self.activeMqttServer = None
 
-        self.setMidiSource(midiSource)
+        self.setMidiSource(midi_source)
 
         if active:
-            self.gotoCue("default", sendSync=False, cause="start")
+            self.goto_cue("default", sendSync=False, cause="start")
             self.go()
             if isinstance(active, float):
                 self.started = time.time() - active
@@ -1058,24 +1057,24 @@ class Scene:
             "alpha": self.defaultalpha,
             "cues": {j: self.cues[j].serialize() for j in self.cues},
             "priority": self.priority,
-            "active": self.defaultActive,
+            "active": self.default_active,
             "blend": self.blend,
-            "blendArgs": self.blendArgs,
+            "blend_args": self.blend_args,
             "backtrack": self.backtrack,
-            "mqttSyncFeatures": self.mqttSyncFeatures,
-            "soundOutput": self.soundOutput,
-            "slideOverlayURL": self.slideOverlayURL,
-            "eventButtons": self.eventButtons,
-            "infoDisplay": self.infoDisplay,
+            "mqtt_sync_features": self.mqtt_sync_features,
+            "sound_output": self.sound_output,
+            "slide_overlay_url": self.slide_overlay_url,
+            "event_buttons": self.event_buttons,
+            "info_display": self.info_display,
             "utility": self.utility,
-            "displayTags": self.displayTags,
-            "midiSource": self.midiSource,
-            "musicVisualizations": self.musicVisualizations,
-            "defaultNext": self.defaultNext,
-            "commandTag": self.commandTag,
+            "display_tags": self.display_tags,
+            "midi_source": self.midi_source,
+            "music_visualizations": self.music_visualizations,
+            "default_next": self.default_next,
+            "command_tag": self.command_tag,
             "uuid": self.id,
             "notes": self.notes,
-            "mqttServer": self.mqttServer,
+            "mqtt_server": self.mqtt_server,
             "crossfade": self.crossfade,
         }
 
@@ -1093,7 +1092,7 @@ class Scene:
         "Unregister the scene and delete it from the lists"
         with core.lock:
             self.stop()
-            self.mqttServer = ''
+            self.mqtt_server = ''
             x = self.mqttConnection
             if x:
                 x.disconnect()
@@ -1136,8 +1135,8 @@ class Scene:
             self.cues_ordered[-1].next_ll = None
 
     def getDefaultNext(self):
-        if self.defaultNext.strip():
-            return self.defaultNext.strip()
+        if self.default_next.strip():
+            return self.default_next.strip()
         try:
             return self.cues_ordered[self.cuePointer + 1].name
         except Exception:
@@ -1176,9 +1175,9 @@ class Scene:
 
             if self.cue and self.name == cue:
                 try:
-                    self.gotoCue("default", cause="deletion")
+                    self.goto_cue("default", cause="deletion")
                 except Exception:
-                    self.gotoCue(self.cues_ordered[0].name, cause="deletion")
+                    self.goto_cue(self.cues_ordered[0].name, cause="deletion")
 
             if cue in cues:
                 id = cue
@@ -1226,7 +1225,8 @@ class Scene:
             raise RuntimeError("Cue would overwrite existing.")
         self.cues[name] = cue
         if prev and prev in self.cues:
-            self.cues[prev].nextCue = self.cues[name]
+            raise RuntimeError("Not supported this code path")
+            self.cues[prev].next_cue = self.cues[name]
 
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
@@ -1250,12 +1250,12 @@ class Scene:
                         self.id, statusOnly=statusOnly, keys=keys)
                 )
 
-    def event(self, s: str, value: str | float | int | bool | None = None, info=""):
+    def event(self, s: str, value: Any, info=""):
         # No error loops allowed!
         if not s == "script.error":
             self._event(s, value, info)
 
-    def _event(self, s: str, value: str | float | int | bool | None = None, info=""):
+    def _event(self, s: str, value: Any, info=""):
         "Manually trigger any script bindings on an event"
         try:
             if self.scriptContext:
@@ -1346,17 +1346,17 @@ class Scene:
                     break
         return cue
 
-    def gotoCue(self, cue: str, t: Optional[float] = None, sendSync=True, generateEvents=True, cause="generic"):
+    def goto_cue(self, cue: str, t: Optional[float] = None, sendSync=True, generateEvents=True, cause="generic"):
         "Goto cue by name, number, or string repr of number"
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
 
         if self.cue:
-            oldSoundOut = self.cue.soundOutput
+            oldSoundOut = self.cue.sound_output
         else:
             oldSoundOut = None
         if not oldSoundOut:
-            oldSoundOut = self.soundOutput
+            oldSoundOut = self.sound_output
 
         cue = str(self.evalExpr(cue))
 
@@ -1380,7 +1380,7 @@ class Scene:
 
         if cue in self.cues:
             if sendSync:
-                gn = self.mqttSyncFeatures.get("syncGroup", False)
+                gn = self.mqtt_sync_features.get("syncGroup", False)
                 if gn:
                     topic = f"/kaithem/chandler/syncgroup/{gn}"
                     m = {
@@ -1496,7 +1496,7 @@ class Scene:
                         "slide",
                         self.cues[cue].slide,
                         self.enteredCue,
-                        max(0, self.cues[cue].fadein or self.crossfade),
+                        max(0, self.cues[cue].fade_in or self.crossfade),
                     ]
                 )
 
@@ -1513,32 +1513,32 @@ class Scene:
                 if not self.cues[cue].sound == "__keep__":
                     # Don't stop audio of we're about to crossfade to the next track
                     if not (self.crossfade and self.cues[cue].sound):
-                        if self.cue.soundFadeOut or self.cue.mediaWinddown:
+                        if self.cue.sound_fade_out or self.cue.media_wind_down:
                             fadeSound(
                                 None,
-                                length=self.cue.soundFadeOut,
+                                length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.cue.mediaWinddown,
+                                winddown=self.cue.media_wind_down,
                             )
                         else:
                             stopSound(str(self.id))
                     # There is no next sound so crossfade to silence
                     if self.crossfade and (not self.cues[cue].sound):
-                        if self.cue.soundFadeOut or self.cue.mediaWinddown:
+                        if self.cue.sound_fade_out or self.cue.media_wind_down:
                             fadeSound(
                                 None,
-                                length=self.cue.soundFadeOut,
+                                length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.cue.mediaWinddown,
+                                winddown=self.cue.media_wind_down,
                             )
                         else:
                             stopSound(str(self.id))
 
                     self.allowMediaUrlRemote = None
 
-                    out = self.cues[cue].soundOutput
+                    out = self.cues[cue].sound_output
                     if not out:
-                        out = self.soundOutput
+                        out = self.sound_output
                     if not out:
                         out = None
 
@@ -1550,7 +1550,7 @@ class Scene:
                                 None,
                                 self.enteredCue,
                                 max(0,
-                                    self.cues[cue].fadein or self.crossfade),
+                                    self.cues[cue].fade_in or self.crossfade),
                             ]
                         )
 
@@ -1561,7 +1561,7 @@ class Scene:
                                 5,
                                 max(
                                     0, float(self.evalExpr(
-                                        self.cues[cue].soundVolume))
+                                        self.cues[cue].sound_volume))
                                 ),
                             )
                         except Exception:
@@ -1585,38 +1585,38 @@ class Scene:
                                     (
                                         (
                                             (self.crossfade > 0)
-                                            and not (self.cues[cue].soundFadeIn < 0)
+                                            and not (self.cues[cue].sound_fade_in < 0)
                                         )
                                         and kaithem.sound.is_playing(str(self.id))
                                     )
-                                    or (self.cues[cue].soundFadeIn > 0)
-                                    or self.cues[cue].mediaWindup
-                                    or self.cue.mediaWinddown
+                                    or (self.cues[cue].sound_fade_in > 0)
+                                    or self.cues[cue].media_wind_up
+                                    or self.cue.media_wind_down
                                 ):
                                     spd = self.scriptContext.preprocessArgument(
-                                        self.cues[cue].mediaSpeed
+                                        self.cues[cue].media_speed
                                     )
                                     playSound(
                                         sound,
                                         handle=str(self.id),
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
-                                        loop=self.cues[cue].soundLoops,
-                                        start=self.cues[cue].soundStartPosition,
+                                        loop=self.cues[cue].sound_loops,
+                                        start=self.cues[cue].sound_start_position,
                                         speed=spd,
                                     )
                                 else:
-                                    fade = self.cues[cue].soundFadeIn or self.crossfade
+                                    fade = self.cues[cue].sound_fade_in or self.crossfade
                                     fadeSound(
                                         sound,
                                         length=max(fade, 0.1),
                                         handle=str(self.id),
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
-                                        loop=self.cues[cue].soundLoops,
-                                        start=self.cues[cue].soundStartPosition,
-                                        windup=self.cues[cue].mediaWindup,
-                                        winddown=self.cue.mediaWinddown,
+                                        loop=self.cues[cue].sound_loops,
+                                        start=self.cues[cue].sound_start_position,
+                                        windup=self.cues[cue].media_wind_up,
+                                        winddown=self.cue.media_wind_down,
                                     )
 
                             else:
@@ -1628,7 +1628,7 @@ class Scene:
                                         sound,
                                         self.enteredCue,
                                         max(0,
-                                            self.cues[cue].fadein or self.crossfade),
+                                            self.cues[cue].fade_in or self.crossfade),
                                     ]
                                 )
 
@@ -1673,7 +1673,7 @@ class Scene:
                         else:
                             self.event(
                                 "error", "File does not exist: " + sound)
-                sc = self.cues[cue].triggerShortcut.strip()
+                sc = self.cues[cue].trigger_shortcut.strip()
                 if sc:
                     shortcutCode(sc, exclude=self)
                 self.cue = self.cues[cue]
@@ -1692,7 +1692,7 @@ class Scene:
                             self.affect.append(i)
 
                 self.cueValsToNumpyCache(self.cue, not self.cue.track)
-                self.fadeInCompleted = False
+                self.fade_in_completed = False
 
                 # We don't render here. Very short cues coupt create loops of rerendering and goto
                 # self.render(force_repaint=True)
@@ -1742,24 +1742,24 @@ class Scene:
 
     def preloadNextCueSound(self):
         # Preload the next cue's sound if we know what it is
-        nextCue = None
+        next_cue = None
         if self.cue:
-            if self.cue.nextCue == "":
-                nextCue = self.getDefaultNext()
-            elif self.cue.nextCue in self.cues:
-                nextCue = self.cue.nextCue
+            if self.cue.next_cue == "":
+                next_cue = self.getDefaultNext()
+            elif self.cue.next_cue in self.cues:
+                next_cue = self.cue.next_cue
 
-        if nextCue and nextCue in self.cues:
-            c = self.cues[nextCue]
+        if next_cue and next_cue in self.cues:
+            c = self.cues[next_cue]
             sound = c.sound
             try:
                 sound = self.resolveSound(sound)
             except Exception:
                 return
             if os.path.isfile(sound):
-                out = c.soundOutput
+                out = c.sound_output
                 if not out:
-                    out = self.soundOutput
+                    out = self.sound_output
                 if not out:
                     out = "@auto"
 
@@ -1775,8 +1775,8 @@ class Scene:
         "Recalculate the random variance to apply to the length"
         if self.cue:
             self.randomizeModifier = random.triangular(
-                -float(self.cue.lengthRandomize), +
-                float(self.cue.lengthRandomize)
+                -float(self.cue.length_randomize), +
+                float(self.cue.length_randomize)
             )
 
     def recalcCueLen(self):
@@ -1988,7 +1988,7 @@ class Scene:
 
                 loopPrevent = {(rulesFrom or self.cue.name): True}
 
-                x = (rulesFrom or self.cue).inheritRules
+                x = (rulesFrom or self.cue).inherit_rules
                 while x and x.strip():
                     # Avoid infinite loop should the user define a cycle of cue inheritance
                     if x.strip() in loopPrevent:
@@ -1996,7 +1996,7 @@ class Scene:
                     loopPrevent[x.strip()] = True
 
                     self.scriptContext.addBindings(self.cues[x].rules)
-                    x = self.cues[x].inheritRules
+                    x = self.cues[x].inherit_rules
 
                 self.scriptContext.startTimers()
                 self.doMqttSubscriptions()
@@ -2014,7 +2014,7 @@ class Scene:
             self.event("$mqtt:" + topic, message)
 
     def onCueSyncMessage(self, topic: str, message: str):
-        gn = self.mqttSyncFeatures.get("syncGroup", False)
+        gn = self.mqtt_sync_features.get("syncGroup", False)
         if gn:
             # topic = f"/kaithem/chandler/syncgroup/{gn}"
             m = json.loads(message)
@@ -2029,14 +2029,14 @@ class Scene:
 
                 if m['cue'] in self.cues:
                     # Don't adjust out start time too much. It only exists to fix network latency.
-                    self.gotoCue(m['cue'], t=max(min(time.time(
+                    self.goto_cue(m['cue'], t=max(min(time.time(
                     ) + 0.5, m['time']), time.time() - 0.5), sendSync=False, cause="MQTT Sync")
 
     def doMqttSubscriptions(self, keepUnused=120):
         if self.mqttConnection:
-            if self.mqttSyncFeatures.get("syncGroup", False):
+            if self.mqtt_sync_features.get("syncGroup", False):
                 self.mqttConnection.subscribe(
-                    f"/kaithem/chandler/syncgroup/{self.mqttSyncFeatures.get('syncGroup',False)}"
+                    f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
                 )
 
         if self.mqttConnection and self.scriptContext:
@@ -2120,15 +2120,15 @@ class Scene:
                         self.displayTagSubscriber(i))
             except Exception:
                 print(traceback.format_exc())
-            self.displayTags = dt
+            self.display_tags = dt
 
     def clearConfiguredTags(self):
         with core.lock:
-            for i in self.commandTagSubscriptions:
+            for i in self.command_tagSubscriptions:
                 i[0].unsubscribe(i[1])
-            self.commandTagSubscriptions = []
+            self.command_tagSubscriptions = []
 
-    def commandTagSubscriber(self):
+    def command_tagSubscriber(self):
         sn = self.name
 
         def f(v, t, a):
@@ -2141,7 +2141,7 @@ class Scene:
                 self.prevCue(cause="ECP")
 
             elif v == "Fwd":
-                self.nextCue(cause="ECP")
+                self.next_cue(cause="ECP")
 
             elif v == "VolumeUp":
                 self.setAlpha(self.alpha + 0.07)
@@ -2162,18 +2162,18 @@ class Scene:
                 self.setAlpha(0)
 
             if v.startswith("Lit_"):
-                self.event("button." + v[4:])
+                self.event("button." + v[4:], None)
 
         return f
 
     def subscribeCommandTags(self):
-        if not self.commandTag.strip():
+        if not self.command_tag.strip():
             return
         with core.lock:
-            for i in [self.commandTag]:
+            for i in [self.command_tag]:
                 t = kaithem.tags.ObjectTag(i)
-                s = self.commandTagSubscriber()
-                self.commandTagSubscriptions.append([t, s])
+                s = self.command_tagSubscriber()
+                self.command_tagSubscriptions.append([t, s])
                 t.subscribe(s)
 
     def setCommandTag(self, st):
@@ -2181,7 +2181,7 @@ class Scene:
 
         self.clearConfiguredTags()
 
-        self.commandTag = st
+        self.command_tag = st
 
         if st:
             st = kaithem.tags.ObjectTag(st)
@@ -2190,41 +2190,41 @@ class Scene:
 
             self.subscribeCommandTags()
 
-    def nextCue(self, t=None, cause="generic"):
+    def next_cue(self, t=None, cause="generic"):
 
         cue = self.cue
         if not cue:
             return
 
         with core.lock:
-            if cue.nextCue and (
-                (self.evalExpr(cue.nextCue).split("?")[0] in self.cues)
-                or cue.nextCue.startswith("__")
-                or "|" in cue.nextCue
-                or "*" in cue.nextCue
+            if cue.next_cue and (
+                (self.evalExpr(cue.next_cue).split("?")[0] in self.cues)
+                or cue.next_cue.startswith("__")
+                or "|" in cue.next_cue
+                or "*" in cue.next_cue
             ):
-                self.gotoCue(cue.nextCue, t, cause=cause)
-            elif not cue.nextCue:
+                self.goto_cue(cue.next_cue, t, cause=cause)
+            elif not cue.next_cue:
                 x = self.getDefaultNext()
                 if x:
-                    self.gotoCue(x, t)
+                    self.goto_cue(x, t)
 
-    def prevCue(self, cause="generic"):
+    def prev_cue(self, cause="generic"):
         with core.lock:
             if len(self.cueHistory) > 1:
                 c = self.cueHistory[-2]
                 c = c[0]
-                self.gotoCue(c, cause)
+                self.goto_cue(c, cause=cause)
 
-    def setupBlendArgs(self):
+    def setupblend_args(self):
         if hasattr(self.blendClass, "parameters"):
             for i in self.blendClass.parameters:
-                if i not in self.blendArgs:
-                    self.blendArgs[i] = self.blendClass.parameters[i][3]
+                if i not in self.blend_args:
+                    self.blend_args[i] = self.blendClass.parameters[i][3]
 
     def go(self, nohandoff=False):
         global activeScenes, _activeScenes
-        self.setDisplayTags(self.displayTags)
+        self.setDisplayTags(self.display_tags)
 
         with core.lock:
             if self in activeScenes:
@@ -2238,10 +2238,10 @@ class Scene:
             self.active = True
 
             if not self.cue:
-                self.gotoCue("default", sendSync=False, cause="start")
+                self.goto_cue("default", sendSync=False, cause="start")
             else:
                 # Re-enter cue to create the cache
-                self.gotoCue(self.cue.name, cause="start")
+                self.goto_cue(self.cue.name, cause="start")
             # Bug workaround for bug where scenes do nothing when first activated
             self.canvas.paint(
                 0,
@@ -2266,7 +2266,7 @@ class Scene:
             )
             activeScenes = _activeScenes[:]
 
-            self.setMqttServer(self.mqttServer)
+            self.setMqttServer(self.mqtt_server)
 
             # Minor inefficiency rendering twice the first frame
             self.rerender = True
@@ -2299,9 +2299,9 @@ class Scene:
         self.pushMeta(statusOnly=True)
 
     @typechecked
-    def setMqttServer(self, mqttServer: str):
+    def setMqttServer(self, mqtt_server: str):
         with self.lock:
-            x = mqttServer.strip().split(":")
+            x = mqtt_server.strip().split(":")
             server = x[0]
             if len(x) > 1:
                 port = int(x[-1])
@@ -2309,7 +2309,7 @@ class Scene:
             else:
                 port = 1883
 
-            if mqttServer == self.activeMqttServer:
+            if mqtt_server == self.activeMqttServer:
                 return
 
             self.unusedMqttTopics = {}
@@ -2318,7 +2318,7 @@ class Scene:
                 self.mqttConnection.disconnect()
                 self.mqttConnection = None
 
-            if mqttServer:
+            if mqtt_server:
                 if self in activeScenes:
 
                     self.mqttConnection = makeWrappedConnectionClass(self)(
@@ -2333,7 +2333,7 @@ class Scene:
                 self.mqttSubscribed = {}
 
             # Do after so we can get the err on bad format first
-            self.mqttServer = self.activeMqttServer = mqttServer
+            self.mqtt_server = self.activeMqttServer = mqtt_server
 
             self.doMqttSubscriptions()
 
@@ -2355,9 +2355,9 @@ class Scene:
 
     def setMQTTFeature(self, feature, state):
         if state:
-            self.mqttSyncFeatures[feature] = state
+            self.mqtt_sync_features[feature] = state
         else:
-            self.mqttSyncFeatures.pop(feature, None)
+            self.mqtt_sync_features.pop(feature, None)
         self.hasNewInfo = {}
         self.doMqttSubscriptions()
 
@@ -2368,7 +2368,7 @@ class Scene:
         else:
             self.backtrack = b
             x = self.enteredCue
-            self.gotoCue(self.cue.name)
+            self.goto_cue(self.cue.name)
             self.enteredCue = x
             self.rerender = True
         self.hasNewInfo = {}
@@ -2484,7 +2484,7 @@ class Scene:
         self.event("midi.cc:" + str(ch) + "." + str(n), v)
 
     def setMidiSource(self, s):
-        if s == self.midiSource:
+        if s == self.midi_source:
             return
 
         if not s:
@@ -2506,7 +2506,7 @@ class Scene:
                 self.onMidiMessage,
             )
 
-        self.midiSource = s
+        self.midi_source = s
 
     def onMidiMessage(self, t, v):
         if v[0] == "noteon":
@@ -2517,7 +2517,7 @@ class Scene:
             self.cc(v[1], v[2], v[3])
 
     def setMusicVisualizations(self, s):
-        if s == self.musicVisualizations:
+        if s == self.music_visualizations:
             return
 
         s2 = ""
@@ -2525,9 +2525,9 @@ class Scene:
             if i.strip():
                 s2 += i.strip() + "\n"
 
-        self.musicVisualizations = s2
+        self.music_visualizations = s2
         self.sendVisualizations()
-        self.pushMeta(keys={"musicVisualizations"})
+        self.pushMeta(keys={"music_visualizations"})
 
     def sendVisualizations(self):
         self.mediaLink.send(
@@ -2535,7 +2535,7 @@ class Scene:
                 "butterchurnfiles",
                 [
                     i.split("milkdrop:")[-1]
-                    for i in self.musicVisualizations.split("\n")
+                    for i in self.music_visualizations.split("\n")
                     if i
                 ],
             ]
@@ -2545,7 +2545,7 @@ class Scene:
         val = min(1, max(0, val))
         try:
             self.cueVolume = min(
-                5, max(0, float(self.evalExpr(self.cue.soundVolume))))
+                5, max(0, float(self.evalExpr(self.cue.sound_volume))))
         except Exception:
             self.event(
                 "script.error",
@@ -2580,9 +2580,9 @@ class Scene:
             if self.isActive():
                 self._blend = blendmodes.blendmodes[blend](self)
             self.blendClass = blendmodes.blendmodes[blend]
-            self.setupBlendArgs()
+            self.setupblend_args()
         else:
-            self.blendArgs = self.blendArgs or {}
+            self.blend_args = self.blend_args or {}
             self._blend = blendmodes.HardcodedBlendMode(self)
             self.blendClass = blendmodes.HardcodedBlendMode
         self.rerender = True
@@ -2599,20 +2599,20 @@ class Scene:
             raise KeyError("No such param")
 
         if val is None:
-            del self.blendArgs[key]
+            del self.blend_args[key]
         else:
             if self.blendClass.parameters[key][1] == "number":
                 val = float(val)
-            self.blendArgs[key] = val
+            self.blend_args[key] = val
         self.rerender = True
         self.hasNewInfo = {}
 
     def render(self, force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
-        if self.cue.fadein:
+        if self.cue.fade_in:
             fadePosition = min(
                 (time.time() - self.enteredCue) /
-                (self.cue.fadein * (60 / self.bpm)), 1
+                (self.cue.fade_in * (60 / self.bpm)), 1
             )
             fadePosition = ease(fadePosition)
         else:
@@ -2626,7 +2626,7 @@ class Scene:
         # self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
 
         # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
-        if force_repaint or (not self.fadeInCompleted):
+        if force_repaint or (not self.fade_in_completed):
             self.canvas.paint(
                 fadePosition,
                 vals=self.cue_cached_vals_as_arrays,
@@ -2645,7 +2645,7 @@ class Scene:
 
                 # Remove unused universes from the cue
                 self.canvas.clean(self.cue_cached_vals_as_arrays)
-                self.fadeInCompleted = True
+                self.fade_in_completed = True
                 self.rerender = True
 
         if self.cuelen and (time.time() - self.enteredCue) > self.cuelen * (
@@ -2654,7 +2654,7 @@ class Scene:
             # rel_length cues end after the sound in a totally different part of code
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-            self.nextCue(
+            self.next_cue(
                 round(self.enteredCue + self.cuelen * (60 / self.bpm), 3), cause="time"
             )
 

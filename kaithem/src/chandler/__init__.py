@@ -87,7 +87,7 @@ def pollsounds():
                     if i.sound_end and (
                         time.time() - i.sound_end > (i.cue.length * i.bpm)
                     ):
-                        i.nextCue(cause="sound")
+                        i.next_cue(cause="sound")
 
 
 

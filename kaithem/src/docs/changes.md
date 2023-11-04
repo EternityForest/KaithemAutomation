@@ -711,7 +711,7 @@ cart - Help boxes(paragraph or div class 'help') now show up minimized until you
 - Fix SG1 gateway tagpoint error from previous version
 - Chandler Rules engine supports isLight and isDark functions.
 - Fix bug that made some errors not get reported to the parent event
-- Modules can now add pages to the main bar with kaithem.web.navBarPlugins
+- Modules can now add pages to the main bar with kaithem.web.nav_bar_plugins
 - No more link to the page index on the top
 - Chandler now creates a toolbar entry
 - The mixing board now has a top bar entry

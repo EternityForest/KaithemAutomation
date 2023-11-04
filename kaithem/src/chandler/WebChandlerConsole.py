@@ -290,19 +290,19 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if not cues[msg[1]].scene().active:
                 cues[msg[1]].scene().go()
 
-            cues[msg[1]].scene().gotoCue(cues[msg[1]].name, cause="manual")
+            cues[msg[1]].scene().goto_cue(cues[msg[1]].name, cause="manual")
 
         elif msg[0] == "jumpbyname":
-            scenes.scenes_by_name[msg[1]].gotoCue(msg[2], cause="manual")
+            scenes.scenes_by_name[msg[1]].goto_cue(msg[2], cause="manual")
 
         elif msg[0] == "nextcue":
-            scenes.scenes[msg[1]].nextCue(cause="manual")
+            scenes.scenes[msg[1]].next_cue(cause="manual")
 
         elif msg[0] == "prevcue":
-            scenes.scenes[msg[1]].nextCue(cause="manual")
+            scenes.scenes[msg[1]].prev_cue(cause="manual")
 
         elif msg[0] == "nextcuebyname":
-            scenes.scenes_by_name[msg[1]].nextCue(cause="manual")
+            scenes.scenes_by_name[msg[1]].next_cue(cause="manual")
 
         elif msg[0] == "shortcut":
             scenes.shortcutCode(msg[1])
@@ -310,7 +310,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif msg[0] == "gotonext":
             if cues[msg[1]].next_cue:
                 try:
-                    cues[msg[1]].scene().nextCue(cause="manual")
+                    s =  cues[msg[1]].scene()
+                    if s:
+                        s.next_cue(cause="manual")
                 except Exception:
                     print(traceback.format_exc())
         elif msg[0] == "go":
@@ -507,12 +509,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushMeta(msg[1], keys={"notes"})
 
         elif msg[0] == "seteventbuttons":
-            scenes.scenes[msg[1]].eventButtons = msg[2]
-            self.pushMeta(msg[1], keys={"eventButtons"})
+            scenes.scenes[msg[1]].event_buttons = msg[2]
+            self.pushMeta(msg[1], keys={"event_buttons"})
 
         elif msg[0] == "setinfodisplay":
-            scenes.scenes[msg[1]].infoDisplay = msg[2]
-            self.pushMeta(msg[1], keys={"infoDisplay"})
+            scenes.scenes[msg[1]].info_display = msg[2]
+            self.pushMeta(msg[1], keys={"info_display"})
 
         elif msg[0] == "setutility":
             scenes.scenes[msg[1]].utility = msg[2]
@@ -520,19 +522,21 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif msg[0] == "setdisplaytags":
             scenes.scenes[msg[1]].setDisplayTags(msg[2])
-            self.pushMeta(msg[1], keys={"displayTags"})
+            self.pushMeta(msg[1], keys={"display_tags"})
 
         elif msg[0] == "setMqttServer":
             if kaithem.users.check_permission(user, "/admin/modules.edit"):
                 scenes.scenes[msg[1]].setMqttServer(msg[2])
-                self.pushMeta(msg[1], keys={"mqttServer"})
+                self.pushMeta(msg[1], keys={"mqtt_server"})
 
         elif msg[0] == "getcnames":
             self.pushChannelNames(msg[1])
 
         elif msg[0] == "namechannel":
             if msg[3]:
-                universes.universes[msg[1]]().channels[msg[2]] = msg[3]
+                u = universes.universes[msg[1]]()
+                if u:
+                    u.channels[msg[2]] = msg[3]
             else:
                 del universes.universes[msg[1]]().channels[msg[2]]
 
@@ -545,7 +549,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             hadVals = len(cues[msg[1]].values)
 
             # Allow number:name format, but we only want the name
-            cues[msg[1]].setValue(msg[2], str(msg[3]).split(":")[-1], val)
+            cues[msg[1]].set_value(msg[2], str(msg[3]).split(":")[-1], val)
             # Tell clients that now there is values in that cue
             if not hadVals:
                 self.pushCueMeta(msg[1])
@@ -565,7 +569,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     except Exception:
                         ch = j
                     # Hack. because JSON and yaml are giving us strings
-                    cues[msg[1]].setValue(i, j, msg[2][i][j])
+                    cues[msg[1]].set_value(i, j, msg[2][i][j])
 
         elif msg[0] == "addcuef":
             cue = cues[msg[1]]
@@ -587,12 +591,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     else:
                         val = 0
                     # i[0] is the name of the channel
-                    cue.setValue("@" + msg[2], i[0], val)
+                    cue.set_value("@" + msg[2], i[0], val)
 
             if length > 1:
                 # Set the length as if it were a ficture property
-                cue.setValue("@" + msg[2], "__length__", length)
-                cue.setValue("@" + msg[2], "__spacing__", spacing)
+                cue.set_value("@" + msg[2], "__length__", length)
+                cue.set_value("@" + msg[2], "__spacing__", spacing)
 
                 # The __dest__ channels represet the color at the end of the channel
                 for i in x.channels:
@@ -602,7 +606,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         else:
                             val = 0
                         # i[0] is the name of the channel
-                        cue.setValue(
+                        cue.set_value(
                             "@" + msg[2], "__dest__." + str(i[0]), val)
 
             self.linkSend(["cuedata", msg[1], cue.values])
@@ -614,7 +618,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             x = list(s.values[msg[2]].keys())
 
             for i in x:
-                s.setValue(msg[2], i, None)
+                s.set_value(msg[2], i, None)
             self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
 
@@ -639,7 +643,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 except ValueError:
                     pass
 
-            cues[msg[1]].setValue(msg[2], ch, v)
+            cues[msg[1]].set_value(msg[2], ch, v)
             self.linkSend(["scv", msg[1], msg[2], ch, v])
 
             if v is None:
@@ -653,7 +657,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.scenes[msg[1]].setMusicVisualizations(msg[2])
 
         elif msg[0] == "setDefaultNext":
-            scenes.scenes[msg[1]].defaultNext = str(msg[2])[:256]
+            scenes.scenes[msg[1]].default_next = str(msg[2])[:256]
         elif msg[0] == "tap":
             scenes.scenes[msg[1]].tap(msg[2])
         elif msg[0] == "setbpm":
@@ -730,7 +734,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 if not s:
                     raise RuntimeError("Unknown, linter said was possible")
                 scenes.scenes[msg[1]].cues[bn].sound = s
-                scenes.scenes[msg[1]].cues[bn].namedForSound = True
+                scenes.scenes[msg[1]].cues[bn].named_for_sound = True
 
                 self.pushCueMeta(scenes.scenes[msg[1]].cues[bn].id)
 
@@ -781,7 +785,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif msg[0] == "setCueTriggerShortcut":
             v = msg[2]
-            cues[msg[1]].triggerShortcut = v
+            cues[msg[1]].trigger_shortcut = v
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setfadein":
@@ -811,7 +815,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif msg[0] == "setCueLoops":
             try:
-                v = float(msg[2])
+                v = int(msg[2])
             except Exception:
                 v = msg[2]
             cues[msg[1]].sound_loops = v if (
@@ -909,8 +913,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].notes = msg[2].strip()
             self.pushCueMeta(msg[1])
 
-        elif msg[0] == "setdefaultactive":
-            scenes.scenes[msg[1]].defaultActive = bool(msg[2])
+        elif msg[0] == "setdefault_active":
+            scenes.scenes[msg[1]].default_active = bool(msg[2])
             self.pushMeta(msg[1], keys={"active"})
 
         elif msg[0] == "setbacktrack":
@@ -919,20 +923,20 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif msg[0] == "setmqttfeature":
             scenes.scenes[msg[1]].setMQTTFeature(msg[2], msg[3])
-            self.pushMeta(msg[1], keys={"mqttSyncFeatures"})
+            self.pushMeta(msg[1], keys={"mqtt_sync_features"})
 
         elif msg[0] == "setscenesoundout":
-            scenes.scenes[msg[1]].soundOutput = msg[2]
-            self.pushMeta(msg[1], keys={"soundOutput"})
+            scenes.scenes[msg[1]].sound_output = msg[2]
+            self.pushMeta(msg[1], keys={"sound_output"})
 
         elif msg[0] == "setsceneslideoverlay":
-            scenes.scenes[msg[1]].slideOverlayURL = msg[2]
-            self.pushMeta(msg[1], keys={"slideOverlayURL"})
+            scenes.scenes[msg[1]].slide_overlay_url = msg[2]
+            self.pushMeta(msg[1], keys={"slide_overlay_url"})
 
         elif msg[0] == "setscenecommandtag":
             scenes.scenes[msg[1]].setCommandTag(msg[2])
 
-            self.pushMeta(msg[1], keys={"commandTag"})
+            self.pushMeta(msg[1], keys={"command_tag"})
 
         elif msg[0] == "setlength":
             try:

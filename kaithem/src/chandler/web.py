@@ -52,7 +52,7 @@ def limitedTagsListing():
     return v
 
 
-def commandTagsListing():
+def command_tagsListing():
     # Make a list of all the tags,
     # Unless there's way too many
     # Then only list some of them
@@ -90,7 +90,7 @@ class Web():
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         pages.require('users.chandler.admin')
         v = limitedTagsListing()
-        c = commandTagsListing()
+        c = command_tagsListing()
 
         datalists = {'midiinputs': [],
                      'tagslisting': [], 'commandtagslisting': []}

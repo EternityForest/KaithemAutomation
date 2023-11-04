@@ -167,7 +167,7 @@ def paramDefault(p):
     return ''
 
 
-def getFunctionInfo(f):
+def get_function_info(f):
     p = inspect.signature(f).parameters
 
     d = {
@@ -565,7 +565,7 @@ class BaseChandlerScriptContext():
             l = {}
             for i in c:
                 f = c[i]
-                l[i] = getFunctionInfo(f)
+                l[i] = get_function_info(f)
 
             return l
 

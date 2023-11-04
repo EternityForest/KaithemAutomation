@@ -72,7 +72,7 @@ if mode == 3:
     noSecurityMode = 3
 
 
-navBarPlugins = weakref.WeakValueDictionary()
+nav_bar_plugins = weakref.WeakValueDictionary()
 
 
 # There are cases where this may not exactly be perfect,

@@ -821,7 +821,7 @@ echoed back to all clients
 ### kaithem.web
 
 
-#### kaithem.web.navBarPlugins
+#### kaithem.web.nav_bar_plugins
 This is a WeakValueDictionary that you can use to add items to the top navbar. Entries should have string keys, and
 values must be a function that returns None for no item, or a tuple of (sort order, HTML).
 HTML will typically be an a tag link.  Default sort order should be 50.

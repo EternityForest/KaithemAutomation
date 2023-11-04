@@ -118,8 +118,8 @@ import cherrypy,socket,base64
 
       <%
       nbp = []
-      for i in pages.navBarPlugins:
-        x = pages.navBarPlugins[i]()
+      for i in pages.nav_bar_plugins:
+        x = pages.nav_bar_plugins[i]()
         if x:
           nbp.append(x)
         nbp=sorted(nbp)

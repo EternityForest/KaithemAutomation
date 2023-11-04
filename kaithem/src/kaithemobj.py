@@ -479,7 +479,7 @@ class Kaithem():
     class web(object):
         controllers = pages.nativeHandlers
 
-        nav_bar_plugins = pages.navBarPlugins
+        nav_bar_plugins = pages.nav_bar_plugins
 
         theming = theming
 

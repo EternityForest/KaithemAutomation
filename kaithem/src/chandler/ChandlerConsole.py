@@ -259,7 +259,6 @@ class ChandlerConsole:
 
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
                     d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
-    
 
         self.loadDict(d)
         self.refreshFixtures()
@@ -391,7 +390,8 @@ class ChandlerConsole:
                 try:
                     schemas.validate("chandler/cue", cues[j])
                 except Exception:
-                    logger.exception(f"Error Validating cue {j}, loading anyway")
+                    logger.exception(
+                        f"Error Validating cue {j}, loading anyway")
 
         with core.lock:
             for i in data:
@@ -419,9 +419,9 @@ class ChandlerConsole:
                     x = False
 
                     # I think this was a legacy save format thing TODO
-                    if "defaultActive" in data[i]:
-                        x = data[i]["defaultActive"]
-                        del data[i]["defaultActive"]
+                    if "default_active" in data[i]:
+                        x = data[i]["default_active"]
+                        del data[i]["default_active"]
                     if "active" in data[i]:
                         x = data[i]["active"]
                         del data[i]["active"]
@@ -433,7 +433,7 @@ class ChandlerConsole:
                     else:
                         uuid = i
 
-                    s = Scene(id=uuid, defaultActive=x, **data[i])
+                    s = Scene(id=uuid, default_active=x, **data[i])
 
                     self.scenememory[uuid] = s
                     if x:
@@ -625,11 +625,11 @@ class ChandlerConsole:
                 "dalpha": scene.defaultalpha,
                 "alpha": scene.alpha,
                 "active": scene.isActive(),
-                "defaultActive": scene.defaultActive,
+                "default_active": scene.default_active,
                 "name": scene.name,
                 "bpm": round(scene.bpm, 6),
                 "blend": scene.blend,
-                "blendArgs": scene.blendArgs,
+                "blend_args": scene.blend_args,
                 "blendDesc": blendmodes.getblenddesc(scene.blend),
                 "blendParams": scene.blendClass.parameters
                 if hasattr(scene.blendClass, "parameters")
@@ -638,25 +638,25 @@ class ChandlerConsole:
                 "started": scene.started,
                 "enteredCue": scene.enteredCue,
                 "backtrack": scene.backtrack,
-                "mqttSyncFeatures": scene.mqttSyncFeatures,
+                "mqtt_sync_features": scene.mqtt_sync_features,
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
                 "cuelen": scene.cuelen,
-                "midiSource": scene.midiSource,
-                "musicVisualizations": scene.musicVisualizations,
-                "defaultNext": scene.defaultNext,
-                "commandTag": scene.commandTag,
-                "soundOutput": scene.soundOutput,
-                "slideOverlayURL": scene.slideOverlayURL,
-                "eventButtons": scene.eventButtons,
-                "infoDisplay": scene.infoDisplay,
+                "midi_source": scene.midi_source,
+                "music_visualizations": scene.music_visualizations,
+                "default_next": scene.default_next,
+                "command_tag": scene.command_tag,
+                "sound_output": scene.sound_output,
+                "slide_overlay_url": scene.slide_overlay_url,
+                "event_buttons": scene.event_buttons,
+                "info_display": scene.info_display,
                 "utility": scene.utility,
-                "displayTags": scene.displayTags,
+                "display_tags": scene.display_tags,
                 "displayTagValues": scene.displayTagValues,
                 "displayTagMeta": scene.displayTagMeta,
                 "vars": v,
                 "timers": scene.runningTimers,
                 "notes": scene.notes,
-                "mqttServer": scene.mqttServer,
+                "mqtt_server": scene.mqtt_server,
                 "crossfade": scene.crossfade,
                 "status": scene.getStatusString(),
             }
@@ -664,7 +664,7 @@ class ChandlerConsole:
             data = {
                 "alpha": scene.alpha,
                 "active": scene.isActive(),
-                "defaultActive": scene.defaultActive,
+                "default_active": scene.default_active,
                 "displayTagValues": scene.displayTagValues,
                 "enteredCue": scene.enteredCue,
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
@@ -675,11 +675,15 @@ class ChandlerConsole:
             for i in keys:
                 if i not in data:
                     raise KeyError(i)
+
+        d = {i: data[i] for i in data if (not keys or (i in keys))}
+        d = snake_compat.camel_dict(d)
+
         self.linkSend(
             [
                 "scenemeta",
                 sceneid,
-                {i: data[i] for i in data if (not keys or (i in keys))},
+                d
             ]
         )
 
@@ -690,7 +694,7 @@ class ChandlerConsole:
             scene = cue.scene()
             if not scene:
                 raise RuntimeError("Cue belongs to nonexistant scene")
-            
+
             # Stuff that never gets saved, it's runtime UI stuff
             d2 = {
                 "id": cueid,
@@ -700,7 +704,7 @@ class ChandlerConsole:
                 "number": cue.number / 1000.0,
                 "prev": scene.getParent(cue.name),
                 "hasLightingData": len(cue.values),
-                "defaultNext": scene.getAfter(cue.name),
+                "default_next": scene.getAfter(cue.name),
             }
 
             d = {}
@@ -715,7 +719,7 @@ class ChandlerConsole:
             # not metadata, sent separately
             d.pop('values')
 
-            # Web frontend still uses ye olde camel case 
+            # Web frontend still uses ye olde camel case
             d = snake_compat.camel_dict(d)
 
             self.linkSend(
@@ -758,9 +762,6 @@ class ChandlerConsole:
                 ]
             )
             x = x[100:]
-
-    def setChannelName(self, id, name="Untitled"):
-        self.channelNames[id] = name
 
     def delscene(self, sc):
         i = None
