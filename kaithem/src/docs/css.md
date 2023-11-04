@@ -53,8 +53,11 @@ simple like a card collection.
 ### .flex-cols
 Same as above but flex as columns.
 
+### .font-normal
+Normal text, not bold or italic. Useful in something like a block quote.
+
 ### .nogaps
-Set gap to zero, set all children to have zero margins.
+Set flex gap to zero, set all children to have zero margins.
 
 ### .scroll
 
