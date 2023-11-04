@@ -1,6 +1,9 @@
-# The Kaithem CSS Spec
+# barrel.css
+CSS Framework aiming to be as opinionated as possible for maximum restyling possibilities.
 
-*anything* not listed here is internal use only.
+It is a combination of classless styles, a mix of high and low level utilities, and a tiny selection of components.
+
+This is used as the internal KaithemAutomation CSS cleanup framework.
 
 
 ## Semantic Annotations
@@ -91,6 +94,8 @@ These apply to both text content, and flex items.
 
 These elements will take be the given fraction(out of 12 columns) of the parent.
 Does not use CSS grids, just sets width.  The size will be a little smaller than the given size, for nice margins.
+
+Works correctly with nogaps.
 
 ### w-full
 100% width, flex-basis 100%, border-box sizing.
