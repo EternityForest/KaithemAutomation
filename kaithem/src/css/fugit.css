@@ -200,19 +200,6 @@ table tr:nth-child(even) td {
 }
 
 
-/* A scrollable div */
-
-div.scrollbox {
-    border-style: solid;
-    border-width: 2px;
-    max-height: 10em;
-    overflow: auto;
-    padding-top: 0.5%;
-    padding-bottom: 0.5%;
-    padding-right: 1%;
-    padding-left: 0.5%;
-}
-
 
 button:disabled {
     background-color: #D0D0D0;
@@ -337,14 +324,14 @@ meter::-webkit-meter-optimum-value{
     backdrop-filter: blur(1px);
     box-sizing: border-box;
     --tool-bar-element-border: #ffd477 solid 1px;
-    --tool-bar-concave-item-bg: rgba(0, 0, 0, 0.5);
-    --tool-bar-convex-item-bg: rgba(0, 0, 0, 0.5);
-    --tool-bar-active-item-bg: rgba(0, 0, 0, 0.5);
-    --tool-bar-border-radius: 0px;
+    --concave-item-bg: rgba(0, 0, 0, 0.5);
+    --convex-item-bg: rgba(0, 0, 0, 0.5);
+    --convex-item-active-bg: rgba(0, 0, 0, 0.5);
+    --control-border-radius: 0px;
 }
 
 .menubar:is(.tool-bar) {
-    --tool-bar-convex-item-bg: rgba(0, 0, 0, 0.8)
+    --convex-item-bg: rgba(0, 0, 0, 0.8)
 }
 
 .highlight, .highlight * {
@@ -429,11 +416,6 @@ div.widgetcontainer {
     margin: 2px;
     vertical-align: text-top;
 }
-
-div.widgetcontainer>div.scrollbox {
-    border: none;
-}
-
 
 /*Numeric Process Value. These spans are intended for displays of changing numbers.*/
 

@@ -1,12 +1,27 @@
 :root {
+    /*Text color*/
     --fg: #2e2e2e;
+     /*Nontext items like borders*/
     --graphical-fg: rgb(95, 95, 95);
+    /*Main page bg*/
     --bg: whitesmoke;
+    /*.paper, items*/
     --box-bg: hsl(200, 27%, 98%);
+    /*Inputs that are not convex or concave*/
     --interactive-bg: #f8fafb;
     --border-color: var(--graphical-fg);
     --border-radius: 0.6rem;
     --main-font: "Sans";
+    /*Inputs, buttons, etc*/
+    --control-height: 28px;
+
+    --control-border-radius: 12px;
+
+    /*Note that themes can decide 3D elements should be flat*/
+    --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
+    --convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
+    --convex-item-active-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+    --concave-item-box-shadow: inset 0px 0px 4px 2px #3838383b;
 }
 
 /*****************Typography****************************/
@@ -40,15 +55,6 @@ body {
 }
 
 
-
-
-button,
-a.button,
-label,
-a,
-select {
-    font-family: inherit;
-}
 
 /*Stack labels on the form elements*/
 label>:is(input, select, button, div) {
@@ -146,6 +152,7 @@ header>*:only-child {
     padding: 6px;
     margin: 0px;
 }
+
 
 footer {
     border-top: 1px solid var(--border-color);
@@ -877,6 +884,7 @@ blockquote {
     margin-inline-end: 4px;
     margin: 6px;
     padding: 4px;
+    color: (--graphical-fg);
 }
 
 a {
@@ -886,15 +894,50 @@ a {
     color: var(--graphical-fg);
 }
 
+button, a.button, input, select{
+    min-height: var(--control-height);
+    box-sizing: border-box;
+}
+
+button,
+a.button,
+input[type='submit']
+{
+    background: var(--convex-item-bg);
+}
+
+input:not([type='submit']):not([type='range']), select, textarea{
+    background: var(--concave-item-bg);
+    box-shadow: var(--concave-item-box-shadow);
+}
+
+
+
+button,
+a.button,
+label,
+a,
+select {
+    font-family: inherit;
+}
 /* Color elements */
+
+textarea{
+    background-color: var(--interactive-bg);
+}
 
 button,
 a.button,
 input,
 textarea,
 select {
-    background-color: var(--interactive-bg);
+    border-radius: var(--control-border-radius);
 }
+
+/*Border radius looks bad if it's smashed right up close to containing box and not the same radius*/
+header>*{
+    border-radius: var(--border-radius);
+    }
 
 button,
 input,
@@ -930,9 +973,8 @@ dd {
     display: flex;
     flex-wrap: wrap;
     align-items: stretch;
-    --tool-bar-border-radius: 12px;
-    border-radius: var(--tool-bar-border-radius);
-    min-height: var(--tool-bar-height);
+    border-radius: var(--control-border-radius);
+    min-height: var(--control-height);
     margin: 0.6em;
     flex-grow: 1;
     vertical-align: middle;
@@ -942,10 +984,6 @@ dd {
     width: auto;
     box-sizing: border-box;
     background-clip: content-box;
-    --tool-bar-concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
-    --tool-bar-convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
-    --tool-bar-active-item-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
-    --tool-bar-height: 28px;
 }
 
 
@@ -987,8 +1025,7 @@ dd {
 .tool-bar>a {
     box-sizing: border-box;
     font-size: inherit;
-    height: var(--tool-bar-height);
-    padding: 0px;
+    height: var(--control-height);
 }
 
 .tool-bar :is(a, a.button, select, input, meter, button) {
@@ -1086,7 +1123,7 @@ dd {
 .tool-bar label,
 .tool-bar meter,
 .tool-bar input[type=submit] {
-    background: var(--tool-bar-convex-item-bg);
+    background: var(--convex-item-bg);
 }
 
 .tool-bar meter {
@@ -1109,16 +1146,16 @@ dd {
 
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
 .tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child {
-    border-radius: var(--tool-bar-border-radius) 0px 0px var(--tool-bar-border-radius);
+    border-radius: var(--control-border-radius) 0px 0px var(--control-border-radius);
 }
 
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
 .tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child {
-    border-radius: 0px var(--tool-bar-border-radius) var(--tool-bar-border-radius) 0px;
+    border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
 }
 
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
-    border-radius: var(--tool-bar-border-radius) var(--tool-bar-border-radius) var(--tool-bar-border-radius) var(--tool-bar-border-radius);
+    border-radius: var(--control-border-radius) var(--control-border-radius) var(--control-border-radius) var(--control-border-radius);
 }
 
 .tool-bar meter::-webkit-meter-inner-element {
@@ -1130,7 +1167,7 @@ dd {
 
 .tool-bar>form {
     border: none !important;
-    border-radius: var(--tool-bar-border-radius);
+    border-radius: var(--control-border-radius);
 }
 
 
@@ -1144,8 +1181,8 @@ dd {
 
 .tool-bar input:not([type="submit"]) {
     border: var(--tool-bar-element-border);
-    background: var(--tool-bar-concave-item-bg);
-    box-shadow: inset 0px 0px 4px 2px #3838383b
+    background: var(--concave-item-bg);
+    box-shadow: var(--concave-item-box-shadow)
 }
 
 .tool-bar label input:not([type="submit"]) {
@@ -1161,7 +1198,7 @@ dd {
 
 .tool-bar button:active,
 .tool-bar a:active {
-    background-image: var(--tool-bar-active-item-bg) !important;
+    background-image: var(--convex-item-active-bg) !important;
 }
 
 .tool-bar>label {
