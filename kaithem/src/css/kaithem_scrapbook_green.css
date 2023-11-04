@@ -9,20 +9,11 @@
 :root{
     --line-length: 95vw;
     --interactive-bg: #d9dee079;
-    --graphical-fg: rgba(83, 26, 12, 0.8);
+    --graphical-fg: #503550e3;
     --border-color: rgba(36, 30, 30, 0.219);
-
-}
-/* Using a string */
-
-html {
-    background: linear-gradient( 177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(/static/img/webtreats_grunge_mint_2.webp);
-    background-size: cover, unset;
-    background-repeat: repeat, repeat;
-    min-height: 100vh;
-    padding: 0px;
-    margin: 0px;
-    box-sizing: border-box;
+    --bg: linear-gradient( 177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(/static/img/webtreats_grunge_mint_2.webp);
+    --fg: #412019;
+    --box-bg: rgba(228, 233, 227, 0.6);
 }
 
  ::selection {
@@ -34,15 +25,6 @@ html {
     background: rgba(0, 0, 250, 0.25);
 }
 
-body {
-    color: #412019;
-    --box-bg: rgba(228, 233, 227, 0.6);
-}
-
-iframe.embedpage{
-    border-radius: var(--border-radius);
-    border-style: solid;
-  }
 
 .error,
 .danger {
@@ -56,46 +38,6 @@ iframe.embedpage{
 .highlight{
     background-color: #78dba479 !important;
 }
-
-/*************************Navigation and headers************************************************************/
-
-.top-navbar-dropdown{
-    opacity: 85%;
-    backdrop-filter: blur(8px) !important;
-}
-
-
-
-#topbanner {
-    width: auto;
-    background-color: transparent;
-    border-radius: 12px;
-    margin: 1px;
-}
-
-#topbanner h1 {
-    color: rgb(70 92 76 / 68%);
-    margin-bottom: 0.2em;
-    margin-top: 0.1em;
-    vertical-align: middle;
-}
-
-#topbanner h1::before,
-#topbanner h1::after {
-    background-image: url(/static/img/logo-mini.png);
-    background-size: 1em 1em;
-    background-repeat: no-repeat;
-    width: 1em;
-    height: 1em;
-    content: "";
-    display: inline-block;
-    vertical-align: middle;
-}
-
-
-
-
-
 
 
 /************************HTML ELEMENTS***********************************/
@@ -241,7 +183,6 @@ h3 {
 
 a {
     text-shadow: 0 0 1px rgb(215 237 255);
-    color: #142942;
     text-decoration: none;
 }
 
@@ -542,21 +483,9 @@ input[type=range]:focus::-ms-fill-upper {
 /* ===== Scrollbar CSS ===== */
   /* Firefox */
   * {
-    scrollbar-width: auto;
     scrollbar-color: #75608a #abd1d8;
-  }
-
-  /* Chrome, Edge, and Safari */
-  *::-webkit-scrollbar {
-    width: 16px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: #abd1d8;
   }
 
   *::-webkit-scrollbar-thumb {
     background-color: #75608a;
-    border-radius: 10px;
-    border: 3px none #ffffff;
   }

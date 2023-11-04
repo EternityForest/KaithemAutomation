@@ -7,6 +7,16 @@
 
 /* Using a string */
 
+:root{
+  --box-bg: none;
+  --fg: #522f28;
+  --graphical-fg: rgb(94 21 21);
+}
+
+header{
+  background: none;
+  border: none;
+}
 
 @font-face {
   font-family: 'Lato';
@@ -106,9 +116,7 @@ details[open]
 .tool-bar *{
   text-shadow: none;
 }
-.tool-bar h2, .tool-bar h3{
-  background-color: rgba(191 199 146 / 37%);
-}
+
 
 /* .tool-bar button:hover, .tool-bar a.button:hover
 {

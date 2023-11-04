@@ -3,6 +3,14 @@
 
 /* Using a string */
 
+:root{
+  --tool-bar-element-border: #ffd477 solid 1px;
+  --concave-item-bg: rgba(0, 0, 0, 0.0);
+  --convex-item-bg: rgba(0, 0, 0, 0.0);
+  --convex-item-active-bg: rgba(0, 0, 0, 0.0);
+  --control-border-radius: 0px;
+}
+
 [class*=" icofont-"],
 [class^=icofont-] {
     color: white;
@@ -323,16 +331,13 @@ meter::-webkit-meter-optimum-value{
     align-content: center;
     backdrop-filter: blur(1px);
     box-sizing: border-box;
-    --tool-bar-element-border: #ffd477 solid 1px;
-    --concave-item-bg: rgba(0, 0, 0, 0.5);
-    --convex-item-bg: rgba(0, 0, 0, 0.5);
-    --convex-item-active-bg: rgba(0, 0, 0, 0.5);
-    --control-border-radius: 0px;
 }
 
-.menubar:is(.tool-bar) {
-    --convex-item-bg: rgba(0, 0, 0, 0.8)
+header{
+  background-color: transparent;
+  border: none;
 }
+
 
 .highlight, .highlight * {
     text-shadow: none;

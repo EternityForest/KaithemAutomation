@@ -1,21 +1,23 @@
 :root {
     /*Text color*/
     --fg: #2e2e2e;
-     /*Nontext items like borders*/
+    /*Nontext items like borders*/
     --graphical-fg: rgb(95, 95, 95);
     /*Main page bg*/
     --bg: whitesmoke;
     /*.paper, items*/
-    --box-bg: hsl(200, 27%, 98%);
+    --box-bg: #efefef;
     /*Inputs that are not convex or concave*/
-    --interactive-bg: #f8fafb;
+    --interactive-bg: ##efefef;
     --border-color: var(--graphical-fg);
     --border-radius: 0.6rem;
+    --border-width: 1px;
+
     --main-font: "Sans";
     /*Inputs, buttons, etc*/
     --control-height: 28px;
-
     --control-border-radius: 12px;
+    --control-border-width: 1px;
 
     /*Note that themes can decide 3D elements should be flat*/
     --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
@@ -44,6 +46,13 @@ main {
 
 html {
     background: var(--bg);
+    /*This might not all be needed on new browsers*/
+    background-size: cover, unset;
+    background-repeat: repeat, repeat;
+    min-height: 100vh;
+    padding: 0px;
+    margin: 0px;
+    box-sizing: border-box;
 }
 
 body {
@@ -64,7 +73,8 @@ label>:is(input, select, button, div) {
 label:has(*) {
     display: inline-block;
 }
-label{
+
+label {
     min-width: max-content;
 }
 
@@ -84,7 +94,7 @@ h2,
 h3,
 h4,
 h5,
-h6 {
+h6, h1 *, h2 *, h3 *{
     color: var(--graphical-fg);
 }
 
@@ -117,8 +127,8 @@ h3:first-of-type {
 hr {
     background-color: transparent;
     border: none;
-    border-top: 1px solid var(--border-color);
-    height: 1px;
+    border-top: var(--border-width) solid var(--border-color);
+    height: var(--border-width);
 }
 
 
@@ -143,7 +153,7 @@ footer {
 }
 
 header {
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: var(--border-width) solid var(--border-color);
 }
 
 header>*:only-child {
@@ -155,7 +165,7 @@ header>*:only-child {
 
 
 footer {
-    border-top: 1px solid var(--border-color);
+    border-top: var(--border-width) solid var(--border-color);
 }
 
 
@@ -188,13 +198,13 @@ textarea:disabled {
 
 details {
     margin: 0.4em;
-    border: 1px solid var(--border-color);
+    border: var(--border-width) solid var(--border-color);
     padding-left: 0.4em;
     border-radius: var(--border-radius);
 }
 
 details.help {
-    border: 1px dotted;
+    border: var(--border-width) dotted;
 }
 
 
@@ -205,7 +215,7 @@ td details {
 /*A link styled to look like a button*/
 a.button {
     text-decoration: none;
-    border: 1px solid var(--border-color);
+    border: var(--control-border-width) solid var(--border-color);
     color: #000000;
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
@@ -224,7 +234,7 @@ summary h2:first-child {
 /**Basic styling**/
 iframe {
     border-style: solid;
-    border-width: 1px;
+    border-width: var(--border-width);
 }
 
 /*Tables*/
@@ -239,7 +249,7 @@ thead {
 
 table {
     border-style: solid;
-    border-width: 1px;
+    border-width: var(--border-width);
     border-color: var(--border-color);
     border-collapse: collapse;
     margin: 0.4em;
@@ -270,7 +280,7 @@ tbody {
 
 td input,
 td select {
-    border: 1px solid var(--border-color);
+    border: var(--border-width) solid var(--border-color);
     box-sizing: border-box;
     margin: 0px;
     height: 1.8em;
@@ -279,7 +289,7 @@ td select {
 
 
 td {
-    padding: 1px;
+    padding: var(--border-width);
     width: max-content;
 }
 
@@ -289,19 +299,19 @@ th {
 
 table tr th,
 table tr td {
-    border-right: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
+    border-right: var(--border-width) solid var(--border-color);
+    border-bottom: var(--border-width) solid var(--border-color);
     padding: 4px;
 }
 
 table tr th:first-child,
 table tr td:first-child {
-    border-left: 1px solid var(--border-color);
+    border-left: var(--border-width) solid var(--border-color);
 }
 
 table tr th,
 table tr:first-child td {
-    border-top: 1px solid var(--border-color);
+    border-top: var(--border-width) solid var(--border-color);
     text-align: left;
 }
 
@@ -349,7 +359,7 @@ table tr:first-child td {
 
 .card {
     border-style: solid;
-    border-width: 1px;
+    border-width: var(--border-width);
     border-radius: var(--border-radius);
     margin-left: auto;
     margin-right: auto;
@@ -366,7 +376,7 @@ table tr:first-child td {
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 .window {
     border-style: solid;
-    border-width: 1px;
+    border-width: var(--border-width);
     margin-top: 0.8em;
     margin-bottom: 0.2em;
     min-width: min-content;
@@ -894,24 +904,34 @@ a {
     color: var(--graphical-fg);
 }
 
-button, a.button, input, select{
+button,
+a.button,
+input,
+select {
     min-height: var(--control-height);
     box-sizing: border-box;
 }
 
 button,
 a.button,
-input[type='submit']
-{
+input[type='submit'] {
     background: var(--convex-item-bg);
 }
 
-input:not([type='submit']):not([type='range']), select, textarea{
+input:not([type='submit']):not([type='range']),
+select,
+textarea {
     background: var(--concave-item-bg);
     box-shadow: var(--concave-item-box-shadow);
 }
 
-
+button,
+a.button,
+label,
+select,
+textarea {
+    border: var(--control-border-width) solid var(--border-color);
+}
 
 button,
 a.button,
@@ -920,9 +940,10 @@ a,
 select {
     font-family: inherit;
 }
+
 /* Color elements */
 
-textarea{
+textarea {
     background-color: var(--interactive-bg);
 }
 
@@ -935,9 +956,9 @@ select {
 }
 
 /*Border radius looks bad if it's smashed right up close to containing box and not the same radius*/
-header>*{
+header>* {
     border-radius: var(--border-radius);
-    }
+}
 
 button,
 input,
@@ -968,7 +989,7 @@ dd {
 }
 
 .tool-bar {
-    --tool-bar-element-border: 1px solid var(--border-color);
+    --tool-bar-element-border: var(--control-border-width) solid var(--border-color);
     flex-basis: max-content;
     display: flex;
     flex-wrap: wrap;
@@ -1161,7 +1182,7 @@ dd {
 .tool-bar meter::-webkit-meter-inner-element {
     -webkit-appearance: inherit;
     box-sizing: inherit;
-    border: 1px solid #aaa;
+    border: var(--control-border-width) solid #aaa;
     height: 22px;
 }
 
@@ -1210,4 +1231,27 @@ dd {
 
 .tool-bar select {
     background: none;
+}
+
+/*Scrollbars*/
+/* Firefox */
+* {
+    scrollbar-width: auto;
+    scrollbar-color: var(--graphical-fg) var(--interactive-bg);
+}
+
+/* Other browsers */
+*::-webkit-scrollbar {
+    width: 14px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--interactive-bg);
+    border-radius: var(--border-radius);
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--graphical-fg);
+    border-radius: var(--border-radius);
+    border: none;
 }
