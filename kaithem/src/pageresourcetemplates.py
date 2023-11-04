@@ -32,8 +32,11 @@ ${{kaithem.web.freeboard(page, kwargs, plugins)}}
 
 
 defaulthtml = """
-<%inherit file="/pagetemplate.html" />
-<%block name="title">{basename}</%block>
+{% extends "pagetemplate.j2.html" %}
+
+{% block title %} {basename} {% endblock %}
+
+{% block content %}
 
 <main>
   <h2>{basename}</h2>
@@ -41,6 +44,8 @@ defaulthtml = """
     Content here
   </section>
 </main>
+
+{% endblock %}
 """
 
 
@@ -80,6 +85,7 @@ vueApp = """
 
 def default(basename, **kw):
     return{
+        "template-engine": "jinja2",
         "resource-type": "page",
         "body": defaulthtml.format(basename=basename),
         'require-method': ['GET', 'POST'],

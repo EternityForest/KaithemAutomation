@@ -26,7 +26,7 @@ class CustomDeviceType(DeviceType):
 
 
 class JackFluidSynth(devices.Device):
-    deviceTypeName = 'JackFluidSynth'
+    device_type_name = 'JackFluidSynth'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
 

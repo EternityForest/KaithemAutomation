@@ -26,8 +26,8 @@ def stateMachinesTest():
         
     blink = statemachines.StateMachine(start="off")
 
-    on = blink.addState("on")
-    off = blink.addState("off")
+    on = blink.add_state("on")
+    off = blink.add_state("off")
 
     blink.setTimer("on", 1, "off")
 
@@ -47,8 +47,8 @@ def stateMachinesTest():
         
     sm = statemachines.StateMachine(start="off")
 
-    on = sm.addState("on", enter=on)
-    off = sm.addState("off", enter=off)
+    on = sm.add_state("on", enter=on)
+    off = sm.add_state("off", enter=off)
 
     sm.setTimer("on", 1, "off")
 
@@ -75,8 +75,8 @@ def stateMachinesTest():
 
     sm = statemachines.StateMachine(start="off")
 
-    on = sm.addState("on", enter=on)
-    off = sm.addState("off", enter=off)
+    on = sm.add_state("on", enter=on)
+    off = sm.add_state("off", enter=off)
 
     lightsOff = [False]
 
@@ -132,8 +132,8 @@ def stateMachinesTest():
 
     sm = statemachines.StateMachine(start="off")
 
-    on = sm.addState("on", enter=on)
-    off = sm.addState("off", enter=off)
+    on = sm.add_state("on", enter=on)
+    off = sm.add_state("off", enter=off)
     sm.addRule('off','switch','on')
 
     def subscriber(s):

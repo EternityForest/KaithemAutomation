@@ -53,7 +53,7 @@ def buttonPusher(dev, name):
 
 
 class PiMatrixKeypad(devices.Device):
-    deviceTypeName = 'PiMatrixKeypad'
+    device_type_name = 'PiMatrixKeypad'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
     description="Use a keypad directly attatched to PI GPIO pins. May not work on keypads with diodes due to the self protection features."

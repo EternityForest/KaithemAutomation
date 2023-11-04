@@ -50,7 +50,7 @@ import json
 import uuid
 
 class EspruinoHubBLEClient(devices.Device):
-    deviceTypeName = 'EspruinoHubBLEClient'
+    device_type_name = 'EspruinoHubBLEClient'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
     shortDescription="This device lets you get BLE data from one specific BLE device via an EspruinoHub server"

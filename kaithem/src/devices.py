@@ -219,7 +219,7 @@ class Device():
 
     description = ""
     readme = ''
-    deviceTypeName = "device"
+    device_type_name = "device"
 
     readme = None
 
@@ -352,11 +352,11 @@ class Device():
 
     def __init__(self, name, data):
         if not data[
-                'type'] == self.deviceTypeName and not self.deviceTypeName == 'unsupported':
+                'type'] == self.device_type_name and not self.device_type_name == 'unsupported':
             raise ValueError(
                 "Incorrect device type in info dict," +
-                data['type'] + " does not match deviceTypeName " +
-                self.deviceTypeName
+                data['type'] + " does not match device_type_name " +
+                self.device_type_name
             )
         global remote_devices_atomic
         global remote_devices
@@ -601,7 +601,7 @@ class Device():
 
 class UnsupportedDevice(Device):
     description = "This device does not have support, or else the support is not loaded."
-    deviceTypeName = "unsupported"
+    device_type_name = "unsupported"
     device_type = 'unsupported'
 
     def warn(self):
@@ -614,7 +614,7 @@ class UnsupportedDevice(Device):
 
 class UnusedSubdevice(Device):
     description = "Someone created configuration for a subdevice that is no longer in use or has not yet loaded"
-    deviceTypeName = "UnusedSubdevice"
+    device_type_name = "UnusedSubdevice"
     device_type = 'UnusedSubdevice'
 
     def warn(self):
@@ -1633,18 +1633,18 @@ class DeviceNamespace():
 
     def __getattr__(self, name):
         if not name.startswith("__"):
-            if remote_devices[name].deviceTypeName == "unsupported":
+            if remote_devices[name].device_type_name == "unsupported":
                 raise RuntimeError("There is no driver for this device")
             return weakref.proxy(remote_devices[name])
 
     def __getitem__(self, name):
-        if remote_devices[name].deviceTypeName == "unsupported":
+        if remote_devices[name].device_type_name == "unsupported":
             raise RuntimeError("There is no driver for this device")
         return weakref.proxy(remote_devices[name])
 
     def __iter__(self):
         x = remote_devices_atomic
-        return (i for i in x if not x[i]().deviceTypeName == 'unsupported')
+        return (i for i in x if not x[i]().device_type_name == 'unsupported')
 
 
 class DeviceTypeLookup():
@@ -1666,7 +1666,7 @@ def wrapCrossFramework(dt2, desc):
     # Due to C3 linearization, Device takes precedence over dt's ancestors.
     class ImportedDeviceClass(CrossFrameworkDevice, dt2):
         # Adapt from the cross-framework spec to the internal spec
-        deviceTypeName = dt2.device_type
+        device_type_name = dt2.device_type
         readme = dt2.readme
 
         description = desc
@@ -1955,7 +1955,7 @@ def loadDeviceType(root, i):
     realname = re.sub(r'\(.*\)', '', name).strip()
     dt = codeEvalScope[realname]
     # Fix missing devicetypename
-    dt.deviceTypeName = realname
+    dt.device_type_name = realname
     deviceTypes[realname] = dt
     deviceTypesFromData[realname] = dt
 
@@ -1984,7 +1984,7 @@ def createDevicesFromData():
 
         # We can call this again to reload unsupported devices.
         if i in remote_devices and not remote_devices[
-                i].deviceTypeName == "unsupported":
+                i].device_type_name == "unsupported":
             continue
 
         try:
@@ -2014,11 +2014,11 @@ def fixUnsupported():
             return
         s = 0
         for i in list(remote_devices.keys()):
-            if remote_devices[i].deviceTypeName == 'unsupported':
+            if remote_devices[i].device_type_name == 'unsupported':
                 d = remote_devices[i]
                 remote_devices[i] = makeDevice(i, d.config, d.parentModule,
                                                d.parentResource)
-                if not remote_devices[i].deviceTypeName == 'unsupported':
+                if not remote_devices[i].device_type_name == 'unsupported':
                     s += 1
         if s:
             remote_devices_atomic = wrcopy(remote_devices)
@@ -2027,7 +2027,7 @@ def fixUnsupported():
 def warnAboutUnsupportedDevices():
     x = remote_devices_atomic
     for i in x:
-        if x[i]().deviceTypeName() == "unsupported":
+        if x[i]().device_type_name() == "unsupported":
             try:
                 x[i].warn()
             except Exception:

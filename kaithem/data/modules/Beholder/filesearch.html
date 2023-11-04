@@ -49,7 +49,7 @@ def parse(s):
   return x
 
 for i in kaithem.devices:
-  if kaithem.devices[i].deviceTypeName in ['NVRChannel']:
+  if kaithem.devices[i].device_type_name in ['NVRChannel']:
     canDo=True
     for j in  kaithem.devices[i].config.get("kaithem.read_perms",'').strip().split(","):
       if not kaithem.web.has_permission(j.strip()):

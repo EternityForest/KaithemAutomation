@@ -747,7 +747,7 @@ class KaithemPage:
                 return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
             # tb = traceback.format_exc(chain=True)
-            tb = exceptions.text_error_template().render()
+            tb = cherrypy.exceptions.text_error_template().render()
             data = (
                 "Request from: "
                 + cherrypy.request.remote.ip

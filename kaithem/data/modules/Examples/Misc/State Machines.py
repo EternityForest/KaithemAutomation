@@ -23,8 +23,8 @@ if __name__=='__setup__':
     
     
     #These states can have any string as a name as long as it doesn't have special characters
-    sm.addState('on')
-    sm.addState('off')
+    sm.add_state('on')
+    sm.add_state('off')
     
     
     enableTurningOn = True

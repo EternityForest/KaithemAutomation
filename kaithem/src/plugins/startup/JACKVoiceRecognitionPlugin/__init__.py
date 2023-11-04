@@ -81,7 +81,7 @@ class JackVoicePipeline(iceflow.GStreamerPipeline):
         return True
 
 class VoiceRecognition(devices.Device):
-    deviceTypeName = 'VoiceRecognition'
+    device_type_name = 'VoiceRecognition'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
 
     def close(self):

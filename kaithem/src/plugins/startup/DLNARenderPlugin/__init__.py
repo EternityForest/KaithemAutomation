@@ -27,7 +27,7 @@ class CustomDeviceType(DeviceType):
 
 
 class DLNARenderAgent(devices.Device):
-    deviceTypeName = 'DLNARenderAgent'
+    device_type_name = 'DLNARenderAgent'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
     description ="Create an instance of gmediarender to recieve media. Audio is piped to JACK."

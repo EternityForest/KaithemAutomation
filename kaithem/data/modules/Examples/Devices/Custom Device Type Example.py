@@ -37,7 +37,7 @@ if __name__=='__setup__':
     
     class ExampleCustomDevice(kaithem.devices.Device):
         #DeviceTypeName must be correct!
-        deviceTypeName = 'ExampleCustomDevice'
+        device_type_name = 'ExampleCustomDevice'
         readme = "What a useless device!!!!"
     
         def close(self):

@@ -272,7 +272,7 @@ __doc__= "#Python Code here runs every page load"
 
         cameraUrls:{
           %for i in kaithem.devices:
-          %if kaithem.devices[i].deviceTypeName =='NVRChannel':
+          %if kaithem.devices[i].device_type_name =='NVRChannel':
           '${i}': "rtplayer?play=${i|u}",
           %endif
           %endfor

@@ -901,7 +901,7 @@ Can serve a bytesIO object if mime and filename are provided, or any other objec
 as long as you enable streming response on page config.
 
 
-#### kaithem.web.hasPermission(permission)
+#### kaithem.web.has_permission(permission)
 
 When clled from within a mako template, returns true if the acessing
 user has the given permission.

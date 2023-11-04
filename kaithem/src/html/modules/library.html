@@ -23,7 +23,7 @@ libdir = os.path.join(directories.datadir,"modules")
    <dt><b>${i|h}</b><form method=POST action="/modules/loadlibmodule/${url(i)}">
    <input type="submit" value="Load"></input>
    </form></dt>
-   <dd><pre style="white-space: pre-wrap;">${yaml.load(open(os.path.join(libdir,i,"__description.yaml")))['text']|h}</pre></dd>
+   <dd><pre style="white-space: pre-wrap;">${yaml.load(open(os.path.join(libdir,i,"__description.yaml")), Loader=yaml.SafeLoader)['text']|h}</pre></dd>
 %endfor
 </ul>
 </div>

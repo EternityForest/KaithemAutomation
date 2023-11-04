@@ -32,7 +32,7 @@ class JackBareSipAgentRunner(sip.SipUserAgent):
 
 
 class JackBareSipAgent(devices.Device):
-    deviceTypeName = 'JackBareSipAgent'
+    device_type_name = 'JackBareSipAgent'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
 
     def close(self):

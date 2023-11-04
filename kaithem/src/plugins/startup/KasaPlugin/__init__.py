@@ -143,7 +143,7 @@ class KasaDevice(devices.Device):
 		return templateGetter.get_template("createform.html").render()
 	
 class KasaSmartplug(KasaDevice):
-	deviceTypeName="KasaSmartplug"
+	device_type_name="KasaSmartplug"
 	kdClass = SmartPlug
 	descriptors={
 		"kaithem.device.powerswitch":1,
@@ -347,7 +347,7 @@ class KasaSmartplug(KasaDevice):
 
 
 class KasaBulb(KasaDevice):
-	deviceTypeName="KasaSmartbulb"
+	device_type_name="KasaSmartbulb"
 	kdClass = SmartBulb
 	descriptors={
 		"kaithem.device.hsv": 1,
