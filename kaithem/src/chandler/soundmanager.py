@@ -47,7 +47,7 @@ def fadeSound(*args, **kwargs):
     if core.ratelimit.limit():
 
         def doFunction():
-            kaithem.sound.fadeTo(*args, **kwargs)
+            kaithem.sound.fade_to(*args, **kwargs)
 
         doSoundAction(doFunction)
     else:

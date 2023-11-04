@@ -252,36 +252,36 @@ class Alert():
 
         self.sm = statemachines.StateMachine("normal")
 
-        self.sm.addState("normal", enter=self._onNormal)
-        self.sm.addState("tripped", enter=self._onTrip)
-        self.sm.addState("active", enter=self._onActive)
-        self.sm.addState("acknowledged", enter=self._onAck)
-        self.sm.addState("cleared", enter=self._onClear)
-        self.sm.addState("retripped", enter=self._onTrip)
-        self.sm.addState("error")
+        self.sm.add_state("normal", enter=self._onNormal)
+        self.sm.add_state("tripped", enter=self._onTrip)
+        self.sm.add_state("active", enter=self._onActive)
+        self.sm.add_state("acknowledged", enter=self._onAck)
+        self.sm.add_state("cleared", enter=self._onClear)
+        self.sm.add_state("retripped", enter=self._onTrip)
+        self.sm.add_state("error")
 
         # After N seconds in the trip state, we go active
-        self.sm.setTimer("tripped", tripDelay, "active")
-        self.sm.setTimer("retripped", tripDelay, "active")
+        self.sm.set_timer("tripped", tripDelay, "active")
+        self.sm.set_timer("retripped", tripDelay, "active")
 
         # Automatic acknowledgement makes an alarm go away when it's cleared.
         if autoAck:
             if autoAck is True:
                 autoAck = 10
-            self.sm.setTimer("cleared", autoAck, "normal")
+            self.sm.set_timer("cleared", autoAck, "normal")
 
-        self.sm.addRule("normal", "trip", "tripped")
-        self.sm.addRule("tripped", "release", "normal")
+        self.sm.add_rule("normal", "trip", "tripped")
+        self.sm.add_rule("tripped", "release", "normal")
 
-        self.sm.addRule("cleared", "trip", "retripped")
-        self.sm.addRule("retripped", "release", "cleared")
+        self.sm.add_rule("cleared", "trip", "retripped")
+        self.sm.add_rule("retripped", "release", "cleared")
 
-        self.sm.addRule("active", "acknowledge", "acknowledged")
-        self.sm.addRule("active", "release", "cleared")
-        self.sm.addRule("acknowledged", "release", "normal")
-        self.sm.addRule("error", "acknowledge", "normal")
+        self.sm.add_rule("active", "acknowledge", "acknowledged")
+        self.sm.add_rule("active", "release", "cleared")
+        self.sm.add_rule("acknowledged", "release", "normal")
+        self.sm.add_rule("error", "acknowledge", "normal")
 
-        self.sm.addRule("cleared", "acknowledge", "normal")
+        self.sm.add_rule("cleared", "acknowledge", "normal")
 
         self.description = description
 
@@ -302,8 +302,8 @@ class Alert():
             hex(id(self)),
             self.sm.state,
             unitsofmeasure.formatTimeInterval(
-                time.time()-self.sm.enteredState, 2),
-            unitsofmeasure.strftime(self.sm.enteredState),
+                time.time()-self.sm.entered_state, 2),
+            unitsofmeasure.strftime(self.sm.entered_state),
             ('\n' if self.description else '')+self.description
         )
 
@@ -382,7 +382,7 @@ class Alert():
     def _onNormal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
         global unacknowledged, active, tripped
-        if not self.sm.prevState == 'tripped':
+        if not self.sm.prev_state == 'tripped':
             if self.priority in ("info","warning", "error", "critical"):
                 messagebus.postMessage(
                     "/system/notifications", "Alarm "+self.name+" returned to normal")
@@ -415,14 +415,14 @@ class Alert():
 
 
         if self.priority in ("error", "critical"):
-            logger.error("Alarm "+self.name + " tripped:\n "+self.tripMessage)
+            logger.error("Alarm "+self.name + " tripped:\n "+self.trip_message)
         if self.priority in ("warning"):
-            logger.warning("Alarm "+self.name + " tripped:\n"+self.tripMessage)
+            logger.warning("Alarm "+self.name + " tripped:\n"+self.trip_message)
         else:
-            logger.info("Alarm "+self.name + " tripped:\n"+self.tripMessage)
+            logger.info("Alarm "+self.name + " tripped:\n"+self.trip_message)
 
     def trip(self, message=""):
-        self.tripMessage = str(message)[:4096]
+        self.trip_message = str(message)[:4096]
         self.sm.event("trip")
         self.trippedAt = time.time()
 
@@ -472,4 +472,4 @@ class Alert():
     def error(self, msg=""):
         global unacknowledged
         self.sm.goto("error")
-        self.tripMessage = msg
+        self.trip_message = msg

@@ -52,7 +52,7 @@ for i in kaithem.devices:
   if kaithem.devices[i].deviceTypeName in ['NVRChannel']:
     canDo=True
     for j in  kaithem.devices[i].config.get("kaithem.read_perms",'').strip().split(","):
-      if not kaithem.web.hasPermission(j.strip()):
+      if not kaithem.web.has_permission(j.strip()):
         canDo=False
     if canDo:
       if not 'filter' in kwargs or not kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():

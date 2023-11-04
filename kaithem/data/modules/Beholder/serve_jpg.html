@@ -24,7 +24,7 @@ import PIL.Image
 <%
 __doc__= "#Python Code here runs every page load"
 
-if not kaithem.web.hasPermission(kaithem.devices[kwargs['device']].config.get("kaithem.read_perms", '').strip()):
+if not kaithem.web.has_permission(kaithem.devices[kwargs['device']].config.get("kaithem.read_perms", '').strip()):
     raise RuntimeError('Security')
     
 x = PIL.Image.open(io.BytesIO(kaithem.devices[kwargs['device']].tagpoints['bmp_snapshot'].value))
@@ -32,7 +32,7 @@ b = io.BytesIO()
 
 x.save(b,'jpeg')
 
-kaithem.web.serveFile(b,"image/jpeg",kwargs['device']+".jpg")
+kaithem.web.serve_file(b,"image/jpeg",kwargs['device']+".jpg")
 b="data:image/jpeg;base64,"+base64.b64encode(b.getvalue()).decode()
 
 

@@ -11,15 +11,15 @@ properties:
     type: string
     default: ''
 
-  fadein:
+  fade_in:
     type: number
     default: 0
 
-  soundFadeOut:
+  sound_fade_out:
     type: number
     default: 0
 
-  soundFadeIn:
+  sound_fade_in:
     type: number
     default: 0
 
@@ -31,7 +31,7 @@ properties:
     type: boolean
     default: true
 
-  nextCue:
+  next_cue:
     type: string
     default: ''
 
@@ -47,23 +47,23 @@ properties:
     type: string
     default: ''
 
-  soundOutput:
+  sound_output:
     type: string
     default: ''
 
-  soundStartPosition:
+  sound_start_position:
     type: number
     default: 0
 
-  mediaSpeed:
+  media_speed:
     type: number
     default: 1
 
-  mediaWindup:
+  media_wind_up:
     type: number
     default: 0
 
-  mediaWinddown:
+  media_wind_down:
     type: number
     default: 0
 
@@ -77,11 +77,11 @@ properties:
     type: boolean
     default: false
 
-  lengthRandomize:
+  length_randomize:
     type: number
     default: 0
 
-  inheritRules:
+  inherit_rules:
     type: string
     default: ''
       
@@ -105,21 +105,21 @@ properties:
           - { "type": "string" } 
           - { "type": "null" } 
       
-  soundVolume:
+  sound_volume:
     anyOf:
       - { "type": "number" }
       - { "type": "string" } 
     default: 1
 
-  soundLoops:
+  sound_loops:
     type: integer
     default: 0
 
-  triggerShortcut:
+  trigger_shortcut:
     type: string
     default: ''
       
-  namedForSound:
+  named_for_sound:
     type: boolean
     default: false
 

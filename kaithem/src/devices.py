@@ -707,7 +707,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     def serve_file(self, fn, mime='', name=None):
         from . import kaithemobj
-        return kaithemobj.kaithem.web.serveFile(fn, mime, name)
+        return kaithemobj.kaithem.web.serve_file(fn, mime, name)
 
     def __setupTagPerms(self, t, writable=True):
         # Devices can have a default exposure

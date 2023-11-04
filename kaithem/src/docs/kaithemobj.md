@@ -119,7 +119,7 @@ You can't currently create a device in code. But you can add a new device type.
 See the main devices docs page for details.  Avoid keeping references to things here long term.  Perfer kaithem.devices['DeviceName'] directly,
 otherwise you may not get the latest version of a device when a user modifies it.
 
-#### kaithem.devices.deviceTypes
+#### kaithem.devices.device_types
 Device driver classes all go here.
 
 #### kaithem.devices.Device
@@ -147,19 +147,19 @@ Active state is normally guessed from the pull state(If the pull is up, active i
 You can force mock mode with mock=True
 
 
-#### DigitalInput.onChange(f)
+#### DigitalInput.on_change(f)
 Subscribes a function that must be f(topic,value) to debounced changes. Uses the internal
 message bus. The topic will always be `"/system/gpio/change/"+str(self.pin)`, and the value
 will always True if active or False if inactive.
 
-#### DigitalInput.onChange(f)
+#### DigitalInput.on_change(f)
 Subscribes a function that must be f(topic,value) to get notified on hold events. Topic will always be `"/system/gpio/hold/"+str(self.pin)`, and the value will always True.
 
-#### DigitalInput.setRawMockValue(v)
+#### DigitalInput.set_raw_mock_value(v)
 Switches to mock/testing mode and sets the fake raw input value. Everything should behave
 exactly like it's getting real GPIO input.
 
-#### DigitalInput.releaseMocking()
+#### DigitalInput.release_mocking()
 Returns to real GPIO.
 
 
@@ -212,17 +212,17 @@ Creates a state machine that starts in the given state. State machines are fully
 threadsafe. Machines start with no states, so they are in a nonexistant
 state to begin with.
 
-#### sm.addState(name, enter=None, exit=None)
+#### sm.add_state(name, enter=None, exit=None)
 
 Add a new state. Enter and exit can be functions taking no arguments.
 They will run when that state is entered or exited. states are
 identified by a string name, but values beginning with \_\_ are reserved
 
-#### sm.removeState(name)
+#### sm.remove_state(name)
 
 Remove a state.
 
-#### sm.addRule(start, event, dest)
+#### sm.add_rule(start, event, dest)
 
 Add a rule to an existing state that triggers when event(which can be
 any string, or a function but values beginning with \_\_ are reserved) happens.

@@ -337,7 +337,7 @@ document.getElementById("codebox").style="display:none;";
    %if not pages.canUserDoThis("/admin/modules.edit"):
                disabled=1\
    %endif
-  ></input>kaithem.web.serveFile streaming response<br>
+  ></input>kaithem.web.serve_file streaming response<br>
 
 
 <input type="checkbox"  name="no-navheader" value="true"
@@ -369,7 +369,8 @@ Preprocess Engine:<select name="template-engine"
                     disabled=1\
         %endif
        >
-    <option value="mako" ${'selected' if page.get('template-engine','mako')== 'mako' else ''}>Mako templating(default)</option>
+    <option value="jinja2" ${'selected' if page.get('template-engine','mako')== 'jinja2' else ''}>Jinja2(Experimental)</option>
+    <option value="mako" ${'selected' if page.get('template-engine','mako')== 'mako' else ''}>Mako templating(old default)</option>
     <option value="markdown" ${'selected' if  page.get('template-engine','mako')== 'markdown' else ''}>Display markdown</option>
     <option value="none" ${'selected' if  page.get('template-engine','mako')== 'none' else ''}>Serve text as-is</option>   
     </select><br>

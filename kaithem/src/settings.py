@@ -200,7 +200,7 @@ class Settings():
         """Used to stop all sounds currently being played via kaithem's sound module"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        kaithemobj.kaithem.sound.stopAll()
+        kaithemobj.kaithem.sound.stop_all()
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose

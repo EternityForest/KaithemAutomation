@@ -226,19 +226,19 @@ except Exception:
 <table border=1>
     <tr>
         <td>Moon Age(Days, approx)</td>
-        <td>${kaithemobj.kaithem.time.moonPhase()}</td>
+        <td>${kaithemobj.kaithem.time.moon_phase()}</td>
     </tr>
 
     <tr>
         <td>Moon Illumination(approx)</td>
-        <td>${kaithemobj.kaithem.time.moonPercent()}%</td>
+        <td>${kaithemobj.kaithem.time.moon_percent()}%</td>
     </tr>
 
 
     <tr>
         <td>Civil Twilight Dusk Today</td>
         %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.civilDuskTime())}</td>
+            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.civil_dusk_time())}</td>
         %except Exception as e:
             ${e|h}</td>
         %endtry
@@ -249,7 +249,7 @@ except Exception:
     <tr>
         <td>Civil Twilight Dawn Today</td>
         %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.civilDawnTime())}</td>
+            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.civil_dawn_time())}</td>
         %except Exception as e:
             ${e|h}</td>
         %endtry
@@ -260,7 +260,7 @@ except Exception:
     <tr>
         <td>Sunrise</td>
         %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.sunriseTime())}</td>
+            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.sunrise_time())}</td>
         %except Exception as e:
             ${e|h}</td>
         %endtry
@@ -271,7 +271,7 @@ except Exception:
     <tr>
         <td>Sunset</td>
         %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.sunsetTime())}</td>
+            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.sunset_time())}</td>
         %except Exception as e:
             ${e|h}</td>
         %endtry

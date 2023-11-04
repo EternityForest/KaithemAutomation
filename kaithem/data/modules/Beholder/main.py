@@ -15,7 +15,7 @@ if __name__=='__setup__':
     
     def nbr():
         return(50, '<a href="/pages/Beholder/ui"><i class="icofont-castle"></i>Beholder</a>')
-    kaithem.web.navBarPlugins['Beholder']=nbr
+    kaithem.web.nav_bar_plugins['Beholder']=nbr
 
 def eventAction():
     pass

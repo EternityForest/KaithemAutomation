@@ -95,7 +95,7 @@ def resolveSound(sound):
             if os.path.isfile(os.path.join(i, sound)):
                 sound = os.path.join(i, sound)
     if not sound.startswith("/"):
-        sound = kaithem.sound.resolveSound(sound)
+        sound = kaithem.sound.resolve_sound(sound)
     return sound
 
 

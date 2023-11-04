@@ -207,8 +207,8 @@ def gotoCommand(scene="=SCENE", cue=""):
 
     # Track layers of recursion
     newcause = "script.0"
-    if kaithem.chandlerscript.contextInfo.event[0] in ("cue.enter", "cue.exit"):
-        cause = kaithem.chandlerscript.contextInfo.event[1][1]
+    if kaithem.chandlerscript.context_info.event[0] in ("cue.enter", "cue.exit"):
+        cause = kaithem.chandlerscript.context_info.event[1][1]
         # Nast hack, but i don't thing we need more layers and parsing might be slower.
         if cause == "script.0":
             newcause = "script.1"
@@ -413,13 +413,13 @@ def checkPermissionsForSceneData(data, user):
         or data["page"]["js"].strip()
         or data["page"].get("rawhtml", "").strip()
     ):
-        if not kaithem.users.checkPermission(user, "/admin/modules.edit"):
+        if not kaithem.users.check_permission(user, "/admin/modules.edit"):
             raise ValueError(
                 "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: pages. User:"
                 + str(kaithem.web.user())
             )
     if "mqttServer" in data and data["mqttServer"].strip():
-        if not kaithem.users.checkPermission(user, "/admin/modules.edit"):
+        if not kaithem.users.check_permission(user, "/admin/modules.edit"):
             raise ValueError(
                 "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: MQTT:"
                 + str(kaithem.web.user())
@@ -459,29 +459,29 @@ class Cue:
         # declare vars
         self.name: str
         self.number: int
-        self.inheritRules: str
+        self.inherit_rules: str
         self.reentrant: bool
-        self.soundVolume: float | str
-        self.soundLoops: int
-        self.namedForSound: bool
+        self.sound_volume: float | str
+        self.sound_loops: int
+        self.named_for_sound: bool
         self.notes: str
         self.alpha: float
-        self.fadein: float
-        self.soundFadeOut: float
-        self.soundFadeIn: float
+        self.fade_in: float
+        self.sound_fade_out: float
+        self.sound_fade_in: float
         self.length: float | str
         self.rel_length: bool
-        self.lengthRandomize: float
-        self.nextCue: str
+        self.length_randomize: float
+        self.next_cue: str
         self.track: bool
         self.shortcut: str
         self.sound: str
         self.slide: str
-        self.soundOutput: str
-        self.soundStartPosition: str
-        self.mediaSpeed: str
-        self.mediaWindup: str
-        self.mediaWinddown: str
+        self.sound_output: str
+        self.sound_start_position: str
+        self.media_speed: str
+        self.media_wind_up: str
+        self.media_wind_down: str
         self.probability: float | str
         self.values: Dict[str, Dict[str | int, str | int | float |  None]]
 
@@ -573,11 +573,11 @@ class Cue:
         c = Cue(
             self.getScene(),
             name,
-            fadein=self.fadein,
+            fadein=self.fade_in,
             length=self.length,
-            lengthRandomize=self.lengthRandomize,
+            lengthRandomize=self.length_randomize,
             values=copy.deepcopy(self.values),
-            nextCue=self.nextCue,
+            nextCue=self.next_cue,
             rel_length=self.rel_length,
             track=self.track
         )
@@ -612,7 +612,7 @@ class Cue:
         self.getScene().refreshRules()
 
     def setInheritRules(self, r):
-        self.inheritRules = r
+        self.inherit_rules = r
         self.getScene().refreshRules()
 
     def setShortcut(self, code, push=True):
@@ -1161,7 +1161,7 @@ class Scene:
 
             if not v == 0:
                 x = self.cues_ordered[v - 1]
-                if (not x.nextCue) or x.nextCue == cue:
+                if (not x.next_cue) or x.next_cue == cue:
                     return x.name
             return None
 
@@ -1587,7 +1587,7 @@ class Scene:
                                             (self.crossfade > 0)
                                             and not (self.cues[cue].soundFadeIn < 0)
                                         )
-                                        and kaithem.sound.isPlaying(str(self.id))
+                                        and kaithem.sound.is_playing(str(self.id))
                                     )
                                     or (self.cues[cue].soundFadeIn > 0)
                                     or self.cues[cue].mediaWindup

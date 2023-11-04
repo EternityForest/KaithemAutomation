@@ -880,7 +880,7 @@ ${lists}
 
                                 <td class="desktop-only" data-label="Fade In:">
                                     <input type="number" v-on:change="setfadein(i[1].id,$event.target.value)"
-                                        style="width:3em" min=0 v-model="i[1].fadein">
+                                        style="width:3em" min=0 v-model="i[1].fade_in">
                                 </td>
 
                                 <td class="desktop-only" data-label="Length:">
@@ -1136,8 +1136,8 @@ ${lists}
 
 
                                 <label>Media Windup:
-                                    <input type="number" v-model="currentcue.mediaWindup" style="width:4em;"
-                                        v-on:change="setCueMediaWindup(currentcueid,currentcue.mediaWindup)">
+                                    <input type="number" v-model="currentcue.mediaWindUp" style="width:4em;"
+                                        v-on:change="setCueMediaWindUp(currentcueid,currentcue.mediaWindUp)">
                                 </label>
 
                                 <label>Media Winddown:
@@ -1168,8 +1168,8 @@ ${lists}
 
 
                                 <label>Length relative to media file:
-                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
-                                        v-model="currentcue.rel_length"
+                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.relLength)"
+                                        v-model="currentcue.relLength"
                                         title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                                 </label>
 
@@ -1460,7 +1460,7 @@ ${lists}
 
                                 <label>Fadein
                                     <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)"
-                                        style="width:3em" min=0 v-model="currentcue.fadein">
+                                        style="width:3em" min=0 v-model="currentcue.fade_in">
                                 </label>
                                 <label>Length
                                     <input v-on:change="setlength(currentcueid,$event.target.value)"
@@ -1494,8 +1494,8 @@ ${lists}
                                 </label>
 
                                 <label v-if="showSoundControls">Length From Sound
-                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_length)"
-                                        v-model="currentcue.rel_length"
+                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.relLength)"
+                                        v-model="currentcue.relLength"
                                         title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                                 </label>
                             </fieldset>

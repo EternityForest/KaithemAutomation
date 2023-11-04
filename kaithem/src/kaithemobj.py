@@ -149,7 +149,7 @@ class Kaithem():
 
     class users(object):
         @staticmethod
-        def checkPermission(user, permission: str):
+        def check_permission(user, permission: str):
             try:
                 if pages.canUserDoThis(permission, user):
                     return True
@@ -294,7 +294,7 @@ class Kaithem():
             return (unitsofmeasure.DayOfWeek())
 
         @staticmethod
-        def sunsetTime(lat: Optional[float] = None, lon: Optional[float] = None, date=None):
+        def sunset_time(lat: Optional[float] = None, lon: Optional[float] = None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -307,7 +307,7 @@ class Kaithem():
             return (sky.sunset(lat, lon, date))
 
         @staticmethod
-        def sunriseTime(lat=None, lon=None, date=None):
+        def sunrise_time(lat=None, lon=None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -320,7 +320,7 @@ class Kaithem():
             return (sky.sunrise(lat, lon, date))
 
         @staticmethod
-        def civilDuskTime(lat=None, lon=None, date=None):
+        def civil_dusk_time(lat=None, lon=None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -333,7 +333,7 @@ class Kaithem():
             return (sky.dusk(lat, lon, date))
 
         @staticmethod
-        def civilDawnTime(lat=None, lon=None, date=None):
+        def civil_dawn_time(lat=None, lon=None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -346,7 +346,7 @@ class Kaithem():
             return (sky.dawn(lat, lon, date))
 
         @staticmethod
-        def rahuStart(lat=None, lon=None, date=None):
+        def rahu_start(lat=None, lon=None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -359,7 +359,7 @@ class Kaithem():
             return (sky.rahu(lat, lon, date)[0])
 
         @staticmethod
-        def rahuEnd(lat=None, lon=None, date=None):
+        def rahu_end(lat=None, lon=None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -372,7 +372,7 @@ class Kaithem():
             return (sky.rahu(lat, lon, date)[1])
 
         @staticmethod
-        def isDark(lat=None, lon=None):
+        def is_dark(lat=None, lon=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
@@ -385,7 +385,7 @@ class Kaithem():
             return (sky.isDark(lat, lon))
 
         @staticmethod
-        def isRahu(lat=None, lon=None):
+        def is_rahu(lat=None, lon=None):
             if lat is None:
                 if lon is None:
                     lat, lon = geolocation.getCoords()
@@ -399,7 +399,7 @@ class Kaithem():
             return (sky.isRahu(lat, lon))
 
         @staticmethod
-        def isDay(lat=None, lon=None):
+        def is_day(lat=None, lon=None):
             if lat is None:
                 if lon is None:
                     lat, lon = geolocation.getCoords()
@@ -410,7 +410,7 @@ class Kaithem():
             return (sky.isDay(lat, lon))
 
         @staticmethod
-        def isNight(lat=None, lon=None):
+        def is_night(lat=None, lon=None):
             if lat is None:
                 if lon is None:
                     lat, lon = geolocation.getCoords()
@@ -421,7 +421,7 @@ class Kaithem():
             return (sky.isNight(lat, lon))
 
         @staticmethod
-        def isLight(lat=None, lon=None):
+        def is_light(lat=None, lon=None):
             if lat is None:
                 if lon is None:
                     lat, lon = geolocation.getCoords()
@@ -432,11 +432,11 @@ class Kaithem():
             return (sky.isLight(lat, lon))
 
         @staticmethod
-        def moonPhase():
+        def moon_phase():
             return sky.moon()
 
         @staticmethod
-        def moonPercent():
+        def moon_percent():
             x = sky.moon()
             if x > 14:
                 x -= 14
@@ -479,7 +479,7 @@ class Kaithem():
     class web(object):
         controllers = pages.nativeHandlers
 
-        navBarPlugins = pages.navBarPlugins
+        nav_bar_plugins = pages.navBarPlugins
 
         theming = theming
 
@@ -497,7 +497,7 @@ class Kaithem():
                 return pages.get_template("freeboard/app.html").render(plugins=plugins)
 
         @staticmethod
-        def goBack():
+        def go_back():
             raise cherrypy.HTTPRedirect(cherrypy.request.headers['Referer'])
 
         @staticmethod
@@ -505,7 +505,7 @@ class Kaithem():
             raise cherrypy.HTTPRedirect(url)
 
         @staticmethod
-        def serveFile(*a, **k):
+        def serve_file(*a, **k):
             pages.serveFile(*a, **k)
 
         @staticmethod
@@ -517,15 +517,15 @@ class Kaithem():
                 return ''
 
         @staticmethod
-        def hasPermission(permission):
+        def has_permission(permission):
             return pages.canUserDoThis(permission)
 
     midi = midi.MidiAPI()
 
     class sound(object):
 
-        builtinSounds = sound.builtinSounds
-        resolveSound = sound.resolveSound
+        builtin_sounds = sound.builtinSounds
+        resolve_sound = sound.resolveSound
 
         oggTest = sound.oggSoundTest
 
@@ -578,11 +578,11 @@ class Kaithem():
             sound.resume(*args, **kwargs)
 
         @staticmethod
-        def stopAll():
+        def stop_all():
             sound.stopAllSounds()
 
         @staticmethod
-        def isPlaying(*args, **kwargs):
+        def is_playing(*args, **kwargs):
             return sound.isPlaying(*args, **kwargs)
 
         @staticmethod
@@ -594,7 +594,7 @@ class Kaithem():
             return sound.setvol(*args, **kwargs)
         
         @staticmethod
-        def fadeTo(*args, **kwargs):
+        def fade_to(*args, **kwargs):
             return sound.fadeTo(*args, **kwargs)
 
         @staticmethod
@@ -633,11 +633,11 @@ class Kaithem():
             return unitsofmeasure.strftime(*a)
 
         @staticmethod
-        def SIFormat(number, d=2):
+        def si_format(number, d=2):
             return unitsofmeasure.siFormatNumber(number, d)
 
         @staticmethod
-        def formatTimeInterval(s, places=2, clock=False):
+        def format_time_interval(s, places=2, clock=False):
             return unitsofmeasure.formatTimeInterval(s, places, clock)
 
     class events():

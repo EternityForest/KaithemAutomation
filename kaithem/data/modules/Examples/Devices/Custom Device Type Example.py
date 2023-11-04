@@ -75,7 +75,7 @@ if __name__=='__setup__':
             return self.template.render(data=self.data, obj=self)
     
     
-    kaithem.devices.deviceTypes["ExampleCustomDevice"] = ExampleCustomDevice
+    kaithem.devices.device_types["ExampleCustomDevice"] = ExampleCustomDevice
 
 def eventAction():
     pass

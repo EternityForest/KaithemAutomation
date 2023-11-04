@@ -148,7 +148,7 @@ ${jackmixer.global_api.render("gapi")}
 
 
         <div class="flex" v-if="activePane=='mixer' && ui_ready">
-          <article class="channel card" v-for="(channel,channelname) in channels">
+          <article class="channel window" v-for="(channel,channelname) in channels">
             <header>
               <div v-if="channel.type=='audio' || !channel.type">
                 <div>
@@ -308,7 +308,7 @@ ${jackmixer.global_api.render("gapi")}
         </article>
 
 
-        <article class="channel card">
+        <article class="channel window">
           <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
           <h3>New Channel</h3>

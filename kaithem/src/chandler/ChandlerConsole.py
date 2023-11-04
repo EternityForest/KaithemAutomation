@@ -22,6 +22,19 @@ import traceback
 import uuid
 import weakref
 
+# The frontend's ephemeral state is using CamelCase conventions for now
+from .. import snake_compat
+
+
+def from_legacy(d):
+    if 'mediaWindup' in d:
+        d['media_wind_up'] = d.pop('mediaWindup')
+    if 'mediaWinduown' in d:
+        d['media_wind_down'] = d.pop('mediaWinduown')
+    if 'fadein' in d:
+        d['fade_in'] = d.pop('fadein')
+    return d
+
 
 class ChandlerConsole:
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
@@ -288,7 +301,7 @@ class ChandlerConsole:
                 os.path.join(saveLocation, "presets.yaml"))
 
     def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
-        if not kaithem.users.checkPermission(kaithem.web.user(), "/admin/modules.edit"):
+        if not kaithem.users.check_permission(kaithem.web.user(), "/admin/modules.edit"):
             raise ValueError(
                 "You cannot change the setup without /admin/modules.edit")
         data = yaml.load(data, Loader=yaml.SafeLoader)
@@ -362,6 +375,9 @@ class ChandlerConsole:
             self.loadDict(data, errs)
 
     def loadDict(self, data, errs=False):
+
+        data = from_legacy(data)
+        data = snake_compat.snakify_dict(data)
 
         # Note that validation could include integer keys, but we handle that
         for i in data:
@@ -679,7 +695,7 @@ class ChandlerConsole:
             d2 = {
                 "id": cueid,
                 "name": cue.name,
-                "next": cue.nextCue if cue.nextCue else "",
+                "next": cue.next_cue if cue.next_cue else "",
                 "scene": scene.id,
                 "number": cue.number / 1000.0,
                 "prev": scene.getParent(cue.name),
@@ -698,6 +714,9 @@ class ChandlerConsole:
 
             # not metadata, sent separately
             d.pop('values')
+
+            # Web frontend still uses ye olde camel case 
+            d = snake_compat.camel_dict(d)
 
             self.linkSend(
                 [

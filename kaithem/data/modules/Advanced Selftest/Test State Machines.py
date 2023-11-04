@@ -19,13 +19,13 @@ if __name__=='__setup__':
         
     blink = kaithem.states.StateMachine(start="off")
     
-    on = blink.addState("on")
-    off = blink.addState("off")
+    on = blink.add_state("on")
+    off = blink.add_state("off")
     
-    blink.setTimer("on", 1, "off")
+    blink.set_timer("on", 1, "off")
     
-    blink.setTimer("off", 1, "on")
-    blink.addRule("off", 'begin', "on")
+    blink.set_timer("off", 1, "on")
+    blink.add_rule("off", 'begin', "on")
     blink('begin')
     
 
@@ -40,12 +40,12 @@ def eventAction():
         
     sm = kaithem.states.StateMachine(start="off")
     
-    on = sm.addState("on", enter=on)
-    off = sm.addState("off", enter=off)
+    on = sm.add_state("on", enter=on)
+    off = sm.add_state("off", enter=off)
     
-    sm.setTimer("on", 1, "off")
+    sm.set_timer("on", 1, "off")
     
-    sm.addRule('off', "motion","on")
+    sm.add_rule('off', "motion","on")
     
     if module.sm_lamp:
         raise RuntimeError("state machine imaginary lamp is on too soon")

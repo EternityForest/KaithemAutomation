@@ -35,7 +35,8 @@ from .config import config
 from mako.lookup import TemplateLookup
 
 
-_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
+_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(
+    directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
 
 env = jinja2.Environment(
     loader=_jl,
@@ -259,7 +260,8 @@ class CompiledPage:
 
                 if not ("no-header" in resource) or not (resource["no-header"]):
                     footer = util.readfile(
-                        os.path.join(directories.htmldir, 'makocomponents', "pagefooter.html")
+                        os.path.join(directories.htmldir,
+                                     'makocomponents', "pagefooter.html")
                     )
                 else:
                     footer = ""
@@ -327,10 +329,15 @@ class CompiledPage:
 
                     self.template = mako.template.Template(
                         templatesource, uri="Template" + m + "_" + r, lookup=component_lookup)
-                    
+
                 elif resource['template-engine'] == 'jinja2':
                     if "setupcode" in resource and resource["setupcode"].strip():
                         exec(resource['setupcode'], None, self.scope)
+                    if "code" in resource and resource["code"].strip():
+                        self.code_obj = compile(resource['code'],"Jinja2Page", mode="exec")
+                    else:
+                        self.code_obj = None
+
                     self.template = env.from_string(template)
                     self.useJinja = True
 
@@ -683,18 +690,31 @@ class KaithemPage:
                 t = theming.cssthemes[t].css_url
 
             if hasattr(page, "template"):
+                s = {
+                    "kaithem": self.kaithemobj.kaithem,
+                    "request": cherrypy.request,
+                    "module": modules_state.scopes[module],
+                    "path": args,
+                    "kwargs": kwargs,
+                    "print": page.new_print,
+                    "page": page.localAPI,
+                    "_k_usr_page_theme": t,
+                    "_k_alt_top_banner": page.alt_top_banner,
+                }
                 if not page.useJinja:
                     return page.template.render(
-                        kaithem=self.kaithemobj.kaithem,
-                        request=cherrypy.request,
-                        module=modules_state.scopes[module],
-                        path=args,
-                        kwargs=kwargs,
-                        print=page.new_print,
-                        page=page.localAPI,
-                        _k_usr_page_theme=t,
-                        _k_alt_top_banner=page.alt_top_banner,
-                ).encode("utf-8")
+                        **s
+                    ).encode("utf-8")
+                else:
+                    s.update(page.scope)
+                    
+                    if page.code_obj:
+                        exec(page.code_obj, s, s)
+
+                    return page.template.render(
+                        **s
+                    )
+
             else:
                 return page.text.encode("utf-8")
 

@@ -24,7 +24,7 @@ import os
 
 device = kaithem.devices[path[1]]
 for i in kaithem.devices[path[1]].config.get('kaithem.read_perms','').strip().split(","):
-    if not kaithem.web.hasPermission(i):
+    if not kaithem.web.has_permission(i):
         raise RuntimeError("Missing permission for that camera: "+repr(i))
 
 
@@ -50,7 +50,7 @@ env = {}
 env.update(os.environ)
 p = subprocess.Popen(["ffmpeg", "-i", clip, "-bsf:a", "aac_adtstoasc", "-vcodec", "copy", "-c", "copy", "-crf", "50", '-movflags', 'frag_keyframe+empty_moov', '-f', 'mp4', "pipe:1"], stdout=subprocess.PIPE, env=env)
 
-kaithem.web.serveFile(p.stdout, "video/mp4", path[1]+".mp4" )
+kaithem.web.serve_file(p.stdout, "video/mp4", path[1]+".mp4" )
 %>
 
 <h2>serve_mp4</h2>

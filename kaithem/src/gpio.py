@@ -76,12 +76,12 @@ def handleApiCall(u, v):
                 ["outputs", {i: formatOutputPin(outputs[i]()) for i in outputs}])
 
     elif v[0] == 'mock':
-        inputs[v[1]]().mockAlert.trip()
-        inputs[v[1]]().setRawMockValue(v[2])
+        inputs[v[1]]().mock_alert.trip()
+        inputs[v[1]]().set_raw_mock_value(v[2])
 
     elif v[0] == 'unmock':
         try:
-            inputs[v[1]]().releaseMocking()
+            inputs[v[1]]().release_mocking()
         except NoRealGPIOError:
             api.send(['norealgpio'])
 
@@ -113,7 +113,7 @@ class GPIOTag():
             messagebus.postMessage("/system/notifications/warnings",
                                    "Pin already in use, old connection closed. The old pin will no longer correctly. If the old connection is unwanted, ignore this.")
             try:
-                inUsePins[pin].mockAlert.clear()
+                inUsePins[pin].mock_alert.clear()
             except Exception:
                 pass
             inUsePins[pin].close()
@@ -139,7 +139,7 @@ class GPIOTag():
         except Exception:
             pass
 
-    def connectToPin(self, withclass, pin, *args, mock=None, **kwargs):
+    def connect_to_pin(self, withclass, pin, *args, mock=None, **kwargs):
         global globalMockFactory
 
         from gpiozero import Device
@@ -187,7 +187,7 @@ class GPIOTag():
                         "/system/notifications/warnings", "No real GPIO found, using mock pins")
 
                 # Redo in mock mode
-                self.connectToPin(withclass, pin, *args, mock=True, **kwargs)
+                self.connect_to_pin(withclass, pin, *args, mock=True, **kwargs)
                 alreadySentMockWarning = True
 
 
@@ -208,7 +208,7 @@ class DigitalOutput(GPIOTag):
 
         def pinSwitchFunc(doMock):
             # Switch to the appropriate mock or real pin
-            self.connectToPin(PWMLED if self.PWM else LED, pin, mock=doMock, *args, **kwargs)
+            self.connect_to_pin(PWMLED if self.PWM else LED, pin, mock=doMock, *args, **kwargs)
         self.pinSwitchFunc = pinSwitchFunc
         self.pinSwitchFunc(mock)
 
@@ -313,7 +313,7 @@ class DigitalInput(GPIOTag):
 
         def pinSwitchFunc(doMock):
             # Switch to the appropriate mock or real pin
-            self.connectToPin(Button, pin, mock=doMock, *args, **kwargs)
+            self.connect_to_pin(Button, pin, mock=doMock, *args, **kwargs)
         self.pinSwitchFunc = pinSwitchFunc
         self.pinSwitchFunc(mock)
 
@@ -324,8 +324,8 @@ class DigitalInput(GPIOTag):
 
         # Only trip this alert if it's manually mocked. If it starts out
         # Mocled that isn't news most likely.
-        self.mockAlert = alerts.Alert("Pin"+str(pin)+"mock", autoAck=True)
-        self.mockAlert.description = "Input pin is mocked and ignoring the physical iput pin"
+        self.mock_alert = alerts.Alert("Pin"+str(pin)+"mock", autoAck=True)
+        self.mock_alert.description = "Input pin is mocked and ignoring the physical iput pin"
 
         if 'active_state' in kwargs:
             if kwargs['active_state']:
@@ -373,7 +373,7 @@ class DigitalInput(GPIOTag):
         except Exception:
             pass
 
-    def setRawMockValue(self, value):
+    def set_raw_mock_value(self, value):
         "Sets the pin to fake mode, and then sets a specific high or low mock val"
         # Dynamic import, we just accept that this one is slow because it's just for testing
         import gpiozero
@@ -382,7 +382,7 @@ class DigitalInput(GPIOTag):
 
         api.send(["ipin", self.pin, formatPin(self)])
 
-    def releaseMocking(self):
+    def release_mocking(self):
         "Returns to reak GPIO mode"
         self._selectReal()
         api.send(["ipin", self.pin, formatPin(self)])
@@ -419,16 +419,16 @@ class DigitalInput(GPIOTag):
     def _onHold(self):
         messagebus.postMessage("/system/gpio/hold/"+str(self.pin), True)
 
-    def onActive(self, f):
+    def on_active(self, f):
         return messagebus.subscribe("/system/gpio/active/"+str(self.pin), f)
 
-    def onInactive(self, f):
+    def on_inactive(self, f):
         return messagebus.subscribe("/system/gpio/inactive/"+str(self.pin), f)
 
-    def onChange(self, f):
+    def on_change(self, f):
         return messagebus.subscribe("/system/gpio/change/"+str(self.pin), f)
 
-    def onHold(self, f):
+    def on_hold(self, f):
         return messagebus.subscribe("/system/gpio/hold/"+str(self.pin), f)
 
     def _selectReal(self):
@@ -446,7 +446,7 @@ class DigitalInput(GPIOTag):
             if self.holdWaiter:
                 self.holdWaiter.join()
             self.holdWaiter = None
-            self.mockAlert.clear()
+            self.mock_alert.clear()
 
             if self.fakeGpio:
                 self.fakeGpio.when_activated = None

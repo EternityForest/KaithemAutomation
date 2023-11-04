@@ -14,7 +14,7 @@ log = logging.getLogger("system")
 def create():
     def civilTwilight():
         try:
-            if kaithemobj.kaithem.time.isDark():
+            if kaithemobj.kaithem.time.is_dark():
                 return 1
             else:
                 return 0
@@ -50,7 +50,7 @@ def create():
 
     def night():
         try:
-            if kaithemobj.kaithem.time.isNight():
+            if kaithemobj.kaithem.time.is_night():
                 return 1
             else:
                 return 0

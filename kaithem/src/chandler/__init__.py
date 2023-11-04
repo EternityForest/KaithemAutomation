@@ -82,7 +82,7 @@ def pollsounds():
             # Forbid any crazy error loopy business with too short sounds
             if (time.time() - i.enteredCue) > 1 / 5:
                 if i.cue.sound and i.cue.rel_length:
-                    if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
+                    if not kaithem.sound.is_playing(str(i.id)) and not i.sound_end:
                         i.sound_end = time.time()
                     if i.sound_end and (
                         time.time() - i.sound_end > (i.cue.length * i.bpm)
@@ -305,7 +305,7 @@ core.board = board
 class ObjPlugin:
     board = board
     Scene = Scene
-    scenesByUUID = scenes.scenes
+    scenes_by_uuid = scenes.scenes
     scenes = scenes.scenes_by_name
     Universe = universes.Universe
     blendmodes = blendmodes.blendmodes
@@ -325,12 +325,12 @@ def nbr():
     )
 
 
-kaithem.web.navBarPlugins["chandler"] = nbr
+kaithem.web.nav_bar_plugins["chandler"] = nbr
 
 def nbr2():
     return (50, '<a href="/chandler/editor"><i class="icofont-pencil"></i>Editor</a>')
 
-kaithem.web.navBarPlugins["chandler2"] = nbr2
+kaithem.web.nav_bar_plugins["chandler2"] = nbr2
 
 
 

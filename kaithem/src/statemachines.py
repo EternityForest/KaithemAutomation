@@ -31,7 +31,7 @@ from . import scheduling, unitsofmeasure, workers, util
 #
 # Create an object representing one nondeterministic finite automaton
 #
-# sm.addState("stateName", [enter, exit])
+# sm.add_state("stateName", [enter, exit])
 #
 # Add a state to the machine. Enter and exit may be functions to be called when the state enters or leaves. If the state
 # already exists, it will be replaced
@@ -97,8 +97,8 @@ class StateMachine():
     def __init__(self, start="start", name="Untitled", description=""):
         self.states = {}
         self.state = start
-        self.prevState = None
-        self.enteredState = time.time()
+        self.prev_state = None
+        self.entered_state = time.time()
         # Used to ensure that if one leaves and reenters a state just as a timer is firing it does not trigger anything.
         self._transiton_count = 0
         self.lock = threading.RLock()
@@ -120,7 +120,7 @@ class StateMachine():
         return self.state
 
     def __repr__(self):
-        return "<State machine at %d in state %s, entered %d ago>" % (id(self), self.state, time.time()-self.enteredState)
+        return "<State machine at %d in state %s, entered %d ago>" % (id(self), self.state, time.time()-self.entered_state)
 
     def __html_repr__(self):
         return """<small>State machine object at %s<br></small>
@@ -130,8 +130,8 @@ class StateMachine():
             hex(id(self)),
             self.state,
             unitsofmeasure.formatTimeInterval(
-                time.time()-self.enteredState, 2),
-            unitsofmeasure.strftime(self.enteredState),
+                time.time()-self.entered_state, 2),
+            unitsofmeasure.strftime(self.entered_state),
             ('\n' if self.description else '')+self.description
         )
 
@@ -154,17 +154,17 @@ class StateMachine():
 
     @property
     def age(self):
-        return time.time()-self.enteredState
+        return time.time()-self.entered_state
 
     @property
     def stateage(self):
         with self.lock:
-            return (self.state, time.time()-self.enteredState)
+            return (self.state, time.time()-self.entered_state)
 
     def checkTimer(self):
         with self.lock:
             if self.states[self.state].get('timer'):
-                if ((time.time()+self.time_offset)-self.enteredState) > self.states[self.state]['timer'][0]:
+                if ((time.time()+self.time_offset)-self.entered_state) > self.states[self.state]['timer'][0]:
 
                     # Get the destination
                     x = self.states[self.state]['timer'][1]
@@ -189,7 +189,7 @@ class StateMachine():
         # If for any reason we get here too early, let's just keep rescheduling
         if self.states[self.state].get('timer'):
             # If we haven't already passed the time of the timer
-            if ((time.time()+self.time_offset)-self.enteredState) < self.states[self.state]['timer'][0]:
+            if ((time.time()+self.time_offset)-self.entered_state) < self.states[self.state]['timer'][0]:
                 f = makechecker(util.universal_weakref(self))
                 self.schedulerobj = scheduling.scheduler.schedule(
                     f, time.time()+0.08)
@@ -205,12 +205,12 @@ class StateMachine():
         with self.lock:
             if condition and (not condition == self.state):
                 return
-            pos = (time.time()-self.enteredState)
+            pos = (time.time()-self.entered_state)
             self.time_offset = t-pos
             self._configureTimer()
 
     @typechecked
-    def addState(self, name: str, rules=None, enter: Union[str, Callable, None] = None, exit: Union[str, Callable, None] = None):
+    def add_state(self, name: str, rules=None, enter: Union[str, Callable, None] = None, exit: Union[str, Callable, None] = None):
         for i in illegalStateNameChars:
             if i in name:
                 raise ValueError("Forbidden special character")
@@ -218,16 +218,16 @@ class StateMachine():
             self.states[name] = {"rules": rules or {},
                                  'enter': enter, 'exit': exit, 'conditions': []}
 
-    def setTimer(self, state: str, time: Union[float, int], dest: Union[str, Callable]):
+    def set_timer(self, state: str, time: Union[float, int], dest: Union[str, Callable]):
         with self.lock:
             if dest:
                 self.states[state]['timer'] = [time, dest]
 
-    def removeState(self, name):
+    def remove_state(self, name):
         raise RuntimeError("Not supported now")
 
     @typechecked
-    def addRule(self, start: str, event: Union[str, Callable], to: Union[str, Callable]):
+    def add_rule(self, start: str, event: Union[str, Callable], to: Union[str, Callable]):
         with self.lock:
             if isinstance(event, str):
                 self.states[start]['rules'][event] = to
@@ -235,7 +235,7 @@ class StateMachine():
                 self.states[start]['conditions'].append((event, to))
                 self._setupPolling()
 
-    def delRule(self, start, event):
+    def del_rule(self, start, event):
         with self.lock:
             if event in self.states[start]['rules']:
                 del self.states[start]['rules'][event]
@@ -309,10 +309,10 @@ class StateMachine():
         if s['exit']:
             s['exit']()
 
-        self.prevState = self.state
+        self.prev_state = self.state
         self.state = state
         # Record the time that we entered the new state
-        self.enteredState = time.time()
+        self.entered_state = time.time()
         self._configureTimer()
 
         self.time_offset = 0

@@ -278,7 +278,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             commandInfo = {}
             for i in c:
                 f = c[i]
-                commandInfo[i] = kaithem.chandlerscript.getFunctionInfo(f)
+                commandInfo[i] = kaithem.chandlerscript.get_function_info(f)
             self.linkSend(["commands", commandInfo])
 
         elif msg[0] == "getconfuniverses":
@@ -308,7 +308,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.shortcutCode(msg[1])
 
         elif msg[0] == "gotonext":
-            if cues[msg[1]].nextCue:
+            if cues[msg[1]].next_cue:
                 try:
                     cues[msg[1]].scene().nextCue(cause="manual")
                 except Exception:
@@ -340,7 +340,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushMeta(msg[1], statusOnly=True)
 
         elif msg[0] == "testSoundCard":
-            kaithem.sound.oggTest(output=msg[1])
+            kaithem.sound.ogg_test(output=msg[1])
 
         ###
 
@@ -419,7 +419,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(["newscene", msg[1].strip(), s.id])
 
         elif msg[0] == "setconfuniverses":
-            if kaithem.users.checkPermission(user, "/admin/settings.edit"):
+            if kaithem.users.check_permission(user, "/admin/settings.edit"):
                 self.configuredUniverses = msg[1]
                 self.createUniverses(self.configuredUniverses)
             else:
@@ -499,7 +499,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setsoundout":
-            cues[msg[1]].soundOutput = msg[2]
+            cues[msg[1]].sound_output = msg[2]
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setNotes":
@@ -523,7 +523,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushMeta(msg[1], keys={"displayTags"})
 
         elif msg[0] == "setMqttServer":
-            if kaithem.users.checkPermission(user, "/admin/modules.edit"):
+            if kaithem.users.check_permission(user, "/admin/modules.edit"):
                 scenes.scenes[msg[1]].setMqttServer(msg[2])
                 self.pushMeta(msg[1], keys={"mqttServer"})
 
@@ -789,7 +789,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = float(msg[2])
             except Exception:
                 v = msg[2]
-            cues[msg[1]].fadein = v
+            cues[msg[1]].fade_in = v
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setSoundFadeOut":
@@ -797,7 +797,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = float(msg[2])
             except Exception:
                 v = msg[2]
-            cues[msg[1]].soundFadeOut = v
+            cues[msg[1]].sound_fade_out = v
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setCueVolume":
@@ -805,7 +805,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = float(msg[2])
             except Exception:
                 v = msg[2]
-            cues[msg[1]].soundVolume = v
+            cues[msg[1]].sound_volume = v
             self.pushCueMeta(msg[1])
             cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
 
@@ -814,7 +814,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = float(msg[2])
             except Exception:
                 v = msg[2]
-            cues[msg[1]].soundLoops = v if (
+            cues[msg[1]].sound_loops = v if (
                 not v == -1) else 99999999999999999
 
             self.pushCueMeta(msg[1])
@@ -825,7 +825,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = float(msg[2])
             except Exception:
                 v = msg[2]
-            cues[msg[1]].soundFadeIn = v
+            cues[msg[1]].sound_fade_in = v
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setreentrant":
@@ -857,7 +857,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     s = s[len(i):]
                     break
 
-            if s.strip() and cues[msg[1]].sound and cues[msg[1]].namedForSound:
+            if s.strip() and cues[msg[1]].sound and cues[msg[1]].named_for_sound:
                 self.pushCueMeta(msg[1])
                 raise RuntimeError(
                     "This cue was named for a specific sound file, forbidding change to avoid confusion.  To override, set to no sound first"
@@ -882,23 +882,23 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setcuesoundoutput":
-            cues[msg[1]].soundOutput = msg[2].strip()
+            cues[msg[1]].sound_output = msg[2].strip()
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setcuesoundstartposition":
-            cues[msg[1]].soundStartPosition = float(msg[2].strip())
+            cues[msg[1]].sound_start_position = float(msg[2].strip())
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setcuemediaspeed":
-            cues[msg[1]].mediaSpeed = float(msg[2].strip())
+            cues[msg[1]].media_speed = float(msg[2].strip())
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setcuemediawindup":
-            cues[msg[1]].mediaWindup = float(msg[2].strip())
+            cues[msg[1]].media_wind_up = float(msg[2].strip())
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setcuemediawinddown":
-            cues[msg[1]].mediaWinddown = float(msg[2].strip())
+            cues[msg[1]].media_wind_down = float(msg[2].strip())
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "settrack":
@@ -948,7 +948,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = float(msg[2])
             except Exception:
                 v = msg[2][:256]
-            cues[msg[1]].lengthRandomize = v
+            cues[msg[1]].length_randomize = v
             cues[msg[1]].scene().recalcRandomizeModifier()
             self.pushCueMeta(msg[1])
 
@@ -957,7 +957,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 c = msg[2][:1024].strip()
             else:
                 c = None
-            cues[msg[1]].nextCue = c
+            cues[msg[1]].next_cue = c
             self.pushCueMeta(msg[1])
 
         elif msg[0] == "setprobability":
