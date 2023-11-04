@@ -26,6 +26,7 @@ from attr import has
 from . import util, pages, directories, messagebus, systasks, modules_state, theming
 import mako
 import cherrypy
+import tornado
 import sys
 import importlib
 import jinja2
@@ -271,6 +272,7 @@ class CompiledPage:
                     "page": self.localAPI,
                     "print": self.new_print,
                     "_k_alt_top_banner": self.alt_top_banner,
+                    "imp0rt": importlib.import_module
                 }
                 if m in modules_state.scopes:
                     self.scope["module"] = modules_state.scopes[m]
@@ -747,7 +749,7 @@ class KaithemPage:
                 return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
             # tb = traceback.format_exc(chain=True)
-            tb = cherrypy.exceptions.text_error_template().render()
+            tb = tornado.exceptions.text_error_template().render()
             data = (
                 "Request from: "
                 + cherrypy.request.remote.ip

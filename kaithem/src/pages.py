@@ -44,10 +44,14 @@ env = jinja2.Environment(
 
 import importlib
 
+# These get imported by the page header template, which is also what imp0rt is for
+list = list
+sorted = sorted
+len = len
+
 
 def render_jinja_template(n, **kw):
     return _jl.load(env, n).render(imp0rt=importlib.import_module,
-                                   list = list, sorted=sorted, len= len,
                                     **kw)
 
 

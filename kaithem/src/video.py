@@ -41,7 +41,7 @@ class MPlayerWrapper(SoundWrapper):
             except:
                 pass
 
-        def isPlaying(self):
+        def is_playing(self):
             self.process.poll()
             return self.process.returncode == None
 
@@ -49,7 +49,7 @@ class MPlayerWrapper(SoundWrapper):
             return time.time() - self.started
 
         def setVol(self, volume):
-            if self.isPlaying():
+            if self.is_playing():
                 try:
                     self.process.stdin.write(
                         bytes("volume "+str(volume*100)+" 1\n", 'utf8'))
@@ -76,7 +76,7 @@ class MPlayerWrapper(SoundWrapper):
             except:
                 pass
 
-    def playSound(self, filename, handle="PRIMARY", **kwargs):
+    def play_sound(self, filename, handle="PRIMARY", **kwargs):
 
         if 'volume' in kwargs:
             # odd way of throwing errors on non-numbers
@@ -125,10 +125,10 @@ class MPlayerWrapper(SoundWrapper):
             except KeyError:
                 pass
 
-    def isPlaying(self, channel="PRIMARY"):
+    def is_playing(self, channel="PRIMARY"):
         "Return true if a sound is playing on channel"
         try:
-            return self.runningSounds[channel].isPlaying()
+            return self.runningSounds[channel].is_playing()
         except KeyError:
             return False
 

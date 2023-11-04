@@ -47,7 +47,7 @@ rpc = [None]
 
 def tryToAvoidSegfaults(t, v):
     if v.clientName == "system":
-        stopAllJackUsers()
+        stop_allJackUsers()
 
 
 
@@ -284,7 +284,7 @@ def link(a, b):
             pass  # b.unref()
 
 
-def stopAllJackUsers():
+def stop_allJackUsers():
     # It seems best to stop everything using jack before stopping and starting the daemon.
     with lock:
         c = list(jackChannels.items())

@@ -5,7 +5,7 @@ from subprocess import Popen
 from . import workers
 
 
-def stopAllJackUsers():
+def stop_allJackUsers():
     # No longer needed, occasional subprocess segfaults stay contained
     pass
 

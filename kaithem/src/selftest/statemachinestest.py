@@ -29,9 +29,9 @@ def stateMachinesTest():
     on = blink.add_state("on")
     off = blink.add_state("off")
 
-    blink.setTimer("on", 1, "off")
+    blink.set_timer("on", 1, "off")
 
-    blink.setTimer("off", 1, "on")
+    blink.set_timer("off", 1, "on")
     blink.addRule("off", 'begin', "on")
     blink('begin')
     module['Oscillating State Machine'] = blink
@@ -50,7 +50,7 @@ def stateMachinesTest():
     on = sm.add_state("on", enter=on)
     off = sm.add_state("off", enter=off)
 
-    sm.setTimer("on", 1, "off")
+    sm.set_timer("on", 1, "off")
 
     sm.addRule('off', "motion","on")
 

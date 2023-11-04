@@ -1,0 +1,80 @@
+---
+allow-origins:
+- '*'
+allow-xss: false
+alt-top-banner: ''
+auto-reload: false
+auto-reload-interval: 5.0
+code: counters[0] += 1
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method:
+- GET
+- POST
+require-permissions: []
+resource-timestamp: 1699070284308433
+resource-type: page
+setupcode: "# This code runs once when the page is creates\r\n# All varibles in code\
+  \ are accessible in the page body.\r\n\r\ncounters = [0]"
+streaming-response: false
+template-engine: jinja2
+theme-css-url: ''
+
+---
+{% extends "pagetemplate.j2.html" %}
+
+{% block title %} Basic Page {% endblock %}
+
+{% block body %}
+
+<main>
+  <section class="window">
+    <header>Look! A Header!</header>
+
+    <h2>Basic Page</h2>
+    <h3>Jinja2 templating</h3>
+      <p>Here's a counter! {{ counters[0] }}</p>
+
+    <h3>Components</h3>
+    <p>Kaithem uses a custom CSS framework</p>
+    <div class="tool-bar">
+      <p>Toolbar</p>
+      <button>Button</button>
+      <label>
+        Labeled input
+        <input>
+      </label>
+    </div>
+
+    <article class="card w-sm-full">
+      <header>Cards can have headers</header>
+        This is a card! Headers and footers are optional in
+        cards and windows.  "w-sm-full" means about the width of a
+        phone screen.
+      <footer>A footer</footer>
+    </article>
+
+    <h3>Semantic Styles</h3>
+    <p class="warning">Let this be a warning!</p>
+    <p class="danger">Danger Will Robinson!</p>
+    <p class="success">Everything is fine now.</p>
+    <p class="highlight">The highlight of the page</p>
+
+    <h3>Flex</h3>
+    <p>The flex-rows class is all you need for a nice layout.
+      The padding class gives any element a little padding around the edges.
+    </p>
+
+    <div class="flex-rows padding">
+          <article class="card w-sm-half h-6rem"></article>
+          <article class="card w-sm-half h-6rem"></article>
+          <article class="card w-sm-half h-6rem"></article>
+          <article class="card w-sm-half h-6rem"></article>
+    </div>
+
+
+    </section>
+</main>
+
+{% endblock %}

@@ -114,12 +114,12 @@ class SoundWrapper(object):
         x = list(self.runningSounds.keys())
         for i in x:
             try:
-                if not self.runningSounds[i].isPlaying():
+                if not self.runningSounds[i].is_playing():
                     self.runningSounds.pop(i)
             except KeyError:
                 pass
 
-    def stopAllSounds(self):
+    def stop_allSounds(self):
         x = list(self.runningSounds.keys())
         for i in x:
             try:
@@ -140,13 +140,13 @@ class SoundWrapper(object):
     def setSpeed(self, speed: float, channel: str = "PRIMARY", *a, **kw):
         pass
 
-    def playSound(self, filename: str, handle: str = "PRIMARY", **kwargs):
+    def play_sound(self, filename: str, handle: str = "PRIMARY", **kwargs):
         pass
 
     def stopSound(self, handle: str = "PRIMARY"):
         pass
 
-    def isPlaying(self, handle: str = "blah", refresh: bool = False):
+    def is_playing(self, handle: str = "blah", refresh: bool = False):
         return False
 
     def pause(self, handle: str = "PRIMARY"):
@@ -155,8 +155,8 @@ class SoundWrapper(object):
     def resume(self, handle: str = "PRIMARY"):
         pass
 
-    def fadeTo(self, handle: str = "PRIMARY", **kw):
-        self.playSound(self, handle, **kw)
+    def fade_to(self, handle: str = "PRIMARY", **kw):
+        self.play_sound(self, handle, **kw)
 
     def preload(self, filename: str):
         pass
@@ -264,7 +264,7 @@ class MPVBackend(SoundWrapper):
         ):
             self.lock = threading.RLock()
             self.stopped = False
-            self.isPlayingCache = None
+            self.is_playingCache = None
 
             if output == "__disable__":
                 return
@@ -340,7 +340,7 @@ class MPVBackend(SoundWrapper):
             self.started = time.time()
 
             if filename:
-                self.isPlayingCache = None
+                self.is_playingCache = None
                 self.player.rpc.call(
                     "call", ["loadfile", filename], block=0.001, timeout=12
                 )
@@ -413,14 +413,14 @@ class MPVBackend(SoundWrapper):
                                 self.player.stop()
                 self.player = None
 
-        def isPlaying(self, refresh=False):
+        def is_playing(self, refresh=False):
             with self.lock:
                 if not hasattr(self, "player"):
                     return False
                 try:
                     if not refresh:
-                        if self.isPlayingCache is not None:
-                            return self.isPlayingCache
+                        if self.is_playingCache is not None:
+                            return self.is_playingCache
                     c = (
                         self.player.rpc.call(
                             "get", ["eof_reached"], block=0.001, timeout=12
@@ -429,7 +429,7 @@ class MPVBackend(SoundWrapper):
                     )
 
                     if c is False:
-                        self.isPlayingCache = c
+                        self.is_playingCache = c
 
                     return c
                 except Exception:
@@ -481,7 +481,7 @@ class MPVBackend(SoundWrapper):
             with self.lock:
                 self.player.rpc.call("set", ["pause", False])
 
-    def playSound(
+    def play_sound(
         self,
         filename: str,
         handle: str = "PRIMARY",
@@ -519,10 +519,10 @@ class MPVBackend(SoundWrapper):
             except KeyError:
                 pass
 
-    def isPlaying(self, channel="PRIMARY", refresh=False):
+    def is_playing(self, channel="PRIMARY", refresh=False):
         "Return true if a sound is playing on channel"
         try:
-            return self.runningSounds[channel].isPlaying(refresh)
+            return self.runningSounds[channel].is_playing(refresh)
         except KeyError:
             return False
 
@@ -568,7 +568,7 @@ class MPVBackend(SoundWrapper):
         except KeyError:
             pass
 
-    def fadeTo(
+    def fade_to(
         self,
         file: str,
         length: float = 1.0,
@@ -595,7 +595,7 @@ class MPVBackend(SoundWrapper):
             if windup:
                 sspeed = 0.1
 
-            self.playSound(
+            self.play_sound(
                 file,
                 handle=handle,
                 volume=0,
@@ -718,9 +718,9 @@ except Exception:
     print(traceback.format_exc())
 
 
-def stopAllSounds():
+def stop_allSounds():
     midi.allNotesOff()
-    backend.stopAllSounds()
+    backend.stop_allSounds()
 
 
 # Stop any old pulseaudio or something sound players that
@@ -729,7 +729,7 @@ def stopAllSounds():
 
 
 def sasWrapper(*a):
-    stopAllSounds()
+    stop_allSounds()
 
 
 messagebus.subscribe("/system/sound/jackstart", sasWrapper)
@@ -737,24 +737,24 @@ messagebus.subscribe("/system/sound/jackstart", sasWrapper)
 
 def oggSoundTest(output=None):
     t = "KaithemOggSoundTest"
-    playSound("alert.ogg", output=output, handle=t)
+    play_sound("alert.ogg", output=output, handle=t)
     for i in range(100):
-        if isPlaying(t, refresh=True):
+        if is_playing(t, refresh=True):
             return
         time.sleep(0.01)
     raise RuntimeError("Sound did not report as playing within 1000ms")
 
 
 # Make fake module functions mapping to the bound methods.
-playSound = backend.playSound
+play_sound = backend.play_sound
 stopSound = backend.stopSound
-isPlaying = backend.isPlaying
-resolveSound = soundPath
+is_playing = backend.is_playing
+resolve_sound = soundPath
 pause = backend.pause
 resume = backend.resume
 setvol = backend.setVolume
 position = backend.getPosition
-fadeTo = backend.fadeTo
+fade_to = backend.fade_to
 readySound = backend.readySound
 preload = backend.preload
 

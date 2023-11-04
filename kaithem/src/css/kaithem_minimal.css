@@ -752,8 +752,13 @@ footer>div {
 
 /*This is used for /important notifications*/
 .highlight {
-    color: rgb(0, 50, 0);
+    color: rgb(10, 95, 10);
     background-color: rgba(100, 150, 50, 0.2);
+}
+
+.success {
+    color: rgb(0, 158, 0);
+    background-color: rgba(142, 181, 184, 0.466);
 }
 
 .virtual,

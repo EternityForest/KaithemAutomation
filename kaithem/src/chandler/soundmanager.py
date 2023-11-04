@@ -24,7 +24,7 @@ def doSoundAction(g):
     kaithem.misc.do(f)
 
 
-def playSound(*args, **kwargs):
+def play_sound(*args, **kwargs):
     if core.ratelimit.limit():
 
         def doFunction():

@@ -143,7 +143,7 @@ def alarmBeep():
             try:
                 # Ondemand to avoid circular import
                 from . import sound
-                sound.playSound(
+                sound.play_sound(
                     s, handle="kaithem_sys_main_alarm", output=beepDevice)
             except Exception:
                 logger.exception("ERROR PLAYING ALERT SOUND")
@@ -345,7 +345,7 @@ class Alert():
                 # Ondemand to avoid circular import
                 from . import sound
                 beepDevice = file['all']['soundcard']
-                sound.playSound(
+                sound.play_sound(
                     s, handle="kaithem_sys_main_alarm", output=beepDevice)
                 api.send(['shouldRefresh'])
 

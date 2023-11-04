@@ -3,7 +3,7 @@ from __future__ import annotations
 from .core import disallow_special
 from .universes import getUniverse, rerenderUniverse, mapUniverse, mapChannel
 from ..kaithemobj import kaithem
-from .soundmanager import fadeSound, playSound, stopSound
+from .soundmanager import fadeSound, play_sound, stopSound
 from . import core
 from . import universes
 from . import blendmodes
@@ -1573,7 +1573,7 @@ class Scene:
                             )
                             self.cueVolume = 1
                         try:
-                            sound = self.resolveSound(sound)
+                            sound = self.resolve_sound(sound)
                         except Exception:
                             print(traceback.format_exc())
 
@@ -1596,7 +1596,7 @@ class Scene:
                                     spd = self.scriptContext.preprocessArgument(
                                         self.cues[cue].media_speed
                                     )
-                                    playSound(
+                                    play_sound(
                                         sound,
                                         handle=str(self.id),
                                         volume=self.alpha * self.cueVolume,
@@ -1753,7 +1753,7 @@ class Scene:
             c = self.cues[next_cue]
             sound = c.sound
             try:
-                sound = self.resolveSound(sound)
+                sound = self.resolve_sound(sound)
             except Exception:
                 return
             if os.path.isfile(sound):
@@ -1768,8 +1768,8 @@ class Scene:
                 except Exception:
                     print(traceback.format_exc())
 
-    def resolveSound(self, sound):
-        return core.resolveSound(sound)
+    def resolve_sound(self, sound):
+        return core.resolve_sound(sound)
 
     def recalcRandomizeModifier(self):
         "Recalculate the random variance to apply to the length"
@@ -1806,7 +1806,7 @@ class Scene:
 
         else:
             if self.cue.sound and self.cue.rel_length:
-                path = self.resolveSound(self.cue.sound)
+                path = self.resolve_sound(self.cue.sound)
                 if (
                     path.endswith(".png")
                     or path.endswith(".jpg")

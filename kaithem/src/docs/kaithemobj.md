@@ -250,7 +250,7 @@ event returning True and the state transition.
 
 
 
-#### sm.setTimer(state, length, dest)
+#### sm.set_timer(state, length, dest)
 
 Attach a timer to a state. The timer starts when you enter the state. If
 you remain there for more than length seconds, it goes to the dest. You
@@ -304,7 +304,7 @@ have the effect of extending the duration as expected.
 
 The current state as a string.
 
-#### sm.enteredState
+#### sm.entered_state
 
 The time.time() value when this state was entered.
 
@@ -322,7 +322,7 @@ Both values are guaranteed to match, the state will not change after
 checking one but before checking the other. Use this value any time you
 want to test if something has been in a state for a certain time
 
-#### sm.prevState
+#### sm.prev_state
 
 The previous state of the machine. May be the same as the current state
 if re-entry occurs. The initial value is None before any transitions
@@ -409,7 +409,7 @@ Format a time in seconds since the epoch according to the user's
 preference. When called outside of a page, format according to the
 default
 
-#### kaithem.time.moonPhase()
+#### kaithem.time.moon_phase()
 
 Returns the current moon phase as a float number:
 
@@ -419,33 +419,33 @@ Returns the current moon phase as a float number:
     21-28 = Last quarter
 
 
-#### kaithem.time.sunriseTime(lat=None,lon=None,date=None)
+#### kaithem.time.sunrise_time(lat=None,lon=None,date=None)
 Returns the sunrise time on today's date, regardless of whether it is already passed or not.
 Defaults to the server location, right now.  Date can be a date object.
 
-#### kaithem.time.sunsetTime()
-#### kaithem.time.civilDawnTime()
-#### kaithem.time.civilDuskTime()
+#### kaithem.time.sunset_time()
+#### kaithem.time.civil_dawn_time()
+#### kaithem.time.civil_dusk_time()
 See above.
 
 **NOTE: any of these may raise an exception if
 there is no sunrise or sunset in the current day(as in some regions in
 the arctic circle during some seasons).**
 
-#### kaithem.time.isDay(lat=None,lon=None)
+#### kaithem.time.is_day(lat=None,lon=None)
 
 Return true if it is before sunset in the given lat-lon location. If no
 coordinates are supplied, the server location configured in the settings
 page is used. If no location is configured, an error is raised.
 
-#### kaithem.time.isNight(lat=None,lon=None)
+#### kaithem.time.is_night(lat=None,lon=None)
 
 Return true if it is after sunset in the given lat-lon location. Kaithem
 handles coordinates as floating point values. If no coordinates are
 supplied, the server location configured in the settings page is used.
 If no location is configured, an error is raised.
 
-#### kaithem.time.isDark(lat=None,lon=None)
+#### kaithem.time.is_dark(lat=None,lon=None)
 
 Return true if it is currently past civil twilight in the given lat-lon
 location. Civil twilight is defined when the sun is 6 degrees below the
@@ -455,13 +455,13 @@ artificial light sources. If no coordinates are supplied, the server
 location configured in the settings page is used. If no location is
 configured, an error is raised.
 
-#### kaithem.time.isLight(lat=None,lon=None)
+#### kaithem.time.is_light(lat=None,lon=None)
 
 Return true if it is not past civil twilight given lat-lon location. If
 no coordinates are supplied, the server location configured in the
 settings page is used. If no location is configured, an error is raised.
 
-#### kaithem.time.isRahu(llat=None,lon=None)
+#### kaithem.time.is_rahu(llat=None,lon=None)
 
 Return true if it is currently Rahukalaam (A period during each day that
 is considered inauspicious for new ventures in Indian astrology) in the
@@ -492,7 +492,7 @@ is no such program
 This namespace contains features for working with kaithem's user
 management system.
 
-#### kaithem.users.checkPermission(username, permission)
+#### kaithem.users.check_permission(username, permission)
 
 Returns True is the specified use has the given permission and False
 otherwise. Also returns False if the user does not exist.
@@ -531,7 +531,7 @@ The kaithem.sound API is slightly different depending on which backend
 has been configured. By default mplayer will be used if available and is
 the recommended backed.
 
-#### kaithem.oggTest([output])
+#### kaithem.ogg_test([output])
 Attempt to play an OGG test chime. May raise an error if it detects that it does not work.
 
 #### kaithem.sound.directories
@@ -549,7 +549,7 @@ Does nothing on non-gstreamer backends.
 
 
 
-#### kaithem.sound.fadeTo(self,file,length=1.0, block=False, detach=True, handle="PRIMARY",**kwargs):
+#### kaithem.sound.fade_to(self,file,length=1.0, block=False, detach=True, handle="PRIMARY",**kwargs):
 
 Only guaranteed to work with GStreamer backend.
 
@@ -605,11 +605,11 @@ the data dir, and cann be drectly passed to play.
 
 Stop a sound by handle.
 
-#### kaithem.sound.stopAll()
+#### kaithem.sound.stop_all()
 
 Stop all currently playing sounds.
 
-#### kaithem.sound.isPlaying(handle="PRIMARY")
+#### kaithem.sound.is_playing(handle="PRIMARY")
 
 Return true if a sound with handle handle is playing. Note that the
 sound might finish before you actually get around to doing anything with
@@ -874,7 +874,7 @@ Relying on users not to do this, however, seems like a fairly bad idea, so kaith
 Note that even with this protection, XSS can still do anything that a guest can do.
 
 
-#### kaithem.web.goBack()
+#### kaithem.web.go_back()
 
 When called from code embedded in an HTML page, raises an interrupt
 causing an HTTP redirect to the previous page to be sent. Useful for
@@ -890,7 +890,7 @@ causing an HTTP redirect to the previous specified url to be sent.
 When called from within a page, returns the usernae of the accessing
 user or else an empty string if not logged in.
 
-#### <span id="servefile"></span>kaithem.web.serveFile(path,contenttype,name = path)
+#### <span id="servefile"></span>kaithem.web.serve_file(path,contenttype,name = path)
 
 When called from code embedded in an HTML page,raises an interrupt
 causing the server to skip rendering the current page and instead serve
@@ -1015,12 +1015,12 @@ When called from within a page, formats the time(in seconds since the
 epoch), according to the user's time settings. If no time is given,
 defaults to right now.
 
-#### kaithem.string.siFormat(n,d=2)
+#### kaithem.string.si_format(n,d=2)
 
 Takes a number and formats it with suffixes. 1000 becomes 1K, 1,000,000
 becomes 1M. d is the number of digits of precision to use.
 
-#### kaithem.string.formatTimeInterval(n,places=2,clock=False)
+#### kaithem.string.format_time_interval(n,places=2,clock=False)
 
 Takes a length of time in secons and formats it. Places is the mx units
 to use. formatTimeInterval(5,1) becomes ""5 seconds",
@@ -1036,7 +1036,7 @@ This namespace contains tools for writing plugins for kaithem. A plugin
 can be just a module that provides features, or it can be a python file
 in src/plugins/startup, which will be automatically imported.
 
-#### kaithem.plugin.addPlugin(name,object)
+#### kaithem.plugin.add_plugin(name,object)
 
 Causes a weak proxy to object to become available at kaithem.name. The
 object will be deleted as soon as there are no references to it. Note

@@ -88,7 +88,7 @@ def getSoundFolders() -> Dict[str, str]:
     return soundfolders
 
 
-def resolveSound(sound):
+def resolve_sound(sound):
     # Allow relative paths
     if not sound.startswith("/"):
         for i in getSoundFolders():

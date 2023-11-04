@@ -34,7 +34,7 @@ def allNotesOff():
         pass
 
 
-def stopAll():
+def stop_all():
     try:
         for i in players:
             players[i].close()

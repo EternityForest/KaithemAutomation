@@ -25,7 +25,7 @@ if 'albumArt' in kwargs:
   if not sound:
     return ''  
     
-  sound = module.resolveSound(sound)
+  sound = module.resolve_sound(sound)
 
   if vignette:
     t = vignette.try_get_thumbnail(sound)
@@ -45,7 +45,7 @@ else:
   if 'scene' in kwargs and module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
   elif 'scene' in kwargs and module.scenes_by_name[kwargs['scene']].cue.slide == kwargs['file']:
-    kaithem.web.serve_file(module.scenes_by_name[kwargs['scene']].resolveSound(kwargs['file']),name= os.path.basename(kwargs['file']))
+    kaithem.web.serve_file(module.scenes_by_name[kwargs['scene']].resolve_sound(kwargs['file']),name= os.path.basename(kwargs['file']))
   elif 'scene' in kwargs and kwargs['file'] in module.scenes_by_name[kwargs['scene']].musicVisualizations:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
   else:
@@ -53,7 +53,7 @@ else:
     for i in module.scenes_by_name:
       x = i
       break
-    f = module.scenes_by_name[x].resolveSound(kwargs['file'])
+    f = module.scenes_by_name[x].resolve_sound(kwargs['file'])
     if kaithem.web.has_permission("users.chandler.admin"):
       for i in module.getSoundFolders():
         if not i.endswith("/"):

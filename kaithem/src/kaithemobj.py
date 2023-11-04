@@ -525,7 +525,7 @@ class Kaithem():
     class sound(object):
 
         builtin_sounds = sound.builtinSounds
-        resolve_sound = sound.resolveSound
+        resolve_sound = sound.resolve_sound
 
         oggTest = sound.oggSoundTest
 
@@ -559,7 +559,7 @@ class Kaithem():
 
         @staticmethod
         def play(*args, **kwargs):
-            sound.playSound(*args, **kwargs)
+            sound.play_sound(*args, **kwargs)
 
         @staticmethod
         def wait(*args, **kwargs):
@@ -579,11 +579,11 @@ class Kaithem():
 
         @staticmethod
         def stop_all():
-            sound.stopAllSounds()
+            sound.stop_allSounds()
 
         @staticmethod
         def is_playing(*args, **kwargs):
-            return sound.isPlaying(*args, **kwargs)
+            return sound.is_playing(*args, **kwargs)
 
         @staticmethod
         def position(*args, **kwargs):
@@ -595,7 +595,7 @@ class Kaithem():
         
         @staticmethod
         def fade_to(*args, **kwargs):
-            return sound.fadeTo(*args, **kwargs)
+            return sound.fade_to(*args, **kwargs)
 
         @staticmethod
         def preload(*args, **kwargs):

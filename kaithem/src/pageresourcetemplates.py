@@ -32,11 +32,11 @@ ${{kaithem.web.freeboard(page, kwargs, plugins)}}
 
 
 defaulthtml = """
-{% extends "pagetemplate.j2.html" %}
+{{% extends "pagetemplate.j2.html" %}}
 
-{% block title %} {basename} {% endblock %}
+{{% block title %}} {basename} {{% endblock %}}
 
-{% block content %}
+{{% block content %}}
 
 <main>
   <h2>{basename}</h2>
@@ -45,7 +45,7 @@ defaulthtml = """
   </section>
 </main>
 
-{% endblock %}
+{{% endblock %}}
 """
 
 
