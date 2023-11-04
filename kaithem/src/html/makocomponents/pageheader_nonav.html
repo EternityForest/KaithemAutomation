@@ -11,6 +11,6 @@ import socket
 	</head>
 
   <body id="page">
-	<header class="nonavtopbannercontainer">
+	<header>
   ${(_k_alt_top_banner or config['top-banner-html']).replace("HOSTNAME",socket.gethostname())}
   </header>

@@ -329,7 +329,7 @@ document.getElementById("codebox").style="display:none;";
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>
 <span class="settings-icon">These extra settings let you control the display or permissions of the page
 </details>
-<div class="scrollbox">
+<div class="max-h-12rem scroll border">
 
 <input type="checkbox"  name="streaming-response" value="true"
     %if 'streaming-response' in page:
@@ -487,7 +487,7 @@ else:
 <details><summary><i class="icofont-key"></i>Permissions</summary>
     
     <p>Require the following permissions to access this page</p>
-    <div class="scrollbox">
+    <div class="max-h-12rem scroll border">
         <ul>
             %for i in sorted(auth.Permissions.keys()):
                 <li><label> <input type="checkbox"  name="Permission${i}" value="true"
@@ -510,7 +510,7 @@ else:
 This section shows up to the most recent 25 errors that occured while rendering the page.
 </p>
 %try:
-<div class="scrollbox">
+<div class="max-h-12rem scroll border">
 %for i in usrpages.getPageErrors(module,name):
     <h4>${i[0]|h}</h4>
 <pre>

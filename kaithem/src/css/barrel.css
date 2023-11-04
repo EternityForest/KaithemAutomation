@@ -1,0 +1,1168 @@
+:root {
+    --fg: #464646;
+    --graphical-fg: rgb(95, 95, 95);
+    --bg: whitesmoke;
+    --box-bg: hsl(200, 27%, 98%);
+    --interactive-bg: #f8fafb;
+    --border-color: var(--graphical-fg);
+    --border-radius: 0.6rem;
+    --main-font: "Sans";
+}
+
+/*****************Typography****************************/
+
+@media screen and (max-width: 820px) {
+    .desktop-only {
+        display: none;
+    }
+}
+
+/*Overall page layout */
+
+main {
+    margin: auto;
+}
+
+main {
+    width: min(45em, 100vw);
+}
+
+html {
+    background: var(--bg);
+}
+
+body {
+    font-family: Lato;
+    line-height: 1.6;
+    font-size: 18px;
+    margin: 0px;
+    color: var(--fg);
+}
+
+
+
+
+button,
+a.button,
+label,
+a,
+select {
+    font-family: inherit;
+}
+
+/*Stack labels on the form elements*/
+label>:is(input, select, button, div) {
+    display: block;
+}
+
+label:has(*) {
+    display: inline-block;
+}
+
+
+/********************Behavior****************************/
+body {
+    /* Disables pull-to-refresh but allows overscroll glow effects. */
+    overscroll-behavior-y: contain;
+}
+
+/********************Basic Layout******************************/
+
+/*Headings and lines */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--graphical-fg);
+}
+
+h3 button,
+h3 a.button {
+    font-size: 100%;
+    font-family: var(--main-font);
+}
+
+h1,
+h2,
+h3 {
+    font-family: var(--main-font);
+    margin-bottom: 12px;
+    margin-top: 28px;
+    text-align: center;
+}
+
+h2 {
+    margin-top: 32px;
+}
+
+
+
+h2:first-of-type,
+h3:first-of-type {
+    margin-top: 0px;
+}
+
+hr {
+    background-color: transparent;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    height: 1px;
+}
+
+
+/*Headers and footers */
+header {
+    border-radius: 0px 0px inherit inherit;
+}
+
+header {
+    border-radius: inherit inherit 0px 0px;
+}
+
+
+header,
+footer {
+    background-color: #d0d0d036;
+    width: 100%;
+    padding: 0px;
+    box-sizing: border-box;
+    margin: 0px;
+    flex-grow: 0;
+}
+
+header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+header>*:only-child {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px;
+    margin: 0px;
+}
+
+footer {
+    border-top: 1px solid var(--border-color);
+}
+
+
+
+/*Inputs*/
+
+input[type=checkbox] {
+    min-width: 2em;
+}
+
+
+dialog {
+    position: fixed;
+    top: 50%;
+    bottom: 50%;
+    border: 3px solid;
+    border-color: var(--border-color);
+    z-index: 1000;
+}
+
+span,
+button {
+    color: inherit;
+}
+
+
+textarea:disabled {
+    background-color: #D0D0D0
+}
+
+details {
+    margin: 0.4em;
+    border: 1px solid var(--border-color);
+    padding-left: 0.4em;
+    border-radius: var(--border-radius);
+}
+
+details.help {
+    border: 1px dotted;
+}
+
+
+td details {
+    display: inline-block;
+}
+
+/*A link styled to look like a button*/
+a.button {
+    text-decoration: none;
+    border: 1px solid var(--border-color);
+    color: #000000;
+    padding: 0em 0.2em 0em 0.2em;
+    display: inline-block;
+}
+
+button {
+    border-style: solid;
+}
+
+summary h2:first-child {
+    display: inline;
+}
+
+/*****************************General***********************************************************************************/
+
+/**Basic styling**/
+iframe {
+    border-style: solid;
+    border-width: 1px;
+}
+
+/*Tables*/
+
+table,
+tr,
+td,
+th,
+thead {
+    border-color: var(--border-color);
+}
+
+table {
+    border-style: solid;
+    border-width: 1px;
+    border-color: var(--border-color);
+    border-collapse: collapse;
+    margin: 0.4em;
+}
+
+/*This makes tables easier to read by coloring alternate rows differently.*/
+table tr:nth-child(odd) td {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+table tr:nth-child(even) td {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--border-radius);
+    ;
+    border: none;
+}
+
+tbody {
+    border-radius: var(--border-radius);
+    ;
+}
+
+
+td input,
+td select {
+    border: 1px solid var(--border-color);
+    box-sizing: border-box;
+    margin: 0px;
+    height: 1.8em;
+    width: auto;
+}
+
+
+td {
+    padding: 1px;
+    width: max-content;
+}
+
+th {
+    width: max-content;
+}
+
+table tr th,
+table tr td {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 4px;
+}
+
+table tr th:first-child,
+table tr td:first-child {
+    border-left: 1px solid var(--border-color);
+}
+
+table tr th,
+table tr:first-child td {
+    border-top: 1px solid var(--border-color);
+    text-align: left;
+}
+
+
+/* top-left border-radius */
+
+:is(table, thead:first-child, tbody:first-child):first-child>tr:first-child :first-child:is(td, th) {
+    border-top-left-radius: var(--border-radius);
+    ;
+}
+
+
+/* top-right border-radius */
+
+:is(table, thead:first-child, tbody:first-child)>tr:first-child :last-child:is(td, th) {
+    border-top-right-radius: var(--border-radius);
+    ;
+}
+
+
+/* bottom-left border-radius */
+
+:is(table, tbody)>tr:last-child :first-child:is(td, th) {
+    border-bottom-left-radius: var(--border-radius);
+    ;
+}
+
+
+/* bottom-right border-radius */
+
+:is(table, tbody)>tr:last-child :last-child:is(td, th) {
+    border-bottom-right-radius: var(--border-radius);
+    ;
+}
+
+
+
+
+/* Components */
+
+.decorative-image {
+    display: none;
+}
+
+
+.card {
+    border-style: solid;
+    border-width: 1px;
+    border-radius: var(--border-radius);
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0.8em;
+    margin-bottom: 0.2em;
+    box-sizing: border-box;
+    overflow-x: auto;
+    flex-basis: fit-content;
+    flex-grow: 0.1;
+
+    border-color: var(--border-color);
+}
+
+/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
+.window {
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 0.8em;
+    margin-bottom: 0.2em;
+    min-width: min-content;
+    box-sizing: border-box;
+    max-width: 99%;
+    overflow: auto;
+    border-radius: var(--border-radius);
+    border-color: var(--border-color);
+    text-align: left;
+    flex-grow: 1;
+    flex-basis: min-content;
+    resize: both;
+}
+
+
+
+/*Flex rows and cols */
+.max-content {
+    width: max-content;
+    height: min-content;
+    flex-basis: max-content;
+}
+
+.min-content {
+    width: min-content;
+    height: min-content;
+    flex-basis: min-content;
+}
+
+
+.flex-cols {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+}
+
+.flex-cols>* {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    flex-basis: fit-content;
+}
+
+.flex-cols footer,
+.flex-cols header {
+    flex-grow: 0;
+}
+
+.flex-rows {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 12px;
+    align-items: stretch;
+    justify-content: space-between;
+}
+
+
+.flex-rows>* {
+    box-sizing: border-box;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: fit-content;
+    margin: 0px;
+}
+
+/*Grid and sizing*/
+
+.col-1,
+.col-2,
+.col-3,
+.col-4,
+.col-5,
+.col-6,
+.col-7,
+.col-8,
+.col-9,
+.col-10,
+.col-11,
+.col-12 {
+    flex-grow: .5;
+    flex-basis: unset;
+}
+
+.col-1 {
+    width: 4.33%;
+}
+
+.col-2 {
+    width: 12.66%;
+}
+
+.col-3 {
+    width: 21%;
+}
+
+.col-4 {
+    width: 29.33%;
+}
+
+.col-5 {
+    width: 37.66%;
+}
+
+.col-6 {
+    width: 46%;
+}
+
+.col-7 {
+    width: 54.33%;
+}
+
+.col-8 {
+    width: 62.66%;
+}
+
+.col-9 {
+    width: 71%;
+}
+
+.col-10 {
+    width: 79.33%;
+}
+
+.col-11 {
+    width: 87.66%;
+}
+
+.col-12 {
+    width: 96%;
+}
+
+
+
+.nogaps>.col-1 {
+    width: 8.3333%;
+}
+
+.nogaps>.col-2 {
+    width: 16.6666;
+}
+
+.nogaps>.col-3 {
+    width: 25%;
+}
+
+.nogaps>.col-4 {
+    width: 33.33333%;
+}
+
+.nogaps>.col-5 {
+    width: 41.6666%;
+}
+
+.nogaps>.col-6 {
+    width: 50%;
+}
+
+.nogaps>.col-7 {
+    width: 58.333%;
+}
+
+.nogaps>.col-8 {
+    width: 66.66%;
+}
+
+.nogaps>.col-9 {
+    width: 75%;
+}
+
+.nogaps>.col-10 {
+    width: 83.33%;
+}
+
+.nogaps>.col-11 {
+    width: 91.66%;
+}
+
+.nogaps>.col-12 {
+    width: 100%;
+}
+
+/*Sizes that are relative to approximately the width of a phone screem*/
+.w-sm-full {
+    width: 8cm;
+    max-width: calc(min(11cm, 96vw));
+    flex-basis: 11cm;
+    flex-shrink: 1;
+}
+
+.w-sm-half {
+    width: 3.5cm;
+    max-width: calc(min(5cm, 48vw));
+    flex-basis: 3.5cm;
+}
+
+.w-sm-double {
+    width: 16cm;
+    max-width: calc(min(28cm, 96vw));
+    flex-basis: 16cm;
+    flex-shrink: 1;
+    flex-grow: 1;
+}
+
+.w-full {
+    width: 100%;
+    box-sizing: border-box;
+    flex-basis: 100%;
+}
+
+.h-full {
+    height: 100vh
+}
+
+.h-half {
+    height: 46vh;
+}
+
+.h-quarter {
+    height: 22vh;
+}
+
+.scroll {
+    overflow: auto;
+}
+
+.max-h-1rem {
+    max-height: 1rem;
+}
+
+.max-h-2rem {
+    max-height: 2rem;
+}
+
+.max-h-4rem {
+    max-height: 4rem;
+}
+
+.max-h-6rem {
+    max-height: 6rem;
+}
+
+.max-h-12rem {
+    max-height: 12rem;
+}
+
+.max-h-24rem {
+    max-height: 24rem;
+}
+
+.max-h-36rem {
+    max-height: 36rem;
+}
+
+.max-h-48rem {
+    max-height: 48rem;
+}
+
+-max-h-60rem {
+    max-height: 60rem;
+}
+
+
+
+.min-h-1rem {
+    min-height: 1rem;
+}
+
+.min-h-2rem {
+    min-height: 2rem;
+}
+
+.min-h-4rem {
+    min-height: 4rem;
+}
+
+.min-h-6rem {
+    min-height: 6rem;
+}
+
+.min-h-12rem {
+    min-height: 12rem;
+}
+
+.min-h-24rem {
+    min-height: 24rem;
+}
+
+.h-1rem {
+    height: 1rem;
+}
+
+.h-2rem {
+    height: 2rem;
+}
+
+.h-4rem {
+    height: 4rem;
+}
+
+.h-6rem {
+    height: 6rem;
+}
+
+.h-12rem {
+    height: 12rem;
+}
+
+.h-24rem {
+    height: 24rem;
+}
+
+.h-36rem {
+    height: 36rem;
+}
+
+.h-48rem {
+    height: 48rem;
+}
+
+.h-60rem {
+    height: 60rem;
+}
+
+.flex-cols>.h-1rem {
+    flex-basis: 1rem;
+}
+
+.flex-cols>.h-2rem {
+    flex-basis: 2rem;
+}
+
+.flex-cols>.h-4rem {
+    flex-basis: 4rem;
+}
+
+.flex-cols>.h-6rem {
+    flex-basis: 6rem;
+}
+
+.flex-cols>.h-12rem {
+    flex-basis: 12rem;
+}
+
+.flex-cols>.h-24rem {
+    flex-basis: 24rem;
+}
+
+.flex-cols>.h-36rem {
+    flex-basis: 36rem;
+}
+
+.flex-cols>.h-48rem {
+    flex-basis: 48rem;
+}
+
+.flex-cols>.h-60rem {
+    flex-basis: 60rem;
+}
+
+/*Simple utilities */
+
+.paper {
+    background: var(--box-bg);
+}
+
+.v-center {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.h-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.undecorated {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+}
+
+
+.nogaps {
+    gap: 0px;
+}
+
+.nogaps>* {
+    margin: 0px;
+    box-sizing: border-box;
+}
+
+.padding {
+    padding: 6px;
+}
+
+.font-normal {
+    font-style: normal;
+}
+
+.nopadding {
+    padding: 0px;
+}
+
+.nogrow {
+    flex-grow: 0 !important;
+}
+
+.noshrink {
+    flex-grow: 0;
+}
+
+.grow {
+    flex-grow: 1;
+}
+
+.margin {
+    margin: 12px;
+}
+
+.nomargin {
+    margin: 0px;
+}
+
+.block {
+    display: block;
+}
+
+.inline {
+    display: inline;
+}
+
+.inline.block,
+.inline-block {
+    display: inline-block;
+}
+
+.inline-flex,
+.flex-rows.inline,
+.flex-cols.inline,
+.tool-bar.inline {
+    display: inline-flex;
+}
+
+
+
+.align-left {
+    text-align: left;
+    justify-content: left;
+}
+
+.align-right {
+    text-align: right;
+    justify-content: right;
+}
+
+.align-center {
+    text-align: center;
+    justify-content: center;
+}
+
+/*Colorways*/
+
+/*danger is the canonical*/
+.error,
+.danger,
+.bad {
+    text-shadow: 0px 0px 2px rgba(255, 100, 100, 0.9);
+    color: #900000;
+    background-color: rgba(255, 200, 0, 0.2);
+}
+
+.warning,
+.warn {
+    color: #806600;
+    background-color: rgba(255, 255, 0, 0.2);
+    text-shadow: 0px 0px 2px rgba(255, 255, 0, 0.2);
+
+}
+
+.highlight {
+    background-color: #97db7879;
+}
+
+.success {
+    color: rgb(0, 158, 0);
+    background-color: rgba(194, 221, 191, 0.466);
+}
+
+.error.paper {
+    background-color: rgba(255, 200, 0, 0.8);
+}
+
+.warning.paper {
+    background-color: rgba(255, 255, 0, 0.8);
+}
+
+.highlight.paper {
+    background-color: rgb(151, 219, 120)
+}
+
+.success.paper {
+    background-color: rgba(194, 221, 191, 0.836);
+}
+
+/*Classless styles */
+
+blockquote {
+    white-space: pre-wrap;
+    border-left: 3px solid var(--graphical-fg);
+    font-style: italic;
+    border-color: var(--border-color);
+}
+
+a {
+    text-decoration-style: dotted;
+    text-decoration-thickness: 1.2px;
+    text-decoration-color: var(--fg);
+    color: var(--graphical-fg);
+}
+
+/* Color elements */
+
+button,
+a.button,
+input,
+textarea,
+select {
+    background-color: var(--interactive-bg);
+}
+
+button,
+input,
+textarea,
+select,
+p,
+div {
+    color: var(--fg);
+    border-color: var(--border-color);
+}
+
+
+
+dd {
+    margin-bottom: 1.5em;
+}
+
+/******************The tool bar *************************/
+/*This class very much needs some refactoring */
+.multibar {
+    flex-basis: content;
+    flex-grow: 5;
+    flex-direction: row;
+    display: flex;
+    height: fit-content;
+    flex-basis: max-content;
+    flex-wrap: wrap;
+}
+
+.tool-bar {
+    --tool-bar-element-border: 1px solid var(--border-color);
+    flex-basis: max-content;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    --tool-bar-border-radius: 12px;
+    border-radius: var(--tool-bar-border-radius);
+    min-height: var(--tool-bar-height);
+    margin: 0.6em;
+    flex-grow: 1;
+    vertical-align: middle;
+    height: fit-content;
+    align-items: center;
+    align-content: center;
+    width: auto;
+    box-sizing: border-box;
+    background-clip: content-box;
+    --tool-bar-concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
+    --tool-bar-convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
+    --tool-bar-active-item-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+    --tool-bar-height: 28px;
+}
+
+
+.tool-bar {
+    gap: 0px;
+}
+
+.tool-bar * {
+    box-shadow: none;
+    display: inline-block;
+}
+
+.tool-bar form {
+    display: inline-block;
+}
+
+.multibar .tool-bar {
+    width: unset;
+}
+
+.tool-bar img {
+    display: inline;
+}
+
+.tool-bar a {
+    display: block;
+    text-align: center;
+}
+
+.tool-bar label {
+    display: flex;
+    flex-grow: 50;
+    border: 0px;
+    text-align: right;
+}
+
+.tool-bar>*,
+.tool-bar input,
+.tool-bar>a {
+    box-sizing: border-box;
+    font-size: inherit;
+    height: var(--tool-bar-height);
+    padding: 0px;
+}
+
+.tool-bar :is(a, a.button, select, input, meter, button) {
+    margin: 0px;
+    align-items: stretch;
+    border-radius: 0px;
+    flex-shrink: 1;
+    border-radius: 0px;
+    flex-basis: fit-content;
+}
+
+
+
+.tool-bar :only-child {
+    flex-grow: 1;
+}
+
+
+
+.tool-bar form {
+    border: 0px !important;
+    margin: 0px !important;
+    padding: 0px !important;
+    flex-grow: 50;
+    border: 0px !important;
+    display: flex;
+    flex-basis: fit-content;
+}
+
+.tool-bar form :is(button, input[type=button], select) {
+    flex-grow: 1;
+}
+
+.tool-bar :is(h1, h2, h3, h4, h5) * {
+    border: none;
+}
+
+
+.tool-bar :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0px;
+    padding: 0px;
+}
+
+.tool-bar> :is(h1, h2, h3, h4, h5, h6)>* {
+    margin: 0px;
+    padding: 0px;
+}
+
+
+.tool-bar :is(h1, h2, h3, h4, h5, h6, label) {
+    margin: 0px;
+    padding: 0px;
+    vertical-align: middle;
+    text-align: center;
+    display: flex;
+    flex-grow: 0.5;
+    min-width: fit-content;
+}
+
+.tool-bar p {
+    padding-left: 4px;
+    min-width: fit-content;
+    flex-grow: 0.5;
+    margin: 0px;
+}
+
+
+
+/*P is not growable */
+
+.tool-bar :is(meter, a, a.button, button) {
+    width: fit-content;
+    flex-grow: 1;
+}
+
+
+/*Most likely to make good use of the extra space*/
+
+.tool-bar input:not([type="submit"]),
+.tool-bar select {
+    flex-grow: 50;
+}
+
+.tool-bar select,
+.tool-bar button,
+.tool-bar a,
+.tool-bar p,
+.tool-bar div,
+.tool-bar h1,
+
+.tool-bar h2,
+.tool-bar h3,
+.tool-bar h4,
+.tool-bar h5,
+.tool-bar label,
+.tool-bar meter,
+.tool-bar input[type=submit] {
+    background: var(--tool-bar-convex-item-bg);
+}
+
+.tool-bar meter {
+    min-height: 100%;
+}
+
+.tool-bar :is(p, h1, h2, h3, h4, h5, h6, label) {
+    vertical-align: middle;
+    display: flex;
+}
+
+
+
+
+/*Exception: the first item always growable so it can be the title*/
+
+.tool-bar :is(h1, h2, h3, h4, h5, h6):first-child {
+    flex-grow: 50;
+}
+
+.tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
+.tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child {
+    border-radius: var(--tool-bar-border-radius) 0px 0px var(--tool-bar-border-radius);
+}
+
+.tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
+.tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child {
+    border-radius: 0px var(--tool-bar-border-radius) var(--tool-bar-border-radius) 0px;
+}
+
+.tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
+    border-radius: var(--tool-bar-border-radius) var(--tool-bar-border-radius) var(--tool-bar-border-radius) var(--tool-bar-border-radius);
+}
+
+.tool-bar meter::-webkit-meter-inner-element {
+    -webkit-appearance: inherit;
+    box-sizing: inherit;
+    border: 1px solid #aaa;
+    height: 22px;
+}
+
+.tool-bar>form {
+    border: none !important;
+    border-radius: var(--tool-bar-border-radius);
+}
+
+
+/*The boder puts an ugly white line on the meter*/
+
+.tool-bar>*:not(meter),
+.tool-bar>form>*:not(meter) {
+    border: var(--tool-bar-element-border);
+}
+
+
+.tool-bar input:not([type="submit"]) {
+    border: var(--tool-bar-element-border);
+    background: var(--tool-bar-concave-item-bg);
+    box-shadow: inset 0px 0px 4px 2px #3838383b
+}
+
+.tool-bar label input:not([type="submit"]) {
+    border-top: 3px solid !important;
+    border-bottom: 3px solid !important;
+    border-left: var(--tool-bar-element-border) !important;
+    border-right: var(--tool-bar-element-border) !important;
+    border-color: rgba(170, 170, 170, 0.445) !important;
+}
+
+
+/*A button link while being clicked*/
+
+.tool-bar button:active,
+.tool-bar a:active {
+    background-image: var(--tool-bar-active-item-bg) !important;
+}
+
+.tool-bar>label {
+    display: inline-flex;
+    border-top: var(--tool-bar-element-border);
+    border-bottom: var(--tool-bar-element-border);
+    align-items: center;
+}
+
+.tool-bar select {
+    background: none;
+}

@@ -92,10 +92,6 @@ iframe.embedpage{
     vertical-align: middle;
 }
 
-.nonavtopbannercontainer #topbanner h1::before,
-.nonavtopbannercontainer #topbanner h1::after {
-    background-image: none;
-}
 
 
 
@@ -367,13 +363,8 @@ select {
     box-shadow: 1px 5px 12px -3px rgba(43, 39, 85, 0.329);
 }
 
-.menubar:is(.tool-bar),
-.navbar .tool-bar {
+.menubar:is(.tool-bar) {
     --tool-bar-convex-item-bg: linear-gradient(180deg, rgb(255 255 255 / 55%) 0%, rgba(0, 0, 0, 0.096) 96%);
-}
-
-.navbar div {
-    border-radius: 5px;
 }
 
 button,

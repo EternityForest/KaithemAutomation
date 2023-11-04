@@ -166,20 +166,6 @@ div.sectionbox,section{
 	margin:2px;
 }
 
-/* A scrollable div */
-div.scrollbox {
-	border-style:solid;
-	border-width:2px;
-	border-radius: 7px;
-	max-height:10em;
-	overflow:auto;
-	padding-top:0.5%;
-	padding-bottom:0.5%;
-	padding-right:1%;
-	padding-left:0.5%;
-	margin:3px;
-}
-
 
 
 button {border-radius:7px;}

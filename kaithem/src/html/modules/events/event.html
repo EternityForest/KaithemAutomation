@@ -203,7 +203,7 @@ ${e}
 
 
 <h3>Additional Trigger Options</h3>
-<div class="scrollbox">
+<div class="max-h-12rem scroll border">
     <input type="checkbox"  name="continual" value="false"
          %if 'continual' in event:
             %if event['continual'] == True:
@@ -358,7 +358,7 @@ This event last ran:
 <p class ="help">
 This section the most recent errors that ocurred while executing the event or trigger.
 </p>
-<div class="scrollbox">
+<div class="max-h-12rem scroll border">
 %for i in newevt.getEventErrors(module,name):
     <h4>${i[0]|h}</h4>
     <pre>${i[1]|h}</pre>

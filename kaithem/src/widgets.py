@@ -1721,7 +1721,7 @@ class ScrollingWindow(Widget):
         content = "".join(["<div>" + i + "</div>" for i in self.value])
 
         return """<div class="widgetcontainer" style="display:block;width:90%%;">
-        <div id=%(htmlid)s class ="scrollbox %(cssclass)s" style="%(style)s">
+        <div id=%(htmlid)s class ="max-h-12rem scroll border %(cssclass)s" style="%(style)s">
         %(content)s
         </div>
         <script type="text/javascript">

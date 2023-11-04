@@ -117,7 +117,7 @@ details[open]
 } */
 
 
-.menubar:is(.tool-bar), .navbar .tool-bar, .tool-bar {
+.menubar:is(.tool-bar), .tool-bar, .tool-bar {
     --tool-bar-convex-item-bg: transparent;
     --tool-bar-concave-item-bg: transparent;
     --tool-bar-element-border:  2px solid #361907;

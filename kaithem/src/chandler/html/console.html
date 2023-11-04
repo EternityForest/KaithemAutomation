@@ -342,7 +342,7 @@ ${lists}
             </h2>
             <input v-model="evfilt" placeholder="Filter events"><label>Autoscroll<input type="checkbox"
                     v-model="eventlogautoscroll"></label><br>
-            <div class="scrollbox" id="eventlogbox" style="height:6em">
+            <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
                 <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
                     v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b>
                     at
@@ -1080,7 +1080,7 @@ ${lists}
 
 
                         <h3>Event Log</h3>
-                        <div class="scrollbox" id="eventlogbox" style="height:6em">
+                        <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
                             <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
                                 v-for="i in evlog" v-if="i[0].search(editingScene.name)">{{i[2]}}: <b>{{i[0]}}</b> at
                                 {{i[1]}}:
@@ -1278,7 +1278,7 @@ ${lists}
                                     </table>
                                 </div>
                             </div>
-                            <div class="scrollbox">
+                            <div class="max-h-12rem scroll border">
                                 <h5>Sound Outputs</h5>
                                 <details class="help">
                                     <summary><i class="icofont-question-circle"></i></summary>To use play videos, you
@@ -1700,7 +1700,7 @@ ${lists}
 
                             <button v-on:click="sendev(scenename)">Send</button>
                         </label>
-                        <div class="scrollbox" v-if="showSoundControls">
+                        <div class="max-h-12rem scroll border" v-if="showSoundControls">
                             <h5>Sound Outputs</h5>
                             <details class="help">
                                 <summary><i class="icofont-question-circle"></i></summary>So long as you plug the same

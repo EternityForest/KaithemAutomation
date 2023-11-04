@@ -58,7 +58,7 @@
 <h2>Permissions</h2>
 
 <details class="help"><summary><i class="icofont-question-circle"></i></summary><span class="permission-icon"></span>Require the following permissions to access this resource</details>
-<div class="scrollbox">
+<div class="max-h-12rem scroll border">
 <ul>
 %for i in sorted(auth.Permissions.keys()):
     <li> <input type="checkbox"  name="Permission${i}" value="true"
