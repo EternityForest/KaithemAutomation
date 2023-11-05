@@ -9,21 +9,22 @@
     --black-2: #2c2c2c;
     --black-3: #4e4c4c;
     --black-4: #404040;
-    --grey-1: #949494;
-    --grey-2: #aeaeae;
-    --grey-3: #c8c8c8;
+    --grey-1: #605f5f;
+    --grey-2: #7e7e7e;
+    --grey-3: #c2c2c2;
     --warning-color: #ffd943;
     --danger-color: #ff4242;
     --highlight-color: #7788aa;
 
     --bg: var(--black-1);
     --box-bg: var(--black-2);
+    --control-bg: var(--black-4);
 
     --fg: var(--grey-3);
     --graphical-fg: var(--grey-1);
 
     --concave-item-bg: none;
     --convex-item-bg: none;
-    --convex-item-active-bg: none;
+    --convex-item-active-bg: var(--grey-1);
     --concave-item-box-shadow: none;
 }

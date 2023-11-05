@@ -6,7 +6,7 @@
     --black-3: #545862;
     --black-4: #5C555D;
 
-    --grey-1: #e2e2e2;
+    --grey-1: #ededed;
     --grey-2: #f1f1f1;
     --grey-3: #F8F9FA;
 
@@ -38,7 +38,7 @@
     --gap: 18px;
 
     /*Borders*/
-    --border-color: var(--black-4);
+    --border-color: var(--graphical-fg);
     --border-radius: 0.6rem;
     --border-width: 1px;
 
@@ -60,7 +60,7 @@
 
     /*Note that themes can decide 3D elements should be flat*/
 
-    
+
     /*Below this line you probably don't need to change stuff*/
     /* fg color for warning and danger */
     --highlight-color: var(--teal);
@@ -83,23 +83,23 @@
         --black-2: #2c2c2c;
         --black-3: #4e4c4c;
         --black-4: #404040;
-        --grey-1: #949494;
-        --grey-2: #aeaeae;
-        --grey-3: #c8c8c8;
+        --grey-1: #605f5f;
+        --grey-2: #7e7e7e;
+        --grey-3: #c2c2c2;
         --warning-color: #ffd943;
         --danger-color: #ff4242;
         --highlight-color: #7788aa;
 
         --bg: var(--black-1);
         --box-bg: var(--black-2);
-        --control-bg: var(--black-3);
+        --control-bg: var(--black-4);
 
         --fg: var(--grey-3);
         --graphical-fg: var(--grey-1);
 
         --concave-item-bg: none;
         --convex-item-bg: none;
-        --convex-item-active-bg: none;
+        --convex-item-active-bg: var(--grey-1);
         --concave-item-box-shadow: none;
     }
 }
@@ -191,7 +191,7 @@ h3 a.button {
 
 h1,
 h2,
-h3{
+h3 {
     font-family: var(--main-font);
     margin-bottom: 12px;
     margin-top: 28px;
@@ -272,7 +272,10 @@ dialog {
 }
 
 span,
-button {
+button,
+input,
+textarea,
+select {
     color: inherit;
 }
 
@@ -852,7 +855,8 @@ table tr:first-child td {
     margin-right: auto;
 }
 
-img.h-center,iframe.h-center{
+img.h-center,
+iframe.h-center {
     display: block;
 }
 
@@ -873,7 +877,7 @@ img.h-center,iframe.h-center{
     box-sizing: border-box;
 }
 
-.rounded{
+.rounded {
     border-radius: var(--border-radius);
 }
 
@@ -925,7 +929,7 @@ img.h-center,iframe.h-center{
 .inline-flex,
 .flex-rows.inline,
 .flex-cols.inline,
-.tool-bar.inline{
+.tool-bar.inline {
     display: inline-flex;
 }
 
@@ -946,30 +950,33 @@ img.h-center,iframe.h-center{
     justify-content: center;
 }
 
-.float-left{
+.float-left {
     float: left;
 }
 
-.float-right{
+.float-right {
     float: right;
 }
 
-.left{
+.left {
     margin-left: 0px;
     margin-right: auto;
 }
-.right{
+
+.right {
     margin-left: auto;
     margin-right: 0px;
 }
 
 /*Overrides to not break the margin class*/
-.left.margin{
+.left.margin {
     margin-left: var(--padding);
 }
-.right.margin{
+
+.right.margin {
     margin-right: var(--padding);
 }
+
 /*Colorways*/
 
 /*danger is the canonical*/
@@ -1035,6 +1042,8 @@ a {
     text-decoration-thickness: 1.2px;
     color: color-mix(in srgb, var(--accent) 50%, var(--fg));
 }
+
+
 
 button,
 a.button,
@@ -1107,6 +1116,14 @@ div {
     border-color: var(--border-color);
 }
 
+button:hover,
+a.button:hover,
+a.hover,
+button:hover *,
+a:hover * {
+    color: var(--accent);
+    --fg: var(--accent);
+}
 
 
 dd {
