@@ -9,8 +9,11 @@
 :root{
     color-scheme: light;
     --line-length: 95vw;
-    --interactive-bg: #d9dee079;
+    --control-bg: #d9dee079;
     --graphical-fg: #503550e3;
+
+    --accent-color: #75608a;
+
     --border-color: rgba(36, 30, 30, 0.219);
     --bg: linear-gradient( 177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(/static/img/webtreats_grunge_mint_2.webp);
     --fg: #412019;

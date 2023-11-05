@@ -23,7 +23,7 @@
     /*Nontext items like borders*/
     --graphical-fg: var(--black-4);
     /*Headings, links, etc*/
-    --accent: var(--blue);
+    --accent-color: var(--blue);
     /*Main page bg*/
     --bg: var(--grey-3);
     /*.paper, items*/
@@ -180,7 +180,7 @@ h6,
 h1 *,
 h2 *,
 h3 * {
-    color: var(--accent);
+    color: var(--accent-color);
 }
 
 h3 button,
@@ -1040,7 +1040,7 @@ blockquote {
 a {
     text-decoration-style: dotted;
     text-decoration-thickness: 1.2px;
-    color: color-mix(in srgb, var(--accent) 50%, var(--fg));
+    color: color-mix(in srgb, var(--accent-color) 50%, var(--fg));
 }
 
 
@@ -1121,8 +1121,8 @@ a.button:hover,
 a.hover,
 button:hover *,
 a:hover * {
-    color: var(--accent);
-    --fg: var(--accent);
+    color: var(--accent-color);
+    --fg: var(--accent-color);
 }
 
 
