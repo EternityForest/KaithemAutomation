@@ -139,3 +139,10 @@
 div.widgetcontainer {
     display: inline-block;
 }
+
+[class*=" icofont-"],
+[class^=icofont-] {
+    color: var(--graphical-fg);
+    margin-left: var(--padding);
+    margin-right: var(--padding);
+}

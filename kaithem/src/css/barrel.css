@@ -1248,15 +1248,16 @@ dd {
     flex-grow: 50;
 }
 
+/*:not(i) is for icons*/
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
-.tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child {
+.tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child:not(i) {
     border-radius: var(--control-border-radius) 0px 0px var(--control-border-radius);
     margin-inline-start: 0px;
 
 }
 
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
-.tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child {
+.tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i) {
     border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
     margin-inline-end: 0px;
 }
