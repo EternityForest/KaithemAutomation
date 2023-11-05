@@ -4,6 +4,7 @@
 /* Using a string */
 
 :root{
+  color-scheme: dark;
   --tool-bar-element-border: #ffd477 solid 1px;
   --concave-item-bg: rgba(0, 0, 0, 0.0);
   --convex-item-bg: rgba(0, 0, 0, 0.0);

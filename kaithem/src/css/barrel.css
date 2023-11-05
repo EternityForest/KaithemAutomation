@@ -1,15 +1,27 @@
 :root {
+    color-scheme: light dark;
+
+    --black-1: #1c1c1c;
+    --black-2: #343A40;
+    --black-3: #545862;
+    --black-4: #6C757D;
+
+    --grey-1: #d2d2d2;
+    --grey-2: #f1f1f1;
+    --grey-3: #F8F9FA;
+
+
     /*Text color*/
-    --fg: #2e2e2e;
+    --fg: var(--black-1);
     /*Nontext items like borders*/
-    --graphical-fg: rgb(95, 95, 95);
+    --graphical-fg: var(--black-4);
     /*Main page bg*/
-    --bg: whitesmoke;
+    --bg: var(--grey-3);
     /*.paper, items*/
-    --box-bg: #efefef;
+    --box-bg: var(--grey-2);
     /*Inputs that are not convex or concave*/
-    --interactive-bg: ##efefef;
-    --border-color: var(--graphical-fg);
+    --interactive-bg: var(--grey-2);
+    --border-color: var(--black-4);
     --border-radius: 0.6rem;
     --border-width: 1px;
 
@@ -19,12 +31,60 @@
     --control-border-radius: 12px;
     --control-border-width: 1px;
 
+    /* fg color for warning and danger */
+    --danger-color: var(--red);
+    --warning-color: var(--yellow);
+    --success-color: var(--green);
+
+    --highlight: rgb(151, 219, 120);
+    --danger-highlight: rgba(255, 200, 0);
+    --warning-highlight: yellow;
+    --success-highlight: rgb(194, 221, 191);
+
+    --success-color: rgb(0, 158, 0);
+    --warning-color: #806600;
+    --danger-color: #900000;
+
     /*Note that themes can decide 3D elements should be flat*/
     --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
     --convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
     --convex-item-active-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
     --concave-item-box-shadow: inset 0px 0px 4px 2px #3838383b;
+
+    /*Calculated helpers*/
+    --thin-border: 1px solid var(--border-color);
 }
+
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --black-1: #222222;
+        --black-2: #2c2c2c;
+        --black-3: #4e4c4c;
+        --black-4: #404040;
+        --grey-1: #949494;
+        --grey-2: #aeaeae;
+        --grey-3: #c8c8c8;
+
+        --warning-color: #ffd943;
+        --danger-color: #ff4242;
+
+        --success-highlight: rgb(26 255 0);
+        --highlight: #354974;
+
+        --bg: var(--black-1);
+        --box-bg: var(--black-2);
+
+        --fg: var(--grey-3);
+        --graphical-fg: var(--grey-1);
+
+        --concave-item-bg: none;
+        --convex-item-bg: none;
+        --convex-item-active-bg: none;
+        --concave-item-box-shadow: none;
+    }
+}
+
 
 /*****************Typography****************************/
 
@@ -94,7 +154,10 @@ h2,
 h3,
 h4,
 h5,
-h6, h1 *, h2 *, h3 *{
+h6,
+h1 *,
+h2 *,
+h3 * {
     color: var(--graphical-fg);
 }
 
@@ -144,7 +207,7 @@ header {
 
 header,
 footer {
-    background-color: #d0d0d036;
+    background-color: var(--box-bg);
     width: 100%;
     padding: 0px;
     box-sizing: border-box;
@@ -193,7 +256,7 @@ button {
 
 
 textarea:disabled {
-    background-color: #D0D0D0
+    background-color: color-mix(in srgb, var(--interactive-bg) 50%, var(--bg) 50%);
 }
 
 details {
@@ -216,7 +279,7 @@ td details {
 a.button {
     text-decoration: none;
     border: var(--control-border-width) solid var(--border-color);
-    color: #000000;
+    color: var(--fg);
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
 }
@@ -257,11 +320,11 @@ table {
 
 /*This makes tables easier to read by coloring alternate rows differently.*/
 table tr:nth-child(odd) td {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 table tr:nth-child(even) td {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 table {
@@ -842,46 +905,48 @@ table tr:first-child td {
 /*Colorways*/
 
 /*danger is the canonical*/
+
 .error,
 .danger,
 .bad {
-    text-shadow: 0px 0px 2px rgba(255, 100, 100, 0.9);
-    color: #900000;
-    background-color: rgba(255, 200, 0, 0.2);
+    --fg: var(--danger-color);
+    --graphical-fg: var(--danger-color);
+    background-color: color-mix(in srgb, var(--danger-highlight) 26%, transparent)
 }
 
 .warning,
 .warn {
-    color: #806600;
-    background-color: rgba(255, 255, 0, 0.2);
-    text-shadow: 0px 0px 2px rgba(255, 255, 0, 0.2);
-
+    --fg: var(--warning-color);
+    --graphical-fg: var(--warning-color);
+    background-color: color-mix(in srgb, var(--warning-highlight) 26%, transparent)
 }
 
 .highlight {
-    background-color: #97db7879;
+    background-color: color-mix(in srgb, var(--highlight) 26%, transparent)
 }
 
 .success {
-    color: rgb(0, 158, 0);
-    background-color: rgba(194, 221, 191, 0.466);
+    --fg: var(--success-color);
+    --graphical-fg: var(--success-color);
+    background-color: color-mix(in srgb, var(--success-highlight) 26%, transparent)
 }
 
 .error.paper {
-    background-color: rgba(255, 200, 0, 0.8);
+    background-color: color-mix(in srgb, var(--error-highlight) 26%, var(--box-bg))
 }
 
 .warning.paper {
-    background-color: rgba(255, 255, 0, 0.8);
+    background-color: color-mix(in srgb, var(--warning-highlight) 26%, var(--box-bg))
 }
 
 .highlight.paper {
-    background-color: rgb(151, 219, 120)
+    background-color: color-mix(in srgb, var(--highlight) 26%, var(--box-bg))
 }
 
 .success.paper {
-    background-color: rgba(194, 221, 191, 0.836);
+    background-color: color-mix(in srgb, var(--success-highlight) 26%, var(--box-bg))
 }
+
 
 /*Classless styles */
 
@@ -900,7 +965,6 @@ blockquote {
 a {
     text-decoration-style: dotted;
     text-decoration-thickness: 1.2px;
-    text-decoration-color: var(--fg);
     color: var(--graphical-fg);
 }
 
@@ -927,7 +991,8 @@ textarea {
 
 button,
 a.button,
-a, label,
+a,
+label,
 select,
 textarea {
     border-radius: var(--control-border-width);
@@ -1184,7 +1249,7 @@ dd {
 .tool-bar meter::-webkit-meter-inner-element {
     -webkit-appearance: inherit;
     box-sizing: inherit;
-    border: var(--control-border-width) solid #aaa;
+    border: var(--control-border-width) solid var(--border-color);
     height: 22px;
 }
 
@@ -1256,4 +1321,46 @@ dd {
     background-color: var(--graphical-fg);
     border-radius: var(--border-radius);
     border: none;
+}
+
+/* The Range inputs */
+
+
+/****/
+input[type=range] {
+    -webkit-appearance: none;
+    background-color: transparent;
+}
+
+
+input[type=range]::-webkit-slider-runnable-track {
+    background: var(--interactive-bg);
+    border: var(--thin-border);
+    border-radius: 250px;
+    height: calc(var(--control-height) / 3);
+}
+
+input[type=range]::-webkit-slider-thumb {
+    margin-top: -7.8px;
+    width: calc(var(--control-height) / 1.6);
+    height: calc(var(--control-height) / 1.2);
+    background: var(--graphical-fg);
+    border: var(--thin-border);
+    border-radius: 100px;
+    -webkit-appearance: none;
+}
+
+input[type=range]::-moz-range-track {
+    background: var(--interactive-bg);
+    border: var(--thin-border);
+    border-radius: 250px;
+    height: calc(var(--control-height) / 3);
+}
+
+input[type=range]::-moz-range-thumb {
+    width: calc(var(--control-height) / 1.6);
+    height: calc(var(--control-height) / 1.2);
+    background: var(--graphical-fg);
+    border: var(--thin-border);
+    border-radius: 100px;
 }
