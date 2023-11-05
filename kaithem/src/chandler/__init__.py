@@ -111,7 +111,7 @@ def applyLayer(universe, uvalues, scene, uobj):
     # This will look really bad for complex things, to try and reduce them to a series of fades,
     # but we just do the best we can, and assume there's mostly only 1 scene at a time affecting things
     uobj.fadeEndTime = max(
-        uobj.fadeEndTime, scene.cue.fadein + scene.enteredCue)
+        uobj.fadeEndTime, scene.cue.fade_in + scene.enteredCue)
 
     ualphas = uobj.alphas
 

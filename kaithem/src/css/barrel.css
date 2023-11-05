@@ -927,11 +927,13 @@ textarea {
 
 button,
 a.button,
-label,
+a, label,
 select,
 textarea {
-    border: var(--control-border-width) solid var(--border-color);
+    border-radius: var(--control-border-width);
+    border-color: var(--border-color);
 }
+
 
 button,
 a.button,
