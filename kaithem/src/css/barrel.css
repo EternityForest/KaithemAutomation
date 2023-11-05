@@ -47,9 +47,12 @@
     --control-border-radius: 12px;
     --control-border-width: 1px;
 
-    /*Inputs that are not convex or concave*/
-    --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 6%) 12%, rgb(255 255 255 / 42%) 88%);
-    --convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
+    --3d-highlight: color-mix(in srgb, var( --control-bg) 50%, rgb(255 255 255));
+    --3d-shadow: color-mix(in srgb, var(--control-bg) 50%, rgb(0 0 0 / 0%));
+    
+    /*3D buttons are mostly transparent with just some highlights and shadows.*/
+    --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 12%, var(--3d-highlight) 88%);
+    --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
     --convex-item-active-bg: var(--concave-item-bg);
     --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
 
@@ -236,6 +239,13 @@ footer {
     margin: 0px;
     flex-grow: 0;
 }
+
+
+header *,
+footer * {
+    --control-bg: var(--box-bg);
+}
+
 
 header {
     border-bottom: var(--border-width) solid var(--border-color);
@@ -1334,6 +1344,12 @@ dd {
     margin-inline-end: 0px;
 }
 
+.tool-bar > label:last-child{
+    padding-inline-end: 0px;
+}
+.tool-bar > label:first-child{
+    padding-inline-start: 0px;
+}
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
     border-radius: var(--control-border-radius) var(--control-border-radius) var(--control-border-radius) var(--control-border-radius);
 }
