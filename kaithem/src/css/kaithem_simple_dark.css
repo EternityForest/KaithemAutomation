@@ -12,12 +12,9 @@
     --grey-1: #949494;
     --grey-2: #aeaeae;
     --grey-3: #c8c8c8;
-
     --warning-color: #ffd943;
     --danger-color: #ff4242;
-
-    --success-highlight: rgb(26 255 0);
-    --highlight: #354974;
+    --highlight-color: #7788aa;
 
     --bg: var(--black-1);
     --box-bg: var(--black-2);

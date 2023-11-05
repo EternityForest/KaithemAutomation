@@ -31,19 +31,23 @@
     --control-border-radius: 12px;
     --control-border-width: 1px;
 
+    --teal: rgb(120, 212, 219);
+    --green: rgb(0, 158, 0);
+    --yellow: #cea916;
+    --red: #b92020;
+
     /* fg color for warning and danger */
-    --danger-color: var(--red);
-    --warning-color: var(--yellow);
+    --highlight-color: var(--teal);
     --success-color: var(--green);
+    --warning-color: var(--yellow);
+    --danger-color: var(--red);
 
-    --highlight: rgb(151, 219, 120);
-    --danger-highlight: rgba(255, 200, 0);
-    --warning-highlight: yellow;
-    --success-highlight: rgb(194, 221, 191);
+    --highlight-opacity: 25%;
 
-    --success-color: rgb(0, 158, 0);
-    --warning-color: #806600;
-    --danger-color: #900000;
+    --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
+    --warning-fg: color-mix(in srgb, var(--warning-color) 20%, var(--fg));
+    --danger-fg: color-mix(in srgb, var(--danger-color) 40%, var(--fg));
+
 
     /*Note that themes can decide 3D elements should be flat*/
     --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
@@ -65,12 +69,9 @@
         --grey-1: #949494;
         --grey-2: #aeaeae;
         --grey-3: #c8c8c8;
-
         --warning-color: #ffd943;
         --danger-color: #ff4242;
-
-        --success-highlight: rgb(26 255 0);
-        --highlight: #354974;
+        --highlight-color: #7788aa;
 
         --bg: var(--black-1);
         --box-bg: var(--black-2);
@@ -84,6 +85,7 @@
         --concave-item-box-shadow: none;
     }
 }
+
 
 
 /*****************Typography****************************/
@@ -630,6 +632,12 @@ table tr:first-child td {
     flex-shrink: 1;
 }
 
+.w-sm-quarter {
+    width: 120px;
+    max-width: calc(min(120px, 21vw));
+    flex-basis: 120px;
+}
+
 .w-sm-half {
     width: 240px;
     max-width: calc(min(240px, 46vw));
@@ -909,42 +917,42 @@ table tr:first-child td {
 .error,
 .danger,
 .bad {
-    --fg: var(--danger-color);
-    --graphical-fg: var(--danger-color);
-    background-color: color-mix(in srgb, var(--danger-highlight) 26%, transparent)
+    --fg: var(--danger-fg);
+    --graphical-fg: var(--danger-fg);
+    background-color: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent)
 }
 
 .warning,
 .warn {
-    --fg: var(--warning-color);
-    --graphical-fg: var(--warning-color);
-    background-color: color-mix(in srgb, var(--warning-highlight) 26%, transparent)
+    --fg: var(--warning-fg);
+    --graphical-fg: var(--warning-fg);
+    background-color: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent)
 }
 
 .highlight {
-    background-color: color-mix(in srgb, var(--highlight) 26%, transparent)
+    background-color: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent)
 }
 
 .success {
-    --fg: var(--success-color);
-    --graphical-fg: var(--success-color);
-    background-color: color-mix(in srgb, var(--success-highlight) 26%, transparent)
+    --fg: var(--success-fg);
+    --graphical-fg: var(--success-fg);
+    background-color: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent)
 }
 
 .error.paper {
-    background-color: color-mix(in srgb, var(--error-highlight) 26%, var(--box-bg))
+    background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg))
 }
 
 .warning.paper {
-    background-color: color-mix(in srgb, var(--warning-highlight) 26%, var(--box-bg))
+    background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg))
 }
 
 .highlight.paper {
-    background-color: color-mix(in srgb, var(--highlight) 26%, var(--box-bg))
+    background-color: color-mix(in srgb, var(--highlight-color) 35%, var(--box-bg))
 }
 
 .success.paper {
-    background-color: color-mix(in srgb, var(--success-highlight) 26%, var(--box-bg))
+    background-color: color-mix(in srgb, var(--success-color) 35%, var(--box-bg))
 }
 
 
@@ -1364,3 +1372,89 @@ input[type=range]::-moz-range-thumb {
     border: var(--thin-border);
     border-radius: 100px;
 }
+
+/*Meter element */
+
+
+progress {
+    height: var(--control-height);
+    
+    /* For Firefox */
+    background: var(--interactive-bg);
+    box-shadow: var(--concave-item-box-shadow);
+    border-radius: var(--control-border-radius);
+  }
+  
+  progress::-webkit-progress-bar {
+    background: var(--interactive-bg);
+    box-shadow: var(--concave-item-box-shadow);
+    border-radius: var(--control-border-radius);
+  }
+  
+  progress::-webkit-progress-value {
+    background-color: var(--highlight-color);
+    border-radius: var(--control-border-radius);
+  }
+  
+  progress::-moz-progress-bar {
+    background-color: var(--highlight-color);
+    border-radius: var(--control-border-radius);
+  }
+  
+  
+  
+  
+  meter {
+    height: var(--control-height);
+
+    /* For Firefox */
+    background: var(--interactive-bg);
+    box-shadow: var(--concave-item-box-shadow);
+    border-radius: var(--control-border-radius);
+    border-color: var(--border-color);
+  }
+  
+  /* WebKit */
+  meter::-webkit-meter-bar {
+    border-color: var(--border-color);
+    background: var(--interactive-bg);
+    box-shadow: var(--concave-item-box-shadow);
+    border-radius: var(--control-border-radius);
+  }
+  
+  meter::-webkit-meter-optimum-value,
+  meter::-webkit-meter-suboptimum-value,
+  meter::-webkit-meter-even-less-good-value {
+    border-radius: var(--control-border-radius);
+  }
+  
+  meter::-webkit-meter-optimum-value {
+    background: var(--success-color);
+  }
+  
+  meter::-webkit-meter-suboptimum-value {
+    background: var(--warning-color);
+  }
+  
+  meter::-webkit-meter-even-less-good-value  {
+    background: var(--danger-color);
+  }
+  
+  
+  /* Firefox */
+  meter::-moz-meter-bar {
+    border-radius: var(--control-border-radius);
+  }
+  
+  meter:-moz-meter-optimum::-moz-meter-bar {
+    background: var(--success-color);
+  }
+  
+  meter:-moz-meter-sub-optimum::-moz-meter-bar {
+    background: var(--warning-color);
+  }
+  
+  meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
+    background: var(--danger-color);
+  }
+  
