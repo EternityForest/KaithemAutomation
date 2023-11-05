@@ -1,0 +1,191 @@
+{% set notifications = imp0rt( 'kaithem.src.notifications' ) %}
+{% set theming = imp0rt( 'kaithem.src.theming' ) %}
+{% set auth = imp0rt( 'kaithem.src.auth' ) %}
+{% set persist = imp0rt( 'kaithem.src.persist' ) %}
+{% set socket = imp0rt( 'socket' ) %}
+{% set cherrypy = imp0rt( 'cherrypy' ) %}
+{% set base64 = imp0rt( 'base64' ) %}
+{% set pages = imp0rt( 'kaithem.src.pages' ) %}
+{% set list = imp0rt( 'kaithem.src.pages' ).list %}
+{% set len = imp0rt( 'kaithem.src.pages' ).len %}
+{% set sorted = imp0rt( 'kaithem.src.pages' ).sorted %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>{% filter trim %}{%block title %}KaithemAutomation{% endblock %}{% endfilter %}</title>
+
+  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="{{_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}}">
+  <script src="/static/widget.js"></script>
+
+  {{notifications.toolbarapi.render("wsapi")}}
+
+  <script type="text/javascript">
+    var totalNotifications = 0;
+
+    function getCookie(c_name) {
+      var c_value = document.cookie;
+      var c_start = c_value.indexOf(" " + c_name + "=");
+      if (c_start == -1) {
+        c_start = c_value.indexOf(c_name + "=");
+      }
+      if (c_start == -1) {
+        c_value = null;
+      }
+      else {
+        c_start = c_value.indexOf("=", c_start) + 1;
+        var c_end = c_value.indexOf(";", c_start);
+        if (c_end == -1) {
+          c_end = c_value.length;
+        }
+        c_value = unescape(c_value.substring(c_start, c_end));
+      }
+      return c_value;
+    }
+
+
+    if (!getCookie("LastSawMainPage")) {
+      y = 0
+    }
+    else {
+      y = getCookie("LastSawMainPage");
+    }
+
+
+    wsapi.upd = function (e) {
+      try {
+        var k = e;
+
+        if (k[0] == 'newmsg') {
+          totalNotifications += 1
+          document.getElementById("notifications_toolbar_item").innerHTML = "(" + totalNotifications + ")";
+        }
+        else if (k[0] > 0) {
+          document.getElementById("notifications_toolbar_item").innerHTML = "M(" + k[0] + ")";
+          totalNotifications = k[0]
+
+          if (k[2] > 0) {
+            document.getElementById("notifications_toolbar_item").className = "warning";
+          }
+
+          if (k[3] > 0) {
+            document.getElementById("notifications_toolbar_item").className = "error";
+          }
+
+        }
+        else {
+          document.getElementById("notifications_toolbar_item").innerHTML = '(0)';
+        }
+      }
+      catch (err) {
+        console.log("JSON Parse Error in websocket response:\n" + e.data);
+      }
+    }
+
+    wsapi.send(["countsince", parseFloat(y)])
+
+  </script>
+</head>
+
+<body id="pagebody">
+
+  {% if not cherrypy.request.params.get("kaithem_disable_header",0) %}
+  <header class="undecorated">
+
+
+    <div id="kaithem-main-dropdown-panel" class="window w-sm-double"
+      style="z-index: 5; display:none; position: absolute; left:0.6em; top:3em;width: 35wv;">
+      <div class="tool-bar">
+        <button onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='none'"><i
+            class="icofont-ui-close"></i>Close</button>
+      </div>
+      <iframe id="kaithem-main-dropdown-iframe" style="height: 80vh; width: 100%; max-height: 80vh;"
+        height="80%"></iframe>
+    </div>
+
+
+
+    <div class="tool-bar" style="position: relative;">
+      {% if pages.canUserDoThis("/admin/mainpage.view") %}
+      <button style="flex-grow: 0"
+        onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='block';document.getElementById('kaithem-main-dropdown-iframe').src='/dropdownpanel'">
+        <i class="icofont-dotted-down"></i></button>
+
+      <a href="/index"><b>{{socket.gethostname()|escape}}</b>
+
+        <span id="notifications_toolbar_item" title="New Notifications">
+
+        </span>
+      </a>
+      {% endif %}
+
+      {% for i in sorted(list(pages.nav_bar_plugins.keys())) %}
+      {{ pages.nav_bar_plugins[i]()[1] or '' |safe}}
+      {% endfor %}
+
+
+
+      <a href="/modules/"><i class="icofont-briefcase"></i>
+        Modules</a>
+
+      <a href="/devices"><i class="icofont-usb-drive"></i>
+        Devices</a>
+
+
+
+      <a href="/tagpoints"><i class="icofont-molecule"></i>Tags</a>
+
+      <a href="/settings/mixer"><i class="icofont-ui-volume"></i>Mixer</a>
+
+      <a href="/settings">
+        <i class="icofont-gears"></i>
+
+        {% if auth.authchanged %}
+        <span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
+        {% endif %}
+
+
+        {% if  persist.dirty %}
+        <span title="The there are persistance files with unsaved changes">*</span>
+        {% endif %}
+
+
+        {% if  persist.unsavedFiles %}
+        <span title="Something has an unsaved file">*</span>
+        {% endif %}
+        Tools</a>
+
+      <a href="/helpmenu"><i class="icofont-book"></i>Help</a>
+
+      {% if "kaithem_auth" in cherrypy.request.cookie %}
+      {% if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens %}
+      <form style="flex-grow: 0.05;" method="POST" action="/login/logout">
+        <button href="/login/logout"><i
+            class="icofont-key"></i>Logout({{ pages.getAcessingUser()[:10]| escape }})</button>
+      </form>
+
+      {% else %}
+      <a style="flex-grow: 0.05;" href="/login?go={{ base64.b64encode(cherrypy.url().encode()).decode() }}"><i
+          class="icofont-key"></i>Login</a>
+      {% endif %}
+
+
+      {% else %}
+      <a style="flex-grow: 0.05;" href="/login?go={{ base64.b64encode(cherrypy.url().encode()).decode() }}"><i
+          class="icofont-key"></i>Login</a>
+      {% endif %}
+
+
+
+    </div>
+    {% endif %}
+  </header>
+
+  <body>
+    {% block body %} {% endblock %}
+  </body>
+
+</html>

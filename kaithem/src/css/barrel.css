@@ -4,58 +4,72 @@
     --black-1: #1c1c1c;
     --black-2: #343A40;
     --black-3: #545862;
-    --black-4: #6C757D;
+    --black-4: #5C555D;
 
-    --grey-1: #d2d2d2;
+    --grey-1: #e2e2e2;
     --grey-2: #f1f1f1;
     --grey-3: #F8F9FA;
+
+    --red: #b92020;
+    --yellow: #cea916;
+    --green: rgb(0, 158, 0);
+    --teal: rgb(120, 212, 219);
+    --blue: rgb(95 111 161);
+
 
 
     /*Text color*/
     --fg: var(--black-1);
     /*Nontext items like borders*/
     --graphical-fg: var(--black-4);
+    /*Headings, links, etc*/
+    --accent: var(--blue);
     /*Main page bg*/
     --bg: var(--grey-3);
     /*.paper, items*/
     --box-bg: var(--grey-2);
-    /*Inputs that are not convex or concave*/
-    --interactive-bg: var(--grey-2);
+    --highlight-opacity: 25%;
+
+    /*typography*/
+    --main-font: sans-serif;
+
+    /*Spacing*/
+    --padding: 6px;
+
+    /*Borders*/
     --border-color: var(--black-4);
     --border-radius: 0.6rem;
     --border-width: 1px;
 
-    --padding: 6px;
-
-    --main-font: "Sans";
     /*Inputs, buttons, etc*/
     --control-height: 28px;
     --control-border-radius: 12px;
     --control-border-width: 1px;
 
-    --teal: rgb(120, 212, 219);
-    --green: rgb(0, 158, 0);
-    --yellow: #cea916;
-    --red: #b92020;
+    /*Inputs that are not convex or concave*/
+    --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 6%) 12%, rgb(255 255 255 / 42%) 88%);
+    --convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
+    --convex-item-active-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+    --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
 
+    /*control-bg also applies to small elements like headers*/
+    --control-bg: var(--grey-1);
+
+
+
+    /*Note that themes can decide 3D elements should be flat*/
+
+    
+    /*Below this line you probably don't need to change stuff*/
     /* fg color for warning and danger */
     --highlight-color: var(--teal);
     --success-color: var(--green);
     --warning-color: var(--yellow);
     --danger-color: var(--red);
 
-    --highlight-opacity: 25%;
-
     --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
     --warning-fg: color-mix(in srgb, var(--warning-color) 20%, var(--fg));
     --danger-fg: color-mix(in srgb, var(--danger-color) 40%, var(--fg));
-
-
-    /*Note that themes can decide 3D elements should be flat*/
-    --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 6%) 12%, rgb(255 255 255 / 42%) 88%);
-    --convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
-    --convex-item-active-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
-    --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
 
     /*Calculated helpers*/
     --thin-border: 1px solid var(--border-color);
@@ -77,6 +91,7 @@
 
         --bg: var(--black-1);
         --box-bg: var(--black-2);
+        --control-bg: var(--black-3);
 
         --fg: var(--grey-3);
         --graphical-fg: var(--grey-1);
@@ -164,7 +179,7 @@ h6,
 h1 *,
 h2 *,
 h3 * {
-    color: var(--graphical-fg);
+    color: var(--accent);
 }
 
 h3 button,
@@ -213,7 +228,7 @@ header {
 
 header,
 footer {
-    background-color: var(--box-bg);
+    background-color: var(--control-bg);
     width: 100%;
     padding: 0px;
     box-sizing: border-box;
@@ -262,7 +277,7 @@ button {
 
 
 textarea:disabled {
-    background-color: color-mix(in srgb, var(--interactive-bg) 50%, var(--bg) 50%);
+    background-color: color-mix(in srgb, var(--control-bg) 50%, var(--bg) 50%);
 }
 
 details {
@@ -828,6 +843,10 @@ table tr:first-child td {
     margin-right: auto;
 }
 
+img.h-center,iframe.h-center{
+    display: block;
+}
+
 .undecorated {
     border: none !important;
     box-shadow: none !important;
@@ -843,6 +862,10 @@ table tr:first-child td {
 .nogaps>* {
     margin: 0px;
     box-sizing: border-box;
+}
+
+.rounded{
+    border-radius: var(--border-radius);
 }
 
 .padding {
@@ -893,7 +916,7 @@ table tr:first-child td {
 .inline-flex,
 .flex-rows.inline,
 .flex-cols.inline,
-.tool-bar.inline {
+.tool-bar.inline{
     display: inline-flex;
 }
 
@@ -914,6 +937,30 @@ table tr:first-child td {
     justify-content: center;
 }
 
+.float-left{
+    float: left;
+}
+
+.float-right{
+    float: right;
+}
+
+.left{
+    margin-left: 0px;
+    margin-right: auto;
+}
+.right{
+    margin-left: auto;
+    margin-right: 0px;
+}
+
+/*Overrides to not break the margin class*/
+.left.margin{
+    margin-left: var(--padding);
+}
+.right.margin{
+    margin-right: var(--padding);
+}
 /*Colorways*/
 
 /*danger is the canonical*/
@@ -977,7 +1024,7 @@ blockquote {
 a {
     text-decoration-style: dotted;
     text-decoration-thickness: 1.2px;
-    color: var(--graphical-fg);
+    color: color-mix(in srgb, var(--accent) 50%, var(--fg));
 }
 
 button,
@@ -1026,7 +1073,7 @@ select {
 /* Color elements */
 
 textarea {
-    background-color: var(--interactive-bg);
+    background-color: var(--control-bg);
 }
 
 button,
@@ -1324,7 +1371,7 @@ dd {
 /* Firefox */
 * {
     scrollbar-width: auto;
-    scrollbar-color: var(--graphical-fg) var(--interactive-bg);
+    scrollbar-color: var(--graphical-fg) var(--control-bg);
 }
 
 /* Other browsers */
@@ -1333,7 +1380,7 @@ dd {
 }
 
 *::-webkit-scrollbar-track {
-    background: var(--interactive-bg);
+    background: var(--control-bg);
     border-radius: var(--border-radius);
 }
 
@@ -1354,7 +1401,7 @@ input[type=range] {
 
 
 input[type=range]::-webkit-slider-runnable-track {
-    background: var(--interactive-bg);
+    background: var(--control-bg);
     border: var(--thin-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
@@ -1371,7 +1418,7 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 input[type=range]::-moz-range-track {
-    background: var(--interactive-bg);
+    background: var(--control-bg);
     border: var(--thin-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
@@ -1392,13 +1439,13 @@ progress {
     height: var(--control-height);
 
     /* For Firefox */
-    background: var(--interactive-bg);
+    background: var(--control-bg);
     box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
 }
 
 progress::-webkit-progress-bar {
-    background: var(--interactive-bg);
+    background: var(--control-bg);
     box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
 }
@@ -1427,7 +1474,7 @@ meter {
 /* WebKit */
 meter::-webkit-meter-bar {
     border-color: var(--border-color);
-    background: var(--interactive-bg);
+    background: var(--control-bg);
     box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
 }
