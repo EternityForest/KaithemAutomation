@@ -35,6 +35,7 @@
 
     /*Spacing*/
     --padding: 6px;
+    --gap: 18px;
 
     /*Borders*/
     --border-color: var(--black-4);
@@ -49,7 +50,7 @@
     /*Inputs that are not convex or concave*/
     --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 6%) 12%, rgb(255 255 255 / 42%) 88%);
     --convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
-    --convex-item-active-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+    --convex-item-active-bg: var(--concave-item-bg);
     --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
 
     /*control-bg also applies to small elements like headers*/
@@ -190,7 +191,7 @@ h3 a.button {
 
 h1,
 h2,
-h3 {
+h3{
     font-family: var(--main-font);
     margin-bottom: 12px;
     margin-top: 28px;
@@ -307,6 +308,14 @@ a.button {
 
 button {
     border-style: solid;
+}
+
+/*A button link while being clicked*/
+
+button:active,
+a:active {
+    background: var(--convex-item-active-bg) !important;
+    box-shadow: var(--concave-item-box-shadow) !important;
 }
 
 summary h2:first-child {
@@ -512,7 +521,7 @@ table tr:first-child td {
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
-    gap: 12px;
+    gap: var(--gap);
     align-items: stretch;
     justify-content: space-between;
 }
@@ -893,7 +902,7 @@ img.h-center,iframe.h-center{
 }
 
 .margin {
-    margin: 12px;
+    margin: var(--gap);
 }
 
 .nomargin {
@@ -1095,7 +1104,6 @@ textarea,
 select,
 p,
 div {
-    color: var(--fg);
     border-color: var(--border-color);
 }
 
@@ -1349,12 +1357,6 @@ dd {
 }
 
 
-/*A button link while being clicked*/
-
-.tool-bar button:active,
-.tool-bar a:active {
-    background-image: var(--convex-item-active-bg) !important;
-}
 
 .tool-bar>label {
     display: inline-flex;

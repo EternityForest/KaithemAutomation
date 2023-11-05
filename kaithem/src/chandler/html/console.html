@@ -242,6 +242,7 @@ ${lists}
                 v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
                 <header>
+                    <h4>
                     <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"
                         style="font-weight:bold; width: 100%">
 
@@ -262,18 +263,20 @@ ${lists}
                             v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
                                 class="icofont-law-document"></i></span>
                     </button>
-                    <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
-
-
-                    <p class="tool-bar" v-if="!i[1].utility">
-                        <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
-                                class="icofont-ui-play"></i>Go!</button>
-                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
-                        <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
-                        <button class="stopbutton" v-on:click="stop(i[0])"><i
-                                class="icofont-ui-play-stop"></i>Stop</button>
-                    </p>
+                    </h4>
                 </header>
+
+                <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
+
+
+                <p class="tool-bar" v-if="!i[1].utility">
+                    <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
+                            class="icofont-ui-play"></i>Go!</button>
+                    <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
+                    <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
+                    <button class="stopbutton" v-on:click="stop(i[0])"><i
+                            class="icofont-ui-play-stop"></i>Stop</button>
+                </p>
                 <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
                 <p class="tool-bar" v-if="i[1].eventButtons.length > 0">
