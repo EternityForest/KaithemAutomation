@@ -967,7 +967,7 @@ blockquote {
     margin-inline-end: 4px;
     margin: 6px;
     padding: 4px;
-    color: (--graphical-fg);
+    color: var(--graphical-fg);
 }
 
 a {
@@ -991,8 +991,7 @@ input[type='submit'] {
 }
 
 input:not([type='submit']):not([type='range']),
-select,
-textarea {
+select {
     background: var(--concave-item-bg);
     box-shadow: var(--concave-item-box-shadow);
 }
@@ -1005,6 +1004,10 @@ select,
 textarea {
     border-radius: var(--control-border-width);
     border-color: var(--border-color);
+}
+
+textarea{
+    box-shadow: var(--concave-item-box-shadow);
 }
 
 
@@ -1408,8 +1411,6 @@ progress {
     height: var(--control-height);
 
     /* For Firefox */
-    background: var(--interactive-bg);
-    box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
     border-color: var(--border-color);
   }
