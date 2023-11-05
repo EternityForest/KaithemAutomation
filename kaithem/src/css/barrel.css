@@ -25,6 +25,8 @@
     --border-radius: 0.6rem;
     --border-width: 1px;
 
+    --padding: 6px;
+
     --main-font: "Sans";
     /*Inputs, buttons, etc*/
     --control-height: 28px;
@@ -50,10 +52,10 @@
 
 
     /*Note that themes can decide 3D elements should be flat*/
-    --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 9%) 12%, rgb(255 255 255 / 42%) 88%);
+    --concave-item-bg: linear-gradient(180deg, rgb(37 37 37 / 6%) 12%, rgb(255 255 255 / 42%) 88%);
     --convex-item-bg: linear-gradient(180deg, rgb(241 238 238 / 10%) 0%, rgb(0 0 0 / 5%) 96%);
     --convex-item-active-bg: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
-    --concave-item-box-shadow: inset 0px 0px 4px 2px #3838383b;
+    --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
 
     /*Calculated helpers*/
     --thin-border: 1px solid var(--border-color);
@@ -138,6 +140,8 @@ label:has(*) {
 
 label {
     min-width: max-content;
+    padding-inline-start: var(--padding);
+    padding-inline-end: var(--padding);
 }
 
 
@@ -366,7 +370,7 @@ table tr th,
 table tr td {
     border-right: var(--border-width) solid var(--border-color);
     border-bottom: var(--border-width) solid var(--border-color);
-    padding: 4px;
+    padding: var(--padding);
 }
 
 table tr th:first-child,
@@ -842,7 +846,7 @@ table tr:first-child td {
 }
 
 .padding {
-    padding: 6px;
+    padding: var(--padding);
 }
 
 .font-normal {
@@ -1006,7 +1010,7 @@ textarea {
     border-color: var(--border-color);
 }
 
-textarea{
+textarea {
     box-shadow: var(--concave-item-box-shadow);
 }
 
@@ -1158,15 +1162,10 @@ dd {
     flex-grow: 1;
 }
 
-.tool-bar :is(h1, h2, h3, h4, h5) * {
+.tool-bar :is(h1, h2, h3, h4, h5, h6) * {
     border: none;
 }
 
-
-.tool-bar :is(h1, h2, h3, h4, h5, h6) {
-    margin: 0px;
-    padding: 0px;
-}
 
 .tool-bar> :is(h1, h2, h3, h4, h5, h6)>* {
     margin: 0px;
@@ -1176,7 +1175,8 @@ dd {
 
 .tool-bar :is(h1, h2, h3, h4, h5, h6, label) {
     margin: 0px;
-    padding: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
     vertical-align: middle;
     text-align: center;
     display: flex;
@@ -1185,7 +1185,7 @@ dd {
 }
 
 .tool-bar p {
-    padding-left: 4px;
+    padding-left: var(--padding);
     min-width: fit-content;
     flex-grow: 0.5;
     margin: 0px;
@@ -1239,6 +1239,11 @@ dd {
 
 /*Exception: the first item always growable so it can be the title*/
 
+
+.tool-bar>label> :is(input, select, meter):not(.specificity-hack) {
+    margin: 0px var(--padding) 0px var(--padding);
+}
+
 .tool-bar :is(h1, h2, h3, h4, h5, h6):first-child {
     flex-grow: 50;
 }
@@ -1246,11 +1251,14 @@ dd {
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
 .tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child {
     border-radius: var(--control-border-radius) 0px 0px var(--control-border-radius);
+    margin-inline-start: 0px;
+
 }
 
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
 .tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child {
     border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
+    margin-inline-end: 0px;
 }
 
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
@@ -1381,81 +1389,80 @@ input[type=range]::-moz-range-thumb {
 
 progress {
     height: var(--control-height);
-    
+
     /* For Firefox */
     background: var(--interactive-bg);
     box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
-  }
-  
-  progress::-webkit-progress-bar {
+}
+
+progress::-webkit-progress-bar {
     background: var(--interactive-bg);
     box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
-  }
-  
-  progress::-webkit-progress-value {
+}
+
+progress::-webkit-progress-value {
     background-color: var(--highlight-color);
     border-radius: var(--control-border-radius);
-  }
-  
-  progress::-moz-progress-bar {
+}
+
+progress::-moz-progress-bar {
     background-color: var(--highlight-color);
     border-radius: var(--control-border-radius);
-  }
-  
-  
-  
-  
-  meter {
+}
+
+
+
+
+meter {
     height: var(--control-height);
 
     /* For Firefox */
     border-radius: var(--control-border-radius);
     border-color: var(--border-color);
-  }
-  
-  /* WebKit */
-  meter::-webkit-meter-bar {
+}
+
+/* WebKit */
+meter::-webkit-meter-bar {
     border-color: var(--border-color);
     background: var(--interactive-bg);
     box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
-  }
-  
-  meter::-webkit-meter-optimum-value,
-  meter::-webkit-meter-suboptimum-value,
-  meter::-webkit-meter-even-less-good-value {
+}
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value {
     border-radius: var(--control-border-radius);
-  }
-  
-  meter::-webkit-meter-optimum-value {
+}
+
+meter::-webkit-meter-optimum-value {
     background: var(--success-color);
-  }
-  
-  meter::-webkit-meter-suboptimum-value {
+}
+
+meter::-webkit-meter-suboptimum-value {
     background: var(--warning-color);
-  }
-  
-  meter::-webkit-meter-even-less-good-value  {
+}
+
+meter::-webkit-meter-even-less-good-value {
     background: var(--danger-color);
-  }
-  
-  
-  /* Firefox */
-  meter::-moz-meter-bar {
+}
+
+
+/* Firefox */
+meter::-moz-meter-bar {
     border-radius: var(--control-border-radius);
-  }
-  
-  meter:-moz-meter-optimum::-moz-meter-bar {
+}
+
+meter:-moz-meter-optimum::-moz-meter-bar {
     background: var(--success-color);
-  }
-  
-  meter:-moz-meter-sub-optimum::-moz-meter-bar {
+}
+
+meter:-moz-meter-sub-optimum::-moz-meter-bar {
     background: var(--warning-color);
-  }
-  
-  meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
+}
+
+meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
     background: var(--danger-color);
-  }
-  
+}

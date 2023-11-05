@@ -36,7 +36,7 @@ defaulthtml = """
 
 {{% block title %}} {basename} {{% endblock %}}
 
-{{% block content %}}
+{{% block body %}}
 
 <main>
   <h2>{basename}</h2>
