@@ -9,7 +9,7 @@ from kaithem.src import pages
 
 <form action="/modules/module/${url(module)}/updateresource/${url(permission)}/" method="POST" name="new">
 <h3>Description</h3>
-<div class="window">
+<div class="window paper">
 <textarea name="description" class="description" cols = 5 >${description|h}</textarea><br>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>

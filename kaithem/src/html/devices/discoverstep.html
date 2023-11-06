@@ -25,7 +25,7 @@ background:grey;
 </style>
 
 <h1>Available Configurations</h1>
-<div class="window">
+<div class="window paper">
 
 <p>This page shows various configurations suggested by the device driver. Note that 
     some devices may have multi step configuration. You may need to accept a config and then
@@ -40,7 +40,7 @@ background:grey;
 
 <h2>Keep Current</h2>
 
-<div class="window">
+<div class="window paper">
 <form method="POST" action="/devices/updateDevice/${url(name)}">
 <h3>Basic</h3>
 <table border="1" style="width:40em">
@@ -94,7 +94,7 @@ background:grey;
 
 % for c in data:
 <h2>${c|h}</h2>
-<div class="window">
+<div class="window paper">
 <form method="POST" action="/devices/updateDevice/${url(name)}">
 <h3>Basic</h3>
 <table border="1" style="width:40em">

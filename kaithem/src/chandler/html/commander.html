@@ -134,7 +134,7 @@
 
 <div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
 
-    <div class="window w-full" style="overflow: auto; max-width:98vw; flex-grow:1">
+    <div class="window paper w-full" style="overflow: auto; max-width:98vw; flex-grow:1">
         <header>
             <div class="tool-bar">
                 <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
@@ -252,7 +252,7 @@
     </div>
 
 
-    <div class="window" v-if="editingScene && cuemeta[editingScene.cue]"
+    <div class="window paper" v-if="editingScene && cuemeta[editingScene.cue]"
         style="display:inline-block;" class="scroll">
         <header>
             <h3>{{editingScene.name}}

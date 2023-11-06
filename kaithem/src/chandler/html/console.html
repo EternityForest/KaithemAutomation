@@ -217,7 +217,7 @@ ${lists}
 
     <main style="display:flex; flex-wrap:wrap; justify-content: center;">
 
-    <section class="window w-sm-full flex-cols h-48rem margin"
+    <section class="window paper w-sm-full flex-cols h-48rem margin"
         style="resize:both;">
         <header>
             <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
@@ -382,7 +382,7 @@ ${lists}
 
 
 
-        <section v-if="showimportexport" class="flex-item window">
+        <section v-if="showimportexport" class="flex-item window paper">
             <h3>Import/Export controls</h3>
             <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
                 <a class="button" href="download" title="Download your scenes as a file"><i
@@ -407,7 +407,7 @@ ${lists}
 
 
 
-        <section v-if="showPresets" class="flex-item window" style="width: 32em;">
+        <section v-if="showPresets" class="flex-item window paper" style="width: 32em;">
             <h3>Presets<button v-on:click="showPresets=0">
                     <i class="icofont-ui-close"></i>Close</button>
             </h3>
@@ -438,7 +438,7 @@ ${lists}
             </dl>
         </section>
 
-        <div v-if="showDMXSetup" class="window flex-item">
+        <div v-if="showDMXSetup" class="window paper flex-item">
             <h3>
                 <button v-on:click="showDMXSetup=0">
                     <i class="icofont-ui-close"></i>Close</button> Universe Setup
@@ -561,7 +561,7 @@ ${lists}
         </dialog>
 
 
-        <section v-if="universeFullSettings" class="flex-item window">
+        <section v-if="universeFullSettings" class="flex-item window paper">
             <h3><button v-on:click="universeFullSettings=0"><i class="icofont-ui-close"></i>Close</button>Universe
                 Setup:{{universeFullSettings}}</h3>
 
@@ -609,7 +609,7 @@ ${lists}
 
 
 
-        <section v-if="showFixtureSetup" class="flex-item window">
+        <section v-if="showFixtureSetup" class="flex-item window paper">
             <h3><button v-on:click="showhidefixtures()"><i class="icofont-ui-close"></i>Close</button>Fixture
                 Setup</h3>
 
@@ -711,7 +711,7 @@ ${lists}
         </section>
 
 
-        <section v-if="showfixtureassg" class="flex-item window">
+        <section v-if="showfixtureassg" class="flex-item window paper">
 
             <h3>
                 <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture
@@ -783,13 +783,13 @@ ${lists}
 
 
 
-        <section class="flex-item window margin" v-if="!(editingScene && cuemeta[editingScene.cue])"
+        <section class="flex-item window paper margin" v-if="!(editingScene && cuemeta[editingScene.cue])"
             style="display:inline-block;  max-width:98vw; resize:both; overflow:auto;">
             <h2>No Scene selected</h2>
         </section>
 
 
-        <section class="window margin" v-if="editingScene && cuemeta[editingScene.cue]">
+        <section class="window paper margin" v-if="editingScene && cuemeta[editingScene.cue]">
             <header>
                 <div style="display: flex; flex-direction: row;">
 
@@ -965,30 +965,31 @@ ${lists}
                                 class="icofont-listing-box"></i>Channels</button>
                     </p>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
-                        <article class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'">
-                            <h3>{{uname}}</h3>
+                        <article class="universe card" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'">
+                            <header><h3>{{uname}}</h3></header>
                             <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
                                 :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
                             </h-fader>
                         </article>
 
 
-                        <article class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'">
-                            <div class="tool-bar" v-if="editingScene.blend!='monitor'">
-                                <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
-                                <select
-                                    v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
-                                    <option value="__dummy__">Presets</option>
-                                    <option
-                                        v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
-                                        :value="ps[0]">{{ps[0]}}</option>
-                                </select>
-                                <button v-on:click="savePreset(h)">Save</button>
-                            </div>
-                            <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
-                                <i class="icofont-trash"></i>
-                            </button>
-
+                        <article class="fixture card" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'">
+                           <header> 
+                                <div class="tool-bar" v-if="editingScene.blend!='monitor'">
+                                    <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
+                                    <select
+                                        v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
+                                        <option value="__dummy__">Presets</option>
+                                        <option
+                                            v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
+                                            :value="ps[0]">{{ps[0]}}</option>
+                                    </select>
+                                    <button v-on:click="savePreset(h)">Save</button>
+                                </div>
+                                <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
+                                    <i class="icofont-trash"></i>
+                                </button>
+                            </header>
                             <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
                                 :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h">
                             </h-fader>

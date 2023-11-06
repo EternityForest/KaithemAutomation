@@ -256,8 +256,30 @@ header>*:only-child {
     box-sizing: border-box;
     padding: 6px;
     margin: 0px;
+    border: none;
 }
 
+header>:is(h1,h2,h3,h4):has(button){
+    padding: 0px;
+}
+
+header:not(.undecorated)> * > :only-child{
+    border: none;
+}
+
+header:not(.undecorated)>.tool-bar:only-child *:not(.specificity-hack) {
+    border: none;
+    margin: var(--padding);
+    border-radius: var(--control-border-radius);
+}
+
+header:not(.undecorated)>.tool-bar:only-child :is(p, h1,h2,h3,h4,h5,h6,label) {
+    background: none;
+}
+
+header:not(.undecorated)>.tool-bar:only-child :is(input, select, button) {
+    background: var(--control-bg);
+}
 
 footer {
     border-top: var(--border-width) solid var(--border-color);
@@ -1073,6 +1095,10 @@ input:not([type='submit']):not([type='range']),
 select {
     background: var(--concave-item-bg);
     box-shadow: var(--concave-item-box-shadow);
+}
+
+select{
+    padding: 4px;
 }
 
 button,

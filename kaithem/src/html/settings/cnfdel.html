@@ -5,7 +5,7 @@ import os,urllib
 
 %>
 <h1>Confirm Delete(Back to cancel)</h1>
-<div class="window">
+<div class="window paper">
 Confirm deleting ${path|h}?<br>
 <form action="/settings/files/${os.path.split(path)[0]|u}?del=${os.path.split(path)[1]|u}" method="post"><button>Confirm(Cannot be undone)</button></form>
 </div>

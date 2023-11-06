@@ -2,7 +2,7 @@
 <%from kaithem.src import kaithemobj,util%>
 <h1>Running Proceses</h1>
 %if util.which("top"):
-<div class="window">
+<div class="window paper">
 <pre>
 ${kaithemobj.kaithem.sys.shellex("top -b -n 1").decode()}
 </pre>
