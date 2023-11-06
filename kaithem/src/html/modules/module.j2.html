@@ -23,8 +23,8 @@
                 <button>The module namespace object(requires edit permission, beware shoulder surfers)</button>
             </form>
         </section>
-        <section class="window col-6">
-            <form action="/modules/module/{{ url(name) }}/update" method="POST" name="user">
+        <section class="window col-6 padding">
+            <form class="flex-cols" action="/modules/module/{{ url(name) }}/update" method="POST" name="user">
                 <h4>Name:</h4>
                 <input required="required" class="modulename" name="name" type="text" value="{{ name| escape }}">
                 <h4>Info:</h4>
@@ -79,8 +79,9 @@
             <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}">
                 <p>
                     <i class="icofont-ui-search">
+                    </i>
                 </p>
-                </i>
+
                 <input size=8 name="search" placeholder="Search this module" />
                 <input type=submit value="search" />
             </form>

@@ -15,6 +15,7 @@
     --warning-color: #ffd943;
     --danger-color: #ff4242;
     --highlight-color: #7788aa;
+    --accent-color: var(--blue);
 
     --bg: var(--black-1);
     --box-bg: var(--black-2);
