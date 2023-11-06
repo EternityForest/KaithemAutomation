@@ -8,6 +8,7 @@
 /* Using a string */
 
 :root{
+  --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.avif);
   --box-bg: none;
   --fg: #522f28;
   --graphical-fg: rgb(94 21 21);
@@ -17,6 +18,9 @@
   --convex-item-bg: none;
   --convex-item-active-bg: none;
   --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
+  --control-bg: none;
+  --border-width: 2px;
+  --control-border-width: 2px;
 
 }
 
@@ -41,17 +45,6 @@ header{
   /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-
-
-html {
-    background:  radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.avif);
-    background-size: cover, unset;
-    background-repeat: repeat, repeat;
-    min-height: 100vh;
-    padding: 0px;
-    margin: 0px;
-    box-sizing: border-box;
-}
 
 iframe.embedpage{
   background-color: rgba(245, 245, 220, 0.548);
@@ -81,14 +74,6 @@ body {
     border-color: #412f1b42;
 }
 
-.card {
-  border-style: solid;
-  background: transparent; 
-  border-width: 1px;
-  border-color: rgba(65, 85, 27, 0.39);
-  border-radius: var(--border-radius);
-  backdrop-filter:none;
-}
 
 details
 {
@@ -162,6 +147,10 @@ details[open]
 
 .tool-bar{
   transform: rotate(0.2deg);
+}
+
+header .tool-bar{
+  transform: none;
 }
 
 a {

@@ -4,7 +4,7 @@
 <main>
     <h2>Module {{ name| escape }}</h2>
     <title>Module: {{ name| escape }}</title>
-    <section class="flex-rows">
+    <section class="flex-row">
         <section class="window col-6 padding">
             <details class="help">
                 <summary>
@@ -24,7 +24,7 @@
             </form>
         </section>
         <section class="window col-6 padding">
-            <form class="flex-cols" action="/modules/module/{{ url(name) }}/update" method="POST" name="user">
+            <form class="flex-col" action="/modules/module/{{ url(name) }}/update" method="POST" name="user">
                 <h4>Name:</h4>
                 <input required="required" class="modulename" name="name" type="text" value="{{ name| escape }}">
                 <h4>Info:</h4>
@@ -77,14 +77,11 @@
             {% endif %}
             {% endfor %}
             <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}">
-                <p>
-                    <i class="icofont-ui-search">
-                    </i>
-                </p>
-
                 <input size=8 name="search" placeholder="Search this module" />
-                <input type=submit value="search" />
-            </form>
+                <button type=submit value="search"> <i class="icofont-ui-search">
+                    </i></button>
+
+        </form>
         </div>
         <dl>
             {% if path and len(util.split_escape(path[0],"/","\\"))>1 %}

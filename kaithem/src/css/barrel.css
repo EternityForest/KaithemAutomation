@@ -15,6 +15,8 @@
     --green: rgb(0, 158, 0);
     --teal: rgb(120, 212, 219);
     --blue: rgb(95 111 161);
+    --purple: rgb(161, 95, 141);
+
     --dark-blue: rgb(40 55 102);
 
 
@@ -25,7 +27,7 @@
     --graphical-fg: var(--black-4);
 
     /*Headings, links, etc*/
-    --accent-color: var(--grey-2);
+    --accent-color: var(--dark-blue);
     /*Main page bg*/
     --bg: var(--grey-1);
     /*.paper, items*/
@@ -36,13 +38,13 @@
     --main-font: sans-serif;
 
     /*Spacing*/
-    --padding: 6px;
+    --padding: 12px;
     --gap: 18px;
 
     /*Borders*/
     --border-color: color-mix(in srgb, var(--graphical-fg) 75%, rgb(0 0 0 / 0%));
     ;
-    --border-radius: 0.6rem;
+    --border-radius: 1.2rem;
     --border-width: 1px;
 
     /*Inputs, buttons, etc*/
@@ -102,7 +104,7 @@
         --bg: var(--black-1);
         --box-bg: var(--black-2);
         --control-bg: var(--black-4);
-        --accent-color: var(--blue);
+        --accent-color: var(--grey-2);
 
         --fg: var(--grey-3);
         --graphical-fg: var(--grey-1);
@@ -247,7 +249,6 @@ footer {
     --graphical-fg: var(--control-fg);
 
     width: 100%;
-    padding: 0px;
     box-sizing: border-box;
     margin: 0px;
     flex-grow: 0;
@@ -265,23 +266,29 @@ header {
 }
 
 
-header>*:only-child {
+header>*:only-child, header>*:only-child>:only-child  {
     width: 100%;
     box-sizing: border-box;
     padding: 6px;
     margin: 0px;
 }
 
+header :is(h1, h2, h3, h4) {
+    padding-inline-start: var(--padding);
+}
+
 header>:is(h1, h2, h3, h4):has(button) {
     padding: 0px;
 }
 
-header:not(.undecorated)>*> :only-child {
+header:not(.undecorated)>*> :only-child, header:not(.undecorated)> :only-child{
     border: none;
 }
+header:not(.undecorated)>.tool-bar:only-child{
+    gap: var(--padding);
+}
 
-header:not(.undecorated)>.tool-bar:only-child *:not(.specificity-hack) {
-    margin: var(--padding);
+header:not(.undecorated)>.tool-bar:only-child>*:not(.specificity-hack) {
     border-radius: var(--control-border-radius);
 }
 
@@ -451,7 +458,7 @@ table tr th,
 table tr td {
     border-right: var(--border-width) solid var(--border-color);
     border-bottom: var(--border-width) solid var(--border-color);
-    padding: var(--padding);
+    padding: calc(var(--padding)/3);
 }
 
 table tr th:first-child,
@@ -532,7 +539,7 @@ table tr:first-child td {
     margin-bottom: 0.2em;
     min-width: min-content;
     box-sizing: border-box;
-    max-width: 99%;
+    max-width: 100vw;
     overflow: auto;
     border-radius: var(--border-radius);
     border-color: var(--border-color);
@@ -566,34 +573,33 @@ table tr:first-child td {
     flex-basis: 90%;
 }
 
-.flex-cols {
+.flex-col {
     display: flex;
     flex-wrap: wrap;
     flex-direction: column;
 }
 
-.flex-cols>* {
+.flex-col>* {
     box-sizing: border-box;
     flex: 1 1 auto;
     flex-basis: fit-content;
 }
 
-.flex-cols footer,
-.flex-cols header {
+.flex-col footer,
+.flex-col header {
     flex-grow: 0;
 }
 
-.flex-rows {
+.flex-row {
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
     gap: var(--gap);
     align-items: stretch;
-    justify-content: space-between;
 }
 
 
-.flex-rows>* {
+.flex-row>* {
     box-sizing: border-box;
     flex-grow: 1;
     flex-shrink: 1;
@@ -766,7 +772,18 @@ table tr:first-child td {
 
 .scroll {
     overflow: auto;
+
 }
+
+/*This user added margin is likely unwanted on tiny screens*/
+@media screen and (max-width: 860px) {
+    .scroll{
+        /*Scroll boxes should never be full screen, or else you woul
+        Have nowhere outside it to grab and scroll the whole page*/
+        max-height: 60vw;
+    }
+}
+
 
 .max-h-1rem {
     max-height: 1rem;
@@ -866,39 +883,39 @@ table tr:first-child td {
     height: 60rem;
 }
 
-.flex-cols>.h-1rem {
+.flex-col>.h-1rem {
     flex-basis: 1rem;
 }
 
-.flex-cols>.h-2rem {
+.flex-col>.h-2rem {
     flex-basis: 2rem;
 }
 
-.flex-cols>.h-4rem {
+.flex-col>.h-4rem {
     flex-basis: 4rem;
 }
 
-.flex-cols>.h-6rem {
+.flex-col>.h-6rem {
     flex-basis: 6rem;
 }
 
-.flex-cols>.h-12rem {
+.flex-col>.h-12rem {
     flex-basis: 12rem;
 }
 
-.flex-cols>.h-24rem {
+.flex-col>.h-24rem {
     flex-basis: 24rem;
 }
 
-.flex-cols>.h-36rem {
+.flex-col>.h-36rem {
     flex-basis: 36rem;
 }
 
-.flex-cols>.h-48rem {
+.flex-col>.h-48rem {
     flex-basis: 48rem;
 }
 
-.flex-cols>.h-60rem {
+.flex-col>.h-60rem {
     flex-basis: 60rem;
 }
 
@@ -948,6 +965,10 @@ iframe.h-center {
     padding: var(--padding);
 }
 
+header.padding, footer.padding{
+    padding: calc(max(4px, calc(var(--padding) / 3)));
+}
+
 .font-normal {
     font-style: normal;
 }
@@ -976,6 +997,14 @@ iframe.h-center {
     margin: 0px;
 }
 
+/*This user added margin is likely unwanted on tiny screens where*/
+@media screen and (max-width: 500px) {
+    .window {
+         margin-left: 0px;
+         margin-right: 0px;
+    }
+}
+
 .block {
     display: block;
 }
@@ -990,8 +1019,8 @@ iframe.h-center {
 }
 
 .inline-flex,
-.flex-rows.inline,
-.flex-cols.inline,
+.flex-row.inline,
+.flex-col.inline,
 .tool-bar.inline {
     display: inline-flex;
 }
@@ -1103,7 +1132,8 @@ blockquote {
 a {
     text-decoration-style: dotted;
     text-decoration-thickness: 1.2px;
-    color: color-mix(in srgb, var(--accent-color) 50%, var(--fg));
+    color: color-mix(in srgb, var(--accent-color) 70%, var(--fg));
+    text-decoration-color:color-mix(in srgb, var(--accent-color) 38%, rgb(0 0 0 / 0%));
 }
 
 
@@ -1207,13 +1237,11 @@ dd {
     align-items: stretch;
     border-radius: var(--control-border-radius);
     min-height: var(--control-height);
-    margin: 0.6em;
     flex-grow: 1;
     vertical-align: middle;
     height: fit-content;
     align-items: center;
     align-content: center;
-    width: auto;
     box-sizing: border-box;
     background-clip: content-box;
 }
@@ -1483,6 +1511,8 @@ dd {
 input[type=range] {
     -webkit-appearance: none;
     background-color: transparent;
+    border: none;
+    --concave-item-box-shadow: none;
 }
 
 
