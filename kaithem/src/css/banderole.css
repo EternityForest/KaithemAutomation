@@ -11,6 +11,13 @@
   --box-bg: none;
   --fg: #522f28;
   --graphical-fg: rgb(94 21 21);
+  --accent-color: var(--graphical-fg);
+
+  --concave-item-bg: none;
+  --convex-item-bg: none;
+  --convex-item-active-bg: none;
+  --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
+
 }
 
 header{

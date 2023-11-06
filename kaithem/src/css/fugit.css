@@ -5,29 +5,30 @@
 
 :root{
   color-scheme: dark;
-  --tool-bar-element-border: #ffd477 solid 1px;
+  --phosphor-color: #ffd477;
+  --tool-bar-element-border:  var(--phosphor-color) solid 1px;
   --concave-item-bg: rgba(0, 0, 0, 0.0);
   --convex-item-bg: rgba(0, 0, 0, 0.0);
   --convex-item-active-bg: rgba(0, 0, 0, 0.0);
   --control-border-radius: 0px;
+  --graphical-fg: var(--phosphor-color);
+  --accent-color: #dddca7;
+  --border-color: var(--phosphor-color);
+  --fg: var(--phosphor-color);
+  --box-bg: #41401975;
+  --bg: linear-gradient(#4b3700bd 1px, transparent 1px), linear-gradient(to right, #4b3700ab 1px, #000000 1px);
+  --main-font: 'ModernDos';
+
+  --control-fg: var(--phosphor-color);
+  --control-bg: rgba(75, 73, 26, 0.459);
+
+  --concave-item-box-shadow: none;
+
+
 }
 
-[class*=" icofont-"],
-[class^=icofont-] {
-    color: white;
-    margin-left: 4px;
-    margin-right: 4px;
-}
-
-th{
-    color: white;
-}
 a{
-    color:#dddca7;
     text-decoration: none;
-}
-table{
-    color:#dddca7;
 }
 
 iframe{
@@ -35,6 +36,7 @@ iframe{
     border-width: 3px;
     border-color: #dddca7;
 }
+
 @font-face {
     font-family: 'ModernDOS';
     font-style: normal;
@@ -43,10 +45,9 @@ iframe{
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
+
 html {
-    background-color: #000000;
     opacity: 0.8;
-    background-image: linear-gradient(#4b37002e 1px, transparent 1px), linear-gradient(to right, #4b37002e 1px, #000000 1px);
     background-size: 20px 20px;
     min-height: 100vh;
     padding: 0px;
@@ -65,7 +66,6 @@ html {
 }
 
 body {
-    color: #ffd477;
     font-family: 'ModernDOS';
 }
 
@@ -115,12 +115,10 @@ p {
 
 hr {
     border: none;
-    border-top: 1px solid #ffe6b1;
     height: 1px;
 }
 
 h1,h2,h3,h4 {
-    color: #ffe6b1;
     font-weight: normal;
 }
 
@@ -165,10 +163,6 @@ div.kmainpagebody {}
     border-style: solid;
     box-shadow: none;
     border-width: 1px;
-    backdrop-filter: blur(1px) brightness(0.3);
-    background-color: rgba(0, 0, 0, 0.3);
-    border-color: #ffd477;
-    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAHRJREFUKFNVTzsVgEAMSwYWTKAAEahAIyrwgAJUsDCEl7TwHjfc9dJ8Wq7LqG2/SBCCQAAC8BaEWxJEY26bIFBFLNg/l6o3hFhZ8hUVUB7t0/JEtATzNOg47zbIBH1oayTbV9LKseYPNaCjflu8lMC93bcsHiEmMBAIk7iGAAAAAElFTkSuQmCC) repeat;
 }
 
 img,video {
@@ -265,57 +259,6 @@ display: none;
 }
 
 
-/*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-
-p.menubar,
-div.menubar {
-    background-color: transparent;
-    padding: 0px;
-    border-width: 3px;
-    border-color: #ffd477;
-    backdrop-filter: blur(3px);
-}
-
-button,
-a.button,
-label {
-    text-shadow: none;
-    font-family: 'ModernDOS';
-}
-
-button,
-a.button,
-input[type="submit"] {
-    background-color: transparent;
-    color: #ffd477;
-    border: 1px solid;
-    border-color: #ffd477;
-    font-family: 'ModernDOS';
-    background-color: black;
-}
-
-input:not([type="submit"]),
-textarea,
-select {
-    background-color: transparent;
-    color: #ffd477;
-    border: 1px solid;
-    border-color: #ffd477;
-    font-family: 'ModernDOS';
-    background-color: black;
-
-}
-
-
-meter::-webkit-meter-bar{
-    background-color: #665632;;
-    border:none
-}
-
-
-meter::-webkit-meter-optimum-value{
-    background-color:#ffd477;
-}
 .tool-bar {
     box-shadow: none;
     flex-basis: max-content;
@@ -335,7 +278,6 @@ meter::-webkit-meter-optimum-value{
 }
 
 header{
-  background-color: transparent;
   border: none;
 }
 
@@ -343,33 +285,15 @@ header{
 .highlight, .highlight * {
     text-shadow: none;
     font-weight: bolder;
-    color: black !important;
-    background-color: #ffd477 !important;
-    background: #ffd477 !important;
+    color: var(--black-1) !important;
+    background-color: var(--phosphor-color) !important;
+    background: var(--phosphor-color)!important;
+    --fg: var(--black-1);
+    --graphical-fg: var(--black-1);
+    --border-color: var(--black-1);
+    --control-fg: var(--black-1);
 }
 
-.highlight input,
-.error input,
-.warning input, 
-.highlight select, 
-.error select, 
-.warning select{
-    text-shadow: none;
-    font-weight: bolder;
-    background-color: black;
-    color: #ffd477 ;
-    background: black ;
-}
-
-.highlight button,
-.error button,
-.warning button {
-    text-shadow: none;
-    font-weight: bolder;
-    background-color: black;
-    color: #ffd477 ;
-    background: black;
-}
 
 
 /*A link styled to look like a button*/

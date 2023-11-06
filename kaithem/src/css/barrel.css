@@ -22,6 +22,7 @@
     --fg: var(--black-1);
     /*Nontext items like borders*/
     --graphical-fg: var(--black-4);
+
     /*Headings, links, etc*/
     --accent-color: var(--blue);
     /*Main page bg*/
@@ -38,7 +39,7 @@
     --gap: 18px;
 
     /*Borders*/
-    --border-color: var(--graphical-fg);
+    --border-color: color-mix(in srgb, var(--graphical-fg) 75%, rgb(0 0 0 / 0%));;
     --border-radius: 0.6rem;
     --border-width: 1px;
 
@@ -58,6 +59,7 @@
 
     /*control-bg also applies to small elements like headers*/
     --control-bg: var(--grey-1);
+    --control-fg: var(--fg);
 
 
 
@@ -74,6 +76,8 @@
     --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
     --warning-fg: color-mix(in srgb, var(--warning-color) 20%, var(--fg));
     --danger-fg: color-mix(in srgb, var(--danger-color) 40%, var(--fg));
+
+    --control-border-color: color-mix(in srgb, var(--control-fg) 35%, rgb(0 0 0 / 0%));
 
     /*Calculated helpers*/
     --thin-border: 1px solid var(--border-color);
@@ -235,6 +239,10 @@ header {
 header,
 footer {
     background-color: var(--control-bg);
+    color: var(--control-fg);
+    --accent-color: var(--control-fg);
+    --graphical-fg: var(--control-fg);
+    
     width: 100%;
     padding: 0px;
     box-sizing: border-box;
@@ -252,6 +260,7 @@ footer * {
 header {
     border-bottom: var(--border-width) solid var(--border-color);
 }
+
 
 header>*:only-child {
     width: 100%;
@@ -278,12 +287,13 @@ header:not(.undecorated)>.tool-bar:only-child :is(p, h1,h2,h3,h4,h5,h6,label) {
 }
 
 header:not(.undecorated)>.tool-bar:only-child :is(input, select, button) {
-    background: var(--control-bg);
+    color: var(--control-fg);
     box-shadow: none;
 }
 
 header:not(.undecorated)>.tool-bar:only-child :is(input, button) {
     background: var(--control-bg);
+    color: var(--control-fg);
 }
 
 footer {
@@ -319,6 +329,7 @@ select {
 
 textarea:disabled {
     background-color: color-mix(in srgb, var(--control-bg) 50%, var(--bg) 50%);
+    color: var(--control-fg);
 }
 
 details {
@@ -340,14 +351,15 @@ td details {
 /*A link styled to look like a button*/
 a.button {
     text-decoration: none;
-    border: var(--control-border-width) solid var(--border-color);
-    color: var(--fg);
+    border: var(--control-border-width) solid var(--control-border-color);
+    color: var(--control-fg);
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
 }
 
 button {
     border-style: solid;
+    color: var(--control-fg);
 }
 
 /*A button link while being clicked*/
@@ -1114,7 +1126,7 @@ label,
 select,
 textarea {
     border-radius: var(--control-border-width);
-    border-color: var(--border-color);
+    border-color: var(--control-border-color);
 }
 
 textarea {
@@ -1134,6 +1146,7 @@ select {
 
 textarea {
     background-color: var(--control-bg);
+    color: var(--control-fg);
 }
 
 button,
@@ -1149,10 +1162,7 @@ header>* {
     border-radius: var(--border-radius);
 }
 
-button,
-input,
-textarea,
-select,
+
 p,
 div {
     border-color: var(--border-color);
@@ -1185,7 +1195,7 @@ dd {
 }
 
 .tool-bar {
-    --tool-bar-element-border: var(--control-border-width) solid var(--border-color);
+    --tool-bar-element-border: var(--control-border-width) solid var(--control-border-color);
     flex-basis: max-content;
     display: flex;
     flex-wrap: wrap;
@@ -1393,7 +1403,7 @@ dd {
 .tool-bar meter::-webkit-meter-inner-element {
     -webkit-appearance: inherit;
     box-sizing: inherit;
-    border: var(--control-border-width) solid var(--border-color);
+    border: var(--control-border-width) solid var(--control-border-color);
     height: 22px;
 }
 
@@ -1434,7 +1444,7 @@ dd {
 /* Firefox */
 * {
     scrollbar-width: auto;
-    scrollbar-color: var(--graphical-fg) var(--control-bg);
+    scrollbar-color: var(--control-fg) var(--control-bg);
 }
 
 /* Other browsers */
@@ -1448,7 +1458,7 @@ dd {
 }
 
 *::-webkit-scrollbar-thumb {
-    background-color: var(--graphical-fg);
+    background-color: var(--control-fg);
     border-radius: var(--border-radius);
     border: none;
 }
@@ -1474,7 +1484,7 @@ input[type=range]::-webkit-slider-thumb {
     margin-top: -7.8px;
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
-    background: var(--graphical-fg);
+    background: var(--control-fg);
     border: var(--thin-border);
     border-radius: 100px;
     -webkit-appearance: none;
@@ -1490,7 +1500,7 @@ input[type=range]::-moz-range-track {
 input[type=range]::-moz-range-thumb {
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
-    background: var(--graphical-fg);
+    background: var(--control-fg);
     border: var(--thin-border);
     border-radius: 100px;
 }
@@ -1531,12 +1541,12 @@ meter {
 
     /* For Firefox */
     border-radius: var(--control-border-radius);
-    border-color: var(--border-color);
+    border-color: var(--control-border-color);
 }
 
 /* WebKit */
 meter::-webkit-meter-bar {
-    border-color: var(--border-color);
+    border-color: var(--control-border-color);
     background: var(--control-bg);
     box-shadow: var(--concave-item-box-shadow);
     border-radius: var(--control-border-radius);
