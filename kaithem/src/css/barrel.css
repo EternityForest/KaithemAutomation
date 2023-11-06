@@ -40,7 +40,8 @@
     --gap: 18px;
 
     /*Borders*/
-    --border-color: color-mix(in srgb, var(--graphical-fg) 75%, rgb(0 0 0 / 0%));;
+    --border-color: color-mix(in srgb, var(--graphical-fg) 75%, rgb(0 0 0 / 0%));
+    ;
     --border-radius: 0.6rem;
     --border-width: 1px;
 
@@ -49,9 +50,9 @@
     --control-border-radius: 12px;
     --control-border-width: 1px;
 
-    --3d-highlight: color-mix(in srgb, var( --control-bg) 50%, rgb(255 255 255));
+    --3d-highlight: color-mix(in srgb, var(--control-bg) 50%, rgb(255 255 255));
     --3d-shadow: color-mix(in srgb, var(--control-bg) 50%, rgb(0 0 0 / 0%));
-    
+
     /*3D buttons are mostly transparent with just some highlights and shadows.*/
     --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 12%, var(--3d-highlight) 88%);
     --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
@@ -244,7 +245,7 @@ footer {
     color: var(--control-fg);
     --accent-color: var(--control-fg);
     --graphical-fg: var(--control-fg);
-    
+
     width: 100%;
     padding: 0px;
     box-sizing: border-box;
@@ -271,11 +272,11 @@ header>*:only-child {
     margin: 0px;
 }
 
-header>:is(h1,h2,h3,h4):has(button){
+header>:is(h1, h2, h3, h4):has(button) {
     padding: 0px;
 }
 
-header:not(.undecorated)> * > :only-child{
+header:not(.undecorated)>*> :only-child {
     border: none;
 }
 
@@ -284,7 +285,7 @@ header:not(.undecorated)>.tool-bar:only-child *:not(.specificity-hack) {
     border-radius: var(--control-border-radius);
 }
 
-header:not(.undecorated)>.tool-bar:only-child :is(p, h1,h2,h3,h4,h5,h6,label) {
+header:not(.undecorated)>.tool-bar:only-child :is(p, h1, h2, h3, h4, h5, h6, label) {
     background: none;
 }
 
@@ -301,7 +302,7 @@ footer {
     border-top: var(--border-width) solid var(--border-color);
 }
 
-header>.tool-bar>:is(p, h1, h2, h3, h4){
+header>.tool-bar>:is(p, h1, h2, h3, h4) {
     border: none;
 }
 
@@ -366,12 +367,13 @@ button {
     color: var(--control-fg);
 }
 
-/*A button link while being clicked*/
 
 button:active,
-a:active {
+a:active,
+input[type='submit']:active {
     background: var(--convex-item-active-bg) !important;
     box-shadow: var(--concave-item-box-shadow) !important;
+    color: var(--control-fg);
 }
 
 summary h2:first-child {
@@ -432,7 +434,6 @@ td select {
     border: var(--border-width) solid var(--border-color);
     box-sizing: border-box;
     margin: 0px;
-    height: 1.8em;
     width: auto;
 }
 
@@ -556,12 +557,12 @@ table tr:first-child td {
     flex-basis: min-content;
 }
 
-.stacked-form{
+.stacked-form {
     display: flex;
     flex-direction: column;
 }
 
-.stacked-form> *{
+.stacked-form>* {
     flex-basis: 90%;
 }
 
@@ -1115,6 +1116,7 @@ select {
     box-sizing: border-box;
 }
 
+
 button,
 a.button,
 input[type='submit'] {
@@ -1127,31 +1129,29 @@ select {
     box-shadow: var(--concave-item-box-shadow);
 }
 
-select{
+select {
     padding: 4px;
 }
+
 
 button,
 a.button,
 a,
 label,
 select,
-textarea {
-    border-radius: var(--control-border-width);
+textarea,
+input {
+    border-radius: var(--control-border-radius);
     border-color: var(--control-border-color);
-}
-
-textarea {
-    box-shadow: var(--concave-item-box-shadow);
-}
-
-
-button,
-a.button,
-label,
-a,
-select {
     font-family: inherit;
+
+}
+
+
+input,
+textarea {
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: var(--concave-item-box-shadow);
 }
 
 /* Color elements */
@@ -1161,13 +1161,6 @@ textarea {
     color: var(--control-fg);
 }
 
-button,
-a.button,
-input,
-textarea,
-select {
-    border-radius: var(--control-border-radius);
-}
 
 /*Border radius looks bad if it's smashed right up close to containing box and not the same radius*/
 header>* {
@@ -1269,9 +1262,10 @@ dd {
     height: var(--control-height);
 }
 
-.tool-bar>label>:is(input, select){
+.tool-bar>label>:is(input, select) {
     border: none;
 }
+
 .tool-bar :is(a, a.button, select, input, meter, button) {
     margin: 0px;
     align-items: stretch;
@@ -1407,12 +1401,14 @@ dd {
 
 }
 
-.tool-bar > label:last-child{
+.tool-bar>label:last-child {
     padding-inline-end: 0px;
 }
-.tool-bar > label:first-child{
+
+.tool-bar>label:first-child {
     padding-inline-start: 0px;
 }
+
 .tool-bar> :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
     border-radius: var(--control-border-radius) var(--control-border-radius) var(--control-border-radius) var(--control-border-radius);
 }
