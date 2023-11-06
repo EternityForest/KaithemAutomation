@@ -503,6 +503,7 @@ table tr:first-child td {
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 .window {
+    background: var(--box-bg);
     border-style: solid;
     border-width: var(--border-width);
     margin-top: 0.8em;
