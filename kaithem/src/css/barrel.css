@@ -266,7 +266,8 @@ header {
 }
 
 
-header>*:only-child, header>*:only-child>:only-child  {
+header>*:only-child,
+header>*:only-child>:only-child {
     width: 100%;
     box-sizing: border-box;
     margin: 0px;
@@ -280,10 +281,12 @@ header>:is(h1, h2, h3, h4):has(button) {
     padding: 0px;
 }
 
-header:not(.undecorated)>*> :only-child, header:not(.undecorated)> :only-child{
+header:not(.undecorated)>*> :only-child,
+header:not(.undecorated)> :only-child {
     border: none;
 }
-header:not(.undecorated)>.tool-bar:only-child{
+
+header:not(.undecorated)>.tool-bar:only-child {
     gap: var(--padding);
 }
 
@@ -776,11 +779,11 @@ table tr:first-child td {
 }
 
 /*This user added margin is likely unwanted on tiny screens*/
-@media screen and (max-width: 860px) {
-    .scroll{
+@media screen and (max-width: 600px) {
+    .scroll {
         /*Scroll boxes should never be full screen, or else you woul
         Have nowhere outside it to grab and scroll the whole page*/
-        max-height: 60vw;
+        max-height: 70vh;
     }
 }
 
@@ -965,7 +968,8 @@ iframe.h-center {
     padding: var(--padding);
 }
 
-header.padding, footer.padding{
+header.padding,
+footer.padding {
     padding: calc(max(4px, calc(var(--padding) / 3)));
 }
 
@@ -1000,8 +1004,8 @@ header.padding, footer.padding{
 /*This user added margin is likely unwanted on tiny screens where*/
 @media screen and (max-width: 500px) {
     .window {
-         margin-left: 0px;
-         margin-right: 0px;
+        margin-left: 0px;
+        margin-right: 0px;
     }
 }
 
@@ -1042,8 +1046,7 @@ header.padding, footer.padding{
     justify-content: center;
 }
 
-.flex-col.align-center
-{
+.flex-col.align-center {
     place-items: center;
 }
 
@@ -1142,7 +1145,7 @@ a {
     text-decoration-style: dotted;
     text-decoration-thickness: 1.2px;
     color: color-mix(in srgb, var(--accent-color) 70%, var(--fg));
-    text-decoration-color:color-mix(in srgb, var(--accent-color) 38%, rgb(0 0 0 / 0%));
+    text-decoration-color: color-mix(in srgb, var(--accent-color) 38%, rgb(0 0 0 / 0%));
 }
 
 
@@ -1496,6 +1499,7 @@ header:not(.undecorated)>.tool-bar:only-child :is(a, a.button, select, p, h1, h2
 .tool-bar select {
     background: none;
 }
+
 /* 
 Wall to wall fill the top header
 body>header>.tool-bar.w-full, body>header>.tool-bar.w-full *,
@@ -1525,6 +1529,18 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
     background-color: var(--control-fg);
     border-radius: var(--border-radius);
     border: none;
+}
+
+
+@media screen and (max-width: 420px) {
+    * {
+        scrollbar-width: 6px;
+    }
+
+    /* Other browsers */
+    *::-webkit-scrollbar {
+        width: 6px;
+    }
 }
 
 /* The Range inputs */

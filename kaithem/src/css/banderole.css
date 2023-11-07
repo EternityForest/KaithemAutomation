@@ -168,13 +168,7 @@ a {
 /* ===== Scrollbar CSS ===== */
   /* Firefox */
   * {
-    scrollbar-width: auto;
     scrollbar-color: #874437 #8e8c71;
-  }
-
-  /* Chrome, Edge, and Safari */
-  *::-webkit-scrollbar {
-    width: 16px;
   }
 
   *::-webkit-scrollbar-track {

@@ -234,7 +234,7 @@ ${lists}
             </div>
         </header>
 
-        <div style="overflow: auto;" class="h-36rem">
+        <div class="h-24rem scroll">
             <article v-for="i in formatScenes()" v-if="i" style="position:relative;"
                 v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
