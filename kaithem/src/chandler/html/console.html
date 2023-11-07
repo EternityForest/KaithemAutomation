@@ -267,7 +267,7 @@ ${lists}
 
 
                 <div class="tool-bar" v-if="!i[1].utility">
-                    <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
+                    <button :class="{'success':i[1].active}" v-on:click="go(i[0])"><i
                             class="icofont-ui-play"></i>Go!</button>
                     <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
                     <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
@@ -301,7 +301,7 @@ ${lists}
 
                     <tr v-for="(v,i) in i[1].timers">
                         <td>{{i}}</td>
-                        <td style="width:8em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                        <td style="width:8em;" v-bind:class="{warning:(v-unixtime)<60, blinking:(v-unixtime)<5}">
                             {{formatInterval((v-unixtime))}}
                         </td>
                     </tr>
@@ -793,7 +793,7 @@ ${lists}
                     <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
                             <span v-if="editingScene.blend=='monitor'">Monitor</span>
                             {{editingScene.name}}</span>
-                        <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                        <span class="success" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
                     </h3>
 
                     <div class="tool-bar">
@@ -1073,7 +1073,7 @@ ${lists}
                                     <tr v-for="(v,i) in editingScene.timers">
                                         <td>{{i}}</td>
                                         <td style="width:8em;"
-                                            v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
+                                            v-bind:class="{warning:(v-unixtime)<60, blinking:(v-unixtime)<5}">
                                             {{formatInterval((v-unixtime))}}
                                         </td>
                                     <tr>

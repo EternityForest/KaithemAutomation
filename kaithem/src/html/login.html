@@ -6,12 +6,14 @@
     <h2 style="text-align: center;">Please Log In</h2>
     <section class="window paper">
       <div style="text-align: center;">
-        If you have not configured any users, your login credentials are the same as the Linux user this is running
-        under.
-        <form method="POST" action="/login/login?go=${target}" name="login" class="table rows">
+        <header class="padding">
+          If you have not configured any users, your login credentials are the same as the Linux user this is running
+          under.
+        </header>
+        <form method="POST" action="/login/login?go=${target}" name="login" class="flex-col align-center">
             <label>Username:
               <input name="username">
-            </label><br>
+            </label>
 
             <label>Password:
               <input name="password" type="password" placeholder="password">
