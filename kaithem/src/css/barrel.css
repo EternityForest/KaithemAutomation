@@ -1417,7 +1417,6 @@ dd {
 
 
 .tool-bar>label> :is(input, select, meter):not(.specificity-hack) {
-    margin: 0px var(--padding) 0px var(--padding);
     min-height: 100%;
 }
 
@@ -1491,6 +1490,8 @@ header:not(.undecorated)>.tool-bar:only-child :is(a, a.button, select, p, h1, h2
 
 .tool-bar>label {
     display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--padding);
     border-top: var(--tool-bar-element-border);
     border-bottom: var(--tool-bar-element-border);
     align-items: center;
