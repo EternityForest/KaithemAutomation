@@ -33,12 +33,10 @@ best reliability.
 - :sparkles: jackmixer now uses pipewire directly
 - :coffin: The page header including in user pages is deprecated.  Use <%inherit file="/pagetemplate.html" /> in your code.
 - :coffin: BREAKING: the styling on .sectionbox, section, and article is gone. Use .window and .card.
-- :sparkles: Work on getting rid of inline styles. We are moving to a custom CSS framework that might eventually be a standalone library. See css.md in the docs folder.
+- :sparkles: Work on getting rid of inline styles. We are moving to a custom [CSS Framework](https://eternityforest.github.io/barrel.css/) See css.md in the docs folder.
 - :coffin: MAJOR BREAKING user facing APIs are now snake_case. If you see anything not snake_case, it's deprecated.
 - :sparkles: Jinja2 support in user-created pages. Mako user pages are deprecated and will eventually be removed.
-
 - :coffin: Remove ancient example modules that had accumulated useless stuff.
-
 
 ### 0.69.20
 

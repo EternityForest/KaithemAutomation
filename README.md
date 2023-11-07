@@ -1,48 +1,11 @@
-![Banderole Theme](screenshots/BanderoleTheme1.avif)
+![AI generated picture of a tavern](kaithem/data/static/img/nov23-ai-watercolor-tavern.webp)
 
-(Banderole Theme)
+Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It runs on python3, but it is not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
-
-![Fugit Theme](screenshots/FugitTheme1.avif)
-
-(Fugit theme)
-
-
-![Visitors](https://api.visitorbadge.io/api/combined?path=https%3A%2F%2Fgithub.com%2FEternityForest%2FKaithemAutomation&countColor=%23263759&style=plastic)
-
-
-Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system, but it allows you to control anything python can.
-
-It runs on python3, but it is not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
-
-You automate things by directly writing python and HTML via a web IDE. "Events" are sections of code that run when a trigger condition happens. Trigger conditions can be polled expressions, internal message bus
-events, or time-based triggers using a custom semi-natural language parser.
-
-![Editing an event](screenshots/edit-event.webp)
-
-
-Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save.
-
-![Lighting control](screenshots/lightboard.webp)
-![Sound Mixer](screenshots/mixer.webp)
-
-
-Kaithem also includes a module called Chandler, which is a full web-based lighting control board with a visual
-programming language for advanced interactive control.
-
-Kaithem is still beta, but I've used it in production applications running for months at a time. 
-
-It wasn't designed for any kind of safety-critical application, but it is meant to be reliable enough for most home and commercial applications.
+You automate things by directly writing python and HTML via a web IDE, or by using the built-in Chandler module, which is a full web-based lighting aud audio control board with a visual programming language adding interactivity.
 
 Installation
 ============
-
-## Documentation
-Kaithem's help files are being migrated to markdown. You can browse right on github,
-or access the full help via the web interface!
-*  [help](kaithem/src/docs/help.md)
-*  [FAQ(old)](kaithem/src/docs/faq.md)
-
 
 ## How to run it!
 
@@ -161,16 +124,6 @@ To update, do a `make update` in /opt/KaithemAutomation,  then rerun `make user-
 Go to the kaithem GUI and select your output for the kiosk mixer channel.
 
 If there is no mixer channel, make one and set the input to Chromium.  Or wait a minute, mixer channels somethines don't load immediately at boot. Then save it as the default.
-
-
-
-### Connecting Multiple Servers
-
-Most Kaithem features that can do this, rely on MQTT, as per the "No reinvented wheels" philosophy.  To set up an MQTT server,
-do this as root.  Using encryption with MQTT is harder, but many tutorials exist.  MQTT in Kaithem is powered by Paho-MQTT.
-
-```bash
-
 
 
 ### Instant digital signage

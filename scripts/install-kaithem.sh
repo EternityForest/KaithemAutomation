@@ -25,12 +25,6 @@ fi
 ~/kaithem/.venv/bin/python setup.py install
 
 
-chmod 755 /usr/bin/ember-launch-kaithem
-
-
-mkdir -p    ~/kaithem/system.mixer
-
-
 cat << EOF > ~/kaithem/config.yaml
 site-data-dir: ~/kaithem
 ssl-dir: ~/kaithem/ssl
@@ -65,7 +59,7 @@ RestartSec=15
 Type=simple
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 EOF
 
 systemctl --user enable --now kaithem.service

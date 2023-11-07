@@ -216,7 +216,7 @@ class ESPHomeDevice(iot_devices.device.Device):
                 d = False
 
                 st = time.monotonic()
-                while (time.monotonic() - st) < 5:
+                while (time.monotonic() - st) < 1:
                     if t.done():
                         d = True
                         break
@@ -229,7 +229,7 @@ class ESPHomeDevice(iot_devices.device.Device):
                 
         self.loop.stop()
         for i in range(50):
-            if not self.loop.is_running:
+            if not self.loop.is_running():
                 self.loop.close()
                 break
             time.sleep(0.1)

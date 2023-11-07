@@ -32,7 +32,7 @@ def stateMachinesTest():
     blink.set_timer("on", 1, "off")
 
     blink.set_timer("off", 1, "on")
-    blink.addRule("off", 'begin', "on")
+    blink.add_rule("off", 'begin', "on")
     blink('begin')
     module['Oscillating State Machine'] = blink
 
