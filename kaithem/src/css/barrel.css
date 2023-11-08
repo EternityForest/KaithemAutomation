@@ -1508,7 +1508,6 @@ header:not(.undecorated)>.tool-bar:only-child :is(a, a.button, select, p, h1, h2
     gap: var(--padding);
     border-top: var(--tool-bar-element-border);
     border-bottom: var(--tool-bar-element-border);
-    align-items: center;
 }
 
 .tool-bar select {
