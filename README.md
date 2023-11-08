@@ -156,6 +156,8 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
 ### 0.70.0
+This release has some big changes to the install process, but not many to the
+functionality.  Expect a few bugs in the next few versions as we rewrite old code to be more in line with best practices.
 
 - :bug: Fix bogus "sound did not report as playing" message
 - :sparkles: "Make file publically acessible" option in the upload for file resources.
@@ -164,48 +166,27 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
 - :bug: Improve slow/hanging shutdown
 - :bug: Fix Mixer processes hanging around when they should not be
-
-### 0.69.20
-
-- :sparkles: Py3.11 Sipport
-- :sparkles: Map tile server now integrated, works out of the box, and autofetches missing tiles if you have the settings permission.
-- :bug: Fix multilevel nested folders regression
-- :sparkles: -1 in cue sound fade in disables crossfading.
-- :bug: Fix sound fading out
-- :bug: Fix sound speed not getting correctly set in some cases
-- :sparkles: Chandler uses sine-in-out easing for lighting fades
-- :sparkles: BETA if you have the settings permission, now you can browse edit SQLite databases(Powered by a customized sqlite-web)
-- :sparkles: We now monitor dmesg hourly to detect IO Errors
-- :coffin: HBMQTT removed, along with it the embedded MQTT broker
-- :coffin: Kaithem.mqtt deprecated
-- :bug: Fix module.timefunc issues in chandler.
-- :bug: Fix deleting device that has subdevice
-- :bug: Fix zombie devices messing up page width
-- :sparkles: Chandler console icons now show which cues have any lighting commands
-- :bug: Fix Chandler backtracking not happening if the cue you are going to is specified as the "next" cue for the current one
-- :bug: Fix typo that caused exported Chandler setup files to not load teh fixture assignments.  Old files will still work on the new version.
-- :coffin: Simplify locking in Chandler to only use one lock.
-
-
-### 0.69.1
-Moving to Tornado was a rather large change, this release is mostly cleanup.
-
-- :sparkles: Alt top banner HTML option in user pages
-- :bug: Can specify per-page theme name instead of full CSS url
-- :bug: Fix raw websockets used in NVR streaming
-- :bug: Fix tagpoint page fake buttons
-
-
-### 0.69.0
-
-- :sparkles: Use the Tornado server
-- :sparkles: Per-connection Websocket handler threads eliminate global bogdown on blocking socket actions
-- :coffin: enable-js, enable-websockets, drayer-port, and other useless config options removed.
-- :coffin: config validation no longer rejects additional properties.
-- :coffin: We no longer support starting as root and dropping permissions. Use systemd features for port 80.
-
-
-
+- :sparkles: Let's try to stick to Semantic Versioning for future releases
+- :sparkles: Mixer can now accept m3u and m3u8 URLs as sources(Looped, high latency)
+- :sparkles: Chandler cues have a "Trigger Shortcut" option and will trigger cues in other scenes having that shortcut code.
+- :coffin: None of that included thirdparty stuff!  Now we use Pip dependencies
+- :bug: Disenhorriblize the install instructions
+- :recycle: Refactor the Chandler Python
+- :coffin: Remove non-MPV audio backends
+- :coffin: Remove codemirror config options
+- :coffin: Remove reap library
+- :coffin: Remove old jackd2 stuff 
+- :coffin: Remove embedded python3 docs
+- :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
+- :sparkles: The buttonbar CSS class has been changed to tool-bar
+- :coffin: Remove embedded python3 docs
+- :sparkles: jackmixer now uses pipewire directly
+- :coffin: The page header including in user pages is deprecated.  Use <%inherit file="/pagetemplate.html" /> in your code.
+- :coffin: BREAKING: the styling on .sectionbox, section, and article is gone. Use .window and .card.
+- :sparkles: Work on getting rid of inline styles. We are moving to a custom [CSS Framework](https://eternityforest.github.io/barrel.css/) See css.md in the docs folder.
+- :coffin: MAJOR BREAKING user facing APIs are now snake_case. If you see anything not snake_case, it's deprecated.
+- :sparkles: Jinja2 support in user-created pages. Mako user pages are deprecated and will eventually be removed.
+- :coffin: Remove ancient example modules that had accumulated useless stuff.
 
 License Terms
 =============

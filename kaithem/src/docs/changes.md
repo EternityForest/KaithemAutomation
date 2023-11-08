@@ -6,9 +6,6 @@ Change Log
 This release has some big changes to the install process, but not many to the
 functionality.  Expect a few bugs in the next few versions as we rewrite old code to be more in line with best practices.
 
-But not too many, since a main focus is on using linting tools for the
-best reliability.
-
 - :bug: Fix bogus "sound did not report as playing" message
 - :sparkles: "Make file publically acessible" option in the upload for file resources.
 - :bug: Fix disabling resource serving
