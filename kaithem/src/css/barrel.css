@@ -737,22 +737,24 @@ table tr:first-child td {
 /*Sizes that are relative to approximately the width of a phone screen.
 A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-full {
-    width: 480px;
-    max-width: calc(min(480px, 96vw));
-    flex-basis: 320px;
+    width: 430px;
+    max-width: calc(min(430px, 100vw));
+    flex-basis: 300px;
     flex-shrink: 1;
+    flex-grow: 1;
 }
 
 .w-sm-quarter {
-    width: 120px;
-    max-width: calc(min(120px, 21vw));
-    flex-basis: 120px;
+    width: 80px;
+    max-width: calc(min(160px, 25vw));
+    flex-basis: 70px;
 }
 
 .w-sm-half {
-    width: 240px;
-    max-width: calc(min(240px, 46vw));
-    flex-basis: 240px;
+    width: 175px;
+    max-width: calc(min(215px, 50vw));
+    flex-basis: 160px;
+    flex-grow: 1;
 }
 
 .w-sm-double {
@@ -762,6 +764,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     flex-shrink: 1;
     flex-grow: 1;
 }
+
 
 .w-full {
     width: 100%;
@@ -1168,10 +1171,9 @@ button,
 a.button,
 input,
 select {
-    min-height: var(--control-height);
+    min-height: calc(min(var(--control-height), 100%));
     box-sizing: border-box;
 }
-
 
 button,
 a.button,
@@ -1326,9 +1328,15 @@ dd {
     border-radius: 0px;
     flex-shrink: 1;
     border-radius: 0px;
-    flex-basis: fit-content;
 }
 
+.tool-bar :is(a, a.button, select, button) {
+    margin: 0px;
+    align-items: stretch;
+    border-radius: 0px;
+    flex-shrink: 1;
+    border-radius: 0px;
+}
 
 
 .tool-bar :only-child {
@@ -1432,6 +1440,7 @@ dd {
 
 .tool-bar>label> :is(input, select, meter):not(.specificity-hack) {
     min-height: 100%;
+    max-height: 100%;
 }
 
 .tool-bar :is(h1, h2, h3, h4, h5, h6):first-child {

@@ -9,14 +9,9 @@ Installation
 
 ## How to run it!
 
-Install git-lfs if you don't have it, to clone the repo
 ```bash
-sudo apt install git-lfs
-git lfs install --skip-repo
-
 git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
 cd KaithemAutomation
-git lfs pull
 ```
 
 Now you have the repo cloned, all the relevant commands are in the Makefile.
