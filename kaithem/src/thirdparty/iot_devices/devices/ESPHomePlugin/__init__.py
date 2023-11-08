@@ -227,7 +227,9 @@ class ESPHomeDevice(iot_devices.device.Device):
             except Exception:
                 self.handle_exception()
                 
+        asyncio.run_coroutine_threadsafe(self.loop.shutdown_asyncgens(), self.loop)
         self.loop.stop()
+
         for i in range(50):
             if not self.loop.is_running():
                 self.loop.close()

@@ -128,42 +128,9 @@ pre {
     box-shadow: 2px 2px 8px -3px rgba(43, 39, 85, 0.4)
 }
 
-
-section.fancy{
-    border-image-slice:20 20 20 20;
-    border-image-width:20px 20px 20px 20px;
-    border-image-outset:0px 0px 0px 0px;
-    border-image-repeat:stretch stretch;
-    border-image-source: url('/static/img/frame.webp');
-    box-sizing: border-box;
-    border-style:solid;
-    border-width: 12px;
-
-    background-image: url('/static/img/stone.webp');
-    background-repeat: round !important;
-    background-size: contain !important;
-
-    padding: 1.2em;
-    color: wheat;
-    background-color: transparent;
-    background-size:contain;
-    background-repeat: no-repeat;
-    backdrop-filter: unset;
-    box-shadow: unset;
+.round-feathered{
+    opacity: 0.7;
 }
-
-section.fancy section{
-    
-    border: 2px solid wheat;
-
-    color: wheat;
-    background-color: transparent;
-    background-size:cover;
-
-    backdrop-filter: unset;
-    box-shadow: unset;
-}
-
 
 
 h2,

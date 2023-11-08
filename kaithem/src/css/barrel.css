@@ -924,6 +924,11 @@ table tr:first-child td {
 
 /*Simple utilities */
 
+.round-feathered{
+    mask-image: radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0.1) 67%, rgba(0,0,0,0) 71%);
+    -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0.1) 67%, rgba(0,0,0,0) 71%);
+}
+
 .paper {
     background: var(--box-bg);
 }
