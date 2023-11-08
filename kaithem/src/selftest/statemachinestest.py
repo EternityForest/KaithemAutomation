@@ -52,7 +52,7 @@ def stateMachinesTest():
 
     sm.set_timer("on", 1, "off")
 
-    sm.addRule('off', "motion","on")
+    sm.add_rule('off', "motion","on")
 
     if module.sm_lamp:
         raise RuntimeError("state machine imaginary lamp is on too soon")
@@ -88,8 +88,8 @@ def stateMachinesTest():
         lastPoll[0]=time.time()
         return lightsOff[0]
 
-    sm.addRule('on', f, "off")
-    sm.addRule('off', "motion","on")
+    sm.add_rule('on', f, "off")
+    sm.add_rule('off', "motion","on")
 
     if not sm.state=='off':
         raise RuntimeError("Unexpected state")
@@ -134,7 +134,7 @@ def stateMachinesTest():
 
     on = sm.add_state("on", enter=on)
     off = sm.add_state("off", enter=off)
-    sm.addRule('off','switch','on')
+    sm.add_rule('off','switch','on')
 
     def subscriber(s):
         transitions.append(s)
