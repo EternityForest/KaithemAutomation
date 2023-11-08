@@ -19,7 +19,7 @@ import datetime
 import re
 from .config import config
 from . import auth, pages
-from .scullery.units import *
+from scullery.units import *
 
 
 class DayOfWeek(str):

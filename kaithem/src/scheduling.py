@@ -22,7 +22,7 @@ import logging
 import types
 from . import workers, util
 
-from kaithem.src.scullery import messagebus
+from scullery import messagebus
 
 logger = logging.getLogger("system.scheduling")
 

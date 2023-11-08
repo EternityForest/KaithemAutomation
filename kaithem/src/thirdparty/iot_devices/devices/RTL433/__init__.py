@@ -7,7 +7,7 @@ from collections import OrderedDict
 from weakref import WeakValueDictionary
 lock = threading.Lock()
 
-from kaithem.src.scullery import mqtt, messagebus
+from scullery import mqtt, messagebus
 
 all_devs = weakref.WeakValueDictionary()
 

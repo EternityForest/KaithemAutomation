@@ -15,6 +15,7 @@ pam
 msgpack
 pyyaml
 types-PyYaml
+scullery
 
 
 yappi

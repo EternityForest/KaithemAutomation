@@ -23,7 +23,7 @@ import subprocess
 import os
 import traceback
 
-from .scullery import iceflow
+from scullery import iceflow
 
 from . import (
     widgets,

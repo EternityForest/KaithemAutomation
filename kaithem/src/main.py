@@ -53,7 +53,7 @@ def initialize():
     from . import workers
     from . import selftest  # noqa: F401
     from . import devices  # noqa: F401
-    from kaithem.src.scullery import messagebus
+    from scullery import messagebus
     from . import statemachines  # noqa: F401
     from . import auth  # noqa: F401
     from . import pages

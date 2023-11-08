@@ -16,9 +16,9 @@
 # This file manages a work queue that feeds a threadpool
 # Tasks will be performed on a best effort basis and errors will be caught and ignored.
 
-from .scullery.workers import EXIT, do
+from scullery.workers import EXIT, do
 from . import config as cfg
-from kaithem.src.scullery import workers
+from scullery import workers
 
 import traceback
 import cherrypy

@@ -11,8 +11,8 @@ lock = threading.RLock()
 
 
 from . import directories
-from kaithem.src.scullery import persist
-from kaithem.src.scullery import messagebus
+from scullery import persist
+from scullery import messagebus
 
 import os
 import logging

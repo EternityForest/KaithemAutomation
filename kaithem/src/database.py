@@ -16,7 +16,7 @@ import base64
 import struct
 import uuid
 
-# from kaithem.src.scullery import messagebus
+# from scullery import messagebus
 
 # class DocumentView():
 #     def __init__(self,database,uuid):
