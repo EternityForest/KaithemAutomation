@@ -1,0 +1,227 @@
+---
+allow-origins:
+- '*'
+allow-xss: false
+alt-top-banner: ''
+auto-reload: false
+auto-reload-interval: 5.0
+code: counters[0] += 1
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method:
+- GET
+- POST
+require-permissions: []
+resource-timestamp: 1699421022025372
+resource-type: page
+setupcode: "# This code runs once when the page is creates\r\n# All varibles in code\
+  \ are accessible in the page body.\r\n\r\ncounters = [0]"
+streaming-response: false
+template-engine: jinja2
+theme-css-url: ''
+
+---
+{% extends "pagetemplate.j2.html" %}
+
+{% block title %} Dynamic Pages {% endblock %}
+
+{% block body %}
+
+<main>
+  <section class="window paper">
+    <header class="padding">Look! A Header</header>
+
+    <h2>Basic Page</h2>
+    <p>This is a simple test page for barrel.css</p>
+    <p>It is public domain/CC0, allong with barrel.css itself.</p>
+
+    <p>Get the source code here: <a href="https://github.com/EternityForest/barrel.css">at github</a></p>
+    <h3>Components</h3>
+    <p>We want to keep the number of components very small,
+      and use semantic HTML for the rest</p>
+
+    <h4>Toolbars</h4>
+    <div class="tool-bar">
+                <p>Toolbar</p>
+
+      <button>Button</button>
+      <label>
+          Labeled input
+          <input>
+        </label>
+    </div>
+    <h4>Cards</h4>
+
+    <article class="card w-sm-full h-center">
+      <header>Cards can have headers</header>
+      This is a card! Headers and footers are optional in
+      cards and windows. "w-sm-full" means about the width of a
+      phone screen.
+      <footer>A footer</footer>
+    </article>
+
+    <h4>Toolbar in header</h4>
+
+    <article class="card w-sm-full h-center">
+      <header>
+        <div class="tool-bar">
+          <p>Toolbar</p>
+          <button>Button</button>
+          <label>
+                  Labeled input
+                  <input class="w-sm-quarter">
+                </label>
+        </div>
+
+      </header>
+      Toolbars in headers are rendered differently if they are the
+      only child of that toolbar, to reduce visual noise.
+      <footer>A footer</footer>
+    </article>
+
+    <h3>Semantic Styles</h3>
+    <p class="warning">Let this be a warning!</p>
+    <p class="danger">Danger Will Robinson!</p>
+    <p class="success">Everything is fine now.</p>
+    <p class="highlight">The highlight of the page</p>
+
+    <h3>Color Variables</h3>
+    <p>Semantic color palletes are generated from a single base color</p>
+    <div class="flex-row nogaps">
+      <div class="card w-sm-quarter h-6rem" style="background-color:var(--green);">
+      </div>
+
+      <div class="card w-sm-quarter h-6rem" style="background-color:var(--teal);">
+      </div>
+
+      <div class="card w-sm-quarter h-6rem" style="background-color:var(--blue);">
+      </div>
+
+      <div class="card w-sm-quarter h-6rem" style="background-color:var(--purple);">
+      </div>
+
+      <div class="card w-sm-quarter h-6rem" style="background-color:var(--red);">
+      </div>
+
+      <div class="card w-sm-quarter h-6rem" style="background-color:var(--yellow);">
+      </div>
+      
+      <div class="card w-sm-quarter h-6rem" style="background-color:var(--dark-blue);">
+      </div>
+    </div>
+
+    <h3>Flex</h3>
+    <p>The flex-row class is all you need for a nice layout.
+      The padding class gives any element a little padding around the edges.
+    </p>
+
+    <div class="flex-row padding">
+      <article class="card w-sm-half h-6rem align-left">1</article>
+      <article class="card w-sm-half h-6rem align-right">2</article>
+      <article class="card w-sm-half h-6rem align-center">3</article>
+      <article class="card w-sm-half h-6rem">4</article>
+    </div>
+
+    <h3>More Flex!</h3>
+    <p>These boxes are aligned with align-left, and they are smushed
+      together with nogaps</p>
+
+    <div class="flex-row nopadding nogaps align-left">
+      <article class="card w-sm-half h-6rem">1</article>
+      <article class="card w-sm-half h-6rem">2</article>
+    </div>
+
+    <h3>12 Column layouts</h3>
+    <p>Put your stuff in a flex-row element and use cols-1 through cols-12.
+      It's a responsive grid, cols-X just sets the width to a fraction of the parent,
+      but it can reflow to fit small screens. w-full means 100% parent element width.
+    </p>
+
+    <div class="flex-row w-full padding">
+      <article class="card col-3 h-6rem">3 col wide</article>
+      <article class="card col-9 h-6rem">9-col wide</article>
+    </div>
+
+
+
+    <h3>12 Column layouts with nogaps</h3>
+    <div class="flex-row w-full padding nogaps">
+      <article class="card col-3 h-6rem">3 col wide</article>
+      <article class="card col-9 h-6rem">9-col wide</article>
+    </div>
+
+    <section class="padding">
+      <h3>Text Styles</h3>
+      <p>
+        <b>Bold</b> and <i>Italic</i> and <u>Underlined</u> and
+        <span class="normal-font">Normal, undecorated text</span>.
+      </p>
+
+      <p>Also a <a href="example.com">Link</a></p>
+
+      <h3>Backgrounds</h3>
+      <div class="padding" style="background-color:purple">
+
+        <article class="card paper">
+          The paper class gives a background to an element.
+          You might need it if displaying over dark stuff.
+        </article>
+
+        <article class="card paper warning">
+          Paper warning!
+        </article>
+
+        <article class="card paper highlight">
+          Paper highlight!
+        </article>
+      </div>
+      <h3>HTML Elements</h3>
+
+      <details>
+        <summary>details/summary</summary>
+        More content is here.
+      </details>
+
+      <h4>Ye Olde Block Quote</h4>
+
+      <blockquote>
+        It is an ancient Mariner,
+        And he stoppeth one of three.
+        "By thy long gray beard and glittering eye,
+        Now wherefore stopp'st thou me?
+      </blockquote>
+
+      <textarea class="w-full h-12rem">A text area</textarea>
+
+      <h4>Here's a form with no classes</h4>
+      <form>
+
+        <label>Label
+            <input>
+          </label>
+
+        <button>A button</button>
+      </form>
+
+
+
+      <h4>Meters and sliders</h4>
+      <p>
+        <input type="range" class="w-full">
+      </p>
+      <p class="styled">
+        <meter class="w-full" min="0" max="100" low="25" high="75" optimum="100" value="10"></meter>
+      </p>
+      <p class="styled">
+        <meter class="w-full" min="0" max="100" low="25" high="75" optimum="100" value="50"></meter>
+      </p>
+      <p class="styled">
+        <meter class="w-full" min="0" max="100" low="25" high="75" optimum="100" value="80"></meter>
+      </p>
+    </section>
+
+  </section>
+
+</main>
+{% endblock %}
