@@ -6,7 +6,7 @@
 @import "kaithem_fuge_icons.css";
 @import "kaithem_animations.css";
 
-:root{
+:root {
     color-scheme: light;
     --line-length: 95vw;
     --control-bg: #d1e4d152;
@@ -15,46 +15,68 @@
     --hightlight-color: #78dba5;
 
     --border-color: rgba(36, 30, 30, 0.219);
-    --bg: linear-gradient( 177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(/static/img/webtreats_grunge_mint_2.webp);
+    --bg: linear-gradient(177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(/static/img/webtreats_grunge_mint_2.webp);
     --fg: #412019;
     --box-bg: rgba(228, 233, 227, 0.6);
 }
 
- ::selection {
+::selection {
     background: rgba(119, 88, 206, 0.431);
     color: rgb(70, 45, 19);
 }
 
- ::-moz-selection {
+::-moz-selection {
     background: rgba(0, 0, 250, 0.25);
 }
+
+
+.decorative-image-main {
+    background-image: url(/static/img/nov23-ai-watercolor-tavern.webp);
+    display: block;
+    box-shadow: none;
+    mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    opacity: 50%;
+}
+
+.decorative-image-login {
+    background-image: url(/static/img/nov23-ai-castle.webp);
+    display: block;
+    box-shadow: none;
+    mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    opacity: 70%;
+}
+
 
 
 /************************HTML ELEMENTS***********************************/
 
 
 
-img, video, canvas{
-    border-image-slice:20 20 20 20;
-    border-image-width:20px 20px 20px 20px;
-    border-image-outset:0px 0px 0px 0px;
-    border-image-repeat:stretch stretch;
+img,
+video,
+canvas {
+    border-image-slice: 20 20 20 20;
+    border-image-width: 20px 20px 20px 20px;
+    border-image-outset: 0px 0px 0px 0px;
+    border-image-repeat: stretch stretch;
     border-image-source: url('/static/img/frame.webp');
     box-sizing: border-box;
-    border-style:solid;
+    border-style: solid;
     border-width: 12px;
-    -webkit-box-shadow: 2px 2px 4px 0px #000000; 
+    -webkit-box-shadow: 2px 2px 4px 0px #000000;
     box-shadow: 2px 2px 4px 0px #000000;
 }
 
-.monaco-editor canvas, .ac-container img
-{
-    border-image-width:initial;
-    border-image-outset:initial;
-    border-image-repeat:initial;
+.monaco-editor canvas,
+.ac-container img {
+    border-image-width: initial;
+    border-image-outset: initial;
+    border-image-repeat: initial;
     border-image-source: initial;
-    box-sizing:initial;
-    border-style:initial;
+    box-sizing: initial;
+    border-style: initial;
     border-width: initial;
     -webkit-box-shadow: initial;
     box-shadow: initial;
@@ -81,18 +103,6 @@ span.numericpv:hover {
     background-color: rgba(150, 255, 250, 0.2);
 }
 
-p {
-    margin: 0.5%;
-}
-
-a {
-    border-radius: 5px;
-    padding: 1px 3px 1px 3px;
-}
-
-ul {
-    line-height: 128%;
-}
 
 table {
     background-color: rgba(240, 248, 255, 0.116);
@@ -117,7 +127,7 @@ pre {
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
-.window{
+.window {
     background: var(--box-bg);
     backdrop-filter: blur(1px);
     box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.7)
@@ -128,7 +138,7 @@ pre {
     box-shadow: 2px 2px 8px -3px rgba(43, 39, 85, 0.4)
 }
 
-.round-feathered{
+.round-feathered {
     opacity: 0.7;
 }
 
@@ -159,100 +169,14 @@ input:disabled {
     background-color: #D0D0D0;
 }
 
-input.modulename {
-    width: 70%
-}
 
-input.pythoncode {
-    width: 100%
-}
-
-td input,
-td select {
-    border-radius: 0px;
-}
-
-
-/*A text area meant for describing something*/
-
-textarea.description {
-    width: 70%;
-}
-
-textarea.pythoncode {
-    width: 100%;
-    overflow: "scroll";
-    font-size: 125%;
-}
-
-textarea.htmlcode {
-    width: 100%;
-    overflow: "scroll";
-    font-size: 125%;
-}
-
-textarea.code {
-    background-color: #E6E6B8;
-    width: 100%;
-    overflow: "scroll";
-    font-size: 125%;
-    border-radius: 0px;
-}
-
-textarea:disabled {
-    background-color: #D0D0D0
-}
-
-
-
-p.help {
-    background-color: rgba(255, 255, 25, 0.1);
-}
-
-.help {
-    border-radius: 8px;
-}
-
-
-/*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-
-.menubar {
-    background-color: rgba(160, 64, 238, 0.1);
-    border-radius: 30px;
-    padding: 0px;
-    border-width: 3px;
-    border-color: var(--graphical-fg);
+.tool-bar>* {
     backdrop-filter: blur(3px);
 }
 
-
-.tool-bar > * {
-    backdrop-filter: blur(3px);
-}
-
-
-button,
-a.button,
-input,
-textarea {
-    border-radius: 7px;
-}
 
 
 /*A link styled to look like a button*/
-
-a.button {
-    border-width: 1px;
-    text-decoration: none;
-    border-radius: 12px;
-    padding: 0em 0.2em 0em 0.2em;
-    display: inline-block;
-}
-
-
-button:active, a.button:active {
-    background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
-}
 
 
 
@@ -313,116 +237,12 @@ input.horizontalslider {
 }
 
 
-/************************/
-
-input[type=range] {
-    margin: 5.8px 0;
-    background-color: transparent;
-    -webkit-appearance: none;
-}
-
-input[type=range]:focus {
-    outline: none;
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-    background: rgba(48, 138, 101, 0.5);
-    border: 0.2px solid rgba(1, 0, 0, 0.1);
-    border-radius: 25px;
-    height: 8.4px;
-    cursor: pointer;
-}
-
-input[type=range]::-webkit-slider-thumb {
-    margin-top: -6px;
-    width: 20px;
-    height: 20px;
-    background: #9fcfd8;
-    border: 1px solid rgba(0, 0, 0, 0.3);
-    border-radius: 50px;
-    cursor: pointer;
-    -webkit-appearance: none;
-}
-
-input[type=range]:focus::-webkit-slider-runnable-track {
-    background: #7cd2af;
-}
-
-input[type=range]::-moz-range-track {
-    background: rgba(48, 138, 101, 0.5);
-    border: 0.2px solid rgba(1, 0, 0, 0.1);
-    border-radius: 25px;
-    height: 8.4px;
-    cursor: pointer;
-}
-
-input[type=range]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: #9fcfd8;
-    border: 1px solid rgba(0, 0, 0, 0.3);
-    border-radius: 50px;
-    cursor: pointer;
-}
-
-input[type=range]::-ms-track {
-    background: transparent;
-    border-color: var(--graphical-fg);
-    border-width: 7.8px 0;
-    color: transparent;
-    height: 8.4px;
-    cursor: pointer;
-}
-
-input[type=range]::-ms-fill-lower {
-    background: #0a1c15;
-    border: 0.2px solid rgba(1, 0, 0, 0.1);
-    border-radius: 50px;
-}
-
-input[type=range]::-ms-fill-upper {
-    background: rgba(48, 138, 101, 0.5);
-    border: 0.2px solid rgba(1, 0, 0, 0.1);
-    border-radius: 50px;
-}
-
-input[type=range]::-ms-thumb {
-    width: 20px;
-    height: 20px;
-    background: #9fcfd8;
-    border: 1px solid rgba(0, 0, 0, 0.3);
-    border-radius: 50px;
-    cursor: pointer;
-    margin-top: 0px;
-    /*Needed to keep the Edge thumb centred*/
-}
-
-input[type=range]:focus::-ms-fill-lower {
-    background: rgba(48, 138, 101, 0.5);
-}
-
-input[type=range]:focus::-ms-fill-upper {
-    background: #7cd2af;
-}
-
-
-/*TODO: Use one of the selectors from https://stackoverflow.com/a/20541859/7077589 and figure out
-  how to remove the virtical space around the range input in IE*/
-
-@supports (-ms-ime-align:auto) {
-    /* Pre-Chromium Edge only styles, selector taken from hhttps://stackoverflow.com/a/32202953/7077589 */
-    input[type=range] {
-        margin: 0;
-        /*Edge starts the margin from the thumb, not the track as other browsers do*/
-    }
-}
-
 /* ===== Scrollbar CSS ===== */
-  /* Firefox */
-  * {
+/* Firefox */
+* {
     scrollbar-color: #75608a #abd1d8;
-  }
+}
 
-  *::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
     background-color: #75608a;
-  }
+}

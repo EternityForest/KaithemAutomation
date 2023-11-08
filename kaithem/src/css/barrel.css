@@ -269,6 +269,7 @@ header {
 header>*:only-child,
 header>*:only-child>:only-child {
     width: 100%;
+    flex-grow: 1;
     box-sizing: border-box;
     margin: 0px;
 }
@@ -515,6 +516,7 @@ table tr:first-child td {
 
 .decorative-image {
     display: none;
+    background-size: contain;
 }
 
 
@@ -527,8 +529,6 @@ table tr:first-child td {
     box-sizing: border-box;
     overflow-x: auto;
     flex-basis: fit-content;
-    flex-grow: 0.1;
-
     border-color: var(--border-color);
 }
 
@@ -539,7 +539,6 @@ table tr:first-child td {
     border-width: var(--border-width);
     margin-top: 0.8em;
     margin-bottom: 0.2em;
-    min-width: min-content;
     box-sizing: border-box;
     max-width: 100vw;
     overflow: auto;
@@ -548,7 +547,6 @@ table tr:first-child td {
     text-align: left;
     flex-grow: 1;
     flex-basis: min-content;
-    resize: both;
 }
 
 
@@ -579,18 +577,28 @@ table tr:first-child td {
     display: flex;
     flex-wrap: wrap;
     flex-direction: column;
-    gap: var(--gap);
 }
 
 .flex-col>* {
     box-sizing: border-box;
     flex: 1 1 auto;
     flex-basis: fit-content;
+    margin-block-end: var(--gap);
+}
+
+.flex-col>*:last-child {
+    margin-block-end: 0px; 
+}
+
+.flex-col>*:nth-last-child(2)
+{
+    margin-block-end: 0px; 
 }
 
 .flex-col footer,
 .flex-col header {
     flex-grow: 0;
+    margin-block-end: 0px; 
 }
 
 .flex-row {
@@ -604,8 +612,6 @@ table tr:first-child td {
 
 .flex-row>* {
     box-sizing: border-box;
-    flex-grow: 1;
-    flex-shrink: 1;
     flex-basis: fit-content;
     margin: 0px;
 }
@@ -725,13 +731,15 @@ table tr:first-child td {
 
 .nogaps>.col-12 {
     width: 100%;
+    flex-grow: 1;
 }
 
-/*Sizes that are relative to approximately the width of a phone screem*/
+/*Sizes that are relative to approximately the width of a phone screen.
+A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-full {
     width: 480px;
     max-width: calc(min(480px, 96vw));
-    flex-basis: 480px;
+    flex-basis: 320px;
     flex-shrink: 1;
 }
 
@@ -960,9 +968,10 @@ iframe.h-center {
     gap: 0px;
 }
 
-.nogaps>* {
+.nogaps>*:not(.specificity_hack) {
     margin: 0px;
     box-sizing: border-box;
+    margin-block-end: 0px; 
 }
 
 .rounded {
@@ -1560,9 +1569,8 @@ input[type=range] {
     --concave-item-box-shadow: none;
 }
 
-
-input[type=range]::-webkit-slider-runnable-track {
-    background: var(--control-bg);
+input[type="range"]::-webkit-slider-runnable-track {
+    background-color:  color-mix(in srgb, var(--control-bg) 70%, var(--control-fg));
     border: var(--thin-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
@@ -1572,14 +1580,15 @@ input[type=range]::-webkit-slider-thumb {
     margin-top: -7.8px;
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
-    background: var(--control-fg);
+    background-color: var(--highlight-color);
     border: var(--thin-border);
+    border-width: 2px;
     border-radius: 100px;
     -webkit-appearance: none;
 }
 
 input[type=range]::-moz-range-track {
-    background: var(--control-bg);
+    background-color:  color-mix(in srgvb, var(--control-bg) 70%, var(--control-fg));
     border: var(--thin-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
@@ -1588,8 +1597,9 @@ input[type=range]::-moz-range-track {
 input[type=range]::-moz-range-thumb {
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
-    background: var(--control-fg);
+    background-color: color-mix(in srgb, var(--accent-color) 50%, var(--control-bg));
     border: var(--thin-border);
+    border-width: 2px;
     border-radius: 100px;
 }
 

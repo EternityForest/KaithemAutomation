@@ -109,6 +109,10 @@
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
+h1,h2,h3,h4,h5,h6, header, header *, header button{
+    font-family: 'Lora';
+}
+
 /*********************Code editing************************/
 @font-face {
     font-family: hack;

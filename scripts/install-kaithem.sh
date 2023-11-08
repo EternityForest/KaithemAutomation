@@ -13,6 +13,7 @@ set -e
 
 mkdir -p ~/kaithem
 
+! deactivate
 
 if [ ! -d ~/kaithem/.venv ]; then
     virtualenv --system-site-packages ~/kaithem/.venv

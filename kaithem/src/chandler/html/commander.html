@@ -151,10 +151,10 @@
 
 
 
-        <div style="overflow: auto; max-height:450px; display:flex; flex-wrap:wrap">
+        <div style="overflow: auto; max-height:450px" class="flex-row">
             <article v-for="i in formatScenes()" v-if="i"
-                style="position:relative;display:flex-item; flex: 1; margin: 0.4em; max-height: 420px; max-width: 400px; min-width: 180px;"
-                v-bind:class="{'card':1, 'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                style="position:relative"
+                v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
 
 

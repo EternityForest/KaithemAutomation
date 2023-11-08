@@ -169,7 +169,7 @@ about-box-banner: "This space can be customized with site specific data in the c
 #The URL from which to retrieve the CSS theme file
 #Classic
 #theme-url: /static/css/kaithem_scrapbook.css
-theme-url: /static/css/kaithem_simple_light.css
+theme-url: /static/css/kaithem_minimal.css
 
 #URL of a monaco theme to use
 monaco-theme-url: /static/js/monaco-theme.js

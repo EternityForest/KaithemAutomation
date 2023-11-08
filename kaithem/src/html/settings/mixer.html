@@ -148,7 +148,7 @@ ${jackmixer.global_api.render("gapi")}
 
 
         <div class="flex" v-if="activePane=='mixer' && ui_ready">
-          <article class="channel window" v-for="(channel,channelname) in channels">
+          <article class="channel window flex-col" v-for="(channel,channelname) in channels">
             <header>
               <div v-if="channel.type=='audio' || !channel.type">
                 <div>
@@ -168,7 +168,7 @@ ${jackmixer.global_api.render("gapi")}
 
                 </div>
             </header>
-            <div class="chain">
+            <div class="chain scroll h-24rem">
               <div v-for="effect, index in channel.effects" class="effect">
                 <details>
                   <summary>
@@ -272,7 +272,7 @@ ${jackmixer.global_api.render("gapi")}
 
             </div>
 
-            <footer>
+            <footer class="padding">
               <p>{{channelname}} Level:</p>
               <div class="tool-bar">
                 <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
@@ -325,9 +325,11 @@ ${jackmixer.global_api.render("gapi")}
             <br>Files in <a
               href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a>
           </details>
-          <div class="tool-bar">
+          <div class="tool-bar margin">
             <p>Channels:</p><input aria-label="Channels" type="number" v-model="recordChannels" style="max-width: 3em;">
             <p>File Prefix:</p><input v-model="recordName" size=1>
+          </div>
+          <div class="tool-bar margin">
             <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
             <button v-on:click="api.send(['stopRecord'])">Stop</button>
           </div>

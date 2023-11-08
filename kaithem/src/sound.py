@@ -155,8 +155,8 @@ class SoundWrapper(object):
     def resume(self, handle: str = "PRIMARY"):
         pass
 
-    def fade_to(self, handle: str = "PRIMARY", **kw):
-        self.play_sound(self, handle, **kw)
+    def fade_to(self, file: str, handle: str = "PRIMARY", **kw):
+        self.play_sound(file, handle, **kw)
 
     def preload(self, filename: str):
         pass
@@ -735,8 +735,8 @@ def sasWrapper(*a):
 messagebus.subscribe("/system/sound/jackstart", sasWrapper)
 
 
-def oggSoundTest(output=None):
-    t = "KaithemOggSoundTest"
+def ogg_test(output=None):
+    t = "Kaithemogg_test"
     play_sound("alert.ogg", output=output, handle=t)
     for i in range(100):
         if is_playing(t, refresh=True):

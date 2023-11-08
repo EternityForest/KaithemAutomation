@@ -1288,7 +1288,7 @@ class MixingBoard:
             if data[0] == "test":
                 from . import sound
 
-                sound.oggSoundTest(output=data[1])
+                sound.ogg_test(output=data[1])
 
             if data[0] == "addChannel":
                 # No overwrite
