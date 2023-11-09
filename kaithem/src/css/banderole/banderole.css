@@ -1,0 +1,240 @@
+:root{
+  --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(banderole/pergament-papier-hintergrund-braun.webp);
+  --box-bg: none;
+  --fg: #522f28;
+  --graphical-fg: rgb(98 69 39 / 81%);
+  --accent-color: var(--graphical-fg);
+
+  --concave-item-bg: none;
+  --convex-item-bg: none;
+  --convex-item-active-bg: none;
+  --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
+  --control-bg: none;
+  --border-width: 2px;
+  --control-border-width: 2px;
+
+}
+
+header{
+  background: none;
+  border: none;
+}
+
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/static/fonts/Lato/lato-regular.woff2');
+  /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+@font-face {
+  font-family: 'Fraktur';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/static/fonts/Unifraktur/UnifrakturMaguntia-Regular.woff2');
+  /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+
+
+ ::selection {
+    background: rgba(168, 170, 59, 0.123);
+    color: rgb(70, 45, 19);
+}
+
+
+p::first-letter,h1::first-letter,h2::first-letter,h3::first-letter, h1 *::first-letter,h2 *::first-letter,h3 *::first-letter{
+  color: #874437;
+  font-weight: bold;
+}
+
+
+h1{
+  font-family: Fraktur;
+}
+
+body {
+    color: #412f1b;
+    border-color: #412f1b42;
+}
+
+
+details
+{
+  border-color: #412f1b42;
+}
+
+details[open]
+{
+  border-color: #412f1b;
+}
+
+.highlight {
+  border-width: 3px;
+}
+
+.warning {
+  background-color: rgba(217 217 45 / 71%);
+}
+
+.tool-bar {
+    box-shadow: none;
+    background: transparent;
+    text-shadow: none;
+    font-weight: 500;
+    --tool-bar-element-border: 1px solid rgba(58, 57, 45, 0.767);
+}
+
+.tool-bar *{
+  text-shadow: none;
+}
+
+
+/* .tool-bar button:hover, .tool-bar a.button:hover
+{
+  backdrop-filter: blur(4px);
+  color: #12a900;
+} */
+
+
+.menubar:is(.tool-bar), .tool-bar, .tool-bar {
+    --convex-item-bg: transparent;
+    --concave-item-bg: transparent;
+    --tool-bar-element-border:  2px solid #361907;
+
+}
+
+
+.menubar{
+  background-color: transparent;
+}
+/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
+
+.window{
+    background: var(--box-bg);
+    border-width: 1px;
+    border-radius: var(--border-radius);
+    backdrop-filter: blur(1px);
+    border-color: #412f1b42;
+    border-style: double;
+
+    box-shadow: inset 1px 1px 8px 1px rgba(83, 49, 10, 0.486);
+  }
+
+  
+
+
+
+.tool-bar{
+  transform: rotate(0.2deg);
+}
+
+header .tool-bar{
+  transform: none;
+}
+
+a {
+    color: rgb(87, 25, 63);
+    text-shadow: none;
+    text-decoration: none;
+}
+
+
+
+
+.widgetcontainer {
+  background-color: rgba(70, 90, 70, 0);
+  border-style: solid;
+  border-color: inherit;
+}
+
+
+
+
+  button:active, a.button:active,.tool-bar button:active,.tool-bar a.button:active {
+    background-image: linear-gradient(40deg, rgba(153, 134, 134, 0.13), rgba(0, 0, 0, 0.200));
+}
+
+img{
+  opacity: 0.8;
+}
+
+
+/* body, button,html, a{
+  cursor: url(/static/img/banderole/orcish_short_sword.png) 8 8, auto;
+} */
+.decorative-image{
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.55;
+  box-shadow: inset 2px 3px 8px 2px rgba(83, 49, 10, 0.096);
+  border-radius: calc(var(--border-radius) * 2);
+}
+
+
+.decorative-image-h-bar
+{
+  background-image: url(/static/img/banderole/decorativebarthing.svg);
+  display: block;
+}
+
+.decorative-image-corner-ur
+{
+  background-image: url(/static/img/banderole/Rose-Floral-Flourish-16.svg);
+  display: block;
+  box-shadow: none;
+}
+
+
+
+input, button,textarea,select{
+  background-color: transparent;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #412f1b42;
+  border-radius: 12px;
+}
+
+input, textarea, select, button, a.button, .tool-bar a
+{
+  box-shadow: inset 1px 1px 8px 1px rgb(77 53 0 / 24%);
+}
+
+
+@keyframes blink-2 {
+  0% {
+    
+  }
+  3% {
+    backdrop-filter:brightness(95%);
+  }
+  9% {
+     backdrop-filter:brightness(97%);
+  }
+  12% {
+     backdrop-filter:brightness(93%);
+  }
+  15% {
+     backdrop-filter:brightness(97%);
+  }
+  18% {
+     backdrop-filter:brightness(99%);
+  }
+  23% {
+     backdrop-filter:brightness(93%);
+  }
+  25% {
+     backdrop-filter:brightness(99%);
+  }
+  26% {
+     backdrop-filter:brightness(95%);
+  }
+  28% {
+     backdrop-filter:brightness(99%);
+  }
+  30% {
+    backdrop-filter:none;
+ }
+}

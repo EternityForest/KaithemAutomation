@@ -1,9 +1,3 @@
-@import "kaithem_minimal.css";
-
-/* Using a string */
-
-@import "kaithem_animations.css";
-
 :root {
     --black-1: #222222;
     --black-2: #2c2c2c;

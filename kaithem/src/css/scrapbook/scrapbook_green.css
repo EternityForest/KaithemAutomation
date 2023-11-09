@@ -1,15 +1,17 @@
 :root {
     color-scheme: light;
     --line-length: 95vw;
-    --control-bg: #d1e4d152;
-    --graphical-fg: #503550e3;
-    --accent-color: #4d316a;
-    --hightlight-color: #78dba5;
-
+    --control-fg: #173d17;
+    --control-bg: #366f181f;
+    --graphical-fg: #203509e3;
+    --accent-color: #4b626b;
+    --hightlight-color: #3ac340;
     --border-color: rgba(36, 30, 30, 0.219);
-    --bg: linear-gradient(177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(/static/img/webtreats_grunge_mint_2.webp);
-    --fg: #412019;
-    --box-bg: rgba(228, 233, 227, 0.6);
+    --bg: linear-gradient(177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(scrapbook/grunge_green.webp);
+    --fg: #101a10;
+    --box-bg: rgb(198 219 183 / 75%);
+    --3d-highlight: #b6efb44a;
+    --3d-shadow: #1a471512;
 }
 
 ::selection {
@@ -69,9 +71,7 @@ dt:hover+dd,
 a.button:hover,
 button:hover,
 input:hover,
-tr:hover,
-.widgetcontainer:hover,
-span.numericpv:hover {
+tr:hover {
     background-color: rgba(150, 255, 250, 0.2);
 }
 
@@ -144,77 +144,4 @@ input:disabled {
 
 .tool-bar>* {
     backdrop-filter: blur(3px);
-}
-
-
-
-/*A link styled to look like a button*/
-
-
-
-/*Widget Styles*/
-
-
-/*This div is the container for most of the built in widgets. */
-
-.widgetcontainer {
-    display: inline-block;
-    background-color: rgba(70, 90, 70, 0.25);
-    padding-top: 0px;
-    border-radius: 15px;
-    border-style: inset;
-    border-width: 2px;
-    color: rgb(0, 0, 0);
-    padding: 0px;
-    margin: 2px;
-    vertical-align: text-top;
-}
-
-.widgetcontainer>.scrollbox {
-    border: none;
-}
-
-
-/*Numeric Process Value. These spans are intended for displays of changing numbers.*/
-
-span.numericpv {
-    cursor: crosshair;
-}
-
-.sliderwidget {
-    min-width: 3.5em;
-    text-align: center;
-    font-size: 90%;
-}
-
-.meterwidget {
-    text-align: center;
-}
-
-button.triggerbuttonwidget {
-    min-height: 6em;
-}
-
-input.verticalslider {
-    -webkit-appearance: slider-vertical;
-    writing-mode: bt-lr;
-    height: 9.2em;
-    width: 1em;
-    margin: auto 0;
-}
-
-input.horizontalslider {
-    height: 0.5em;
-    width: 12em;
-}
-
-
-/* ===== Scrollbar CSS ===== */
-/* Firefox */
-* {
-    scrollbar-color: #75608a #abd1d8;
-}
-
-*::-webkit-scrollbar-thumb {
-    background-color: #75608a;
 }

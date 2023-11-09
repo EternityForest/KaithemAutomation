@@ -40,11 +40,11 @@ class Theme():
         self.css_url = css_url
         cssthemes[name]=self
 
-scrapbook = Theme("scrapbook", "/static/css/kaithem_scrapbook_green.css")
-fugit = Theme("fugit", "/static/css/fugit.css")
+scrapbook = Theme("scrapbook", "/static/css/scrapbook/scrapbook_green.css")
+fugit = Theme("fugit", "/static/css/fugit/fugit.css")
 simple_dark = Theme("simple_dark", "/static/css/kaithem_simple_dark.css")
-simple_light = Theme("simple_light", "/static/css/kaithem_minimal.css")
-banderole = Theme("banderole", "/static/css/banderole.css")
+simple_light = Theme("simple_light", "/static/css/barrel.css")
+banderole = Theme("banderole", "/static/css/banderole/banderole.css")
 
 
 def getCSSTheme():

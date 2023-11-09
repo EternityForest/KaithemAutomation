@@ -1,5 +1,3 @@
-/* Using a string */
-
 :root{
   color-scheme: dark;
   --phosphor-color: #ffd477;
@@ -33,7 +31,7 @@ a{
     font-family: 'ModernDOS';
     font-style: normal;
     font-weight: 400;
-    src: url('/static/fonts/moderndos/ModernDOS9x16.ttf');
+    src: url('ModernDOS9x16.ttf');
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
