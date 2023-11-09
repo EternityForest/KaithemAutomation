@@ -241,7 +241,7 @@ ${lists}
                 <header>
                     <h4>
                     <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"
-                        style="font-weight:bold; width: 100%">
+                        style="width: 100%">
 
                         <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext" class="grey">
                             (external)</span>
@@ -267,7 +267,7 @@ ${lists}
 
 
                 <div class="tool-bar" v-if="!i[1].utility">
-                    <button :class="{'success':i[1].active}" v-on:click="go(i[0])"><i
+                    <button :class="{'success':i[1].active, 'warning':i[1].status}" v-on:click="go(i[0])"><i
                             class="icofont-ui-play"></i>Go!</button>
                     <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
                     <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
@@ -824,7 +824,7 @@ ${lists}
             <div id="cuesbox">
 
                 <div style="overflow-y: auto;max-height:12em;">
-                    <table class="reflow" border="1" style="resize:both; width:98%;">
+                    <table class="reflow" border="1">
 
                         <thead>
                             <tr>
@@ -845,25 +845,29 @@ ${lists}
                                 <td class="rowname" data-label="Cue: " style=" user-select: none;"
                                     title="Click the cue name to edit that cue"
                                     v-on:click="selectcue(scenename,i[1].name)">
-                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name" class="icofont-ui-play"></i>
-                                    <span v-if="selectedCues[scenename]==i[1].name"><i
-                                            class="icofont-pencil"></i></span>
-                                    <b title="Cue number, double click to change." style="width:6em"
-                                        v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b>
+
+                                    <span title="Cue number, double click to change." style="width:6em"
+                                        v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
+
                                     <b>{{i[1].name}}</b>
-                                    <i class="icofont-light-bulb" v-if="i[1].hasLightingData"
+
+                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name" class="icofont-ui-play nomargin"></i>
+                                    <span v-if="selectedCues[scenename]==i[1].name"><i
+                                            class="icofont-pencil nomargin"></i></span>
+
+                                    <i class="icofont-light-bulb nomargin" v-if="i[1].hasLightingData"
                                         title="This cue has lighting commands"></i>
 
-                                    <i class="icofont-audio" v-if="i[1].sound"></i>
-                                    <i class="icofont-monitor" v-if="i[1].slide"></i>
+                                    <i class="icofont-audio nomargin" v-if="i[1].sound"></i>
+                                    <i class="icofont-monitor nomargin" v-if="i[1].slide"></i>
 
                                     <span v-if="i[1].inheritRules" title="This cue has rules inherited"
                                         v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
-                                            class="icofont-law-document"></i></span>
+                                            class="icofont-law-document nomargin"></i></span>
 
                                     <span v-if="i[1].rules && i[1].rules.length>0" title="This cue has rules attatched"
                                         v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
-                                            class="icofont-law-document"></i></span>
+                                            class="icofont-law-document nomargin"></i></span>
                                 </td>
 
 

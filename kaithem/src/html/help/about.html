@@ -185,7 +185,7 @@ except Exception:
 
 
 <h3>Disks</h3>
-<table border=1>
+<table border=1 class="w-full"
 <tr>
     <th>
         Device
@@ -223,7 +223,7 @@ except Exception:
 
 </table>
 <h3>Time/Weather</h3>
-<table border=1>
+<table border=1 class="w-full">
     <tr>
         <td>Moon Age(Days, approx)</td>
         <td>${kaithemobj.kaithem.time.moon_phase()}</td>
@@ -281,7 +281,7 @@ except Exception:
 </table>
 
 <h3>IP Data</h3>
-    <table border=1>
+    <table border=1 class="w-full">
         <tr>
             <td>HTTPS(Secure) Port</td>
             <td>${config['https-port']}</td>
@@ -294,7 +294,7 @@ except Exception:
 
 
     <h3>Addresses</h3>
-    <table border=1>
+    <table border=1 class="w-full">
         <tr>
             <th>Device</th><th>IPv4</th><th>IPv6</th>
         </tr>
@@ -311,7 +311,7 @@ except Exception:
 </p>
 <p>
 <h3>Current Statistics</h3>
-    <table border=1>
+    <table border=1 class="w-full">
         <tr>
             <td>Total polled events</td>
             <td>${str(newevt.countEvents())}</td>
@@ -397,7 +397,7 @@ except Exception:
         </p>
         <p>
             <h3>System Info</h3>
-            <table border=1>
+            <table border=1 class="w-full">
                 <tr>
                     <td>CPU Type</td>
                     <td>${platform.machine()|h}
@@ -479,7 +479,7 @@ def module_version(m):
 %>
 
                 <h2>Imported Module Versions</h2>
-                <table border=1>
+                <table border=1 class="w-full">
                     <tr>
                         <th>Module</th>
                         <th>Version</th>

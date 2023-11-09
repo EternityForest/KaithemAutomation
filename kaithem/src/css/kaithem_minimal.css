@@ -147,7 +147,7 @@ div.widgetcontainer {
 [class*=" icofont-"],
 [class^=icofont-] {
     color: var(--graphical-fg);
-    padding-left: var(--padding);
-    padding-right: var(--padding);
+    padding-left: 0.1em;
+    padding-right:0.1em;
     padding-top: 4px;
 }

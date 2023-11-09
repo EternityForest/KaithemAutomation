@@ -63,7 +63,7 @@
 
     /*control-bg also applies to small elements like headers*/
     --control-bg: var(--grey-1);
-    --control-fg: var(--fg);
+    --control-fg: var(--graphical-fg);
 
 
 
@@ -77,9 +77,9 @@
     --warning-color: var(--yellow);
     --danger-color: var(--red);
 
-    --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
-    --warning-fg: color-mix(in srgb, var(--warning-color) 20%, var(--fg));
-    --danger-fg: color-mix(in srgb, var(--danger-color) 40%, var(--fg));
+    --success-fg: color-mix(in srgb, var(--success-color) 60%, var(--fg));
+    --warning-fg: color-mix(in srgb, var(--warning-color) 40%, var(--fg));
+    --danger-fg: color-mix(in srgb, var(--danger-color) 70%, var(--fg));
 
     --control-border-color: color-mix(in srgb, var(--control-fg) 35%, rgb(0 0 0 / 0%));
 
@@ -130,10 +130,9 @@
 
 main {
     margin: auto;
-}
-
-main {
     width: min(45em, 100vw);
+    min-width: min-content;
+    max-width: 100vw;
 }
 
 html {
@@ -174,6 +173,12 @@ label {
     place-content: space-between;
 }
 
+b{
+    color: var(--graphical-fg);
+}
+span{
+    border-radius: 4px;
+}
 
 /********************Behavior****************************/
 body {
@@ -252,6 +257,7 @@ footer {
     box-sizing: border-box;
     margin: 0px;
     flex-grow: 0;
+    min-height: 1.8rem;
 }
 
 
@@ -402,12 +408,22 @@ iframe {
 
 /*Tables*/
 
+tr{
+    border: none;
+}
+
+td {
+    border-color: color-mix(in srgb, var(--border-color) 10%, transparent);
+    padding: var(--border-width);
+    width: min-content;
+    max-width: 45%;
+}
+
 table,
-tr,
-td,
 th,
 thead {
     border-color: var(--border-color);
+    
 }
 
 table {
@@ -415,16 +431,15 @@ table {
     border-width: var(--border-width);
     border-color: var(--border-color);
     border-collapse: collapse;
-    margin: 0.4em;
 }
 
 /*This makes tables easier to read by coloring alternate rows differently.*/
 table tr:nth-child(odd) td {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: color-mix(in srgb, var(--highlight-color) 3%, transparent);
 }
 
 table tr:nth-child(even) td {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: color-mix(in srgb, var(--accent-color) 3%, transparent);
 }
 
 table {
@@ -450,19 +465,15 @@ td select {
 }
 
 
-td {
-    padding: var(--border-width);
-    width: max-content;
-}
 
 th {
     width: max-content;
+    color: var(--accent-color);
 }
 
 table tr th,
 table tr td {
-    border-right: var(--border-width) solid var(--border-color);
-    border-bottom: var(--border-width) solid var(--border-color);
+    border-right: var(--border-width)  color-mix(in srgb, var(--border-color) 10%, transparent);
     padding: calc(var(--padding)/3);
 }
 
@@ -1098,22 +1109,6 @@ footer.padding {
 
 /*danger is the canonical*/
 
-.error,
-.danger,
-.bad {
-    --fg: var(--danger-fg);
-    --graphical-fg: var(--danger-fg);
-    background-color: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
-    color: var(--fg);
-}
-
-.warning,
-.warn {
-    --fg: var(--warning-fg);
-    --graphical-fg: var(--warning-fg);
-    background-color: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
-    color: var(--fg);
-}
 
 .highlight {
     background-color: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
@@ -1126,13 +1121,23 @@ footer.padding {
     color: var(--fg);
 }
 
-.error.paper {
-    background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
+.warning,
+.warn {
+    --fg: var(--warning-fg);
+    --graphical-fg: var(--warning-fg);
+    background-color: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
+    color: var(--fg);
 }
 
-.warning.paper {
-    background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg))
+.error,
+.danger,
+.bad {
+    --fg: var(--danger-fg);
+    --graphical-fg: var(--danger-fg);
+    background-color: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
+    color: var(--fg);
 }
+
 
 .highlight.paper {
     background-color: color-mix(in srgb, var(--highlight-color) 35%, var(--box-bg))
@@ -1142,6 +1147,12 @@ footer.padding {
     background-color: color-mix(in srgb, var(--success-color) 35%, var(--box-bg))
 }
 
+.warning.paper {
+    background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg))
+}
+.error.paper {
+    background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
+}
 
 /*Classless styles */
 
@@ -1406,8 +1417,6 @@ dd {
     flex-grow: 50;
 }
 
-.tool-bar select,
-.tool-bar button,
 .tool-bar a,
 .tool-bar p,
 .tool-bar div,
@@ -1544,13 +1553,13 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
 }
 
 *::-webkit-scrollbar-track {
-    background: var(--control-bg);
-    border-radius: var(--border-radius);
+    background:color-mix(in srgb, var(--accent-color) 15%, var(--control-bg));
+    border-radius: 0px;
 }
 
 *::-webkit-scrollbar-thumb {
     background-color: var(--control-fg);
-    border-radius: var(--border-radius);
+    border-radius: calc( min( var(--border-radius), 5px));
     border: none;
 }
 
@@ -1566,6 +1575,24 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
     }
 }
 
+
+::-webkit-scrollbar-corner {
+    background-color: color-mix(in srgb, var(--accent-color) 20%, var(--control-bg));
+    border-radius: 0px 0px 4px 0px;
+}
+
+::-webkit-scrollbar-button {
+    background-color: color-mix(in srgb, var(--accent-color) 20%, var(--control-bg));;
+}
+
+::-webkit-scrollbar-button:vertical:decrement {
+   border-radius: 6px 6px 0px 0px;
+  } 
+  
+  ::-webkit-scrollbar-button:vertical:increment {
+    border-radius: 0px 0px 0px 0px;
+
+  }
 /* The Range inputs */
 
 
@@ -1692,4 +1719,9 @@ meter:-moz-meter-sub-optimum::-moz-meter-bar {
 
 meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
     background: var(--danger-color);
+}
+
+/*Catch icons*/
+i[class], button i[class]{
+    color: var(--graphical-fg);
 }
