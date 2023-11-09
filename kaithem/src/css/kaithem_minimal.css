@@ -142,6 +142,7 @@ h1,h2,h3,h4,h5,h6, header, header *, header button{
 /*This div is the container for most of the built in widgets. */
 div.widgetcontainer {
     display: inline-block;
+    min-height: 1.8rem;
 }
 
 [class*=" icofont-"],

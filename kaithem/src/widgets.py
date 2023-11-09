@@ -1720,7 +1720,7 @@ class ScrollingWindow(Widget):
     def render(self, cssclass="", style=""):
         content = "".join(["<div>" + i + "</div>" for i in self.value])
 
-        return """<div class="widgetcontainer" style="display:block;width:90%%;">
+        return """<div class="w-full card">
         <div id=%(htmlid)s class ="max-h-12rem scroll border %(cssclass)s" style="%(style)s">
         %(content)s
         </div>

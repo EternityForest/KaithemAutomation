@@ -94,9 +94,9 @@
         --black-2: #2c2c2c;
         --black-3: #4e4c4c;
         --black-4: #404040;
-        --grey-1: #605f5f;
-        --grey-2: #7e7e7e;
-        --grey-3: #c2c2c2;
+        --grey-1: #969494;
+        --grey-2: #adadad;
+        --grey-3: #dfd6d6;
         --warning-color: #ffd943;
         --danger-color: #ff4242;
         --highlight-color: #7788aa;
@@ -1550,10 +1550,11 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
 /* Other browsers */
 *::-webkit-scrollbar {
     width: 14px;
+    background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
 }
 
 *::-webkit-scrollbar-track {
-    background:color-mix(in srgb, var(--accent-color) 15%, var(--control-bg));
+    background-color:color-mix(in srgb, var(--accent-color) 15%, var(--control-bg));
     border-radius: 0px;
 }
 

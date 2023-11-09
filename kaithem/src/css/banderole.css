@@ -11,7 +11,7 @@
   --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.avif);
   --box-bg: none;
   --fg: #522f28;
-  --graphical-fg: rgb(94 21 21);
+  --graphical-fg: rgb(98 69 39 / 81%);
   --accent-color: var(--graphical-fg);
 
   --concave-item-bg: none;
@@ -165,26 +165,6 @@ a {
 }
 
 
-/* ===== Scrollbar CSS ===== */
-  /* Firefox */
-  * {
-    scrollbar-color: #874437 #8e8c71;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: #8e8c71;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background-color: #874437;
-    border-radius: 10px;
-    border: 1px solid #000000;
-  }
-*::-webkit-scrollbar-corner
-{
-  background-color: #875b37;
-
-}
 
 
   button:active, a.button:active,.tool-bar button:active,.tool-bar a.button:active {
