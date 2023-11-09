@@ -720,7 +720,7 @@ class TagPointClass():
     @typechecked
     def setAlarm(self,
                  name,
-                 condition: str = '',
+                 condition: Optional[str] = '',
                  priority: str = "info",
                  releaseCondition: Union[str, None] = '',
                  autoAck: Union[bool, str] = 'no',
