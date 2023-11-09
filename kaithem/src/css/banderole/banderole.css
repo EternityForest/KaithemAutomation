@@ -1,6 +1,6 @@
 :root{
   --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(banderole/pergament-papier-hintergrund-braun.webp);
-  --box-bg: none;
+  --box-bg: #e7e5ca7a;
   --fg: #522f28;
   --graphical-fg: rgb(98 69 39 / 81%);
   --accent-color: var(--graphical-fg);
@@ -17,7 +17,6 @@
 
 header{
   background: none;
-  border: none;
 }
 
 @font-face {
@@ -91,21 +90,6 @@ details[open]
 }
 
 
-/* .tool-bar button:hover, .tool-bar a.button:hover
-{
-  backdrop-filter: blur(4px);
-  color: #12a900;
-} */
-
-
-.menubar:is(.tool-bar), .tool-bar, .tool-bar {
-    --convex-item-bg: transparent;
-    --concave-item-bg: transparent;
-    --tool-bar-element-border:  2px solid #361907;
-
-}
-
-
 .menubar{
   background-color: transparent;
 }
@@ -115,20 +99,13 @@ details[open]
     background: var(--box-bg);
     border-width: 1px;
     border-radius: var(--border-radius);
-    backdrop-filter: blur(1px);
     border-color: #412f1b42;
     border-style: double;
 
-    box-shadow: inset 1px 1px 8px 1px rgba(83, 49, 10, 0.486);
+    box-shadow: 1px 1px 21px 1px rgb(83 49 10 / 21%);
   }
 
   
-
-
-
-.tool-bar{
-  transform: rotate(0.2deg);
-}
 
 header .tool-bar{
   transform: none;

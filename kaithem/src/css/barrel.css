@@ -81,7 +81,7 @@
     --warning-fg: color-mix(in srgb, var(--warning-color) 40%, var(--fg));
     --danger-fg: color-mix(in srgb, var(--danger-color) 70%, var(--fg));
 
-    --control-border-color: color-mix(in srgb, var(--control-fg) 35%, rgb(0 0 0 / 0%));
+    --control-border-color: color-mix(in srgb, var(--graphical-fg) 35%, rgb(0 0 0 / 0%));
 
     /*Calculated helpers*/
     --thin-border: 1px solid var(--border-color);
@@ -173,10 +173,11 @@ label {
     place-content: space-between;
 }
 
-b{
+b {
     color: var(--graphical-fg);
 }
-span{
+
+span {
     border-radius: 4px;
 }
 
@@ -408,7 +409,7 @@ iframe {
 
 /*Tables*/
 
-tr{
+tr {
     border: none;
 }
 
@@ -423,7 +424,7 @@ table,
 th,
 thead {
     border-color: var(--border-color);
-    
+
 }
 
 table {
@@ -473,7 +474,7 @@ th {
 
 table tr th,
 table tr td {
-    border-right: var(--border-width)  color-mix(in srgb, var(--border-color) 10%, transparent);
+    border-right: var(--border-width) color-mix(in srgb, var(--border-color) 10%, transparent);
     padding: calc(var(--padding)/3);
 }
 
@@ -488,7 +489,17 @@ table tr:first-child td {
     text-align: left;
 }
 
+table tr:last-child td {
+    border-bottom: var(--border-width) solid var(--border-color);
+}
 
+table tr td:last-child {
+    border-right: var(--border-width) solid var(--border-color);
+}
+
+table tr th:last-child{
+    border-right: var(--border-width) solid var(--border-color);
+}
 /* top-left border-radius */
 
 :is(table, thead:first-child, tbody:first-child):first-child>tr:first-child :first-child:is(td, th) {
@@ -598,18 +609,17 @@ table tr:first-child td {
 }
 
 .flex-col>*:last-child {
-    margin-block-end: 0px; 
+    margin-block-end: 0px;
 }
 
-.flex-col>*:nth-last-child(2)
-{
-    margin-block-end: 0px; 
+.flex-col>*:nth-last-child(2) {
+    margin-block-end: 0px;
 }
 
 .flex-col footer,
 .flex-col header {
     flex-grow: 0;
-    margin-block-end: 0px; 
+    margin-block-end: 0px;
 }
 
 .flex-row {
@@ -946,9 +956,9 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
 /*Simple utilities */
 
-.round-feathered{
-    mask-image: radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0.1) 67%, rgba(0,0,0,0) 71%);
-    -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0.1) 67%, rgba(0,0,0,0) 71%);
+.round-feathered {
+    mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
 }
 
 .paper {
@@ -985,7 +995,7 @@ iframe.h-center {
 .nogaps>*:not(.specificity_hack) {
     margin: 0px;
     box-sizing: border-box;
-    margin-block-end: 0px; 
+    margin-block-end: 0px;
 }
 
 .rounded {
@@ -1150,6 +1160,7 @@ footer.padding {
 .warning.paper {
     background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg))
 }
+
 .error.paper {
     background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
 }
@@ -1554,13 +1565,13 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
 }
 
 *::-webkit-scrollbar-track {
-    background-color:color-mix(in srgb, var(--accent-color) 15%, var(--control-bg));
+    background-color: color-mix(in srgb, var(--accent-color) 15%, var(--control-bg));
     border-radius: 0px;
 }
 
 *::-webkit-scrollbar-thumb {
     background-color: var(--control-fg);
-    border-radius: calc( min( var(--border-radius), 5px));
+    border-radius: calc(min(var(--border-radius), 5px));
     border: none;
 }
 
@@ -1583,17 +1594,19 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
 }
 
 ::-webkit-scrollbar-button {
-    background-color: color-mix(in srgb, var(--accent-color) 20%, var(--control-bg));;
+    background-color: color-mix(in srgb, var(--accent-color) 20%, var(--control-bg));
+    ;
 }
 
 ::-webkit-scrollbar-button:vertical:decrement {
-   border-radius: 6px 6px 0px 0px;
-  } 
-  
-  ::-webkit-scrollbar-button:vertical:increment {
+    border-radius: 6px 6px 0px 0px;
+}
+
+::-webkit-scrollbar-button:vertical:increment {
     border-radius: 0px 0px 0px 0px;
 
-  }
+}
+
 /* The Range inputs */
 
 
@@ -1606,7 +1619,7 @@ input[type=range] {
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-    background-color:  color-mix(in srgb, var(--control-bg) 70%, var(--control-fg));
+    background-color: color-mix(in srgb, var(--control-bg) 70%, var(--control-fg));
     border: var(--thin-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
@@ -1624,7 +1637,7 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 input[type=range]::-moz-range-track {
-    background-color:  color-mix(in srgvb, var(--control-bg) 70%, var(--control-fg));
+    background-color: color-mix(in srgvb, var(--control-bg) 70%, var(--control-fg));
     border: var(--thin-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
@@ -1723,6 +1736,7 @@ meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
 }
 
 /*Catch icons*/
-i[class], button i[class]{
+i[class],
+button i[class] {
     color: var(--graphical-fg);
 }

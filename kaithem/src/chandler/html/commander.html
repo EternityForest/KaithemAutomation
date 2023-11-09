@@ -151,7 +151,7 @@
 
 
 
-        <div style="overflow: auto; max-height:450px" class="flex-row">
+        <div style="overflow: auto; max-height:450px" class="flex-row padding">
             <article v-for="i in formatScenes()" v-if="i"
                 style="position:relative"
                 v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
