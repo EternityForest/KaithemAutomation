@@ -1,0 +1,181 @@
+/* Using a string */
+@import "/static/fonts/icofont/icofont.min.css";
+
+/*****************Typography****************************/
+
+
+@media screen and (max-width: 820px) {
+    .desktop-only {
+        display: none;
+    }
+}
+
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Lora Regular'), local('Lora-Regular'), url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-regular.woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+/* lora-italic - latin_cyrillic_latin-ext_cyrillic-ext */
+@font-face {
+    font-family: 'Lora';
+    font-style: italic;
+    font-weight: 400;
+    src: local('Lora Italic'), local('Lora-Italic'), url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-italic.woff2') format('woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+/* lora-700 - latin_cyrillic_latin-ext_cyrillic-ext */
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 700;
+    src: local('Lora Bold'), local('Lora-Bold'), url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-700.woff2') format('woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+/* lora-700italic - latin_cyrillic_latin-ext_cyrillic-ext */
+@font-face {
+    font-family: 'Lora';
+    font-style: italic;
+    font-weight: 700;
+    src: local('Lora Bold Italic'), local('Lora-BoldItalic'), url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-700italic.woff2') format('woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+/* b612-regular - latin */
+@font-face {
+    font-family: 'B612';
+    font-style: normal;
+    font-weight: 400;
+    src: local('B612 Regular'), local('B612Mono-Regular'), url('/static/fonts/b612/b612-v4-latin-regular.woff2') format('woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+/* b612-italic - latin */
+@font-face {
+    font-family: 'B612';
+    font-style: italic;
+    font-weight: 400;
+    src: local('B612 Italic'), local('B612Mono-Italic'), url('/static/fonts/b612/b612-v4-latin-italic.woff2') format('woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+/* b612-700 - latin */
+@font-face {
+    font-family: 'B612';
+    font-style: normal;
+    font-weight: 700;
+    src: local('B612 Bold'), local('B612Mono-Bold'), url('/static/fonts/b612/b612-v4-latin-700.woff2') format('woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+
+
+/* b612-700italic - latin */
+@font-face {
+    font-family: 'B612';
+    font-style: italic;
+    font-weight: 700;
+    src: local('B612 Bold Italic'), local('B612Mono-BoldItalic'), url('/static/fonts/b612/b612-v4-latin-700italic.woff2') format('woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/Lato/lato-regular.woff2');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-regular');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+@font-face {
+    font-family: 'AlegreyaSans';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/Alegreya/AlegreyaSans-Regular.ttf');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+}
+
+
+
+/*********************Code editing************************/
+@font-face {
+    font-family: hack;
+    src: url(/static/hack.ttf);
+}
+
+.monaco-editor,
+.monaco-editor-background {
+    background: rgb(250, 255, 244);
+    font-family: hack;
+}
+
+.event-trigger-edit-box {
+    background: rgb(250, 255, 244);
+}
+
+/* Line Numbers */
+.monaco-editor .line-numbers {
+    background-color: rgb(210, 220, 200);
+    color: rgb(55, 30, 0) !important;
+}
+
+.monaco-editor .current-line:not(.monaco-nohighlight .monaco-editor) {
+    background: rgba(150, 200, 120, 0.1) !important;
+}
+
+/*This div is the container for most of the built in widgets. */
+div.widgetcontainer {
+    display: inline-block;
+    min-height: 1.8rem;
+}
+
+[class*=" icofont-"],
+[class^=icofont-] {
+    color: var(--graphical-fg);
+    padding-left: 0.1em;
+    padding-right:0.1em;
+    padding-top: 4px;
+}
+
+.decorative-image.decorative-image-main {
+    background-image: url(/static/img/nov23-ai-watercolor-tavern.webp);
+    display: block;
+    box-shadow: none;
+    mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    opacity: 50%;
+}
+
+.decorative-image.decorative-image-login {
+    background-image: url(/static/img/nov23-ai-castle.webp);
+    display: block;
+    box-shadow: none;
+    mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    opacity: 70%;
+}
+
+.monaco-editor canvas,
+.ac-container img {
+    border-image-width: initial;
+    border-image-outset: initial;
+    border-image-repeat: initial;
+    border-image-source: initial;
+    box-sizing: initial;
+    border-style: initial;
+    border-width: initial;
+    -webkit-box-shadow: initial;
+    box-shadow: initial;
+}

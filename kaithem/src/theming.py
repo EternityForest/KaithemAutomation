@@ -45,6 +45,9 @@ fugit = Theme("fugit", "/static/css/fugit/fugit.css")
 simple_dark = Theme("simple_dark", "/static/css/kaithem_simple_dark.css")
 simple_light = Theme("simple_light", "/static/css/barrel.css")
 banderole = Theme("banderole", "/static/css/banderole/banderole.css")
+nord = Theme("nord", "/static/css/nord.css")
+blast = Theme("blast", "/static/css/blast.css")
+lair = Theme("lair", "/static/css/lair.css")
 
 
 def getCSSTheme():
