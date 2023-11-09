@@ -1,11 +1,12 @@
-:root{
+:root {
   color-scheme: dark;
   --phosphor-color: #ffd477;
-  --tool-bar-element-border:  var(--phosphor-color) solid 1px;
+  --tool-bar-element-border: var(--phosphor-color) solid 1px;
   --concave-item-bg: rgba(0, 0, 0, 0.0);
   --convex-item-bg: rgba(0, 0, 0, 0.0);
   --convex-item-active-bg: rgba(0, 0, 0, 0.0);
   --control-border-radius: 0px;
+  --border-radius: 0px;
   --graphical-fg: var(--phosphor-color);
   --accent-color: #f8bc15;
   --border-color: var(--phosphor-color);
@@ -22,32 +23,32 @@
 
 }
 
-a{
-    text-decoration: none;
+a {
+  text-decoration: none;
 }
 
 
 @font-face {
-    font-family: 'ModernDOS';
-    font-style: normal;
-    font-weight: 400;
-    src: url('ModernDOS9x16.ttf');
-    /* Chrome 26+, Opera 23+, Firefox 39+ */
+  font-family: 'ModernDOS';
+  font-style: normal;
+  font-weight: 400;
+  src: url('ModernDOS9x16.ttf');
+  /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
 
 html {
-    opacity: 0.8;
-    background-size: 20px 20px;
-    min-height: 100vh;
-    padding: 0px;
-    margin: 0px;
-    box-sizing: border-box;
-    font-family: 'ModernDOS';
+  opacity: 0.8;
+  background-size: 20px 20px;
+  min-height: 100vh;
+  padding: 0px;
+  margin: 0px;
+  box-sizing: border-box;
+  font-family: 'ModernDOS';
 }
 
 body {
-    font-family: 'ModernDOS';
+  font-family: 'ModernDOS';
 }
 
 
@@ -55,12 +56,12 @@ body {
 /************************HTML ELEMENTS***********************************/
 
 dl {
-    padding: 2px;
-    margin: 2px;
+  padding: 2px;
+  margin: 2px;
 }
 
 dt {
-    margin: 0.2em;
+  margin: 0.2em;
 }
 
 li:hover,
@@ -72,154 +73,159 @@ input:hover,
 tr:hover,
 div.widgetcontainer:hover,
 span.numericpv:hover {
-    background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 p {
-    margin: 0.5%;
+  margin: 0.5%;
 }
 
 hr {
-    border: none;
-    height: 1px;
+  border: none;
+  height: 1px;
 }
 
-h1,h2,h3,h4 {
-    font-weight: normal;
+h1,
+h2,
+h3,
+h4 {
+  font-weight: normal;
 }
 
 a {
-    padding: 1px 3px 1px 3px;
+  padding: 1px 3px 1px 3px;
 }
 
 ul {
-    line-height: 128%;
+  line-height: 128%;
 }
 
 table {
-    background-color: rgba(240, 248, 255, 0.116);
-    box-shadow: none;
+  background-color: rgba(240, 248, 255, 0.116);
+  box-shadow: none;
 }
 
 tr.header {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 th {
-    background-color: black;
+  background-color: black;
 }
 
 td input,
 td select {
-    margin: 0px;
-    height: 1.8em;
-    width: auto;
+  margin: 0px;
+  height: 1.8em;
+  width: auto;
 }
 
 pre {
-    margin: 0.2em;
+  margin: 0.2em;
 }
 
 div.kmainpagebody {}
 
 
-.window{
-    -webkit-animation: flicker-4 15s linear infinite both;
-    animation: flicker-4 15s linear infinite both;
-    border-style: solid;
-    box-shadow: none;
-    border-width: 1px;
+.window {
+  -webkit-animation: flicker-4 15s linear infinite both;
+  animation: flicker-4 15s linear infinite both;
+  border-style: solid;
+  box-shadow: none;
+  border-width: 1px;
 }
 
-img,video {
-    filter: blur(0.6px) contrast(1.71) saturate(1.32) sepia(0.55) opacity(0.7);
+img,
+video {
+  filter: blur(0.6px) contrast(1.71) saturate(1.32) sepia(0.55) opacity(0.7);
 }
 
 
 
 .error,
 .danger {
-    background-color: #ff8077 !important;
-    font-weight: bold;
-    color: black !important;
-    text-shadow: none;
+  background-color: #ff8077 !important;
+  font-weight: bold;
+  color: black !important;
+  text-shadow: none;
 }
 
 .warning {
-    background-color: #ffbb55 !important;
-    font-weight: bold;
-    color: black !important;
+  background-color: #ffbb55 !important;
+  font-weight: bold;
+  color: black !important;
 }
 
 table {
-    border-style: solid;
-    border-width: 1px;
-    border-collapse: collapse;
+  border-style: solid;
+  border-width: 1px;
+  border-collapse: collapse;
 }
 
 
 /*This is a help paragraph usually shown at the top or a sectionbox*/
 
-.help{
-display: none;
+.help {
+  display: none;
 }
 
 
 .tool-bar {
-    box-shadow: none;
-    flex-basis: max-content;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-    border-radius: 0px;
-    min-height: 28px;
-    margin: 4px;
-    flex-grow: 1;
-    vertical-align: middle;
-    height: fit-content;
-    align-items: center;
-    align-content: center;
-    backdrop-filter: blur(1px);
-    box-sizing: border-box;
+  box-shadow: none;
+  flex-basis: max-content;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border-radius: 0px;
+  min-height: 28px;
+  margin: 4px;
+  flex-grow: 1;
+  vertical-align: middle;
+  height: fit-content;
+  align-items: center;
+  align-content: center;
+  backdrop-filter: blur(1px);
+  box-sizing: border-box;
 }
 
-header{
+header {
   border: none;
 }
 
 
-.highlight, .highlight * {
-    text-shadow: none;
-    font-weight: bolder;
-    color: var(--black-1) !important;
-    background-color: var(--phosphor-color) !important;
-    background: var(--phosphor-color)!important;
-    --fg: var(--black-1);
-    --graphical-fg: var(--black-1);
-    --border-color: var(--black-1);
-    --control-fg: var(--black-1);
+.highlight,
+.highlight * {
+  text-shadow: none;
+  font-weight: bolder;
+  color: var(--black-1) !important;
+  background-color: var(--phosphor-color) !important;
+  background: var(--phosphor-color) !important;
+  --fg: var(--black-1);
+  --graphical-fg: var(--black-1);
+  --border-color: var(--black-1);
+  --control-fg: var(--black-1);
 }
 
 
-  
 
-  
-body::after{
-    bottom: 0px;
-    position: absolute;
-    width: 100vw;
-    content: "";    
-    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAGZJREFUKFNNjwEOgDAIA3v6IuP/v7AnWVMYUbaEAS3t4Lmtc2FbgKwdzoscRAokGQmrUOyUfkUawc3AyGRrUYfkLdHdAgw96inxZR2rzTS977grYNFa85v+QeVjAOO+NvYPvJ1F9AU18DARTpe5OwAAAABJRU5ErkJggg==);
-    height: 0px;
-    animation: 1.2s linear 0s 1 loader2;
-    z-index: 99999;
+
+
+body::after {
+  bottom: 0px;
+  position: absolute;
+  width: 100vw;
+  content: "";
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAGZJREFUKFNNjwEOgDAIA3v6IuP/v7AnWVMYUbaEAS3t4Lmtc2FbgKwdzoscRAokGQmrUOyUfkUawc3AyGRrUYfkLdHdAgw96inxZR2rzTS977grYNFa85v+QeVjAOO+NvYPvJ1F9AU18DARTpe5OwAAAABJRU5ErkJggg==);
+  height: 0px;
+  animation: 1.2s linear 0s 1 loader2;
+  z-index: 99999;
 }
-  
+
 
 /* Animation */
 
 
-  /* ----------------------------------------------
+/* ----------------------------------------------
  * Generated by Animista on 2023-9-14 17:16:31
  * Licensed under FreeBSD License.
  * See http://animista.net/license for more info. 
@@ -231,209 +237,270 @@ body::after{
  * @animation flicker-in-1
  * ----------------------------------------
  */
- @-webkit-keyframes flicker-in-1 {
-    0% {
-      opacity: 0.5;
-    }
-    10% {
-      opacity: 0.5;
-    }
-    10.1% {
-      opacity: 1;
-    }
-    10.2% {
-      opacity: 0.5;
-    }
-    20% {
-      opacity: 0.5;
-    }
-    20.1% {
-      opacity: 1;
-    }
-    20.6% {
-      opacity: 0.5;
-    }
-    30% {
-      opacity: 0.5;
-    }
-    30.1% {
-      opacity: 1;
-    }
-    30.5% {
-      opacity: 1;
-    }
-    30.6% {
-      opacity: 0.5;
-    }
-    45% {
-      opacity: 0.5;
-    }
-    45.1% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 1;
-    }
-    55% {
-      opacity: 1;
-    }
-    55.1% {
-      opacity: 0.5;
-    }
-    57% {
-      opacity: 0.5;
-    }
-    57.1% {
-      opacity: 1;
-    }
-    60% {
-      opacity: 1;
-    }
-    60.1% {
-      opacity: 0.5;
-    }
-    65% {
-      opacity: 0.5;
-    }
-    65.1% {
-      opacity: 1;
-    }
-    75% {
-      opacity: 1;
-    }
-    75.1% {
-      opacity: 0.5;
-    }
-    77% {
-      opacity: 0.5;
-    }
-    77.1% {
-      opacity: 1;
-    }
-    85% {
-      opacity: 1;
-    }
-    85.1% {
-      opacity: 0.5;
-    }
-    86% {
-      opacity: 0.5;
-    }
-    86.1% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
-  @keyframes flicker-in-1 {
-    0% {
-      opacity: 0.5;
-    }
-    10% {
-      opacity: 0.5;
-    }
-    10.1% {
-      opacity: 1;
-    }
-    10.2% {
-      opacity: 0.5;
-    }
-    20% {
-      opacity: 0.5;
-    }
-    20.1% {
-      opacity: 1;
-    }
-    20.6% {
-      opacity: 0.5;
-    }
-    30% {
-      opacity: 0.5;
-    }
-    30.1% {
-      opacity: 1;
-    }
-    30.5% {
-      opacity: 1;
-    }
-    30.6% {
-      opacity: 0.5;
-    }
-    45% {
-      opacity: 0.5;
-    }
-    45.1% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 1;
-    }
-    55% {
-      opacity: 1;
-    }
-    55.1% {
-      opacity: 0.5;
-    }
-    57% {
-      opacity: 0.5;
-    }
-    57.1% {
-      opacity: 1;
-    }
-    60% {
-      opacity: 1;
-    }
-    60.1% {
-      opacity: 0.5;
-    }
-    65% {
-      opacity: 0.5;
-    }
-    65.1% {
-      opacity: 1;
-    }
-    75% {
-      opacity: 1;
-    }
-    75.1% {
-      opacity: 0.5;
-    }
-    77% {
-      opacity: 0.5;
-    }
-    77.1% {
-      opacity: 1;
-    }
-    85% {
-      opacity: 1;
-    }
-    85.1% {
-      opacity: 0.5;
-    }
-    86% {
-      opacity: 0.5;
-    }
-    86.1% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 1;
-    }
+@-webkit-keyframes flicker-in-1 {
+  0% {
+    opacity: 0.5;
   }
 
-  .theme-item-animation-enter-active {
-      -webkit-animation: flicker-in-1 2s linear both;
-              animation: flicker-in-1 2s linear both;
-  }
-  
-
-  .theme-item-animation-enter-from,
-  .theme-item-animation-leave-to {
-    opacity: 0;
+  10% {
+    opacity: 0.5;
   }
 
-  /* ----------------------------------------------
+  10.1% {
+    opacity: 1;
+  }
+
+  10.2% {
+    opacity: 0.5;
+  }
+
+  20% {
+    opacity: 0.5;
+  }
+
+  20.1% {
+    opacity: 1;
+  }
+
+  20.6% {
+    opacity: 0.5;
+  }
+
+  30% {
+    opacity: 0.5;
+  }
+
+  30.1% {
+    opacity: 1;
+  }
+
+  30.5% {
+    opacity: 1;
+  }
+
+  30.6% {
+    opacity: 0.5;
+  }
+
+  45% {
+    opacity: 0.5;
+  }
+
+  45.1% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  55.1% {
+    opacity: 0.5;
+  }
+
+  57% {
+    opacity: 0.5;
+  }
+
+  57.1% {
+    opacity: 1;
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  60.1% {
+    opacity: 0.5;
+  }
+
+  65% {
+    opacity: 0.5;
+  }
+
+  65.1% {
+    opacity: 1;
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  75.1% {
+    opacity: 0.5;
+  }
+
+  77% {
+    opacity: 0.5;
+  }
+
+  77.1% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  85.1% {
+    opacity: 0.5;
+  }
+
+  86% {
+    opacity: 0.5;
+  }
+
+  86.1% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes flicker-in-1 {
+  0% {
+    opacity: 0.5;
+  }
+
+  10% {
+    opacity: 0.5;
+  }
+
+  10.1% {
+    opacity: 1;
+  }
+
+  10.2% {
+    opacity: 0.5;
+  }
+
+  20% {
+    opacity: 0.5;
+  }
+
+  20.1% {
+    opacity: 1;
+  }
+
+  20.6% {
+    opacity: 0.5;
+  }
+
+  30% {
+    opacity: 0.5;
+  }
+
+  30.1% {
+    opacity: 1;
+  }
+
+  30.5% {
+    opacity: 1;
+  }
+
+  30.6% {
+    opacity: 0.5;
+  }
+
+  45% {
+    opacity: 0.5;
+  }
+
+  45.1% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  55.1% {
+    opacity: 0.5;
+  }
+
+  57% {
+    opacity: 0.5;
+  }
+
+  57.1% {
+    opacity: 1;
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  60.1% {
+    opacity: 0.5;
+  }
+
+  65% {
+    opacity: 0.5;
+  }
+
+  65.1% {
+    opacity: 1;
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  75.1% {
+    opacity: 0.5;
+  }
+
+  77% {
+    opacity: 0.5;
+  }
+
+  77.1% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  85.1% {
+    opacity: 0.5;
+  }
+
+  86% {
+    opacity: 0.5;
+  }
+
+  86.1% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.theme-item-animation-enter-active {
+  -webkit-animation: flicker-in-1 2s linear both;
+  animation: flicker-in-1 2s linear both;
+}
+
+
+.theme-item-animation-enter-from,
+.theme-item-animation-leave-to {
+  opacity: 0;
+}
+
+/* ----------------------------------------------
  * Generated by Animista on 2023-9-14 17:27:43
  * Licensed under FreeBSD License.
  * See http://animista.net/license for more info. 
@@ -446,34 +513,37 @@ body::after{
  * ----------------------------------------
  */
 @-webkit-keyframes slide-out-bck-center {
-    0% {
-      -webkit-transform: translateZ(0);
-              transform: translateZ(0);
-      opacity: 1;
-    }
-    100% {
-      -webkit-transform: translateZ(-1100px);
-              transform: translateZ(-1100px);
-      opacity: 0;
-    }
+  0% {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    opacity: 1;
   }
-  @keyframes slide-out-bck-center {
-    0% {
-      -webkit-transform: translateZ(0);
-              transform: translateZ(0);
-      opacity: 1;
-    }
-    100% {
-      -webkit-transform: translateZ(-1100px);
-              transform: translateZ(-1100px);
-      opacity: 0;
-    }
-  }
-  
 
-  .theme-item-animation-leave-active {
-	-webkit-animation: slide-out-bck-center 0.5s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
-	        animation: slide-out-bck-center 0.5s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
+  100% {
+    -webkit-transform: translateZ(-1100px);
+    transform: translateZ(-1100px);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-out-bck-center {
+  0% {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    opacity: 1;
+  }
+
+  100% {
+    -webkit-transform: translateZ(-1100px);
+    transform: translateZ(-1100px);
+    opacity: 0;
+  }
+}
+
+
+.theme-item-animation-leave-active {
+  -webkit-animation: slide-out-bck-center 0.5s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
+  animation: slide-out-bck-center 0.5s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
 }
 
 
@@ -491,164 +561,215 @@ body::after{
  * animation flicker-4
  * ----------------------------------------
  */
- @-webkit-keyframes flicker-4 {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    31.98% {
-      opacity: 1;
-    }
-    32% {
-      opacity: 0.7;
-    }
-    32.8% {
-      opacity: 0.7;
-    }
-    32.82% {
-      opacity: 1;
-    }
-    34.98% {
-      opacity: 1;
-    }
-    35% {
-      opacity: 0.7;
-    }
-    35.7% {
-      opacity: 0.7;
-    }
-    35.72% {
-      opacity: 1;
-    }
-    36.98% {
-      opacity: 1;
-    }
-    37% {
-      opacity: 0.7;
-    }
-    37.6% {
-      opacity: 0.7;
-    }
-    37.62% {
-      opacity: 1;
-    }
-    67.98% {
-      opacity: 1;
-    }
-    68% {
-      opacity: 0.7;
-    }
-    68.4% {
-      opacity: 0.7;
-    }
-    68.42% {
-      opacity: 1;
-    }
-    95.98% {
-      opacity: 1;
-    }
-    96% {
-      opacity: 0.7;
-    }
-    96.7% {
-      opacity: 0.7;
-    }
-    96.72% {
-      opacity: 1;
-    }
-    98.98% {
-      opacity: 1;
-    }
-    99% {
-      opacity: 0.7;
-    }
-    99.6% {
-      opacity: 0.7;
-    }
-    99.62% {
-      opacity: 1;
-    }
+@-webkit-keyframes flicker-4 {
+
+  0%,
+  100% {
+    opacity: 1;
   }
-  @keyframes flicker-4 {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    31.98% {
-      opacity: 1;
-    }
-    32% {
-      opacity: 0.7;
-    }
-    32.8% {
-      opacity: 0.7;
-    }
-    32.82% {
-      opacity: 1;
-    }
-    34.98% {
-      opacity: 1;
-    }
-    35% {
-      opacity: 0.7;
-    }
-    35.7% {
-      opacity: 0.7;
-    }
-    35.72% {
-      opacity: 1;
-    }
-    36.98% {
-      opacity: 1;
-    }
-    37% {
-      opacity: 0.7;
-    }
-    37.6% {
-      opacity: 0.7;
-    }
-    37.62% {
-      opacity: 1;
-    }
-    67.98% {
-      opacity: 1;
-    }
-    68% {
-      opacity: 0.7;
-    }
-    68.4% {
-      opacity: 0.7;
-    }
-    68.42% {
-      opacity: 1;
-    }
-    95.98% {
-      opacity: 1;
-    }
-    96% {
-      opacity: 0.7;
-    }
-    96.7% {
-      opacity: 0.7;
-    }
-    96.72% {
-      opacity: 1;
-    }
-    98.98% {
-      opacity: 1;
-    }
-    99% {
-      opacity: 0.7;
-    }
-    99.6% {
-      opacity: 0.7;
-    }
-    99.62% {
-      opacity: 1;
-    }
+
+  31.98% {
+    opacity: 1;
   }
-  
+
+  32% {
+    opacity: 0.7;
+  }
+
+  32.8% {
+    opacity: 0.7;
+  }
+
+  32.82% {
+    opacity: 1;
+  }
+
+  34.98% {
+    opacity: 1;
+  }
+
+  35% {
+    opacity: 0.7;
+  }
+
+  35.7% {
+    opacity: 0.7;
+  }
+
+  35.72% {
+    opacity: 1;
+  }
+
+  36.98% {
+    opacity: 1;
+  }
+
+  37% {
+    opacity: 0.7;
+  }
+
+  37.6% {
+    opacity: 0.7;
+  }
+
+  37.62% {
+    opacity: 1;
+  }
+
+  67.98% {
+    opacity: 1;
+  }
+
+  68% {
+    opacity: 0.7;
+  }
+
+  68.4% {
+    opacity: 0.7;
+  }
+
+  68.42% {
+    opacity: 1;
+  }
+
+  95.98% {
+    opacity: 1;
+  }
+
+  96% {
+    opacity: 0.7;
+  }
+
+  96.7% {
+    opacity: 0.7;
+  }
+
+  96.72% {
+    opacity: 1;
+  }
+
+  98.98% {
+    opacity: 1;
+  }
+
+  99% {
+    opacity: 0.7;
+  }
+
+  99.6% {
+    opacity: 0.7;
+  }
+
+  99.62% {
+    opacity: 1;
+  }
+}
+
+@keyframes flicker-4 {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  31.98% {
+    opacity: 1;
+  }
+
+  32% {
+    opacity: 0.7;
+  }
+
+  32.8% {
+    opacity: 0.7;
+  }
+
+  32.82% {
+    opacity: 1;
+  }
+
+  34.98% {
+    opacity: 1;
+  }
+
+  35% {
+    opacity: 0.7;
+  }
+
+  35.7% {
+    opacity: 0.7;
+  }
+
+  35.72% {
+    opacity: 1;
+  }
+
+  36.98% {
+    opacity: 1;
+  }
+
+  37% {
+    opacity: 0.7;
+  }
+
+  37.6% {
+    opacity: 0.7;
+  }
+
+  37.62% {
+    opacity: 1;
+  }
+
+  67.98% {
+    opacity: 1;
+  }
+
+  68% {
+    opacity: 0.7;
+  }
+
+  68.4% {
+    opacity: 0.7;
+  }
+
+  68.42% {
+    opacity: 1;
+  }
+
+  95.98% {
+    opacity: 1;
+  }
+
+  96% {
+    opacity: 0.7;
+  }
+
+  96.7% {
+    opacity: 0.7;
+  }
+
+  96.72% {
+    opacity: 1;
+  }
+
+  98.98% {
+    opacity: 1;
+  }
+
+  99% {
+    opacity: 0.7;
+  }
+
+  99.6% {
+    opacity: 0.7;
+  }
+
+  99.62% {
+    opacity: 1;
+  }
+}
+
 img {
-	-webkit-animation: flicker-4 7s linear infinite both;
-	        animation: flicker-4 7s linear infinite both;
+  -webkit-animation: flicker-4 7s linear infinite both;
+  animation: flicker-4 7s linear infinite both;
 }
