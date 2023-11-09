@@ -1,7 +1,7 @@
 from mako.lookup import TemplateLookup
 from kaithem.src import devices, alerts, scheduling, messagebus, workers
 from scullery import iceflow, workers
-from kaithem.src import scullery
+import scullery
 import os
 import mako
 import time
