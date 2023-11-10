@@ -36,7 +36,7 @@ scolor={
     <div style="flex-basis: 20%; text-align: center;"><div class="decorative-image-main decorative-image" style="height: 16em; width:16em; max-width: 45vw; margin: auto;"></div></div>
 
     <section style="flex-basis: 60%; max-width: 32em;  min-width: 22em;" class="window">
-    <p>${config['front-page-banner']}</p>
+    <p class="align-center">${config['front-page-banner']}</p>
     </section>
 
     <div style="flex-basis: 20%; min-width: 12em;"></div>
@@ -82,7 +82,7 @@ ${alertsapi.render("alertapi")}
 
     <div class=" border window">
         <header>
-            <h2>Active/Unacknowledged Alerts</h2>
+            <h2>Alerts</h2>
         </header>
         <div class="scroll max-h-24rem">
 
@@ -168,7 +168,7 @@ ${alertsapi.render("alertapi")}
 
             <div id="app" class="window">
                 <header>
-                <h2> System Notifications</h2></header>
+                <h2>Notifications</h2></header>
                 <div class="max-h-12rem scroll" style="max-height: 25em; block-size: fit-content;" id="notifications">
                     <transition-group name="notificationstg" tag="div">
                             <div v-for="i in notifications.slice().reverse()" :key="i[0]">

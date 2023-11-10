@@ -17,12 +17,10 @@ if request.method=="POST":
 <div class="window paper">
 
     <form method="POST">
-    <details class="help"><summary><i class="icofont-question-circle"></i></summary>Auto-discover an NTP server for lighting control using MDNS. Note that every kaithem instance acts as an NTP server as well. Changing this with running scenes may
-        cause odd behaviour, but shouldn't cause a crash. If no NTP server is found, uses system time as normal. This is a global setting for the entire lighting subsystem.
-    </details>
-        <details class="help"><summary><i class="icofont-question-circle"></i></summary>Enter the sound folders here, as full paths, one per line.
-        </details>
-        <textarea name="folders">${'\n'.join(module.config['soundFolders'])}</textarea>
+    <h3>Sound Folders</h3>
+        <p>Enter the sound folders here, as full paths, one per line.
+        </p>
+        <textarea class="w-full h-12rem" name="folders">${'\n'.join(module.config['soundFolders'])}</textarea>
         <br>
         Note: Config entries are not made permanent till you save the setup via the console!!
         <input type="submit"></form>
