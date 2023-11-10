@@ -10,8 +10,6 @@ def ease(x: float):
     return -(math.cos(math.pi * x) - 1) / 2
 
 
-
-
 def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
@@ -42,6 +40,5 @@ NOTES_IN_OCTAVE = len(NOTES)
 def number_to_note(number: int) -> str:
     octave = number // NOTES_IN_OCTAVE
     note = NOTES[number % NOTES_IN_OCTAVE]
-
     return note + str(octave)
 

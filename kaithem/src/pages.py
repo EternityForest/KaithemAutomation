@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+import importlib
 from . import config as cfg
 from mako.lookup import TemplateLookup
 import cherrypy
@@ -27,22 +28,23 @@ from . import auth, config
 from . import directories, util
 from typing import Dict
 
-_Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(directories.htmldir, "makocomponents")])
+_Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(
+    directories.htmldir, "makocomponents")])
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])
 
 
-# 
+#
 
-_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
+_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(
+    directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
 
 env = jinja2.Environment(
     loader=_jl,
     autoescape=False
 )
 
-import importlib
 
 # These get imported by the page header template, which is also what imp0rt is for
 list = list
@@ -52,7 +54,7 @@ len = len
 
 def render_jinja_template(n, **kw):
     return _jl.load(env, n).render(imp0rt=importlib.import_module,
-                                    **kw)
+                                   **kw)
 
 
 def get_vardir_template(fn):
@@ -200,7 +202,7 @@ def require(permission, noautoreturn=False):
         # Anything guest can't do needs https
         if not cherrypy.request.scheme == "https":
             x = cherrypy.request.remote.ip
-            # Allow localhost, and Yggdrasil mesh. 
+            # Allow localhost, and Yggdrasil mesh.
             # This check is really just to be sure nobody accidentally uses HTTP,
             # But localhost and encrypted mesh are legitamate uses of HTTP.
             if not isHTTPAllowed(x):
@@ -257,7 +259,8 @@ if noSecurityMode:
 def noCrossSite():
     if cherrypy.request.headers.get("Origin", ""):
         if not cherrypy.request.base == cherrypy.request.headers.get("Origin", ""):
-            raise PermissionError("Cannot make this request from a different origin")
+            raise PermissionError(
+                "Cannot make this request from a different origin")
 
 
 def strictNoCrossSite():

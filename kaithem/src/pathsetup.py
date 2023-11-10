@@ -42,14 +42,11 @@ def setupPath(linuxpackage=None, force_local=False):
     whatHasTheSrcFolder = x
     x = os.path.join(x, 'src')
 
-
     sys.path = [os.path.join(x, 'plugins', 'ondemand')] + sys.path
     sys.path = [os.path.join(x, 'plugins', 'startup')] + sys.path
 
     startupPluginsPath = os.path.join(x, 'plugins', 'startup')
     sys.path = sys.path + [os.path.join(x, 'plugins', 'lowpriority')]
-
-
 
     # With snaps, lets not use this style of including the packages.
     # Perhaps we'll totally leave it behind later!
@@ -66,14 +63,13 @@ def setupPath(linuxpackage=None, force_local=False):
         # Low priority modules will default to using the version installed on the user's computer.
         sys.path = sys.path + [os.path.join(x, 'thirdparty', "lowpriority")]
 
-
-
     # Consider using importlib.util.module_for_loader() to handle
     # most of these details for you.
+
     def load_module(self, fullname):
         for i in sys.modules:
             if fullname.endswith(i):
                 return sys.modules[i]
-            
+
 
 setupPath(linuxpackage=os.path.abspath(__file__).startswith("/usr/bin"))
