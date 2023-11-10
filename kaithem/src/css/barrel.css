@@ -6,7 +6,7 @@
     --black-3: #545862;
     --black-4: #5C555D;
 
-    --grey-1: #e8e7e7;
+    --grey-1: #e5e4e1;
     --grey-2: #f1f1f1;
     --grey-3: #F8F9FA;
 
@@ -19,7 +19,7 @@
 
     --dark-blue: rgb(40 55 102);
 
-
+    --scrollbar-width: 14px;
 
     /*Text color*/
     --fg: var(--black-1);
@@ -87,6 +87,13 @@
     --thin-border: 1px solid var(--border-color);
 }
 
+@media screen and (max-width: 420px) {
+    :root {
+        --scrollbar-width: 5px;
+    }
+}
+
+
 
 @media (prefers-color-scheme: dark) {
     :root {
@@ -104,6 +111,8 @@
         --bg: var(--black-1);
         --box-bg: var(--black-2);
         --control-bg: var(--black-4);
+        /*Used when control is on top of something already control-bg colored*/
+        --alt-control-bg: var(--box-bg);
         --accent-color: var(--grey-2);
 
         --fg: var(--grey-3);
@@ -130,9 +139,37 @@
 
 main {
     margin: auto;
-    width: min(45em, 100vw);
-    min-width: min-content;
-    max-width: 100vw;
+    width: calc(min(45em, 100vw, 100%));
+    max-width: 100%;
+}
+
+img,
+figure,
+video,
+fieldset {
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+
+p>img,
+p>a>img {
+    float: left;
+    /*Try to center in screen.  This assumes there's always a scrollbar which isn't great*/
+    max-width: calc(100vw - calc(var(--padding) *2 + var(--scrollbar-width)));
+}
+
+dl, ul, ol{
+    margin: var(--padding);
+}
+
+figcaption {
+    margin-inline-start: var(--gap);
+}
+
+p {
+    margin: var(--padding);
 }
 
 html {
@@ -151,6 +188,7 @@ body {
     line-height: 1.6;
     font-size: 18px;
     margin: 0px;
+    padding: 0px;
     color: var(--fg);
 }
 
@@ -181,6 +219,11 @@ span {
     border-radius: 4px;
 }
 
+
+p:empty {
+    padding: var(--padding);
+}
+
 /********************Behavior****************************/
 body {
     /* Disables pull-to-refresh but allows overscroll glow effects. */
@@ -201,6 +244,7 @@ h1 *,
 h2 *,
 h3 * {
     color: var(--accent-color);
+    clear: both;
 }
 
 h3 button,
@@ -237,15 +281,6 @@ hr {
 }
 
 
-/*Headers and footers */
-header {
-    border-radius: 0px 0px inherit inherit;
-}
-
-header {
-    border-radius: inherit inherit 0px 0px;
-}
-
 
 header,
 footer {
@@ -261,15 +296,24 @@ footer {
     min-height: 1.8rem;
 }
 
+/*Headers and footers */
+footer {
+    margin-top: var(--padding);
+    border-radius: 0px 0px inherit inherit;
+    border-top: var(--border-width) solid var(--border-color);
+}
 
-header *,
-footer * {
-    --control-bg: var(--box-bg);
+header {
+    margin-bottom: var(--padding);
+    border-radius: inherit inherit 0px 0px;
+    border-bottom: var(--border-width) solid var(--border-color);
 }
 
 
-header {
-    border-bottom: var(--border-width) solid var(--border-color);
+
+header *,
+footer * {
+    --control-bg: var(--alt-control-bg);
 }
 
 
@@ -315,11 +359,6 @@ header:not(.undecorated)>.tool-bar:only-child :is(input, button) {
     color: var(--control-fg);
 }
 
-
-
-footer {
-    border-top: var(--border-width) solid var(--border-color);
-}
 
 header>.tool-bar>:is(p, h1, h2, h3, h4) {
     border: none;
@@ -497,12 +536,13 @@ table tr td:last-child {
     border-right: var(--border-width) solid var(--border-color);
 }
 
-table tr th:last-child{
+table tr th:last-child {
     border-right: var(--border-width) solid var(--border-color);
 }
+
 /* top-left border-radius */
 
-:is(table, thead:first-child, tbody:first-child):first-child>tr:first-child :first-child:is(td, th) {
+:is(table, thead, tbody:first-child)>tr:first-child :first-child:is(td, th) {
     border-top-left-radius: var(--border-radius);
     ;
 }
@@ -510,7 +550,7 @@ table tr th:last-child{
 
 /* top-right border-radius */
 
-:is(table, thead:first-child, tbody:first-child)>tr:first-child :last-child:is(td, th) {
+:is(table, thead, tbody:first-child)>tr:first-child :last-child:is(td, th) {
     border-top-right-radius: var(--border-radius);
     ;
 }
@@ -518,7 +558,7 @@ table tr th:last-child{
 
 /* bottom-left border-radius */
 
-:is(table, tbody)>tr:last-child :first-child:is(td, th) {
+:is(table:not(:has(tfoot))) tr:last-child :first-child:is(td, th) {
     border-bottom-left-radius: var(--border-radius);
     ;
 }
@@ -526,13 +566,23 @@ table tr th:last-child{
 
 /* bottom-right border-radius */
 
-:is(table, tbody)>tr:last-child :last-child:is(td, th) {
+:is(table:not(:has(tfoot))) tr:last-child :last-child:is(td, th) {
     border-bottom-right-radius: var(--border-radius);
     ;
 }
 
+tfoot tr:last-child :last-child:is(td, th) {
+    border-bottom-right-radius: var(--border-radius);
+}
+
+tfoot tr:last-child :first-child:is(td, th) {
+    border-bottom-left-radius: var(--border-radius);
+}
 
 
+tfoot tr:last-child :is(td, th) {
+    border-bottom: var(--border-width) solid var(--border-color);
+}
 
 /* Components */
 
@@ -608,11 +658,11 @@ table tr th:last-child{
     margin-block-end: var(--gap);
 }
 
-.flex-col>*:last-child {
+.flex-col>*:last-child:not(label, input, button, select, .tool-bar) {
     margin-block-end: 0px;
 }
 
-.flex-col>*:nth-last-child(2) {
+.flex-col>*:nth-last-child(2):not(label, input, button, select, .tool-bar) {
     margin-block-end: 0px;
 }
 
@@ -759,7 +809,7 @@ table tr th:last-child{
 A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-full {
     width: 430px;
-    max-width: calc(min(430px, 100vw));
+    max-width: calc(min(430px, 100%));
     flex-basis: 300px;
     flex-shrink: 1;
     flex-grow: 1;
@@ -1344,7 +1394,7 @@ dd {
     border: none;
 }
 
-.tool-bar :is(a, a.button, select, input, meter, button) {
+.tool-bar :is(a, a.button, select, input, meter, button, label) {
     margin: 0px;
     align-items: stretch;
     border-radius: 0px;
@@ -1554,13 +1604,13 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
 /*Scrollbars*/
 /* Firefox */
 * {
-    scrollbar-width: auto;
+    scrollbar-width: var(--scrollbar-width);
     scrollbar-color: var(--control-fg) var(--control-bg);
 }
 
 /* Other browsers */
 *::-webkit-scrollbar {
-    width: 14px;
+    width: var(--scrollbar-width);
     background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
 }
 
@@ -1573,18 +1623,6 @@ main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
     background-color: var(--control-fg);
     border-radius: calc(min(var(--border-radius), 5px));
     border: none;
-}
-
-
-@media screen and (max-width: 420px) {
-    * {
-        scrollbar-width: 6px;
-    }
-
-    /* Other browsers */
-    *::-webkit-scrollbar {
-        width: 6px;
-    }
 }
 
 
