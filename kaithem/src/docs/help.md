@@ -8,42 +8,12 @@ Kaithem is an automation solution based on the concept of
 events,triggers, and actions. An event is a statement that when the
 trigger occurs, the action should be executed.
 
-Kaithem is written in pure Python and will run in either 2.6+ or 3.xx
-without modification, the difference being that unicode resource and
-user names are not allowed in Kaithem on 2.xx
-
-Kaithem includes almost all dependancies(except the optional mpg123, SOX,
-mplayer, or GStreamer for sound support)
-
-In addition, Kaithem provides TLS/SSL encryption, user management, and
-serves as a basic IDE to create web pages that can interact with your
-process data. Kaithem was not designed for mission-critical control
-purposes, but aims to be fully reliable enough for basic home and
-commercial automation tasks.
-
 An important idea in Kaithem is that resources, such as events, data,
 and web pages, all exist within *modules*. This allows for a very simple
 plugin based architecture wherein device plugins can be bundled with the
 web pages to manage them. Modules can be downloades or uploaded to and
 from the server as zip files, or can be created and modified straight
 from the web interface.
-
-One **very important note** about Kaithem is that it does not save
-anything to the disk except when told to or if autosave was explicilty
-configured. In kaithem "Save" generally means to update the in-memory
-copy, wheras "Save to disk" means to actually whatever is in memory to
-the disk. To do this, go to the Save State page in Settings and follow
-the instructions. Modules configured as external can be saved
-individually.
-
-In the event that the software crashes while saving, old data will not
-be corrupted and the old version will be used. Manual recovery of the
-new version will likely be possible for at least some files.
-
-The exception to this rule is log files. Logs are maintained in ram till
-they reach a certain size(default 33,000 entries) then saved to disk.
-They are also saved when you explicitly save the entire state, or
-periodically if this is configured.
 
 <span id="modules"></span>Modules:
 ----------------------------------
@@ -338,80 +308,6 @@ This object provides useful APIs and is available in many contexts.
 ## [/docs/mdtemplate?page=kaithemobj.md] The Widgets API
 
 
-JS Library
-----------
-
-The /static/js/ directory on the webserver(Which in reality maps to the
-folder kaithem/src/js), contains a file "tablib.js".
-
-By referencing this file, you can enable a custom HTML element
-tab-panel. Basically a tab panel contains a number of tab-pane elements,
-each with a name attribute. This implements a rudimentary tabview
-interface that may be styled through the CSS(see the default
-scrapbook.css for examples.)
-
-<span id="theming"></span>Theming
----------------------------------
-
-The following conventions are used for consistancy in kaithem CSS. If
-you want your custom pages to be consistant with the rest of Kaithem's
-theming, you can use the following CSS classes in your user-created
-pages.
-
-### Section Boxes
-
-Almost everything that is not a large heading should be in a div with
-class="sectionbox" or a child therof. Kaithem backgrounds may not have
-enough contrast with text to be easily readable outside of sectionboxes.
-
-### Scrolling Boxes
-
-a div with class="scrollbox" will look like a secionbox but scroll on
-overflow. May be nested in sectionboxes.
-
-### Action Links and Buttons
-
-Any link having the primary purpose of performing an action as opposed
-to navigation should have the class "button". If the action is delete,
-it should also have the class "deletebutton", likewise for
-"createbutton", "savebutton", "editbutton", and "playbutton" These
-classes may be used on links or actual buttons.
-
-### Short help strings
-
-Short help texts in the gui should be wrapped in a p element with class
-="help"
-
-### Menu Bars
-
-Oftentimes you want to have something like the menu bars at the top of
-windows in desktop apps. An easy way to do this is to put your controls
-in a p element of class = "menubar"
-
-### Highlighting
-
-Making spans, paragraphs, etc stand out can be done by applying the
-classes "highlight", "specialentry", "error", or "warning".
-
-specialentry is used when an entry in a list is different from other
-entries, and might be used for things like \_\_methods\_\_ and admin
-users
-
-highlight is just a general purpose highlight for more important that
-usual entries
-
-error and warning should be used when a element is an error notification
-
-### Other Stuff
-
-At the moment, theming kaithem's built in widgets and things like that
-must be done by reading the the code as most of
-
-classes are not documented.
-
-However, where possible kaithem prefers semantic HTML to classes, so it
-should be relatively easy to figure out.
-
 The Internal Message Bus
 ------------------------
 
@@ -544,18 +440,3 @@ support appending compressed files yet.
 
 Log dumps will be found in kaithem/var/logs/dumps while the list of
 messagebus topics to forward will be in kaithem/var/logs
-
-<span id="email"></span>Email Alerts
-------------------------------------
-
-Kaithem can be configured to [send email](#kdotmail) through an SMTP
-server. Go to the settings page to configure this. You can also create
-mailing lists, to make mail alerting easier to manage. You create these
-on the settings page. Mailing lists are uniquely identified by a base64
-string called a UUID that ends in two equals signs. For every list you
-create, a corresponding permission will be created containing the UUID.
-You must have that permission to subscribe to a list. Every user can
-enter an email address and recieve alerts from any list he has the
-correct permissions to subscribe to.
-
-&lt;%include file="/pagefooter.html"/&gt;
