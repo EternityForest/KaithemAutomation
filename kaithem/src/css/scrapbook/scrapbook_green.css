@@ -1,7 +1,7 @@
 :root {
     color-scheme: light;
     --line-length: 95vw;
-    --control-fg: #004e00;
+    --control-fg: #374d37;
     --control-bg: #366f181f;
     --graphical-fg: #203509e3;
     --accent-color: #4b626b;
@@ -66,7 +66,6 @@ tr:hover {
 
 table {
     background-color: rgba(240, 248, 255, 0.116);
-    box-shadow: 5px 5px 12px -8px rgba(0, 0, 0, 0.97);
 }
 
 tr.header {
@@ -79,18 +78,12 @@ th {
 
 
 
-pre {
-    margin: 0.2em;
-    background-color: rgba(245, 255, 230, 0.9);
-}
-
-
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
 .window {
     background: var(--box-bg);
     backdrop-filter: blur(1px);
-    box-shadow: 2px 2px 16px -3px rgba(43, 39, 85, 0.7)
+    box-shadow: rgb(60 59 73 / 56%) 5px 5px 12px -3px;
 }
 
 

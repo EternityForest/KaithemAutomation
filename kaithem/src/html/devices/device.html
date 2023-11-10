@@ -148,7 +148,7 @@ specialKeys={
 
 <h3>Description</h3>
 
-<textarea name="description">${data.get('description','')}</textarea>
+<textarea  class="h-6rem w-full" name="description">${data.get('description','')}</textarea>
 </details>
 
 %if hasattr(obj,"device_type") and obj.device_type == "ESPHomeDevice":
@@ -164,10 +164,8 @@ specialKeys={
         <summary>
         <b>Notes</b>
         </summary>
-        <details class="help"><summary><i class="icofont-question-circle"></i></summary>The notes do not show up in the main devices list. Use it to make your devices more self-describing without
-                cluttering the overview page.
-        </details>
-        <textarea name="notes">${data.get('notes','')}</textarea>
+
+        <textarea class="h-24rem w-full" name="notes">${data.get('notes','')}</textarea>
 </details>
 
 <input type="hidden" name="type" value="${data.get('type','')}">
@@ -214,15 +212,17 @@ ${obj.readme|h}
 <b><i class="icofont-link"></i>Bindings(${len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[])) })</b>
 </summary>
 
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
+<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+        
+        <p>A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
         all of these devices are one way. The device will be updated when the tag point changes.  For the local point, 
-        use the short name.  For the external point, use the long name.
-</details>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>As per the usual tag features, the tag does not actually have to exist, and you can use an expression like
+        use the short name.  For the external point, use the long name.</p>
+<p>As per the usual tag features, the tag does not actually have to exist, and you can use an expression like
 "=tv("/some/tag/name") + 50" to create a virtual tag.
-</details>
+</p>
 
-<details><summary><i class="icofont-question-circle"></i></summary>If either the external or device tag point exists, you can leave the type field blank.</details>
+<p>If either the external or device tag point exists, you can leave the type field blank.</p>
+</details>
 
 
 <textarea name="temp.kaithem.inputbindings" id="bindings" style="display: none">
@@ -339,11 +339,7 @@ Currently this is only supported for the newer cross-framework devices.
 <summary>
 <b><i class="icofont-ui-text-chat"></i>Alerts</b>
 </summary>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>This section lists all alerts supported by the device.
-</details>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>For new device types, the alarms will likely be configured via the corresponding
-        tag point.
-</details>
+
 
 <table border="1" style="width:100%">
 <tr><th>Name</th><th>Priority</th><th>Status</th></tr>
@@ -427,9 +423,6 @@ Currently this is only supported for the newer cross-framework devices.
 </details>
 
 <b><i class="icofont-chart-flow-2"></i>Tag Points</b>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>This section lists all the tag points owned.  Controls do not work if
-        the tag has been overriden by some high priority claim.
-</details>
 
 <script>
 

@@ -42,8 +42,8 @@
     --gap: 18px;
 
     /*Borders*/
-    --border-color: color-mix(in srgb, var(--graphical-fg) 75%, rgb(0 0 0 / 0%));
-    ;
+    --border-color: color-mix(in srgb, var(--graphical-fg) 50%, rgb(0 0 0 / 0%));
+
     --border-radius: 1.2rem;
     --border-width: 1px;
 
@@ -65,10 +65,13 @@
     --control-bg: var(--grey-1);
     --control-fg: var(--graphical-fg);
 
+    --window-box-shadow: none;
+
+    /*Used for tool bars and cards*/
+    --item-box-shadow: none;
 
 
     /*Note that themes can decide 3D elements should be flat*/
-
 
     /*Below this line you probably don't need to change stuff*/
     /* fg color for warning and danger */
@@ -82,6 +85,9 @@
     --danger-fg: color-mix(in srgb, var(--danger-color) 70%, var(--fg));
 
     --control-border-color: color-mix(in srgb, var(--graphical-fg) 35%, rgb(0 0 0 / 0%));
+
+    /*Intensity of table borders is less than normal borders, to balance the density*/
+    --table-border-strength: 40%;
 
     /*Calculated helpers*/
     --thin-border: 1px solid var(--border-color);
@@ -311,6 +317,15 @@ header {
     border-bottom: var(--border-width) solid var(--border-color);
 }
 
+:is(section, article, div):not(.window, .card)> :is(header, footer) {
+    border-radius: var(--border-radius);
+    border: var(--border-width) solid var(--border-color);
+    margin-left: auto;
+    margin-right: auto;
+    width: 90%;
+    max-width: 90%;
+}
+
 
 
 header *,
@@ -421,6 +436,7 @@ a.button {
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
 }
+
 header:not(.undecorated)>:only-child :is(button, a.button, input[type='submit']),
 header:not(.undecorated)>button:only-child,
 header:not(.undecorated)>a.button:only-child,
@@ -461,7 +477,9 @@ tr {
 }
 
 td {
-    border-color: color-mix(in srgb, var(--border-color) 10%, transparent);
+    border-top: none;
+    border-right: none;
+    border-color: color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent);
     padding: var(--border-width);
     width: min-content;
     max-width: 45%;
@@ -483,18 +501,17 @@ table {
 
 /*This makes tables easier to read by coloring alternate rows differently.*/
 table tr:nth-child(odd) td {
-    background-color: color-mix(in srgb, var(--highlight-color) 3%, transparent);
+    background-color: color-mix(in srgb, var(--highlight-color) 2%, transparent);
 }
 
 table tr:nth-child(even) td {
-    background-color: color-mix(in srgb, var(--accent-color) 3%, transparent);
+    background-color: color-mix(in srgb, var(--accent-color) 2%, transparent);
 }
 
 table {
     border-collapse: separate;
     border-spacing: 0;
     border-radius: var(--border-radius);
-    ;
     border: none;
 }
 
@@ -566,7 +583,8 @@ table tr th:last-child {
 
 /* bottom-left border-radius */
 
-:is(table:not(:has(tfoot)))>tr:last-child :first-child:is(td, th) {
+:is(table:not(:has(tfoot)))>tr:last-child :first-child:is(td, th),
+:is(table:not(:has(tfoot)))>tbody>tr:last-child :first-child:is(td, th) {
     border-bottom-left-radius: var(--border-radius);
     ;
 }
@@ -574,7 +592,8 @@ table tr th:last-child {
 
 /* bottom-right border-radius */
 
-:is(table:not(:has(tfoot)))>tr:last-child :last-child:is(td, th) {
+:is(table:not(:has(tfoot)))>tr:last-child :last-child:is(td, th),
+:is(table:not(:has(tfoot)))>tbody>tr:last-child :last-child:is(td, th) {
     border-bottom-right-radius: var(--border-radius);
     ;
 }
@@ -630,6 +649,21 @@ tfoot tr:last-child :is(td, th) {
 }
 
 
+
+.window {
+    border-width: 1px;
+    box-shadow: var(--window-box-shadow);
+}
+
+
+.card,
+.tool-bar {
+    box-shadow: var(--item-box-shadow);
+}
+
+header:not(.undecorated) .tool-bar {
+    box-shadow: none;
+}
 
 /*Flex rows and cols */
 .max-content {
@@ -1023,6 +1057,17 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     background: var(--box-bg);
 }
 
+pre.poem {
+    white-space: pre-wrap;
+    font-family: inherit;
+    width: fit-content;
+}
+
+.poem p {
+    white-space: pre-wrap;
+    margin-bottom: 2.4ex;
+}
+
 .v-center {
     margin-top: auto;
     margin-bottom: auto;
@@ -1292,11 +1337,10 @@ textarea {
     box-shadow: var(--concave-item-box-shadow);
 }
 
-/* Color elements */
-
 textarea {
     background-color: var(--control-bg);
     color: var(--control-fg);
+    padding: var(--padding);
 }
 
 
@@ -1537,8 +1581,6 @@ dd {
 .tool-bar :is(a, a.button, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i) {
     border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
     margin-inline-end: 0px;
-    border-inline-start: var(--control-border-width) solid var(--control-border-color);
-
 }
 
 
