@@ -1200,7 +1200,7 @@ class MixingBoard:
                 p.addLevelDetector()
                 p.finalize(wait)
 
-                #p.connect(restore=backup)
+                p.connect(restore=backup)
                 self.pushStatus(name, "running")
             except Exception:
                 if p:

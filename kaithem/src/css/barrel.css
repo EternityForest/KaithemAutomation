@@ -48,7 +48,7 @@
     --border-width: 1px;
 
     /*Inputs, buttons, etc*/
-    --control-height: 28px;
+    --control-height: 3ex;
     --control-border-radius: 12px;
     --control-border-width: 1px;
 
@@ -160,7 +160,9 @@ p>a>img {
     max-width: calc(100vw - calc(var(--padding) *2 + var(--scrollbar-width)));
 }
 
-dl, ul, ol{
+dl,
+ul,
+ol {
     margin: var(--padding);
 }
 
@@ -293,7 +295,7 @@ footer {
     box-sizing: border-box;
     margin: 0px;
     flex-grow: 0;
-    min-height: 1.8rem;
+    min-height: var(--control-height);
 }
 
 /*Headers and footers */
@@ -355,7 +357,7 @@ header:not(.undecorated)>.tool-bar:only-child :is(input, select, button) {
 }
 
 header:not(.undecorated)>.tool-bar:only-child :is(input, button) {
-    background: var(--control-bg);
+    background: var(--alt-control-bg);
     color: var(--control-fg);
 }
 
@@ -418,6 +420,13 @@ a.button {
     color: var(--control-fg);
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
+}
+
+header:not(.undecorated) button,
+header:not(.undecorated) a.button,
+header:not(.undecorated) input[type='submit'] {
+    background: var(--alt-control-bg);
+    margin: var(--padding);
 }
 
 button {

@@ -6,6 +6,10 @@ Change Log
 - :bug: Further minor CSS work
 - :sparkles: iot_devices now comes from Pip. There is no longer any need for git-lfs
 - :bug: manually disabling a default tag alert
+- :bug: Fix mixer channels not immediately connecting
+- :bug: Bump scullery version to fix bugwhere similarly named JACK ports got confused
+
+
 
 ### 0.70.0
 This release has some big changes to the install process, but not many to the
