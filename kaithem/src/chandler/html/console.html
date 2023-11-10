@@ -78,21 +78,6 @@ ${lists}
         border-width: 1.5px;
     }
 
-    label {
-        display: inline-block;
-        border: 0px;
-        margin: 3px;
-        border-radius: 0px;
-        padding: 0px;
-        border: 0px;
-        margin: 3px 8px 3px 8px
-    }
-
-    label>input {
-        border-radius: 0px;
-        margin: 0px;
-    }
-
     .labelbox {
         display: flex;
         flex-wrap: wrap;
@@ -227,8 +212,8 @@ ${lists}
                 <button v-on:click="shortcut()">Go!</button>
             </div>
             <div class="tool-bar">
-                <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i
-                        class="icofont-trash"></i></button>
+                <input v-model="scenefilter" placeholder="Search" list="tracks" /><button v-on:click="scenefilter=''"><i class="icofont-close-line"></i>
+                </button>
                 <button v-on:click="showPages=!showPages">Compact</button>
 
             </div>
@@ -790,21 +775,7 @@ ${lists}
             <header>
                 <div style="display: flex; flex-direction: row;">
 
-                    <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
-                            <span v-if="editingScene.blend=='monitor'">Monitor</span>
-                            {{editingScene.name}}</span>
-                        <span class="success" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-                    </h3>
-
-                    <div class="tool-bar">
-                        <button v-on:click="go(scenename)"><i class="icofont-ui-play"></i>Go!</button>
-                        <button v-on:click="prevcue(scenename)"><i class="icofont-ui-previous"></i>Prev</button>
-                        <button v-on:click="nextcue(scenename)">Next<i class="icofont-ui-next"></i></button>
-                        <button class="stopbutton" v-on:click="stop(scenename)"><i
-                                class="icofont-ui-play-stop"></i>Stop</button>
-                        <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
-                    </div>
-
+           
                     <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
 
 
@@ -812,11 +783,23 @@ ${lists}
 
 
                 <div class="tool-bar">
-                    <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
-                        title="Download your scenes as a file"><i class="icofont-diskette"></i>Download Scene</a>
+                    <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
+                            <span v-if="editingScene.blend=='monitor'">Monitor</span>
+                            {{editingScene.name}}</span>
+                        <small class="success" v-if="editingScene.active"> (running)</small>
+                    
 
+                    </h3>
+               
                     <input v-model="cuefilter" placeholder="Search Cues" />
-                    <button v-on:click="cuefilter=''"><i class="icofont-trash"></i></button>
+                    <button v-on:click="cuefilter=''">x</button>
+
+                    <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
+                    title="Download your scenes as a file"><i class="icofont-download"></i>Download Scene</a>
+
+                    <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+               
+               
                 </div>
             </header>
 
@@ -824,7 +807,7 @@ ${lists}
             <div id="cuesbox">
 
                 <div style="overflow-y: auto;max-height:12em;">
-                    <table class="reflow" border="1">
+                    <table class="reflow w-full" border="1">
 
                         <thead>
                             <tr>

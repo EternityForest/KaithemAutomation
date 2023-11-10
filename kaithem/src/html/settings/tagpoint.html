@@ -191,7 +191,7 @@ else:
    Only direct literal values are supported here.  These values will not survive a reboot.
    Re-saving and this page will restart the timer, otherwise the claim wil go away at the end of the delay.
 </details>
-<table border="1">
+<table border="1" class="w-full">
     <tr>
         <td>Claim Value(Blank for no Override)</td>
         <td><input name="tempOverrideValue" value="${tag._runtimeConfigData.get('tempOverrideValue','')|h}"  style="width:100%;"></td>
@@ -227,7 +227,7 @@ else:
     if you use tv('tagName') or stv('stringTagName') in your expression, it will also re-evaluate when any of the tags you use change.  As with alarms,
     you have access to kaithem, random, math, and numpy, plus dateutil and dateutil.parser.
 </details>
-<table border="1">
+<table border="1" class="w-full">
     <tr>
         <td>Claim Name</td>
         <td><input name="overrideName" value="${configData.get('overrideName','')|h}" placeholder="config"></td>
@@ -245,7 +245,7 @@ else:
 
 
 <h3>Info</h3>
-<table border="1">
+<table border="1" class="w-full">
     <tr>
         <td>Time Since Update</td>
         <td>${((unitsofmeasure.formatTimeInterval(time.monotonic()-tag.timestamp,3)+" ago") if int(tag.timestamp) else 'never')}</td>
@@ -312,7 +312,7 @@ else:
 
 <h3>Config</h3>
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>If you do not configure a type, the tag will not exist until requested via code.</details>
-<table border="1">
+<table border="1" class="w-full">
 <tr>
     <th>Type/Create As</th>
     <th>Interval</th>
@@ -398,7 +398,7 @@ else:
     Changes will not take effect immediately if the tag has already been set.
     Default values cannot be =expressions.
 </details>
-<table border="1">
+<table border="1" class="w-full">
     <tr>
         <th>Default</th>
         <th>Current</th>
@@ -453,7 +453,7 @@ else:
 </div>
 
 
-<table border="1" style="max-width: 30em;">
+<table border="1" class="w-full">
     <tr>
         <td>Read Permissions</td>
     
@@ -493,7 +493,7 @@ else:
 
 </div>
 
-<table border=1>
+<table border=1 class="w-full">
     <tr>
         <th>Name</th>
         <th>Condition</th>
@@ -551,7 +551,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
 
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>Set the target to ram to only log in memory, but beware filling availible space.</details>
 
-<table border=1>
+<table border=1 class="w-full">
     <tr>
         <th>Interval(s)</th>
         <th>Accumulate Mode</th>
@@ -588,7 +588,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
 %if hasattr(tag, 'configLoggers'):
 <h3>Recent Log Data </h3>
 
-<table border=1>
+<table border=1 class="w-full">
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
     %if isinstance(tag,tagpoints.NumericTagPointClass):
         %for i in combineLogs({(i.accumType,i.target):i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):

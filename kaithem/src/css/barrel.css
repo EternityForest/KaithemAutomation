@@ -421,12 +421,11 @@ a.button {
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
 }
-
-header:not(.undecorated) button,
-header:not(.undecorated) a.button,
-header:not(.undecorated) input[type='submit'] {
+header:not(.undecorated)>:only-child :is(button, a.button, input[type='submit']),
+header:not(.undecorated)>button:only-child,
+header:not(.undecorated)>a.button:only-child,
+header:not(.undecorated)>input[type='submit'] {
     background: var(--alt-control-bg);
-    margin: var(--padding);
 }
 
 button {
@@ -567,7 +566,7 @@ table tr th:last-child {
 
 /* bottom-left border-radius */
 
-:is(table:not(:has(tfoot))) tr:last-child :first-child:is(td, th) {
+:is(table:not(:has(tfoot)))>tr:last-child :first-child:is(td, th) {
     border-bottom-left-radius: var(--border-radius);
     ;
 }
@@ -575,7 +574,7 @@ table tr th:last-child {
 
 /* bottom-right border-radius */
 
-:is(table:not(:has(tfoot))) tr:last-child :last-child:is(td, th) {
+:is(table:not(:has(tfoot)))>tr:last-child :last-child:is(td, th) {
     border-bottom-right-radius: var(--border-radius);
     ;
 }

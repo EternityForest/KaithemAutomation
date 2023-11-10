@@ -10,13 +10,17 @@ def size(f):
         return str(e)
 %>
 <h1>File Manager</h1>
-<div class="window paper">
+<div class="window paper padding">
 
 <a href="/settings/files/${util.url(os.path.split(dir)[0])}">Up One Level</a><br>
 
 <pre>${dir|h}</pre>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>Unpacking puts all zip contents into the current dir, without creating a new subdir 
-"foo" in the zip becomes "DIR/foo".  If a destination file exists, it is overwritten.</details>
+<details><summary>Upload</summary>
+    
+    <p>Unpacking puts all zip contents into the current dir, without creating a new subdir 
+"foo" in the zip becomes "DIR/foo".  If a destination file exists, it is overwritten.</p>
+
+
 <form enctype="multipart/form-data" action="/settings/files/${util.url(dir)}" method="POST">
 
 <p class="menubar">
@@ -33,7 +37,9 @@ Upload zip and unpack:
 <input type="submit">
 </p>
 </form>
-
+</details>
+<details>
+<summary>Video/Audio Downloader</summary>
 <div class="help">
     These options allow you to download a video file, for legal archival purposes only, from popular video sharing sites.</br>
     To download the first YouTube search result, use "ytsearch: some text"</br>
@@ -57,7 +63,9 @@ Upload zip and unpack:
     </p>
 </form>
 
-<table border=1>
+</details>
+
+<table border=1 class="w-full">
 <tr><th>Path</th><th>Size</th><th>Action</th></tr>
 %for i in sorted(os.listdir(dir)):
 

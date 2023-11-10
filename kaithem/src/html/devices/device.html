@@ -104,7 +104,7 @@ specialKeys={
 <div>
 <div style="flex-basis: 20%; text-align: center;"><div class="decorative-image-settings decorative-image" style="height: 22em; min-width: 22em; max-width: 45vw; margin: auto;"></div></div>
             
-<section style="width: 95%;" class="window">
+<section style="width: 95%;" class="window padding">
 
 %if not hasattr(obj,'_kaithem_is_subdevice'):
 <form method="post" action="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">
@@ -435,7 +435,7 @@ Currently this is only supported for the newer cross-framework devices.
 
         triggerCounters = {}
 </script>
-<div style="display: flex; flex-wrap: wrap; flex-direction: row;">
+<div class="flex-row">
 %for i in obj.tagPoints:
 %try:
 
