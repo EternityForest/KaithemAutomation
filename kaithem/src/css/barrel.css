@@ -13,7 +13,7 @@
     --red: #b92020;
     --yellow: #cea916;
     --green: rgb(0, 158, 0);
-    --teal: rgb(120, 212, 219);
+    --teal: rgb(116 174 174);
     --blue: rgb(95 111 161);
     --purple: rgb(161, 95, 141);
 
@@ -1179,28 +1179,28 @@ footer.padding {
 /*danger is the canonical*/
 
 
-.highlight {
+.highlight:not(.specificity_hack) {
     background-color: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
 }
 
-.success {
+.success:not(.specificity_hack) {
     --fg: var(--success-fg);
     --graphical-fg: var(--success-fg);
     background-color: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
     color: var(--fg);
 }
 
-.warning,
-.warn {
+.warning:not(.specificity_hack),
+.warn:not(.specificity_hack) {
     --fg: var(--warning-fg);
     --graphical-fg: var(--warning-fg);
     background-color: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
     color: var(--fg);
 }
 
-.error,
-.danger,
-.bad {
+.error:not(.specificity_hack),
+.danger:not(.specificity_hack),
+.bad:not(.specificity_hack) {
     --fg: var(--danger-fg);
     --graphical-fg: var(--danger-fg);
     background-color: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
