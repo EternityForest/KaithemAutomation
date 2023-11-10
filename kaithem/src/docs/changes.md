@@ -8,7 +8,7 @@ Change Log
 - :bug: manually disabling a default tag alert
 - :bug: Fix mixer channels not immediately connecting
 - :bug: Bump scullery version to fix bugwhere similarly named JACK ports got confused
-
+- :bug: Fix missing snake_compat.py
 
 
 ### 0.70.0
