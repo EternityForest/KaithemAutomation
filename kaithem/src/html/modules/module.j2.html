@@ -130,17 +130,7 @@
                 {% if module[i]['trigger'].startswith("!time") and module[i].get('enable',"True") %}
                 <br>
                 <b>Next Run:</b>
-                <%
-                            xyz= get_time((name,i))
-                            unitsofmeasure.strftime()
-                            if xyz ==0:
-                            xyz= "<b>Not Scheduled to Run</b>"
-                            elif xyz == -1:
-                            xyz="Error getting next run time, try refreshing page again."
-                            else:
-                            xyz =unitsofmeasure.strftime(xyz)
-                            %>
-                <code>{{ xyz }}</code>
+                <code>{{ get_next_run(name,i) }}</code>
                 </p>
             </dd>
             {% endif %}

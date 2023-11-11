@@ -7,9 +7,9 @@ from kaithem.src.util import url
 <section class="window paper">
 <p class ="help">The new event will be empty and immediately loaded.</p>
 <hr>
-<form action="/modules/module/${url(module)}/addresourcetarget/event/${url(path)}" method="POST" name="new">
-<h3>Name</h3><input required="required" name="name" class="name" type="text"></input><br>
-<br><input value="Create Event" type="submit">
+<form class="flex-col align-center" action="/modules/module/${url(module)}/addresourcetarget/event/${url(path)}" method="POST" name="new">
+<label>Name<input required="required" name="name" class="name" type="text"></input></label>
+<input value="Create Event" type="submit">
 </form>
 </section>
 

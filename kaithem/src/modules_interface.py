@@ -59,6 +59,20 @@ def get_time(ev):
     except Exception as e:
         return -1
 
+
+def get_next_run(name, i):
+    xyz= get_time((name,i))
+    unitsofmeasure.strftime()
+    if xyz ==0:
+        xyz= "<b>Not Scheduled to Run</b>"
+    elif xyz == -1:
+        xyz="Error getting next run time, try refreshing page again."
+    else:
+        xyz =unitsofmeasure.strftime(xyz)
+
+    return xyz
+
+
 # n is the module name
 # f is the folder we are checking if it is in, including the module name
 # r is the path of the resource
@@ -129,6 +143,7 @@ module_page_context = {
     "getDesc": getDesc,
     "in_folder": in_folder,
     "get_time": get_time,
+    "get_next_run": get_next_run,
     "urlForPath": urlForPath,
     "sorted_module_path_list": sorted_module_path_list,
     "get_f_size": get_f_size,

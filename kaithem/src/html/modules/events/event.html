@@ -56,7 +56,7 @@ or go to the working copy and save that to delete this draft.</p>
 %endif
 
 
-<section class="page" style="min-width: 80%;">
+<section class="window" style="min-width: 80%;">
     <p class="pathnav">Path:
         <%
         temp_p = ""
@@ -184,7 +184,7 @@ ${e}
 </details>
 
 
-<input class="pythoncode event-trigger-edit-box" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"
+<input class="pythoncode w-full" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"
 %if not pages.canUserDoThis("/admin/modules.edit"):
             disabled=1\
 %endif
