@@ -1,0 +1,692 @@
+{% extends "pagetemplate.j2.html" %}
+
+{% set traceback = imp0rt('traceback') %}
+{% set json = imp0rt('json') %}
+{% set os = imp0rt('os') %}
+{% set unitsofmeasure = imp0rt('kaithem.src.unitsofmeasure') %}
+{% set tagpoints = imp0rt('kaithem.src.tagpoints') %}
+{% set modules_state = imp0rt('kaithem.src.modules_state') %}
+{% set auth = imp0rt('kaithem.src.auth') %}
+{% set pages = imp0rt('kaithem.src.pages') %}
+{% set devices = imp0rt('kaithem.src.devices') %}
+
+{% block body %}
+<style>
+    .inputtable {
+        width: 100%;
+    }
+
+    .tagbox {
+        text-align: center;
+    }
+</style>
+<script type="text/javascript" src="/static/widget.js"></script>
+<script type="text/javascript" src="/static/js/mpegts.js"></script>
+
+<link href="/static/js/croppr/croppr.css" rel="stylesheet" />
+<script type="text/javascript" src="/static/js/croppr/croppr.js"></script>
+
+
+<script type="text/javascript" src="/static/js/jquery3.js"></script>
+<script type="text/javascript" src="/static/js/editTable/editTable.min.js"></script>
+<script src="/static/showdown.min.js"></script>
+
+
+
+<script type="text/javascript" src="/static/js/evm/jsfeat.js"></script>
+<script type="text/javascript" src="/static/js/evm/compat.js"></script>
+<script type="text/javascript" src="/static/js/evm/color.js"></script>
+
+<link rel="stylesheet" href="/static/js/editTable/editTable.min.css">
+
+<datalist id="k_bindtype">
+    <option>auto</option>
+    <option>numeric</option>
+    <option>string</option>
+    <option value="object">JSON-like</option>
+</datalist>
+
+<datalist id="k_tags">
+    <option value="=1+2*5">Simple expression</option>
+    <option value="=tv('/exampleNumericTag')+5">Expression with tag val</option>
+    <option value="=stv('/exampleStringTag')">Expression with string tag val</option>
+
+    {% for i in tagpoints.allTagsAtomic %}
+    <option>{{ i| escape }}</option>
+    {% endfor %}
+</datalist>
+
+<datalist id="k_tags_writable">
+    {% for i in tagpoints.allTagsAtomic %}
+    {% if tagpoints.allTagsAtomic[i]().writable %}
+    <option>{{ i| escape }}</option>
+    {% endif %}
+    {% endfor %}
+</datalist>
+
+
+<datalist id="k_tlocal">
+    {% for i in obj.tagPoints %}
+    <option>{{ i| escape }}</option>
+    {% endfor %}
+</datalist>
+
+<datalist id="k_perms">
+    <option>/users/devices.write</option>
+    <option>/users/devices.read</option>
+
+    {% for i in pages.sorted(auth.Permissions.keys()) %}
+    <option>{{ i| escape }}</option>
+    {% endfor %}
+</datalist>
+
+<h1 style="text-align: center;">Device Inspector: {{ obj.title }}
+</h1>
+
+
+<main>
+    <div style="flex-basis: 20%; text-align: center;">
+        <div class="decorative-image-settings decorative-image"
+            style="height: 22em; min-width: 22em; max-width: 45vw; margin: auto;"></div>
+    </div>
+
+    <section style="width: 95%;" class="window padding">
+
+        {% if not hasattr(obj,'_kaithem_is_subdevice') %}
+        <form method="post" action="/devices/discoveryStep?type={{ url(data.get('type','')) }}&devname={{ url(name) }}">
+            <button type="submit">Search for auto-setup configurations</button>
+        </form>
+        {% endif %}
+        <form method="POST" action="/devices/updateDevice/{{ url(name) }}">
+
+            {% if obj.parentModule %}
+            <h2>Module/Resource</h2>
+            <p>This device is part of a module, rather than the global devices list.</p>
+            <input name="module" disabled value="{{ obj.parentModule| escape }}"><input name="module" disabled
+                value="{{ obj.parentResource| escape }}">
+            {% endif %}
+
+            <details>
+                <summary>
+                    <b>Basic</b>
+                </summary>
+                <table border="1" style="width:100%">
+
+                    <tr>
+                        <td>Device Type</td>
+                        <td>{{ data.get('type','')| escape }}</td>
+                    </tr>
+                    <tr>
+                        <td>Device Name</td>
+                        <td><input name="name" value="{{ name| escape }}" {% if hasattr(obj,"_kaithem_is_subdevice") %}
+                                disabled {% endif %}></td>
+                    </tr>
+
+                    <tr>
+                        <td>Device Title(Blank=use name)</td>
+                        <td><input name="title" value="{{ data.get('title','')| escape }}"></td>
+                    </tr>
+
+                </table>
+
+                <h3>Description</h3>
+
+                <textarea class="h-6rem w-full" name="description">{{ data.get('description','') }}</textarea>
+            </details>
+
+            {% if hasattr(obj,"device_type") and obj.device_type == "ESPHomeDevice" %}
+            <details>
+                <summary><b>ESPHome Web UI</b></summary>
+                Only works if this page is loaded over plain HTTP, due to browser restrictions.
+                Use the <a href="http://{{ data.get('device.hostname','') }}">Direct link</a> if the
+                embedded viewer fails.
+                <iframe src="http://{{ data.get('device.hostname','') }}" class="embedpage"
+                    style="width: 98%; height: 30em;"></iframe>
+            </details>
+            {% endif %}
+
+            <details>
+                <summary>
+                    <b>Notes</b>
+                </summary>
+
+                <textarea class="h-24rem w-full" name="notes">{{ data.get('notes','') }}</textarea>
+            </details>
+
+            <input type="hidden" name="type" value="{{ data.get('type','') }}">
+
+            <details>
+                <summary>
+                    <b><i class="icofont-question-circle"></i>Help</b>
+                </summary>
+                {% if hasattr(obj,'description') and obj.description %}
+
+                <p id="desc">{{ pages.str(obj.description)[:8192]| escape }}</p>
+
+                <script>
+                    showdown.setFlavor('github');
+                    var c = document.getElementById("desc").innerHTML;
+                    var converter = new showdown.Converter();
+                    document.getElementById("desc").innerHTML = converter.makeHtml(c);
+                </script>
+
+                {% endif %}
+
+                {% if hasattr(obj,'readme') and obj.readme %}
+                <h3>Readme</h3>
+
+                <div class="max-h-12rem scroll border" id='readme'>
+                    {{ obj.readme| escape }}
+                </div>
+
+                <script>
+                    showdown.setFlavor('github');
+                    var c = document.getElementById("readme").innerHTML;
+                    var converter = new showdown.Converter();
+                    document.getElementById("readme").innerHTML = converter.makeHtml(c);
+                </script>
+                {% endif %}
+            </details>
+
+
+            <title>{{ name| escape }}</title>
+
+            <details>
+
+                <summary>
+                    <b><i
+                            class="icofont-link"></i>Bindings({{ len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[]))  }})</b>
+                </summary>
+
+                <details class="help">
+                    <summary><i class="icofont-question-circle"></i></summary>
+
+                    <p>A binding lets you make a data point of a device mirror an external point.
+                        Following a publish subscribe model,
+                        all of these devices are one way. The device will be updated when the
+                        tag point changes. For the local point,
+                        use the short name. For the external point, use the long name.</p>
+                    <p>As per the usual tag features, the tag does not actually have to exist, and
+                        you can use an expression like
+                        "=tv("/some/tag/name") + 50" to create a virtual tag.
+                    </p>
+
+                    <p>If either the external or device tag point exists, you can leave the type
+                        field blank.</p>
+                </details>
+
+
+                <textarea name="temp.kaithem.inputbindings" id="bindings" style="display: none">
+{{ json.dumps(data.get('kaithem.input_bindings',[])) or '[]'| escape }}
+</textarea>
+
+
+
+                <h2><i class="icofont-link"></i>Output Bindings</h2>
+
+                <details class="help">
+                    <summary><i class="icofont-question-circle"></i></summary>An output binding is
+                    just a command that the destination tag should change whenever the source tag
+                    does.
+                    The source tag is one that is owned by this device.
+                </details>
+
+                <textarea name="temp.kaithem.outputbindings" id="bindings2" style="display: none">
+{{ json.dumps(data.get('kaithem.output_bindings',[])) or '[]'| escape }}
+</textarea>
+
+
+            </details>
+
+
+            <details>
+
+                <summary>
+                    <b><i class="icofont-ui-settings"></i>Settings</b>
+                </summary>
+
+
+                {% if manageForm.strip() %}
+                {{ manageForm }}
+                {% else %}
+                <table style="width:100%">
+                    {% for i in devices.getshownkeys(obj) %}
+                    <tr>
+                        {% if i.startswith('device.') %}
+                        <td style="max-width: 30%;">
+                            {% if obj.config_properties.get(i,{}).get("description",'') %}
+                            <details>
+                                <summary><i class="icofont-question-circle"></i><b>{{ i[7:]| escape }}</b>
+                                </summary>
+                                {{ obj.config_properties.get(i,{}).get("description",'')|escape}}
+                            </details>
+                            {% else %}
+                            <b>{{ i[7:]| escape }}</b>
+                            {% endif %}
+                        </td>
+                        {% else %}
+                        <td> <b>{{ i| escape }}</b></td>
+                        {% endif %}
+
+
+                        <td>
+                            {% if obj.config_properties.get(i,{}).get("type") =='bool' %}
+
+                            <select name="{{ i| escape }}">
+                                <option>False/Off</option>
+                                <option
+                                    {{ 'selected' if obj.config[i].lower().strip() in ('true','yes','on','enable','active','enabled' ) else ''  }}
+                                    value="true">True/On</option>
+                            </select>
+                            {% else %}
+                            {% if obj.config_properties.get(i,{}).get("secret",False) %}
+                            <input name="{{ i| escape }}" id="property_{{ i| escape }}"
+                                value="{{ obj.config[i]| escape }}" type="password" onfocus="this.type='text'"
+                                onblur="this.type='password'">
+                            {% else %}
+                            <input name="{{ i| escape }}" id="property_{{ i| escape }}"
+                                value="{{ obj.config[i]| escape }}" style="width: 100%;">
+                            {% endif %}
+
+                            {% endif %}
+
+                            {% if obj.config_properties.get(i,{}).get("type") =='local_fs_dir' %}
+
+                            <a class="button" href="/settings/files/{{ url(os.path.expanduser(obj.config[i])) }}"><i
+                                    class="icofont-ui-folder"></i>Browse
+                                {{ os.path.expanduser(obj.config[i])| escape }}</a>
+                            {% endif %}
+
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+
+
+                <h3>Permissions</h3>
+                <div>
+                    <details class="help">
+                        <summary><i class="icofont-question-circle"></i></summary>
+                        Set a default for all tag points exposed by this device. You can further
+                        refine this in the tag points manager.
+                        It is preferable to do things at the device-level, as devices can be
+                        bundle into modules, and you don't have to handle
+                        settings individually for every tag. Leave blank to disable. These are
+                        used to make data points show up in the
+                    </details>
+
+                    <details class="help">
+                        <summary><i class="icofont-question-circle"></i></summary>
+                        Currently this is only supported for the newer cross-framework devices.
+                    </details>
+
+                    <div class="tool-bar">
+                        <label>Read:<input name="kaithem.read_perms" list="k_perms"
+                                value="{{ data.get('kaithem.read_perms','')| escape }}" placeholder="__never__"></label>
+                        <label>Write:<input name="kaithem.write_perms" list="k_perms"
+                                value="{{ data.get('kaithem.write_perms','')| escape }}"
+                                placeholder="__never__"></label>
+                    </div>
+
+                </div>
+
+            </details>
+
+
+            {% if obj.alerts %}
+
+            <details>
+                <summary>
+                    <b><i class="icofont-ui-text-chat"></i>Alerts</b>
+                </summary>
+
+
+                <table border="1" style="width:100%">
+                    <tr>
+                        <th>Name</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                    </tr>
+
+                    {% for i in obj.alerts %}
+                    <tr>
+                        <td>{{ i| escape }}</td>
+                        <td>
+                            {% if hasattr(obj,'_noSetAlarmPriority') %}
+                            {{ obj.alerts[i].priority }}
+                            {% else %}
+                            <select name="alerts.{{ i }}.priority">
+                                <option value="debug" {{ "selected" if obj.alerts[i].priority=="debug" else "" }}>
+                                    Debug</option>
+                                <option value="info" {{ "selected" if obj.alerts[i].priority=="info" else "" }}>
+                                    Info</option>
+                                <option value="warning" {{ "selected" if obj.alerts[i].priority=="warning" else "" }}>
+                                    Warning</option>
+                                <option value="error" {{ "selected" if obj.alerts[i].priority=="error" else "" }}>
+                                    Error</option>
+                                <option value="critical" {{ "selected" if obj.alerts[i].priority=="critical" else "" }}>
+                                    Critical</option>
+                            </select>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if obj.alerts[i].sm.state=='normal' %}
+                            <i class="icofont-ui-check"></i>
+                            {% else %}
+                            <i class="icofont-warning"></i>
+                            {% endif %}
+
+                            {{ obj.alerts[i].sm.state }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+                {% endif %}
+            </details>
+
+            {% if hasattr( obj,"text_config_files") %}
+            {% for i in obj.text_config_files %}
+            <details>
+                <summary>
+                    <b><i class="icofont-file-alt"></i>{{ i| escape }}</b>
+                </summary>
+                <textarea class="h-24rem w-full"
+                    name=" filedata.{{ i }}">{{ read(obj.get_config_folder()+"/"+i)| escape }}</textarea>
+            </details>
+            {% endfor %}
+            {% endif %}
+
+            {% if obj.get_config_folder(create=False) %}
+            <details>
+                <summary>
+                    <b><i class="icofont-file-alt"></i>Config Folder</b>
+                </summary>
+                <a class="button" href="/settings/files/{{ url(obj.get_config_folder()) }}"><i
+                        class="icofont-ui-folder"></i>Browse</a>
+            </details>
+            {% endif %}
+
+
+            {% if hasattr(obj,'metadata') and obj.metadata %}
+            <details>
+                <summary>
+                    <b><i class="icofont-ui-text-chat"></i>Metadata</b>
+                </summary>
+                <table border="1" style="width:100%">
+                    <tr>
+                        <th>Name</th>
+                        <th>Value</th>
+                    </tr>
+
+                    {% for i in obj.metadata %}
+                    <tr>
+                        <td>
+                            {{ i| escape }}
+                        </td>
+                        <td>
+                            {{ obj.metadata[i]| escape }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+                {% endif %}
+            </details>
+
+            <b><i class="icofont-chart-flow-2"></i>Tag Points</b>
+
+            <script>
+
+                triggerCounters = {}
+            </script>
+            <div class="flex-row">
+                {% for i in obj.tagPoints %}
+                {{devices.render_device_tag(obj,i) | safe}}
+                {% endfor %}
+            </div>
+
+
+            <h2>Messages</h2>
+            {{ obj.logWindow.render() }}
+
+
+
+            <hr>
+            <input type="submit" value="Save settings">
+
+        </form>
+
+
+
+    </section>
+
+
+
+
+    <div style="flex-basis: 20%; min-width: 12em;"></div>
+</main>
+
+{{ obj._admin_ws_channel.render("_admin_ws_channel") }}
+{{ obj._generic_ws_channel.render("_generic_ws_channel") }}
+<script>
+
+    fakesOn = false;
+    function setFake(k, v) {
+        if (!fakesOn) {
+            fakesOn = confirm("Enable faking input values?");
+        }
+        if (fakesOn) {
+            _generic_ws_channel.send(['fake', k, v])
+        }
+
+    }
+
+    function send_ui_message(m) {
+        _admin_ws_channel.send(m)
+    }
+
+    function set_ui_message_handler(f) {
+        _admin_ws_channel.upd = f
+    }
+
+    var mytable = $('#bindings').editTable({
+        data: [['']],       // Fill the table with a js array (this is overridden by the textarea content if not empty)
+        tableClass: 'inputtable',   // Table class, for styling
+        jsonData: false,    // Fill the table with json data (this will override data property)
+        headerCols: ['Device Point(dest)', 'Type', 'External Point(source)'],      // Fix columns number and names (array of column names)
+        maxRows: 999,       // Max number of rows which can be added
+        first_row: true,    // First row should be highlighted?
+        row_template: false,    // An array of column types set in field_templates
+        field_templates: {
+            'tag': {
+                html: '<input list="k_tags" />',
+                getValue: function (input) {
+                    return $(input).val();
+                },
+                setValue: function (input, value) {
+                    //I hate ths
+                    return $('<input list="k_tags" value="' + value + '"/>')
+                }
+            },
+            'local': {
+                html: '<input list="k_tlocal"/>',
+                getValue: function (input) {
+                    return $(input).val()
+                },
+                setValue: function (input, value) {
+                    return $('<input list="k_tlocal" value="' + value + '"/>')
+                }
+            },
+            'btype': {
+                html: '<input placeholder="auto" list="k_bindtype"/>',
+                getValue: function (input) {
+                    return $(input).val()
+                },
+                setValue: function (input, value) {
+                    return $('<input list="k_bindtype" value="' + value + '"style="width:6em"/>')
+                }
+            }
+        },
+        row_template: ['local', 'btype', 'tag'],
+
+        // Validate fields
+        validate_field: function (col_id, value, col_type, $element) {
+            return true;
+        }
+    });
+
+    mytable.loadData({{ json.dumps(data.get('kaithem.input_bindings', []) + [['', '', '']]) }})
+
+
+    var mytable2 = $('#bindings2').editTable({
+        data: [['', '']],       // Fill the table with a js array (this is overridden by the textarea content if not empty)
+        tableClass: 'inputtable',   // Table class, for styling
+        jsonData: false,    // Fill the table with json data (this will override data property)
+        headerCols: ['Device Point(Source)', 'External Point(dest)'],      // Fix columns number and names (array of column names)
+        maxRows: 999,       // Max number of rows which can be added
+        first_row: true,    // First row should be highlighted?
+        row_template: false,    // An array of column types set in field_templates
+        field_templates: {
+            'tag': {
+                html: '<input list="k_tags_writable" />',
+                getValue: function (input) {
+                    return $(input).val();
+                },
+                setValue: function (input, value) {
+                    //I hate ths
+                    return $('<input list="k_tags" value="' + value + '"/>')
+                }
+            },
+            'local': {
+                html: '<input list="k_tlocal"/>',
+                getValue: function (input) {
+                    return $(input).val()
+                },
+                setValue: function (input, value) {
+                    return $('<input list="k_tlocal" value="' + value + '"/>')
+                }
+            }
+        },
+        row_template: ['local', 'tag'],
+
+        // Validate fields
+        validate_field: function (col_id, value, col_type, $element) {
+            return true;
+        }
+    });
+
+    mytable2.loadData({{ json.dumps(data.get('kaithem.output_bindings', []) + [['', '']]) }})
+
+
+</script>
+
+
+
+
+<script type="text/javascript">
+    // lets do some fun
+
+
+    function startEVM(video, canvas) {
+
+        canvas.style.display = "block"
+
+        var alpha = 10,
+            lambda_c = 16,
+            r1 = 0.4,
+            r2 = 0.05,
+            chromAttenuation = 1;
+
+        var exaggeration_factor = 2;
+
+        try {
+            var attempts = 0;
+            var readyListener = function (event) {
+                findVideoSize();
+            };
+            var findVideoSize = function () {
+                // demo_app(width, height);
+                var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
+
+                var w = Math.floor(video.videoWidth * s >> 3) << 3,
+                    h = Math.floor(video.videoHeight * s >> 3) << 3;
+                // video.style.width = w + 'px'
+                // demo_app(Math.max(480, w), Math.max(480, h))
+                // demo_app(640, 480)
+                demo_app(Math.max(480, w), h)
+                canvas.width = w
+                canvas.height = h
+
+                compatibility.requestAnimationFrame(tick);
+            };
+
+            setTimeout(readyListener, 300);
+        } catch (error) {
+            console.log(error)
+        }
+
+        var current_frame = 0;
+        var frames_processed = 0;
+
+        function tick() {
+            compatibility.requestAnimationFrame(tick);
+            // stat.new_frame();
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                // ctx.drawImage(video, 0, 0, 640, 480);
+                ctx.fillRect(0, 0, 640, 480)
+                var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
+                // var s = 0.01 // call this number for fun times
+                ctx.drawImage(video, 0, 0, video.videoWidth * s, video.videoHeight * s)
+
+                evm()
+                if (frames_processed == 0) {
+                    lowpass1.iirFilter(img_pyr, 1);
+                    lowpass2.iirFilter(img_pyr, 1);
+                }
+                frames_processed++
+
+            }
+        }
+    }
+</script>
+
+<script src="/static/js/src-min-noconflict/ace.js"></script>
+<script src="/static/js/jquery3.js"></script>
+
+<script>
+    // Hook up ACE editor to all textareas with data-editor attribute
+    $(function () {
+        $('textarea[data-editor]').each(function () {
+            var textarea = $(this);
+            var mode = textarea.data('editor');
+            var editDiv = $('<div>', {
+                position: 'absolute',
+                width: textarea.width(),
+                height: textarea.height(),
+                'class': textarea.attr('class')
+            }).insertBefore(textarea);
+            textarea.css('display', 'none');
+            var editor = ace.edit(editDiv[0]);
+            editor.renderer.setShowGutter(true);
+            editor.getSession().setValue(textarea.val());
+            editor.getSession().setMode("ace/mode/" + mode);
+            // editor.setTheme("ace/theme/idle_fingers");
+            editor.setOptions({
+                fontFamily: "Hack",
+                fontSize: "12pt"
+            });
+            editor.getSession().on('change', function () {
+                wasChanged = true;
+            })
+            // copy back to textarea on form submit...
+            textarea.closest('form').submit(function () {
+                textarea.val(editor.getSession().getValue());
+            })
+        });
+    });
+</script>
+
+{% endblock %}

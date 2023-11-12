@@ -36,9 +36,9 @@ _varLookup = TemplateLookup(directories=[directories.vardir])
 
 
 #
-
 _jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(
     directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
+
 
 env = jinja2.Environment(
     loader=_jl,
@@ -46,14 +46,20 @@ env = jinja2.Environment(
 )
 
 
+
+env.globals['len'] = len
+env.globals['str'] = str
+env.globals['hasattr'] = hasattr
+
 # These get imported by the page header template, which is also what imp0rt is for
 list = list
 sorted = sorted
 len = len
-
+hasattr = hasattr
+str = str
 
 def render_jinja_template(n, **kw):
-    return _jl.load(env, n).render(imp0rt=importlib.import_module,
+    return _jl.load(env, n, env.globals).render(imp0rt=importlib.import_module,
                                    **kw)
 
 

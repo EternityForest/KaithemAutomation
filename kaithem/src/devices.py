@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+import html
+from . import modules_state
+from .modules_state import additionalTypes
 import json
 import colorzero
 import weakref
@@ -42,9 +45,6 @@ import iot_devices.device
 log = logging.getLogger("system.devices")
 
 
-from .modules_state import additionalTypes
-from . import modules_state
-
 remote_devices: Dict[str, object] = {}
 remote_devices_atomic = {}
 
@@ -56,6 +56,9 @@ driversLocation = os.path.join(directories.vardir, "devicedrivers")
 
 
 recent_scanned_tags = {}
+
+# Used by device tag j2 template
+callable = callable
 
 
 def log_scanned_tag(v: str, *args):
@@ -191,7 +194,6 @@ def getByDescriptor(d):
     return x
 
 
-import html
 esc = html.escape
 
 
@@ -1305,8 +1307,51 @@ def devStatString(d):
 
     except Exception as e:
         s.append(str(e))
-        
+
     return ''.join(['<div>' + i + "</div>" for i in s])
+
+
+def url(u):
+    return urllib.parse.quote(u, safe='')
+
+
+def read(f):
+    try:
+        with open(f) as fd:
+            return fd.read()
+    except Exception:
+        return ""
+
+
+specialKeys = {
+
+    'subclass',
+    'name',
+    'title',
+    'type',
+    'is_subdevice',
+    'description',
+    'notes'
+}
+
+
+def getshownkeys(obj: Device):
+    return sorted([i for i in obj.config.keys() if i not in specialKeys and not i.startswith("kaithem.")])
+
+
+device_page_env = {
+    "specialKeys": specialKeys,
+    "read": read,
+    "url": url,
+    "hasattr": hasattr
+}
+
+
+def render_device_tag(obj, tag):
+    try:
+        return pages.render_jinja_template("devices/device_tag_component.j2.html", i=tag, obj=obj)
+    except Exception as e:
+        return f"<article>{e}</article>"
 
 
 class WebDevices():
@@ -1351,8 +1396,17 @@ class WebDevices():
             # I think stored data is enough, this is just defensive
             merged.update(remote_devices[name].config)
 
-            return pages.get_template("devices/device.html").render(
-                data=merged, obj=obj, name=name, args=args, kwargs=kwargs, title='' if obj.title == obj.name else obj.title)
+            mf = ''
+            # LEGACY kaithem specific stuff
+            if hasattr(obj, "getManagementForm"):
+                try:
+                    mf = obj.getManagementForm()
+                except Exception:
+                    logging.exception("?")
+
+            return pages.render_jinja_template("devices/device.j2.html",
+                                               data=merged, obj=obj, manageForm=mf,
+                                               name=name, args=args, kwargs=kwargs, title='' if obj.title == obj.name else obj.title, **device_page_env)
         if not args:
             raise cherrypy.HTTPRedirect(cherrypy.url() + "/manage")
 

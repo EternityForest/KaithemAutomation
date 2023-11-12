@@ -7,19 +7,19 @@ with open(sys.argv[1]) as f:
 
 def msub(tok: str):
     def sub(m: re.Match) -> str:
-        return "{% " + tok +" "+ m[1] + " %}"
+        return m[1] + "{% " + tok +" "+ m[2] + " %}"
     return sub
 
 
 def esub(tok: str):
     def sub(m: re.Match) -> str:
-        return "{% end" + tok + " %}"
+        return m[1] + "{% end" + tok + " %}"
     return sub
 
 
 def rep(tok, d):
-    d = re.sub(r"%"+ tok +r"\s(.+): *$", msub(tok), d, flags=re.MULTILINE)
-    d = re.sub(r"%end"+ tok +r"$", esub(tok), d, flags=re.MULTILINE)
+    d = re.sub(r"( *)%"+ tok +r"\s(.+): *$", msub(tok), d, flags=re.MULTILINE)
+    d = re.sub(r"( *)%end"+ tok +r"$", esub(tok), d, flags=re.MULTILINE)
     return d
 
 tokens = ['if', 'for']
@@ -27,7 +27,8 @@ tokens = ['if', 'for']
 for i in tokens:
     d= rep(i, d)
 
-d = re.sub(r"%else: *$", "{% else %}", d, flags=re.MULTILINE)
+d = re.sub(r" *%else: *$", "{% else %}", d, flags=re.MULTILINE)
+d = re.sub(r" *%elif: *$", "{% elif %}", d, flags=re.MULTILINE)
 
 def f(m):
     d = m[1]
