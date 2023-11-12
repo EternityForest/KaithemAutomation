@@ -773,15 +773,8 @@ ${lists}
 
         <section class="window paper margin" v-if="editingScene && cuemeta[editingScene.cue]">
             <header>
-                <div style="display: flex; flex-direction: row;">
 
-           
-                    <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
-
-
-                </div>
-
-
+                <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
                 <div class="tool-bar">
                     <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
                             <span v-if="editingScene.blend=='monitor'">Monitor</span>
@@ -832,7 +825,7 @@ ${lists}
                                     <span title="Cue number, double click to change." style="width:6em"
                                         v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
 
-                                    <b>{{i[1].name}}</b>
+                                    {{i[1].name}}
 
                                     <i v-if="cuemeta[editingScene.cue].name==i[1].name" class="icofont-ui-play nomargin"></i>
                                     <span v-if="selectedCues[scenename]==i[1].name"><i

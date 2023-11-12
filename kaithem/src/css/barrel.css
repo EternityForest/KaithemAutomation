@@ -362,21 +362,20 @@ header>:is(h1, h2, h3, h4):has(button:only-child) {
 header:not(.undecorated) {
     --convex-item-bg: var(--control-bg);
 
-    & :only-child,
+    &>:only-child,
     &>*:only-child>:only-child {
         border: none;
     }
 
-    &>:only-child,
-    &>*:only-child,
-    &>*:only-child>:only-child {
+    &>*:only-child:not(:has(:first-child)),
+    &>*:only-child:has(:only-child) {
         margin-top: 0px;
         width: 100%;
         flex-grow: 1;
         box-sizing: border-box;
         margin: 0px;
 
-        &:not(.highlight, .danger, .warning, .success) {
+        &:not(.highlight, .danger, .warning, .success, .tool-bar) {
             --control-bg: none;
             --convex-item-bg: none;
         }
@@ -401,6 +400,7 @@ header:not(.undecorated) {
 
         & :is(input, button) {
             color: var(--control-fg);
+            flex-grow: 1;
         }
 
     }
@@ -553,7 +553,7 @@ td select {
 
 th {
     width: max-content;
-    color: var(--accent-color);
+    color: var(--control-fg);
 }
 
 table tr th,
