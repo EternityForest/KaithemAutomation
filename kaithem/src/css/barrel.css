@@ -35,7 +35,14 @@
     --highlight-opacity: 25%;
 
     /*typography*/
-    --main-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+    --sans-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --serif-font: Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+    --mono-font: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+
+    --main-font: var(--sans-font);
+    --font-size: 18px;
+    --heading-font: var(--main-font);
 
     /*Spacing*/
     --padding: 12px;
@@ -80,6 +87,8 @@
     --warning-color: var(--yellow);
     --danger-color: var(--red);
 
+    --hover-color: color-mix(in srgb, var(--highlight-color) 30%, transparent);
+
     --success-fg: color-mix(in srgb, var(--success-color) 60%, var(--fg));
     --warning-fg: color-mix(in srgb, var(--warning-color) 40%, var(--fg));
     --danger-fg: color-mix(in srgb, var(--danger-color) 70%, var(--fg));
@@ -87,7 +96,7 @@
     --control-border-color: color-mix(in srgb, var(--graphical-fg) 35%, rgb(0 0 0 / 0%));
 
     /*Intensity of table borders is less than normal borders, to balance the density*/
-    --table-border-strength: 40%;
+    --table-border-strength: 50%;
 
     /*Calculated helpers*/
     --thin-border: 1px solid var(--border-color);
@@ -201,11 +210,12 @@ html {
 body {
     font-family: var(--main-font);
     line-height: 2.8ex;
-    font-size: 18px;
+    font-size: var(--font-size);
     margin: 0px;
     padding: 0px;
     color: var(--fg);
 }
+
 
 
 
@@ -226,9 +236,6 @@ label {
     place-content: space-between;
 }
 
-b {
-    color: var(--graphical-fg);
-}
 
 span {
     border-radius: 4px;
@@ -260,6 +267,15 @@ h2 *,
 h3 * {
     color: var(--accent-color);
     clear: both;
+    font-family: var(--heading-font);
+}
+
+:not(.tool-bar) h1,
+:not(.tool-bar) h2,
+:not(.tool-bar) h3,
+:not(.tool-bar) h4 {
+    padding-inline-end: var(--gap);
+    padding-inline-start: var(--gap);
 }
 
 h3 button,
@@ -271,7 +287,6 @@ h3 a.button {
 h1,
 h2,
 h3 {
-    font-family: var(--main-font);
     margin-bottom: 12px;
     margin-top: 28px;
     text-align: center;
@@ -919,6 +934,30 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 }
 
 
+.w-1rem {
+    width: 1rem;
+}
+
+.w-2rem {
+    width: 2rem;
+}
+
+.w-4rem {
+    width: 4rem;
+}
+
+.w-6rem {
+    width: 6rem;
+}
+
+.w-12rem {
+    width: 12rem;
+}
+
+.w-24rem {
+    width: 24rem;
+}
+
 .max-h-1rem {
     max-height: 1rem;
 }
@@ -1052,6 +1091,33 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .flex-col>.h-60rem {
     flex-basis: 60rem;
 }
+
+
+
+:is(.flex-row, .tool-bar)>.w-1rem {
+    flex-basis: 1rem;
+}
+
+:is(.flex-row, .tool-bar)>.w-2rem {
+    flex-basis: 2rem;
+}
+
+:is(.flex-row, .tool-bar)>.w-4rem {
+    flex-basis: 4rem;
+}
+
+:is(.flex-row, .tool-bar)>.w-6rem {
+    flex-basis: 6rem;
+}
+
+:is(.flex-row, .tool-bar)>.w-12rem {
+    flex-basis: 12rem;
+}
+
+:is(.flex-row, .tool-bar)>.w-24rem {
+    flex-basis: 24rem;
+}
+
 
 /*Simple utilities */
 
@@ -1232,27 +1298,42 @@ footer.padding {
 
 
 .highlight:not(.specificity_hack) {
-    background-color: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
+    --control-bg: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--control-bg);
+    background-color: var(--control-bg);
 }
 
 .success:not(.specificity_hack) {
+    --control-bg: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--control-bg);
+    background-color: var(--control-bg);
+
+
     --fg: var(--success-fg);
     --graphical-fg: var(--success-fg);
-    background-color: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
     color: var(--fg);
 }
 
 .warning:not(.specificity_hack),
 .warn:not(.specificity_hack) {
+    --control-bg: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--control-bg);
+    background-color: var(--control-bg);
+
+
     --fg: var(--warning-fg);
     --graphical-fg: var(--warning-fg);
-    background-color: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
     color: var(--fg);
 }
 
 .error:not(.specificity_hack),
 .danger:not(.specificity_hack),
 .bad:not(.specificity_hack) {
+    --control-bg: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--control-bg);
+    background-color: var(--control-bg);
+
+
     --fg: var(--danger-fg);
     --graphical-fg: var(--danger-fg);
     background-color: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
@@ -1279,22 +1360,35 @@ footer.padding {
 /*Classless styles */
 
 blockquote {
-    white-space: pre-wrap;
+    white-space: pre-line;
     border-left: 3px solid var(--graphical-fg);
     font-style: italic;
     border-color: var(--border-color);
-    margin-inline-start: 8px;
-    margin-inline-end: 4px;
-    margin: 6px;
-    padding: 4px;
-    margin-block-end: var(--gap);
-    color: var(--graphical-fg);
+    margin: var(--gap);
+    padding: var(--padding);
+    padding-inline-start: calc(var(--padding) * 3);
+    color: var(--control-fg);
+    position: relative;
 }
+
+@media screen and (max-width: 600px) {
+    blockquote {
+        padding-inline-start: var(--padding);
+    }
+}
+
+/* blockquote::before {
+    content: "\201C";
+    font-size: 2em;
+    position: absolute;
+    left: 10px;
+    top: -10px;
+} */
 
 a {
     text-decoration-style: dotted;
     text-decoration-thickness: 1.2px;
-    color: color-mix(in srgb, var(--accent-color) 70%, var(--fg));
+    color: var(--accent-color);
     text-decoration-color: color-mix(in srgb, var(--accent-color) 38%, rgb(0 0 0 / 0%));
 }
 
@@ -1349,6 +1443,7 @@ textarea {
     background-color: var(--control-bg);
     color: var(--control-fg);
     padding: var(--padding);
+    font-size: var(--font-size);
 }
 
 
@@ -1363,14 +1458,6 @@ div {
     border-color: var(--border-color);
 }
 
-button:hover,
-a.button:hover,
-a.hover,
-button:hover *,
-a:hover * {
-    color: var(--accent-color);
-    --fg: var(--accent-color);
-}
 
 
 dd {
@@ -1786,6 +1873,13 @@ meter {
 }
 
 /* WebKit */
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value {
+    transition: 0.15s linear width;
+}
+
 meter::-webkit-meter-bar {
     border-color: var(--control-border-color);
     background: var(--control-bg);
@@ -1833,4 +1927,42 @@ meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
 i[class],
 button i[class] {
     color: var(--graphical-fg);
+}
+
+button,
+a,
+input,
+select,
+tr {
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+button:hover,
+a.button:hover,
+a:hover,
+button:hover *:not(i, b, small, span),
+a:hover *:not(i, b, small, span),
+.tool-bar>*:hover,
+.tool-bar>a:hover,
+input:not([type='submit']):not([type='range']):hover,
+header:not(.undecorated)>:only-child :is(button, a.button, input[type='submit']):hover,
+header:not(.undecorated)>.tool-bar:only-child :is(input, button, select, a):hover,
+input:hover,
+select:hover,
+tr:hover {
+    color: var(--accent-color);
+    --fg: var(--accent-color);
+    background-color: var(--hover-color)
+}
+
+
+
+
+
+::selection {
+    background: var(--highlight-color);
+}
+
+::-moz-selection {
+    background: var(--highlight-color);
 }

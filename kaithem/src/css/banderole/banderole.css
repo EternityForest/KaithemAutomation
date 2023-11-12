@@ -4,7 +4,8 @@
   --fg: #522f28;
   --graphical-fg: rgb(98 69 39 / 81%);
   --accent-color: var(--graphical-fg);
-  --main-font: serif;
+  --main-font: var(--serif-font);
+  --heading-font: var(--sans-font);
   --concave-item-bg: none;
   --convex-item-bg: none;
   --convex-item-active-bg: none;
@@ -20,24 +21,6 @@
 header {
   background: none;
 }
-
-@font-face {
-  font-family: 'Lato';
-  font-style: normal;
-  font-weight: 400;
-  src: url('/static/fonts/Lato/lato-regular.woff2');
-  /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
-
-@font-face {
-  font-family: 'Fraktur';
-  font-style: normal;
-  font-weight: 400;
-  src: url('/static/fonts/Unifraktur/UnifrakturMaguntia-Regular.woff2');
-  /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
-
-
 
 ::selection {
   background: rgba(168, 170, 59, 0.123);

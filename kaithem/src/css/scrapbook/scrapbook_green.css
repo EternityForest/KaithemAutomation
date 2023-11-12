@@ -12,6 +12,7 @@
     --box-bg: rgb(219 229 201 / 64%);
     --3d-highlight: #cedfce38;
     --3d-shadow: #1a471512;
+    --hover-color: rgba(150, 255, 250, 0.2);
 }
 
 ::selection {
@@ -52,17 +53,6 @@ dl {
 dt {
     margin: 0.2em;
 }
-
-li:hover,
-dt:hover,
-dt:hover+dd,
-a.button:hover,
-button:hover,
-input:hover,
-tr:hover {
-    background-color: rgba(150, 255, 250, 0.2);
-}
-
 
 table {
     background-color: rgba(240, 248, 255, 0.116);

@@ -32,17 +32,18 @@ SOFTWARE.
     --grey-1: #D8DEE9;
     --grey-2: #E5E9F0;
     --grey-3: #ECEFF4;
+
     --mint: #8FBCBB;
     --ice: #88C0D0;
     --water: #81A1C1;
     --ocean: #5E81AC;
+
     --red: #BF616A;
     --orange: #D08770;
     --yellow: #EBCB8B;
     --green: #A3BE8C;
     --violet: #B48EAD;
-    --brown: #734c44;
-    --leaf: #addd83;
+
     --teal: var(--ice);
     --blue: var(--ocean);
     --purple: var(--violet);
@@ -53,4 +54,25 @@ SOFTWARE.
     --concave-item-box-shadow: none;
     --convex-item-bg: var(--control-bg);
     --concave-item-bg: var(--control-bg);
+    --border-color: var(--grey-3);
+    --window-box-shadow: none;
+    --card-box-shadow: none;
+    --window-box-shadow: 2px 2px 6px 0px rgba(10, 33, 83, 0.18);
+    --item-box-shadow: 2px 2px 3px 0px rgb(8 35 53 / 12%);
+    --table-border-strength: 80%;
+}
+
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: var(--black-1);
+        --box-bg: var(--black-2);
+        --fg: var(--grey-3);
+        --control-fg: var(--grey-1);
+        --control-bg: var(--black-3);
+        --border-color: var(--black-4);
+        --window-box-shadow: none;
+        --card-box-shadow: none;
+
+    }
 }

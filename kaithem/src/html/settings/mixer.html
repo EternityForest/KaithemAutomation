@@ -298,7 +298,7 @@ ${jackmixer.global_api.render("gapi")}
               </div>
 
               <div class="tool-bar">
-                <p>FBX Threshold:</p><input style="max-width: 3em;" type="number" v-model="channel.soundFuse"
+                <p>FBX Threshold:</p><input class="w-4rem" type="number" v-model="channel.soundFuse"
                   title="Steady or increasing values above this will result in the volume being automatically lowered."
                   v-on:change="setFuse(channelname, $event.target.value)">
                 <p>dB</p>
