@@ -72,13 +72,14 @@
     --control-bg: var(--grey-1);
     --control-fg: var(--graphical-fg);
 
+    /*Used for headers, trays, and anything smaller than a box and bigger than a button*/
+    --alt-control-bg: color-mix(in srgb, var(--control-bg) 90%, #816e23);
+    /*#e1dfd7*/
+
     --window-box-shadow: none;
 
     /*Used for tool bars and cards*/
     --item-box-shadow: none;
-
-
-    /*Note that themes can decide 3D elements should be flat*/
 
     /*Below this line you probably don't need to change stuff*/
     /* fg color for warning and danger */
@@ -89,17 +90,20 @@
 
     --hover-color: color-mix(in srgb, var(--highlight-color) 30%, transparent);
 
-    --success-fg: color-mix(in srgb, var(--success-color) 60%, var(--fg));
-    --warning-fg: color-mix(in srgb, var(--warning-color) 40%, var(--fg));
-    --danger-fg: color-mix(in srgb, var(--danger-color) 70%, var(--fg));
-
     --control-border-color: color-mix(in srgb, var(--graphical-fg) 35%, rgb(0 0 0 / 0%));
 
     /*Intensity of table borders is less than normal borders, to balance the density*/
     --table-border-strength: 50%;
 
-    /*Calculated helpers*/
     --thin-border: 1px solid var(--border-color);
+}
+
+/*Less likely stuff for user to change, intermediate vars in complex logic*/
+:root {
+    --header-padding: var(--gap);
+    --success-fg: color-mix(in srgb, var(--success-color) 60%, var(--fg));
+    --warning-fg: color-mix(in srgb, var(--warning-color) 40%, var(--fg));
+    --danger-fg: color-mix(in srgb, var(--danger-color) 70%, var(--fg));
 }
 
 @media screen and (max-width: 420px) {
@@ -270,13 +274,6 @@ h3 * {
     font-family: var(--heading-font);
 }
 
-:not(.tool-bar) h1,
-:not(.tool-bar) h2,
-:not(.tool-bar) h3,
-:not(.tool-bar) h4 {
-    padding-inline-end: var(--gap);
-    padding-inline-start: var(--gap);
-}
 
 h3 button,
 h3 a.button {
@@ -286,10 +283,13 @@ h3 a.button {
 
 h1,
 h2,
-h3 {
+h3,
+h4 {
     margin-bottom: 12px;
     margin-top: 28px;
     text-align: center;
+    padding-inline-end: var(--header-padding);
+    padding-inline-start: var(--header-padding);
 }
 
 h2 {
@@ -311,19 +311,17 @@ hr {
 }
 
 
-
 header,
 footer {
-    background-color: var(--control-bg);
-    color: var(--control-fg);
-    --accent-color: var(--control-fg);
-    --graphical-fg: var(--control-fg);
-
     width: 100%;
     box-sizing: border-box;
     margin: 0px;
     flex-grow: 0;
     min-height: var(--control-height);
+    background-color: var(--alt-control-bg);
+    color: var(--control-fg);
+    --accent-color: var(--control-fg);
+    --graphical-fg: var(--control-fg);
 }
 
 /*Headers and footers */
@@ -350,58 +348,65 @@ header {
 
 
 
-header *,
-footer * {
-    --control-bg: var(--alt-control-bg);
-}
 
-
-header>*:only-child,
-header>*:only-child>:only-child {
-    width: 100%;
-    flex-grow: 1;
-    box-sizing: border-box;
-    margin: 0px;
-}
 
 header :is(h1, h2, h3, h4) {
     padding-inline-start: var(--padding);
 }
 
-header>:is(h1, h2, h3, h4):has(button) {
+header>:is(h1, h2, h3, h4):has(button:only-child) {
     padding: 0px;
+    --header-padding: 0px;
 }
 
-header:not(.undecorated)>*> :only-child,
-header:not(.undecorated)> :only-child {
-    border: none;
+header:not(.undecorated) {
+    --convex-item-bg: var(--control-bg);
+
+    & :only-child,
+    &>*:only-child>:only-child {
+        border: none;
+    }
+
+    &>:only-child,
+    &>*:only-child,
+    &>*:only-child>:only-child {
+        margin-top: 0px;
+        width: 100%;
+        flex-grow: 1;
+        box-sizing: border-box;
+        margin: 0px;
+
+        &:not(.highlight, .danger, .warning, .success) {
+            --control-bg: none;
+            --convex-item-bg: none;
+        }
+    }
+
+    /*Treat toolbar only children of a header specially*/
+    &>.tool-bar:only-child {
+        gap: var(--padding);
+
+        &>*:not(.specificity-hack) {
+            border-radius: var(--control-border-radius);
+        }
+
+        & :is(p, h1, h2, h3, h4, h5, h6, label) {
+            background: none;
+            border: none;
+        }
+
+        & :is(input, select, button) {
+            color: var(--control-fg);
+        }
+
+        & :is(input, button) {
+            color: var(--control-fg);
+        }
+
+    }
 }
 
-header:not(.undecorated)>.tool-bar:only-child {
-    gap: var(--padding);
-}
 
-header:not(.undecorated)>.tool-bar:only-child>*:not(.specificity-hack) {
-    border-radius: var(--control-border-radius);
-}
-
-header:not(.undecorated)>.tool-bar:only-child :is(p, h1, h2, h3, h4, h5, h6, label) {
-    background: none;
-}
-
-header:not(.undecorated)>.tool-bar:only-child :is(input, select, button) {
-    color: var(--control-fg);
-}
-
-header:not(.undecorated)>.tool-bar:only-child :is(input, button) {
-    background: var(--alt-control-bg);
-    color: var(--control-fg);
-}
-
-
-header>.tool-bar>:is(p, h1, h2, h3, h4) {
-    border: none;
-}
 
 
 /*Inputs*/
@@ -457,13 +462,6 @@ a.button {
     color: var(--control-fg);
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
-}
-
-header:not(.undecorated)>:only-child :is(button, a.button, input[type='submit']),
-header:not(.undecorated)>button:only-child,
-header:not(.undecorated)>a.button:only-child,
-header:not(.undecorated)>input[type='submit'] {
-    background: var(--alt-control-bg);
 }
 
 button {
@@ -1478,6 +1476,7 @@ dd {
 
 .tool-bar {
     --tool-bar-element-border: var(--control-border-width) solid var(--control-border-color);
+    --header-padding: 0px;
     flex-basis: max-content;
     display: flex;
     flex-wrap: wrap;
@@ -1498,7 +1497,8 @@ dd {
     gap: 0px;
 }
 
-.tool-bar * {
+/*Undo any effect something else set on convex elements for consistency*/
+.tool-bar :is(button, a.button) {
     box-shadow: none;
     display: inline-block;
 }
@@ -1535,6 +1535,7 @@ dd {
     box-sizing: border-box;
     font-size: inherit;
     height: var(--control-height);
+    color: var(--control-fg);
 }
 
 .tool-bar>label>:is(input, select) {
@@ -1732,17 +1733,6 @@ header:not(.undecorated)>.tool-bar:only-child :is(a, a.button, select, p, h1, h2
     border-bottom: var(--tool-bar-element-border);
 }
 
-.tool-bar select {
-    background: none;
-}
-
-/* 
-Wall to wall fill the top header
-body>header>.tool-bar.w-full, body>header>.tool-bar.w-full *,
-main>header>.tool-bar.w-full, main>header>.tool-bar.w-full *
-{
-    border-radius: 0px;
-} */
 
 /*Scrollbars*/
 /* Firefox */
@@ -1937,25 +1927,27 @@ tr {
     transition: color 0.2s ease, background 0.2s ease;
 }
 
-button:hover,
-a.button:hover,
-a:hover,
-button:hover *:not(i, b, small, span),
-a:hover *:not(i, b, small, span),
-.tool-bar>*:hover,
-.tool-bar>a:hover,
-input:not([type='submit']):not([type='range']):hover,
-header:not(.undecorated)>:only-child :is(button, a.button, input[type='submit']):hover,
-header:not(.undecorated)>.tool-bar:only-child :is(input, button, select, a):hover,
-input:hover,
-select:hover,
-tr:hover {
-    color: var(--accent-color);
-    --fg: var(--accent-color);
-    background-color: var(--hover-color)
+@media (hover: hover) {
+
+    button:hover,
+    a.button:hover,
+    a:hover,
+    button:hover *:not(i, b, small, span),
+    a:hover *:not(i, b, small, span),
+    .tool-bar>*:hover,
+    .tool-bar>a:hover,
+    input:not([type='submit']):not([type='range']):hover,
+    header:not(.undecorated)>:only-child :is(button, a.button, input[type='submit']):hover,
+    header:not(.undecorated)>.tool-bar:only-child :is(input, button, select, a):hover,
+    input:hover,
+    select:hover,
+    tr:hover {
+        color: var(--accent-color);
+        --fg: var(--accent-color);
+        background-color: var(--hover-color)
+    }
+
 }
-
-
 
 
 

@@ -49,6 +49,7 @@ SOFTWARE.
     --purple: var(--violet);
     --box-bg: white;
     --control-bg: var(--grey-3);
+    --alt-control-bg: var(--grey-1);
     --bg: var(--grey-1);
     --accent-color: var(--ocean);
     --concave-item-box-shadow: none;

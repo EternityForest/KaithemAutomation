@@ -6,11 +6,12 @@
   --accent-color: var(--graphical-fg);
   --main-font: var(--serif-font);
   --heading-font: var(--sans-font);
-  --concave-item-bg: none;
-  --convex-item-bg: none;
+
   --convex-item-active-bg: none;
   --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
-  --control-bg: none;
+  --control-bg: #b6921717;
+  --concave-item-bg: var(--control-bg);
+  --convex-item-bg: var(--control-bg);
   --border-width: 1px;
   --control-border-width: 2px;
   --control-border-color: #412f1b42;
@@ -18,9 +19,6 @@
   --item-box-shadow: 1px 1px 3px 0px rgb(0 0 0 / 16%);
 }
 
-header {
-  background: none;
-}
 
 ::selection {
   background: rgba(168, 170, 59, 0.123);
@@ -69,7 +67,7 @@ details[open] {
 .tool-bar {
   background: transparent;
   text-shadow: none;
-  --tool-bar-element-border: 1px solid rgba(58, 57, 45, 0.767);
+  --tool-bar-element-border: 1px solid var(--border-color);
 }
 
 .tool-bar * {
@@ -89,6 +87,7 @@ details[open] {
 
 header .tool-bar {
   transform: none;
+  padding: 4px;
 }
 
 a {
