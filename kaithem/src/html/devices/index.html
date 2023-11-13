@@ -7,6 +7,13 @@ from kaithem.src import directories
 import urllib.parse
 
 %>
+<style>
+    main{
+
+    width:  calc(min(60em, 100vw, 100%));
+    }
+    
+</style>
 <script src="/static/widget.js"></script>
 
 <script src="/static/showdown.min.js"></script>
@@ -47,14 +54,7 @@ else:
 %endif
 <article class="card" style="${greyout} margin: 1em; flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         <header class="flex-row">
-        <h3
-            title="${devObj.device_type_name}"
-
-            %if hasattr(devObj, 'subdevices') and devObj.subdevices:
-            class="highlight specialentry"
-            %endif
-
-        >    
+        <h3 title="${devObj.device_type_name}">    
 
             <a href="device/${url(i)}/manage">${devObj.title|h}
 
@@ -122,7 +122,7 @@ else:
     h=devStatString(devObj)
     %>
     %if h:
-    <div style="display: flex; flex-wrap: wrap; flex-direction: column;">${h}</div>
+    <div class="flex-col padding w-full">${h}</div>
     %endif
 
     %if devObj.config.get('description',''):

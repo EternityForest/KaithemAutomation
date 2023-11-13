@@ -784,9 +784,11 @@ ${lists}
 
                     </h3>
                
-                    <input v-model="cuefilter" placeholder="Search Cues" />
-                    <button v-on:click="cuefilter=''">x</button>
-
+                    <p>
+                        <input v-model="cuefilter" placeholder="Search Cues" />
+                        <button v-on:click="cuefilter=''">x</button>
+                    </p>
+                    
                     <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
                     title="Download your scenes as a file"><i class="icofont-download"></i>Download Scene</a>
 

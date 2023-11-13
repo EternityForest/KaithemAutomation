@@ -1308,7 +1308,7 @@ def devStatString(d):
     except Exception as e:
         s.append(str(e))
 
-    return ''.join(['<div>' + i + "</div>" for i in s])
+    return ''.join([i for i in s])
 
 
 def url(u):

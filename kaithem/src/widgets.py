@@ -1221,13 +1221,13 @@ class Meter(Widget):
     def render_oneline(self, unit="", label=None):
         label = label or self.defaultLabel
         return """
-        {label}
-        <span class="numericpv" id="{uuid}" style=" margin:0px;">
+        <div class="inline flex-row nomargin">
+        <div class="align-left w-12rem">{label}</div>
         <script type="text/javascript">
         var upd = function(val)
         {{
             document.getElementById("{uuid}_m").value=val[0];
-            document.getElementById("{uuid}").className=val[1]+" numericpv";
+            document.getElementById("{uuid}").className=val[1]+" nogrow";
             document.getElementById("{uuid}").innerHTML=val[2]+'<span style="color:grey">{unit}</span>';
 
             if(val[3])
@@ -1239,9 +1239,10 @@ class Meter(Widget):
             }}
         }}
         kaithemapi.subscribe('{uuid}',upd);
-        </script>{valuestr}
-        </span>
-        <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
+        </script>
+        <meter class="grow" id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
+        <span class="nogrow" id="{uuid}">{valuestr}</span>
+        </div>
 
         """.format(
             uuid=self.uuid,

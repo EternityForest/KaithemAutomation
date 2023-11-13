@@ -1,51 +1,24 @@
-
-/* Using a string */
-
 :root {
-  --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(/static/img/pergament-papier-hintergrund-braun.avif);
-  --box-bg: none;
+  --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(banderole/pergament-papier-hintergrund-braun.webp);
+  --box-bg: #e7e5ca7a;
   --fg: #522f28;
   --graphical-fg: rgb(98 69 39 / 81%);
+  --control-fg: rgb(98 69 39 / 81%);
   --accent-color: var(--graphical-fg);
+  --main-font: var(--serif-font);
+  --heading-font: var(--sans-font);
 
-  --concave-item-bg: none;
-  --convex-item-bg: none;
   --convex-item-active-bg: none;
   --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
-  --control-bg: none;
-  --border-width: 2px;
-  --control-border-width: 2px;
-
+  --control-bg: #b6921717;
+  --concave-item-bg: var(--control-bg);
+  --convex-item-bg: var(--control-bg);
+  --border-width: 1px;
+  --control-border-width: 1px;
+  --control-border-color: #412f1b42;
+  --window-box-shadow: 3px 3px 12px 1px rgb(83 49 10 / 31%);
+  --item-box-shadow: 1px 1px 3px 0px rgb(0 0 0 / 16%);
 }
-
-header {
-  background: none;
-  border: none;
-}
-
-@font-face {
-  font-family: 'Lato';
-  font-style: normal;
-  font-weight: 400;
-  src: url('/static/fonts/Lato/lato-regular.woff2');
-  /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
-
-@font-face {
-  font-family: 'Fraktur';
-  font-style: normal;
-  font-weight: 400;
-  src: url('/static/fonts/Unifraktur/UnifrakturMaguntia-Regular.woff2');
-  /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
-
-
-iframe.embedpage {
-  background-color: rgba(245, 245, 220, 0.548);
-  border-radius: var(--border-radius);
-  border-style: solid;
-}
-
 
 ::selection {
   background: rgba(168, 170, 59, 0.123);
@@ -91,33 +64,8 @@ details[open] {
   background-color: rgba(217 217 45 / 71%);
 }
 
-.tool-bar {
-  box-shadow: none;
-  background: transparent;
-  text-shadow: none;
-  font-weight: 500;
-  --tool-bar-element-border: 1px solid rgba(58, 57, 45, 0.767);
-}
-
 .tool-bar * {
   text-shadow: none;
-}
-
-
-/* .tool-bar button:hover, .tool-bar a.button:hover
-{
-  backdrop-filter: blur(4px);
-  color: #12a900;
-} */
-
-
-.menubar:is(.tool-bar),
-.tool-bar,
-.tool-bar {
-  --convex-item-bg: transparent;
-  --concave-item-bg: transparent;
-  --tool-bar-element-border: 2px solid #361907;
-
 }
 
 
@@ -125,29 +73,15 @@ details[open] {
   background-color: transparent;
 }
 
-/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
 .window {
-  background: var(--box-bg);
   border-width: 1px;
-  border-radius: var(--border-radius);
-  backdrop-filter: blur(1px);
-  border-color: #412f1b42;
-  border-style: double;
-
-  box-shadow: inset 1px 1px 8px 1px rgba(83, 49, 10, 0.486);
 }
 
 
-
-
-
-.tool-bar {
-  transform: rotate(0.2deg);
-}
-
-header .tool-bar {
+header:not(.undecorated) .tool-bar {
   transform: none;
+  padding: 4px;
 }
 
 a {
@@ -183,36 +117,22 @@ img {
 /* body, button,html, a{
   cursor: url(/static/img/banderole/orcish_short_sword.png) 8 8, auto;
 } */
-.decorative-image background-size: contain;
-background-repeat: no-repeat;
-background-position: center;
-opacity: 0.55;
-box-shadow: inset 2px 3px 8px 2px rgba(83, 49, 10, 0.096);
-border-radius: calc(var(--border-radius) * 2);
+.decorative-image {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.55;
+  box-shadow: inset 2px 3px 8px 2px rgba(83, 49, 10, 0.096);
+  border-radius: calc(var(--border-radius) * 2);
 }
 
-.decorative-image.decorative-image-main {
-  background-image: url(/static/img/banderole/drinking-from-the-cask.svg);
-  display: block;
-  box-shadow: none;
-}
 
-.decorative-image.decorative-image-login {
-  background-image: url(/static/img/banderole/Halberd.svg);
-  display: block;
-}
-
-.decorative-image.decorative-image-settings {
-  background-image: url(/static/img/banderole/johnny_automatic_horse-shoeing.svg);
-  display: block;
-}
-
-.decorative-image.decorative-image-h-bar {
+.decorative-image-h-bar {
   background-image: url(/static/img/banderole/decorativebarthing.svg);
   display: block;
 }
 
-.decorative-image.decorative-image-corner-ur {
+.decorative-image-corner-ur {
   background-image: url(/static/img/banderole/Rose-Floral-Flourish-16.svg);
   display: block;
   box-shadow: none;
@@ -221,131 +141,6 @@ border-radius: calc(var(--border-radius) * 2);
 
 
 
-
-
-input,
-button,
-textarea,
-select {
-  background-color: transparent;
-  border-style: solid;
-  border-width: 2px;
-  border-color: #412f1b42;
-  border-radius: 12px;
-}
-
-input,
-textarea,
-select,
-button,
-a.button,
-.tool-bar a {
-  box-shadow: inset 1px 1px 8px 1px rgb(77 53 0 / 24%);
-}
-
-input[type=range] {
-  margin: 13.8px 0;
-  background-color: transparent;
-  -webkit-appearance: none;
-}
-
-input[type=range]:focus {
-  outline: none;
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-  background: #874437;
-  border: 0.2px solid #010101;
-  border-radius: 1.3px;
-  width: 100%;
-  height: 8.4px;
-  cursor: pointer;
-}
-
-input[type=range]::-webkit-slider-thumb {
-  margin-top: -14px;
-  width: 16px;
-  height: 36px;
-  background: #12a900;
-  border: 3px solid #666b4b;
-  border-radius: 30px;
-  cursor: pointer;
-  -webkit-appearance: none;
-}
-
-input[type=range]:focus::-webkit-slider-runnable-track {
-  background: #874437;
-}
-
-input[type=range]::-moz-range-track {
-  background: #a62000;
-  border: 0.2px solid #010101;
-  border-radius: 1.3px;
-  width: 100%;
-  height: 8.4px;
-  cursor: pointer;
-}
-
-input[type=range]::-moz-range-thumb {
-  width: 16px;
-  height: 36px;
-  background: #12a900;
-  border: 3px solid #666b4b;
-  border-radius: 30px;
-  cursor: pointer;
-}
-
-input[type=range]::-ms-track {
-  background: transparent;
-  border-color: transparent;
-  border-width: 13.8px 0;
-  color: transparent;
-  width: 100%;
-  height: 8.4px;
-  cursor: pointer;
-}
-
-input[type=range]::-ms-fill-lower {
-  background: #8d1b00;
-  border: 0.2px solid #010101;
-  border-radius: 2.6px;
-}
-
-input[type=range]::-ms-fill-upper {
-  background: #a62000;
-  border: 0.2px solid #010101;
-  border-radius: 2.6px;
-}
-
-input[type=range]::-ms-thumb {
-  width: 16px;
-  height: 36px;
-  background: #12a900;
-  border: 3px solid #666b4b;
-  border-radius: 30px;
-  cursor: pointer;
-  margin-top: 0px;
-  /*Needed to keep the Edge thumb centred*/
-}
-
-input[type=range]:focus::-ms-fill-lower {
-  background: #a62000;
-}
-
-input[type=range]:focus::-ms-fill-upper {
-  background: #c02500;
-}
-
-/*TODO: Use one of the selectors from https://stackoverflow.com/a/20541859/7077589 and figure out
-how to remove the virtical space around the range input in IE*/
-@supports (-ms-ime-align:auto) {
-
-  /* Pre-Chromium Edge only styles, selector taken from hhttps://stackoverflow.com/a/32202953/7077589 */
-  input[type=range] {
-    margin: 0;
-    /*Edge starts the margin from the thumb, not the track as other browsers do*/
-  }
-}
 
 @keyframes blink-2 {
   0% {}

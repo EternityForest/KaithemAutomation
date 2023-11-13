@@ -276,7 +276,7 @@ ${jackmixer.global_api.render("gapi")}
               <p>{{channelname}} Level:</p>
               <div class="tool-bar">
                 <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
-                  orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20"
+                  type="range" step="0.5" value="-60" min="-60" max="20"
                   v-bind:title="channel.fader">
 
                 <button v-on:click="setMute(channelname, !channel.mute)" title="Mute channel" type="checkbox">
@@ -287,7 +287,7 @@ ${jackmixer.global_api.render("gapi")}
 
               </div>
 
-              <div class="tool-bar"><meter style="flex-grow: 2;" min="-70" max="10" high="-5"
+              <div class="tool-bar"><meter min="-70" max="10" high="-5"
                   v-bind:value="channel.level"></meter>
                 <p style="width:5em;">{{channel.level}}db</p>
               </div>
