@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.71.1
+- :bug: Further minor CSS work
+- :bug: Fix mixing board not working on Firefox
+
+
 ### 0.71.0
 
 - :bug: Further minor CSS work

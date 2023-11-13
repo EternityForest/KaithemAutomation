@@ -148,7 +148,13 @@ To update dependencies, run `make dev-update-dependencies`. this installs `direc
 
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
-=============
+============
+
+### 0.71.1
+- :bug: Further minor CSS work
+- :bug: Fix mixing board not working on Firefox
+
+
 ### 0.71.0
 
 - :bug: Further minor CSS work
