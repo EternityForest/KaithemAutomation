@@ -107,6 +107,64 @@
 }
 
 
+@media print {
+    :root {
+        --bg: white !important;
+        --box-bg: white !important;
+        --fg: black !important;
+        --accent-color: black !important;
+        --alt-control-bg: white !important;
+        --main-font: var(--serif-font) !important;
+        --control-bg: white !important;
+        --concave-item-bg: white !important;
+        --convex-item-bg: white !important;
+        --control-fg: black !important;
+        --graphical-fg: grey !important;
+        --concave-item-box-shadow: none !important;
+        --heading-font: var(--sans-font) !important;
+
+    }
+
+    * {
+        color: var(--fg) !important;
+    }
+
+    a::after {
+        content: " (" attr(href) ") ";
+        color: gray;
+        font-size: 80%;
+    }
+
+    a:local-link::after {
+        content: "";
+    }
+
+    a[href^="/"]::after {
+        content: "";
+    }
+
+    details.help:not([open]) {
+        display: none;
+    }
+
+}
+
+/* Stuff that should print as is */
+.highlight,
+.warning,
+.danger,
+.success,
+meter,
+input[type=range],
+.round-feathered,
+.print-exact {
+    -webkit-print-color-adjust: exact;
+    /* Chrome, Safari 6 – 15.3, Edge */
+    color-adjust: exact;
+    /* Firefox 48 – 96 */
+    print-color-adjust: exact;
+}
+
 @media (prefers-color-scheme: dark) {
     :root {
         --black-1: #222222;
@@ -445,6 +503,8 @@ h3 * {
     color: var(--accent-color);
     clear: both;
     font-family: var(--heading-font);
+    /*Having a heading at the end of the page is terrible*/
+    break-after: avoid;
 }
 
 
@@ -505,6 +565,7 @@ header {
     margin-bottom: var(--padding);
     border-radius: inherit inherit 0px 0px;
     border-bottom: var(--border-width) solid var(--border-color);
+    break-after: avoid;
 
 
     & :is(h1, h2, h3, h4) {
@@ -815,23 +876,40 @@ table {
     text-align: left;
     flex-grow: 1;
     flex-basis: min-content;
-}
-
-
-
-.window {
-    border-width: 1px;
     box-shadow: var(--window-box-shadow);
+    break-inside: avoid;
 }
 
 
 .card,
 .tool-bar {
     box-shadow: var(--item-box-shadow);
+    break-inside: avoid;
 }
 
 header:not(.undecorated) .tool-bar {
     box-shadow: none;
+}
+
+
+.two-columns {
+    column-count: 2;
+    column-fill: auto;
+    break-inside: avoid;
+}
+
+.pagebreak {
+    break-before: always;
+}
+
+.nobreaks {
+    break-inside: avoid;
+}
+
+@media print {
+    .noprint {
+        display: none;
+    }
 }
 
 /*Flex rows and cols */
@@ -1277,6 +1355,11 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .round-feathered {
     mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
     -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
+    -webkit-print-color-adjust: exact;
+    /* Chrome, Safari 6 – 15.3, Edge */
+    color-adjust: exact;
+    /* Firefox 48 – 96 */
+    print-color-adjust: exact;
 }
 
 .paper {
@@ -1291,12 +1374,12 @@ pre.poem {
     font-family: inherit;
     width: fit-content;
     line-height: 2.8ex;
+    break-inside: avoid;
 
     & p {
         white-space: pre-wrap;
         margin-bottom: 2.4ex;
     }
-
 }
 
 
@@ -1453,7 +1536,6 @@ footer.padding {
 /*Colorways*/
 
 /*danger is the canonical*/
-
 
 .highlight:not(.specificity_hack) {
     --control-bg: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
@@ -2015,8 +2097,6 @@ tr {
     }
 
 }
-
-
 
 ::selection {
     background: var(--highlight-color);

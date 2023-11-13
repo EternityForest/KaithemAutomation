@@ -3,12 +3,18 @@ A CSS Framework aiming to be as opinionated as possible for maximum restyling po
 
 It is a combination of classless styles, a mix of high and low level utilities, and a tiny selection of components.
 
-It supports automatic dark/light theme switching with the system preference.  It's simple enough that it should
-work on old browsers, but the colors might not look right.  Update your browsers!
+It supports automatic dark/light theme switching with the system preference, desktop, mobile, and also aims to work as well as possible in print media, especially if you use extra hint classes.  
+
+It's simple enough that it should work on old browsers, but the colors might not look right.  Update your browsers!
 
 This is used as the internal KaithemAutomation CSS framework.  See it[(Here on Github Pages!](https://eternityforest.github.io/barrel.css)
 
 Note that the preview is of this master branch, not any particular release.
+
+When printing, Barrel currently overrides the styles automatically, with a white foreground, flat background,
+the theme Serif font, and the URLs displayed after all links.
+
+
 
 ## Alt themes
 Because of weirdness with css variables, all of the alt themes folders must be in the foler with barrel.css itself.  Include barrel.css before
@@ -70,6 +76,18 @@ Make an image smoothly fade out around the edges.
 
 ### .paper
 This object should have it's own background, it is like a popup you're going to put over something else.
+
+### .pagebreak
+Insert a page break before this element
+
+### .nobreaks
+Try not to break this element.  Browsers appear to still do so if necessary, but avoid if possible.
+
+### .noprint
+Do not print this element.
+
+### .print-exact
+The background color of this and child elements are meaningful, don't remove them when printing.
 
 ### .rounded
 Round the corners with the default global border-radius.
