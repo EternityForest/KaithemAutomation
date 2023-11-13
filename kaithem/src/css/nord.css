@@ -49,13 +49,16 @@ SOFTWARE.
     --purple: var(--violet);
     --box-bg: white;
     --control-bg: var(--grey-3);
-    --alt-control-bg: var(--grey-1);
+    --alt-control-bg: var(--grey-2);
     --bg: var(--grey-1);
+    --fg: var(--black-1);
+    --control-fg: var(--black-2);
+
     --accent-color: var(--ocean);
     --concave-item-box-shadow: none;
-    --convex-item-bg: var(--control-bg);
+    --convex-item-bg: var(--alt-control-bg);
     --concave-item-bg: var(--control-bg);
-    --border-color: var(--grey-3);
+    --border-color: var(--grey-1);
     --window-box-shadow: none;
     --card-box-shadow: none;
     --window-box-shadow: 2px 2px 6px 0px rgba(10, 33, 83, 0.18);
@@ -71,6 +74,7 @@ SOFTWARE.
         --fg: var(--grey-3);
         --control-fg: var(--grey-1);
         --control-bg: var(--black-3);
+        --alt-control-bg: var(--black-4);
         --border-color: var(--black-4);
         --window-box-shadow: none;
         --card-box-shadow: none;

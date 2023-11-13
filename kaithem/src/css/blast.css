@@ -1,42 +1,42 @@
-:root {
-    color-scheme: light;
-    --black-1: #1c1c1c;
-    --black-2: #343A40;
-    --black-3: #545862;
-    --black-4: #5C555D;
-    --grey-1: #e5e4e1;
-    --grey-2: #ffffff;
-    --grey-3: #ffffff;
-    --red: #ff0000;
-    --yellow: #fff900;
-    --green: rgb(0 255 0);
-    --teal: rgb(0 237 255);
-    --blue: rgb(0 62 255);
-    --purple: rgb(255 0 178);
-    --dark-blue: rgb(0 46 191);
-    --heading-font: var(--mono-font);
-    --fg: #342101;
-    --graphical-fg: #00188d;
-    --control-fg: #00188d;
-    --accent-color: rgb(205 255 105);
-    --bg: #9c863a;
-    --box-bg: #6fcd5f;
-    --highlight-opacity: 25%;
-    --padding: 2px;
-    --gap: 2px;
-    --border-color: #705d00;
-    --border-radius: 0.4rem;
-    --border-width: 1px;
-    --control-height: 28px;
-    --control-border-radius: 6px;
-    --control-border-width: 1px;
-    --3d-shadow: #dc7d09;
-    --3d-highlight: #ffd744;
-    --control-bg: #ffc400;
-    --alt-control-bg: #ffd744;
-    --control-fg: #412600;
-}
+    :root {
+        color-scheme: light;
+        --black-1: #1c1c1c;
+        --black-2: #343A40;
+        --black-3: #545862;
+        --black-4: #5C555D;
+        --grey-1: #e5e4e1;
+        --grey-2: #ffffff;
+        --grey-3: #ffffff;
+        --red: #ff0000;
+        --yellow: #fff900;
+        --green: rgb(0 255 0);
+        --teal: rgb(0 237 255);
+        --blue: rgb(0 62 255);
+        --purple: rgb(255 0 178);
+        --dark-blue: rgb(0 46 191);
+        --heading-font: var(--mono-font);
+        --fg: #342101;
+        --graphical-fg: #00188d;
+        --control-fg: #00188d;
+        --accent-color: rgb(205 255 105);
+        --bg: #9c863a;
+        --box-bg: #6fcd5f;
+        --highlight-opacity: 25%;
+        --padding: 2px;
+        --gap: 2px;
+        --border-color: #705d00;
+        --border-radius: 0.4rem;
+        --border-width: 1px;
+        --control-height: 28px;
+        --control-border-radius: 6px;
+        --control-border-width: 1px;
+        --3d-shadow: #dc7d09;
+        --3d-highlight: #ffd744;
+        --control-bg: #ffc400;
+        --alt-control-bg: #ffd744;
+        --control-fg: #412600;
+    }
 
-a {
-    font-family: var(--mono-font);
-}
+    a {
+        font-family: var(--mono-font);
+    }

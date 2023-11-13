@@ -18,7 +18,7 @@
     --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
     --convex-item-active-bg: var(--concave-item-bg);
     --concave-item-box-shadow: inset 0px 0px 4px 2px #171616bf;
-    --control-bg: #7c093b;
-    --alt-control-bg: #482155;
+    --control-bg: #482155;
+    --alt-control-bg: #620d38;
     --control-fg: #cdb8a6;
 }
