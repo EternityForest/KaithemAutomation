@@ -1942,7 +1942,6 @@ footer.padding {
 
         /*Exception: the first item always growable so it can be the title*/
         &> :is(input, select, meter):not(.specificity-hack) {
-            min-height: 100%;
             max-height: 100%;
         }
 
@@ -2155,15 +2154,34 @@ meter {
     padding: 0px;
 }
 
+/*Try to make it look kinda like webkit*/
+@supports (-moz-appearance:none) {
+    meter {
+        height: 12px;
+        margin-top: calc((calc(--control-height-12px))/2);
+        margin-top: calc((calc(--control-height-12px))/2);
+        box-shadow: var(--concave-item-box-shadow);
+        background: var(--concave-item-bg);
+        min-height: 12px;
+    }
+
+    .tool-bar {
+        & label {
+            & meter {
+                min-height: 12px;
+            }
+        }
+    }
+}
+
 *::-moz-meter-bar {
     width: 100% !important;
     display: block !important;
     flex-grow: 1;
-    height: 12px;
+    height: 10px;
     background: var(--control-bg);
     border: var(--thin-border);
     border-radius: var(--control-border-radius);
-    margin-top: calc(calc(var(--control-height) - 12px) / 2);
 }
 
 /* WebKit */
@@ -2209,6 +2227,46 @@ meter:-moz-meter-sub-optimum::-moz-meter-bar {
 
 meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
     background: var(--danger-color);
+}
+
+/*Checkbox*/
+
+input[type='checkbox'] {
+    -webkit-appearance: none !important;
+    border-radius: 50px;
+    appearance: none;
+    background: var(--concave-item-bg);
+    box-shadow: var(--concave-item-box-shadow);
+    border: var(--control-border-width) solid var(--control-border-color);
+    height: var(--control-height);
+    width: calc(var(--control-height) * 1.77);
+    --slider-position: 0px;
+}
+
+input[type='checkbox']:checked {
+    position: relative;
+    --slider-position: calc(var(--control-height) * 0.77);
+}
+
+input[type='checkbox']:checked::before {
+    background: var(--highlight-color);
+}
+
+
+input[type='checkbox']:before {
+    content: "";
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+    border: var(--control-border-width) solid var(--control-border-color);
+    left: var(--slider-position);
+    border-radius: 50px;
+    margin: 0px;
+    padding: 0px;
+    height: calc(var(--control-height) - calc(var(--control-border-width) *2));
+    width: calc(var(--control-height) - calc(var(--control-border-width) *2));
+    background: var(--convex-item-bg);
+    transition: left 0.25s ease, background 0.25s ease;
 }
 
 
