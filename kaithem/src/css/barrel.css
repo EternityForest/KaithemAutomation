@@ -1,3 +1,53 @@
+/*https://www.joshwcomeau.com/css/custom-css-reset/*/
+html {
+    box-sizing: border-box;
+}
+
+*,
+:before,
+:after {
+    box-sizing: inherit;
+}
+
+* {
+    margin: 0;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+    display: block;
+}
+
+input,
+button,
+textarea,
+select {
+    font: inherit;
+}
+
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    overflow-wrap: break-word;
+}
+
+#root,
+#__next {
+    isolation: isolate;
+}
+
 :root {
     color-scheme: light dark;
 
@@ -234,7 +284,6 @@ html {
     min-height: 100vh;
     padding: 0px;
     margin: 0px;
-    box-sizing: border-box;
 }
 
 body {
@@ -255,7 +304,7 @@ figure,
 video,
 fieldset {
     max-width: 100%;
-    box-sizing: border-box;
+
     margin-left: 0px;
     margin-right: 0px;
 }
@@ -293,22 +342,27 @@ p {
 
 
 /*Stack labels on the form elements*/
-label>:is(input, select, button, div) {
+label>:is(input:not(input[type=radio], input[type=checkbox]), select, button, div) {
     display: block;
 }
 
 label:has(*) {
     display: inline-block;
+    width: fit-content;
+    text-align: start;
 }
+
+
 
 label {
     min-width: max-content;
     padding-inline-start: var(--padding);
-    padding-inline-end: var(--padding);
-    /*If it ever is a flex, keep the inputs near the side*/
-    place-content: space-between;
-}
 
+    &>input[type=checkbox]:first-child,
+    &>input[type=radio]:first-child {
+        margin-inline-end: var(--padding);
+    }
+}
 
 span {
     border-radius: 4px;
@@ -321,9 +375,9 @@ p:empty {
 
 
 input[type=checkbox] {
-    min-width: 2em;
+    min-width: var(--control-height);
+    height: var(--control-height);
 }
-
 
 dialog {
     position: fixed;
@@ -372,7 +426,7 @@ button {
 
 button:active,
 a:active,
-input[type='submit']:active {
+input:is([type='submit'], [type='button']):active {
     background: var(--convex-item-active-bg) !important;
     box-shadow: var(--concave-item-box-shadow) !important;
     color: var(--control-fg);
@@ -428,12 +482,12 @@ button,
 input,
 select {
     min-height: calc(min(var(--control-height), 100%));
-    box-sizing: border-box;
+
 }
 
 button,
 .button,
-input[type='submit'] {
+input:is([type='submit'], [type='button']) {
     background: var(--convex-item-bg);
     text-decoration: none;
     border: var(--control-border-width) solid var(--control-border-color);
@@ -442,7 +496,7 @@ input[type='submit'] {
     display: inline-block;
 }
 
-input:not([type='submit']):not([type='range']),
+input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"]),
 select {
     background: var(--concave-item-bg);
     box-shadow: var(--concave-item-box-shadow);
@@ -456,7 +510,7 @@ select {
 
 
 
-input,
+input:not([type='checkbox'], [type="radio"]),
 textarea {
     border: var(--border-width) solid var(--control-border-color);
     box-shadow: var(--concave-item-box-shadow);
@@ -469,6 +523,10 @@ textarea {
     font-size: var(--font-size);
 }
 
+fieldset {
+    border: var(--border-width) solid var(--control-border-color);
+    border-radius: var(--border-radius);
+}
 
 /*Border radius looks bad if it's smashed right up close to containing box and not the same radius*/
 header>* {
@@ -538,13 +596,14 @@ hr {
     border: none;
     border-top: var(--border-width) solid var(--border-color);
     height: var(--border-width);
+    margin: var(--padding);
 }
 
 
 header,
 footer {
     width: 100%;
-    box-sizing: border-box;
+
     margin: 0px;
     flex-grow: 0;
     min-height: var(--control-height);
@@ -581,16 +640,15 @@ header {
         --convex-item-bg: var(--control-bg);
 
         &>:only-child,
-        &>*:only-child>:only-child {
+        &>:only-child>:only-child {
             border: none;
         }
 
-        &>*:only-child:not(:has(:first-child)),
-        &>*:only-child:has(:only-child) {
+        &>:only-child {
             margin-top: 0px;
             width: 100%;
             flex-grow: 1;
-            box-sizing: border-box;
+
             margin: 0px;
 
             &:not(.highlight, .danger, .warning, .success, .tool-bar) {
@@ -603,7 +661,7 @@ header {
         &>.tool-bar:only-child {
             gap: var(--padding);
 
-            &>*:not(.specificity-hack) {
+            &>:not(.specificity-hack) {
                 border-radius: var(--control-border-radius);
             }
 
@@ -704,11 +762,11 @@ table {
         &>tr:last-child>th {
             border-bottom: var(--border-width) solid var(--border-color);
         }
+    }
 
-        &>tr:first-child>th {
-            border-top: var(--border-width) solid var(--border-color);
-        }
-
+    &>thead>tr:first-child>th,
+    &>:first-child>tr:first-child>:is(td, th) {
+        border-top: var(--border-width) solid var(--border-color);
     }
 
     /*This makes tables easier to read by coloring alternate rows differently.*/
@@ -729,7 +787,7 @@ table {
     & td input,
     & td select {
         border: var(--border-width) solid var(--border-color);
-        box-sizing: border-box;
+
         margin: 0px;
         width: auto;
     }
@@ -771,7 +829,8 @@ table {
 
     /* top-left border-radius */
 
-    & :not(tfoot)>tr:first-child :first-child:is(td, th) {
+    &>thead>tr:first-child :first-child:is(td, th),
+    &:not(:has(thead)) tr:first-child :first-child:is(td, th) {
         border-top-left-radius: var(--border-radius);
 
     }
@@ -779,35 +838,33 @@ table {
 
     /* top-right border-radius */
 
-    & :not(tfoot)>tr:first-child :last-child:is(td, th) {
+    &>thead>tr:first-child :last-child:is(td, th),
+    &:not(:has(thead)) tr:first-child>:last-child:is(td, th) {
         border-top-right-radius: var(--border-radius);
 
     }
 
     /* bottom-left border-radius */
-
     &:not(:has(tfoot)) {
 
-        &>tr:last-child :first-child:is(td, th),
-        &>tbody>tr:last-child :first-child:is(td, th) {
+        &>thead>tr:last-child>:first-child:is(td, th),
+        &>tbody>tr:last-child>:first-child:is(td, th) {
             border-bottom-left-radius: var(--border-radius);
-            ;
         }
 
         /* bottom-right border-radius */
-        &>tr:last-child :last-child:is(td, th),
-        &>tbody>tr:last-child :last-child:is(td, th) {
+        &>tr:last-child>:last-child:is(td, th),
+        &>tbody>tr:last-child>:last-child:is(td, th) {
             border-bottom-right-radius: var(--border-radius);
-            ;
         }
     }
 
-    & tfoot tr:last-child {
-        & :last-child:is(td, th) {
+    & tfoot>tr:last-child {
+        &>:last-child:is(td, th) {
             border-bottom-right-radius: var(--border-radius);
         }
 
-        & :first-child:is(td, th) {
+        &>:first-child:is(td, th) {
             border-bottom-left-radius: var(--border-radius);
         }
 
@@ -818,20 +875,16 @@ table {
 
 
     &:has(thead) {
-        &>tbody>tr:first-child td {
+        &>tbody>tr:first-child>td {
             border-top: none;
-
-            &:first-child,
-            &:last-child {
-                border-radius: 0px;
-            }
         }
     }
 
     &:not(:has(tbody)),
     &>tbody {
-        &>tr:first-child td {
+        &>tr:first-child>td {
             border-top: var(--border-width) solid var(--border-color);
+            border-top-width: var(--border-width);
         }
     }
 }
@@ -855,7 +908,7 @@ table {
     border-radius: var(--border-radius);
     margin-top: 0.8em;
     margin-bottom: 0.2em;
-    box-sizing: border-box;
+
     overflow-x: auto;
     flex-basis: fit-content;
     border-color: var(--border-color);
@@ -868,7 +921,7 @@ table {
     border-width: var(--border-width);
     margin-top: 0.8em;
     margin-bottom: 0.2em;
-    box-sizing: border-box;
+
     max-width: 100vw;
     overflow: auto;
     border-radius: var(--border-radius);
@@ -928,30 +981,96 @@ header:not(.undecorated) .tool-bar {
 .stacked-form {
     display: flex;
     flex-direction: column;
+
+    & label:has(*) {
+        display: inline-block;
+        text-align: start;
+    }
+
+
+    &>*,
+    & fieldset>* {
+        flex-basis: 90%;
+        margin-block-end: var(--padding);
+        margin-block-start: 0px;
+        margin-inline-start: var(--padding);
+        margin-inline-end: var(--padding);
+    }
+
+    &>:is(p, div, section) {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: calc(100% - calc(var(--padding) * 2));
+        padding: 0px;
+        gap: var(--padding);
+
+        &>:first-child {
+            margin-inline-start: 0px;
+        }
+    }
+
+    & * {
+        width: auto;
+    }
+
+
+    & label {
+        width: auto;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        padding: 0px;
+
+        &>:is(input:not(input[type=radio], input[type=checkbox]), select) {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        &:has(input[type="radio"], input[type="checkbox"]) {
+            flex-direction: row;
+        }
+    }
+
+
+    & :is(input:not([type='checkbox'], [type="radio"]), select, label) {
+        min-width: 6em;
+    }
 }
 
-.stacked-form>* {
-    flex-basis: 90%;
+/*This is a fallback for Firefox.  It's not great but it makes
+it usable.  Remove when FF fully supports :has()*/
+.stacked-form *::has(input[type="radio"], input[type="checkbox"]) {
+    flex-direction: row;
+}
+
+.stacked-form label input[type='checkbox'],
+.stacked-form label input[type='radio'] {
+    place-self: baseline;
 }
 
 .flex-col {
     display: flex;
     flex-wrap: wrap;
     flex-direction: column;
+
+    /*Nicer input stacking*/
+    &>label:has(+input) {
+        margin-block-end: 4px;
+    }
 }
 
 .flex-col>* {
-    box-sizing: border-box;
     flex: 1 1 auto;
     flex-basis: fit-content;
     margin-block-end: var(--gap);
 }
 
-.flex-col>*:last-child:not(label, input, button, select, .tool-bar) {
+.flex-col>:last-child:not(label, input, button, select, .tool-bar) {
     margin-block-end: 0px;
 }
 
-.flex-col>*:nth-last-child(2):not(label, input, button, select, .tool-bar) {
+.flex-col>:nth-last-child(2):not(label, input, button, select, .tool-bar, p) {
     margin-block-end: 0px;
 }
 
@@ -971,7 +1090,7 @@ header:not(.undecorated) .tool-bar {
 
 
 .flex-row>* {
-    box-sizing: border-box;
+
     flex-basis: fit-content;
     margin: 0px;
 }
@@ -1129,7 +1248,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
 .w-full {
     width: 100%;
-    box-sizing: border-box;
+
     flex-basis: 100%;
 }
 
@@ -1282,9 +1401,8 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     height: 60rem;
 }
 
-.flex-col {
-
-
+.flex-col,
+.stacked-form {
     &>.h-1rem {
         flex-basis: 1rem;
     }
@@ -1405,13 +1523,17 @@ iframe.h-center {
     backdrop-filter: none !important;
 }
 
+.border {
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--border-radius);
+}
 
 .nogaps {
     gap: 0px;
 
-    &>*:not(.specificity_hack) {
+    &>:not(.specificity_hack) {
         margin: 0px;
-        box-sizing: border-box;
+
         margin-block-end: 0px;
     }
 }
@@ -1500,6 +1622,7 @@ footer.padding {
 .align-center {
     text-align: center;
     justify-content: center;
+    place-items: center;
 }
 
 .flex-col.align-center {
@@ -1741,7 +1864,7 @@ footer.padding {
         }
     }
 
-    & :is(meter, a, .button, button) {
+    & :is(a, .button, button) {
         width: fit-content;
     }
 
@@ -1771,13 +1894,17 @@ footer.padding {
         background: var(--convex-item-bg);
     }
 
-    & meter {
+    & meter,
+    & input[type=range] {
         min-height: 100%;
         flex-grow: 25;
+        width: 4em;
+        flex-basis: 4em;
     }
 
     & input[type=range] {
-        flex-grow: 35;
+        flex-basis: 4em;
+        flex-grow: 20;
         background: var(--concave-item-bg);
     }
 
@@ -1804,6 +1931,10 @@ footer.padding {
             flex-grow: 50;
         }
 
+        &:has(meter) {
+            flex-grow: 10;
+        }
+
         &>input {
             background-color: var(--alt-control-bg);
             flex-grow: 5;
@@ -1826,8 +1957,6 @@ footer.padding {
         &:is(input, select) {
             border: none;
         }
-
-
 
     }
 
@@ -1862,16 +1991,31 @@ footer.padding {
     }
 
 
-    /*The boder puts an ugly white line on the meter*/
-
     &>*:not(meter),
     &>form>*:not(meter) {
         border: var(--tool-bar-element-border);
     }
 
+    &>meter {
+        height: var(--control-height);
+        border: var(--tool-bar-element-border);
+        padding: 0px;
+    }
 
     &>input:not([type="submit"]) {
         border: var(--tool-bar-element-border);
+    }
+
+    & label {
+
+        /*Label BG should match element bg*/
+        &:has(input[type="range"]) {
+            background: var(--concave-item-bg);
+        }
+
+        &>input[type="range"] {
+            background: none;
+        }
     }
 
 }
@@ -1889,17 +2033,17 @@ footer.padding {
 }
 
 /* Other browsers */
-*::-webkit-scrollbar {
+::-webkit-scrollbar {
     width: var(--scrollbar-width);
     background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
 }
 
-*::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
     background-color: color-mix(in srgb, var(--accent-color) 15%, var(--control-bg));
     border-radius: 0px;
 }
 
-*::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
     background-color: var(--control-fg);
     border-radius: calc(min(var(--border-radius), 5px));
     border: none;
@@ -1931,6 +2075,7 @@ footer.padding {
 /****/
 input[type=range] {
     -webkit-appearance: none;
+    appearance: none;
     background-color: transparent;
     border: none;
     --concave-item-box-shadow: none;
@@ -2007,6 +2152,18 @@ meter {
     /* For Firefox */
     border-radius: var(--control-border-radius);
     border-color: var(--control-border-color);
+    padding: 0px;
+}
+
+*::-moz-meter-bar {
+    width: 100% !important;
+    display: block !important;
+    flex-grow: 1;
+    height: 12px;
+    background: var(--control-bg);
+    border: var(--thin-border);
+    border-radius: var(--control-border-radius);
+    margin-top: calc(calc(var(--control-height) - 12px) / 2);
 }
 
 /* WebKit */
@@ -2042,12 +2199,6 @@ meter::-webkit-meter-even-less-good-value {
     background: var(--danger-color);
 }
 
-
-/* Firefox */
-meter::-moz-meter-bar {
-    border-radius: var(--control-border-radius);
-}
-
 meter:-moz-meter-optimum::-moz-meter-bar {
     background: var(--success-color);
 }
@@ -2059,6 +2210,8 @@ meter:-moz-meter-sub-optimum::-moz-meter-bar {
 meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
     background: var(--danger-color);
 }
+
+
 
 /*Catch icons*/
 i[class],
@@ -2072,7 +2225,8 @@ button,
 a,
 input,
 select,
-tr {
+tr,
+label {
     transition: color 0.2s ease, background 0.2s ease;
 }
 
@@ -2081,12 +2235,12 @@ tr {
     button:hover,
     .button:hover,
     a:hover,
-    button:hover *:not(i, b, small, span),
-    a:hover *:not(i, b, small, span),
-    .tool-bar>*:hover,
+    button:hover :not(i, b, small, span),
+    a:hover :not(i, b, small, span),
+    .tool-bar>:hover,
     .tool-bar>a:hover,
     input:not([type='submit']):not([type='range']):hover,
-    header:not(.undecorated)>:only-child :is(button, .button, input[type='submit']):hover,
+    header:not(.undecorated)>:only-child :is(button, .button, input:is([type='submit'], [type='button'])):hover,
     header:not(.undecorated)>.tool-bar:only-child :is(input, button, select, a):hover,
     input:hover,
     select:hover,
@@ -2094,6 +2248,19 @@ tr {
         color: var(--accent-color);
         --fg: var(--accent-color);
         background-color: var(--hover-color)
+    }
+
+    /*Non toolbsar things don't have a background normally*/
+    .tool-bar input[type='range']:hover {
+        background-color: var(--hover-color);
+    }
+
+    .tool-bar label:hover {
+        background-color: var(--hover-color);
+    }
+
+    label:hover {
+        color: var(--accent-color);
     }
 
 }
