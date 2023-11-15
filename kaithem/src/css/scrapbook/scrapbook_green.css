@@ -10,8 +10,8 @@
     --bg: linear-gradient(177deg, rgb(245 247 255 / 34%) 0%, rgba(101, 143, 87, 0.493) 100%), url(scrapbook/grunge_green.webp);
     --fg: #101a10;
     --box-bg: rgb(219 229 201 / 64%);
-    --3d-highlight: #cedfce38;
-    --3d-shadow: #1a471512;
+    --3d-highlight: rgb(219 229 201);
+    --3d-shadow: rgb(202 211 186);
     --hover-color: rgba(150, 255, 250, 0.2);
 }
 

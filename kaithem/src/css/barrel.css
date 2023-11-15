@@ -110,18 +110,19 @@ h6 {
     --control-border-radius: 0.8rem;
     --control-border-width: 1px;
 
-    --3d-highlight: color-mix(in srgb, var(--box-bg) 50%, rgba(241, 241, 241, 0.695));
-    --3d-shadow: color-mix(in srgb, var(--box-bg) 50%, rgba(0, 0, 0, 0.101));
-
-    /*3D buttons are mostly transparent with just some highlights and shadows.*/
-    --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 3%, var(--3d-highlight) 64%);
-    --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
-    --convex-item-active-bg: var(--concave-item-bg);
-    --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
-
     /*control-bg also applies to small elements like headers*/
     --control-bg: var(--grey-1);
     --control-fg: var(--graphical-fg);
+
+
+    --3d-highlight: color-mix(in srgb, var(--control-bg) 25%, rgba(241, 241, 241, 100%));
+    --3d-shadow: color-mix(in srgb, var(--control-bg) 98%, rgba(0, 0, 0, 100%));
+
+    --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 3%, var(--3d-highlight) 45%);
+    --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
+    --convex-item-active-bg: var(--concave-item-bg);
+    --concave-item-box-shadow: inset 0px 0px 4px 2px #38383815;
+
 
     /*Used for headers, trays, and anything smaller than a box and bigger than a button*/
     --alt-control-bg: color-mix(in srgb, var(--control-bg) 90%, #816e23);
@@ -152,6 +153,7 @@ h6 {
 
     --heading-text-shadow: none;
     --control-text-shadow: none;
+    --slider-thumb: var(--convex-item-bg);
 }
 
 /*Less likely stuff for user to change, intermediate vars in complex logic*/
@@ -2142,7 +2144,7 @@ input[type=range]::-webkit-slider-thumb {
     margin-top: -7.8px;
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
-    background-color: var(--highlight-color);
+    background: var(--slider-thumb);
     border: var(--control-border);
     border-width: 2px;
     border-radius: 100px;
@@ -2159,7 +2161,7 @@ input[type="range"]::-moz-range-track {
 input[type=range]::-moz-range-thumb {
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
-    background-color: var(--highlight-color);
+    background: var(--slider-thumb);
     border: var(--control-border);
     border-width: 2px;
     border-radius: 100px;

@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
   --phosphor-color: #ffd477;
-  --highlight-color: #ffd477;
+  --highlight-color: color-mix(in srgb, var(--phosphor-color) 50%, rgb(255, 202, 87));
 
   --tool-bar-element-border: var(--phosphor-color) solid 1px;
   --concave-item-bg: rgba(0, 0, 0, 0.0);
@@ -10,8 +10,7 @@
   --control-border-radius: 0px;
   --border-radius: 0px;
   --graphical-fg: var(--phosphor-color);
-  --accent-color: #f8bc15;
-  --border-color: var(--phosphor-color);
+  --accent-color: color-mix(in srgb, var(--phosphor-color) 50%, rgb(255 155 0));
   --fg: var(--phosphor-color);
   --box-bg: #41401975;
   --bg: linear-gradient(#4b3700bd 1px, transparent 1px), linear-gradient(to right, #4b3700ab 1px, #000000 1px);
@@ -21,6 +20,7 @@
   --control-bg: rgba(75, 73, 26, 0.459);
 
   --concave-item-box-shadow: none;
+  --slider-thumb: var(--phosphor-color);
 
 
 }
