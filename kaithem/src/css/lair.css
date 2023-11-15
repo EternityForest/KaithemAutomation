@@ -3,7 +3,7 @@
     --red: rgb(255, 0, 119);
     --fg: #cdb8a6;
     --graphical-fg: #1a091a;
-    --accent-color: rgb(186 20 151);
+    --accent-color: rgb(151 41 102);
     --bg: #49011c;
     --box-bg: #2e2424;
     --padding: 2px;
@@ -11,13 +11,14 @@
     --border-color: #1a091a;
     --border-radius: 0rem;
     --control-border-radius: 0px;
-    --control-border-width: 1px;
-    --3d-highlight: #9d005f;
-    --3d-shadow: #5c3c3c;
+    --control-border-width: 2px;
+    --control-border-color: black;
+    --3d-highlight: #8b053d;
+    --3d-shadow: #73043d;
     --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 12%, var(--3d-highlight) 88%);
     --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
     --convex-item-active-bg: var(--concave-item-bg);
-    --concave-item-box-shadow: inset 0px 0px 4px 2px #171616bf;
+    --concave-item-box-shadow: #17161659;
     --control-bg: #482155;
     --alt-control-bg: #620d38;
     --control-fg: #cdb8a6;

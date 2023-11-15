@@ -56,7 +56,7 @@ h6 {
     --black-3: #545862;
     --black-4: #5C555D;
 
-    --grey-1: #e5e4e1;
+    --grey-1: #e1ded7;
     --grey-2: #f1f1f1;
     --grey-3: #F8F9FA;
 
@@ -100,20 +100,21 @@ h6 {
 
     /*Borders*/
     --border-color: color-mix(in srgb, var(--graphical-fg) 50%, rgb(0 0 0 / 0%));
-
+    --border-style: solid;
     --border-radius: 1.2rem;
     --border-width: 1px;
 
+    --border: var(--border-width) var(--border-style) var(--border-color);
     /*Inputs, buttons, etc*/
     --control-height: 1.6rem;
-    --control-border-radius: 12px;
+    --control-border-radius: 0.8rem;
     --control-border-width: 1px;
 
     --3d-highlight: color-mix(in srgb, var(--box-bg) 50%, rgba(241, 241, 241, 0.695));
     --3d-shadow: color-mix(in srgb, var(--box-bg) 50%, rgba(0, 0, 0, 0.101));
 
     /*3D buttons are mostly transparent with just some highlights and shadows.*/
-    --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 12%, var(--3d-highlight) 88%);
+    --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 3%, var(--3d-highlight) 64%);
     --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
     --convex-item-active-bg: var(--concave-item-bg);
     --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
@@ -146,6 +147,11 @@ h6 {
     --table-border-strength: 50%;
 
     --thin-border: 1px solid var(--border-color);
+    --control-border: var(--control-border-width) solid var(--control-border-color);
+
+
+    --heading-text-shadow: none;
+    --control-text-shadow: none;
 }
 
 /*Less likely stuff for user to change, intermediate vars in complex logic*/
@@ -172,7 +178,7 @@ h6 {
         --graphical-fg: grey !important;
         --concave-item-box-shadow: none !important;
         --heading-font: var(--sans-font) !important;
-
+        --hover-color: transparent;
     }
 
     * {
@@ -197,6 +203,19 @@ h6 {
         display: none;
     }
 
+    input[type="checkbox"] {
+        background: none !important;
+
+        &.toggle::before {
+            border-color: black !important;
+            background-color: black !important;
+
+        }
+    }
+
+    form {
+        break-inside: avoid;
+    }
 }
 
 /* Stuff that should print as is */
@@ -236,8 +255,8 @@ input[type=range],
         --fg: var(--grey-3);
         --graphical-fg: var(--grey-1);
 
-        --concave-item-bg: none;
-        --convex-item-bg: none;
+        --concave-item-bg: var(--control-bg);
+        --convex-item-bg: var(--control-bg);
         --convex-item-active-bg: var(--grey-1);
         --concave-item-box-shadow: none;
     }
@@ -352,9 +371,13 @@ label:has(*) {
     text-align: start;
 }
 
-
+form {
+    color: var(--control-fg);
+    text-shadow: var(--control-text-shadow);
+}
 
 label {
+    color: var(--control-fg);
     min-width: max-content;
     padding-inline-start: var(--padding);
 
@@ -398,13 +421,13 @@ select {
 
 
 textarea:disabled {
-    background-color: color-mix(in srgb, var(--control-bg) 50%, var(--bg) 50%);
+    background-color: color-mix(in srgb, var(--control-bg) 50%, var(--box-bg) 50%);
     color: var(--control-fg);
 }
 
 details {
     margin: 0.4em;
-    border: var(--border-width) solid var(--border-color);
+    border: var(--border);
     padding-left: 0.4em;
     border-radius: var(--border-radius);
 }
@@ -487,11 +510,20 @@ select {
 
 button,
 .button,
+input:is([type='submit'], [type='button']),
+label,
+.tool-bar :is(p, h1, h2, h3, h4, h5) {
+    text-shadow: var(--control-text-shadow);
+}
+
+button,
+.button,
 input:is([type='submit'], [type='button']) {
     background: var(--convex-item-bg);
     text-decoration: none;
-    border: var(--control-border-width) solid var(--control-border-color);
+    border: var(--control-border);
     color: var(--control-fg);
+    text-shadow: var(--control-text-shadow);
     padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
 }
@@ -512,7 +544,7 @@ select {
 
 input:not([type='checkbox'], [type="radio"]),
 textarea {
-    border: var(--border-width) solid var(--control-border-color);
+    border: var(--control-border);
     box-shadow: var(--concave-item-box-shadow);
 }
 
@@ -524,7 +556,7 @@ textarea {
 }
 
 fieldset {
-    border: var(--border-width) solid var(--control-border-color);
+    border: var(--border-width) solid var(--border-color);
     border-radius: var(--border-radius);
 }
 
@@ -581,6 +613,7 @@ h4 {
     text-align: center;
     padding-inline-end: var(--header-padding);
     padding-inline-start: var(--header-padding);
+    text-shadow: var(--heading-text-shadow);
 }
 
 
@@ -594,7 +627,7 @@ h3:first-of-type {
 hr {
     background-color: transparent;
     border: none;
-    border-top: var(--border-width) solid var(--border-color);
+    border-top: var(--border);
     height: var(--border-width);
     margin: var(--padding);
 }
@@ -617,13 +650,13 @@ footer {
 footer {
     margin-top: var(--padding);
     border-radius: 0px 0px inherit inherit;
-    border-top: var(--border-width) solid var(--border-color);
+    border-top: var(--border);
 }
 
 header {
     margin-bottom: var(--padding);
     border-radius: inherit inherit 0px 0px;
-    border-bottom: var(--border-width) solid var(--border-color);
+    border-bottom: var(--border);
     break-after: avoid;
 
 
@@ -665,6 +698,10 @@ header {
                 border-radius: var(--control-border-radius);
             }
 
+            &>label {
+                gap: 2px;
+            }
+
             &>label,
             &>p {
                 &>* {
@@ -698,7 +735,7 @@ header {
 
             & input,
             & label>input {
-                border: var(--control-border-width) solid var(--control-border-color);
+                border: var(--control-border);
             }
 
         }
@@ -707,7 +744,7 @@ header {
 
 :is(section, article, div):not(.window, .card)> :is(header, footer) {
     border-radius: var(--border-radius);
-    border: var(--border-width) solid var(--border-color);
+    border: var(--border);
     margin-left: auto;
     margin-right: auto;
     width: 90%;
@@ -760,13 +797,13 @@ table {
 
     &>thead {
         &>tr:last-child>th {
-            border-bottom: var(--border-width) solid var(--border-color);
+            border-bottom: var(--border);
         }
     }
 
     &>thead>tr:first-child>th,
     &>:first-child>tr:first-child>:is(td, th) {
-        border-top: var(--border-width) solid var(--border-color);
+        border-top: var(--border);
     }
 
     /*This makes tables easier to read by coloring alternate rows differently.*/
@@ -786,7 +823,7 @@ table {
 
     & td input,
     & td select {
-        border: var(--border-width) solid var(--border-color);
+        border: var(--border);
 
         margin: 0px;
         width: auto;
@@ -801,8 +838,8 @@ table {
 
     & tr th,
     & tr td {
-        border-right: var(--border-width) color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent) solid;
-        border-bottom: var(--border-width) color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent) solid;
+        border-right: 1px color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent) solid;
+        border-bottom: 1px color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent) solid;
         padding: calc(var(--padding)/3);
 
         &:first-child,
@@ -917,8 +954,7 @@ table {
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 .window {
     background: var(--box-bg);
-    border-style: solid;
-    border-width: var(--border-width);
+    border: var(--border);
     margin-top: 0.8em;
     margin-bottom: 0.2em;
 
@@ -1524,7 +1560,7 @@ iframe.h-center {
 }
 
 .border {
-    border: var(--border-width) solid var(--border-color);
+    border: var(--border);
     border-radius: var(--border-radius);
 }
 
@@ -1739,7 +1775,7 @@ footer.padding {
 }
 
 .tool-bar {
-    --tool-bar-element-border: var(--control-border-width) solid var(--control-border-color);
+    --tool-bar-element-border: var(--control-border);
     --header-padding: 0px;
     flex-basis: max-content;
     display: flex;
@@ -1750,8 +1786,8 @@ footer.padding {
     flex-grow: 1;
     vertical-align: middle;
     height: fit-content;
-    align-items: center;
-    align-content: center;
+    align-items: flex-start;
+    align-content: flex-start;
     box-sizing: border-box;
     background-clip: content-box;
     gap: 0px;
@@ -1855,7 +1891,7 @@ footer.padding {
         margin: 0px;
         line-height: var(--control-height);
 
-        &:has(input) {
+        &:has(input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"], [type="button"])) {
             flex-grow: 50;
         }
 
@@ -1874,7 +1910,7 @@ footer.padding {
 
     /*Most likely to make good use of the extra space*/
 
-    & input:not([type="submit"]),
+    & input:not([type="submit"], [type="checkbox"], [type="radio"]),
     & select {
         flex-grow: 50;
     }
@@ -1908,6 +1944,11 @@ footer.padding {
         background: var(--concave-item-bg);
     }
 
+    /*repeat here, specificity issue*/
+    & input[type="checkbox"].toggle {
+        width: calc(var(--control-height) * 1.77) !important;
+    }
+
 
 
     &>label {
@@ -1924,10 +1965,10 @@ footer.padding {
         border-bottom: var(--tool-bar-element-border);
         border: 0px;
         text-align: right;
-        place-content: center;
-        align-items: center;
+        place-content: flex-start;
+        align-items: flex-start;
 
-        &:has(input) {
+        &:has(input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"], [type="button"])) {
             flex-grow: 50;
         }
 
@@ -1937,7 +1978,13 @@ footer.padding {
 
         &>input {
             background-color: var(--alt-control-bg);
-            flex-grow: 5;
+
+            &:not([type="checkbox"], [type="radio"]) {
+                flex-grow: 5;
+                border-top: none;
+                border-bottom: none;
+                border-inline-end: none;
+            }
         }
 
         /*Exception: the first item always growable so it can be the title*/
@@ -1985,7 +2032,7 @@ footer.padding {
     & meter::-webkit-meter-inner-element {
         -webkit-appearance: inherit;
         box-sizing: inherit;
-        border: var(--control-border-width) solid var(--control-border-color);
+        border: var(--control-border);
         height: var(--control-height);
     }
 
@@ -2015,6 +2062,10 @@ footer.padding {
         &>input[type="range"] {
             background: none;
         }
+    }
+
+    & .spacer {
+        flex-grow: 1;
     }
 
 }
@@ -2082,7 +2133,7 @@ input[type=range] {
 
 input[type="range"]::-webkit-slider-runnable-track {
     background-color: color-mix(in srgb, var(--control-bg) 70%, var(--control-fg));
-    border: var(--thin-border);
+    border: var(--control-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
 }
@@ -2092,15 +2143,15 @@ input[type=range]::-webkit-slider-thumb {
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
     background-color: var(--highlight-color);
-    border: var(--thin-border);
+    border: var(--control-border);
     border-width: 2px;
     border-radius: 100px;
     -webkit-appearance: none;
 }
 
-input[type=range]::-moz-range-track {
-    background-color: color-mix(in srgvb, var(--control-bg) 70%, var(--control-fg));
-    border: var(--thin-border);
+input[type="range"]::-moz-range-track {
+    background-color: color-mix(in srgb, var(--control-bg) 70%, var(--control-fg));
+    border: var(--control-border);
     border-radius: 250px;
     height: calc(var(--control-height) / 3);
 }
@@ -2108,8 +2159,8 @@ input[type=range]::-moz-range-track {
 input[type=range]::-moz-range-thumb {
     width: calc(var(--control-height) / 1.6);
     height: calc(var(--control-height) / 1.2);
-    background-color: color-mix(in srgb, var(--accent-color) 50%, var(--control-bg));
-    border: var(--thin-border);
+    background-color: var(--highlight-color);
+    border: var(--control-border);
     border-width: 2px;
     border-radius: 100px;
 }
@@ -2231,45 +2282,132 @@ meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
 
 /*Checkbox*/
 
-input[type='checkbox'] {
-    -webkit-appearance: none !important;
+input[type='checkbox'],
+input[type='radio'],
+:is(input[type='checkbox'], input[type='radio'])::before {
+    -webkit-print-color-adjust: exact;
+    /* Chrome, Safari 6 – 15.3, Edge */
+    color-adjust: exact;
+    /* Firefox 48 – 96 */
+    print-color-adjust: exact;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+    -webkit-appearance: none;
     border-radius: 50px;
     appearance: none;
     background: var(--concave-item-bg);
     box-shadow: var(--concave-item-box-shadow);
-    border: var(--control-border-width) solid var(--control-border-color);
+    border: var(--control-border);
+    width: var(--control-height);
     height: var(--control-height);
-    width: calc(var(--control-height) * 1.77);
+    flex-grow: 0 !important;
     --slider-position: 0px;
 }
 
-input[type='checkbox']:checked {
-    position: relative;
-    --slider-position: calc(var(--control-height) * 0.77);
+input[type="radio"] {
+
+    &::before {
+        transition: background 0.4s ease, height 0.1s ease, width 0.1s ease;
+        background: none;
+        content: "";
+        position: relative;
+        display: inline-block;
+        box-sizing: border-box;
+        border: none;
+        border-radius: 50px;
+        margin: 0px;
+        padding: 0px;
+        top: 5px;
+        left: 5px;
+        height: 0px;
+        width: 0px;
+    }
+
+    &:checked::before {
+        transition: background 0.4s ease, height 0.1s ease, width 0.1s ease;
+        height: calc(calc(var(--control-height) - calc(var(--control-border-width) *2)) - 10px);
+        width: calc(calc(var(--control-height) - calc(var(--control-border-width) *2)) - 10px);
+        background: var(--control-fg);
+    }
 }
 
-input[type='checkbox']:checked::before {
-    background: var(--highlight-color);
+
+
+input[type='checkbox']:not(.toggle) {
+    border-radius: calc(var(--control-border-radius) / 2);
+
+    &:checked {
+        position: relative;
+        background: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
+    }
+
+    &::before {
+        transition: border-color 0.4s ease, width 0.25s ease, height 0.25s ease;
+        width: 0px;
+        height: 0px;
+        content: "";
+        background: transparent;
+        border-color: transparent;
+        display: block;
+        position: relative;
+
+    }
+
+    &:checked::before {
+        transition: border-color 0.4s ease, width 0.25s ease, height 0.25s ease;
+        content: "";
+        transform: rotate(45deg);
+
+        margin: 0px;
+        padding: 0px;
+        border-color: var(--control-fg);
+
+        border-bottom: 4px solid;
+        border-right: 4px solid;
+        left: calc(var(--control-height) / 4);
+
+        height: calc(var(--control-height) / 1.3);
+        width: calc(var(--control-height) / 2.3);
+    }
 }
 
-
-input[type='checkbox']:before {
-    content: "";
-    position: relative;
-    display: inline-block;
-    box-sizing: border-box;
-    border: var(--control-border-width) solid var(--control-border-color);
-    left: var(--slider-position);
+input[type="checkbox"].toggle {
     border-radius: 50px;
-    margin: 0px;
-    padding: 0px;
-    height: calc(var(--control-height) - calc(var(--control-border-width) *2));
-    width: calc(var(--control-height) - calc(var(--control-border-width) *2));
-    background: var(--convex-item-bg);
-    transition: left 0.25s ease, background 0.25s ease;
+    width: calc(var(--control-height) * 1.77) !important;
+    --slider-position: var(--control-border-width);
+
+    &:checked {
+        position: relative;
+        --slider-position: calc(calc(var(--control-height) * 0.777) + var(--control-border-width));
+    }
+
+    &:checked::before {
+        background: var(--highlight-color);
+    }
+
+    &:before {
+        content: "";
+        box-shadow: var(--concave-item-box-shadow);
+
+        position: relative;
+        display: inline-block;
+        box-sizing: border-box;
+        border: var(--control-border);
+        left: var(--slider-position);
+        top: var(--control-border-width);
+        vertical-align: middle;
+        border-radius: 50px;
+        margin: 0px;
+        padding: 0px;
+        height: calc(100% - calc(var(--control-border-width) *2));
+        aspect-ratio: 1;
+        background: var(--convex-item-bg);
+        transition: left 0.25s ease, background 0.4s ease;
+    }
+
 }
-
-
 
 /*Catch icons*/
 i[class],

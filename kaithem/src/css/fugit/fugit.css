@@ -1,6 +1,8 @@
 :root {
   color-scheme: dark;
   --phosphor-color: #ffd477;
+  --highlight-color: #ffd477;
+
   --tool-bar-element-border: var(--phosphor-color) solid 1px;
   --concave-item-bg: rgba(0, 0, 0, 0.0);
   --convex-item-bg: rgba(0, 0, 0, 0.0);

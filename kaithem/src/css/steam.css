@@ -1,0 +1,67 @@
+/*
+Unlike most of Barrel.css, this is NOT public domain, as it uses the Nord color scheme:
+
+MIT License (MIT)
+
+Copyright (c) 2016-present Sven Greb <development@svengreb.de> (https://www.svengreb.de)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+:root {
+    --teal: #8bc7d9;
+    --3d-highlight: rgb(245 237 20);
+    --3d-shadow: rgb(223 160 17);
+    --bg: linear-gradient(175deg, rgba(255, 255, 255, 0) 7vh, rgba(255, 255, 255, 0.1882528011204482) 30vh, rgba(208, 208, 208, 0) 70vh, rgba(0, 0, 0, 0) 80vh),
+        linear-gradient(126deg, rgba(255, 255, 255, 0) 7%, rgba(255, 255, 255, 0.1282528011204482) 30%, rgba(208, 208, 208, 0) 40%, rgba(6, 70, 50, 0.136) 90%),
+        url(./Wood066_1K-JPG_Color.webp);
+    --box-bg: #ffa32ca3;
+    --fg: #1e1200;
+    --accent-color: #eaff2f;
+    --control-fg: #412b00;
+    --control-bg: #d7a437;
+    --concave-item-box-shadow: inset 0px 0px 6px 3px #38383847;
+    --heading-text-shadow: 2px 2px 3px #896e12;
+    --control-text-shadow: 1px 1px 2px #f5d48947;
+    --control-border-color: #815007;
+    --alt-control-bg: #f1c6226b;
+    --window-box-shadow: 2px 2px 6px 4px #2b1400c7;
+    --border-color: #d7a905;
+    --border-style: outset;
+    --border-width: 3px;
+    --control-border-width: 1px;
+    --item-box-shadow: 2px 2px 3px 1px #2b140021;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {}
+}
+
+.window {
+    backdrop-filter: blur(2px);
+}
+
+:is(.card, .window)>header {
+    background: var(--convex-item-bg);
+}
+
+/*Override the default flattening*/
+:is(.card, .window)>:is(header, footer):not(.undecorated) {
+    --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
+}

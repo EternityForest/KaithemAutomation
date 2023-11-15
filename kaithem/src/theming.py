@@ -48,6 +48,7 @@ banderole = Theme("banderole", "/static/css/banderole/banderole.css")
 nord = Theme("nord", "/static/css/nord.css")
 blast = Theme("blast", "/static/css/blast.css")
 lair = Theme("lair", "/static/css/lair.css")
+steam = Theme("steam", "/static/css/steam.css")
 
 
 def getCSSTheme():
