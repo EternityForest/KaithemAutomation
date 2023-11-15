@@ -32,14 +32,17 @@ select {
     font: inherit;
 }
 
-
+a,
 p,
 h1,
 h2,
 h3,
 h4,
 h5,
-h6 {
+h6,
+li,
+dt,
+dd {
     overflow-wrap: break-word;
 }
 
@@ -47,6 +50,7 @@ h6 {
 #__next {
     isolation: isolate;
 }
+
 
 :root {
     color-scheme: light dark;
@@ -342,6 +346,12 @@ dt {
     margin-block-end: var(--padding);
 }
 
+li,
+dd,
+dt {
+    max-width: 100%;
+}
+
 figcaption {
     margin-inline-start: var(--gap);
 }
@@ -435,7 +445,8 @@ details {
 }
 
 details.help {
-    border: var(--border-width) dotted;
+    border: none;
+
 }
 
 
@@ -507,7 +518,7 @@ button,
 input,
 select {
     min-height: calc(min(var(--control-height), 100%));
-
+    /*Don't set button height, remember they can be multiine*/
 }
 
 button,
@@ -945,9 +956,6 @@ table {
     border-style: solid;
     border-width: var(--border-width);
     border-radius: var(--border-radius);
-    margin-top: 0.8em;
-    margin-bottom: 0.2em;
-
     overflow-x: auto;
     flex-basis: fit-content;
     border-color: var(--border-color);
@@ -957,9 +965,6 @@ table {
 .window {
     background: var(--box-bg);
     border: var(--border);
-    margin-top: 0.8em;
-    margin-bottom: 0.2em;
-
     max-width: 100vw;
     overflow: auto;
     border-radius: var(--border-radius);
@@ -1028,14 +1033,14 @@ header:not(.undecorated) .tool-bar {
 
     &>*,
     & fieldset>* {
-        flex-basis: 90%;
         margin-block-end: var(--padding);
         margin-block-start: 0px;
         margin-inline-start: var(--padding);
         margin-inline-end: var(--padding);
     }
 
-    &>:is(p, div, section) {
+    &>:is(p, div, section),
+    &>fieldset>:is(p, div, section) {
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
@@ -1057,7 +1062,7 @@ header:not(.undecorated) .tool-bar {
         width: auto;
         display: flex;
         flex-direction: column;
-        flex-grow: 1;
+        flex-grow: 0;
         padding: 0px;
 
         &>:is(input:not(input[type=radio], input[type=checkbox]), select) {
@@ -1068,6 +1073,11 @@ header:not(.undecorated) .tool-bar {
         &:has(input[type="radio"], input[type="checkbox"]) {
             flex-direction: row;
         }
+    }
+
+    /*Inline rows of controls*/
+    &>p>label{
+        flex-grow: 1;
     }
 
 
@@ -1108,7 +1118,8 @@ it usable.  Remove when FF fully supports :has()*/
     margin-block-end: 0px;
 }
 
-.flex-col>:nth-last-child(2):not(label, input, button, select, .tool-bar, p) {
+/*Todo find out what this is for*/
+.flex-col>:nth-last-child(2):not(label, input, button, select, .tool-bar, p, .card, .window) {
     margin-block-end: 0px;
 }
 
@@ -1286,7 +1297,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
 .w-full {
     width: 100%;
-
+    max-width: 100%;
     flex-basis: 100%;
 }
 

@@ -10,7 +10,7 @@
 
   --convex-item-active-bg: none;
   --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
-  --control-bg: #b6921717;
+  --control-bg: #e5dcbe;
   --concave-item-bg: var(--control-bg);
   --convex-item-bg: var(--control-bg);
   --border-width: 1px;
@@ -18,6 +18,7 @@
   --control-border-color: #412f1b42;
   --window-box-shadow: 3px 3px 12px 1px rgb(83 49 10 / 31%);
   --item-box-shadow: 1px 1px 3px 0px rgb(0 0 0 / 16%);
+  --slider-thumb: var(--highlight-color);
 }
 
 ::selection {

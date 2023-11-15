@@ -19,9 +19,10 @@
         font-weight: bold;
         align-self: stretch;
         border-radius:0px;
-        height: 100%;
     }
-    
+    .action, .event{
+        height: 6em;
+    }    
     .selected {
         border-width: 4px;
         border-color: darkgrey;
@@ -55,7 +56,7 @@
 <template>
     <div>
         <div>
-            <div style="display:flex;flex-direction:row;">
+            <div class="flex-row">
 
                 <div v-if="selectedCommand==0 && selectedBinding" class="inspector">
                     <h3>Block Inspector</h3>

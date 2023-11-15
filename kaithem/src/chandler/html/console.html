@@ -220,10 +220,11 @@ ${lists}
         </header>
 
         <div class="h-24rem scroll">
+            <div class="flex-col">
             <article v-for="i in formatScenes()" v-if="i" style="position:relative;"
                 v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
-                <header>
+                <header class="padding">
                     <h4>
                     <button v-bind:class="{highlight:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"
                         style="width: 100%">
@@ -308,10 +309,11 @@ ${lists}
                         v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
                 </footer>
             </article>
+            </div>
         </div>
 
 
-        <footer>
+        <footer class="padding">
             <div class="tool-bar">
                 <input v-model="newscenename" placeholder="New scene name" size="4">
                 <button v-on:click="addScene()"><i class="icofont-ui-add"></i>Add</button>
@@ -1008,7 +1010,6 @@ ${lists}
                 <details class="undecorated">
                     <summary><i class="icofont-law-document"></i>Cue Logic</summary>
 
-                    <div style="overflow: auto; max-height:30em;" class="logicbox">
                         <div>
                             <h3>Automation Logic</h3>
                             <details class="help">
@@ -1078,7 +1079,6 @@ ${lists}
                             </div>
                         </div>
 
-                    </div>
                 </details>
 
 
@@ -1099,41 +1099,46 @@ ${lists}
 
 
                     <details class="undecorated">
-                        <summary>Cue Sound/Media</summary>
-                        <div>
-                            <div>
-                                <a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a>
-                                <label>Sound:
+                        <summary>Cue Sound/Media</summary>                                
+                        
+                        <p><a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a></p>
+
+                        <div class="flex-row">        
+
+                            <div class="card">
+                            <header>Cue Sound</header>
+                            <div class="stacked-form w-sm-double">
+                                <label>Sound
                                     <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                                         v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                                 </label>
 
-                                <label>Sound start:
-                                    <input v-model="currentcue.soundStartPosition" style="width:4em;"
+                                <p>
+                                <label>Sound start
+                                    <input v-model="currentcue.soundStartPosition"
                                         v-on:change="setCueSoundStart(currentcueid,currentcue.soundStartPosition)">s
                                     into
                                     file.
                                 </label>
 
 
-                                <label>Media Speed:
-                                    <input type="number" v-model="currentcue.mediaSpeed" style="width:4em;"
+                                <label>Media Speed
+                                    <input type="number" v-model="currentcue.mediaSpeed" 
                                         v-on:change="setCueMediaSpeed(currentcueid,currentcue.mediaSpeed)">
-                                </label>
+                                </label></p>
 
+                                <p>
+                                    <label>Media Windup
+                                        <input type="number" v-model="currentcue.mediaWindUp" 
+                                            v-on:change="setCueMediaWindUp(currentcueid,currentcue.mediaWindUp)">
+                                    </label>
 
-                                <label>Media Windup:
-                                    <input type="number" v-model="currentcue.mediaWindUp" style="width:4em;"
-                                        v-on:change="setCueMediaWindUp(currentcueid,currentcue.mediaWindUp)">
-                                </label>
+                                    <label>Media Winddown
+                                        <input type="number" v-model="currentcue.mediaWinddown" 
+                                            v-on:change="setCueMediaWinddown(currentcueid,currentcue.mediaWinddown)">
+                                    </label>
+                                </p>
 
-                                <label>Media Winddown:
-                                    <input type="number" v-model="currentcue.mediaWinddown" style="width:4em;"
-                                        v-on:change="setCueMediaWinddown(currentcueid,currentcue.mediaWinddown)">
-                                </label>
-
-
-                                <br>
                                 <label>Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
 
                                     <datalist id="soundcards">
@@ -1151,9 +1156,9 @@ ${lists}
                                         v-on:change="setSoundOutput(currentcueid,$event.target.value)"
                                         v-model="cuemeta[currentcueid].soundOutput" placeholder="default"
                                         list="soundcards"></input>
-                                </label><br>
+                                </label>
 
-
+                                <p>
                                 <label>Length relative to media file:
                                     <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.relLength)"
                                         v-model="currentcue.relLength"
@@ -1167,9 +1172,10 @@ ${lists}
                                         style="width:3em" min=0 v-model="currentcue.soundFadeOut"
                                         title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend">
 
-                                </label><br>
+                                </label>
+                                </p>
 
-
+                                <p>
                                 <label>Sound fade in:
                                     <input type="number" v-on:change="setSoundFadeIn(currentcueid,$event.target.value)"
                                         style="width:3em" min=-1 v-model="currentcue.soundFadeIn"
@@ -1179,94 +1185,103 @@ ${lists}
 
                                 <label>Volume modifier for this cue(=expression allowed):
                                     <input v-on:change="setCueVolume(currentcueid,$event.target.value)"
-                                        style="width:5em" min=0 v-model="currentcue.soundVolume">
+                                        min=0 v-model="currentcue.soundVolume">
                                 </label>
 
                                 <label>Loop Sound(-1 for forever)
-                                    <input v-on:change="setCueLoops(currentcueid,$event.target.value)" style="width:5em"
+                                    <input v-on:change="setCueLoops(currentcueid,$event.target.value)"
                                         min=-1 v-model="currentcue.soundLoops">
                                 </label>
+                                </p>
 
 
-                                <br>
+                        
                             </div>
-                            <div class="tool-bar">
-                                <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
-                                    v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
-                                    style="width:60%;">
-                                <button v-on:click="doSoundSearch(soundsearch)">Search</button>
-                                <button v-on:click="soundsearch=''">Clear Search</button>
-                            </div>
-                            <div style="max-height:25em; overflow:auto;">
-
-
-                                <div v-if="soundsearch">
-                                    <table border="1">
-                                        <tr>
-                                            <th>File</th>
-                                            <th>Add to Current</th>
-                                            <th>Add to New</th>
-                                            <th>Preview</th>
-                                        </tr>
-                                        <tr v-for="i in soundsearchresults">
-                                            <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
-                                            <td><button
-                                                    v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
-                                            </td>
-                                            <td><button
-                                                    v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
-                                            </td>
-                                            <td><button
-                                                    v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
-                                            </td>
-                                        </tr>
-                                    </table>
+                        </div>
+                            <div class="w-sm-double flex-col">
+                                <div class="card w-full">
+                                <header><h3>Media browser</h3></header>
+                                <div class="tool-bar">
+                                    <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
+                                        v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
+                                        style="width:60%;">
+                                    <button v-on:click="doSoundSearch(soundsearch)">Search</button>
+                                    <button v-on:click="soundsearch=''">Clear Search</button>
                                 </div>
+                                <div class="scroll h-24rem w-full">
 
-                                <div v-if="soundsearch==''">
-                                    <h4>
-                                        <a title="View in file manager"
-                                            v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
-                                            target="_blank">{{soundfilesdir}}</a>
-                                    </h4>
+                                    <div v-if="soundsearch" class="w-full">
+                                        <table border="1" class="w-full">
+                                            <tr>
+                                                <th>File</th>
+                                                <th>Add to Current</th>
+                                                <th>Add to New</th>
+                                                <th>Preview</th>
+                                            </tr>
+                                            <tr v-for="i in soundsearchresults">
+                                                <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
+                                                <td><button
+                                                        v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button>
+                                                </td>
+                                                <td><button
+                                                        v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button>
+                                                </td>
+                                                <td><button
+                                                        v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
 
-                                    <ul>
-                                        <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
-                                        <li v-on:click="setSoundfileDir(soundfilesdir)">
-                                            <a><i class="icofont-refresh"></i>Refresh</a>
-                                        </li>
-                                        <li v-if="soundfilesdir"
-                                            v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
-                                            <a>..</a>
-                                        </li>
-                                        <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
-                                            <a>{{i[1] || i[0]}}</a>
-                                        </li>
-                                    </ul>
+                                    <div v-if="soundsearch==''">
+                                        <h4>
+                                            <a title="View in file manager"
+                                                v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
+                                                target="_blank">{{soundfilesdir}}</a>
+                                        </h4>
 
-                                    <table border="1">
-                                        <tr>
-                                            <th>File</th>
-                                            <th>Add to Current</th>
-                                            <th>Add to New</th>
-                                            <th>Preview</th>
-                                        </tr>
-                                        <tr v-for="i in soundfileslisting[1]">
-                                            <td>{{i}}</td>
-                                            <td><button
-                                                    v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
-                                            </td>
-                                            <td><button
-                                                    v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button>
-                                            <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button>
+                                        <ul class="w-full">
+                                            <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
+                                            <li v-on:click="setSoundfileDir(soundfilesdir)">
+                                                <a><i class="icofont-refresh"></i>Refresh</a>
+                                            </li>
+                                            <li v-if="soundfilesdir"
+                                                v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
+                                                <a>..</a>
+                                            </li>
+                                            <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
+                                                <a>{{i[1] || i[0]}}</a>
+                                            </li>
+                                        </ul>
 
-                                            </td>
-                                        </tr>
-                                    </table>
+                                        <table border="1" class="w-full">
+                                            <thead>
+                                            <tr>
+                                                <th style="width: 40%;">File</th>
+                                                <th>Add to Current</th>
+                                                <th>Add to New</th>
+                                                <th>Preview</th>
+                                            </tr>
+                                            </thead>
+                                            <tr v-for="i in soundfileslisting[1]">
+                                                <td class="w-12rem">{{i}}</td>
+                                                <td><button
+                                                        v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
+                                                </td>
+                                                <td><button
+                                                        v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button>
+                                                <td><button v-on:click="previewSound(soundfilesdir+i)">Preview</button>
+
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="max-h-12rem scroll border">
-                                <h5>Sound Outputs</h5>
+                            <div class="max-h-12rem scroll border card">
+                                <header>
+                                <h4>Sound Outputs</h4>
+                            </header>
                                 <details class="help">
                                     <summary><i class="icofont-question-circle"></i></summary>To use play videos, you
                                     must
@@ -1300,6 +1315,8 @@ ${lists}
                                     </template>
                                 </dl>
                             </div>
+                        </div>
+
                         </div>
                     </details>
 
@@ -1408,18 +1425,30 @@ ${lists}
                         </summary>
 
                         <div>
-                            <h5>Basic</h5>
-                            <fieldset>
+                            <div class="flex-row">
+                            <fieldset class="stacked-form">
+                                <legend>Basic</legend>
                                 <label>Number
-                                    <input type="number" title="Cue number" style="width:6em"
+                                    <input type="number" title="Cue number"
                                         v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
                                         v-model="currentcue.number">
                                 </label>
+                                <p>
+                                    <label>
+                                        <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
+                                            v-model="currentcue.track"
+                                            title="Track values from previous cue? If false, values not present are always transparent">
+                                            Track
+                                    </label>
 
+                                    <label><input title="If false, dissallow entering cue if it's already running"
+                                            type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
+                                            v-model="currentcue.reentrant">Reentrant</label>
+                                </p>
                                 <label>Probability
                                     <input
                                         title="Probability this cue is selected in random selections. =expressions allowed"
-                                        style="width:6em" v-on:change="setprobability(currentcueid,$event.target.value)"
+                                        v-on:change="setprobability(currentcueid,$event.target.value)"
                                         v-model="currentcue.probability" placeholder="1">
                                 </label>
 
@@ -1434,60 +1463,32 @@ ${lists}
                                         v-on:change="settriggershortcut(currentcueid,$event.target.value)"
                                         v-model="currentcue.triggerShortcut">
                                 </label>
-
-                                <label>Track
-                                    <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
-                                        v-model="currentcue.track"
-                                        title="Track values from previous cue? If false, values not present are always transparent">
-                                </label>
-
-                                <label>Reentrant<input title="If false, dissallow entering cue if it's already running"
-                                        type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
-                                        v-model="currentcue.reentrant"></label>
+   
 
                                 <label>Fadein
                                     <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)"
-                                        style="width:3em" min=0 v-model="currentcue.fade_in">
+                                     min=0 v-model="currentcue.fade_in">
                                 </label>
                                 <label>Length
                                     <input v-on:change="setlength(currentcueid,$event.target.value)"
-                                        v-model="cuemeta[currentcueid].length" style="width:6em" min=0></input>
+                                        v-model="cuemeta[currentcueid].length" min=0></input>
                                 </label>
                                 <label>Randomize Length
                                     <input type="number" v-on:change="setrandomize(currentcueid,$event.target.value)"
                                         title="Randomize the cue length +- this amount"
-                                        v-model="cuemeta[currentcueid].lengthRandomize" style="width:4em" min=0
+                                        v-model="cuemeta[currentcueid].lengthRandomize" min=0
                                         step=0.25></input>
                                 </label>
 
                                 <label>Notes
                                     <input v-on:change="setcuenotes(currentcueid,$event.target.value)"
-                                        v-model="cuemeta[currentcueid].notes" style="width:12em" min=0></input>
+                                        v-model="cuemeta[currentcueid].notes" min=0></input>
                                 </label>
 
                             </fieldset>
-                            <h5 style="flex-basis:100%">Sound</h5>
-                            <fieldset>
-                                <label v-if="showSoundControls">Soundfile
-                                    <input placeholder="No sound file" v-model="currentcue.sound"
-                                        title="File paths are resolved relative to any of the confg sound folders, searching all until a match is found"
-                                        style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
-                                </label>
-                                <label v-if="showSoundControls">Device<a target="_blank"
-                                        href="/settings/mixer">(mixer)</a>
-                                    <input title="set the output device" list="soundcards"
-                                        v-on:change="setSoundOutput(currentcueid,$event.target.value)"
-                                        v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
-                                </label>
 
-                                <label v-if="showSoundControls">Length From Sound
-                                    <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.relLength)"
-                                        v-model="currentcue.relLength"
-                                        title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                                </label>
-                            </fieldset>
-                            <h5 style="flex-basis:100%">Cue Advance</h5>
-                            <fieldset>
+                            <fieldset class="stacked-form">
+                                <legend>Cue Advance</legend>
                                 <label>Next Cue
                                     <div>
                                         <combo-box v-model="cuemeta[currentcueid].next"
@@ -1495,19 +1496,22 @@ ${lists}
                                             :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
                                     </div>
                                 </label>
-
-                                <button v-on:click="gotonext(currentcueid)">
-                                    <i class="icofont-arrow-right"></i>Edit Next</button>
-                                <button
-                                    title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
-                                    v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
-                                    <i class="icofont-copy"></i>Clone to Next</button>
+                                <p>
+                                    <button v-on:click="gotonext(currentcueid)">
+                                        <i class="icofont-arrow-right"></i>Edit Next</button>
+                                    <button
+                                        title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
+                                        v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
+                                        <i class="icofont-copy"></i>Clone to Next</button>
+                                </p>
 
                                 <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
                                     <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">
                                         {{i}}</option>
                                 </datalist>
                             </fieldset>
+                            </div>
+                            </div>
                         </div>
                     </details>
 
@@ -1529,28 +1533,32 @@ ${lists}
 
                 <details class="undecorated">
                     <summary>Scene Settings</summary>
-
+                    <div class="flex-row">
                     <div>
 
-                        <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene
-                            Properties</h4>
                         <!-- <details>
                     <summary>Music Visualization Presets</summary>
                     <textarea v-on:change="setvisualization(scenename,$event.target.value);"
                         v-model="editingScene.musicVisualizations"></textarea>
                 </details> -->
+                <fieldset class="w-sm-full stacked-form">
 
-                        <label>
+                    <legend>Basic</legend>
+                    
+
+                        <p>                    <label>
                             Alpha:<input type="number" max=1 step=0.01 min=0
                                 v-on:change="setalpha(scenename,parseFloat($event.target.value));"
                                 v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
                         </label>
 
                         <label v-if="showLightingControls">Default Alpha:
-                            <input type="number" style="width:4em" max=1 step=0.01 min=0
+                            <input type="number" max=1 step=0.01 min=0
                                 v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.dalpha"></input>
                         </label>
+                    </p>
+
                         <label v-if="showLightingControls">Blend Mode:
                             <select title="This setting controls blending multiple scenes together"
                                 v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend">
@@ -1567,20 +1575,23 @@ ${lists}
                             </select>
                         </label>
 
+                    <p>
+
                         <label>Priority:
-                            <input type='number' min=0 max=100 style="width:3em"
+                            <input type='number' min=0 max=100
                                 v-on:change="setpriority(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.priority">
                         </label>
                         <label>BPM:
-                            <input type='number' min=0 max=100 style="width:5em"
+                            <input type='number' min=0 max=100
                                 v-on:change="setbpm(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.bpm">
                         </label>
                         <button v-on:click="tap(scenename)">
                             <i class="icofont-hand-drag1"></i>Tap</button><br>
+                        </p>
 
-
+<p>
                         <label title="Check this box to make the scene active at startup">Active By Default:
                             <input type="checkbox"
                                 v-on:change="apiCommand(scenename,'setdefaultactive',$event.target.checked)"
@@ -1593,7 +1604,7 @@ ${lists}
                                 v-on:change="apiCommand(scenename,'setbacktrack', $event.target.checked)"
                                 v-model="editingScene.backtrack"></input>
                         </label>
-
+</p>
                         <label v-if="showSoundControls"> Sound Output: <input
                                 title="If not set by a cue, the global setting for the scene is used"
                                 v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
@@ -1608,6 +1619,8 @@ ${lists}
                                 v-model="editingScene.crossfade"></input>s
                         </label>
 
+                </fieldset>
+                        
                         <details class="undecorated">
                             <summary>MQTT Features</summary>
                             <label v-if="showAdvancedControls">MQTT Server:
@@ -1789,6 +1802,7 @@ ${lists}
 
 
                     </div>
+                </div>
 
                 </details>
 
