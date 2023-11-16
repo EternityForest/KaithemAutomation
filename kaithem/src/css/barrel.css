@@ -670,13 +670,15 @@ header {
     break-after: avoid;
 
 
-    & :is(h1, h2, h3, h4) {
+    & :is(h1, h2, h3, h4, h5, h6) {
         padding-inline-start: var(--padding);
-    }
+        text-align: start;
 
-    &>:is(h1, h2, h3, h4):has(button:only-child) {
-        padding: 0px;
-        --header-padding: 0px;
+
+        &:has(button:only-child) {
+            padding: 0px;
+            --header-padding: 0px;
+        }
     }
 
     &:not(.undecorated) {
@@ -685,6 +687,7 @@ header {
         &>:only-child,
         &>:only-child>:only-child {
             border: none;
+            text-align: start;
         }
 
         &>:only-child {
@@ -1073,7 +1076,7 @@ header:not(.undecorated) .tool-bar {
     }
 
     /*Inline rows of controls*/
-    &>p>label{
+    &>p>label {
         flex-grow: 1;
     }
 
@@ -1350,7 +1353,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 }
 
 
-.control-height{
+.control-height {
     height: var(--control-height)
 }
 
