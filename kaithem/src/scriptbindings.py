@@ -297,8 +297,8 @@ def continueIf(v):
     return True if v else None
 
 
-# Use contextInfo.event from inside any function, the value will be a (name,value) tuple for the event
-contextInfo = threading.local()
+# Use context_info.event from inside any function, the value will be a (name,value) tuple for the event
+context_info = threading.local()
 
 predefinedcommands = {
     'return': rval,
@@ -667,7 +667,7 @@ class BaseChandlerScriptContext():
                 val.name = evt
                 self.eventValueStack.append(val)
 
-            contextInfo.event = (evt, val)
+            context_info.event = (evt, val)
             self.variables["_"] = True if val is None else val
             self.stopScriptFlag = False
             try:
@@ -694,7 +694,7 @@ class BaseChandlerScriptContext():
             # The depth must be 0, because there is no event currently running till the queued ones happen.
             # This is not a stack or semaphore!
             self.eventRecursionDepth.d = 0
-            contextInfo.event = None
+            context_info.event = None
 
         # #Propagate events to all children
         # if self.propagateEvents:

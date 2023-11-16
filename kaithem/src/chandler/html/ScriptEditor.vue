@@ -52,8 +52,8 @@ p.small {
 }
 </style>
 <template>
-    <div>
-        <div>
+    <div class="w-full">
+        <div class="w-full">
             <div class="flex-row">
 
                 <div v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem">

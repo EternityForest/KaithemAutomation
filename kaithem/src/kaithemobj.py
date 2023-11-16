@@ -527,7 +527,7 @@ class Kaithem():
         builtin_sounds = sound.builtinSounds
         resolve_sound = sound.resolve_sound
 
-        oggTest = sound.ogg_test
+        ogg_test = sound.ogg_test
 
         directories = config.config['audio-paths']
 

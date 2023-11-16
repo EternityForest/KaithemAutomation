@@ -94,6 +94,7 @@ dd {
     --main-font: var(--sans-font);
     --font-size: 18px;
     --heading-font: var(--main-font);
+    --control-font: var(--main-font);
 
     /*Spacing*/
     --padding: 12px;
@@ -506,7 +507,7 @@ textarea,
 input {
     border-radius: var(--control-border-radius);
     border-color: var(--control-border-color);
-    font-family: inherit;
+    font-family: var(--control-font);
     border-width: var(--control-border-width);
 }
 
@@ -685,12 +686,15 @@ header {
         --convex-item-bg: var(--control-bg);
 
         &>:only-child,
-        &>:only-child>:only-child {
+        &>:only-child>:only-child,
+        & :is(h1, h2, h3, h4, h5, h6)>button {
             border: none;
             text-align: start;
         }
 
-        &>:only-child {
+        &>:only-child,
+        & :is(h1, h2, h3, h4, h5, h6)>button,
+        :is(h1, h2, h3, h4, h5, h6) {
             margin-top: 0px;
             width: 100%;
             flex-grow: 1;
@@ -702,6 +706,7 @@ header {
                 --convex-item-bg: none;
             }
         }
+
 
         /*Treat toolbar only children of a header specially*/
         &>.tool-bar:only-child {
@@ -1078,6 +1083,7 @@ header:not(.undecorated) .tool-bar {
     /*Inline rows of controls*/
     &>p>label {
         flex-grow: 1;
+        flex-basis: min-content;
     }
 
 
@@ -1099,12 +1105,18 @@ it usable.  Remove when FF fully supports :has()*/
 
 .flex-col {
     display: flex;
-    flex-wrap: wrap;
+    /*I don't think there's many use cases for wrapping a column 
+    and in behaves badly in edge cases, so no wrap*/
+    flex-wrap: nowrap;
     flex-direction: column;
 
     /*Nicer input stacking*/
     &>label:has(+input) {
         margin-block-end: 4px;
+    }
+
+    &>.tool-bar {
+        flex-grow: 0;
     }
 }
 
@@ -1266,8 +1278,8 @@ it usable.  Remove when FF fully supports :has()*/
 /*Sizes that are relative to approximately the width of a phone screen.
 A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-full {
-    width: 430px;
-    max-width: calc(min(430px, 100%));
+    width: min(min(430px, 100%), 100vw);
+    max-width: calc(min(430px, 100vw));
     flex-basis: 300px;
     flex-shrink: 1;
     flex-grow: 1;
@@ -1287,11 +1299,18 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 }
 
 .w-sm-double {
-    width: 16cm;
-    max-width: calc(min(28cm, 96vw));
+    width: min(min(28cm, 96vw), 100%);
+    max-width: min(28cm, 96vw);
     flex-basis: 16cm;
     flex-shrink: 1;
     flex-grow: 1;
+}
+
+@media screen and (max-width: 600px) {
+    .w-sm-double {
+        width: min(430px, 100%);
+        max-width: calc(min(430px, 100vw));
+    }
 }
 
 
@@ -2358,7 +2377,6 @@ input[type='checkbox']:not(.toggle) {
 
     &:checked {
         position: relative;
-        background: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
     }
 
     &::before {

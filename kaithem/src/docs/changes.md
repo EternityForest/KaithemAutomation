@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.71.2
+- :bug: Fix contextInfo> context_info snake case bug
+
 ### 0.71.1
 - :bug: Further minor CSS work
 - :bug: Fix mixing board not working on Firefox
