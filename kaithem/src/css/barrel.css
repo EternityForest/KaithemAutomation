@@ -541,7 +541,6 @@ input:is([type='submit'], [type='button']) {
     border: var(--control-border);
     color: var(--control-fg);
     text-shadow: var(--control-text-shadow);
-    padding: 0em 0.2em 0em 0.2em;
     display: inline-block;
 }
 
@@ -2442,6 +2441,7 @@ input[type="checkbox"].toggle {
 i[class],
 button i[class] {
     color: var(--graphical-fg);
+    vertical-align: text-top;
 }
 
 
