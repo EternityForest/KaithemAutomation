@@ -176,8 +176,7 @@ ${lists}
             <button v-on:click="showDMXSetup=!showDMXSetup"><i class="icofont-globe"></i>Universes</button>
             <button v-on:click="showhidefixtures"><i class="icofont-pencil"></i> Fixture Types</button>
             <button v-on:click="showhidefixtureassignments"><i class="icofont-light-bulb"></i>Fixtures</button>
-            <button  v-on:click="showevents=!showevents"><i
-                    class="icofont-flag-alt-1"></i>Events</button>
+            <button v-on:click="showevents=!showevents"><i class="icofont-flag-alt-1"></i>Events</button>
             <button v-on:click="showimportexport=!showimportexport"><i
                     class="icofont-folder-open"></i>Import/Export</button>
 
@@ -992,45 +991,53 @@ ${lists}
                             </div>
                         </article>
 
-                    <div v-if="scenetab=='channels'" class="flex-row">
+                        <div v-if="scenetab=='channels'" class="flex-row">
                             <div class="card">
-                            <header><h4>Add Raw Channel</h4></header>
+                                <header>
+                                    <h4>Add Raw Channel</h4>
+                                </header>
 
-                            <div class="stacked-form">
-                                <label>Universe
-                                    <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
-                                </label>
-                                    
-                                <label>
-                                    Channel
-                                    <combo-box v-bind:options="getChannelCompletions(newcueu)" v-model="newcuevnumber">
-                                    </combo-box>
-                                </label>
+                                <div class="stacked-form">
+                                    <label>Universe
+                                        <combo-box v-bind:options="useBlankDescriptions(universes)"
+                                            v-model="newcueu"></combo-box>
+                                    </label>
 
-                                <button v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to Cue</button>
+                                    <label>
+                                        Channel
+                                        <combo-box v-bind:options="getChannelCompletions(newcueu)"
+                                            v-model="newcuevnumber">
+                                        </combo-box>
+                                    </label>
+
+                                    <button v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to
+                                        Cue</button>
+                                </div>
+
+                            </div>
+
+                            <div class="card">
+                                <header>
+                                    <h4>Add Fixture</h4>
+                                </header>
+                                <div class="scroll">
+                                    <table>
+                                        <tr v-for="(v,i) in fixtures">
+                                            <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
+                                            <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
+                                                        class="icofont-ui-add"></i>Add</button>
+                                            </td>
+                                            <td><button v-on:click="addRangeEffect(i)"><i
+                                                        class="icofont-ui-add"></i>Range
+                                                    Effect</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
 
                         </div>
-
-                        <div class="card">
-                            <header><h4>Add Fixture</h4></header>
-                            <div class="scroll">
-                                <table>
-                                    <tr v-for="(v,i) in fixtures">
-                                        <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
-                                        <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
-                                                    class="icofont-ui-add"></i>Add</button>
-                                        </td>
-                                        <td><button v-on:click="addRangeEffect(i)"><i class="icofont-ui-add"></i>Range
-                                                Effect</button>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-
                     </div>
-                </div>
 
                 </details>
 
@@ -1055,13 +1062,13 @@ ${lists}
                                     v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
                                     :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
                             </div>
-                        <p>inherited rules run after directly set rules</p>
+                            <p>inherited rules run after directly set rules</p>
 
                         </label>
                     </div>
                     <hr>
 
-                 
+
                     <script-editor :completers="completers" v-bind:example_events="example_events"
                         v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
                         v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
@@ -1580,229 +1587,257 @@ ${lists}
 
             <details class="undecorated">
                 <summary>Scene Settings</summary>
-                <div class="flex-row">
-                    <div>
 
-                        <!-- <details>
+                <!-- <details>
                     <summary>Music Visualization Presets</summary>
                     <textarea v-on:change="setvisualization(scenename,$event.target.value);"
                         v-model="editingScene.musicVisualizations"></textarea>
                 </details> -->
-                        <div class="flex-row">
+                <div class="flex-row">
 
-                            <div class="w-sm-full stacked-form card">
+                    <div class="w-sm-full card">
 
-                                <header>Basic</header>
+                        <header>
+                            <h4>Basic</h4>
+                        </header>
+                        <div class="stacked-form">
 
-
-                                <p> <label>
-                                        Alpha:<input type="number" max=1 step=0.01 min=0
-                                            v-on:change="setalpha(scenename,parseFloat($event.target.value));"
-                                            v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
-                                    </label>
-
-                                    <label v-if="showLightingControls">Default Alpha
-                                        <input type="number" max=1 step=0.01 min=0
-                                            v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
-                                            v-model="editingScene.dalpha"></input>
-                                    </label>
-                                </p>
-
-                                <label v-if="showLightingControls">Blend Mode
-                                    <select title="This setting controls blending multiple scenes together"
-                                        v-on:input="setblend(scenename,$event.target.value)"
-                                        v-model="editingScene.blend">
-
-                                        <option title="Alpha blend with scenes below">normal</option>
-                                        <option
-                                            title="Highest Takes Priority, only affect lights if the value is higher than the others">
-                                            HTP</option>
-                                        <option title="Limit maximum level">inhibit</option>
-                                        <option title="Transparently monitor values">monitor</option>
-
-                                        <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}</option>
-
-                                    </select>
+                            <p> <label>
+                                    Alpha:<input type="number" max=1 step=0.01 min=0
+                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));"
+                                        v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
                                 </label>
 
-                                <p>
+                                <label v-if="showLightingControls">Default Alpha
+                                    <input type="number" max=1 step=0.01 min=0
+                                        v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
+                                        v-model="editingScene.dalpha"></input>
+                                </label>
+                            </p>
 
-                                    <label>Priority
-                                        <input type='number' min=0 max=100
-                                            v-on:change="setpriority(scenename,parseFloat($event.target.value))"
-                                            v-model="editingScene.priority">
-                                    </label>
-                                    <label>BPM
-                                        <input type='number' min=0 max=100
-                                            v-on:change="setbpm(scenename,parseFloat($event.target.value))"
-                                            v-model="editingScene.bpm">
-                                    </label>
-                                    <button v-on:click="tap(scenename)">
-                                        <i class="icofont-hand-drag1"></i>Tap</button>
-                                </p>
+                            <label v-if="showLightingControls">Blend Mode
+                                <select title="This setting controls blending multiple scenes together"
+                                    v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend">
 
-                                <p>
-                                    <label title="Check this box to make the scene active at startup">Active By Default
-                                        <input type="checkbox"
-                                            v-on:change="apiCommand(scenename,'setdefaultactive',$event.target.checked)"
-                                            v-model="editingScene.defaultActive"></input>
-                                    </label>
+                                    <option title="Alpha blend with scenes below">normal</option>
+                                    <option
+                                        title="Highest Takes Priority, only affect lights if the value is higher than the others">
+                                        HTP</option>
+                                    <option title="Limit maximum level">inhibit</option>
+                                    <option title="Transparently monitor values">monitor</option>
 
-                                    <label v-if="showLightingControls"
-                                        title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack
-                                        <input type="checkbox"
-                                            v-on:change="apiCommand(scenename,'setbacktrack', $event.target.checked)"
-                                            v-model="editingScene.backtrack"></input>
-                                    </label>
-                                </p>
-                                <label v-if="showSoundControls"> Sound Output<input
-                                        title="If not set by a cue, the global setting for the scene is used"
-                                        v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
-                                        v-model="editingScene.soundOutput" placeholder="default"
-                                        list="soundcards"></input></label>
+                                    <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}
+                                    </option>
 
-                                <label>
-                                    Crossfade for non-silent Sounds
-                                    <input type="number" style="width:4em" max=1 step=0.01 min=0
-                                        v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
-                                        v-model="editingScene.crossfade"></input>
+                                </select>
+                            </label>
+
+                            <p>
+
+                                <label>Priority
+                                    <input type='number' min=0 max=100
+                                        v-on:change="setpriority(scenename,parseFloat($event.target.value))"
+                                        v-model="editingScene.priority">
+                                </label>
+                                <label>BPM
+                                    <input type='number' min=0 max=100
+                                        v-on:change="setbpm(scenename,parseFloat($event.target.value))"
+                                        v-model="editingScene.bpm">
+                                </label>
+                                <button v-on:click="tap(scenename)">
+                                    <i class="icofont-hand-drag1"></i>Tap</button>
+                            </p>
+
+                            <p>
+                                <label title="Check this box to make the scene active at startup">Active By
+                                    Default
+                                    <input type="checkbox"
+                                        v-on:change="apiCommand(scenename,'setdefaultactive',$event.target.checked)"
+                                        v-model="editingScene.defaultActive"></input>
                                 </label>
 
-                            </div>
+                                <label v-if="showLightingControls"
+                                    title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack
+                                    <input type="checkbox"
+                                        v-on:change="apiCommand(scenename,'setbacktrack', $event.target.checked)"
+                                        v-model="editingScene.backtrack"></input>
+                                </label>
+                            </p>
 
-                            <div class="max-h-12rem scroll card w-sm-full" v-if="showSoundControls">
-                                <header>
-                                    <h5>Sound Outputs</h5>
-                                </header>
-                                <details class="help">
-                                    <summary><i class="icofont-question-circle"></i></summary>So long as you plug the
-                                    same
-                                    device
-                                    into the same port(on linux), it will be
-                                    given the same device alias, although
-                                    they will be different if JACK is used.
-                                </details>
-                                <dl>
-                                    <dt>Web Player</dt>
+
+                            <label>Slideshow Overlay:
+                                <input v-on:change="setSceneSlideOverlay(scenename,$event.target.value)"
+                                    v-model="editingScene.slideOverlayUrl"></input>
+                            </label>
+
+
+
+                            <label title="Recieve note events from a MIDI input device">MIDI
+                                Source:
+                                <input list="midiinputs" v-on:change="setmidi(scenename,$event.target.value)"
+                                    v-model="editingScene.midiSource"></input>
+                            </label>
+
+                            <label title="Recieve shortcut codes from a command-type tag">
+                                Command Tag:<input placeholder="Tagpoint"
+                                    v-on:change="setcommandtag(scenename,$event.target.value)"
+                                    v-model="editingScene.commandTag" list="commandtagslisting">
+                            </label>
+
+                            <label title="You can use this with __random__ to create a shuffle effect.">Default
+                                cue advance:
+                                <input list="nextcueoptions" v-on:change="setdefaultnext(scenename,$event.target.value)"
+                                    v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <div class="card w-sm-full">
+                        <header>
+                            <h4>Sound</h4>
+                        </header>
+                        <div class="stacked-form">
+                            <label> Sound Output<input
+                                    title="If not set by a cue, the global setting for the scene is used"
+                                    v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
+                                    v-model="editingScene.soundOutput" placeholder="default"
+                                    list="soundcards"></input></label>
+
+                            <label>
+                                Crossfade for non-silent Sounds
+                                <input type="number" max=1 step=0.01 min=0
+                                    v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
+                                    v-model="editingScene.crossfade"></input>
+                            </label>
+                        </div>
+                        <h5>Outputs</h5>
+                        <div class="scroll max-h-24rem">
+                            <dl>
+                                <dt>Web Player</dt>
+                                <dd>
+                                    <div class="tool-bar">
+                                        <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set
+                                            for
+                                            Cue</button>
+                                        <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
+                                            as
+                                            Scene
+                                            Default</button>
+                                    </div>
+                                </dd>
+
+                                <template v-for="i of soundCards">
+                                    <dt>{{i || "UNSET"}}</dt>
                                     <dd>
                                         <div class="tool-bar">
-                                            <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set for
-                                                Cue</button>
-                                            <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set as
-                                                Scene
+                                            <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
                                                 Default</button>
+                                            <button v-on:click="testSoundCard(i,0,48000)">Test</button>
                                         </div>
                                     </dd>
-
-                                    <template v-for="i of soundCards">
-                                        <dt>{{i || "UNSET"}}</dt>
-                                        <dd>
-                                            <div class="tool-bar">
-                                                <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
-                                                    Default</button>
-                                                <button v-on:click="testSoundCard(i,0,48000)">Test</button>
-                                            </div>
-                                        </dd>
-                                    </template>
-                                </dl>
-                            </div>
+                                </template>
+                            </dl>
                         </div>
+                    </div>
 
-                        <details class="undecorated">
-                            <summary>MQTT Features</summary>
-                            <label >MQTT Server:
-                                <input style="width:25em" v-on:change="setmqtt(scenename,$event.target.value)"
+                    <div class="card w-sm-full">
+                        <header>
+                            <h4>MQTT Features</h4>
+                        </header>
+                        <div class="stacked-form">
+                            <label>MQTT Server:
+                                <input v-on:change="setmqtt(scenename,$event.target.value)"
                                     v-model="editingScene.mqttServer"></input>
                             </label>
 
-                            <label 
+                            <label
                                 title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync
                                 Group Name
                                 <input v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
                                     v-model="editingScene.mqttSyncFeatures.syncGroup"></input>
                             </label>
-
-                        </details>
-
-                        <label >Slideshow Overlay:
-                            <input style="width:25em" v-on:change="setSceneSlideOverlay(scenename,$event.target.value)"
-                                v-model="editingScene.slideOverlayUrl"></input>
-                        </label>
+                        </div>
+                    </div>
 
 
+                    <div class="card w-sm-full" v-if="editingScene.blend!='normal'">
+                        <header>
+                            <h4>Send event</h4>
+                        </header>
 
-                        <label  title="Recieve note events from a MIDI input device">MIDI
-                            Source:
-                            <input list="midiinputs" style="width:25em"
-                                v-on:change="setmidi(scenename,$event.target.value)"
-                                v-model="editingScene.midiSource"></input>
-                        </label>
-
-                        <label title="Recieve shortcut codes from a command-type tag">
-                            Command Tag:<input placeholder="Tagpoint"
-                                v-on:change="setcommandtag(scenename,$event.target.value)"
-                                v-model="editingScene.commandTag" list="commandtagslisting">
-                        </label>
-
-                        <label title="You can use this with __random__ to create a shuffle effect.">Default cue advance:
-                            <input style="width:25em" list="nextcueoptions"
-                                v-on:change="setdefaultnext(scenename,$event.target.value)"
-                                v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
-                        </label>
-
-                        <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
-                            <input style="width:25em" v-on:change="setinfodisplay(scenename,$event.target.value)"
-                                v-model="editingScene.infoDisplay"></input>
-                        </label>
-
-                        <label>Utility Scene(No controls):
-                            <input type="checkbox" v-on:change="setutility(scenename,currentcue.utility)"
-                                v-model="currentcue.utility"
-                                title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
-                        </label>
-
-
-
-                        <hr v-if="editingScene.blend!='normal'"
-                            style="border-style:solid;border-width:1px;border-color:grey;">
-                        <p>{{editingScene.blendDesc}}</p>
-                        <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
-                            <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
-                                v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
-                                v-model="editingScene.blendArgs[k]"></input>
-
-                        </label><br>
-
-                        <label>Send event to this scene:
+                        <label>Event name:
                             <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
                                 title="Event Name">
 
-                            <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+                        </label>
 
+                        <label>Value
+                            <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+                        </label>
+                        <label>Type
                             <select v-model="evtypetosend">
                                 <option value="int">Integer</option>
                                 <option value="float">Real Number</option>
                                 <option value="str">Text</option>
                             </select>
-
-                            <button v-on:click="sendev(scenename)">Send</button>
                         </label>
 
+                        <button v-on:click="sendev(scenename)">Send</button>
+                        </label>
+                    </div>
+
+
+                    <div class="card w-sm-full" v-if="editingScene.blend!='normal'">
+                        <header>
+                            <h4>Blend Mode</h4>
+                        </header>
+                        <div class="stacked-form">
+                            <p>{{editingScene.blendDesc}}</p>
+                            <p>
+                                <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
+                                    <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
+                                        v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
+                                        v-model="editingScene.blendArgs[k]"></input>
+
+                                </label>
+                            </p>
+                        </div>
+                    </div>
 
 
 
-                        <h3>Event Buttons</h3>
-                        <table border="1">
+
+
+                    <div class="card w-sm-full">
+                        <header>
+                            <h4>UI</h4>
+                        </header>
+
+                        <div class="stacked-form">
+                            <label>Utility Scene(No controls):
+                                <input type="checkbox" v-on:change="setutility(scenename,currentcue.utility)"
+                                    v-model="currentcue.utility"
+                                    title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                            </label>
+
+                            <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
+                                <input v-on:change="setinfodisplay(scenename,$event.target.value)"
+                                    v-model="editingScene.infoDisplay"></input>
+                            </label>
+                        </div>
+                        <h5>Event Buttons</h5>
+                        <table border="1" class="w-full">
                             <tr>
                                 <th>Label</th>
-                                <th>Event to send</th>
+                                <th>Event</th>
                                 <th>Acton</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.eventButtons">
-                                <td><input v-model="v[0]"
+                                <td><input v-model="v[0]" class="w-6rem"
                                         v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
                                 </td>
-                                <td><input v-model="v[1]"
+                                <td><input v-model="v[1]" class="w-6rem"
                                         v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
                                 </td>
                                 <td><button
@@ -1819,19 +1854,21 @@ ${lists}
                             </tr>
                         </table>
 
-                        <h3>Display Tags</h3>
+                        <h5>Display Tags</h5>
+
                         <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>Lets you display some tag points
+                            <summary><i class="icofont-question-circle"></i></summary>Lets you display some tag
+                            points
                             in
                             the
                             scene overview
                         </details>
 
-                        <table border="1">
+                        <table border="1" class="w-full">
                             <tr>
                                 <th>Label</th>
-                                <th>Tag to display</th>
-                                <th>Acton</th>
+                                <th>Tag</th>
+                                <th>Action</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.displayTags">
                                 <td><input v-model="v[0]"
@@ -1854,11 +1891,11 @@ ${lists}
                                         Tag</button>
                             </tr>
                         </table>
-
-
-
                     </div>
+
                 </div>
+
+
 
             </details>
 
