@@ -11,6 +11,7 @@
     width: 180%;
     z-index: 1000;
     height: unset;
+    max-width: 100%;
 }
 
 .highlight {

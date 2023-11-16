@@ -1,12 +1,9 @@
 /*https://www.joshwcomeau.com/css/custom-css-reset/*/
-html {
-    box-sizing: border-box;
-}
-
 *,
 :before,
 :after {
-    box-sizing: inherit;
+    box-sizing: border-box;
+
 }
 
 * {
@@ -649,7 +646,7 @@ hr {
 header,
 footer {
     width: 100%;
-
+    box-sizing: border-box;
     margin: 0px;
     flex-grow: 0;
     min-height: var(--control-height);
@@ -1160,7 +1157,7 @@ it usable.  Remove when FF fully supports :has()*/
 .col-12 {
     flex-grow: 1;
     flex-basis: unset;
-    min-width: fit-content;
+    min-width: min-content;
 }
 
 .col-1 {
@@ -1352,6 +1349,11 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     width: 24rem;
 }
 
+
+.control-height{
+    height: var(--control-height)
+}
+
 .max-h-1rem {
     max-height: 1rem;
 }
@@ -1384,7 +1386,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     max-height: 48rem;
 }
 
--max-h-60rem {
+.max-h-60rem {
     max-height: 60rem;
 }
 

@@ -9,6 +9,8 @@ from mako import exceptions
 from ..kaithemobj import kaithem
 from . import core
 from . import blendmodes
+from . import scenes
+
 
 from .. import directories
 _Lookup = TemplateLookup(
@@ -146,7 +148,7 @@ class Web():
         if '.' not in path:
             path = path + '.html'
         try:
-            return get_template(path).render(module=core, kaithem=kaithem, kwargs=kwargs, request= cherrypy.request)
+            return get_template(path).render(module=core, kaithem=kaithem, kwargs=kwargs, scenes=scenes, request= cherrypy.request)
         except pages.ServeFileInsteadOfRenderingPageException as e:
             if not isinstance(e.f_filepath, (str, os.PathLike)):
                 # bytesio not a real path....

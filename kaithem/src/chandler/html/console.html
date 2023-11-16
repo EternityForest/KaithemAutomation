@@ -991,31 +991,47 @@ ${lists}
                                 </h-fader>
                             </div>
                         </article>
+
+                    <div v-if="scenetab=='channels'" class="flex-row">
+                            <div class="card">
+                            <header><h4>Add Raw Channel</h4></header>
+
+                            <div class="stacked-form">
+                                <label>Universe
+                                    <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
+                                </label>
+                                    
+                                <label>
+                                    Channel
+                                    <combo-box v-bind:options="getChannelCompletions(newcueu)" v-model="newcuevnumber">
+                                    </combo-box>
+                                </label>
+
+                                <button v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to Cue</button>
+                            </div>
+
+                        </div>
+
+                        <div class="card">
+                            <header><h4>Add Fixture</h4></header>
+                            <div class="scroll">
+                                <table>
+                                    <tr v-for="(v,i) in fixtures">
+                                        <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
+                                        <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
+                                                    class="icofont-ui-add"></i>Add</button>
+                                        </td>
+                                        <td><button v-on:click="addRangeEffect(i)"><i class="icofont-ui-add"></i>Range
+                                                Effect</button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
+                </div>
 
-                    <div v-if="scenetab=='channels'">
-                        <h4>Add Channel by Universe and Name/Number</h4>
-                        <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
-                        <combo-box v-bind:options="getChannelCompletions(newcueu)" v-model="newcuevnumber">
-                        </combo-box>
-
-
-                        <button v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to Cue</button>
-
-                        <h4>Add Fixture</h4>
-
-                        <table>
-                            <tr v-for="(v,i) in fixtures">
-                                <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
-                                <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
-                                            class="icofont-ui-add"></i>Add</button>
-                                </td>
-                                <td><button v-on:click="addRangeEffect(i)"><i class="icofont-ui-add"></i>Add Range
-                                        Effect</button>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
                 </details>
 
 
@@ -1032,16 +1048,20 @@ ${lists}
                             <a href="docs/RulesEngine">Documentation</a>
                         </details>
                     </div>
-                    <div>
-                        <label>Inherit rules from cue in same scene(inherited rules run after directly set rules)
-                            <div>
+                    <div class="card w-sm-full" style="overflow: visible;">
+                        <label>Inherit rules from
+                            <div style="overflow: visible;">
                                 <combo-box v-model="currentcue.inheritRules"
                                     v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
                                     :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
                             </div>
+                        <p>inherited rules run after directly set rules</p>
 
                         </label>
                     </div>
+                    <hr>
+
+                 
                     <script-editor :completers="completers" v-bind:example_events="example_events"
                         v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
                         v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
@@ -2150,9 +2170,7 @@ ${core.boards[0]().link.render('api_link')}
 
     }
 
-
-    //Hack workaround, something is corrupting this to be undefined.
-    appData.example_events[3] = ['button.a', 'A button in scenes sidebar']
+    appData.example_events[3] = ['FooEvent', 'Any custom name you want']
 
 
 
