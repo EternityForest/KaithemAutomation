@@ -57,9 +57,6 @@ details[open] {
   border-color: #412f1b;
 }
 
-.highlight {
-  border-width: 3px;
-}
 
 .warning {
   background-color: rgba(217 217 45 / 71%);
@@ -82,7 +79,6 @@ details[open] {
 
 header:not(.undecorated) .tool-bar {
   transform: none;
-  padding: 4px;
 }
 
 a {

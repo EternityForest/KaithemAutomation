@@ -143,7 +143,6 @@ video {
 }
 
 
-
 .error,
 .danger {
   background-color: #ff8077 !important;
@@ -208,7 +207,11 @@ header {
   --control-fg: var(--black-1);
 }
 
-
+input[type="checkbox"].toggle {
+  &:checked {
+    --convex-item-bg: var(--black-1);
+  }
+}
 
 
 

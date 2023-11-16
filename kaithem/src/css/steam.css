@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 :root {
+    color-scheme: only light;
     --teal: #8bc7d9;
     --3d-highlight: rgb(245 237 20);
     --3d-shadow: rgb(223 160 17);
@@ -35,33 +36,33 @@ SOFTWARE.
     --fg: #1e1200;
     --accent-color: #eaff2f;
     --control-fg: #412b00;
-    --control-bg: #d7a437;
+    --control-bg: #edc12f;
     --concave-item-box-shadow: inset 0px 0px 6px 3px #38383847;
     --heading-text-shadow: 2px 2px 3px #896e12;
     --control-text-shadow: 1px 1px 2px #f5d48947;
     --control-border-color: #815007;
     --alt-control-bg: #f1c6226b;
-    --window-box-shadow: 2px 2px 6px 4px #2b1400c7;
-    --border-color: #d7a905;
+    --window-box-shadow: 2px 2px 6px 5px #2b1400c7;
+    --border-color: #d7a90570;
     --border-style: outset;
-    --border-width: 3px;
+    --border-width: 0px;
     --control-border-width: 1px;
-    --item-box-shadow: 2px 2px 3px 1px #2b140021;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {}
+    --item-box-shadow: 2px 2px 3px 3px #2b140065;
 }
 
 .window {
     backdrop-filter: blur(2px);
 }
 
-:is(.card, .window)>header {
+:is(.card, .window)>:is(header, footer) {
     background: var(--convex-item-bg);
 }
 
 /*Override the default flattening*/
 :is(.card, .window)>:is(header, footer):not(.undecorated) {
     --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
+}
+
+.tool-bar {
+    box-shadow: none;
 }
