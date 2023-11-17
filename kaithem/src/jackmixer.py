@@ -356,7 +356,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     )
                 else:
                     self.src = self.addElement('pipewiresrc',
-                                               blocksize=512,
+                                               blocksize=256,
                                                client_name=name + "_in",
                                                do_timestamp=True,
                                                always_copy=True
@@ -499,7 +499,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.sink = self.addElement(
                     'pipewiresink',
                     client_name=self.name + "_out",
-                    blocksize=128,
+                    blocksize=256,
                     sync=False,
                     mode=2,
                 )
