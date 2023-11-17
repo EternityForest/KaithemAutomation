@@ -658,8 +658,15 @@ footer {
     min-height: var(--control-height);
     background-color: var(--alt-control-bg);
     color: var(--control-fg);
-    --accent-color: var(--control-fg);
     --graphical-fg: var(--control-fg);
+
+    & :is(a, h1, h2, h3, h4, h5, h6) {
+
+        &,
+        & * {
+            color: var(--control-fg);
+        }
+    }
 }
 
 /*Headers and footers */
@@ -1150,7 +1157,7 @@ it usable.  Remove when FF fully supports :has()*/
     align-items: stretch;
 }
 
-.flex-row.gaps{
+.flex-row.gaps {
     gap: var(--gap);
 }
 
@@ -1319,30 +1326,39 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-1rem {
     width: 1rem;
 }
+
 .w-2rem {
     width: 2rem;
 }
+
 .w-4rem {
     width: 4rem;
 }
+
 .w-6rem {
     width: 6rem;
 }
+
 .w-8rem {
     width: 8rem;
 }
+
 .w-12rem {
     width: 12rem;
 }
+
 .w-16rem {
     width: 16rem;
 }
+
 .w-18rem {
     width: 18rem;
 }
+
 .w-20rem {
     width: 20rem;
 }
+
 .w-24rem {
     width: 24rem;
 }
@@ -1379,15 +1395,19 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .max-h-16rem {
     max-height: 16rem;
 }
+
 .max-h-18rem {
     max-height: 18rem;
 }
+
 .max-h-20rem {
     max-height: 20rem;
 }
+
 .max-h-24rem {
     max-height: 24rem;
 }
+
 .max-h-36rem {
     max-height: 36rem;
 }
@@ -1483,9 +1503,11 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .h-16rem {
     height: 16rem;
 }
+
 .h-18rem {
     height: 18rem;
 }
+
 .h-24rem {
     height: 24rem;
 }
@@ -1502,7 +1524,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     height: 60rem;
 }
 
-.h-min-content{
+.h-min-content {
     height: min-content;
 }
 
@@ -1532,15 +1554,19 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     &>.h-12rem {
         flex-basis: 12rem;
     }
+
     &>.h-16rem {
         flex-basis: 16rem;
     }
+
     &>.h-18rem {
         flex-basis: 16rem;
     }
+
     &>.h-24rem {
         flex-basis: 24rem;
     }
+
     &>.h-36rem {
         flex-basis: 36rem;
     }
@@ -1571,21 +1597,27 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     &>.w-6rem {
         flex-basis: 6rem;
     }
+
     &>.w-8rem {
         flex-basis: 8rem;
     }
+
     &>.w-12rem {
         flex-basis: 12rem;
     }
+
     &>.w-16rem {
         flex-basis: 16rem;
     }
+
     &>.w-18rem {
         flex-basis: 18rem;
     }
+
     &>.w-20rem {
         flex-basis: 18rem;
     }
+
     &>.w-24rem {
         flex-basis: 24rem;
     }
@@ -1784,19 +1816,21 @@ footer.padding {
 /*danger is the canonical*/
 
 .highlight:not(.specificity_hack) {
-     --highlight-tint: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
-    &:not(meter), & :not(meter){
+    --highlight-tint: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
+
+    &:not(meter),
+    & :not(meter) {
         --control-bg: var(--highlight-tint)
     }
 
-    --alt-control-bg: var( --highlight-tint);
-    background-color: var( --highlight-tint);
+    --alt-control-bg: var(--highlight-tint);
+    background-color: var(--highlight-tint);
 }
 
 .success:not(.specificity_hack) {
-     --highlight-tint: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var( --highlight-tint);
-    background-color: var( --highlight-tint);
+    --highlight-tint: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--highlight-tint);
+    background-color: var(--highlight-tint);
     --fg: var(--success-fg);
     --graphical-fg: var(--success-fg);
     color: var(--fg);
@@ -1804,9 +1838,9 @@ footer.padding {
 
 .warning:not(.specificity_hack),
 .warn:not(.specificity_hack) {
-     --highlight-tint: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var( --highlight-tint);
-    background-color: var( --highlight-tint);
+    --highlight-tint: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--highlight-tint);
+    background-color: var(--highlight-tint);
 
 
     --fg: var(--warning-fg);
@@ -1817,9 +1851,9 @@ footer.padding {
 .error:not(.specificity_hack),
 .danger:not(.specificity_hack),
 .bad:not(.specificity_hack) {
-     --highlight-tint: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var( --highlight-tint);
-    background-color: var( --highlight-tint);
+    --highlight-tint: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--highlight-tint);
+    background-color: var(--highlight-tint);
 
 
     --fg: var(--danger-fg);
@@ -1834,8 +1868,10 @@ footer.padding {
 .bad:not(.specificity_hack),
 .highlight:not(.specificity_hack),
 .success:not(.specificity_hack),
-.warning:not(.specificity_hack){
-    &:not(meter), & :is(input,button, textarea, select, .button){
+.warning:not(.specificity_hack) {
+
+    &:not(meter),
+    & :is(input, button, textarea, select, .button) {
         --control-bg: var(--highlight-tint)
     }
 }
@@ -2520,8 +2556,11 @@ input,
 select,
 tr,
 label {
-    transition: color 0.2s ease, background 0.2s ease;
+    &::after {
+        transition: color 0.2s ease;
+    }
 }
+
 
 @media (hover: hover) {
 
@@ -2538,21 +2577,20 @@ label {
     input:hover,
     select:hover,
     tr:hover {
-        &:not(:active) {
+        &:not(:active):not(.specificity_hack) {
             color: var(--accent-color);
             --fg: var(--accent-color);
-            background-color: var(--hover-color)
+            background: var(--hover-color);
+            --control-fg: var(--accent-color);
         }
     }
 
     /*Non toolbsar things don't have a background normally*/
-    .tool-bar input[type='range']:hover {
-        background-color: var(--hover-color);
+    .tool-bar input[type='range']:hover,
+    .tool-bar label:hover {
+        background: var(--hover-color);
     }
 
-    .tool-bar label:hover {
-        background-color: var(--hover-color);
-    }
 
     label:hover {
         color: var(--accent-color);
