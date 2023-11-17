@@ -1784,17 +1784,19 @@ footer.padding {
 /*danger is the canonical*/
 
 .highlight:not(.specificity_hack) {
-    --control-bg: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--control-bg);
-    background-color: var(--control-bg);
+     --highlight-tint: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
+    &:not(meter), & :not(meter){
+        --control-bg: var(--highlight-tint)
+    }
+
+    --alt-control-bg: var( --highlight-tint);
+    background-color: var( --highlight-tint);
 }
 
 .success:not(.specificity_hack) {
-    --control-bg: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--control-bg);
-    background-color: var(--control-bg);
-
-
+     --highlight-tint: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var( --highlight-tint);
+    background-color: var( --highlight-tint);
     --fg: var(--success-fg);
     --graphical-fg: var(--success-fg);
     color: var(--fg);
@@ -1802,9 +1804,9 @@ footer.padding {
 
 .warning:not(.specificity_hack),
 .warn:not(.specificity_hack) {
-    --control-bg: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--control-bg);
-    background-color: var(--control-bg);
+     --highlight-tint: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var( --highlight-tint);
+    background-color: var( --highlight-tint);
 
 
     --fg: var(--warning-fg);
@@ -1815,9 +1817,9 @@ footer.padding {
 .error:not(.specificity_hack),
 .danger:not(.specificity_hack),
 .bad:not(.specificity_hack) {
-    --control-bg: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--control-bg);
-    background-color: var(--control-bg);
+     --highlight-tint: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var( --highlight-tint);
+    background-color: var( --highlight-tint);
 
 
     --fg: var(--danger-fg);
@@ -1826,6 +1828,17 @@ footer.padding {
     color: var(--fg);
 }
 
+/*Apply control bg only to some elements, not meters*/
+.error:not(.specificity_hack),
+.danger:not(.specificity_hack),
+.bad:not(.specificity_hack),
+.highlight:not(.specificity_hack),
+.success:not(.specificity_hack),
+.warning:not(.specificity_hack){
+    &:not(meter), & :is(input,button, textarea, select, .button){
+        --control-bg: var(--highlight-tint)
+    }
+}
 
 .highlight.paper {
     background-color: color-mix(in srgb, var(--highlight-color) 35%, var(--box-bg))
