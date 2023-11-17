@@ -71,34 +71,52 @@ ${jackmixer.global_api.render("gapi")}
       </header>
 
         <div v-if="activePane=='status'">
+          
           <h3>Audio ports</h3>
-          <h4>Outputs(Sinks)</h4>
-          <table>
-            <tr v-for="v,i in inports">
-              <td>{{i}}</td>
-            </tr>
-          </table>
-          <h4>Inputs(Sources)</h4>
-          <table>
-            <tr v-for="v,i in outports">
-              <td>{{i}}</td>
-            </tr>
-          </table>
+          <div class="flex-row gaps margin">
+
+            <section class="card w-sm-full">
+              <header><h4>Inputs(Sources)</h4></header>
+              <table>
+                <tr v-for="v,i in outports">
+                  <td>{{i}}</td>
+                </tr>
+              </table>
+            </section>
+
+            <section class="card w-sm-full">
+            <header> <h4>Outputs(Sinks)</h4></header>
+              <table>
+                <tr v-for="v,i in inports">
+                  <td>{{i}}</td>
+                </tr>
+              </table>
+            </section>
+
+   
+        </div>
 
 
           <h3>MIDI ports</h3>
-          <h4>Outputs(Sinks)</h4>
-          <table>
-            <tr v-for="v,i in midioutports">
-              <td>{{i}}</td>
-            </tr>
-          </table>
-          <h4>Inputs(Sources)</h4>
-          <table>
-            <tr v-for="v,i in midiinports">
-              <td>{{i}}</td>
-            </tr>
-          </table>
+          <div class="flex-row gaps margin">
+
+            <section class="card">
+              <header><h4>Outputs(Sinks)</h4></header>
+              <table>
+                <tr v-for="v,i in midioutports">
+                  <td>{{i}}</td>
+                </tr>
+              </table>
+            </section>
+            <section class="card">
+            <header><h4>Inputs(Sources)</h4></header>
+            <table>
+              <tr v-for="v,i in midiinports">
+                <td>{{i}}</td>
+              </tr>
+            </table>
+            </section>
+          </div>
 
 
         </div>
