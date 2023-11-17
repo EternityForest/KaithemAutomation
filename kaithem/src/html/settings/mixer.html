@@ -4,7 +4,8 @@
 <style>
   .channel {
     height: 95%;
-    display: inline-block;
+    display: inline-flex;
+    flex-direction: column;
     margin: 0.2em;
     vertical-align: top;
     width: 24em;
@@ -166,7 +167,7 @@ ${jackmixer.global_api.render("gapi")}
 
 
         <div class="flex" v-if="activePane=='mixer' && ui_ready">
-          <article class="channel window flex-col gaps" v-for="(channel,channelname) in channels">
+          <article class="channel window flex-col" v-for="(channel,channelname) in channels">
             <header>
               <div v-if="channel.type=='audio' || !channel.type">
                 <div>
@@ -325,11 +326,12 @@ ${jackmixer.global_api.render("gapi")}
         </article>
 
 <div class="flex-col gaps inline">
-        <article class="channel window">
-          <header>
-            <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
-          <h3>New Channel</h3>          
-        </header>
+        <article class="channel window h-6rem flex-col">
+            <header>
+              <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
+              <h3>New Channel</h3>
+          </header>
+          <div class="grow"></div>
 
           <div class="tool-bar">
             <input v-model="newchannelname" style="max-width: 8em;"><button
@@ -337,8 +339,10 @@ ${jackmixer.global_api.render("gapi")}
               Mono</button>
             <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
           </div>
-
+      <footer></footer>
         </article>
+
+
         <article class="channel window">
           <header>
 
@@ -358,6 +362,7 @@ ${jackmixer.global_api.render("gapi")}
             <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
             <button v-on:click="api.send(['stopRecord'])">Stop</button>
           </div>
+          <footer></footer>
         </article>
       </div>
 
