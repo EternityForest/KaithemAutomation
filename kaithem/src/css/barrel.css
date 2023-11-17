@@ -572,7 +572,7 @@ textarea {
 }
 
 fieldset {
-    border: var(--border-width) solid var(--border-color);
+    border: var(--control-border-width) solid var(--control-border-color);
     border-radius: var(--border-radius);
 }
 
@@ -695,6 +695,7 @@ header {
         & :is(h1, h2, h3, h4, h5, h6)>button {
             border: none;
             text-align: start;
+            max-height: 100%;
         }
 
         &>:only-child,
@@ -1318,23 +1319,30 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-1rem {
     width: 1rem;
 }
-
 .w-2rem {
     width: 2rem;
 }
-
 .w-4rem {
     width: 4rem;
 }
-
 .w-6rem {
     width: 6rem;
 }
-
+.w-8rem {
+    width: 8rem;
+}
 .w-12rem {
     width: 12rem;
 }
-
+.w-16rem {
+    width: 16rem;
+}
+.w-18rem {
+    width: 18rem;
+}
+.w-20rem {
+    width: 20rem;
+}
 .w-24rem {
     width: 24rem;
 }
@@ -1360,14 +1368,26 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     max-height: 6rem;
 }
 
+.max-h-8rem {
+    max-height: 8rem;
+}
+
 .max-h-12rem {
     max-height: 12rem;
 }
 
+.max-h-16rem {
+    max-height: 16rem;
+}
+.max-h-18rem {
+    max-height: 18rem;
+}
+.max-h-20rem {
+    max-height: 20rem;
+}
 .max-h-24rem {
     max-height: 24rem;
 }
-
 .max-h-36rem {
     max-height: 36rem;
 }
@@ -1398,13 +1418,43 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     min-height: 6rem;
 }
 
+.min-h-8rem {
+    min-height: 8rem;
+}
+
 .min-h-12rem {
     min-height: 12rem;
+}
+
+.min-h-16rem {
+    min-height: 16rem;
+}
+
+.min-h-18rem {
+    min-height: 18rem;
+}
+
+.min-h-20rem {
+    min-height: 20rem;
 }
 
 .min-h-24rem {
     min-height: 24rem;
 }
+
+.min-h-36rem {
+    min-height: 36rem;
+}
+
+.min-h-48rem {
+    min-height: 48rem;
+}
+
+.min-h-60rem {
+    min-height: 60rem;
+}
+
+
 
 .h-1rem {
     height: 1rem;
@@ -1422,10 +1472,20 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     height: 6rem;
 }
 
+.h-8rem {
+    height: 8rem;
+}
+
 .h-12rem {
     height: 12rem;
 }
 
+.h-16rem {
+    height: 16rem;
+}
+.h-18rem {
+    height: 18rem;
+}
 .h-24rem {
     height: 24rem;
 }
@@ -1464,14 +1524,23 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
         flex-basis: 6rem;
     }
 
+    &>.h-8rem {
+        flex-basis: 8rem;
+    }
+
+
     &>.h-12rem {
         flex-basis: 12rem;
     }
-
+    &>.h-16rem {
+        flex-basis: 16rem;
+    }
+    &>.h-18rem {
+        flex-basis: 16rem;
+    }
     &>.h-24rem {
         flex-basis: 24rem;
     }
-
     &>.h-36rem {
         flex-basis: 36rem;
     }
@@ -1502,11 +1571,21 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     &>.w-6rem {
         flex-basis: 6rem;
     }
-
+    &>.w-8rem {
+        flex-basis: 8rem;
+    }
     &>.w-12rem {
         flex-basis: 12rem;
     }
-
+    &>.w-16rem {
+        flex-basis: 16rem;
+    }
+    &>.w-18rem {
+        flex-basis: 18rem;
+    }
+    &>.w-20rem {
+        flex-basis: 18rem;
+    }
     &>.w-24rem {
         flex-basis: 24rem;
     }

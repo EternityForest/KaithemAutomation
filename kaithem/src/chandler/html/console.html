@@ -1427,7 +1427,7 @@ ${lists}
 
                         <div>
                             <div class="flex-row gaps">
-                                <fieldset class="stacked-form">
+                                <fieldset class="stacked-form w-sm-full">
                                     <legend>Basic</legend>
                                     <label>Number
                                         <input type="number" title="Cue number"
@@ -1447,41 +1447,50 @@ ${lists}
                                                 v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
                                                 v-model="currentcue.reentrant">Reentrant</label>
                                     </p>
-                                    <label>Probability
-                                        <input
-                                            title="Probability this cue is selected in random selections. =expressions allowed"
-                                            v-on:change="setprobability(currentcueid,$event.target.value)"
-                                            v-model="currentcue.probability" placeholder="1">
-                                    </label>
-
-                                    <label>Shortcut
-                                        <input title="Shortcut code used to quickly activate a cue" size="8"
-                                            v-on:change="setshortcut(currentcueid,$event.target.value)"
-                                            v-model="currentcue.shortcut">
-                                    </label>
-
-                                    <label>Trigger Shortcut
-                                        <input title="When entering this cue, trigger the shortcut in other scenes"
-                                            size="8" v-on:change="settriggershortcut(currentcueid,$event.target.value)"
-                                            v-model="currentcue.triggerShortcut">
-                                    </label>
 
 
-                                    <label>Fadein
-                                        <input type="number" v-on:change="setfadein(currentcueid,$event.target.value)"
-                                            min=0 v-model="currentcue.fade_in">
-                                    </label>
-                                    <label>Length
-                                        <input v-on:change="setlength(currentcueid,$event.target.value)"
-                                            v-model="cuemeta[currentcueid].length" min=0></input>
-                                    </label>
-                                    <label>Randomize Length
-                                        <input type="number"
-                                            v-on:change="setrandomize(currentcueid,$event.target.value)"
-                                            title="Randomize the cue length +- this amount"
-                                            v-model="cuemeta[currentcueid].lengthRandomize" min=0 step=0.25></input>
-                                    </label>
+                                    <p>
 
+                                        <label>Shortcut
+                                            <input title="Shortcut code used to quickly activate a cue" size="8"
+                                                v-on:change="setshortcut(currentcueid,$event.target.value)"
+                                                v-model="currentcue.shortcut">
+                                        </label>
+
+                                        <label>Trigger Shortcut
+                                            <input title="When entering this cue, trigger the shortcut in other scenes"
+                                                size="8"
+                                                v-on:change="settriggershortcut(currentcueid,$event.target.value)"
+                                                v-model="currentcue.triggerShortcut">
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>Fadein
+                                            <input type="number"
+                                                v-on:change="setfadein(currentcueid,$event.target.value)" min=0
+                                                v-model="currentcue.fade_in">
+                                        </label>
+                                        <label>Length
+                                            <input v-on:change="setlength(currentcueid,$event.target.value)"
+                                                v-model="cuemeta[currentcueid].length" min=0></input>
+                                        </label>
+                                    </p>
+
+                                    <p>
+                                        <label>Randomize Length
+                                            <input type="number"
+                                                v-on:change="setrandomize(currentcueid,$event.target.value)"
+                                                title="Randomize the cue length +- this amount"
+                                                v-model="cuemeta[currentcueid].lengthRandomize" min=0 step=0.25></input>
+                                        </label>
+                                        <label>Probability
+                                            <input
+                                                title="Probability this cue is selected in random selections. =expressions allowed"
+                                                v-on:change="setprobability(currentcueid,$event.target.value)"
+                                                v-model="currentcue.probability" placeholder="1">
+                                        </label>
+
+                                    </p>
                                     <label>Notes
                                         <input v-on:change="setcuenotes(currentcueid,$event.target.value)"
                                             v-model="cuemeta[currentcueid].notes" min=0></input>
@@ -1489,7 +1498,7 @@ ${lists}
 
                                 </fieldset>
 
-                                <fieldset class="stacked-form">
+                                <fieldset class="stacked-form w-sm-full">
                                     <legend>Cue Advance</legend>
                                     <label>Next Cue
                                         <div>

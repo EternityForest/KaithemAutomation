@@ -8,372 +8,383 @@
     }
 </style>
 
-<article class="tagbox card w-sm-full">
-    <h3 style="font-size: 140%;"><a href="/tagpoints/{{ util.url(obj.tagPoints[i].name) }}">{{ i| escape }}</a></h3>
+<article class="tagbox card w-sm-full flex-col">
+    <header>
+        <h3><a href="/tagpoints/{{ util.url(obj.tagPoints[i].name) }}">{{ i| escape }}</a></h3>
+    </header>
 
+    <div class="grow">
+        {% if hasattr(obj.tagPoints[i],'meterWidget') %}
+        <h4>Current</h4>
+        {{ obj.tagPoints[i].meterWidget.render_as_span() }}
 
-    {% if hasattr(obj.tagPoints[i],'meterWidget') %}
-    <h4>Current</h4>
-    {{ obj.tagPoints[i].meterWidget.render_as_span() }}
+        {% elif hasattr(obj.tagPoints[i],'spanWidget') %}
+        <h4>Current</h4>
+        {{ obj.tagPoints[i].spanWidget.render() }}
 
-    {% elif hasattr(obj.tagPoints[i],'spanWidget') %}
-    <h4>Current</h4>
-    {{ obj.tagPoints[i].spanWidget.render() }}
+        {% elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts' and obj.tagPoints[i].dataSourceWidget %}
+        <video style="width: 100%" muted controls></video>
+        <canvas id="canvas" style="display: none; width: 100%"></canvas>
+        <img id="img" style="display: none; width: 100%; border: none;">
 
-    {% elif hasattr(obj.tagPoints[i],"dataSourceWidget") and obj.tagPoints[i].subtype == 'mpegts' and obj.tagPoints[i].dataSourceWidget %}
-    <video style="width: 100%" muted controls></video>
-    <canvas id="canvas" style="display: none; width: 100%"></canvas>
-    <img id="img" style="display: none; width: 100%; border: none;">
+        <h4>Regions</h4>
+        <div class="tool-bar" id="regions">
+        </div>
 
-    <h4>Regions</h4>
-    <div class="tool-bar" id="regions">
-    </div>
+        <div class="tool-bar">
+            <button type="button" onclick="gotoRegionEdit(false)">Region Editor</button>
+            <button type="button" onclick="setRegion()">New Region</button>
+            <button type="button" onclick="deleteRegion()">Delete selected region</button>
 
-    <div class="tool-bar">
-        <button type="button" onclick="gotoRegionEdit(false)">Region Editor</button>
-        <button type="button" onclick="setRegion()">New Region</button>
-        <button type="button" onclick="deleteRegion()">Delete selected region</button>
+        </div>
 
-    </div>
+        <script>
+            rdata = "test=0.1,0.6, 0.5,0.5;"
 
-    <script>
-        rdata = "test=0.1,0.6, 0.5,0.5;"
-
-        var x = document.getElementById("property_device.regions")
-        if (x) {
-            rdata = x.value;
-        }
-
-        selectedRegion = ''
-
-        function deselectInactiveRegions() {
-            var x = document.getElementById("regions")
-            for (i of x.childNodes) {
-                i.style = ''
-            }
-        }
-
-
-
-        rdata = rdata.split(";")
-
-        videoSelectedRegions = {}
-
-        selectedButton = null;
-
-        try {
-            for (i of rdata) {
-                if (i == '') {
-                    continue;
-                }
-                i = i.split('=')
-                n = i[0].trim()
-                i = i[1].split(",")
-                videoSelectedRegions[n] = { x: parseFloat(i[0]), y: parseFloat(i[1]), width: parseFloat(i[2]), height: parseFloat(i[3]) }
-
-
-            }
-        }
-        catch (e) {
-            console.log(e)
-        }
-
-        function redrawRegionBar() {
-            var x = document.getElementById("regions")
-            x.innerHTML = '';
-
-            for (i in videoSelectedRegions) {
-                if (i == '') {
-                    continue;
-                }
-                r = videoSelectedRegions[i]
-                button = document.createElement("button")
-                button.innerHTML = i
-                button.id = "regbutton_" + i
-                button.type = 'button'
-                if (i == selectedRegion) {
-                    button.style = 'font-weight: bold;'
-
-                }
-                button.onclick = function (e) {
-                    selectedRegion = e.target.innerHTML
-                    gotoRegionEdit(true);
-                    var r = videoSelectedRegions[e.target.innerHTML]
-
-                    // Fighting with the lib.  The rder and timing seems to matter
-
-
-                    setTimeout(() => {
-                        cropInstance.reset()
-                        cropInstance.moveTo(r.x * cropInstance.cropperEl.clientWidth, r.y * cropInstance.cropperEl.clientHeight)
-                        cropInstance.resizeTo(r.width * cropInstance.cropperEl.clientWidth, r.height * cropInstance.cropperEl.clientHeight, [0, 0])
-                    }, 10)
-                    deselectInactiveRegions()
-                    e.target.style = 'font-weight: bold'
-                }
-                x.appendChild(button)
-            }
-        }
-        redrawRegionBar();
-
-        cropInstance = null
-
-        function gotoRegionEdit(force) {
-            if (cropInstance && force) {
-                // already open so return
-                return
-            }
-
-            if (cropInstance && (!force)) {
-                cropInstance.destroy();
-                cropInstance = null;
-                return;
-            }
-
-            var v = document.querySelector('video')
-
-            var canvas = document.createElement('canvas');
-            canvas.width = v.videoWidth;
-            canvas.height = v.videoHeight;
-            canvas.style = "border: none";
-            var ctx = canvas.getContext('2d');
-
-
-            //draw image to canvas. scale to target dimensions
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            document.querySelector('video').style = "border: none; width: 100%; "
-
-            //convert to desired file format
-            var dataURI = canvas.toDataURL('image/jpeg'); // can also use 'image/png'
-
-            document.querySelector('#img').src = dataURI
-            document.querySelector('video').style = "display: none; width: 100%"
-            document.querySelector('#img').style = ""
-
-            cropInstance = new Croppr(document.querySelector('#img'), {
-                startSize: [30, 30],
-                returnMode: 'ratio',
-                onCropMove: function (data) {
-                    var data = cropInstance.getValue('ratio')
-                    videoSelectedRegions[selectedRegion] = data;
-                    setRegions();
-                }
-            });
-            //cropInstance.initialize(document.querySelector('#img'))
-
-
-            // store info there
-            var v = document.querySelector('video')
-            cropInstance.width = v.videoWidth;
-            cropInstance.height = v.videoHeight;
-        }
-
-        function deleteRegion() {
-            delete videoSelectedRegions[selectedRegion];
-            selectedRegion = '';
-            deselectInactiveRegions();
-            redrawRegionBar()
-        }
-
-        function setRegion() {
             var x = document.getElementById("property_device.regions")
             if (x) {
-                var x = prompt("Name for region");
-                if (!x) {
+                rdata = x.value;
+            }
+
+            selectedRegion = ''
+
+            function deselectInactiveRegions() {
+                var x = document.getElementById("regions")
+                for (i of x.childNodes) {
+                    i.style = ''
+                }
+            }
+
+
+
+            rdata = rdata.split(";")
+
+            videoSelectedRegions = {}
+
+            selectedButton = null;
+
+            try {
+                for (i of rdata) {
+                    if (i == '') {
+                        continue;
+                    }
+                    i = i.split('=')
+                    n = i[0].trim()
+                    i = i[1].split(",")
+                    videoSelectedRegions[n] = { x: parseFloat(i[0]), y: parseFloat(i[1]), width: parseFloat(i[2]), height: parseFloat(i[3]) }
+
+
+                }
+            }
+            catch (e) {
+                console.log(e)
+            }
+
+            function redrawRegionBar() {
+                var x = document.getElementById("regions")
+                x.innerHTML = '';
+
+                for (i in videoSelectedRegions) {
+                    if (i == '') {
+                        continue;
+                    }
+                    r = videoSelectedRegions[i]
+                    button = document.createElement("button")
+                    button.innerHTML = i
+                    button.id = "regbutton_" + i
+                    button.type = 'button'
+                    if (i == selectedRegion) {
+                        button.style = 'font-weight: bold;'
+
+                    }
+                    button.onclick = function (e) {
+                        selectedRegion = e.target.innerHTML
+                        gotoRegionEdit(true);
+                        var r = videoSelectedRegions[e.target.innerHTML]
+
+                        // Fighting with the lib.  The rder and timing seems to matter
+
+
+                        setTimeout(() => {
+                            cropInstance.reset()
+                            cropInstance.moveTo(r.x * cropInstance.cropperEl.clientWidth, r.y * cropInstance.cropperEl.clientHeight)
+                            cropInstance.resizeTo(r.width * cropInstance.cropperEl.clientWidth, r.height * cropInstance.cropperEl.clientHeight, [0, 0])
+                        }, 10)
+                        deselectInactiveRegions()
+                        e.target.style = 'font-weight: bold'
+                    }
+                    x.appendChild(button)
+                }
+            }
+            redrawRegionBar();
+
+            cropInstance = null
+
+            function gotoRegionEdit(force) {
+                if (cropInstance && force) {
+                    // already open so return
+                    return
+                }
+
+                if (cropInstance && (!force)) {
+                    cropInstance.destroy();
+                    cropInstance = null;
                     return;
                 }
-                x = x.replace(' ', '').replace('/', '').replace('.', '').replace(",", '').replace(';', '').replace('$', '')
-                selectedRegion = x
-                videoSelectedRegions[selectedRegion] = cropInstance.getValue('ratio');
-            }
-            setRegions();
-            redrawRegionBar();
-        }
 
-        function setRegions() {
-            // Given our data cache set the text representation of the region list
-            var x = document.getElementById("property_device.regions")
-            if (x) {
-                x.value = ''
-                for (i in videoSelectedRegions) {
-                    if (i) {
-                        var v = videoSelectedRegions[i]
-                        x.value += i + '=' + v['x'] + ',' + v['y'] + ',' + v['width'] + ',' + v['height'] + ';'
+                var v = document.querySelector('video')
+
+                var canvas = document.createElement('canvas');
+                canvas.width = v.videoWidth;
+                canvas.height = v.videoHeight;
+                canvas.style = "border: none";
+                var ctx = canvas.getContext('2d');
+
+
+                //draw image to canvas. scale to target dimensions
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                document.querySelector('video').style = "border: none; width: 100%; "
+
+                //convert to desired file format
+                var dataURI = canvas.toDataURL('image/jpeg'); // can also use 'image/png'
+
+                document.querySelector('#img').src = dataURI
+                document.querySelector('video').style = "display: none; width: 100%"
+                document.querySelector('#img').style = ""
+
+                cropInstance = new Croppr(document.querySelector('#img'), {
+                    startSize: [30, 30],
+                    returnMode: 'ratio',
+                    onCropMove: function (data) {
+                        var data = cropInstance.getValue('ratio')
+                        videoSelectedRegions[selectedRegion] = data;
+                        setRegions();
+                    }
+                });
+                //cropInstance.initialize(document.querySelector('#img'))
+
+
+                // store info there
+                var v = document.querySelector('video')
+                cropInstance.width = v.videoWidth;
+                cropInstance.height = v.videoHeight;
+            }
+
+            function deleteRegion() {
+                delete videoSelectedRegions[selectedRegion];
+                selectedRegion = '';
+                deselectInactiveRegions();
+                redrawRegionBar()
+            }
+
+            function setRegion() {
+                var x = document.getElementById("property_device.regions")
+                if (x) {
+                    var x = prompt("Name for region");
+                    if (!x) {
+                        return;
+                    }
+                    x = x.replace(' ', '').replace('/', '').replace('.', '').replace(",", '').replace(';', '').replace('$', '')
+                    selectedRegion = x
+                    videoSelectedRegions[selectedRegion] = cropInstance.getValue('ratio');
+                }
+                setRegions();
+                redrawRegionBar();
+            }
+
+            function setRegions() {
+                // Given our data cache set the text representation of the region list
+                var x = document.getElementById("property_device.regions")
+                if (x) {
+                    x.value = ''
+                    for (i in videoSelectedRegions) {
+                        if (i) {
+                            var v = videoSelectedRegions[i]
+                            x.value += i + '=' + v['x'] + ',' + v['y'] + ',' + v['width'] + ',' + v['height'] + ';'
+                        }
                     }
                 }
             }
-        }
 
 
-    </script>
+        </script>
 
-    <details class="help">
-        <summary><i class="icofont-question-circle"></i></summary>
-        The regions property is a semicolon separated list, looking like "name=x,y,w,h;". To delete a region,
-        just delete it's entry in the regions box. A proper deletion feature coming soon.
+        <details class="help">
+            <summary><i class="icofont-question-circle"></i></summary>
+            The regions property is a semicolon separated list, looking like "name=x,y,w,h;". To delete a region,
+            just delete it's entry in the regions box. A proper deletion feature coming soon.
 
-    </details>
-    <div class="tool-bar">
-        <button type="button"
-            onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify
-            Motion</button>
-    </div>
+        </details>
+        <div class="tool-bar">
+            <button type="button"
+                onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify
+                Motion</button>
+        </div>
 
-    <script>
-        if (!mpegts.isSupported()) {
-            alert("MPEG TS Not supported here")
-            kaithemapi.sendErrorMessage("MPEG TS Not supported here")
-        }
-
-        video = document.querySelector('video');
-        var player = mpegts.createPlayer({
-            type: 'mpegts',  // could also be mpegts, m2ts, flv
-            isLive: true,
-            url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagPoints[i].dataSourceWidget.uuid| urlencode }}",
-            liveBufferLatencyChasing: true,
-            liveBufferLatencyMaxLatency: 2,
-            liveBufferLatencyMinRemain: 1,
-            enableStashBuffer: false,
-            lazyLoad: false
-        });
-        player.attachMediaElement(video);
-        player.load();
-        player.play()
-
-        function keepUp() {
-            if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) > 2) {
-                video.playbackRate = 3
-            }
-            if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) < 1.5) {
-
-                video.playbackRate = 1
+        <script>
+            if (!mpegts.isSupported()) {
+                alert("MPEG TS Not supported here")
+                kaithemapi.sendErrorMessage("MPEG TS Not supported here")
             }
 
-        }
+            video = document.querySelector('video');
+            var player = mpegts.createPlayer({
+                type: 'mpegts',  // could also be mpegts, m2ts, flv
+                isLive: true,
+                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagPoints[i].dataSourceWidget.uuid| urlencode }}",
+                liveBufferLatencyChasing: true,
+                liveBufferLatencyMaxLatency: 2,
+                liveBufferLatencyMinRemain: 1,
+                enableStashBuffer: false,
+                lazyLoad: false
+            });
+            player.attachMediaElement(video);
+            player.load();
+            player.play()
 
-        setInterval(keepUp, 250);
+            function keepUp() {
+                if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) > 2) {
+                    video.playbackRate = 3
+                }
+                if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) < 1.5) {
 
-    </script>
+                    video.playbackRate = 1
+                }
 
-    {% else %}
-    Binary data tagpoint cannot be displayed.
-    {% if obj.tagPoints[i].subtype == 'mpegts' %}
-    If this is a video feed, you may need to set up Permissions on this device.
-    {% endif %}
-    {% endif %}
+            }
 
-    {% if not obj.tagPoints[i].subtype == 'mpegts' %}
-    {% if obj.tagPoints[i].activeClaim().priority > 50.5 %}
-    Overridden: {{ obj.tagPoints[i].activeClaim().name }}
-    {% else %}
-    <div class="tool-bar">
-        {% if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable %}
-        {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
-        {% elif obj.tagPoints[i].subtype == 'tristate' %}
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', -1])">Unset</button>
-        {% elif obj.tagPoints[i].subtype == 'trigger' %}
-        <button type="button"
-            onclick="triggerCounters['{{ i| escape }}'] = (triggerCounters['{{ i| escape }}']||0)+1; _generic_ws_channel.send(['set', '{{ i| escape }}', triggerCounters['{{ i| escape }}']])">Trigger</button>
-        {% elif obj.tagPoints[i].subtype == 'color' %}
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
-            Hex</button>
-        <button type="button" style="background-color: black;  color: lightblue;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#000000'])">Blk</button>
-        <button style="background-color: #FF0000;" type="button"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FF0000'])">Red</button>
-        <button style="background-color: #FFDD00;" type="button"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FFDD00'])">Yel</button>
-        <button style="background-color: #00FF00;" type="button"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#00FF00'])">Grn</button>
-        <button style="background-color: #0000FF;" type="button"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#0000FF'])">Blu</button>
-        <button style="background-color: #8F17E5;" type="button"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#8F17E5'])">Prp</button>
-        <button type="button" style="background-color: white;  color: darkgray;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FFFFFF'])">Wht</button>
+            setInterval(keepUp, 250);
+
+        </script>
+
         {% else %}
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
-            val</button>
-        {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Set 0</button>
-        <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">Set 1</button>
-        {% endif %}
-        {% endif %}
-        {% else %}
-        {% if  obj.tagPoints[i].type=='number' %}
-        <button type="button" onclick="setFake('{{ i| escape }}', null)" title="Disable faking and use real value">Stop
-            fake</button>
-
-        {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
-        <button type="button" onclick="setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake Off</button>
-        <button type="button" onclick="setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
-        <button type="button" onmousedown="setFake('{{ i| escape }}', 1)" onmouseup="setFake('{{ i| escape }}', null)"
-            title="Fake 1 while held">Fake Press</button>
-        {% else %}
-        <button type="button" onclick="setFake('{{ i| escape }}', prompt('New value?'))">Set fake val</button>
-        {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
-        <button type="button" onclick="setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake Off</button>
-        <button type="button" onclick="setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
+        Binary data tagpoint cannot be displayed.
+        {% if obj.tagPoints[i].subtype == 'mpegts' %}
+        If this is a video feed, you may need to set up Permissions on this device.
         {% endif %}
         {% endif %}
 
-        {% if obj.tagPoints[i].subtype == 'tristate' %}
-        <button type="button" onclick="setFake('{{ i| escape }}', -1)" title="Fake input being tristate/-1">Fake
-            Unset</button>
-        {% endif %}
-        {% endif %}
+        {% if not obj.tagPoints[i].subtype == 'mpegts' %}
+        {% if obj.tagPoints[i].activeClaim().priority > 50.5 %}
+        Overridden: {{ obj.tagPoints[i].activeClaim().name }}
+        {% else %}
+        <div class="tool-bar">
+            {% if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable %}
+            {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
+            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
+            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
+            {% elif obj.tagPoints[i].subtype == 'tristate' %}
+            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
+            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
+            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', -1])">Unset</button>
+            {% elif obj.tagPoints[i].subtype == 'trigger' %}
+            <button type="button"
+                onclick="triggerCounters['{{ i| escape }}'] = (triggerCounters['{{ i| escape }}']||0)+1; _generic_ws_channel.send(['set', '{{ i| escape }}', triggerCounters['{{ i| escape }}']])">Trigger</button>
+            {% elif obj.tagPoints[i].subtype == 'color' %}
+            <button type="button"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
+                Hex</button>
+            <button type="button" style="background-color: black;  color: lightblue;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#000000'])">Blk</button>
+            <button style="background-color: #FF0000;" type="button"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FF0000'])">Red</button>
+            <button style="background-color: #FFDD00;" type="button"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FFDD00'])">Yel</button>
+            <button style="background-color: #00FF00;" type="button"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#00FF00'])">Grn</button>
+            <button style="background-color: #0000FF;" type="button"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#0000FF'])">Blu</button>
+            <button style="background-color: #8F17E5;" type="button"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#8F17E5'])">Prp</button>
+            <button type="button" style="background-color: white;  color: darkgray;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FFFFFF'])">Wht</button>
+            {% else %}
+            <button type="button"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
+                val</button>
+            {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
+            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Set 0</button>
+            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">Set 1</button>
+            {% endif %}
+            {% endif %}
+            {% else %}
+            {% if  obj.tagPoints[i].type=='number' %}
+            <button type="button" onclick="setFake('{{ i| escape }}', null)"
+                title="Disable faking and use real value">Stop
+                fake</button>
+
+            {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
+            <button type="button" onclick="setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
+                Off</button>
+            <button type="button" onclick="setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
+            <button type="button" onmousedown="setFake('{{ i| escape }}', 1)"
+                onmouseup="setFake('{{ i| escape }}', null)" title="Fake 1 while held">Fake Press</button>
+            {% else %}
+            <button type="button" onclick="setFake('{{ i| escape }}', prompt('New value?'))">Set fake val</button>
+            {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
+            <button type="button" onclick="setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
+                Off</button>
+            <button type="button" onclick="setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
+            {% endif %}
+            {% endif %}
+
+            {% if obj.tagPoints[i].subtype == 'tristate' %}
+            <button type="button" onclick="setFake('{{ i| escape }}', -1)" title="Fake input being tristate/-1">Fake
+                Unset</button>
+            {% endif %}
+            {% endif %}
+            {% endif %}
+
+            {% if devices.callable(obj.tagPoints[i].activeClaim().value) %}
+            <button type="button" onclick="_generic_ws_channel.send(['refresh', '{{ i| escape }}'])">Refresh</button>
+            {% else %}
+            {% endif %}
+        </div>
         {% endif %}
 
-        {% if devices.callable(obj.tagPoints[i].activeClaim().value) %}
-        <button type="button" onclick="_generic_ws_channel.send(['refresh', '{{ i| escape }}'])">Refresh</button>
-        {% else %}
+        {% if obj.tagPoints[i].subtype == 'color' %}
+        <div class="tool-bar">
+            <button type="button" style="background-color: #fafafa;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#fafafa'])">Argent</button>
+            <button type="button" style="background-color: #ffe066;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#ffe066'])">Or</button>
+            <button type="button" style="background-color: #f0dc82;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#f0dc82'])">Buff</button>
+            <button type="button" style="background-color: #7c1c05;  color: lightblue;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}' , '#7c1c05' ])">Copper</button>
+        </div>
+        <div class="tool-bar">
+            <button type="button" style="background-color: #d7374a;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#d7374a'])">Gules</button>
+            <button type="button" style="background-color: #333333; color: lightblue;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#333333'])">Sable</button>
+            <button type="button" style="background-color: #377cd7;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#377cd7'])">Azure</button>
+            <button type="button" style="background-color: #26c061;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#26c061'])">Vert</button>
+            <button type="button" style="background-color: #854296;  color: lightblue;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#854296'])">Purpure</button>
+        </div>
+        <div class="tool-bar">
+            <button type="button" style="background-color: #85185b;  color: lightblue;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#85185b'])">Murrey</button>
+            <button type="button" style="background-color: #b63a3a;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#b63a3a'])">Sanguine</button>
+            <button type="button" style="background-color: #cc7f19;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#cc7f19'])">Tenné</button>
+            <button type="button" style="background-color: #F27900;  color: lightblue;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#F27900'])">Orange</button>
+            <button type="button" style="background-color: #FEC3AC;"
+                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FEC3AC'])">Carnation</button>
+            <button type="button" style="background-color: #797673; color: lightblue;"" onclick="
+                _generic_ws_channel.send(['set', '{{ i| escape }}' , '#797673' ])">Cendrée</button>
+        </div>
+        {% endif %}
+
         {% endif %}
     </div>
-    {% endif %}
+    <footer>
 
-    {% if obj.tagPoints[i].subtype == 'color' %}
-    <div class="tool-bar">
-        <button type="button" style="background-color: #fafafa;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#fafafa'])">Argent</button>
-        <button type="button" style="background-color: #ffe066;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#ffe066'])">Or</button>
-        <button type="button" style="background-color: #f0dc82;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#f0dc82'])">Buff</button>
-        <button type="button" style="background-color: #7c1c05;  color: lightblue;"" onclick="
-            _generic_ws_channel.send(['set', '{{ i| escape }}' , '#7c1c05' ])">Copper</button>
-    </div>
-    <div class="tool-bar">
-        <button type="button" style="background-color: #d7374a;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#d7374a'])">Gules</button>
-        <button type="button" style="background-color: #333333; color: lightblue;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#333333'])">Sable</button>
-        <button type="button" style="background-color: #377cd7;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#377cd7'])">Azure</button>
-        <button type="button" style="background-color: #26c061;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#26c061'])">Vert</button>
-        <button type="button" style="background-color: #854296;  color: lightblue;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#854296'])">Purpure</button>
-    </div>
-    <div class="tool-bar">
-        <button type="button" style="background-color: #85185b;  color: lightblue;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#85185b'])">Murrey</button>
-        <button type="button" style="background-color: #b63a3a;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#b63a3a'])">Sanguine</button>
-        <button type="button" style="background-color: #cc7f19;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#cc7f19'])">Tenné</button>
-        <button type="button" style="background-color: #F27900;  color: lightblue;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#F27900'])">Orange</button>
-        <button type="button" style="background-color: #FEC3AC;"
-            onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FEC3AC'])">Carnation</button>
-        <button type="button" style="background-color: #797673; color: lightblue;"" onclick="
-            _generic_ws_channel.send(['set', '{{ i| escape }}' , '#797673' ])">Cendrée</button>
-    </div>
-    {% endif %}
-
-    {% endif %}
+    </footer>
 </article>

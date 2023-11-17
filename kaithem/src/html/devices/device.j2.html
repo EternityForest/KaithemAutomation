@@ -442,7 +442,7 @@
 
                 triggerCounters = {}
             </script>
-            <div class="flex-row">
+            <div class="flex-row gaps">
                 {% for i in obj.tagPoints %}
                 {{devices.render_device_tag(obj,i) | safe}}
                 {% endfor %}
