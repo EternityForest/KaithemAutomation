@@ -148,7 +148,7 @@ ${jackmixer.global_api.render("gapi")}
 
 
         <div class="flex" v-if="activePane=='mixer' && ui_ready">
-          <article class="channel window flex-col" v-for="(channel,channelname) in channels">
+          <article class="channel window flex-col gaps" v-for="(channel,channelname) in channels">
             <header>
               <div v-if="channel.type=='audio' || !channel.type">
                 <div>
@@ -306,7 +306,7 @@ ${jackmixer.global_api.render("gapi")}
             </footer>
         </article>
 
-<div class="flex-col inline">
+<div class="flex-col gaps inline">
         <article class="channel window">
           <header>
             <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>

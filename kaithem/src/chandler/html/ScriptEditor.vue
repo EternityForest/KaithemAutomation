@@ -54,7 +54,7 @@ p.small {
 <template>
     <div class="w-full">
         <div class="w-full">
-            <div class="flex-row">
+            <div class="flex-row gaps">
 
                 <div v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem">
                     <h3>Block Inspector</h3>
@@ -125,7 +125,7 @@ p.small {
 
 
 
-                <div class="flex-row col-9">
+                <div class="flex-row gaps col-9">
                     <div v-for="i in rules" class="w-sm-double card">
                         <header>
                             <button v-bind:class="{ highlight: selectedBinding == i }"
@@ -136,7 +136,7 @@ p.small {
 
                         </header>
 
-                        <div class="flex-row w-full padding nogaps">
+                        <div class="flex-row gaps w-full padding nogaps">
 
                             <div v-for="j in i[1]" style="align-self:stretch; display:inline-flex;">
                                 <button v-bind:class="{'w-12em':1, action: 1, selected: (selectedBinding == i & selectedCommand == j) }"

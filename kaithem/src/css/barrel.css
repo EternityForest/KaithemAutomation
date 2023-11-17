@@ -713,7 +713,6 @@ header {
 
         /*Treat toolbar only children of a header specially*/
         &>.tool-bar:only-child {
-            gap: var(--padding);
 
             &>:not(.specificity-hack),
             &>:is(p, label)>:not(.specificity_hack) {
@@ -1121,16 +1120,20 @@ it usable.  Remove when FF fully supports :has()*/
 .flex-col>* {
     flex: 1 1 auto;
     flex-basis: fit-content;
+}
+
+.flex-col.gaps>* {
     margin-block-end: var(--gap);
-}
 
-.flex-col>:last-child:not(label, input, button, select, .tool-bar) {
-    margin-block-end: 0px;
-}
 
-/*Todo find out what this is for*/
-.flex-col>:nth-last-child(2):not(label, input, button, select, .tool-bar, p, .card, .window) {
-    margin-block-end: 0px;
+    &>:last-child:not(label, input, button, select, .tool-bar) {
+        margin-block-end: 0px;
+    }
+
+    /*Todo find out what this is for*/
+    &>:nth-last-child(2):not(label, input, button, select, .tool-bar, p, .card, .window) {
+        margin-block-end: 0px;
+    }
 }
 
 .flex-col footer,
@@ -1143,14 +1146,15 @@ it usable.  Remove when FF fully supports :has()*/
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
-    gap: var(--gap);
     align-items: stretch;
 }
 
+.flex-row.gaps{
+    gap: var(--gap);
+}
 
 .flex-row>* {
-
-    flex-basis: fit-content;
+    flex-basis: min-content;
     margin: 0px;
 }
 
@@ -1168,110 +1172,76 @@ it usable.  Remove when FF fully supports :has()*/
 .col-10,
 .col-11,
 .col-12 {
-    flex-grow: 1;
-    flex-basis: unset;
-    min-width: min-content;
+    flex-basis: calc(var(--this-col-width-internal) * 8.33%);
+    width: calc(var(--this-col-width-internal) * 8.33%);
+    margin-inline-end: 0px;
+
+
+
+    /*Img and video would become 1:1 pixel style*/
+    &:not(img, video) {
+        min-width: min-content;
+    }
+
+    &:is(.gaps>*) {
+        flex-grow: var(--this-col-width-internal);
+        flex-basis: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
+        width: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
+    }
 }
 
+
+
+
 .col-1 {
-    width: 4.33%;
+    --this-col-width-internal: 1;
 }
 
 .col-2 {
-    width: 12.66%;
+    --this-col-width-internal: 2;
 }
 
 .col-3 {
-    width: 21%;
+    --this-col-width-internal: 3;
 }
 
 .col-4 {
-    width: 29.33%;
+    --this-col-width-internal: 4;
 }
 
 .col-5 {
-    width: 37.66%;
+    --this-col-width-internal: 5;
 }
 
 .col-6 {
-    width: 46%;
+    --this-col-width-internal: 6;
 }
 
 .col-7 {
-    width: 54.33%;
+    --this-col-width-internal: 7;
 }
 
 .col-8 {
-    width: 62.66%;
+    --this-col-width-internal: 8;
 }
 
 .col-9 {
-    width: 71%;
+    --this-col-width-internal: 9;
 }
 
 .col-10 {
-    width: 79.33%;
+    --this-col-width-internal: 10;
 }
 
 .col-11 {
-    width: 87.66%;
+    --this-col-width-internal: 11;
 }
 
 .col-12 {
-    width: 96%;
+    --this-col-width-internal: 12;
+    flex-grow: 1;
 }
 
-
-.nogaps {
-    &>.col-1 {
-        width: 8.3333%;
-    }
-
-    &>.col-2 {
-        width: 16.6666;
-    }
-
-    &>.col-3 {
-        width: 25%;
-    }
-
-    &>.col-4 {
-        width: 33.33333%;
-    }
-
-    &>.col-5 {
-        width: 41.6666%;
-    }
-
-    &>.col-6 {
-        width: 50%;
-    }
-
-    &>.col-7 {
-        width: 58.333%;
-    }
-
-    &>.col-8 {
-        width: 66.66%;
-    }
-
-    &>.col-9 {
-        width: 75%;
-    }
-
-    &>.col-10 {
-        width: 83.33%;
-    }
-
-    &>.col-11 {
-        width: 91.66%;
-    }
-
-    &>.col-12 {
-        width: 100%;
-        flex-grow: 1;
-    }
-}
 
 /*Sizes that are relative to approximately the width of a phone screen.
 A little smaller in flex to allow for expansion or fitting lots on a row*/
@@ -1472,6 +1442,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     height: 60rem;
 }
 
+.h-min-content{
+    height: min-content;
+}
+
 .flex-col,
 .stacked-form {
     &>.h-1rem {
@@ -1604,7 +1578,6 @@ iframe.h-center {
 
     &>:not(.specificity_hack) {
         margin: 0px;
-
         margin-block-end: 0px;
     }
 }
@@ -2102,6 +2075,9 @@ footer.padding {
 
 }
 
+.flex-col>.tool-bar {
+    flex-grow: 0;
+}
 
 
 

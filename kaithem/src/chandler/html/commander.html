@@ -35,31 +35,6 @@
         float: right;
     }
 
-    p.scene {
-        border-style: solid;
-        border-width: 1px;
-    }
-
-
-    div.universe {
-        border-style: solid;
-        border-radius: 5px;
-        overflow: auto;
-        border-color: grey;
-        margin: 3px;
-        width: 95%;
-        display: inline-block;
-    }
-
-    div.fixture {
-        border-style: solid;
-        border-radius: 5px;
-        overflow: auto;
-        border-width: 2px;
-        margin: 3px;
-        display: inline-block;
-
-    }
 
     .indicator {
         border-radius: 0.2em;
@@ -68,26 +43,6 @@
         height: 0.9em;
         border-style: dashed;
         border-width: 1.5px;
-    }
-
-    label {
-        display: inline-block;
-        border: 0px;
-        margin: 3px;
-        border-radius: 0px;
-        padding: 0px;
-        border: 0px;
-        margin: 3px 8px 3px 8px
-    }
-
-    label>input {
-        border-radius: 0px;
-        margin: 0px;
-    }
-
-    .labelbox {
-        display: flex;
-        flex-wrap: wrap;
     }
 
     .break {
@@ -134,7 +89,7 @@
 
 <div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
 
-    <div class="window paper w-full" style="overflow: auto; max-width:98vw; flex-grow:1">
+    <div class="window paper w-full margin" style="overflow: auto; max-width:98vw; flex-grow:1">
         <header>
             <div class="tool-bar">
                 <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
@@ -151,14 +106,14 @@
 
 
 
-        <div style="overflow: auto; max-height:450px" class="flex-row padding">
+        <div style="overflow: auto; max-height:450px" class="flex-row gaps padding">
             <article v-for="i in formatScenes()" v-if="i"
                 style="position:relative"
-                v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'nogrow':1, 'flex-col': 1}"
                 style="border-style:solid; border-width:1px;">
 
 
-                <header class="flex-row">
+                <header class="flex-row gaps">
                     <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==scenename}"
                             v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
                             {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span>
@@ -174,47 +129,40 @@
                                 title="This cue has rules attatched"
                                 v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"><i
                                     class="icofont-law-document"></i></span>
-                            <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
-
                         </button></h3>
                 </header>
-                <div style="flex-direction: column; display: flex; text-align: center;">
+                <div class="flex-col nogaps" style="text-align: center;">
 
                     <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
-                    <div style="display:flex; width: 100%; min-height: 6em">
-                        <b v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</b>
-                        <img style="border:none; margin: 4px; height: fit-content; width:  128px;"
+                    <div class="flex-row nogaps nogrow min-h-6em w-full">
+                        
+                        
+                        <div :class="{'success':i[1].active,'col-6':1, 'grow': 1, 'h-min-content': 1}" v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
+                        
+                            <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                        </div>
+                        
+                        <img style="border:none; height: fit-content;" class="col-6 grow"
                             onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound"
                             :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
                         <div v-if="!(cuemeta[i[1].cue].sound)" style="height: 164px;"></div>
 
                         <span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
                                 class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span>
-                    </div>
 
-
-                    <p v-if="!i[1].utility" class="tool-bar" style="flex-grow: 0.15">
-                        <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
-                                class="icofont-ui-play"></i></button>
-                        <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i></button>
-                        <button v-on:click="nextcue(i[0])"><i class="icofont-ui-next"></i></button>
-                        <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i></button>
-                    </p>
-
-                    <input v-if="!i[1].utility" type="range" style="width: 98%" max=1 step=0.01 min=0
-                        v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);"
-                        :value="alphas[i[0]]"><br>
-
-                    <div class="tool-bar" v-if="i[1].eventButtons.length > 0">
-                        <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                     </div>
 
                     <small v-if="i[1].active&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext)">
                         Next Cue:
                         {{(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext||'').split('?')[0]}}
                     </small>
+
+
+
+                    
+
 
 
                     <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0"
@@ -244,8 +192,28 @@
                         <tr>
 
                     </table>
+
+
                 </div>
 
+                    <footer>
+                        <p v-if="!i[1].utility" class="tool-bar" style="flex-grow: 0.15">
+                            <button :class="{'highlight':i[1].active}" v-on:click="go(i[0])"><i
+                                    class="icofont-ui-play"></i></button>
+                            <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i></button>
+                            <button v-on:click="nextcue(i[0])"><i class="icofont-ui-next"></i></button>
+                            <button class="stopbutton" v-on:click="stop(i[0])"><i class="icofont-ui-play-stop"></i></button>
+                        </p>
+                        
+                        <div class="tool-bar"><input v-if="!i[1].utility" type="range" style="width: 98%" max=1 step=0.01 min=0
+                            v-on:input="setalpha(i[0],parseFloat($event.target.value));" v-on:change="unlockAlpha(i[0]);"
+                            :value="alphas[i[0]]">
+                        </div>
+                        
+                        <div class="tool-bar nogrow" v-if="i[1].eventButtons.length > 0">
+                            <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
+                        </div>
+                    </footer>
             </article>
         </div>
 
@@ -262,9 +230,9 @@
 
         <div id="cuesbox">
 
-            <div class="flex-row align-left padding">
+            <div class="flex-row gaps align-left padding">
 
-                <article class="w-sm-full flex-col min-h-6rem" v-for="i in formatCues(1)" v-if="i[1].id"
+                <article class="w-sm-full flex-col gaps min-h-6rem" v-for="i in formatCues(1)" v-if="i[1].id"
                     v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
 
                     <header>
@@ -278,6 +246,7 @@
 
                         </button>
                     </header>
+                    
                     <img style="max-width: 6em; max-height: 6em; display:block;border:none; margin: auto;"
                         onerror='this.style.display = "none"' v-if="i[1].sound"
                         :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].id)"></img>
@@ -312,10 +281,9 @@
 
 </div>
 
+<section class="window margin scroll">
 <iframe src="/dropdownpanel?summary=1" width="99%"></iframe>
-
-
-
+</section>
 
 
 

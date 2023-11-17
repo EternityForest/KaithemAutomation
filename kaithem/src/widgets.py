@@ -1221,7 +1221,7 @@ class Meter(Widget):
     def render_oneline(self, unit="", label=None):
         label = label or self.defaultLabel
         return """
-        <div class="inline flex-row nomargin">
+        <div class="inline flex-row gaps nomargin">
         <div class="align-left w-12rem">{label}</div>
         <script type="text/javascript">
         var upd = function(val)

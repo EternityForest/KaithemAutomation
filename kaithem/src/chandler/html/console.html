@@ -157,7 +157,7 @@ ${lists}
 
 
 </script>
-<div id="app" class="flex-row">
+<div id="app" class="flex-row gaps">
     <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
         <div class="menubar tool-bar">
@@ -198,7 +198,7 @@ ${lists}
 
     <main style="display:flex; flex-wrap:wrap; justify-content: center;" class="w-full">
 
-        <section class="window paper w-sm-full flex-col h-48rem" style="resize:both; padding-bottom: 1px;">
+        <section class="window margin w-sm-full flex-col gaps h-48rem" style="resize:both; padding-bottom: 1px;">
             <header>
                 <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
@@ -220,25 +220,25 @@ ${lists}
             </header>
 
             <div class="h-24rem scroll">
-                <div class="flex-col">
+                <div class="flex-col gaps">
                     <article v-for="i in formatScenes()" v-if="i" style="position:relative;"
                         v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
                         <header>
                             <hgroup>
-                            <h4>
-                                <button v-bind:class="{highlight:i[0]==scenename,padding:1}" v-on:click="selectscene(i[1],i[0])"
-                                    style="width: 100%">
+                                <h4>
+                                    <button v-bind:class="{highlight:i[0]==scenename}"
+                                        v-on:click="selectscene(i[1],i[0])" style="width: 100%">
 
-                                    <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext"
-                                        class="grey">
-                                        (external)</span>
+                                        <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext"
+                                            class="grey">
+                                            (external)</span>
 
-                                    <i class="icofont-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
-                                </button>
-                            </h4>
+                                        <i class="icofont-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
+                                    </button>
+                                </h4>
 
-                                </hgroup>
+                            </hgroup>
                         </header>
                         <p>
 
@@ -253,7 +253,7 @@ ${lists}
                                 title="This cue has rules attatched"
                                 v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
                                     class="icofont-law-document"></i></span>
-                                    </p>
+                        </p>
                         <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
@@ -330,7 +330,7 @@ ${lists}
 
         </section>
 
-        <section class="window paper" v-if="showevents" class="flex-item"
+        <section class="window margin" v-if="showevents" class="flex-item"
             style="position:fixed; z-index:99; bottom:0px; width:78%;">
             <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
                 Log
@@ -374,9 +374,17 @@ ${lists}
 
 
 
-        <section v-if="showimportexport" class="flex-item window paper">
-            <h3>Import/Export controls</h3>
-            <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Download:</b>
+        <section v-if="showimportexport" class="flex-item window paper h-24rem">
+            <header>
+                <div class="tool-bar">
+                    <h3>Import/Export controls</h3>
+                    <button v-on:click="showimportexport=!showimportexport"><i class="icofont-close"></i>Close</button>
+
+                </div>
+            </header>
+
+            <div class="tool-bar" style="padding:0.25em; border-width:2px;">
+                <p>Download:</p>
                 <a class="button" href="download" title="Download your scenes as a file"><i
                         class="icofont-diskette"></i>Scenes</a>
                 <a class="button" href="downloadSetup" title="Download your scenes as a file"><i
@@ -385,7 +393,8 @@ ${lists}
                         class="icofont-diskette"></i>Fixture Lib</a>
             </div>
 
-            <div class="tool-bar" style="padding:0.25em; border-width:2px;"><b>Upload:</b>
+            <div class="tool-bar" style="padding:0.25em; border-width:2px;">
+                <p>Upload:</p>
                 <a class="button" href="upload" title="Upload a scenes file"><i
                         class="icofont-folder-open"></i>Scenes</a>
                 <a class="button" href="uploadSetup" title="Upload a scenes file"><i
@@ -430,39 +439,56 @@ ${lists}
             </dl>
         </section>
 
-        <div v-if="showDMXSetup" class="window paper flex-item">
-            <h3>
-                <button v-on:click="showDMXSetup=0">
-                    <i class="icofont-ui-close"></i>Close</button> Universe Setup
-            </h3>
+        <div v-if="showDMXSetup" class="window margin flex-item">
+            <header>
+                <div class="tool-bar">
+
+                    <h3>
+                        Universe Setup
+                    </h3> <button v-on:click="showDMXSetup=0">
+                        <i class="icofont-ui-close"></i>Close</button>
+                </div>
+            </header>
+
+
+            <div class="tool-bar">
+                <button v-on:click="refreshPorts">Refresh Serial Ports</button>
+                <button v-on:click="pushSettings">Update Settings</button>
+            </div>
+
+            <div class="flex-row gaps margin">
+                <div class="card">
+                    <header>
+                        <h4>Universe Status</h4>
+                    </header>
+                    <table border="1" class="paper">
+                        <tr>
+                            <th>Universe</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr v-for="(v,i) in universes">
+                            <td>{{i}}</td>
+                            <td v-bind:class="{'success':v.ok, 'danger':!v.ok}">{{v.status}}</td>
+                        </tr>
+                    </table>
+                </div>
+
+
+                <div class="card">
+                    <header>
+                        <h4>Serial Ports</h4>
+
+                    </header>
+                    <span v-for="i in serports">{{i}}<br></span>
+
+                </div>
+            </div>
             <details class="help">
-                <summary><i class="icofont-question-circle"></i></summary>These settings take effect immediately when
-                you
+                <summary><i class="icofont-question-circle"></i></summary>
+                These settings take effect immediately when you
                 click "Update Settings". To save them to disk,
-                use "save setup" Note: Configuring these universes requires /admin/settings.edit,
-                however you do not need that permission to use the lightboard after it's configured.
+                use "save setup" Configuring these universes requires /admin/settings.edit.
             </details>
-            <button v-on:click="refreshPorts">Refresh Serial Ports</button>
-            <button v-on:click="pushSettings">Update Settings</button><br>
-            <br>
-
-            <h4>Universe Status</h4>
-            <table border="1">
-                <tr>
-                    <th>Universe</th>
-                    <th>Status</th>
-                </tr>
-                <tr v-for="(v,i) in universes">
-                    <td>{{i}}</td>
-                    <td v-bind:style="{'color':v.ok?'green':'red'}">{{v.status}}</td>
-                </tr>
-            </table>
-            <br>
-
-            <h4>Serial Ports</h4>
-            <span v-for="i in serports">{{i}}<br></span>
-            <br>
-
             <h4>Configure Universes</h4>
             <p>If tag point universes do nothing, check that the priority is not just being overrriden. It should be at
                 least 50. Also note that you should avoid using this to create new tags,
@@ -601,9 +627,16 @@ ${lists}
 
 
 
-        <section v-if="showFixtureSetup" class="flex-item window paper">
-            <h3><button v-on:click="showhidefixtures()"><i class="icofont-ui-close"></i>Close</button>Fixture
-                Setup</h3>
+        <section v-if="showFixtureSetup" class="flex-item window margin">
+
+            <header>
+                <div class="tool-bar">
+                    <h3>Fixture Types</h3>
+                    <button v-on:click="showhidefixtures()">
+                        <i class="icofont-ui-close"></i>Close</button>
+                </div>
+            </header>
+
 
             <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
                 :options="useBlankDescriptions(fixtureClasses)"></combo-box>
@@ -611,6 +644,7 @@ ${lists}
             <a class="button" href="UseOPZDMX">Import from OP-Z format library</a>
 
             <div v-if="selectedFixtureClass">
+                <h4>{{selectedFixtureClass}}</h4>
 
                 <button v-on:click="delfixturetype"><i class="icofont-trash"></i>Delete Fixture Type</button>
 
@@ -704,12 +738,14 @@ ${lists}
 
 
         <section v-if="showfixtureassg" class="flex-item window paper">
-
-            <h3>
-                <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button> Fixture
-                Assignments
-            </h3>
+            <header>
+                <div class="tool-bar">
+                    <h3>Fixture Assignments</h3>
+                    <button v-on:click="showfixtureassg=0"><i class="icofont-ui-close"></i>Close</button>
+                </div>
+            </header>
             <details class="help">
+
                 <summary><i class="icofont-question-circle"></i></summary>Here is where you actually assign fixtures to
                 channels after creating the desired fixture types.
                 Clicking Update will cause the new assignments to take effect immediately. Use the save settings button
@@ -955,7 +991,7 @@ ${lists}
                                 class="icofont-listing-box"></i>Channels</button>
                     </div>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
-                        <article class="universe card flex-col" v-for="(h,uname) in cuevals[currentcueid]"
+                        <article class="universe card flex-col gaps" v-for="(h,uname) in cuevals[currentcueid]"
                             v-if="uname[0]!='@'">
                             <header>
                                 <h3>{{uname}}</h3>
@@ -969,7 +1005,7 @@ ${lists}
                         </article>
 
 
-                        <article class="fixture card flex-col" v-for="(h,fname) in cuevals[currentcueid]"
+                        <article class="fixture card flex-col gaps" v-for="(h,fname) in cuevals[currentcueid]"
                             v-if="fname[0]=='@'">
                             <header>
                                 <div class="tool-bar" v-if="editingScene.blend!='monitor'">
@@ -995,7 +1031,7 @@ ${lists}
                             </div>
                         </article>
 
-                        <div v-if="scenetab=='channels'" class="flex-row">
+                        <div v-if="scenetab=='channels'" class="flex-row gaps">
                             <div class="card">
                                 <header>
                                     <h4>Add Raw Channel</h4>
@@ -1146,7 +1182,7 @@ ${lists}
 
                         <p><a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a></p>
 
-                        <div class="flex-row">
+                        <div class="flex-row gaps">
 
                             <div class="card w-sm-full">
                                 <header>Cue Sound</header>
@@ -1159,7 +1195,7 @@ ${lists}
                                         <input placeholder="No picture file" v-model="currentcue.slide"
                                             v-on:change="setCueSlide(currentcueid,currentcue.slide)">
                                     </label>
-    
+
                                     <p>
                                         <label>Sound start
                                             <input v-model="currentcue.soundStartPosition"
@@ -1208,7 +1244,7 @@ ${lists}
 
                                     <p>
                                         <label>Relative length
-                                            <input type="checkbox"  title="Cause length to be an offset after sound ends"
+                                            <input type="checkbox" title="Cause length to be an offset after sound ends"
                                                 v-on:change="setrellen(currentcueid,currentcue.relLength)"
                                                 v-model="currentcue.relLength"
                                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
@@ -1218,8 +1254,8 @@ ${lists}
 
                                         <label>Fade sound after end
                                             <input type="number"
-                                                v-on:change="setSoundFadeOut(currentcueid,$event.target.value)"
-                                                min=0 v-model="currentcue.soundFadeOut"
+                                                v-on:change="setSoundFadeOut(currentcueid,$event.target.value)" min=0
+                                                v-model="currentcue.soundFadeOut"
                                                 title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend">
 
                                         </label>
@@ -1228,8 +1264,8 @@ ${lists}
                                     <p>
                                         <label>Sound fadein:
                                             <input type="number"
-                                                v-on:change="setSoundFadeIn(currentcueid,$event.target.value)"
-                                                 min=-1 v-model="currentcue.soundFadeIn"
+                                                v-on:change="setSoundFadeIn(currentcueid,$event.target.value)" min=-1
+                                                v-model="currentcue.soundFadeIn"
                                                 title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use -1 to override and disable a global scene crossfade.">
 
                                         </label>
@@ -1240,7 +1276,8 @@ ${lists}
                                         </label>
 
                                         <label>Loops
-                                            <input title="-1 means forever" v-on:change="setCueLoops(currentcueid,$event.target.value)" min=-1
+                                            <input title="-1 means forever"
+                                                v-on:change="setCueLoops(currentcueid,$event.target.value)" min=-1
                                                 v-model="currentcue.soundLoops">
                                         </label>
                                     </p>
@@ -1249,8 +1286,8 @@ ${lists}
 
                                 </div>
                             </div>
-                            <div class="w-sm-double flex-col">
-                                <div class="card w-full flex-col">
+                            <div class="w-sm-double flex-col gaps">
+                                <div class="card w-full flex-col gaps">
                                     <header>
                                         <h3>Media browser</h3>
                                     </header>
@@ -1273,18 +1310,18 @@ ${lists}
                                                     <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
                                                     <td><button
                                                             v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(sound)</button>
-                                                    <button
-                                                            v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New(sound)</button>
-                                                    <button
-                                                            v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
-                                                            <button
-                                                                v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(slide)</button>
                                                         <button
-                                                                v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New(slide)</button>
-                                                
-            
-                                                    
-                                                        </td>
+                                                            v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New(sound)</button>
+                                                        <button
+                                                            v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
+                                                        <button
+                                                            v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(slide)</button>
+                                                        <button
+                                                            v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New(slide)</button>
+
+
+
+                                                    </td>
                                                 </tr>
                                             </table>
                                         </div>
@@ -1316,22 +1353,22 @@ ${lists}
                                                     <tr>
                                                         <th style="width: 40%;">File</th>
                                                         <th>Action</th>
-                   
+
                                                     </tr>
                                                 </thead>
                                                 <tr v-for="i in soundfileslisting[1]">
                                                     <td class="w-12rem">{{i}}</td>
                                                     <td><button
                                                             v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
-                                                    <button
+                                                        <button
                                                             v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button>
-                                                    <button
+                                                        <button
                                                             v-on:click="previewSound(soundfilesdir+i)">Preview</button>
-                                                            <button
+                                                        <button
                                                             v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(slide)</button>
-                                                    <button
+                                                        <button
                                                             v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New(slide)</button>
-                                            
+
                                                     </td>
                                                 </tr>
                                             </table>
@@ -1389,7 +1426,7 @@ ${lists}
                         </summary>
 
                         <div>
-                            <div class="flex-row">
+                            <div class="flex-row gaps">
                                 <fieldset class="stacked-form">
                                     <legend>Basic</legend>
                                     <label>Number
@@ -1503,7 +1540,7 @@ ${lists}
                     <textarea v-on:change="setvisualization(scenename,$event.target.value);"
                         v-model="editingScene.musicVisualizations"></textarea>
                 </details> -->
-                <div class="flex-row">
+                <div class="flex-row gaps">
 
                     <div class="w-sm-full card">
 
