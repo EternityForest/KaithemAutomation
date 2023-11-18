@@ -1,10 +1,11 @@
 {% extends "pagetemplate.j2.html" %}
+{% set time = imp0rt( 'time' ) %}
 
 {% block body %}
 <main>
     <h2>Module {{ name| escape }}</h2>
     <title>Module: {{ name| escape }}</title>
-    <section class="flex-row">
+    <section class="flex-row gaps margin">
         <section class="window col-6 padding">
             MD5 Sum: {{ getModuleHash(name) }}
             </br>
