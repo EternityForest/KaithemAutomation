@@ -37,7 +37,7 @@ SOFTWARE.
     --accent-color: #eaff2f;
     --control-fg: #412b00;
     --control-bg: #edc12f;
-    --highight-color:#a8f4ff;
+    --highight-color: #a8f4ff;
     --concave-item-box-shadow: inset 0px 0px 6px 3px #38383847;
     --heading-text-shadow: 2px 2px 3px #896e12;
     --control-text-shadow: 1px 1px 2px #f5d48947;
@@ -49,6 +49,17 @@ SOFTWARE.
     --border-width: 0px;
     --control-border-width: 1px;
     --item-box-shadow: 2px 2px 3px 3px #2b140065;
+    --main-font: Ovo;
+    --heading-font: var(--sans-font);
+    --font-size: 20px;
+}
+
+@font-face {
+    font-family: 'Ovo';
+    font-style: normal;
+    font-weight: 400;
+    src: url('fonts/Ovo-Regular.ttf');
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
 .window {

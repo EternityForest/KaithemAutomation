@@ -48,7 +48,6 @@ dd {
     isolation: isolate;
 }
 
-
 :root {
     color-scheme: light dark;
 
@@ -87,12 +86,13 @@ dd {
 
     /*typography*/
 
-    --sans-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --sans-font: font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     --serif-font: Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
     --mono-font: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 
     --main-font: var(--sans-font);
     --font-size: 18px;
+    --line-height: calc(2px + 18px + 2px + 4px);
     --heading-font: var(--main-font);
     --control-font: var(--main-font);
 
@@ -317,7 +317,7 @@ html {
 
 body {
     font-family: var(--main-font);
-    line-height: 2.8ex;
+    line-height: var(--line-height);
     font-size: var(--font-size);
     margin: 0px;
     padding: 0px;
@@ -542,12 +542,14 @@ input:is([type='submit'], [type='button']) {
     color: var(--control-fg);
     text-shadow: var(--control-text-shadow);
     display: inline-block;
+    padding-inline: var(--padding);
 }
 
 input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"]),
 select {
     background: var(--concave-item-bg);
     box-shadow: var(--concave-item-box-shadow);
+    padding-inline: var(--padding);
 }
 
 select {
@@ -1647,7 +1649,7 @@ pre.poem {
     white-space: pre-wrap;
     font-family: inherit;
     width: fit-content;
-    line-height: 2.8ex;
+    line-height: var(--line-height);
     break-inside: avoid;
 
     & p {
@@ -1655,7 +1657,6 @@ pre.poem {
         margin-bottom: 2.4ex;
     }
 }
-
 
 .v-center {
     margin-top: auto;
@@ -1927,7 +1928,7 @@ footer.padding {
     box-sizing: border-box;
     background-clip: content-box;
     gap: 0px;
-
+    line-height: calc(var(--control-height) - calc(var(--control-border-width) * 2 + 1px));
 
     /*Undo any effect something else set on convex elements for consistency*/
     & :is(button, .button) {
@@ -2007,7 +2008,7 @@ footer.padding {
 
     & :is(h1, h2, h3, h4, h5, h6) {
         margin: 0px;
-        padding-top: 0px;
+        padding-top: 1px;
         padding-bottom: 0px;
         vertical-align: middle;
         text-align: center;
@@ -2019,11 +2020,11 @@ footer.padding {
     & p {
         padding-inline-start: var(--padding);
         padding-inline-end: var(--padding);
+        padding-top: 1px;
         min-width: fit-content;
         display: flex;
         flex-grow: 2;
         margin: 0px;
-        line-height: var(--control-height);
 
         &:has(input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"], [type="button"])) {
             flex-grow: 50;
@@ -2091,6 +2092,7 @@ footer.padding {
         padding-bottom: 0px;
         vertical-align: middle;
         min-width: fit-content;
+        padding-top: 1px;
 
         display: inline-flex;
         flex-wrap: wrap;
