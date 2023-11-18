@@ -1032,12 +1032,12 @@ ${lists}
                         </article>
 
                         <div v-if="scenetab=='channels'" class="flex-row gaps">
-                            <div class="card">
+                            <div class="card margin">
                                 <header>
                                     <h4>Add Raw Channel</h4>
                                 </header>
 
-                                <div class="stacked-form">
+                                <div class="stacked-form w-24rem">
                                     <label>Universe
                                         <combo-box v-bind:options="useBlankDescriptions(universes)"
                                             v-model="newcueu"></combo-box>
@@ -1056,7 +1056,7 @@ ${lists}
 
                             </div>
 
-                            <div class="card">
+                            <div class="card margin w-24rem">
                                 <header>
                                     <h4>Add Fixture</h4>
                                 </header>
@@ -1185,7 +1185,7 @@ ${lists}
                         <div class="flex-row gaps">
 
                             <div class="card w-sm-full">
-                                <header>Cue Sound</header>
+                                <header><h3>Cue Sound</h3></header>
                                 <div class="stacked-form">
                                     <label>Sound
                                         <input placeholder="No sound file" v-model="currentcue.sound"
@@ -1375,7 +1375,7 @@ ${lists}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="max-h-12rem scroll border card">
+                                <div class="max-h-12rem flex-col border card">
                                     <header>
                                         <h4>Sound Outputs</h4>
                                     </header>
@@ -1386,6 +1386,7 @@ ${lists}
                                         use the web remote display feature. Cue
                                         videos will play in the browser on connected remote displays.
                                     </details>
+                                    <div class="scroll">
                                     <dl>
 
 
@@ -1415,6 +1416,7 @@ ${lists}
                                             </dd>
                                         </template>
                                     </dl>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1600,8 +1602,9 @@ ${lists}
                                         v-on:change="setbpm(scenename,parseFloat($event.target.value))"
                                         v-model="editingScene.bpm">
                                 </label>
-                                <button v-on:click="tap(scenename)">
-                                    <i class="icofont-hand-drag1"></i>Tap</button>
+                                <button v-on:click="tap(scenename)" class="grow">
+                                    <i class="icofont-hand-drag1"></i>Tap
+                                </button>
                             </p>
 
                             <p>
@@ -1673,9 +1676,6 @@ ${lists}
                                 <dt>Web Player</dt>
                                 <dd>
                                     <div class="tool-bar">
-                                        <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set
-                                            for
-                                            Cue</button>
                                         <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
                                             as
                                             Scene
@@ -1721,26 +1721,27 @@ ${lists}
                         <header>
                             <h4>Send event</h4>
                         </header>
+                        <div class="stacked-form">
+                            <label>Event name:
+                                <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
+                                    title="Event Name">
 
-                        <label>Event name:
-                            <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
-                                title="Event Name">
+                            </label>
 
-                        </label>
+                            <label>Value
+                                <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+                            </label>
+                            <label>Type
+                                <select v-model="evtypetosend">
+                                    <option value="int">Integer</option>
+                                    <option value="float">Real Number</option>
+                                    <option value="str">Text</option>
+                                </select>
+                            </label>
 
-                        <label>Value
-                            <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
-                        </label>
-                        <label>Type
-                            <select v-model="evtypetosend">
-                                <option value="int">Integer</option>
-                                <option value="float">Real Number</option>
-                                <option value="str">Text</option>
-                            </select>
-                        </label>
-
-                        <button v-on:click="sendev(scenename)">Send</button>
-                        </label>
+                            <button v-on:click="sendev(scenename)">Send</button>
+                            </label>
+                        </div>
                     </div>
 
 
@@ -1765,7 +1766,7 @@ ${lists}
 
 
 
-                    <div class="card w-sm-full">
+                    <div class="card w-sm-double">
                         <header>
                             <h4>UI</h4>
                         </header>

@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from typing import Dict
 import uuid
 import time
@@ -34,6 +36,7 @@ from . import (
     directories,
     alerts,
     workers,
+    scheduling,
 )
 from . import jackmanager, gstwrapper, mixerfx
 
@@ -202,17 +205,6 @@ def queue(e, p, v):
     return True
 
 
-# with open("/dev/shm/kaithem_kw_file",'w') as f:
-#     f.write('hello /1e-30/\n')
-
-# with open("/dev/shm/kaithem_dummy_kw_file",'w') as f:
-#     f.write('hello /1e-30/\n')
-
-# def tmpKwFile(e,p,v,c):
-#     if p=='kws':
-#
-
-
 specialCaseParamCallbacks["3beq"] = beq3
 specialCaseParamCallbacks["echo"] = echo
 specialCaseParamCallbacks["queue"] = queue
@@ -343,6 +335,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             # Are we already doing a loudness cutoff?
             self.doingFeedbackCutoff = False
 
+            self.created_time = time.monotonic()
+
             if not input or not input.startswith("rtplisten://"):
                 if not direct_pw:
                     self.src = self.addElement(
@@ -406,6 +400,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.levelTag.setAlarm("volume", "value>soundFuseSetting", tripDelay=0.3)
 
             # self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
+
+            self.checker = scheduling.scheduler.everyMinute(self.poll)
+            
         except Exception:
             print(traceback.format_exc())
             # Ensure fully cleaned up if any failure
@@ -414,6 +411,16 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             except Exception:
                 raise
             raise
+
+    
+    def check_ports(self):
+        "Check that the ports actually exist"
+        if not [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_in:")]:
+            return False
+        if not [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_out:")]:
+            return False
+        return True
+    
 
     def mpv_input_loop(self):
         command = self.input.strip()
@@ -1029,7 +1036,7 @@ class MixingBoard:
         self.api.require("/users/mixer.edit")
         self.api.attach(self.f)
         self.channels = {}
-        self.channelObjects = {}
+        self.channelObjects: Dict[str, ChannelStrip] = {}
         self.channelAlerts = {}
         self.lock = threading.RLock()
         self.channelStatus = {}
@@ -1045,12 +1052,25 @@ class MixingBoard:
         self.reloader = f
         self.loadedPreset = "default"
 
+    
+
     def loadData(self, d):
         with self.lock:
             self._loadData(d)
 
     def reload(self):
         self.loadData(self.channels)
+
+    def poll(self):
+        # This could iterationerror, just ignore it and move on for now
+        for name, i in self.channelObjects.items():
+            if i.created_time < (time.monotonic() - 60):
+                if not i.check_ports():
+                    logging.error(f"Ports for {name} not found, remaking channel")
+                    if not actionLockout.get(name, 0) > time.monotonic() - 10:
+                        actionLockout[name] = time.monotonic()
+                        self._createChannel(name, self.channels[name])
+                        actionLockout.pop(name, None)
 
     def _loadData(self, x):
         # Raise an error if it can't be serialized

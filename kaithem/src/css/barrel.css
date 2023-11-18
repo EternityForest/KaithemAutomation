@@ -331,9 +331,9 @@ body {
 img,
 figure,
 video,
-fieldset {
+fieldset,
+canvas{
     max-width: 100%;
-
     margin-left: 0px;
     margin-right: 0px;
 }
@@ -673,13 +673,11 @@ footer {
 
 /*Headers and footers */
 footer {
-    margin-top: var(--padding);
     border-radius: 0px 0px inherit inherit;
     border-top: var(--border);
 }
 
 header {
-    margin-bottom: var(--padding);
     border-radius: inherit inherit 0px 0px;
     border-bottom: var(--border);
     break-after: avoid;

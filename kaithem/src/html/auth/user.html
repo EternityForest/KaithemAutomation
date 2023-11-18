@@ -12,21 +12,25 @@ class="specialentry"\
 %endif
 >${username}</span></h2>
 <title>Edit User: ${username}</title>
-<form action="/auth/updateuser/${urlesc(username)}" method="POST" name="user"  autocomplete="off">
+<form action="/auth/updateuser/${urlesc(username)}" method="POST" name="user"  autocomplete="off" 
 
 <h3>Basic</h3>
 <div class="window paper">
 <p class="warning">For performance reasons, your password is stored hashed with an ordinary cryptographic hash, rather than a password strengthening algorithm.
     Do not use weak or reused passwords on public systems!!!!</p>
-Username:<input required="required" id="un" name="username" type="text" value="${username}"></input><br>
-Password(Leave blank=don't change):<input id="pw" name="password" type="password" value="" autocomplete='off'></input>
-Retype:<input id="retype" name="password2" type="password" value="" autocomplete='off'></input><br>
-<label>Disallow login from IP outside of LAN<input name="lanonly" type="checkbox"
+
+<div class="stacked-form">
+<label>Username<input required="required" id="un" name="username" type="text" value="${username}"></input></label>
+
+<label>(Leave blank=don't change):<input id="pw" name="password" type="password" value="" autocomplete='off'></input></label>
+
+<label>Retype password<input id="retype" name="password2" type="password" value="" autocomplete='off'></input></label>
+<label><input name="lanonly" type="checkbox"
 
 %if auth.getUserSetting(username,"restrict-lan"):
     checked="yes"
 %endif
-></label>
+>Disallow login from IP outside of LAN</label>
 
 <script>
 // Clean up after auto complete that thinks this is a login field.
@@ -38,56 +42,51 @@ document.getElementById('un').value = "${username}"
 
 </script>
 
-<label>Use Linux system user(of user with same name) password instead<input name="useSystemPassword" type="checkbox"
+<label><input name="useSystemPassword" type="checkbox"
     %if auth.Users[username].get('password','')=='system':
         checked="yes"
     %endif
-></label>
+>Use Linux system user(of user with same name) password instead</label>
     
 
-
-</br>
-    <details>
-        <summary>GET request security Warning</summary>
-        This option curretly can usually only block POST requests.  You should be sure to not allow a GET request to change anything important.
-        However it may also block easily detected CORS get requests.
-    </details>
-<label>Allow CORS access as this user: <input type="checkbox" name="allowcors"
-
+<label><input type="checkbox" name="allowcors"
 %if auth.getUserSetting(username, 'allow-cors'):
 checked="on"
 %endif
-> </label>
+>Allow CORS POST access as this user</label>
 
 
 
 
-<label>Telemetry alerts(Usefult for kiosks)<input name="telemetryalerts" type="checkbox"
+<label><input name="telemetryalerts" type="checkbox"
 
     %if auth.getUserSetting(username,"telemetry-alerts"):
         checked="yes"
     %endif
-    ></lan>
+    >Telemetry alerts(Usefult for kiosks)</label>
 </div>
-
+</div>
 
 
 
 <h3>Groups</h3>
-<div class="window paper">
+<div class="window margin">
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>
 User ${username} is a member of the following groups:<br>
 (Check or uncheck to set membership)</details>
+<div  class="stacked-form">
 %for i in sorted(groups):
-    <br> <input type="checkbox" name="Group${i}" value="true"
+    <label><input type="checkbox" name="Group${i}" value="true"
     %if i in usergroups:
         checked="yes"
     %endif
-    ></input>${i}
+    ></input>${i}</label>
 %endfor
+</div>
 </div>
 
 <input value="Save Changes" type="submit">
+</div>
 </form>
 
 

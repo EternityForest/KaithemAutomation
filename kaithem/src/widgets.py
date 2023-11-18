@@ -496,6 +496,8 @@ def makeTornadoSocket(wsimpl=websocket_impl):
             clients_info[impl.uuid] = impl.clientinfo
             self.impl = impl
 
+            impl._peer_address = x
+
             if (
                 user == "__guest__"
                 and (not x.startswith("127."))
