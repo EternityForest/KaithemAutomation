@@ -332,7 +332,7 @@ img,
 figure,
 video,
 fieldset,
-canvas{
+canvas {
     max-width: 100%;
     margin-left: 0px;
     margin-right: 0px;
@@ -1729,19 +1729,31 @@ footer.padding {
     margin: var(--gap);
 }
 
+.margin-top {
+    margin-bottom: var(--gap);
+}
+
+.margin-bottom {
+    margin-bottom: var(--gap);
+}
+
 .nomargin {
     margin: 0px;
 }
 
 /*This user added margin is likely unwanted on tiny screens where*/
 @media screen and (max-width: 500px) {
-    .window, .window.margin, .card.w-sm-full, .card.w-sm-double {
+
+    .window,
+    .window.margin,
+    .card.w-sm-full,
+    .card.w-sm-double {
         margin-left: 0px;
         margin-right: 0px;
     }
 }
 
-.relative{
+.relative {
     position: relative;
 }
 
