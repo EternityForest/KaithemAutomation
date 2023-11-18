@@ -159,9 +159,9 @@ front-page-banner: |
     Any and all activities on this server may be monitored and logged by the machine's admin.  You can configure this homepage
     to redirect to a different page in the Settings.
 
-#This HTML is used as the top banner for deployment branding
+#This HTML is used as the top banner for deployment branding, in pages without a nav bar
 top-banner-html: |
-    <div id="topbanner" style="display:flex;flex-direction:row;"><div style="flex-grow:10"><h1 align="center"><a href="/index" style="text-decoration:none;color:inherit; background-color:transparent;">Kaithem</a>@HOSTNAME</h1></div></div>
+    <div class="tool-bar"><h1 align="center"><a href="/index" style="text-decoration:none;color:inherit; background-color:transparent;">Kaithem@HOSTNAME</a></h1></div>
 
 #This text shows up in the about box. Good for misc info like copyrights of site specific data, lega stuff, etc
 about-box-banner: "This space can be customized with site specific data in the config file."
