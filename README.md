@@ -150,6 +150,12 @@ To update dependencies, run `make dev-update-dependencies`. this installs `direc
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
 
+### 0.71.2
+- :bug: Fix contextInfo > context_info snake case bug
+- :bug: Pipewire stuttering in some cases
+- :bug: Fix page editors
+
+
 ### 0.71.1
 - :bug: Further minor CSS work
 - :bug: Fix mixing board not working on Firefox

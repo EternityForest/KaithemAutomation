@@ -2,8 +2,9 @@ Change Log
 ----------
 
 ### 0.71.2
-- :bug: Fix contextInfo> context_info snake case bug
-- :bug: Pipewire stuttering
+- :bug: Fix contextInfo > context_info snake case bug
+- :bug: Pipewire stuttering in some cases
+- :bug: Fix page editors
 
 
 ### 0.71.1
