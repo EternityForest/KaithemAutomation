@@ -3,6 +3,8 @@ Change Log
 
 ### 0.71.2
 - :bug: Fix contextInfo> context_info snake case bug
+- :bug: Pipewire stuttering
+
 
 ### 0.71.1
 - :bug: Further minor CSS work

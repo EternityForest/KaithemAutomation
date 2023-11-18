@@ -54,7 +54,7 @@ presetsDir = os.path.join(directories.mixerdir, "presets")
 
 recorder = None
 
-PW_BLOCKSIZE=256
+PW_BLOCKSIZE=128
 
 
 class DummySource(iceflow.GStreamerPipeline):

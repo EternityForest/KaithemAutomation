@@ -150,7 +150,7 @@ dd {
     --warning-color: var(--yellow);
     --danger-color: var(--red);
 
-    --hover-color: color-mix(in srgb, var(--highlight-color) 30%, transparent);
+    --hover-color: color-mix(in srgb, var(--highlight-color) 30%, var(--control-bg));
 
     --control-border-color: color-mix(in srgb, var(--graphical-fg) 35%, rgb(0 0 0 / 0%));
 
