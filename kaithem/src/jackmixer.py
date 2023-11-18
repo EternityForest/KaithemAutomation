@@ -400,8 +400,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.levelTag.setAlarm("volume", "value>soundFuseSetting", tripDelay=0.3)
 
             # self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
-
-            self.checker = scheduling.scheduler.everyMinute(self.poll)
             
         except Exception:
             print(traceback.format_exc())
@@ -1051,8 +1049,7 @@ class MixingBoard:
         messagebus.subscribe("/system/jack/started", f)
         self.reloader = f
         self.loadedPreset = "default"
-
-    
+        self.checker = scheduling.scheduler.everyMinute(self.poll)
 
     def loadData(self, d):
         with self.lock:

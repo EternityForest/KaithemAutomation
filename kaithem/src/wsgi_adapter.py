@@ -97,7 +97,7 @@ class WSGIHandler(web.RequestHandler):
                            'gen.py' and i[0][-13:] != 'concurrent.py']
             error_msg = '{}\n  Exception: {}'.format(
                 ''.join(traceback.format_list(clean_stack)), excp)
-            
+
             self.write(error_msg)
 
             # do something with this error now... e.g., send it to yourself
@@ -204,5 +204,6 @@ class WSGIHandler(web.RequestHandler):
     def executor(self):
         cls = type(self)
         if not hasattr(cls, "_executor"):
-            cls._executor = futures.ThreadPoolExecutor(cls.thread_pool_size)
+            cls._executor = futures.ThreadPoolExecutor(
+                cls.thread_pool_size, thread_name_prefix="nostartstoplog.http.")
         return cls._executor
