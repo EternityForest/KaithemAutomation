@@ -1735,10 +1735,14 @@ footer.padding {
 
 /*This user added margin is likely unwanted on tiny screens where*/
 @media screen and (max-width: 500px) {
-    .window {
+    .window, .window.margin, .card.w-sm-full, .card.w-sm-double {
         margin-left: 0px;
         margin-right: 0px;
     }
+}
+
+.relative{
+    position: relative;
 }
 
 .block {
