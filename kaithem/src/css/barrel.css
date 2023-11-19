@@ -1147,7 +1147,9 @@ it usable.  Remove when FF fully supports :has()*/
 .flex-col footer,
 .flex-col header {
     flex-grow: 0;
-    margin-block-end: 0px;
+    &:not(.margin-bottom){
+        margin-block-end: 0px;
+    }
 }
 
 .flex-row {

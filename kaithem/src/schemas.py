@@ -33,6 +33,7 @@ def extend_with_default(validator_class):
 
 DefaultValidatingValidator = extend_with_default(Draft202012Validator)
 
+
 @cache
 def get_schema(schemaName: str):
     fn = os.path.join(os.path.dirname(os.path.normpath(

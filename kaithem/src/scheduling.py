@@ -93,7 +93,7 @@ class Event(BaseEvent):
             try:
                 from . import newevt
 
-                newevt.eventsByModuleName(f.__module__)._handle_exception()
+                newevt.eventsByModuleName[f.__module__]._handle_exception()
             except Exception:
                 print(traceback.format_exc())
 
@@ -163,7 +163,7 @@ class BaseRepeatingEvent(BaseEvent):
 
         self.errored = False
         self.lock = threading.Lock()
-        self.lastrun = None
+        self.lastrun = 0.0
         # This flag is here to slove a really annoying problem.
         # If you unregister just before the reschedule function acquires the lock,
         # The object just gets rescheduled like nothing happened.
@@ -211,7 +211,8 @@ class BaseRepeatingEvent(BaseEvent):
                 self.lock.release()
         else:
             logger.warning(
-                "Tried to schedule something that is still running: " + str(self.f())
+                "Tried to schedule something that is still running: " +
+                str(self.f())
             )
 
     def _schedule(self):
@@ -264,8 +265,9 @@ class BaseRepeatingEvent(BaseEvent):
                     from . import newevt
 
                     if f.__module__.startswith("Event_"):
-                        newevt.eventsByModuleName[f.__module__]._handle_exception()
-                except:
+                        newevt.eventsByModuleName[f.__module__]._handle_exception(
+                        )
+                except Exception:
                     print(traceback.format_exc())
 
                 try:
@@ -277,7 +279,7 @@ class BaseRepeatingEvent(BaseEvent):
                             + f.__module__
                         )
 
-                except:
+                except Exception:
                     localLogger.exception("Exception in scheduled function")
 
                 if not self.errored:
@@ -289,10 +291,10 @@ class BaseRepeatingEvent(BaseEvent):
                                 + " of module "
                                 + f.__module__
                             )
-                        except:
+                        except Exception:
                             logger.exception("Exception in scheduled function")
                         handleFirstError(f)
-                    except:
+                    except Exception:
                         logging.exception(
                             "Error handling first error in repeating event"
                         )
@@ -301,11 +303,11 @@ class BaseRepeatingEvent(BaseEvent):
                 # We have to reschedule no matter what.
                 try:
                     self._schedule()
-                except:
+                except Exception:
                     # Don't even trust logging here. I'm being extremely paranoid about a deadlock.
                     try:
                         logging.exception("Error scheduling")
-                    except:
+                    except Exception:
                         print(traceback.format_exc(6))
                 self.lock.release()
                 del f
@@ -327,7 +329,8 @@ class UnsynchronizedRepeatingEvent(BaseRepeatingEvent):
             return
 
         # Don't alow unlimited amounts of winding up a big queue.
-        t = max((self.lastrun + self.interval), ((time.time() + self.interval) - 5))
+        t = max((self.lastrun + self.interval),
+                ((time.time() + self.interval) - 5))
         self.time = t
         self.scheduled = True
         scheduler.insert(self)
@@ -479,7 +482,7 @@ class NewScheduler:
                 self.sched.cancel(event.schedID)
             except ValueError:
                 pass
-            except:
+            except Exception:
                 logger.exception("failed to remove event")
 
     def register_repeating(self, event):
@@ -501,12 +504,12 @@ class NewScheduler:
                     self.sched.cancel(event.schedID)
                 except ValueError:
                     pass
-                except:
+                except Exception:
                     logger.exception(
                         "failed to remove event, perhaps it was not actually scheduled"
                     )
 
-            except:
+            except Exception:
                 logger.exception("failed to unregister event")
 
     def manager(self):
@@ -544,7 +547,7 @@ class NewScheduler:
                             + str(i)
                             + "using error recovery, could indicate a bug somewhere, or just a long running event."
                         )
-            except:
+            except Exception:
                 logger.exception("Exception while scheduling event")
 
 
@@ -555,7 +558,7 @@ scheduler.start()
 # If either of these doesn't run at the right time, raise a message
 selftest = [time.monotonic(), time.monotonic()]
 
-lastpost = [0]
+lastpost = [0.0]
 
 
 def a():

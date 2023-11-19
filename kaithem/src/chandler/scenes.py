@@ -94,7 +94,8 @@ def makeBlankArray(size: int):
 
 class FadeCanvas:
     def __init__(self):
-        "Handles calculating the effect of one scene over a background. This doesn't do blend modes, it just interpolates."
+        """Handles calculating the effect of one scene over a background. 
+        This doesn't do blend modes, it just interpolates."""
         self.v: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.a: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.v2: Dict[str, numpy.typing.NDArray[Any]] = {}
@@ -102,10 +103,13 @@ class FadeCanvas:
 
     def paint(self, fade: float | int, vals: Dict[str, numpy.typing.NDArray[Any]], alphas: Dict[str, numpy.typing.NDArray[Any]]):
         """
-        Makes v2 and a2 equal to the current background overlayed with values from scene which is any object that has dicts of dicts of vals and and
+        Makes v2 and a2 equal to the current background overlayed 
+        with values from scene which is any object that has dicts of dicts of vals and and
         alpha.
 
-        Should you have cached dicts of arrays vals and alpha channels(one pair of arrays per universe), put them in vals and arrays
+        Should you have cached dicts of arrays vals and 
+        alpha channels(one pair of arrays per universe), 
+        put them in vals and arrays
         for better performance.
 
         fade is the fade amount from 0 to 1 (from background to the new)
@@ -1580,7 +1584,8 @@ class Scene:
                         if os.path.isfile(sound):
                             if not out == "scenewebplayer":
                                 # Always fade in if the face in time set.
-                                # Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
+                                # Also fade in for crossfade, 
+                                # but in that case we only do it if there is something to fade in from.
                                 if not (
                                     (
                                         (
@@ -1643,7 +1648,8 @@ class Scene:
                                 }
                                 t = soundMeta.get_image()
                             except Exception:
-                                # Not support, but it might just be an unsupported type. if mp3, its a real error, we should alert
+                                # Not support, but it might just be an unsupported type. 
+                                # if mp3, its a real error, we should alert
                                 if sound.endswith(".mp3"):
                                     self.event(
                                         "error",
@@ -1703,12 +1709,18 @@ class Scene:
 
                 self.preloadNextCueSound()
 
-    def applyTrackedValues(self, cue):
+    def applyTrackedValues(self, cue) -> Dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
         # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
         # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
         # references this cue.
+
+        # Returns a dict of backtracked variables for
+        # the script context that should be set when entering
+        # this cue, but that is nit supported yet
         cobj = self.cues[cue]
+
+        vars = {}
 
         if (
             self.backtrack
@@ -1739,6 +1751,16 @@ class Scene:
             # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
             for cuex in reversed(to_apply):
                 self.cueValsToNumpyCache(cuex)
+
+                # cuevars = self.cues[cue].values.get("__variables__", {})
+                # for i in cuevars:
+                #     try:
+                #         vars[i] = (i, self.evalExpr(cuevars[i]))
+                #     except Exception:
+                #         print(traceback.format_exc())
+                #         core.rl_log_exc("Error with cue variable " + i)
+
+        return vars
 
     def preloadNextCueSound(self):
         # Preload the next cue's sound if we know what it is
@@ -1794,7 +1816,8 @@ class Scene:
             nextruntime = selector.after(ref, True)
 
             # Workaround for "every hour" and the like, which would normally return the start of the current hour,
-            # But in this case we want the next one.  We don't want exclusive matching all the either as that seems a bit buggy.
+            # But in this case we want the next one. 
+            # We don't want exclusive matching all the either as that seems a bit buggy.
             if nextruntime <= ref:
                 nextruntime = selector.after(nextruntime, False)
 

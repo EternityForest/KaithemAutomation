@@ -25,27 +25,6 @@ import re
 import os
 
 
-# This is an utterly horrible workaround for numpy doing bad things to the root logger.
-# We just add code to fix it before use
-# TODO: get rid of this when the bug is gone
-# https://stackoverflow.com/questions/74621871/importing-sklearn-in-databricks-downgrades-the-python-root-logger
-old_log = logging.root
-
-
-def wrap(f):
-    def f2(*a, **k):
-        logging.root = old_log
-        f(*a, **k)
-    return f2
-
-
-logging.exception = wrap(logging.exception)
-logging.error = wrap(logging.error)
-logging.info = wrap(logging.info)
-logging.warning = wrap(logging.warning)
-logging.debug = wrap(logging.debug)
-
-
 def test_access(i):
     try:
         os.listdir(i)

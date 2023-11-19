@@ -41,5 +41,8 @@
         "--ignore",
         "E402"
     ],
-    "html.format.templating": true
+    "html.format.templating": true,
+    "pylint.args": [
+        " \"--max-line-length=120\""
+    ]
 }

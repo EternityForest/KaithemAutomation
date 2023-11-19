@@ -224,7 +224,7 @@ def sendToAll(d):
             logging.exception("Error in global broadcast")
 
 
-def sendGlobalAlert(msg, duration=60):
+def sendGlobalAlert(msg, duration=60.0):
     lastGlobalAlertMessage[0] = msg
     lastGlobalAlertMessage[1] = time.monotonic()
     lastGlobalAlertMessage[2] = duration

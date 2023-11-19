@@ -41,9 +41,6 @@ from . import (
 from . import jackmanager, gstwrapper, mixerfx
 
 import threading
-
-direct_pw = True
-
 global_api = widgets.APIWidget()
 global_api.require("/users/mixer.edit")
 
@@ -338,25 +335,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.created_time = time.monotonic()
 
             if not input or not input.startswith("rtplisten://"):
-                if not direct_pw:
-                    self.src = self.addElement(
-                        "jackaudiosrc",
-                        buffer_time=10,
-                        latency_time=10,
-                        do_timestamp=True,
-                        port_pattern="fgfcghfhftyrtw5ew453xvrt",
-                        client_name=name + "_in",
-                        connect=0,
-                        slave_method=2,
-                        low_latency=True
-                    )
-                else:
-                    self.src = self.addElement('pipewiresrc',
-                                               blocksize=PW_BLOCKSIZE,
-                                               client_name=name + "_in",
-                                               do_timestamp=False,
-                                               always_copy=True
-                                               )
+                self.src = self.addElement('pipewiresrc',
+                                            blocksize=PW_BLOCKSIZE,
+                                            client_name=name + "_in",
+                                            do_timestamp=False,
+                                            always_copy=True
+                                            )
                     
                 self.capsfilter = self.addElement(
                     "capsfilter", caps="audio/x-raw,channels=" + str(channels),
@@ -488,29 +472,14 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self.outputs:
                 pattern = self.outputs[0]
 
-            # TODO maybe we can use the low latency flag if we implement feature detection
-            if not direct_pw:
-                self.sink = self.addElement(
-                    "jackaudiosink",
-                    buffer_time=10,
-                    latency_time=10,
-                    sync=False,
-                    slave_method=2,
-                    port_pattern=pattern,
-                    client_name=self.name + "_out",
-                    connect=0,
-                    blocksize=self.channels * 128,
-                    low_latency=True
-                )
-            else:
-                self.sink = self.addElement(
-                    'pipewiresink',
-                    client_name=self.name + "_out",
-                    blocksize=PW_BLOCKSIZE,
-                    sync=True,
-                    mode=2,
-                )
-            
+            self.sink = self.addElement(
+                'pipewiresink',
+                client_name=self.name + "_out",
+                blocksize=PW_BLOCKSIZE,
+                sync=True,
+                mode=2,
+            )
+        
 
             # I think It doesn't like it if you start without jack
             if self.usingJack:

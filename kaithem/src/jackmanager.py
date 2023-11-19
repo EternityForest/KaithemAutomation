@@ -65,12 +65,6 @@ pipewireprocess1 = None
 pipewireprocess2 = None
 
 
-jacktools.useAdditionalSoundcards = "no"
-jacktools.usePulse = True
-jacktools.dummy = False
-jacktools.manageJackProcess = False
-
-
 try:
     jacktools.startManaging()
 except Exception:

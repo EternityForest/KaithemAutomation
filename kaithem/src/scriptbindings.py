@@ -66,6 +66,9 @@ If there is an unrecognized type, it is treated as a string.
 """
 
 
+import uuid
+from . import geolocation
+from . import astrallibwrapper as sky
 import logging
 import traceback
 import inspect
@@ -75,6 +78,7 @@ import time
 import weakref
 import pytz
 import math
+from typing import Callable, Any
 from .scheduling import scheduler
 import datetime
 from types import MethodType
@@ -162,12 +166,12 @@ def paramDefault(p):
     if isinstance(p, bool):
         return 1 if p else 0
 
-    if p == None:
+    if p is None:
         return ''
     return ''
 
 
-def get_function_info(f):
+def get_function_info(f: Callable[..., Any]):
     p = inspect.signature(f).parameters
 
     d = {
@@ -202,8 +206,6 @@ def millis():
 
 
 # TODO separate the standard library stuff from this file?
-from . import astrallibwrapper as sky
-from . import geolocation
 
 
 def isDay(lat=None, lon=None):
@@ -353,9 +355,6 @@ class ScheduleTimer():
             pass
 
 
-import uuid
-
-
 def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
@@ -420,7 +419,7 @@ class BaseChandlerScriptContext():
         # when doing so directly would cause a deadlock
         self.eventQueue = []
         self.eventListeners = {}
-        self.variables = variables if not variables is None else {}
+        self.variables = variables if variables is not None else {}
         self.commands = ScriptActionKeeper()
         self.contextCommands = ScriptActionKeeper()
 
@@ -542,7 +541,7 @@ class BaseChandlerScriptContext():
                         # Change =/ to just =
                         r = self.preprocessArgument('=' + i[2:])
                         if r:
-                            if (not i in self.risingEdgeDetects) or (not self.risingEdgeDetects[i]):
+                            if (i not in self.risingEdgeDetects) or (not self.risingEdgeDetects[i]):
                                 self.risingEdgeDetects[i] = True
                                 self.event(i, r)
                         else:
@@ -553,7 +552,7 @@ class BaseChandlerScriptContext():
                         r = self.preprocessArgument(i)
                         if r:
                             self.event(i, r)
-                except:
+                except Exception:
                     self.event("script.error", self.contextName +
                                "\n" + traceback.format_exc(chain=True))
                     raise
@@ -562,12 +561,12 @@ class BaseChandlerScriptContext():
         "Get the data, as python dict which can be JSONed, which must be bound to the commands prop of the editor, so that the editor can know what commands we have"
         with self.gil:
             c = self.commands.scriptcommands
-            l = {}
+            info = {}
             for i in c:
                 f = c[i]
-                l[i] = get_function_info(f)
+                info[i] = get_function_info(f)
 
-            return l
+            return info
 
     def doEventQueue(self, allowAsync=True):
         # Run all events in the queue, under the gil.
@@ -579,7 +578,7 @@ class BaseChandlerScriptContext():
                         try:
                             if self.eventQueue:
                                 self.eventQueue.pop(False)()
-                        except:
+                        except Exception:
                             logging.exception("Error in script context")
                 finally:
                     self.gil.release()
@@ -604,7 +603,7 @@ class BaseChandlerScriptContext():
         if a:
             try:
                 return a(*[self.preprocessArgument(i) for i in c[1:]])
-            except:
+            except Exception:
                 raise RuntimeError(
                     "Error running chandler command: " + str(c)[:1024])
         else:
@@ -615,7 +614,7 @@ class BaseChandlerScriptContext():
         if self.gil.acquire(timeout=20):
             try:
                 depth = self.eventRecursionDepth.d
-            except:
+            except Exception:
                 # Hasn't been set in this thread
                 depth = 0
 
@@ -678,10 +677,10 @@ class BaseChandlerScriptContext():
                             break
                         for command in pipeline:
                             x = self._runCommand(command)
-                            if x == None:
+                            if x is None:
                                 break
                             self.variables["_"] = x
-            except:
+            except Exception:
                 self.event("script.error", self.contextName +
                            "\n" + traceback.format_exc(chain=True))
                 raise
@@ -757,7 +756,7 @@ class BaseChandlerScriptContext():
             self.variables[k] = v
             self.changedVariables[k] = v
             self.onVarSet(k, v)
-            if not k in self.needRefreshForVariable:
+            if k not in self.needRefreshForVariable:
                 self.needRefreshForVariable[k] = False
                 for i in self.eventListeners:
                     if k in i:
@@ -809,7 +808,7 @@ class BaseChandlerScriptContext():
         with self.gil:
             for i in self.eventListeners:
                 if i and i.strip()[0] == '@':
-                    if not i in self.timeEvents:
+                    if i not in self.timeEvents:
                         self.timeEvents[i] = ScheduleTimer(i, self)
                         self.onTimerChange(i, self.timeEvents[i].nextruntime)
                 if i == "script.poll":
@@ -874,7 +873,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                 raise RuntimeError(
                     tagname + " val too long for chandlerscript")
             self.setVar("$tag:" + tagname, val, True)
-            if not tagname in self.needRefreshForTag:
+            if tagname not in self.needRefreshForTag:
                 self.needRefreshForTag[tagname] = False
                 for i in self.eventListeners:
                     if tagname in i:
@@ -900,7 +899,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         self.tagHandlers[tag.name] = (tag, onchange)
 
     def canGetTagpoint(self, t):
-        if not t in self.tagpoints and len(self.tagpoints) > 128:
+        if t not in self.tagpoints and len(self.tagpoints) > 128:
             raise RuntimeError("Too many tagpoints")
         if t.startswith(self.tagDefaultPrefix):
             return t
@@ -916,7 +915,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
             try:
                 self.setVar("$tag:" + i, "Unsubscribed", force=True)
-            except:
+            except Exception:
                 pass
 
         # Clear all the tagpoints that we may have been watching for changes
@@ -946,17 +945,17 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             if not tagType:
                 if isinstance(value, str):
                     tagType = tagpoints.StringTag
-                elif not value is None:
+                elif value is not None:
                     tagType = tagpoints.Tag
-                elif value == None:
+                elif value is None:
                     # Semi idempotence, no need to set if it is not already there.
-                    if not tagName in self.tagClaims:
+                    if tagName not in self.tagClaims:
                         return True
 
             if self.canGetTagpoint(tagName):
                 if tagName in self.tagClaims:
                     tc = self.tagClaims[tagName]
-                    if value == None:
+                    if value is None:
                         tc.release()
                         del self.tagClaims[tagName]
                         return True

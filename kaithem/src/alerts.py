@@ -1,6 +1,9 @@
-from . import statemachines, widgets, scheduling, workers, pages, messagebus, unitsofmeasure, auth
+import os
+from scullery import persist
+from . import directories
+from . import statemachines, widgets, scheduling, workers, pages, messagebus, unitsofmeasure
 from typeguard import typechecked
-from typing import Union
+from typing import Union, Dict, Optional, Any
 import logging
 import threading
 import time
@@ -10,40 +13,33 @@ logger = logging.getLogger("system.alerts")
 lock = threading.RLock()
 
 
-from . import directories
-from scullery import persist
-from scullery import messagebus
-
-import os
-import logging
-
 fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
 
 if os.path.exists(fn):
     file = persist.load(fn)
 else:
     file = {
-            "all": {
-                "soundcard": "__disable__"
-            },
-            "critical": {
-                "file": "error.ogg",
-                "interval": 36.0
-            },
-            "error": {
-                "file": "",
-                "interval": 3600.0
-            },
-            "warning": {
-                "file": "",
-                "interval": 3600.0
-            }
+        "all": {
+            "soundcard": "__disable__"
+        },
+        "critical": {
+            "file": "error.ogg",
+            "interval": 36.0
+        },
+        "error": {
+            "file": "",
+            "interval": 3600.0
+        },
+        "warning": {
+            "file": "",
+            "interval": 3600.0
         }
+    }
 
-def saveSettings(*a,**k):
+
+def saveSettings(*a, **k):
     persist.save(file, fn, private=True)
-    persist.unsavedFiles.pop(fn,"")
-
+    persist.unsavedFiles.pop(fn, "")
 
 
 # This is a dict of all alerts that have not yet been acknowledged.
@@ -64,7 +60,7 @@ _tripped = {}
 all = weakref.WeakValueDictionary()
 
 priorities = {
-     None: 0,
+    None: 0,
     'none': 0,
     'debug': 10,
     'info': 20,
@@ -95,7 +91,7 @@ api = API()
 api.require("/users/alerts.view")
 
 
-def handleApiCall(u, v):
+def handleApiCall(u: str, v: list):
     if v[0] == "ack":
         if pages.canUserDoThis(all[v[1]].ackPermissions, u):
             all[v[1]].acknowledge()
@@ -113,16 +109,19 @@ def calcNextBeep():
     else:
         x = priorities.get(x, 40)
     if x >= 30 and x < 40:
-        nextbeep = file['warning']['interval'] + time.time() +(random.random()*3)
-        sfile =  file['warning']['file']
+        nextbeep = file['warning']['interval'] + \
+            time.time() + (random.random()*3)
+        sfile = file['warning']['file']
 
     elif x >= 40 and x < 50:
-        nextbeep = file['error']['interval'] + time.time() +(random.random()*3)
-        sfile =  file['error']['file']
-        
+        nextbeep = file['error']['interval'] + \
+            time.time() + (random.random()*3)
+        sfile = file['error']['file']
+
     elif x >= 50:
-        nextbeep = file['critical']['interval'] + time.time() +(random.random()*3)
-        sfile =  file['critical']['file']
+        nextbeep = file['critical']['interval'] + \
+            time.time() + (random.random()*3)
+        sfile = file['critical']['file']
     else:
         nextbeep = 10**10
         sfile = None
@@ -149,12 +148,11 @@ def alarmBeep():
                 logger.exception("ERROR PLAYING ALERT SOUND")
 
 
-
 def _highestUnacknowledged(excludeSilent=False):
     # Pre check outside lock for efficiency.
     if not unacknowledged:
         return
-    l = 'debug'
+    level = 'debug'
     for i in unacknowledged.values():
         i = i()
         if i:
@@ -162,10 +160,9 @@ def _highestUnacknowledged(excludeSilent=False):
                 if i.silent:
                     continue
 
-
-            if (priorities[i.priority] > priorities[l]):
-                l = i.priority
-    return l
+            if (priorities[i.priority] > priorities[level]):
+                level = i.priority
+    return level
 
 
 def sendMessage():
@@ -178,14 +175,14 @@ def cleanup():
     global active
     global unacknowledged
     for i in list(_active.keys()):
-        if _active[i]() == None:
+        if _active[i]() is None:
             try:
                 del _active[i]
             except KeyError:
                 pass
         active = _active.copy()
     for i in list(_unacknowledged.keys()):
-        if _unacknowledged[i]() == None:
+        if _unacknowledged[i]() is None:
             try:
                 del _unacknowledged[i]
             except KeyError:
@@ -194,7 +191,7 @@ def cleanup():
 
 class Alert():
     @typechecked
-    def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: Union[int, float] = 0, autoAck: Union[bool,float,int] = False,
+    def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: Union[int, float] = 0, autoAck: Union[bool, float, int] = False,
                  permissions: list = [], ackPermissions: list = [], id=None, description: str = "", silent: bool = False
                  ):
         """
@@ -236,7 +233,7 @@ class Alert():
 
         for i in illegalCharsInName:
             if i in name:
-                name = name.replace(i,' ')
+                name = name.replace(i, ' ')
 
         self.permissions = permissions + ['/users/alerts.view']
         self.ackPermissions = ackPermissions + ['users/alerts.acknowledge']
@@ -246,6 +243,11 @@ class Alert():
         self.zone = zone
         self.name = name
         self._tripDelay = tripDelay
+
+        # Tracks any a associated tag point
+        self.tagpoint_name: str = ''
+        self.tagpoint_config_data: Optional[Dict[str, Any]] = None
+
 
         # Last trip time
         self.trippedAt = 0
@@ -293,7 +295,6 @@ class Alert():
 
         self.notificationHTML = notificationHTML
 
-        
     def __html_repr__(self):
         return """<small>State machine object at %s<br></small>
             <b>State:</b> %s<br>
@@ -308,7 +309,7 @@ class Alert():
         )
 
     def format(self):
-        return{
+        return {
             'id': self.id,
             'description': self.description,
             'state': self.sm.state,
@@ -363,9 +364,9 @@ class Alert():
             logger.info("Alarm "+self.name + " active")
 
         if self.priority in ("info"):
-            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" is active")
+            messagebus.postMessage(
+                "/system/notifications", "Alarm "+self.name+" is active")
         sendMessage()
-        
 
     def _onAck(self):
         global unacknowledged
@@ -378,15 +379,14 @@ class Alert():
         api.send(['shouldRefresh'])
         sendMessage()
 
-
     def _onNormal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
         global unacknowledged, active, tripped
         if not self.sm.prev_state == 'tripped':
-            if self.priority in ("info","warning", "error", "critical"):
+            if self.priority in ("info", "warning", "error", "critical"):
                 messagebus.postMessage(
                     "/system/notifications", "Alarm "+self.name+" returned to normal")
-       
+
         with lock:
             cleanup()
             if self.id in _unacknowledged:
@@ -404,7 +404,6 @@ class Alert():
         api.send(['shouldRefresh'])
         sendMessage()
 
-
     def _onTrip(self):
         global tripped
 
@@ -413,11 +412,11 @@ class Alert():
             _tripped[self.id] = weakref.ref(self)
             tripped = _tripped.copy()
 
-
         if self.priority in ("error", "critical"):
             logger.error("Alarm "+self.name + " tripped:\n "+self.trip_message)
         if self.priority in ("warning"):
-            logger.warning("Alarm "+self.name + " tripped:\n"+self.trip_message)
+            logger.warning("Alarm "+self.name +
+                           " tripped:\n"+self.trip_message)
         else:
             logger.info("Alarm "+self.name + " tripped:\n"+self.trip_message)
 

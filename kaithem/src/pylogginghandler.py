@@ -51,7 +51,7 @@ def at_exit():
                 all_handlers[i].close()
             except:
                 pass
-    except:
+    except Exception:
         pass
 
     # This lets us tell a clean shutdown from something like a segfault

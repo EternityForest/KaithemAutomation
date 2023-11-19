@@ -4,17 +4,15 @@ import urllib.parse
 import time
 import threading
 
-from flask import request, redirect, session, flash, url_for
+from flask import redirect, url_for
 from sqlite_web import initialize_app
-from sqlite_web import die
 from sqlite_web import app
-from sqlite_web import LOG
-from sqlite_web import render_template
 
 from sqlite_web import sqlite_web
 
-def install_auth_handler():
 
+def install_auth_handler():
+    "Does nothin because auths handled by kaithem at the routing level"
     @app.before_request
     def check_password():
         return

@@ -951,9 +951,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     def set_data_point(self, name, value, timestamp=None, annotation=None):
         self.tagPoints[name](value, timestamp, annotation)
-
-        # TODO this isn't really in spec, we should
-        # use the full library to properly validate these values
         self.datapoints[name] = copy.deepcopy(value)
 
     def set_data_point_getter(self, name, value):
@@ -1245,7 +1242,6 @@ def url(u):
 
 
 def devStatString(d):
-    # TODO this should be the responsibility of the individual devices
     "Misc status info that we can gather from the device typy"
     s = []
 

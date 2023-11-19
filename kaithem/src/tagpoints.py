@@ -199,15 +199,22 @@ class TagPointClass():
     @typechecked
     def __init__(self, name: str):
         global allTagsAtomic
-        name: str = normalizeTagName(name)
-        if name in allTags:
+        _name: str = normalizeTagName(name)
+        if _name in allTags:
             raise RuntimeError(
                 "Tag with this name already exists, use the getter function to get it instead"
             )
         # Dependancu tracking, if a tag depends on other tags, such as =expression based ones
         self.sourceTags: Dict[str, TagPointClass] = {}
 
-        self.dataSourceWidget = None
+        self._value: Callable[..., Any] | Any
+
+        self.dataSourceWidget: Optional[widgets.Widget] = None
+        self.dataSourceAutoControl: Optional[widgets.Widget] = None
+
+        # Used for pushing data to frontend
+        self.guiLock: threading.Lock
+        self.spanWidget: Optional[widgets.DynamicSpan]
 
         self.description: str = ''
         # True if there is already a copy of the deadlock diagnostics running
@@ -263,7 +270,7 @@ class TagPointClass():
         self._alarmGCRefs: Dict[str, Tuple[Callable[..., Any], object, Callable[..., Any],
                                            Callable[..., Any]]] = {}
 
-        self.name: str = name
+        self.name: str = _name
         # The cached actual value from the claims
         self.cachedRawClaimVal = copy.deepcopy(self.defaultData)
         # The cached output of processValue
@@ -328,7 +335,7 @@ class TagPointClass():
         self.onSourceChanged: Union[typing.Callable[..., Any], None] = None
 
         with lock:
-            allTags[name] = weakref.ref(self)
+            allTags[_name] = weakref.ref(self)
             allTagsAtomic = allTags.copy()
 
         # This pushes a value. That is fine because we know there are no listeners
@@ -375,7 +382,8 @@ class TagPointClass():
 
     @property
     def meterWidget(self):
-        "Hack to get around code that calls meterWidget but that should have been able to handle span widgets. Will look bad but not break"
+        """Hack to get around code that calls meterWidget 
+        but that should have been able to handle span widgets. Will look bad but not break"""
         return self.spanWidget
 
     # In reality value, timestamp, annotation are all stored together as a tuple
@@ -526,6 +534,8 @@ class TagPointClass():
                 self._apiPush()
 
     def controlApiHandler(self, u, v):
+        assert self.dataSourceAutoControl
+
         if v is None:
             if self.apiClaim:
                 self.apiClaim.release()
@@ -571,6 +581,7 @@ class TagPointClass():
         # Immediate write, don't push yet, do that in a thread because TCP can block
         def pushFunction():
             # Set value immediately, for later page loads
+            assert self.dataSourceWidget
             self.dataSourceWidget.value = self.value
             if self.guiLock.acquire(timeout=1):
                 try:
@@ -786,10 +797,10 @@ class TagPointClass():
                 configTagData[self.name]['alarms'] = self.configuredAlarmData
 
             if _refresh:
-                x = self.createAlarms(name)
+                x = self.createAlarm(name)
                 if x and not isConfigured:
                     # Alarms have to have a reference to the config data
-                    x._tag_config_ref = d
+                    x.tagpoint_config_data = d
                     x.tagpoint_name = self.name
                     return x
 
@@ -798,8 +809,14 @@ class TagPointClass():
             if self.dynamicAlarmData:
                 self.dynamicAlarmData.clear()
                 self.createAlarms()
-
-    def createAlarms(self, limitTo: str = None):
+                
+    # TODO when there's time, refactor so createAlarms calls createAlarm
+    def createAlarm(self, name: str) -> alerts.Alert:
+        x = self.createAlarms(name)
+        assert isinstance(x, alerts.Alert)
+        return x
+    
+    def createAlarms(self, limitTo: Optional[str] = None):
         merged: Dict[str, Dict[str, Dict]] = {}
         with lock:
             # Combine the merged and configured alarms
@@ -1620,6 +1637,8 @@ class TagPointClass():
             return self.lastValue
 
         activeClaim = self.activeClaim()
+        if activeClaim is None:
+            activeClaim = self.getTopClaim()
 
         activeClaimValue = activeClaim.value
 
@@ -1916,13 +1935,13 @@ class TagPointClass():
         return Claim(self, value, name, priority, timestamp, annotation,
                      expiration)
 
-    def getTopClaim(self):
+    def getTopClaim(self) -> Claim:
         # Deref all weak refs
         x = [i() for i in self.claims.values()]
         # Eliminate dead references
         x = [i for i in x if i and not i.released]
         if not x:
-            return None
+            raise RuntimeError(f"Program state is corrupt, tag{self.name} has no claims")
         # Get the top one
         x = sorted(x, reverse=True)[0]
         return x

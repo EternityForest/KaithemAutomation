@@ -24,7 +24,6 @@ import sys
 import logging
 import traceback
 import zipfile
-import threading
 from cherrypy.lib.static import serve_file
 from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 
@@ -231,7 +230,7 @@ class Settings():
         if util.which("yt-dlp"):
             try:
                 subprocess.check_call(["yt-dlp", '-U'])
-            except:
+            except Exception:
                 subprocess.check_call(
                     ["pip3", "install", "--upgrade", "yt-dlp"])
 
@@ -299,7 +298,7 @@ class Settings():
                 return pages.get_template("settings/files.html").render(dir=dir)
             else:
                 return serve_file(dir)
-        except:
+        except Exception:
             return (traceback.format_exc())
 
     @cherrypy.expose
@@ -309,7 +308,7 @@ class Settings():
         try:
             dir = os.path.join('/', *args)
             return pages.get_template("settings/hlsplayer.html").render(play=dir)
-        except:
+        except Exception:
             return (traceback.format_exc())
 
     @cherrypy.expose
@@ -347,31 +346,24 @@ class Settings():
                 p = subprocess.Popen("sh -i", universal_newlines=True, shell=True, env=env,
                                      stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            # Windows 3.2
-            if sys.version_info[:2] == (3, 2) and os.platform == 'nt':
-                t = p.communicate(kwargs['script'])
-            # UNIX 3.2
-            elif sys.version_info[:2] == (3, 2):
-                t = p.communicate(bytes(kwargs['script'], 'utf-8'))
-            else:
-                t = p.communicate(kwargs['script'])
+            t = p.communicate(kwargs['script'])
 
             if isinstance(t, bytes):
                 try:
                     t = t.decode('utf-8')
-                except:
+                except Exception:
                     pass
 
             x += t[0] + t[1]
             try:
                 time.sleep(0.1)
-                t = p.communicate(b'')
+                t = p.communicate('')
                 x += t[0] + t[1]
                 p.kill()
                 p.stdout.close()
                 p.stderr.close()
                 p.stdin.close()
-            except:
+            except Exception:
                 pass
             return pages.get_template("settings/console.html").render(output=x)
         else:
@@ -499,7 +491,7 @@ class Settings():
                          time.strftime("%Y%m%d%H%M%S", time.gmtime(t - 0.05)), "+%Y%m%d%H%M%S", ])
         try:
             subprocess.call(["hwclock", "--systohc"])
-        except:
+        except Exception:
             pass
 
         raise cherrypy.HTTPRedirect('/settings/system')
@@ -615,7 +607,7 @@ class Settings():
                 yappi.start()
                 try:
                     yappi.set_clock_type("cpu")
-                except:
+                except Exception:
                     logging.exception("CPU time profiling not supported")
 
             time.sleep(0.5)
