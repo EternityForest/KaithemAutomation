@@ -542,8 +542,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         # do it here, after things are set up
         self.faderTag.value = self.initialFader
-        self.setFader(self.faderTag.value)
-        self.setFader(self.faderTag.value)
+        # Call directly, the tag might think we are already at the right level, if we are remaking a channel
+        # and had set the element volume to zero directly but not the tag.
+        self._faderTagHandler(self.faderTag.value,None,None)
 
 
     def connect(self, restore=[]):
@@ -678,7 +679,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 i["id"] = str(uuid.uuid4())
             if i["type"] == "fader":
                 self.fader = self.addElement("volume")
-                # Set to 0 until all is set up\
+                # Set to 0 until all is set up
                 self.initialFader = d['fader']
                 self.fader.set_property("volume", 0.0)
             # Special case this, it's made of multiple gstreamer blocks and also airwires
