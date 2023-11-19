@@ -31,9 +31,22 @@ def fnToCueName(fn):
     fn = fn.replace("-", "_")
     fn = fn.replace("_", " ")
     fn = fn.replace(":", " ")
+
+    # Sometimes used as a stylized S
+    fn = fn.replace("$", "S")
+    fn = fn.replace("@", " at ")
+
+    # Usually going to be the number sign, we can ditch
+    fn = fn.replace("#", "")
+
+    # Handle spaces already there or not
+    fn = fn.replace(" & ", " and ")
+    fn = fn.replace("&", " and ")
+    
     for i in r"""\~!@#$%^&*()+`-=[]\{}|;':"./,<>?""":
         if i not in scenes.allowedCueNameSpecials:
             fn = fn.replace(i, "")
+
     return fn
 
 
@@ -695,26 +708,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     bn = tags.title + " ~ " + tags.artist
             except Exception:
                 print(traceback.format_exc())
-            # Empty string is probably going to look best for that char
-            bn = bn.replace("'", "")
-            # Also the double quotesif they show up
-            bn = bn.replace('"', "")
-            bn = bn.replace("(", "")
-            bn = bn.replace(")", "")
-            bn = bn.replace("[", "")
-            bn = bn.replace("]", "")
-
-            # Sometimes used as a stylized S
-            bn = bn.replace("$", "S")
-            bn = bn.replace("@", " at ")
-
-            # Usually going to be the number sign, we can ditch
-            bn = bn.replace("#", "")
-
-            # Handle spaces already there or not
-            bn = bn.replace(" & ", " and ")
-            bn = bn.replace("&", " and ")
-
+                
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in scenes.scenes[msg[1]].cues:
                 scenes.scenes[msg[1]].addCue(bn)
@@ -742,25 +736,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             bn = os.path.basename(msg[2])
             bn = fnToCueName(bn)
 
-            # Empty string is probably going to look best for that char
-            bn = bn.replace("'", "")
-            # Also the double quotesif they show up
-            bn = bn.replace('"', "")
-            bn = bn.replace("(", "")
-            bn = bn.replace(")", "")
-            bn = bn.replace("[", "")
-            bn = bn.replace("]", "")
-
-            # Sometimes used as a stylized S
-            bn = bn.replace("$", "S")
-            bn = bn.replace("@", " at ")
-
-            # Usually going to be the number sign, we can ditch
-            bn = bn.replace("#", "")
-
-            # Handle spaces already there or not
-            bn = bn.replace(" & ", " and ")
-            bn = bn.replace("&", " and ")
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in scenes.scenes[msg[1]].cues:

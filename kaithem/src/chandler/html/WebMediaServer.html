@@ -42,18 +42,18 @@ if 'albumArt' in kwargs:
 
 
 else:
-  if 'scene' in kwargs and module.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
+  if 'scene' in kwargs and scenes.scenes_by_name[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
-  elif 'scene' in kwargs and module.scenes_by_name[kwargs['scene']].cue.slide == kwargs['file']:
-    kaithem.web.serve_file(module.scenes_by_name[kwargs['scene']].resolve_sound(kwargs['file']),name= os.path.basename(kwargs['file']))
-  elif 'scene' in kwargs and kwargs['file'] in module.scenes_by_name[kwargs['scene']].musicVisualizations:
+  elif 'scene' in kwargs and scenes.scenes_by_name[kwargs['scene']].cue.slide == kwargs['file']:
+    kaithem.web.serve_file(scenes.scenes_by_name[kwargs['scene']].resolve_sound(kwargs['file']),name= os.path.basename(kwargs['file']))
+  elif 'scene' in kwargs and kwargs['file'] in scenes.scenes_by_name[kwargs['scene']].musicVisualizations:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
   else:
     # Todo this should be a global api
-    for i in module.scenes_by_name:
+    for i in scenes.scenes_by_name:
       x = i
       break
-    f = module.scenes_by_name[x].resolve_sound(kwargs['file'])
+    f = scenes.scenes_by_name[x].resolve_sound(kwargs['file'])
     if kaithem.web.has_permission("users.chandler.admin"):
       for i in module.getSoundFolders():
         if not i.endswith("/"):

@@ -1,4 +1,4 @@
-${vars}
+${ vars }
 function set(o, k, v) {
 
     if (o[k] == undefined) {
@@ -189,12 +189,12 @@ appData = {
 
     'example_events': [['now', "Run when script loads"], ['cue.exit', 'When exiting the cue'], ['cue.enter', 'When entering a cue'], ['button.a', 'A button in scenes sidebar']
     ['keydown.a', "When a lowercase A is pressed in the Send Events mode on the console"], ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
-    ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'], 
+    ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'],
     ['@every 10 seconds', 'Simple repeating trigger'],
-    ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],  
+    ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
     ["=tv('/system/alerts.level') >= 30 ", "Run if the highest priority alert is warning(30), error(40), or critical(50) level"],
-    ["=isDark()", 'Run if it is civil twilight'], 
-    ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'], 
+    ["=isDark()", 'Run if it is civil twilight'],
+    ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'],
     ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
 
 
@@ -409,6 +409,11 @@ appData = {
     },
 
 
+    'newCueFromSlide': function (sc, i) {
+
+        api_link.send(['newFromSlide', sc, i])
+    },
+
     'newCueFromSound': function (sc, i) {
 
         api_link.send(['newFromSound', sc, i])
@@ -426,7 +431,7 @@ appData = {
         [i][1] == 'fixed') {
             var v = appData.fixtureClasses[appData.selectedFixtureClass][i]
             Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-            , i, [v[0],v[1],0,{}])
+                , i, [v[0], v[1], 0, {}])
         }
         else {
             Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
@@ -500,12 +505,10 @@ appData = {
     },
 
 
-    'lookupFixtureType': function (f)
-    {
+    'lookupFixtureType': function (f) {
         for (i in appData.fixtureAssignments) {
-            if (appData.fixtureAssignments[i].name = f)
-            {
-                return appData.fixtureAssignments[i].type;    
+            if (appData.fixtureAssignments[i].name = f) {
+                return appData.fixtureAssignments[i].type;
             }
         }
         return '';
@@ -576,7 +579,7 @@ appData = {
         //Given a dict  and a list of sort keys sorts,
         //return a list of [key,value] pairs sorted by the sort
         //keys. Earlier sort keys take precendence.
-        
+
         // the lowest precedence sort key is the actual dict key.
 
         //Keys starting with ! are interpreted as meanng to sort in descending order
@@ -614,9 +617,8 @@ appData = {
 
             }
             // Fallback sort is the keys themselves
-            if (a[0] != b[0])
-            {
-                return (a[0] > b[0])? 1 : -1
+            if (a[0] != b[0]) {
+                return (a[0] > b[0]) ? 1 : -1
             }
             return 0
         });
@@ -777,9 +779,8 @@ appData = {
 
 
     'deletePreset': function (p) {
-        if (confirm("Really Delete"))
-        {
-            delete appData.presets[p];    
+        if (confirm("Really Delete")) {
+            delete appData.presets[p];
             api_link.send(['preset', p, None]);
 
         }
@@ -789,8 +790,7 @@ appData = {
     'renamePreset': function (p) {
         var n = prompt("Preset Name?")
 
-        if (n && n.length)
-        {
+        if (n && n.length) {
             var b = appData.presets[p]
             if (b) {
                 delete appData.presets[p];
@@ -813,18 +813,17 @@ appData = {
 
         var n = prompt("Preset Name?")
 
-        if (n && n.length)
-        {
+        if (n && n.length) {
             appData.presets[n] = v2;
             api_link.send(['preset', n, v2]);
 
         }
     },
 
-    'updatePreset': function (i,v) {
+    'updatePreset': function (i, v) {
         /*Update given a name and the modified data as would be found in the presets file*/
         appData.presets[i] = v;
-        api_link.send(['preset', i, v]);    
+        api_link.send(['preset', i, v]);
     },
     'recomputeformattedCues': function () {
         appData.formatCues(0)
@@ -851,14 +850,12 @@ appData = {
     },
 
     'setFixturePreset': function (sc, fix, preset) {
-        for (i in appData.cuevals[sc][fix])
-        {
-            if ((!(preset[i] == undefined)) && preset[i].toString().length)
-                {
+        for (i in appData.cuevals[sc][fix]) {
+            if ((!(preset[i] == undefined)) && preset[i].toString().length) {
                 api_link.send(['scv', sc, fix, i, preset[i]]);
                 appData.cuevals[sc][fix][i].v = preset[i]
-                }
-            
+            }
+
         }
     },
 
@@ -1104,29 +1101,26 @@ appData = {
     'previewSound': function (s) {
 
         document.getElementById("soundpreviewdialog").show();
-        var  t = ['.mp3','.ogg','.wav','.oga','.opus','.aac','.flac']
-        for(let i of t)
-        {
-            if(s.endsWith(i))
-            {
-                document.getElementById("soundpreview").src = "WebMediaServer?file="+encodeURIComponent(s);
+        var t = ['.mp3', '.ogg', '.wav', '.oga', '.opus', '.aac', '.flac']
+        for (let i of t) {
+            if (s.endsWith(i)) {
+                document.getElementById("soundpreview").src = "WebMediaServer?file=" + encodeURIComponent(s);
                 document.getElementById("soundpreview").currentTime = 0;
                 document.getElementById("soundpreview").play();
                 document.getElementById("textpreview").src = "";
-                document.getElementById("textpreview").style.display='none'
-                document.getElementById("soundpreview").style.display='block'
+                document.getElementById("textpreview").style.display = 'none'
+                document.getElementById("soundpreview").style.display = 'block'
                 return
             }
         }
-        document.getElementById("textpreview").src = "WebMediaServer?file="+encodeURIComponent(s);
+        document.getElementById("textpreview").src = "WebMediaServer?file=" + encodeURIComponent(s);
         document.getElementById("soundpreview").src = ""
-        document.getElementById("textpreview").style.display='block'
-        document.getElementById("soundpreview").style.display='none'
+        document.getElementById("textpreview").style.display = 'block'
+        document.getElementById("soundpreview").style.display = 'none'
 
     },
 
-    'closePreview': function(s)
-    {
+    'closePreview': function (s) {
         document.getElementById("soundpreviewdialog").close();
         document.getElementById("soundpreview").pause()
     },
@@ -1520,11 +1514,10 @@ function f(v) {
 
     }
 
-    if(c == "refreshPage")
-    {
+    if (c == "refreshPage") {
         window.reload()
     }
-    
+
     if (c == "stop") {
 
         Vue.set(appData.scenemeta[v[1]], 'active', false)
