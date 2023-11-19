@@ -20,22 +20,18 @@
       <summary>Advanced</summary>
       {% for column in columns %}
     {% if column.name in auto_fields %}
-      <div class="form-group row">
-        <label for="id_{{ column.name }}" class="col-sm-2 col-form-label">{{ column.name }}</label>
-        <div class="col-sm-10">
+      <div class="form-group row stacked-form">
+        <label for="id_{{ column.name }}" class="col-sm-2 col-form-label">                <input class="chk-enable-column" data-target-element="id_{{ column.name }}" tabindex="-1" type="checkbox" name="chk_{{ column.name }}" aria-label="Allow updating this column.">
+          <input class="chk-enable-column" data-target-element="id_{{ column.name }}" tabindex="-1" type="checkbox" name="chk_{{ column.name }}" aria-label="Allow updating this column.">
+          {{ column.name }}</label>
           <div class="input-group">
-            <div class="input-group-prepend">
-              <div class="input-group-text">
-                <input class="chk-enable-column" data-target-element="id_{{ column.name }}" tabindex="-1" type="checkbox" name="chk_{{ column.name }}" aria-label="Allow updating this column.">
-              </div>
-            </div>
-            {% if column.data_type.lower() in ('text', 'blob') %}
+            {% if column.data_type.lower() in ['text','blob'] %}
               <textarea class="form-control{% if column.name in errors %} is-invalid{% endif %}" disabled  id="id_{{ column.name }}" name="{{ column.name }}"></textarea>
             {% else %}
               <input class="form-control{% if column.name in errors %} is-invalid{% endif %}" disabled id="id_{{ column.name }}" name="{{ column.name }}" value="" />
             {% endif %}
             {% if column.name in errors %}
-              <div class="invalid-feedback">{{ errors[column.name] }}</div>
+              <div class="warning">{{ errors[column.name] }}</div>
             {% endif %}
           </div>
           <small class="form-text text-muted">
@@ -45,7 +41,6 @@
             {{ column.data_type|default('ANY') }}{% if not column.null %} NOT NULL{% endif %}
             {% if column.default %}(default {{ column.default }}{% endif %}
           </small>
-        </div>
       </div>
       {% endif %}
       {% endfor %}
@@ -54,21 +49,17 @@
     {% for column in columns %}
     {% if column.name not in auto_fields %}
       <div class="form-group row">
-        <label for="id_{{ column.name }}" class="col-sm-2 col-form-label">{{ column.name }}</label>
-        <div class="col-sm-10">
+        <label for="id_{{ column.name }}" class="col-sm-2 col-form-label">
+          <input class="chk-enable-column" {% if column.name not in auto_fields %} checked{% endif %} data-target-element="id_{{ column.name }}" tabindex="-1" type="checkbox" name="chk_{{ column.name }}" aria-label="Allow updating this column.">
+          {{ column.name }}</label>
           <div class="input-group">
-            <div class="input-group-prepend">
-              <div class="input-group-text">
-                <input class="chk-enable-column" {% if column.name not in auto_fields %} checked{% endif %} data-target-element="id_{{ column.name }}" tabindex="-1" type="checkbox" name="chk_{{ column.name }}" aria-label="Allow updating this column.">
-              </div>
-            </div>
             {% if column.data_type.lower() in ('text', 'blob') %}
               <textarea class="form-control{% if column.name in errors %} is-invalid{% endif %}" {% if column.name in auto_fields %} disabled {% endif %} id="id_{{ column.name }}" name="{{ column.name }}"></textarea>
             {% else %}
               <input class="form-control{% if column.name in errors %} is-invalid{% endif %}" {% if column.name in auto_fields %} disabled {% endif %} id="id_{{ column.name }}" name="{{ column.name }}" value="" />
             {% endif %}
             {% if column.name in errors %}
-              <div class="invalid-feedback">{{ errors[column.name] }}</div>
+              <div class="warning">{{ errors[column.name] }}</div>
             {% endif %}
           </div>
           <small class="form-text text-muted">
@@ -78,7 +69,6 @@
             {{ column.data_type|default('ANY') }}{% if not column.null %} NOT NULL{% endif %}
             {% if column.default %}(default {{ column.default }}{% endif %}
           </small>
-        </div>
       </div>
     {% endif %}
     {% endfor %}

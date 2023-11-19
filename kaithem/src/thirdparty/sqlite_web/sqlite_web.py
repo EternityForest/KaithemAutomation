@@ -101,6 +101,13 @@ app = Flask(
     static_folder=os.path.join(CUR_DIR, "static"),
     template_folder=os.path.join(CUR_DIR, "templates"),
 )
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+# TODO: This won't work standalone because it references the kaithem file
+@app.context_processor
+def inject():
+    return {'theme_url': "/static/css/barrel.css"}
+
+
 app.config.from_object(__name__)
 LOG = create_logger(app)
 

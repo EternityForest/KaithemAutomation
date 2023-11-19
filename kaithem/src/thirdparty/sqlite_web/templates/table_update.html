@@ -21,7 +21,7 @@
               <input class="form-control{% if column.name in errors %} is-invalid{% endif %}" {% if column.name not in edited %}disabled {% endif %} id="id_{{ column.name }}" name="{{ column.name }}" value="{% if row[column.name] == None %}NULL{% else %}{{ row[column.name] }}{% endif %}" />
             {% endif %}
             {% if column.name in errors %}
-              <div class="invalid-feedback">{{ errors[column.name] }}</div>
+              <div class="warning">{{ errors[column.name] }}</div>
             {% endif %}
           </div>
           <small class="form-text text-muted">

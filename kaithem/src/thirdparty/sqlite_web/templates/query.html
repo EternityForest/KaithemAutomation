@@ -30,7 +30,7 @@
       <textarea class="form-control{% if error %} is-invalid{% endif %}" id="sql" name="sql" style="height: 120px;">{% if sql %}{{ sql }}{% endif %}</textarea>
       <small class="form-text text-muted">Use Shift + Up/Down to navigate recently-executed queries</small>
       {% if error %}
-        <div class="invalid-feedback">{{ error }}</div>
+        <div class="warning">{{ error }}</div>
       {% endif %}
     </div>
     <button class="btn btn-primary" type="submit">Execute</button>
