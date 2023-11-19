@@ -82,10 +82,11 @@ def pollsounds():
             # Forbid any crazy error loopy business with too short sounds
             if (time.time() - i.enteredCue) > 1 / 5:
                 if i.cue.sound and i.cue.rel_length:
-                    if not kaithem.sound.is_playing(str(i.id)) and not i.sound_end:
-                        i.sound_end = time.time()
-                    if i.sound_end and (
-                        time.time() - i.sound_end > (i.cue.length * i.bpm)
+                    if not i.media_ended_at:
+                        if not kaithem.sound.is_playing(str(i.id)):
+                            i.media_ended_at = time.time()
+                    if i.media_ended_at and (
+                        time.time() - i.media_ended_at > (i.cue.length * i.bpm)
                     ):
                         i.next_cue(cause="sound")
 

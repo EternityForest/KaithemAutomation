@@ -478,7 +478,7 @@ class Cue:
         self.sound: str
         self.slide: str
         self.sound_output: str
-        self.sound_start_position: str|float
+        self.sound_start_position: str | float
         self.media_speed: str
         self.media_wind_up: str
         self.media_wind_down: str
@@ -978,9 +978,9 @@ class Scene:
         # every time we change the lists
         self.cuePointer = 0
 
-        # Used for storing when the sound file ended. 0 indicates a sound file end event hasn't
+        # Used for storing when the sound file  or slide ended. 0 indicates a sound file end event hasn't
         # happened since the cue started
-        self.sound_end = 0
+        self.media_ended_at = 0
 
         self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
@@ -1449,7 +1449,7 @@ class Scene:
 
                 self.cueHistory.append((cue, time.time()))
                 self.cueHistory = self.cueHistory[-1024:]
-                self.sound_end = 0
+                self.media_ended_at = 0
 
                 try:
                     # Take rules from new cue, don't actually set this as the cue we are in
@@ -1807,30 +1807,21 @@ class Scene:
         else:
             if self.cue.sound and self.cue.rel_length:
                 path = self.resolve_sound(self.cue.sound)
-                if (
-                    path.endswith(".png")
-                    or path.endswith(".jpg")
-                    or path.endswith(".webp")
-                    or path.endswith(".png")
-                    or path.endswith(".heif")
-                    or path.endswith(".tiff")
-                    or path.endswith(".gif")
-                    or path.endswith(".svg")
-                ):
+                if (core.is_img_file(path)):
                     v = 0
                 else:
                     try:
                         # If we are doing crossfading, we have to stop slightly early for
                         # The crossfade to work
                         # TODO this should not stop early if the next cue overrides
-                        duration = TinyTag.get(path).duration
-                        if duration is not None:
+                        duration = core.get_audio_duration(path)
+                        if duration > 0:
                             slen = (duration -
                                     self.crossfade) + cuelen
                             v = max(0, self.randomizeModifier + slen)
                         else:
                             raise RuntimeError(
-                                "Tinytag returned None when getting length")
+                                "Failed to get length")
                     except Exception:
                         logging.exception(
                             "Error getting length for sound " + str(path))

@@ -18,6 +18,7 @@ types-PyYaml
 scullery
 
 
+ffmpeg-python
 yappi
 zeroconf>=0.119.0
 colorzero

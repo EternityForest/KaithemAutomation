@@ -324,7 +324,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             }
 
 
-            this.playMedia = async function (t, f, st) {
+            this.playMedia = async function (t, f, st, sessionTag) {
 
                 this.shouldbestopped = false
 
@@ -346,6 +346,9 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
                 if (this.isSound(f)) {
                     var s = document.createElement('audio');
+                    s.addEventListener("ended", (event) => {
+                        link.send(['mediaEnded', sessionTag])
+                    });
                     t.appendChild(s);
                 }
 
@@ -358,7 +361,11 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
                 }
 
                 else {
-                    t.appendChild(document.createElement('video'));
+                    var x = document.createElement('video')
+                    x.addEventListener("ended", (event) => {
+                        link.send(['mediaEnded', sessionTag])
+                    });
+                    t.appendChild(x);
                 }
 
                 if (this.isButterchurn(f)) {
@@ -436,7 +443,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
                 this.fadeLength = -1;
                 this.altMedia = this.currentMedia;
-                this.currentMedia = await this.playMedia(this.currentLayer, v, startAt);
+                this.currentMedia = await this.playMedia(this.currentLayer, v, startAt, sessionTag);
 
                 this.fadeLength = Math.max(0, (t - startAt) * 1000)
             };

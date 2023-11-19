@@ -4,12 +4,47 @@ import threading
 import time
 import weakref
 import logging
+import traceback
+from tinytag import TinyTag
 from ..kaithemobj import kaithem
 from typing import Optional, Dict, List
 
 
 # when the last time we logged an error, so we can ratelimit
 lastSysloggedError = 0
+
+
+def is_img_file(path):
+    if (path.endswith(".png")
+        or path.endswith(".jpg")
+        or path.endswith(".webp")
+        or path.endswith(".png")
+        or path.endswith(".heif")
+        or path.endswith(".tiff")
+        or path.endswith(".gif")
+            or path.endswith(".svg")):
+        return True
+
+
+def get_audio_duration(path):
+    "Get duration of media file"
+    # Try with tinytag before dragging in ffmpeg
+    try:
+        x = TinyTag.get(path).duration or 0
+    except Exception:
+        x = 0
+
+    if x > 0:
+        return x
+
+    import ffmpeg
+
+    try:
+        info = ffmpeg.probe(filename)
+        return info['format']['duration']
+    except Exception:
+        print(traceback.format_exc())
+    return None
 
 
 def rl_log_exc(m):
