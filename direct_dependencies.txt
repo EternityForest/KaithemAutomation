@@ -16,6 +16,8 @@ msgpack
 pyyaml
 types-PyYaml
 scullery
+iot-devices
+NVRChannel
 
 
 ffmpeg-python
