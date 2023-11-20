@@ -366,17 +366,16 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
 
             try:
                 if not k.startswith("_"):
-                    for i in core.boards:
-                        board = i()
+                    for board in core.iter_boards():
                         if board:
                             if isinstance(v, (str, int, float, bool)):
-                                board.link.send(["varchange", self.sceneId, k, v])
+                                board.linkSend(["varchange", self.sceneId, k, v])
                             elif isinstance(v, collections.defaultdict):
                                 v = json.dumps(v)[:160]
-                                board.link.send(["varchange", self.sceneId, k, v])
+                                board.linkSend(["varchange", self.sceneId, k, v])
                             else:
                                 v = str(v)[:160]
-                                board.link.send(["varchange", self.sceneId, k, v])
+                                board.linkSend(["varchange", self.sceneId, k, v])
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
@@ -396,7 +395,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
             scene.runningTimers[timer] = run
             try:
                 for i in core.boards:
-                    i().link.send(
+                    i().linkSend(
                         ["scenetimers", self.sceneName, scene.runningTimers]
                     )
             except Exception:
@@ -568,7 +567,7 @@ class Cue:
         for i in core.boards:
             if len(i().newDataFunctions) < 100:
                 i().newDataFunctions.append(
-                    lambda s: s.link.send(["scv", self.id, u, ch, v])
+                    lambda s: s.linkSend(["scv", self.id, u, ch, v])
                 )
 
     def clone(self, name: str):
@@ -1208,7 +1207,7 @@ class Scene:
             for i in core.boards:
                 if len(i().newDataFunctions) < 100:
                     i().newDataFunctions.append(
-                        lambda s: s.link.send(["delcue", id]))
+                        lambda s: s.linkSend(["delcue", id]))
             try:
                 self.cuePointer = self.cues_ordered.index(self.cue)
             except Exception:
@@ -2019,7 +2018,7 @@ class Scene:
 
             try:
                 for i in core.boards:
-                    i().link.send(["scenetimers", self.id, self.runningTimers])
+                    i().linkSend(["scenetimers", self.id, self.runningTimers])
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
 
@@ -2481,7 +2480,7 @@ class Scene:
 
             try:
                 for i in core.boards:
-                    i().link.send(["scenetimers", self.id, self.runningTimers])
+                    i().linkSend(["scenetimers", self.id, self.runningTimers])
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())

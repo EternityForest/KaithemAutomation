@@ -9,6 +9,7 @@ from tinytag import TinyTag
 from ..kaithemobj import kaithem
 from typing import Optional, Dict, List
 
+from . import console_abc
 
 # when the last time we logged an error, so we can ratelimit
 lastSysloggedError = 0
@@ -96,7 +97,15 @@ if os.path.exists(os.path.join(saveLocation, "config.yaml")):
 
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
-boards: List[weakref.ref[object]] = []
+boards: List[weakref.ref[console_abc.Console_ABC]] = []
+
+
+def iter_boards():
+    for i in boards:
+        x = i()
+        if x:
+            yield x
+
 
 if not os.path.exists(musicLocation):
     try:
