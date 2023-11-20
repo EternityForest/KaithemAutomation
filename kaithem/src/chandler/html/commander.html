@@ -88,7 +88,17 @@
 
 
 <div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
-
+    <section class="window w-full h-8rem" v-if="sys_alerts">
+        <div class="flex-row scroll gaps padding">
+            <div class="card" v-for="v,i of sys_alerts">
+                <header :class="v['barrel-class']" class="padding">
+                    <i class="icofont-warning"></i>{{i}}
+                </header>
+                <p :class="v['barrel-class']">{{v.message|| 'no trip message'}}</p>
+            </div>
+        </div>
+    </section>
+    
     <div class="window paper w-full margin" style="overflow: auto; max-width:98vw; flex-grow:1">
         <header>
             <div class="tool-bar">
