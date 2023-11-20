@@ -40,7 +40,7 @@
           <h1>{% block content_title %}{% endblock %}</h1>
         </header>
       {% endblock %}
-      <main class="flex-row w-full">
+      <main class="flex-row w-full gaps">
         <div class="w-sm-full window" id="sidebar">
           {% block sidebar %}{% endblock %}
           {% block logout %}{% if login_required %}<a href="{{ url_for('logout') }}">Log-out</a>{% endif %}{% endblock %}
@@ -54,19 +54,19 @@
           {% endfor %}
           {% block content %}{% endblock %}
         </div>
-      </div>
-      <div class="footer">
-        <div class="col-9 offset-3">
-          <footer>
-            <hr />
-            <p>
-              Web-based SQLite database browser, powered by
-              <a href="http://flask.pocoo.org/">Flask</a> and <a href="http://docs.peewee-orm.com/">Peewee</a>.
-              &copy; {{ now.year }} <a href="http://charlesleifer.com/">Charles Leifer</a>
-            </p>
-          </footer>
-        </div>
-      </div>
+      </main>
+    
+
+      <div class="grow h-1rem"></div>
+      
+      <footer class="margin-top">
+        <p>
+          Web-based SQLite database browser, powered by
+          <a href="http://flask.pocoo.org/">Flask</a> and <a href="http://docs.peewee-orm.com/">Peewee</a>.
+          &copy; {{ now.year }} <a href="http://charlesleifer.com/">Charles Leifer, unofficial fork by Daniel Dunn</a>
+        </p>
+      </footer>
+
     </div>
   </body>
 </html>

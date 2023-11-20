@@ -3,25 +3,28 @@
 {% block export_tab_class %} active{% endblock %}
 
 {% block inner_content %}
-<h3>Export table</h3>
-<form action="{{ url_for('table_export', file=file, table=table) }}" class="form" method="post">
-  <div class="form-group">
-    <label>Selected Columns</label>
+
+<form action="{{ url_for('table_export', file=file, table=table) }}" class="w-sm-full stacked-form" method="post">
+  <h3>Export table</h3>
+  
+  <fieldset> 
+  <legend>Selected Columns</legend>
     {% for column in columns %}
       <div class="form-check">
         <input class="form-check-input" id="id_column_{{ loop.index }}" name="columns" type="checkbox" value="{{ column.name }}" checked />
         <label class="form-check-label" for="id_column_{{ loop.index }}">{{ column.name }}</label>
       </div>
     {% endfor %}
-  </div>
-  <div class="form-group">
-    <label for="id_export_format">Format</label>
+  </fieldset>
+
+    <label for="id_export_format">Format
     <select class="form-control" id="id_export_format" name="export_format">
       <option value="json">JSON</option>
       <option value="csv">CSV</option>
-    </select>
-  </div>
-  <button class="btn btn-primary" type="submit">Export</button>
-  <a class="btn btn-secondary" href="{{ url_for('table_structure', file=file, table=table) }}">Cancel</a>
+    </select></label>
+    <div class="tool-bar">
+      <button type="submit">Export</button>
+      <a  href="{{ url_for('table_structure', file=file, table=table) }}">Cancel</a>
+    </div>
 </form>
 {% endblock %}

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block sidebar %}
-  <input class="form-control form-control-sm" id="table-search" placeholder="table name..." type="text" />
-  <ul class="nav flex-column nav-pills" role="tablist">
+  <input class="w-full" id="table-search" placeholder="table name..." type="text" />
+  <ul class="nav nav-pills" role="tablist">
     {% set virtual_tables = dataset.get_virtual_tables() %}
     {% set virtual_tables_corollary = dataset.get_corollary_virtual_tables() %}
     {% for table_name in dataset.tables|sort %}
@@ -17,15 +17,15 @@
       </li>
       {% endif %}
     {% endfor %}
-    <li>
-      <form action="{{ url_for('table_create', file=file) }}" class="form-inline float-right" method="post" style="margin-top: 10px;">
-        <input name="redirect" type="hidden" value="{{ request.full_path }}" />{# full-path begins with "/" and includes querystring #}
-        <input class="form-inline form-control-sm" name="table_name" placeholder="new_table_name" />
-        <button class="btn btn-primary btn-sm" type="submit">Create</button>
-      </form>
-    </li>
   </ul>
   <hr />
+
+    <form action="{{ url_for('table_create', file=file) }}" class="" method="post" style="margin-top: 10px;">
+      <input name="redirect" type="hidden" value="{{ request.full_path }}" />{# full-path begins with "/" and includes querystring #}
+      <input class="form-inline form-control-sm" name="table_name" placeholder="new_table_name" />
+      <button class="btn btn-primary btn-sm" type="submit">Create</button>
+    </form>
+  
   <p><a href="#" id="toggle-helper-tables">Toggle helper tables</a></p>
   <ul class="nav nav-pills nav-stacked" id="helper-tables" role="tablist"{% if table not in virtual_tables_corollary %} style="display:none;"{% endif %}>
     {% for table_name in virtual_tables_corollary|sort %}

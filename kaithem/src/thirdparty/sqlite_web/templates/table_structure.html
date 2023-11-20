@@ -36,9 +36,10 @@
             {% if dataset.is_readonly %}
               <strong>read-only</strong>
             {% else %}
-              <a href="{{ url_for('rename_column', file=file, table=table, rename=column.name) }}">Rename</a>
-              <span class="separator">|</span>
-              <a href="{{ url_for('drop_column', file=file, table=table, name=column.name) }}">Drop</a>
+              <div class="tool-bar">
+                <a href="{{ url_for('rename_column', file=file, table=table, rename=column.name) }}">Rename</a>
+                <a href="{{ url_for('drop_column', file=file, table=table, name=column.name) }}">Drop</a>
+              </div>
             {% endif %}
           </td>
         {% endif %}
@@ -153,15 +154,5 @@
       </tbody>
     </table>
   {% endif %}
-  <div class="modal fade" id="sql-modal">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"></h5>
-          <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-        </div>
-        <div class="modal-body"></div>
-      </div>
-    </div>
-  </div>
+
 {% endblock %}
