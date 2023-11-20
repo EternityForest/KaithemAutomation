@@ -223,7 +223,7 @@ class TagPointClass():
         self.alreadyPostedDeadlock: bool = False
 
         # This string is just used to stash some extra info
-        self._subtype = ''
+        self._subtype: str = ''
 
         # If true, the tag represents an input not meant to be written to except by the owner.
         # It can however still be overridden.  This is just a widget advisory.
@@ -734,26 +734,26 @@ class TagPointClass():
                  condition: Optional[str] = '',
                  priority: str = "info",
                  releaseCondition: Union[str, None] = '',
-                 autoAck: Union[bool, str] = 'no',
-                 tripDelay: Union[float, str] = '0',
+                 auto_ack: Union[bool, str] = 'no',
+                 trip_delay: Union[float, str] = '0',
                  isConfigured: bool = False,
                  _refresh: bool = True):
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
 
-            if autoAck is True:
-                autoAck = 'yes'
-            if autoAck is False:
-                autoAck = 'no'
+            if auto_ack is True:
+                auto_ack = 'yes'
+            if auto_ack is False:
+                auto_ack = 'no'
 
-            tripDelay = str(tripDelay)
+            trip_delay = str(trip_delay)
 
             d = {
                 'condition': condition,
                 'priority': priority,
-                'autoAck': autoAck,
-                'tripDelay': tripDelay,
+                'auto_ack': auto_ack,
+                'trip_delay': trip_delay,
                 'releaseCondition': releaseCondition
             }
 
@@ -953,8 +953,8 @@ class TagPointClass():
         releaseCondition = d.get('releaseCondition', None)
 
         priority = d.get("priority", "warning") or 'warning'
-        autoAck = d.get("autoAck", '').lower() in ('yes', 'true', 'y', 'auto')
-        tripDelay = float(d.get("tripDelay", 0) or 0)
+        auto_ack = d.get("auto_ack", '').lower() in ('yes', 'true', 'y', 'auto')
+        trip_delay = float(d.get("trip_delay", 0) or 0)
 
         # Shallow copy, because we are going to override the tag getter
         context = copy.copy(self.evalContext)
@@ -1001,8 +1001,8 @@ class TagPointClass():
         obj = alerts.Alert(
             n + ".alarms." + name,
             priority=priority,
-            autoAck=autoAck,
-            tripDelay=tripDelay,
+            auto_ack=auto_ack,
+            trip_delay=trip_delay,
         )
         # For debugging reasons
         obj.tagEvalContext = context
@@ -1333,7 +1333,7 @@ class TagPointClass():
                                  "Code default")
 
     @classmethod
-    def Tag(cls: Type[T], name: str, defaults={}) -> T:
+    def Tag(cls: Type[T], name: str, defaults:Dict[str,Any]={}) -> T:
         name: str = normalizeTagName(name)
         rval = None
         with lock:

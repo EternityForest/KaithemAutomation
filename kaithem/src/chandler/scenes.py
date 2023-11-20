@@ -171,7 +171,7 @@ class FadeCanvas:
         self.v = copy.deepcopy(self.v2)
         self.a = copy.deepcopy(self.a2)
 
-    def clean(self, affect):
+    def clean(self, affect:Iterable[str]):
         for i in list(self.a.keys()):
             if i not in affect:
                 del self.a[i]
@@ -202,7 +202,7 @@ def codeCommand(code=""):
     return True
 
 
-def gotoCommand(scene="=SCENE", cue=""):
+def gotoCommand(scene:str ="=SCENE", cue: str=""):
     "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
 
     # Ignore empty
@@ -337,7 +337,7 @@ def shortcutCode(code: str, limitScene: Optional[Scene] = None, exclude: Optiona
                     print(traceback.format_exc())
 
 
-def event(s: str, value=None, info=""):
+def event(s: str, value: Any = None, info: str = "") -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
     with core.lock:
@@ -973,7 +973,7 @@ class Scene:
         self.cue = self.cues['default']
 
         # Used for the tap tempo algorithm
-        self.lastTap = 0
+        self.lastTap: float = 0
         self.tapSequence = 0
 
         # This flag is used to avoid having to repaint the canvas if we don't need to
@@ -1004,7 +1004,7 @@ class Scene:
 
         self.rerenderOnVarChange = False
 
-        self.enteredCue = 0
+        self.enteredCue:float = 0
 
         # Map event name to runtime as unix timestamp
         self.runningTimers = {}
@@ -1106,7 +1106,7 @@ class Scene:
             if scenes.get(self.id, None) is self:
                 del scenes[self.id]
 
-    def evalExpr(self, s):
+    def evalExpr(self, s: str|float|bool|None):
         """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
         return the input.
 
@@ -1584,7 +1584,7 @@ class Scene:
                         if os.path.isfile(sound):
                             if not out == "scenewebplayer":
                                 # Always fade in if the face in time set.
-                                # Also fade in for crossfade, 
+                                # Also fade in for crossfade,
                                 # but in that case we only do it if there is something to fade in from.
                                 if not (
                                     (
@@ -1648,7 +1648,7 @@ class Scene:
                                 }
                                 t = soundMeta.get_image()
                             except Exception:
-                                # Not support, but it might just be an unsupported type. 
+                                # Not support, but it might just be an unsupported type.
                                 # if mp3, its a real error, we should alert
                                 if sound.endswith(".mp3"):
                                     self.event(
@@ -1816,7 +1816,7 @@ class Scene:
             nextruntime = selector.after(ref, True)
 
             # Workaround for "every hour" and the like, which would normally return the start of the current hour,
-            # But in this case we want the next one. 
+            # But in this case we want the next one.
             # We don't want exclusive matching all the either as that seems a bit buggy.
             if nextruntime <= ref:
                 nextruntime = selector.after(nextruntime, False)
@@ -2190,16 +2190,16 @@ class Scene:
                 self.command_tagSubscriptions.append([t, s])
                 t.subscribe(s)
 
-    def setCommandTag(self, st):
-        st = st.strip()
+    def setCommandTag(self, tag_name: str):
+        tag_name = tag_name.strip()
 
         self.clearConfiguredTags()
 
-        self.command_tag = st
+        self.command_tag = tag_name
 
-        if st:
-            st = kaithem.tags.ObjectTag(st)
-            if st.subtype and not st.subtype == "event":
+        if tag_name:
+            tag = kaithem.tags.ObjectTag(tag_name)
+            if tag.subtype and not tag.subtype == "event":
                 raise ValueError("That tag does not have the event subtype")
 
             self.subscribeCommandTags()
@@ -2555,7 +2555,7 @@ class Scene:
             ]
         )
 
-    def setAlpha(self, val, sd=False):
+    def setAlpha(self, val: float, sd:bool =False):
         val = min(1, max(0, val))
         try:
             self.cueVolume = min(

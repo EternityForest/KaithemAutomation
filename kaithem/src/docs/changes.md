@@ -4,6 +4,9 @@ Change Log
 ### 0.71.3
 - :bug: Fix chandler cue slide set button
 - :bug: Fix mixer channel not changing after refresh button until changing the slider
+- :lipstick: autoAck and tripDelay are snake_case now
+- :sparkles: Add nicer system alerts in the chandler page
+
 
 ### 0.71.2
 - :bug: Fix contextInfo > context_info snake case bug

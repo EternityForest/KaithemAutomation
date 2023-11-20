@@ -28,7 +28,7 @@ import weakref
 import datetime
 from scullery import persist as sculleryPersist
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Dict, List
 
 try:
     import holidays
@@ -64,7 +64,7 @@ bootTime = time.time()
 # Persist is one of the ones that we want to be usable outside of kaithem, so we add our path resolution stuff here.
 
 
-def resolvePath(fn, expand=False):
+def resolvePath(fn: str, expand: bool = False):
     if not fn.startswith(os.pathsep) or fn.startswith("~") or fn.startswith("$"):
         fn = os.path.join(directories.moduledatadir, fn)
 
@@ -118,8 +118,6 @@ class TagInterface():
 
 class SoundOutput():
     pass
-
-
 
 
 class Kaithem():
@@ -183,7 +181,7 @@ class Kaithem():
             # return ("""lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae laoreet eros. Integer nunc nisl, ultrices et commodo sit amet, dapibus vitae sem. Nam vel odio metus, ac cursus nulla. Pellentesque scelerisque consequat massa, non mollis dolor commodo ultrices. Vivamus sit amet sapien non metus fringilla pretium ut vitae lorem. Donec eu purus nulla, quis venenatis ipsum. Proin rhoncus laoreet ullamcorper. Etiam fringilla ligula ut erat feugiat et pulvinar velit fringilla.""")
 
         @staticmethod
-        def do(f: Callable):
+        def do(f: Callable[..., Any]) -> None:
             workers.do(f)
 
         @staticmethod
@@ -592,7 +590,7 @@ class Kaithem():
         @staticmethod
         def setvol(*args, **kwargs):
             return sound.setvol(*args, **kwargs)
-        
+
         @staticmethod
         def fade_to(*args, **kwargs):
             return sound.fade_to(*args, **kwargs)
@@ -605,27 +603,27 @@ class Kaithem():
 
     class message():
         @staticmethod
-        def post(topic: str, message):
+        def post(topic: str, message: Any):
             messagebus.postMessage(topic, message)
 
         @staticmethod
-        def subscribe(topic: str, callback: Callable):
+        def subscribe(topic: str, callback: Callable[..., Any]):
             messagebus.subscribe(topic, callback)
 
         @staticmethod
-        def unsubscribe(topic: str, callback: Callable):
+        def unsubscribe(topic: str, callback: Callable[..., Any]):
             messagebus.unsubscribe(topic, callback)
 
     class persist():
         unsaved = sculleryPersist.unsavedFiles
 
         @staticmethod
-        def load(*args, **kwargs):
-            return persist.load(*args, **kwargs)
+        def load(fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]) -> bytes | str | Dict[Any, Any] | List[Any]:
+            return persist.load(fn, *args, **kwargs)
 
         @staticmethod
-        def save(*args, **kwargs):
-            return persist.save(*args, **kwargs)
+        def save(data: bytes | str | Dict[Any, Any] | List[Any], fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]):
+            return persist.save(data, fn, *args, **kwargs)
 
     class string():
         @staticmethod

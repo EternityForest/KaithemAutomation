@@ -4,6 +4,7 @@ import time
 import threading
 import json
 from . import directories
+from typing import List
 from urllib.parse import quote
 
 fetchlock = threading.RLock()
@@ -20,9 +21,9 @@ defaultAssetPacks = [
 
 
 class AssetPacks:
-    def __init__(self, assetlib, assetPacks=None) -> None:
-        self.assetlib = os.path.normpath(assetlib)
-        self.assetPacks = assetPacks or defaultAssetPacks
+    def __init__(self, assetlib: str, assetPacks=None) -> None:
+        self.assetlib: str = os.path.normpath(assetlib)
+        self.assetPacks: List[str] = assetPacks or defaultAssetPacks
         self.assetPackFolders = {}
 
         self.assetPackNames = {}
@@ -36,7 +37,7 @@ class AssetPacks:
             ] = i
             self.assetPackNames[url] = i[0] + ":" + i[1]
 
-    def ls(self, f):
+    def ls(self, f: str) -> List[str]:
         if os.path.normpath(f).startswith(self.assetlib + "/"):
             if not os.path.exists(f):
                 os.makedirs(f, exist_ok=True)
@@ -70,7 +71,7 @@ class AssetPacks:
                 if current == ".":
                     current = ""
                 if i["path"].startswith(current) and len(i["path"]) > len(current):
-                    if not "/" in i["path"][len(os.path.relpath(f, ap)) + 1 :]:
+                    if not "/" in i["path"][len(os.path.relpath(f, ap)) + 1:]:
                         p = os.path.basename(i["path"])
                         if i["type"] == "tree":
                             p = p + "/"

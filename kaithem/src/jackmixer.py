@@ -381,7 +381,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             # General good practice to use this when creating a tag,
             # If we don't know who else may have assigned alerts.
             self.levelTag.clearDynamicAlarms()
-            self.levelTag.setAlarm("volume", "value>soundFuseSetting", tripDelay=0.3)
+            self.levelTag.setAlarm("volume", "value>soundFuseSetting", trip_delay=0.3)
 
             # self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
             
@@ -1122,7 +1122,7 @@ class MixingBoard:
 
         if not name in self.channelAlerts:
             self.channelAlerts[name] = alerts.Alert(
-                "Mixer channel " + name, priority="error", tripDelay=35, autoAck=True
+                "Mixer channel " + name, priority="error", trip_delay=35, auto_ack=True
             )
 
         for i in range(3):

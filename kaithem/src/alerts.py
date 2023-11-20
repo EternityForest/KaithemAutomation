@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 from scullery import persist
 from . import directories
@@ -44,20 +45,58 @@ def saveSettings(*a, **k):
 
 # This is a dict of all alerts that have not yet been acknowledged.
 # It is immutable and only ever atomically replaces
-unacknowledged = {}
+unacknowledged: Dict[str, weakref.ref[Alert]] = {}
 # Same as above except may be mutated under lock
-_unacknowledged = {}
+_unacknowledged: Dict[str, weakref.ref[Alert]] = {}
 
 # see above, but for active alarms not just for unacknowledged
-active = {}
-_active = {}
+active: Dict[str, weakref.ref[Alert]] = {}
+_active: Dict[str, weakref.ref[Alert]] = {}
 
 
 # Added on trip, removed on normal
-tripped = {}
-_tripped = {}
+tripped: Dict[str, weakref.ref[Alert]] = {}
+_tripped: Dict[str, weakref.ref[Alert]] = {}
 
 all = weakref.WeakValueDictionary()
+
+priority_to_class = {
+    'critical': {'danger': 1},
+    'error': {'danger': 1},
+    'warning': {'danger': 1},
+    'info': {},
+    'debug': {'danger': 1}
+}
+
+
+def getAlertState() -> Dict[str, Dict[str, Any]]:
+    try:
+        with lock:
+            d: Dict[str, Dict[str, Any]] = {}
+
+            for i in (active, unacknowledged):
+                for j in i:
+                    alert = i[j]()
+                    if not alert:
+                        continue
+
+                    d[alert.name] = {
+                        "state": alert.sm.state,
+                        "priority": alert.priority,
+                        "description": alert.description,
+                        "barrel-class": priority_to_class.get(alert.priority, {'warning': 1}),
+                        "message": alert.trip_message
+                    }
+            return d
+
+    except Exception:
+        logger.exception("Error pushing alert state on msg bus")
+        return {'Alerts': {'priority': 'error', 'state': 'active'}}
+
+
+def pushAlertState():
+    messagebus.post("/system/alerts/state", getAlertState())
+
 
 priorities = {
     None: 0,
@@ -191,7 +230,7 @@ def cleanup():
 
 class Alert():
     @typechecked
-    def __init__(self, name: str, priority: str = "info", zone=None, tripDelay: Union[int, float] = 0, autoAck: Union[bool, float, int] = False,
+    def __init__(self, name: str, priority: str = "info", zone=None, trip_delay: Union[int, float] = 0, auto_ack: Union[bool, float, int] = False,
                  permissions: list = [], ackPermissions: list = [], id=None, description: str = "", silent: bool = False
                  ):
         """
@@ -199,7 +238,7 @@ class Alert():
         implemented as a state machine.
 
         Alerts begin in the "normal" state, and if tripped enter the "tripped"
-        state. An alert remaining in the tripped state for more than "tripDelay"
+        state. An alert remaining in the tripped state for more than "trip_delay"
         enters the active state and will show in notifications, trigger automated actions
         etc.
 
@@ -212,7 +251,7 @@ class Alert():
         can return to active, like tripped, but otherwise acts like cleared.
 
         Alarms can self-acknowledge after a certain delay after being cleared, set this
-        delay using autoAck. False or 0 disables autoAck.
+        delay using auto_ack. False or 0 disables auto_ack.
 
         Finally, alarms can be in the "error" state, which is an error with the alarm
         triggering logic itself. The priority of errored alarms is always
@@ -242,12 +281,11 @@ class Alert():
         self.priority = priority
         self.zone = zone
         self.name = name
-        self._tripDelay = tripDelay
+        self._trip_delay = trip_delay
 
         # Tracks any a associated tag point
         self.tagpoint_name: str = ''
         self.tagpoint_config_data: Optional[Dict[str, Any]] = None
-
 
         # Last trip time
         self.trippedAt = 0
@@ -263,14 +301,14 @@ class Alert():
         self.sm.add_state("error")
 
         # After N seconds in the trip state, we go active
-        self.sm.set_timer("tripped", tripDelay, "active")
-        self.sm.set_timer("retripped", tripDelay, "active")
+        self.sm.set_timer("tripped", trip_delay, "active")
+        self.sm.set_timer("retripped", trip_delay, "active")
 
         # Automatic acknowledgement makes an alarm go away when it's cleared.
-        if autoAck:
-            if autoAck is True:
-                autoAck = 10
-            self.sm.set_timer("cleared", autoAck, "normal")
+        if auto_ack:
+            if auto_ack is True:
+                auto_ack = 10
+            self.sm.set_timer("cleared", auto_ack, "normal")
 
         self.sm.add_rule("normal", "trip", "tripped")
         self.sm.add_rule("tripped", "release", "normal")
@@ -323,13 +361,14 @@ class Alert():
         self.acknowledge()
 
     @property
-    def tripDelay(self):
-        return self._tripDelay
+    def trip_delay(self):
+        return self._trip_delay
 
     # I don't like the undefined thread aspec of __del__. Change this?
     def _onActive(self):
         global unacknowledged
         global active
+
         with lock:
             cleanup()
             _unacknowledged[self.id] = weakref.ref(self)
@@ -367,6 +406,7 @@ class Alert():
             messagebus.postMessage(
                 "/system/notifications", "Alarm "+self.name+" is active")
         sendMessage()
+        pushAlertState()
 
     def _onAck(self):
         global unacknowledged
@@ -378,6 +418,7 @@ class Alert():
         calcNextBeep()
         api.send(['shouldRefresh'])
         sendMessage()
+        pushAlertState()
 
     def _onNormal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
@@ -403,10 +444,10 @@ class Alert():
         calcNextBeep()
         api.send(['shouldRefresh'])
         sendMessage()
+        pushAlertState()
 
     def _onTrip(self):
         global tripped
-
         with lock:
             cleanup()
             _tripped[self.id] = weakref.ref(self)
@@ -419,6 +460,7 @@ class Alert():
                            " tripped:\n"+self.trip_message)
         else:
             logger.info("Alarm "+self.name + " tripped:\n"+self.trip_message)
+        pushAlertState()
 
     def trip(self, message=""):
         self.trip_message = str(message)[:4096]
@@ -446,12 +488,14 @@ class Alert():
         logger.info("Alarm "+self.name + " cleared")
         api.send(['shouldRefresh'])
         sendMessage()
+        pushAlertState()
 
     def __del__(self):
         self.acknowledge("<DELETED>")
         self.clear()
         cleanup()
         sendMessage()
+        pushAlertState()
 
     def acknowledge(self, by="unknown", notes=""):
         notes = notes[:64]

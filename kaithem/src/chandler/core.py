@@ -14,7 +14,7 @@ from typing import Optional, Dict, List
 lastSysloggedError = 0
 
 
-def is_img_file(path):
+def is_img_file(path: str):
     if (path.endswith(".png")
         or path.endswith(".jpg")
         or path.endswith(".webp")
@@ -26,7 +26,7 @@ def is_img_file(path):
         return True
 
 
-def get_audio_duration(path):
+def get_audio_duration(path: str) -> Optional[float]:
     "Get duration of media file"
     # Try with tinytag before dragging in ffmpeg
     try:
@@ -96,7 +96,7 @@ if os.path.exists(os.path.join(saveLocation, "config.yaml")):
 
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
-boards = []
+boards: List[object] = []
 
 if not os.path.exists(musicLocation):
     try:
@@ -123,7 +123,7 @@ def getSoundFolders() -> Dict[str, str]:
     return soundfolders
 
 
-def resolve_sound(sound):
+def resolve_sound(sound: str):
     # Allow relative paths
     if not sound.startswith("/"):
         for i in getSoundFolders():

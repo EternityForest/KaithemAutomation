@@ -28,7 +28,7 @@ wifiClaim = wifi.claim(-1, "NetworkManager", 70)
 #/if the value has ever been set, the signal is weak, and we don't have an ethernet connection.
 #However, if there IS an ethernet connection, we still sound the alarm if the signal is weak but not nonexistent.
 #Because in that case we know it should be connected but isn't
-wifi.setAlarm("LowSignal", "(value>-1) and (value < 20) and ((not tv('/system/ethernet')) or value)", autoAck='yes')
+wifi.setAlarm("LowSignal", "(value>-1) and (value < 20) and ((not tv('/system/ethernet')) or value)", auto_ack='yes')
 
 ethernet = tagpoints.Tag(
     "/system/ethernet")
@@ -40,7 +40,7 @@ ethernetClaim = ethernet.claim(-1, "NetworkManager", 70)
 #if the value has ever been set, the signal is weak, and we don't have a WiFi connection.
 #But even if we do have signal, we still want to warn if there was ethernet before but now is not,
 #Because that would probably mean it is using wifi as a fallback and should still have ethernet.
-wifi.setAlarm("NoWiredNetwork", "(value>-1) and (value < 1) and not (tv('/system/wifiStrength') or (value > -1))", autoAck='yes')
+wifi.setAlarm("NoWiredNetwork", "(value>-1) and (value < 1) and not (tv('/system/wifiStrength') or (value > -1))", auto_ack='yes')
 
 getAllDevicesAttempted = [0]
 

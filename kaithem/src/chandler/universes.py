@@ -1,5 +1,6 @@
 
 from __future__ import annotations
+import colorzero
 import numpy
 import time
 import threading
@@ -11,11 +12,13 @@ import gc
 import copy
 import struct
 import json
-from typing import Dict 
+from typing import Optional, List, Dict, Any
 from . import core
 from .core import disallow_special
 
 from ..kaithemobj import kaithem
+from kaithem.src import alerts
+
 logger = logging.getLogger("system.chandler")
 
 # Locals for performance... Is this still a thing??
@@ -26,18 +29,17 @@ max = max
 min = min
 
 universesLock = core.lock
-universes: Dict[str, weakref.ref[Universe]] = {}
+universes: Dict[str, weakref.ReferenceType[Universe]] = {}
 
 # MUTABLE
-_universes: Dict[str, weakref.ref[Universe]] = {}
+_universes: Dict[str, weakref.ReferenceType[Universe]] = {}
 
 
-
-fixtures = {}
+fixtures: Dict[str, weakref.ref[Fixture]] = {}
 
 
 class Fixture:
-    def __init__(self, name: str, data=None):
+    def __init__(self, name: str, data: Optional[List[List[Any]] | Dict[str, Any]] = None):
         """Represents a contiguous range of channels each with a defined role in one universe.
 
         data is the definition of the type of fixture. It can be a list of channels, or
@@ -57,28 +59,34 @@ class Fixture:
 
         The name must be unique per-fixture.
         If a channel has the type "fine" it will be interpreted as the fine value of
-        the immediately preceding coarse channel, and should automatically get its value from the fractional part.
-        If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
+        the immediately preceding coarse channel, and should automatically 
+        get its value from the fractional part.
+        If the coarse channel is not the immediate preceding channel,
+        use the first argument to specify the number of the coarse channel,
         with 0 being the fixture's first channel.
         """
+        self.channels: List[List[Any]]
+
         if data:
             # Normalize and raise errors on nonsense
-            channels = json.loads(json.dumps(data))
+            channels: List[List[Any]] | Dict[str, Any] = json.loads(json.dumps(data))
 
             if not isinstance(channels, list):
                 channels = channels["channels"]
+
+            assert isinstance(channels, list)
             self.channels = channels
 
         else:
             channels = []
+            self.channels = channels
 
-        self.channels = channels
-        self.universe = None
-        self.startAddress = 0
+        self.universe: Optional[str] = None
+        self.startAddress: Optional[int] = 0
         self.assignment = None
         disallow_special(name, ".")
 
-        self.nameToOffset = {}
+        self.nameToOffset: Dict[str, int] = {}
 
         # Used for looking up channel by name
         for i in range(len(channels)):
@@ -91,7 +99,7 @@ class Fixture:
                 fixtures[name] = weakref.ref(self)
                 self.name = name
 
-    def getChannelByName(self, name):
+    def getChannelByName(self, name: str):
         if self.startAddress:
             return self
 
@@ -123,7 +131,7 @@ class Fixture:
         except Exception:
             print(traceback.format_exc())
 
-    def assign(self, universe, channel):
+    def assign(self, universe: Optional[str], channel: Optional[int]):
         with core.lock:
             # First just clear the old assignment, if any
             if self.universe and self.startAddress:
@@ -170,16 +178,18 @@ class Fixture:
             # 2 separate loops, first is just to check, so that we don't have half-completed stuff
             for i in range(channel, channel + len(self.channels)):
                 if i in universeObj.channels:
-                    if universeObj.channels[i] and universeObj.channels[i]():
-                        if not self.name == universeObj.channels[i]().name:
-                            raise ValueError(
-                                "channel "
-                                + str(i)
-                                + " of "
-                                + self.name
-                                + " would overlap with "
-                                + universeObj.channels[i]().name
-                            )
+                    if universeObj.channels[i]:
+                        fixture = universeObj.channels[i]()
+                        if fixture:
+                            if not self.name == fixture.name:
+                                raise ValueError(
+                                    "channel "
+                                    + str(i)
+                                    + " of "
+                                    + self.name
+                                    + " would overlap with "
+                                    + fixture.name
+                                )
 
             cPointer = 0
             for i in range(channel, channel + len(self.channels)):
@@ -193,7 +203,7 @@ class Fixture:
 class Universe():
     "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX. "
 
-    def __init__(self, name, count=512, number=0):
+    def __init__(self, name: str, count: int = 512, number: int = 0):
         global universes
         for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>,":
             if i in name:
@@ -232,7 +242,7 @@ class Universe():
 
         # Dict of all board ids that have already pushed a status update
         self.statusChanged = {}
-        self.channels = {}
+        self.channels: Dict[int, weakref.ref[Fixture]] = {}
 
         # Maps names to numbers, mostly for tagpoint universes.
         if not hasattr(self, "channelNames"):
@@ -250,11 +260,11 @@ class Universe():
 
         self.count = count
         # Maps fine channel numbers to coarse channel numbers
-        self.fine_channels = {}
+        self.fine_channels: Dict[int, int] = {}
 
         # Map fixed channel numbers to values.
         # We implemet that here so they are fixed no matter what the scenes and blend modes say
-        self.fixed_channels = {}
+        self.fixed_channels: Dict[int, float] = {}
 
         # Used for the caching. It's the layer we want to save as the background state before we apply.
         # Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
@@ -262,6 +272,9 @@ class Universe():
         # Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
         # so far in this frame
         self.all_static = True
+
+        self.error_alert = alerts.Alert(f"{self.name}.errorState",
+                                        priority="error", auto_ack=True)
         with core.lock:
             with universesLock:
                 if name in _universes and _universes[name]():
@@ -271,7 +284,9 @@ class Universe():
                     # We retry, because the universes are often temporarily cached as strong refs
                     if name in _universes and _universes[name]():
                         try:
-                            _universes[name]().close()
+                            u = _universes[name]()
+                            if u:
+                                u.close()
                         except Exception:
                             raise ValueError("Name " + name + " is taken")
                 _universes[name] = weakref.ref(self)
@@ -298,15 +313,14 @@ class Universe():
         # A simple refresh solves, so ignore it.
         try:
             for i in core.boards:
-                i().pushUniverses()
+                x = i()
+                if x:
+                    x.pushUniverses()
         except Exception as e:
             print(e)
 
         kaithem.message.post("/chandler/command/refreshFixtures", self.name)
         self.refresh_scenes()
-
-    def __del__(self):
-        self.close()
 
     def close(self):
         global universes
@@ -330,14 +344,21 @@ class Universe():
             self.preFrame = alreadyClosed
             self.save_prerendered = alreadyClosed
 
-    def setStatus(self, s, ok):
+    def setStatus(self, s: str, ok: bool):
         "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
+        if ok:
+            self.error_alert.release()
+        else:
+            self.error_alert.trip(message=str(s))
+        
         # avoid pushing unneded statuses
         if (self.status == s) and (self.ok == ok):
             return
         self.status = s
         self.ok = ok
         self.statusChanged = {}
+
+
 
     def refresh_scenes(self):
         """Stop and restart all active scenes, because some caches might need to be updated
@@ -460,7 +481,7 @@ class DMXSender():
         the rate at which the data actually gets rendered.
     """
 
-    def __init__(self, universe, port, framerate:float):
+    def __init__(self, universe, port, framerate: float):
         self.frame = threading.Event()
         self.universe = universe
         self.data = message(universe().values)
@@ -976,8 +997,6 @@ class RawDMXSender():
             self.frame.set()
 
 
-import colorzero
-
 colorTagDeviceUniverses = {}
 addedTags = {}
 
@@ -1075,7 +1094,7 @@ class ColorTagUniverse(Universe):
         self.hidden = False
         self.tag = tag
         self.f = Fixture(self.name + ".rgb",
-                              [['R', 'red'], ['G', 'green'], ['B', 'blue']])
+                         [['R', 'red'], ['G', 'green'], ['B', 'blue']])
         self.f.assign(self.name, 1)
         self.lock = threading.RLock()
 
@@ -1120,8 +1139,10 @@ class ColorTagUniverse(Universe):
 core.discoverColorTagDevices = discoverColorTagDevices
 
 
-def getUniverse(u: str) -> Universe:
+def getUniverse(u: Optional[str]) -> Optional[Universe]:
     "Get strong ref to universe if it exists, else get none."
+    if not u:
+        return None
     try:
         oldUniverseObj = universes[u]()
     except KeyError:
@@ -1141,14 +1162,13 @@ def getUniverses() -> Dict[str, Universe]:
     return u
 
 
-def rerenderUniverse(i):
+def rerenderUniverse(i: str):
     universe = getUniverse(i)
     if universe:
         universe.full_rerender = True
 
 
-
-def mapUniverse(u):
+def mapUniverse(u:str):
     if not u.startswith("@"):
         return u
 
@@ -1199,4 +1219,3 @@ def mapChannel(u, c):
 
     # Index advance @fixture[5] means assume @fixture is the first of 5 identical fixtures and you want #5
     return x[0], int(x[1] + f.nameToOffset[c] + ((index - 1) * len(f.channels)))
-

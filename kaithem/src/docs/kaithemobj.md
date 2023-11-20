@@ -334,7 +334,7 @@ Alerts allow you to create notification when unusual events occur,
 trigger periodic sounds, and allow users to "acknowledge" them to shut
 them up.
 
-#### kaithem.alerts.Alert(name, priority="normal", zone=None, tripDelay=0, autoAck=False, permissions=\[\], ackPermissions=\[\], \[id\],description='')
+#### kaithem.alerts.Alert(name, priority="normal", zone=None, trip_delay=0, auto_ack=False, permissions=\[\], ackPermissions=\[\], \[id\],description='')
 
 Create a new alert. Prority can be one of debug, info, warning, error,
 or critical.
@@ -351,7 +351,7 @@ and ack the alert.
 ID is a unique string ID. What happens if you reuse these is undefined
 and wil be used to implement features later.
 
-tripDelay is the delay in seconds that the alarm remains tripped before
+trip_delay is the delay in seconds that the alarm remains tripped before
 becoming active.
 
 Internally, alarms are state machines that may be in any of the listed

@@ -14,6 +14,7 @@ from .scenes import cues, event
 import yaml
 
 
+from typing import Optional, Set, Any, Dict, List
 import copy
 import os
 import threading
@@ -26,7 +27,7 @@ import weakref
 from .. import snake_compat
 
 
-def from_legacy(d):
+def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
     if 'mediaWindup' in d:
         d['media_wind_up'] = d.pop('mediaWindup')
     if 'mediaWinduown' in d:
@@ -39,7 +40,7 @@ def from_legacy(d):
 class ChandlerConsole:
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
-    def linkSend(self, *a, **k):
+    def linkSend(self, *a: tuple[float | str | None | List[Any] | Dict[str | int, Any]], **k: Dict[str, Any]):
         pass
 
     def loadProject(self):
@@ -120,24 +121,24 @@ class ChandlerConsole:
         self.presets = {}
 
         # This light board's scene memory, or the set of scenes 'owned' by this board.
-        self.scenememory = {}
+        self.scenememory: Dict[str, Scene] = {}
 
         self.ext_scenes = {}
 
         self.lock = threading.RLock()
 
-        self.configuredUniverses = {}
-        self.fixtureAssignments = {}
+        self.configuredUniverses: Dict[str, Any] = {}
+        self.fixtureAssignments: Dict[str, Any] = {}
         self.fixtures = {}
 
-        self.universeObjs = {}
-        self.fixtureClasses = copy.deepcopy(fixtureslib.genericFixtureClasses)
+        self.universeObjs: Dict[str, universes.Universe] = {}
+        self.fixtureClasses: Dict[str, Any] = copy.deepcopy(fixtureslib.genericFixtureClasses)
 
         self.loadProject()
 
         self.refreshFixtures()
 
-        def f(self, *dummy):
+        def f(self: ChandlerConsole, *dummy: tuple[Any]):
             self.linkSend(
                 ["soundoutputs", [i for i in kaithem.sound.outputs()]])
 
@@ -197,6 +198,7 @@ class ChandlerConsole:
             self.pushfixtures()
 
     def createUniverses(self, data):
+        assert isinstance(data, Dict)
         for i in self.universeObjs:
             self.universeObjs[i].close()
 
@@ -205,7 +207,7 @@ class ChandlerConsole:
 
         gc.collect()
         universeObjects = {}
-        u = data
+        u: Dict[str, Dict[Any, Any]] = data
         for i in u:
             if u[i]["type"] == "enttecopen" or u[i]["type"] == "rawdmx":
                 universeObjects[i] = universes.EnttecOpenUniverse(
@@ -333,10 +335,12 @@ class ChandlerConsole:
                 "presets": self.presets,
             }
 
-    def loadLibraryFile(self, data, _asuser=False, filename=None, errs=False):
-        data = yaml.load(data, Loader=yaml.SafeLoader)
+    def loadLibraryFile(self, data_file_str: str, _asuser: bool = False, filename: str = None, errs: bool = False):
+        data = yaml.load(data_file_str, Loader=yaml.SafeLoader)
 
         if "fixtureTypes" in data:
+            assert isinstance(data["fixtureTypes"], Dict)
+
             self.fixtureClasses.update(data["fixtureTypes"])
         else:
             raise ValueError("No fixture types in that file")
@@ -551,7 +555,7 @@ class ChandlerConsole:
 
             return sd
 
-    def saveAsFiles(self, dirname, data, legacyKey=None):
+    def saveAsFiles(self, dirname: str, data: Any, legacyKey: Optional[str] = None):
         sd = data
         saveLocation = os.path.join(kaithem.misc.vardir, "chandler", dirname)
         if not os.path.exists(saveLocation):
@@ -596,11 +600,12 @@ class ChandlerConsole:
             d = {}
             if u[1:] in universes.fixtures:
                 f = universes.fixtures[u[1:]]()
-                for i in range(0, len(f.channels)):
-                    d[f.channels[i][0]] = [u[1:]] + f.channels[i]
+                if f:
+                    for i in range(0, len(f.channels)):
+                        d[f.channels[i][0]] = [u[1:]] + f.channels[i]
             self.linkSend(["cnames", u, d])
 
-    def pushMeta(self, sceneid, statusOnly=False, keys=None):
+    def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List | Set | Dict] = None):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
         scene = scenes.scenes[sceneid]
 
@@ -620,7 +625,7 @@ class ChandlerConsole:
                 print(traceback.format_exc())
 
         if not statusOnly:
-            data = {
+            data: Dict[str, Any] = {
                 "ext": sceneid not in self.scenememory,
                 "dalpha": scene.defaultalpha,
                 "alpha": scene.alpha,
@@ -733,7 +738,7 @@ class ChandlerConsole:
             core.rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid, traceback.format_exc())
 
-    def pushCueMetaAttr(self, cueid, attr):
+    def pushCueMetaAttr(self, cueid: str, attr: str):
         "Be careful with this, some attributes can't be sent directly and need preprocessing"
         try:
             cue = cues[cueid]
@@ -742,13 +747,13 @@ class ChandlerConsole:
             core.rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid, traceback.format_exc())
 
-    def pushCueData(self, cueid):
+    def pushCueData(self, cueid: str):
         self.linkSend(["cuedata", cues[cueid].id, cues[cueid].values])
 
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configuredUniverses])
 
-    def pushCueList(self, scene):
+    def pushCueList(self, scene: str):
         s = scenes.scenes[scene]
         x = list(s.cues.keys())
         # split list into messages of 100 because we don't want to exceed the widget send limit

@@ -78,8 +78,8 @@ class KasaDevice(devices.Device):
 		self.rssiCache =0
 		self.rssiCacheTime = 0
 		#We really don't need either of these to have persistent alerts.
-		self.lowSignalAlert = alerts.Alert(name+".lowsignalalert",tripDelay=80,autoAck=True)
-		self.unreachableAlert = alerts.Alert(name+".unreachablealert", autoAck=True)
+		self.lowSignalAlert = alerts.Alert(name+".lowsignalalert",trip_delay=80,auto_ack=True)
+		self.unreachableAlert = alerts.Alert(name+".unreachablealert", auto_ack=True)
 		self.lastLoggedUnreachable = 0
 		devices.Device.__init__(self,name,data)
 
@@ -159,8 +159,8 @@ class KasaSmartplug(KasaDevice):
 		self.analogChannels=[["W"]]
 
 
-		self.highCurrentAlert = alerts.Alert(priority='warning', name=name+".highcurrentalert", autoAck=False)
-		self.overCurrentAlert = alerts.Alert(priority='error', name=name+".overcurrentalert", autoAck=False)
+		self.highCurrentAlert = alerts.Alert(priority='warning', name=name+".highcurrentalert", auto_ack=False)
+		self.overCurrentAlert = alerts.Alert(priority='error', name=name+".overcurrentalert", auto_ack=False)
 
 		#Set it up with a tagpoint
 		self.switchTagPoint = tagpoints.Tag("/devices/"+self.name+".switch")

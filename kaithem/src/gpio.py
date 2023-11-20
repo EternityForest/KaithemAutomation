@@ -324,7 +324,7 @@ class DigitalInput(GPIOTag):
 
         # Only trip this alert if it's manually mocked. If it starts out
         # Mocled that isn't news most likely.
-        self.mock_alert = alerts.Alert("Pin"+str(pin)+"mock", autoAck=True)
+        self.mock_alert = alerts.Alert("Pin"+str(pin)+"mock", auto_ack=True)
         self.mock_alert.description = "Input pin is mocked and ignoring the physical iput pin"
 
         if 'active_state' in kwargs:

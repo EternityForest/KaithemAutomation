@@ -622,7 +622,7 @@ widgets_by_subsc_carryover = weakref.WeakValueDictionary()
 class Widget:
     def __init__(self, *args, subsc_carryover=None, **kwargs):
         self.value = None
-        self._read_perms = []
+        self._read_perms: List[str] = []
         self._write_perms = []
         self.errored_function = None
         self.errored_getter = None
@@ -854,7 +854,7 @@ class Widget:
             self.subscriptions_atomic[target](d, value)
 
     # Lets you add permissions that are required to read or write the widget.
-    def require(self, permission):
+    def require(self, permission: str):
         self._read_perms.append(permission)
 
     def requireToWrite(self, permission):
@@ -1716,7 +1716,7 @@ class ScrollingWindow(Widget):
     def write(self, value):
         with self.lock:
             self.value.append(str(value))
-            self.value = self.value[-self.maxlen :]
+            self.value = self.value[-self.maxlen:]
             self.send(value)
             self._callback("__SERVER__", value)
 

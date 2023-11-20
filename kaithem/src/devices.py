@@ -971,8 +971,8 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             name,
             condition=expression,
             priority=priority,
-            tripDelay=trip_delay,
-            autoAck=auto_ack,
+            trip_delay=trip_delay,
+            auto_ack=auto_ack,
             releaseCondition=release_condition)
 
     def request_data_point(self, key):

@@ -776,6 +776,9 @@ appData = {
     'lockedFaders': {},
     'presets': {},
 
+    //All alarms active on server
+    'sys_alerts': {},
+
 
 
     'deletePreset': function (p) {
@@ -1375,6 +1378,11 @@ function f(v) {
     }
     if (c == "serports") {
         appData.serports = v[1]
+    }
+
+    if (c == 'alerts')
+    {
+        appData.sys_alerts = v[1]
     }
     if (c == 'confuniverses') {
         appData.configuredUniverses = v[1]

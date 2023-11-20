@@ -499,7 +499,7 @@ else:
         <th>Condition</th>
         <th>Release Condition</th>
         <th>Priority</th>
-        <th>autoAck</th>
+        <th>auto_ack</th>
         <th>Trip Delay</th>
         <th>State</th>
     </tr>
@@ -524,8 +524,8 @@ else:
             <option value="critical" ${'selected' if ald.get(i,{}).get('priority')=='critical' else ''}>critical</option>
         </select>
     </td>
-    <td><input name="alarm_${i}:autoAck" value="${ald.get(i,{}).get('autoAck','')|h}" placeholder="${defaultAlarmData[i].get('autoAck','False')}" style="width:4em"></td>
-    <td><input name="alarm_${i}:tripDelay" value="${ald.get(i,{}).get('tripDelay','')|h}" placeholder="${defaultAlarmData[i].get('tripDelay','0')}" style="width:6em"></td>
+    <td><input name="alarm_${i}:auto_ack" value="${ald.get(i,{}).get('auto_ack','')|h}" placeholder="${defaultAlarmData[i].get('auto_ack','False')}" style="width:4em"></td>
+    <td><input name="alarm_${i}:trip_delay" value="${ald.get(i,{}).get('trip_delay','')|h}" placeholder="${defaultAlarmData[i].get('trip_delay','0')}" style="width:6em"></td>
 
     %if i in tag.alarms:
     <td style="background-color: ${'lightgreen' if tag.alarms[i].sm.state=='normal' else 'yellow'};">${tag.alarms[i].sm.state}</td>

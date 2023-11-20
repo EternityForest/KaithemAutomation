@@ -78,7 +78,7 @@ import time
 import weakref
 import pytz
 import math
-from typing import Callable, Any
+from typing import Callable, Any, Dict, Optional
 from .scheduling import scheduler
 import datetime
 from types import MethodType
@@ -412,20 +412,20 @@ class Event():
 
 class BaseChandlerScriptContext():
 
-    def __init__(self, parentContext=None, gil=None, functions={}, variables=None, constants=None, contextFunctions={}, contextName="script"):
+    def __init__(self, parentContext=None, gil: threading.RLock=None, functions={}, variables: Optional[Dict[str, Any]]=None, constants=None, contextFunctions={}, contextName="script"):
         self.pipelines = []
 
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
         self.eventQueue = []
         self.eventListeners = {}
-        self.variables = variables if variables is not None else {}
+        self.variables: Dict[str, Any] = variables if variables is not None else {}
         self.commands = ScriptActionKeeper()
         self.contextCommands = ScriptActionKeeper()
 
         self.children = {}
         self.children_iterable = {}
-        self.constants = constants if (not (constants is None)) else {}
+        self.constants: Dict[str, Any] = constants if (not (constants is None)) else {}
         self.contextName = contextName
 
         # Cache whether or not any binding is watching a variable
@@ -705,7 +705,7 @@ class BaseChandlerScriptContext():
 
         return handled
 
-    def preprocessArgument(self, a):
+    def preprocessArgument(self, a:Any):
         if isinstance(a, str):
             if a.startswith("="):
                 return self.eval(a[1:])
@@ -717,7 +717,7 @@ class BaseChandlerScriptContext():
 
         return a
 
-    def eval(self, a):
+    def eval(self, a:Any):
         return self.evaluator.eval(a)
 
     def addNamespace(self, name):
@@ -745,7 +745,7 @@ class BaseChandlerScriptContext():
 
         raise NameError("No such name: " + n)
 
-    def setVar(self, k, v, force=False):
+    def setVar(self, k: str, v, force=False):
         if not self.gil.acquire(timeout=10):
             raise RuntimeError("Could not get lock")
         try:
@@ -766,7 +766,7 @@ class BaseChandlerScriptContext():
         finally:
             self.gil.release()
 
-    def onVarSet(self, k, v):
+    def onVarSet(self, k: str, v: Any):
         pass
 
     def addContextCommand(self, name, callable):
