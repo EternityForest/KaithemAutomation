@@ -451,7 +451,7 @@ class EnttecUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resouurce
     # For protocol documentation.
-    def __init__(self, name, channels=128, portname="", framerate: float = 44.0, number=0):
+    def __init__(self, name:str, channels:int=128, portname:str="", framerate: float = 44.0, number:int=0):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
@@ -1183,7 +1183,7 @@ def mapUniverse(u:str):
     return x.universe
 
 
-def mapChannel(u, c):
+def mapChannel(u: str, c: str | int):
     index = 1
 
     if isinstance(c, str):

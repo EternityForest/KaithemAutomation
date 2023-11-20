@@ -623,14 +623,14 @@ class Widget:
     def __init__(self, *args, subsc_carryover=None, **kwargs):
         self.value = None
         self._read_perms: List[str] = []
-        self._write_perms = []
+        self._write_perms: List[str] = []
         self.errored_function = None
         self.errored_getter = None
         self.errored_send = None
         self.subscriptions = {}
         self.subscriptions_atomic = {}
-        self.echo = True
-        self.noOnConnectData = False
+        self.echo: bool = True
+        self.noOnConnectData: bool = False
 
         # Used for GC, we have a fake subscriber right away so we can do a grace
         # Period before trashing it.
@@ -720,7 +720,7 @@ class Widget:
                 self.errored_getter = id(self._callback)
 
     # This function is meant to be overridden or used as is
-    def onRequest(self, user, uuid):
+    def onRequest(self, user: str, uuid):
         """This function is called after permissions have been verified when a client requests the current value. Usually just returns self.value
 
         Args:
@@ -801,13 +801,13 @@ class Widget:
     def read(self):
         return self.value
 
-    def write(self, value, push=True):
+    def write(self, value: Any, push=True):
         self.value = value
         self.doCallback("__SERVER__", value, "__SERVER__")
         if push:
             self.send(value)
 
-    def send(self, value):
+    def send(self, value: Any):
         "Send a value to all subscribers without invoking the local callback or setting the value"
         if usingmp:
             d = msgpack.packb([[self.uuid, value]], use_bin_type=True)
@@ -857,10 +857,10 @@ class Widget:
     def require(self, permission: str):
         self._read_perms.append(permission)
 
-    def requireToWrite(self, permission):
+    def requireToWrite(self, permission: str):
         self._write_perms.append(permission)
 
-    def setPermissions(self, read, write):
+    def setPermissions(self, read: List[str], write: List[str]):
         self._read_perms = copy.copy(read)
         self._write_perms = copy.copy(write)
 

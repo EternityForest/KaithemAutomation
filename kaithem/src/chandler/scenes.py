@@ -171,7 +171,7 @@ class FadeCanvas:
         self.v = copy.deepcopy(self.v2)
         self.a = copy.deepcopy(self.a2)
 
-    def clean(self, affect:Iterable[str]):
+    def clean(self, affect: Iterable[str]):
         for i in list(self.a.keys()):
             if i not in affect:
                 del self.a[i]
@@ -202,7 +202,7 @@ def codeCommand(code=""):
     return True
 
 
-def gotoCommand(scene:str ="=SCENE", cue: str=""):
+def gotoCommand(scene: str = "=SCENE", cue: str = ""):
     "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
 
     # Ignore empty
@@ -367,14 +367,16 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
             try:
                 if not k.startswith("_"):
                     for i in core.boards:
-                        if isinstance(v, (str, int, float, bool)):
-                            i().link.send(["varchange", self.sceneId, k, v])
-                        elif isinstance(v, collections.defaultdict):
-                            v = json.dumps(v)[:160]
-                            i().link.send(["varchange", self.sceneId, k, v])
-                        else:
-                            v = str(v)[:160]
-                            i().link.send(["varchange", self.sceneId, k, v])
+                        board = i()
+                        if board:
+                            if isinstance(v, (str, int, float, bool)):
+                                board.link.send(["varchange", self.sceneId, k, v])
+                            elif isinstance(v, collections.defaultdict):
+                                v = json.dumps(v)[:160]
+                                board.link.send(["varchange", self.sceneId, k, v])
+                            else:
+                                v = str(v)[:160]
+                                board.link.send(["varchange", self.sceneId, k, v])
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
@@ -1004,7 +1006,7 @@ class Scene:
 
         self.rerenderOnVarChange = False
 
-        self.enteredCue:float = 0
+        self.enteredCue: float = 0
 
         # Map event name to runtime as unix timestamp
         self.runningTimers = {}
@@ -1106,7 +1108,7 @@ class Scene:
             if scenes.get(self.id, None) is self:
                 del scenes[self.id]
 
-    def evalExpr(self, s: str|float|bool|None):
+    def evalExpr(self, s: str | float | bool | None):
         """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
         return the input.
 
@@ -2555,7 +2557,7 @@ class Scene:
             ]
         )
 
-    def setAlpha(self, val: float, sd:bool =False):
+    def setAlpha(self, val: float, sd: bool = False):
         val = min(1, max(0, val))
         try:
             self.cueVolume = min(

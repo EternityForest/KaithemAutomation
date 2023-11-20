@@ -140,7 +140,7 @@ class SoundWrapper(object):
     def setSpeed(self, speed: float, channel: str = "PRIMARY", *a, **kw):
         pass
 
-    def play_sound(self, filename: str, handle: str = "PRIMARY", **kwargs):
+    def play_sound(self, filename: str, handle: str = "PRIMARY", **kwargs:Dict[str, Any]):
         pass
 
     def stopSound(self, handle: str = "PRIMARY"):
@@ -155,7 +155,7 @@ class SoundWrapper(object):
     def resume(self, handle: str = "PRIMARY"):
         pass
 
-    def fade_to(self, file: str, handle: str = "PRIMARY", **kw):
+    def fade_to(self, file: str, handle: str = "PRIMARY", **kw:Dict[str, Any]):
         self.play_sound(file, handle, **kw)
 
     def preload(self, filename: str):
@@ -579,7 +579,7 @@ class MPVBackend(SoundWrapper):
         windup: float = 0,
         winddown: float = 0,
         speed: float = 1,
-        **kwargs
+        **kwargs: Dict[str, Any]
     ):
         x = self.runningSounds.pop(handle, None)
 

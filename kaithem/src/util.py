@@ -35,8 +35,7 @@ import struct
 import hashlib
 import getpass
 import yaml
-
-
+from typing import Iterable
 import zeroconf
 zeroconf = zeroconf.Zeroconf()
 
@@ -135,7 +134,7 @@ def open_private_text_write(p):
         return open(p, 'w')
 
 
-def url(string, safe=''):
+def url(string:str, safe:str|Iterable[str]=''):
     return quote(string, safe)
 
 

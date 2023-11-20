@@ -96,7 +96,7 @@ if os.path.exists(os.path.join(saveLocation, "config.yaml")):
 
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
-boards: List[object] = []
+boards: List[weakref.ref[object]] = []
 
 if not os.path.exists(musicLocation):
     try:

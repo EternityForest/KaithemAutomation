@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-from dataclasses import replace
 import threading
 import sys
 import time
@@ -195,7 +194,8 @@ class BaseRepeatingEvent(BaseEvent):
         if not, if must reschedule itself by setting self.time to some time in the future.
         It must then call scheduler.insert(self)
 
-        This must happen in a threadsafe and atomic way because the scheduler thread will call this every once in a while,
+        This must happen in a threadsafe and atomic way because the scheduler
+        thread will call this every once in a while,
         just to be sure, in case an error occurred in the reschedule process
 
         We implement this at the moment by having a separate _schedule functinon for when we are already under self.lock

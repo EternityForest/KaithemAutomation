@@ -17,7 +17,7 @@ lock = threading.RLock()
 fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
 
 if os.path.exists(fn):
-    file = persist.load(fn)
+    file: Dict[str, Any] = persist.load(fn)
 else:
     file = {
         "all": {
@@ -38,7 +38,7 @@ else:
     }
 
 
-def saveSettings(*a, **k):
+def saveSettings(*a: tuple[Any], **k: Dict[str, Any]):
     persist.save(file, fn, private=True)
     persist.unsavedFiles.pop(fn, "")
 
