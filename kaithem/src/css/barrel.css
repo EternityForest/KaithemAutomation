@@ -343,7 +343,12 @@ canvas {
 dl,
 ul,
 ol {
-    margin: var(--padding);
+    &:not(.tool-bar){
+        margin: var(--padding);
+    }
+    &:is(.tool-bar){
+        padding: 0px;
+    }
 }
 
 dt {
@@ -1051,12 +1056,14 @@ header:not(.undecorated) .tool-bar {
 
     &>:is(p, div, section),
     &>fieldset>:is(p, div, section) {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        width: calc(100% - calc(var(--padding) * 2));
-        padding: 0px;
-        gap: var(--padding);
+        &:not(.tool-bar){
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            width: calc(100% - calc(var(--padding) * 2));
+            padding: 0px;
+            gap: var(--padding);
+        }
 
         &>:first-child {
             margin-inline-start: 0px;
@@ -1927,7 +1934,7 @@ footer.padding {
     width: unset;
 }
 
-.tool-bar {
+.tool-bar, .pagination{
     --tool-bar-element-border: var(--control-border);
     --header-padding: 0px;
     flex-basis: max-content;
@@ -1954,6 +1961,10 @@ footer.padding {
 
 
 
+    & > li{
+        display: inline;
+    }
+
     & img {
         display: inline;
     }
@@ -1975,7 +1986,7 @@ footer.padding {
     }
 
 
-    & :is(a, .button, select, input, meter, button, label) {
+    & :is(a, .button, select, input, meter, button, label, li) {
         border-radius: 0px;
         flex-shrink: 1;
         border-radius: 0px;
@@ -2066,6 +2077,7 @@ footer.padding {
         flex-grow: 50;
     }
 
+    & li,
     & a,
     & p,
     & div,
@@ -2102,7 +2114,7 @@ footer.padding {
 
 
 
-    &>label {
+    &>label,li {
         margin: 0px;
         padding-top: 0px;
         padding-bottom: 0px;
@@ -2147,7 +2159,7 @@ footer.padding {
             padding-inline-end: 0px;
         }
 
-        &:first-child {
+        &:first-child:not(li) {
             flex-grow: .05;
         }
 
@@ -2161,22 +2173,22 @@ footer.padding {
 
 
     /*:not(i) is for icons*/
-    &> :is(a, .button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
-    & :is(a, .button, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child:not(i) {
+    &> :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
+    & :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child:not(i) {
         border-radius: var(--control-border-radius) 0px 0px var(--control-border-radius);
         margin-inline-start: 0px;
 
     }
 
-    &> :is(a, .button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
-    & :is(a, .button, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i) {
+    &> :is(a, .button,li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
+    & :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i) {
         border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
         margin-inline-end: 0px;
     }
 
 
 
-    &> :is(a, .button, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
+    &> :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
         border-radius: var(--control-border-radius) var(--control-border-radius) var(--control-border-radius) var(--control-border-radius);
     }
 

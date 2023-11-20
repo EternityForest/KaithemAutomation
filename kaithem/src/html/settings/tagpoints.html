@@ -10,7 +10,7 @@ from kaithem.src import directories
 tagsLocation = os.path.join(directories.vardir,"tags")
 
 def paginate(l,n):
-    return l[n*500: (n+1)*500]
+    return l[n*50: (n+1)*50]
 %>
 
 <%
@@ -41,10 +41,19 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 
 <h3>Active Tags</h3>
 <div class="menubar">
-Page:
-%for i in range(int(len(filteredTags)/500)+1):
-<a href="/tagpoints?pageNumber=${i}&searchFilter=${searchFilter|u}">${'<b>'+str(i)+'</b>' if i==pageNumber else str(i)}</a>
-%endfor
+<form method="POST" action="/tagpoints" class="inline">
+    <input type="hidden" value="${searchFilter}" name="searchFilter">
+
+    <ul class="pagination">
+        <li>Page ${pageNumber}/${int(len(filteredTags)/50)+1}</li>
+        %for i in range(int(len(filteredTags)/50)+1):
+        <li>
+            <input name="pageNumber" type="submit" value="${i}">
+        </li>
+        %endfor
+    </ul>
+</form>
+
 <div class="tool-bar">
     <form method="post" action="/tagpoints?pageNumber=${pageNumber}">
         <input name="searchFilter" value="${searchFilter|h}" size="8"> <input type="submit" value="Search">
