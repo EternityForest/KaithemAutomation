@@ -185,6 +185,9 @@ class GenericTagPointClass(Generic[T]):
             raise RuntimeError(
                 "Tag with this name already exists, use the getter function to get it instead"
             )
+        
+        self.kweb_manualOverrideClaim: Optional[Claim]
+
         # Dependancu tracking, if a tag depends on other tags, such as =expression based ones
         self.sourceTags: Dict[str, GenericTagPointClass[Any]] = {}
 

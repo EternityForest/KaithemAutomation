@@ -4,6 +4,7 @@ from . import universes
 from . import scenes
 from . import fixtureslib
 from . import blendmodes
+from . import console_abc
 from .core import logger
 from .universes import getUniverse, getUniverses
 from ..kaithemobj import kaithem
@@ -37,7 +38,7 @@ def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
     return d
 
 
-class ChandlerConsole:
+class ChandlerConsole(console_abc.Console_ABC):
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
     def linkSend(self, *a: tuple[float | str | None | List[Any] | Dict[str | int, Any]], **k: Dict[str, Any]):
