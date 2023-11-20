@@ -556,8 +556,26 @@ class Kaithem():
                 return []
 
         @staticmethod
-        def play(*args, **kwargs):
-            sound.play_sound(*args, **kwargs)
+        def play(
+                filename: str,
+                handle: str = "PRIMARY",
+                extraPaths: List[str] = [],
+                volume: float = 1,
+                output: str = "",
+                loop: float = 1,
+                start: float = 0,
+                speed: float = 1):
+
+            sound.play_sound(
+                filename=filename,
+                handle=handle,
+                extraPaths=extraPaths,
+                volume=volume,
+                output=output,
+                loop=loop,
+                start=start,
+                speed=speed
+            )
 
         @staticmethod
         def wait(*args, **kwargs):
@@ -592,8 +610,27 @@ class Kaithem():
             return sound.setvol(*args, **kwargs)
 
         @staticmethod
-        def fade_to(*args, **kwargs):
-            return sound.fade_to(*args, **kwargs)
+        def fade_to(
+            file: str,
+                length: float = 1.0,
+                block: bool = False,
+                handle: str = "PRIMARY",
+                output: str = "",
+                volume: float = 1,
+                windup: float = 0,
+                winddown: float = 0,
+                speed: float = 1):
+            sound.fade_to(
+                file,
+                length=length,
+                block=block,
+                handle=handle,
+                output=output,
+                volume=volume,
+                windup=windup,
+                winddown=winddown,
+                speed=speed
+            )
 
         @staticmethod
         def preload(*args, **kwargs):

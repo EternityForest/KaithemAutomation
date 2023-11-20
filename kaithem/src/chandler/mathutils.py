@@ -3,6 +3,7 @@ import datetime
 import time
 import pytz
 import math
+from typing import Optional
 
 
 def ease(x: float):
@@ -10,7 +11,7 @@ def ease(x: float):
     return -(math.cos(math.pi * x) - 1) / 2
 
 
-def dt_to_ts(dt, tz=None):
+def dt_to_ts(dt: datetime.datetime, tz: Optional[datetime.tzinfo] = None) -> float:
     "Given a datetime in tz, return unix timestamp"
     if tz:
         utc = pytz.timezone("UTC")
@@ -41,4 +42,3 @@ def number_to_note(number: int) -> str:
     octave = number // NOTES_IN_OCTAVE
     note = NOTES[number % NOTES_IN_OCTAVE]
     return note + str(octave)
-

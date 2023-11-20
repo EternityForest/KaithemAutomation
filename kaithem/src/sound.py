@@ -140,7 +140,16 @@ class SoundWrapper(object):
     def setSpeed(self, speed: float, channel: str = "PRIMARY", *a, **kw):
         pass
 
-    def play_sound(self, filename: str, handle: str = "PRIMARY", **kwargs:Dict[str, Any]):
+    def play_sound(self,
+                   filename: str,
+                   handle: str = "PRIMARY",
+                   extraPaths: List[str] = [],
+                   volume: float = 1,
+                   finalGain: Optional[float] = None,
+                   output: str = "",
+                   loop: float = 1,
+                   start: float = 0,
+                   speed: float = 1):
         pass
 
     def stopSound(self, handle: str = "PRIMARY"):
@@ -155,8 +164,17 @@ class SoundWrapper(object):
     def resume(self, handle: str = "PRIMARY"):
         pass
 
-    def fade_to(self, file: str, handle: str = "PRIMARY", **kw:Dict[str, Any]):
-        self.play_sound(file, handle, **kw)
+    def fade_to(self,        
+                file: str,
+                length: float = 1.0,
+                block: bool = False,
+                handle: str = "PRIMARY",
+                output: str = "",
+                volume: float = 1,
+                windup: float = 0,
+                winddown: float = 0,
+                speed: float = 1):
+        self.play_sound(file, handle)
 
     def preload(self, filename: str):
         pass
@@ -491,8 +509,7 @@ class MPVBackend(SoundWrapper):
         output: str = "",
         loop: float = 1,
         start: float = 0,
-        speed: float = 1,
-        **kw: Dict[str, Any]
+        speed: float = 1
     ):
         # Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
@@ -579,7 +596,6 @@ class MPVBackend(SoundWrapper):
         windup: float = 0,
         winddown: float = 0,
         speed: float = 1,
-        **kwargs: Dict[str, Any]
     ):
         x = self.runningSounds.pop(handle, None)
 

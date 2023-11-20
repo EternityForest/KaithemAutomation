@@ -1,8 +1,12 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable
 
 
 class Console_ABC():
     "Abstract base class for console to make typing easier"
 
-    def linkSend(self, *a: tuple[float | str | None | List[Any] | Dict[str | int, Any]], **k: Dict[str, Any]):
+    def linkSend(self, data: List[Any]):
         pass
+
+    def __init__(self) -> None:
+        self.newDataFunctions: List[Callable[..., Any]] = []
+

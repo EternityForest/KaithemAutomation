@@ -7,7 +7,7 @@ import logging
 import traceback
 from tinytag import TinyTag
 from ..kaithemobj import kaithem
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Callable, Any
 
 from . import console_abc
 
@@ -48,7 +48,7 @@ def get_audio_duration(path: str) -> Optional[float]:
     return None
 
 
-def rl_log_exc(m):
+def rl_log_exc(m:str):
     print(m)
     global lastSysloggedError
     if lastSysloggedError < time.monotonic() - 5 * 60:
@@ -105,6 +105,14 @@ def iter_boards():
         x = i()
         if x:
             yield x
+
+
+def add_data_pusher_to_all_boards(func: Callable[[console_abc.Console_ABC], Any]):
+    """Add a function to every lightboard, which will be called from within it's
+    GUI loop and passed the board as first param"""
+    for board in iter_boards():
+        if len(board.newDataFunctions) < 100:
+            board.newDataFunctions.append(func)
 
 
 if not os.path.exists(musicLocation):

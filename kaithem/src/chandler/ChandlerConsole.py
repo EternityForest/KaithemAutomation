@@ -108,7 +108,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.linkSend(["refreshPage", self.fixtureAssignments])
 
     def __init__(self):
-        self.newDataFunctions = []
+        super().__init__()
 
         self.id = uuid.uuid4().hex
 
@@ -603,7 +603,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                         d[f.channels[i][0]] = [u[1:]] + f.channels[i]
             self.linkSend(["cnames", u, d])
 
-    def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List | Set | Dict] = None):
+    def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any]] = None):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
         scene = scenes.scenes[sceneid]
 
@@ -690,7 +690,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             ]
         )
 
-    def pushCueMeta(self, cueid):
+    def pushCueMeta(self, cueid: str):
         try:
             cue = cues[cueid]
 

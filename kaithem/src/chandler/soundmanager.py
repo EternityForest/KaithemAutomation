@@ -1,15 +1,17 @@
 import threading
 from . import core
 from ..kaithemobj import kaithem
+from functools import wraps
+from typing import List, Callable, Any
 
 soundActionSerializer = threading.RLock()
 
-soundActionQueue = []
+soundActionQueue: List[Callable[..., Any]] = []
 
 
 # We must serialize sound actions to avoid a race condition where the stop
 # Happens before the start, causing the sound to keep going
-def doSoundAction(g):
+def doSoundAction(g: Callable[..., Any]):
     soundActionQueue.append(g)
 
     def f():
@@ -24,11 +26,26 @@ def doSoundAction(g):
     kaithem.misc.do(f)
 
 
-def play_sound(*args, **kwargs):
+@wraps(kaithem.sound.play)
+def play_sound(filename: str,
+               handle: str = "PRIMARY",
+               extraPaths: List[str] = [],
+               volume: float = 1,
+               output: str = "",
+               loop: float = 1,
+               start: float = 0,
+               speed: float = 1):
     if core.ratelimit.limit():
 
         def doFunction():
-            kaithem.sound.play(*args, **kwargs)
+            kaithem.sound.play(filename=filename,
+                               handle=handle,
+                               extraPaths=extraPaths,
+                               volume=volume,
+                               output=output,
+                               loop=loop,
+                               start=start,
+                               speed=speed)
             # kaithem.sound.wait()
 
         doSoundAction(doFunction)
@@ -43,11 +60,27 @@ def stopSound(*args, **kwargs):
         doSoundAction(doFunction)
 
 
-def fadeSound(*args, **kwargs):
+def fadeSound(file: str,
+              length: float = 1.0,
+              block: bool = False,
+              handle: str = "PRIMARY",
+              output: str = "",
+              volume: float = 1,
+              windup: float = 0,
+              winddown: float = 0,
+              speed: float = 1):
     if core.ratelimit.limit():
 
         def doFunction():
-            kaithem.sound.fade_to(*args, **kwargs)
+            kaithem.sound.fade_to(file,
+                                  length=length,
+                                  block=block,
+                                  handle=handle,
+                                  output=output,
+                                  volume=volume,
+                                  windup=windup,
+                                  winddown=winddown,
+                                  speed=speed)
 
         doSoundAction(doFunction)
     else:

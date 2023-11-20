@@ -49,8 +49,8 @@ scenes_by_name: weakref.WeakValueDictionary[str,
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 core.cuesByID = cues
 
-_activeScenes = []
-activeScenes = []
+_activeScenes: List[Scene] = []
+activeScenes: List[Scene] = []
 
 
 def makeWrappedConnectionClass(parent: Scene):
@@ -196,7 +196,7 @@ rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 shortcut_codes: Dict[str, List[Cue]] = {}
 
 
-def codeCommand(code=""):
+def codeCommand(code: str = ""):
     "Activates any cues with the matching shortcut code in any scene"
     shortcutCode(code)
     return True
@@ -346,9 +346,9 @@ def event(s: str, value: Any = None, info: str = "") -> None:
 
 
 class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
-    def __init__(self, sceneObj, *a, **k):
+    def __init__(self, sceneObj: Scene, *a, **k):
         self.sceneObj = weakref.ref(sceneObj)
-        self.sceneName = sceneObj.name
+        self.sceneName: str = sceneObj.name
         self.sceneId = sceneObj.id
         super().__init__(*a, **k)
 
@@ -383,8 +383,8 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
     def event(self, e: str, v: str | float | int | bool | None = None):
         kaithem.chandlerscript.ChandlerScriptContext.event(self, e, v)
         try:
-            for i in core.boards:
-                i().pushEv(e, self.sceneName, time.time(), value=v)
+            for board in core.iter_boards():
+                board.pushEv(e, self.sceneName, time.time(), value=v)
         except Exception:
             core.rl_log_exc("error handling event")
             print(traceback.format_exc())
@@ -394,8 +394,8 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         if scene:
             scene.runningTimers[timer] = run
             try:
-                for i in core.boards:
-                    i().linkSend(
+                for board in core.iter_boards():
+                    board.linkSend(
                         ["scenetimers", self.sceneName, scene.runningTimers]
                     )
             except Exception:
@@ -498,7 +498,7 @@ class Cue:
             name = "x" + name
 
         # This is so we can loop through them and push to gui
-        self.id = id or uuid.uuid4().hex
+        self.id: str = id or uuid.uuid4().hex
         self.name = name
 
         # Odd circular dependancy
@@ -554,21 +554,14 @@ class Cue:
         return s
 
     def push(self):
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(lambda s: s.pushCueMeta(self.id))
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.id))
 
     def pushData(self):
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(lambda s: s.pushCueData(self.id))
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
     def pushoneval(self, u, ch, v):
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(
-                    lambda s: s.linkSend(["scv", self.id, u, ch, v])
-                )
+        core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v])
+                                           )
 
     def clone(self, name: str):
         if name in self.getScene().cues:
@@ -586,12 +579,8 @@ class Cue:
             track=self.track
         )
 
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(lambda s: s.pushCueMeta(c.id))
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(lambda s: s.pushCueData(c.id))
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(c.id))
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(c.id))
 
     def setTrack(self, val):
         self.track = bool(val)
@@ -873,7 +862,7 @@ class Scene:
         self.setDisplayTags(display_tags)
 
         self.notes = notes
-        self.midi_source = ""
+        self.midi_source: str = ""
         self.default_next = str(default_next).strip()
 
         self.id: str = id or uuid.uuid4().hex
@@ -1008,11 +997,11 @@ class Scene:
         self.enteredCue: float = 0
 
         # Map event name to runtime as unix timestamp
-        self.runningTimers = {}
+        self.runningTimers: Dict[str, float] = {}
 
         self.priority = priority
         # Used by blend modes
-        self.blend_args = blend_args or {}
+        self.blend_args: Dict[str, float | int | bool | str] = blend_args or {}
         self.setBlend(blend)
         self.default_active = default_active
 
@@ -1147,11 +1136,11 @@ class Scene:
         except Exception:
             return None
 
-    def getAfter(self, cue):
+    def getAfter(self, cue: str):
         x = self.cues[cue].next_ll
         return x.name if x else None
 
-    def getParent(self, cue):
+    def getParent(self, cue: str) -> Optional[str]:
         "Return the cue that this cue name should backtrack values from or None"
         with core.lock:
             if not self.cues[cue].track:
@@ -1169,7 +1158,7 @@ class Scene:
                     return x.name
             return None
 
-    def rmCue(self, cue):
+    def rmCue(self, cue: str):
         with core.lock:
             if not len(self.cues) > 1:
                 raise RuntimeError("Cannot have scene with no cues")
@@ -1204,9 +1193,9 @@ class Scene:
                 self.cues[cue].setShortcut("")
                 del self.cues[cue]
 
-            for i in core.boards:
-                if len(i().newDataFunctions) < 100:
-                    i().newDataFunctions.append(
+            for board in core.iter_boards():
+                if len(board.newDataFunctions) < 100:
+                    board.newDataFunctions.append(
                         lambda s: s.linkSend(["delcue", id]))
             try:
                 self.cuePointer = self.cues_ordered.index(self.cue)
@@ -1219,9 +1208,9 @@ class Scene:
 
     # I think we can delete this
     def pushCues(self):
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(lambda s: self.pushCueList(i.id))
+        for board in core.iter_boards():
+            if len(board.newDataFunctions) < 100:
+                board.newDataFunctions.append(lambda s: self.pushCueList(i.id))
 
     def _addCue(self, cue, prev=None, forceAdd=True):
         name = cue.name
@@ -1233,29 +1222,29 @@ class Scene:
             raise RuntimeError("Not supported this code path")
             self.cues[prev].next_cue = self.cues[name]
 
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(
+        for board in core.iter_boards():
+            if len(board.newDataFunctions) < 100:
+                board.newDataFunctions.append(
                     lambda s: s.pushCueMeta(self.cues[name].id))
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(lambda s: s.pushCueData(cue.id))
+        for board in core.iter_boards():
+            if len(board.newDataFunctions) < 100:
+                board.newDataFunctions.append(lambda s: s.pushCueData(cue.id))
 
     def pushMeta(self, cue: str | bool = False, statusOnly: bool = False, keys: None | Iterable[str] = None):
         # Push cue first so the client already has that data when we jump to the new display
         if cue and self.cue:
-            for i in core.boards:
-                if len(i().newDataFunctions) < 100:
-                    i().newDataFunctions.append(lambda s: s.pushCueMeta(self.cue.id))
+            for board in core.iter_boards():
+                if len(board.newDataFunctions) < 100:
+                    board.newDataFunctions.append(lambda s: s.pushCueMeta(self.cue.id))
 
-        for i in core.boards:
-            if len(i().newDataFunctions) < 100:
-                i().newDataFunctions.append(
+        for board in core.iter_boards():
+            if len(board.newDataFunctions) < 100:
+                board.newDataFunctions.append(
                     lambda s: s.pushMeta(
                         self.id, statusOnly=statusOnly, keys=keys)
                 )
 
-    def event(self, s: str, value: Any, info=""):
+    def event(self, s: str, value: Any = True, info=""):
         # No error loops allowed!
         if not s == "script.error":
             self._event(s, value, info)
@@ -2017,8 +2006,8 @@ class Scene:
                 self.doMqttSubscriptions()
 
             try:
-                for i in core.boards:
-                    i().linkSend(["scenetimers", self.id, self.runningTimers])
+                for board in core.iter_boards():
+                    board.linkSend(["scenetimers", self.id, self.runningTimers])
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
 
@@ -2479,8 +2468,8 @@ class Scene:
             self.runningTimers.clear()
 
             try:
-                for i in core.boards:
-                    i().linkSend(["scenetimers", self.id, self.runningTimers])
+                for board in core.iter_boards():
+                    board.linkSend(["scenetimers", self.id, self.runningTimers])
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
@@ -2489,16 +2478,16 @@ class Scene:
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
             self.doMqttSubscriptions(keepUnused=0)
 
-    def noteOn(self, ch, note, vel):
+    def noteOn(self, ch: int, note: int, vel: float):
         self.event("midi.note:" + str(ch) + "." + number_to_note(note), vel)
 
-    def noteOff(self, ch, note):
+    def noteOff(self, ch: int, note: int):
         self.event("midi.noteoff:" + str(ch) + "." + number_to_note(note), 0)
 
-    def cc(self, ch, n, v):
+    def cc(self, ch: int, n: int, v: float):
         self.event("midi.cc:" + str(ch) + "." + str(n), v)
 
-    def setMidiSource(self, s):
+    def setMidiSource(self, s: str):
         if s == self.midi_source:
             return
 
@@ -2587,7 +2576,7 @@ class Scene:
     def addCue(self, name, **kw):
         return Cue(self, name, **kw)
 
-    def setBlend(self, blend):
+    def setBlend(self, blend: str):
         disallow_special(blend)
         blend = str(blend)[:256]
         self.blend = blend
@@ -2603,7 +2592,7 @@ class Scene:
         self.rerender = True
         self.hasNewInfo = {}
 
-    def setBlendArg(self, key, val):
+    def setBlendArg(self, key: str, val: float | bool | str):
         disallow_special(key, "_")
         # serializableness check
         json.dumps(val)

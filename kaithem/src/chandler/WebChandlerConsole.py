@@ -180,9 +180,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def push_sys_alerts(self, t: str, m: dict[str, Any]):
         self.linkSend(['alerts', m])
 
-    def linkSend(self, *a: tuple[float | str | None | List[Any] | Dict[str | int, Any]], **k: Dict[str, Any]):
+    def linkSend(self, data: List[Any]):
         if self.link:
-            return self.link.send(*a, **k)
+            return self.link.send(data)
 
     def _onmsg(self, user: str, msg: List[Any]):
         # Getters

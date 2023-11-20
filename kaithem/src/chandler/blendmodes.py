@@ -3,7 +3,7 @@ import time
 import random
 import math
 import weakref
-from typing import Any
+from typing import Any, Dict, Tuple
 from ..kaithemobj import kaithem
 from . import core
 from . import universes
@@ -18,7 +18,7 @@ def getUniverse(u):
     return oldUniverseObj
 
 
-def getblenddesc(mode):
+def getblenddesc(mode: str):
     if mode == "gel" or mode == "multiply":
         return "Values in this scene act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
     if mode == "inhibit":
@@ -38,7 +38,7 @@ def getblenddesc(mode):
 
 
 class BlendMode:
-    parameters = {}
+    parameters: Dict[str, Tuple[str | bool | float]] = {}
     autoStop = True
 
     def __init__(self, scene) -> None:
