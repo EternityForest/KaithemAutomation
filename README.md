@@ -142,14 +142,19 @@ make sure it's not overriding the interpreter, because then you would be running
 
 
 ### Dependencies for devs
+
 To update dependencies, run `make dev-update-dependencies`.
 
 This installs `direct_dependencies.txt` in the project folder .isolated_venv, uses that to build
 a new `requirements_frozen.txt`, and installs that into the main .venv.
 
 The reason we do this is so that we always have a non `system-site-packages` venv to test in,
-but also
+but also to let you manually play around in the .venv.
 
+Should you want to clean things or start over, it's best to just burn it to the ground and delete the virtualenvs.
+
+
+Use `make dev-run-isolated` to run inside the isolated virtualenv.
 
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
@@ -159,7 +164,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - :bug: Fix contextInfo > context_info snake case bug
 - :bug: Pipewire stuttering in some cases
 - :bug: Fix page editors
-
 
 ### 0.71.1
 - :bug: Further minor CSS work

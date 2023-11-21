@@ -9,6 +9,8 @@ Change Log
 - :sparkles: Add nicer system alerts in the chandler page
 - :sparkles: The Scullery framework uses snake_case now
 - :bug: Fix wifi status tagpoint
+- :bug: Fix missing peewee
+- :sparkles: The makefile has tools to test in a venv sans site packages, to prevent future missing stuff.
 
 
 ### 0.71.2
