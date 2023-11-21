@@ -47,7 +47,6 @@ scenes_by_name: weakref.WeakValueDictionary[str,
                                             Scene] = weakref.WeakValueDictionary()
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
-core.cuesByID = cues
 
 _activeScenes: List[Scene] = []
 activeScenes: List[Scene] = []
@@ -408,7 +407,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         return t
 
 
-def checkPermissionsForSceneData(data, user):
+def checkPermissionsForSceneData(data: Dict[str, Any], user: str):
     """Check if used can upload or edit the scene, ekse raise an error if it uses advanced features that would prevent that action.
     We disallow delete because we don't want unprivelaged users to delete something important that they can't fix.
 
@@ -1266,9 +1265,9 @@ class Scene:
             self.id, statusOnly=statusOnly, keys=keys)
         )
 
-    def event(self, s: str, value: Any = True, info=""):
+    def event(self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True):
         # No error loops allowed!
-        if not s == "script.error":
+        if ((not s == "script.error") and exclude_errors):
             self._event(s, value, info)
 
     def _event(self, s: str, value: Any, info: str = ""):
@@ -1616,7 +1615,7 @@ class Scene:
                                     )
                                     spd = spd or 1
                                     assert isinstance(spd, float)
-                                    
+
                                     play_sound(
                                         sound,
                                         handle=str(self.id),

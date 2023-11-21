@@ -19,7 +19,7 @@ __doc__= "#Python Code here runs every page load"
 
 
 if 'albumArt' in kwargs:
-  sound = module.cuesByID[kwargs['albumArt']].sound  
+  sound = scenes.cues[kwargs['albumArt']].sound  
   
 
   if not sound:

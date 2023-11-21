@@ -184,7 +184,7 @@ class GenericTagPointClass(Generic[T]):
                 "Tag with this name already exists, use the getter function to get it instead"
             )
 
-        self.kweb_manualOverrideClaim: Optional[Claim]
+        self.kweb_manualOverrideClaim: Optional[Claim[T]]
 
         # Dependancu tracking, if a tag depends on other tags, such as =expression based ones
         self.sourceTags: Dict[str, GenericTagPointClass[Any]] = {}
@@ -259,8 +259,8 @@ class GenericTagPointClass(Generic[T]):
         self.lastValue: T = self.cachedRawClaimVal
         # The real current in use val, after the config override logic
         self._interval: Union[float, int] = 0
-        self.activeClaim: Union[None, Claim] = None
-        self.claims: Dict[str, Claim] = {}
+        self.activeClaim: Union[None, Claim[T]] = None
+        self.claims: Dict[str, Claim[T]] = {}
         self.lock = threading.RLock()
         self.subscribers: List[weakref.ref[Callable[..., Any]]] = []
 
@@ -337,11 +337,11 @@ class GenericTagPointClass(Generic[T]):
         self.permissions = ['', '', 50]
         self.configuredPermissions = ['', '', 50]
 
-        self.apiClaim: Union[None, Claim] = None
+        self.apiClaim: Union[None, Claim[T]] = None
 
         # This is where we can put a manual override
         # claim from the web UI.
-        self.manualOverrideClaim: Union[None, Claim] = None
+        self.manualOverrideClaim: Union[None, Claim[T]] = None
 
         self._alarms: Dict[str, object] = {}
 
@@ -350,8 +350,8 @@ class GenericTagPointClass(Generic[T]):
 
         with lock:
             messagebus.post_message("/system/tags/created",
-                                   self.name,
-                                   synchronous=True)
+                                    self.name,
+                                    synchronous=True)
 
         if self.name.startswith("="):
             self.exprClaim = createGetterFromExpression(self.name, self)
@@ -471,7 +471,7 @@ class GenericTagPointClass(Generic[T]):
                         id="tag.control:" + self.name)
                     self.dataSourceAutoControl.write(None)
                     w.set_permissions([i.strip() for i in d2[0].split(",")],
-                                     [i.strip() for i in d2[1].split(",")])
+                                      [i.strip() for i in d2[1].split(",")])
 
                     self.dataSourceAutoControl.set_permissions(
                         [i.strip() for i in d2[0].split(",")],
@@ -1267,8 +1267,8 @@ class GenericTagPointClass(Generic[T]):
             self._interval = 0
 
         messagebus.post_message("/system/tags/interval" + self.name,
-                               self._interval,
-                               synchronous=True)
+                                self._interval,
+                                synchronous=True)
         with self.lock:
             self._managePolling()
 
@@ -1348,8 +1348,8 @@ class GenericTagPointClass(Generic[T]):
             except Exception:
                 logger.exception("Tag may have already been deleted")
             messagebus.post_message("/system/tags/deleted",
-                                   self.name,
-                                   synchronous=True)
+                                    self.name,
+                                    synchronous=True)
 
     def __call__(self, *args, **kwargs):
         if not args:
@@ -1460,8 +1460,8 @@ class GenericTagPointClass(Generic[T]):
                 for i in torm:
                     self.subscribers.remove(i)
                 messagebus.post_message("/system/tags/subscribers" + self.name,
-                                       len(self.subscribers),
-                                       synchronous=True)
+                                        len(self.subscribers),
+                                        synchronous=True)
 
                 if immediate and self.timestamp:
                     f(self.value, self.timestamp, self.annotation)
@@ -1487,8 +1487,8 @@ class GenericTagPointClass(Generic[T]):
                 if x:
                     self.subscribers.remove(x)
                 messagebus.post_message("/system/tags/subscribers" + self.name,
-                                       len(self.subscribers),
-                                       synchronous=True)
+                                        len(self.subscribers),
+                                        synchronous=True)
                 self._managePolling()
                 self.subscribers_atomic = copy.copy(self.subscribers)
             finally:
@@ -1716,7 +1716,7 @@ class GenericTagPointClass(Generic[T]):
               priority: Optional[float] = None,
               timestamp: Optional[float] = None,
               annotation: Any = None,
-              expiration: float = 0) -> Claim:
+              expiration: float = 0) -> Claim[T]:
         """Adds a 'claim', a request to set the tag's value either to a literal
             number or to a getter function.
 
@@ -1894,14 +1894,14 @@ class GenericTagPointClass(Generic[T]):
     def claimFactory(self,
                      value: Any,
                      name: str,
-                     priority: int,
-                     timestamp,
-                     annotation,
+                     priority: float,
+                     timestamp: float,
+                     annotation: any,
                      expiration: float = 0):
-        return Claim(self, value, name, priority, timestamp, annotation,
-                     expiration)
+        return Claim[T](self, value, name, priority, timestamp, annotation,
+                        expiration)
 
-    def getTopClaim(self) -> Claim:
+    def getTopClaim(self) -> Claim[T]:
         # Deref all weak refs
         x = [i() for i in self.claims.values()]
         # Eliminate dead references
@@ -2011,7 +2011,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             self._meterWidget.defaultLabel = self.name.split(".")[-1][:24]
 
             self._meterWidget.set_permissions(['/users/tagpoints.view'],
-                                             ['/users/tagpoints.edit'])
+                                              ['/users/tagpoints.edit'])
             self._setupMeter()
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
@@ -2285,7 +2285,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
             self._spanWidget.defaultLabel = self.name.split(".")[-1][:24]
 
             self._spanWidget.set_permissions(['/users/tagpoints.view'],
-                                            ['/users/tagpoints.edit'])
+                                             ['/users/tagpoints.edit'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
                 try:
@@ -2394,7 +2394,7 @@ class ObjectTagPointClass(GenericTagPointClass[Dict[str, Any]]):
             self._spanWidget = widgets.DynamicSpan()
 
             self._spanWidget.set_permissions(['/users/tagpoints.view'],
-                                            ['/users/tagpoints.edit'])
+                                             ['/users/tagpoints.edit'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
                 try:
@@ -2434,18 +2434,18 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
         return v
 
 
-class Claim():
+class Claim(Generic[T]):
     "Represents a claim on a tag point's value"
 
     @typechecked
     def __init__(self,
-                 tag: GenericTagPointClass[Any],
-                 value: Any,
+                 tag: GenericTagPointClass[T],
+                 value: T,
                  name: str = 'default',
                  priority: Union[int, float] = 50,
                  timestamp: Union[int, float, None] = None,
                  annotation=None,
-                 expiration=0):
+                 expiration: float = 0):
 
         self.name = name
         self.tag = tag
@@ -2693,7 +2693,7 @@ class Claim():
             return self.set(*args, **kwargs)
 
 
-class NumericClaim(Claim):
+class NumericClaim(Claim[float]):
     "Represents a claim on a tag point's value"
 
     @typechecked
@@ -2853,7 +2853,7 @@ class HighpassFilter(LowpassFilter):
 #             return self.state
 
 
-def createGetterFromExpression(e: str, t: TagPointClass, priority=98) -> Claim:
+def createGetterFromExpression(e: str, t: GenericTagPointClass[Any], priority=98) -> Claim[Any]:
 
     try:
         for i in t.sourceTags:

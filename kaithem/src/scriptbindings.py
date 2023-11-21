@@ -414,7 +414,15 @@ class Event():
 
 class BaseChandlerScriptContext():
 
-    def __init__(self, parentContext: BaseChandlerScriptContext = None, gil: threading.RLock = None, functions={}, variables: Optional[Dict[str, Any]] = None, constants=None, contextFunctions={}, contextName="script"):
+    def __init__(self, parentContext: BaseChandlerScriptContext = None,
+                  gil: threading.RLock = None, 
+                  functions:Dict[str, Callable[...,Any]]={}, 
+                  variables: Optional[Dict[str, Any]] = None,
+                  constants:Optional[Dict[str,Any]]=None,
+                  contextFunctions:Dict[str, Callable[...,Any]]={},
+                  contextName:str="script"):
+        
+
         self.pipelines = []
 
         # Used as a backup plan to be able to do things in a background thread
@@ -922,7 +930,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         # Clear all the tagpoints that we may have been watching for changes
         self.tagHandlers = {}
-        self.tagpoints = {}
+        self.tagpoints: Dict[str, tagpoints.GenericTagPointClass[Any]] = {}
         self.needRefreshForVariable = {}
         self.needRefreshForTag = {}
 
