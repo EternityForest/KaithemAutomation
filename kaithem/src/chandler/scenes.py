@@ -1614,7 +1614,8 @@ class Scene:
                                         self.cues[cue].media_speed
                                     )
                                     spd = spd or 1
-                                    assert isinstance(spd, float)
+
+                                    spd = float(spd)
 
                                     play_sound(
                                         sound,

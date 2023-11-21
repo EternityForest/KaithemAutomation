@@ -476,7 +476,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 'pipewiresink',
                 client_name=self.name + "_out",
                 blocksize=PW_BLOCKSIZE,
-                sync=True,
                 mode=2,
             )
         

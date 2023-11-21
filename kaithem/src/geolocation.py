@@ -49,7 +49,10 @@ if config.config['location']:
 
 
 def use_api_if_needed():
-    if not file['default']['lat'] or not file['default']['lol']:
+    if not 'default' in file:
+        file['default'] = {}
+
+    if not file['default'].get('lat', None) and not file['default'].get('lon', None):
         try:
             l = ip_geolocate()
             messagebus.post_message("/system/notifications/important",

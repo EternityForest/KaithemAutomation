@@ -77,7 +77,7 @@ def load(cfg: Dict[str, Any]):
     # Can be added or overridden by the user's settings.
     config = _defconfig.copy()
 
-    config.update(cfg)
+    config.update(cfg or {})
 
     # Attempt to open any manually specified config file
     if argcmd.c:
