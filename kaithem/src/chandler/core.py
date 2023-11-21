@@ -41,14 +41,14 @@ def get_audio_duration(path: str) -> Optional[float]:
     import ffmpeg
 
     try:
-        info = ffmpeg.probe(filename)
+        info = ffmpeg.probe(path)
         return info['format']['duration']
     except Exception:
         print(traceback.format_exc())
     return None
 
 
-def rl_log_exc(m:str):
+def rl_log_exc(m: str):
     print(m)
     global lastSysloggedError
     if lastSysloggedError < time.monotonic() - 5 * 60:
@@ -140,7 +140,7 @@ def getSoundFolders() -> Dict[str, str]:
     return soundfolders
 
 
-def resolve_sound(sound: str):
+def resolve_sound(sound: str) -> str:
     # Allow relative paths
     if not sound.startswith("/"):
         for i in getSoundFolders():

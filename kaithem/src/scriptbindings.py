@@ -65,6 +65,7 @@ This allows GUIs to auto-generate a UI for visually creating pipelines.
 If there is an unrecognized type, it is treated as a string.
 """
 
+from __future__ import annotations
 
 import uuid
 from . import geolocation
@@ -78,10 +79,11 @@ import time
 import weakref
 import pytz
 import math
-from typing import Callable, Any, Dict, Optional
+from typing import Callable, Any, Dict, Optional, List
 from .scheduling import scheduler
 import datetime
 from types import MethodType
+from typing import List
 from . import tagpoints, workers
 import simpleeval
 
@@ -412,18 +414,18 @@ class Event():
 
 class BaseChandlerScriptContext():
 
-    def __init__(self, parentContext=None, gil: threading.RLock=None, functions={}, variables: Optional[Dict[str, Any]]=None, constants=None, contextFunctions={}, contextName="script"):
+    def __init__(self, parentContext: BaseChandlerScriptContext = None, gil: threading.RLock = None, functions={}, variables: Optional[Dict[str, Any]] = None, constants=None, contextFunctions={}, contextName="script"):
         self.pipelines = []
 
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
         self.eventQueue = []
-        self.eventListeners = {}
+        self.eventListeners: Dict[str, List[List[Any]]] = {}
         self.variables: Dict[str, Any] = variables if variables is not None else {}
         self.commands = ScriptActionKeeper()
         self.contextCommands = ScriptActionKeeper()
 
-        self.children = {}
+        self.children: Dict[str, BaseChandlerScriptContext] = {}
         self.children_iterable = {}
         self.constants: Dict[str, Any] = constants if (not (constants is None)) else {}
         self.contextName = contextName
@@ -705,7 +707,7 @@ class BaseChandlerScriptContext():
 
         return handled
 
-    def preprocessArgument(self, a:Any):
+    def preprocessArgument(self, a: Any):
         if isinstance(a, str):
             if a.startswith("="):
                 return self.eval(a[1:])
@@ -717,7 +719,7 @@ class BaseChandlerScriptContext():
 
         return a
 
-    def eval(self, a:Any):
+    def eval(self, a: Any):
         return self.evaluator.eval(a)
 
     def addNamespace(self, name):
@@ -745,7 +747,7 @@ class BaseChandlerScriptContext():
 
         raise NameError("No such name: " + n)
 
-    def setVar(self, k: str, v, force=False):
+    def setVar(self, k: str, v: Any, force=False):
         if not self.gil.acquire(timeout=10):
             raise RuntimeError("Could not get lock")
         try:
@@ -775,7 +777,7 @@ class BaseChandlerScriptContext():
                 f(self, *a, **k)
         self.commands[name] = wrap(self, callable)
 
-    def addBindings(self, b):
+    def addBindings(self, b: List[List[str | float | bool] | str | float | bool]):
         """
             Take a list of bindings and add them to the context.
             A binding looks like:

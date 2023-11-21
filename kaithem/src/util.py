@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import List
+from urllib.request import urlopen
+import reprlib
+from urllib.parse import unquote as unurl
+from urllib.parse import quote
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
 import os
 import threading
@@ -40,13 +45,9 @@ import zeroconf
 zeroconf = zeroconf.Zeroconf()
 
 logger = logging.getLogger("system")
-from urllib.parse import quote
-from urllib.parse import unquote as unurl
-import reprlib
 
 min_time = 0
 
-from urllib.request import urlopen
 
 savelock = threading.RLock()
 
@@ -134,7 +135,7 @@ def open_private_text_write(p):
         return open(p, 'w')
 
 
-def url(string:str, safe:str|Iterable[str]=''):
+def url(string: str, safe: str | Iterable[str] = ''):
     return quote(string, safe)
 
 
@@ -227,7 +228,7 @@ def get_files(folder):
             if not os.path.isdir(os.path.join(folder, name))]
 
 
-def search_paths(fn, paths):
+def search_paths(fn: str, paths: List[str]) -> str | None:
     for i in paths:
         if os.path.exists(os.path.join(i, fn)):
             return os.path.join(i, fn)
@@ -264,7 +265,6 @@ def deleteAllButHighestNumberedNDirectories(where, N):
 
     for i in sorted(asnumbers.keys())[0:-N]:
         shutil.rmtree(os.path.join(where, asnumbers[i]))
-
 
 
 def deleteOldStuffAndEmptyDirectories(where, age):
@@ -369,9 +369,6 @@ def updateIP():
 last = time.time()
 
 
-
-
-
 lastNTP = 0
 oldNTPOffset = 30*365*24*60*60
 hasInternet = False
@@ -423,7 +420,7 @@ def time_or_increment():
 def roundto(n, s):
     if not s:
         return n
-    if((n % s) > (s/2)):
+    if ((n % s) > (s/2)):
         return n+(s-(n % s))
     else:
         return n - n % s
@@ -505,7 +502,7 @@ def is_private_ip(ip):
 
         return False
 
-    if ip=='::1':
+    if ip == '::1':
         return True
 
     elif ip.startswith('fc') or ip.startswith('fd') or ip.startswith('fe80'):

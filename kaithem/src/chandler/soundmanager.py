@@ -2,7 +2,7 @@ import threading
 from . import core
 from ..kaithemobj import kaithem
 from functools import wraps
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Optional
 
 soundActionSerializer = threading.RLock()
 
@@ -31,7 +31,7 @@ def play_sound(filename: str,
                handle: str = "PRIMARY",
                extraPaths: List[str] = [],
                volume: float = 1,
-               output: str = "",
+               output: Optional[str] = "",
                loop: float = 1,
                start: float = 0,
                speed: float = 1):
@@ -60,14 +60,16 @@ def stopSound(handle: str = "PRIMARY"):
         doSoundAction(doFunction)
 
 
-def fadeSound(file: str,
+def fadeSound(file: str | None,
               length: float = 1.0,
               block: bool = False,
               handle: str = "PRIMARY",
-              output: str = "",
+              output: Optional[str] = "",
               volume: float = 1,
               windup: float = 0,
               winddown: float = 0,
+              loop: int = 1,
+              start: float = 0,
               speed: float = 1):
     if core.ratelimit.limit():
 
@@ -76,10 +78,12 @@ def fadeSound(file: str,
                                   length=length,
                                   block=block,
                                   handle=handle,
-                                  output=output,
+                                  output=output or '',
                                   volume=volume,
                                   windup=windup,
                                   winddown=winddown,
+                                  loop=loop,
+                                  start=start,
                                   speed=speed)
 
         doSoundAction(doFunction)

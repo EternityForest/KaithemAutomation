@@ -38,7 +38,7 @@ def getblenddesc(mode: str):
 
 
 class BlendMode:
-    parameters: Dict[str, Tuple[str | bool | float]] = {}
+    parameters: Dict[str, Tuple[str, str, str, str | bool | float]] = {}
     autoStop = True
 
     def __init__(self, scene) -> None:

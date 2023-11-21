@@ -561,7 +561,7 @@ class Kaithem():
                 handle: str = "PRIMARY",
                 extraPaths: List[str] = [],
                 volume: float = 1,
-                output: str = "",
+                output: Optional[str] = "",
                 loop: float = 1,
                 start: float = 0,
                 speed: float = 1):
@@ -611,7 +611,7 @@ class Kaithem():
 
         @staticmethod
         def fade_to(
-            file: str,
+            file: str | None,
                 length: float = 1.0,
                 block: bool = False,
                 handle: str = "PRIMARY",
@@ -619,6 +619,8 @@ class Kaithem():
                 volume: float = 1,
                 windup: float = 0,
                 winddown: float = 0,
+                loop: int = 1,
+                start: float = 0,
                 speed: float = 1):
             sound.fade_to(
                 file,
@@ -629,6 +631,8 @@ class Kaithem():
                 volume=volume,
                 windup=windup,
                 winddown=winddown,
+                start=start,
+                loop=loop,
                 speed=speed
             )
 

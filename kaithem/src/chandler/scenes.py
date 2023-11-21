@@ -29,7 +29,7 @@ import time
 import traceback
 import urllib.parse
 import uuid
-from typing import Any, Dict, Optional, Type, Iterable, List
+from typing import Any, Dict, Optional, Set, Type, Iterable, List, Callable
 import copy
 import recur
 
@@ -237,7 +237,7 @@ gotoCommand.completionTags = {
 }
 
 
-def setAlphaCommand(scene="=SCENE", alpha=1):
+def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
     "Set the alpha value of a scene"
     scenes_by_name[scene].setAlpha(float(alpha))
     return True
@@ -413,16 +413,6 @@ def checkPermissionsForSceneData(data, user):
     We disallow delete because we don't want unprivelaged users to delete something important that they can't fix.
 
     """
-    if "page" in data and (
-        data["page"]["html"].strip()
-        or data["page"]["js"].strip()
-        or data["page"].get("rawhtml", "").strip()
-    ):
-        if not kaithem.users.check_permission(user, "/admin/modules.edit"):
-            raise ValueError(
-                "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: pages. User:"
-                + str(kaithem.web.user())
-            )
     if "mqtt_server" in data and data["mqtt_server"].strip():
         if not kaithem.users.check_permission(user, "/admin/modules.edit"):
             raise ValueError(
@@ -452,11 +442,11 @@ class Cue:
         parent: Scene,
         name: str,
         number: Optional[int] = None,
-        forceAdd=False,
-        shortcut="",
-        id=None,
-        onEnter=None,
-        onExit=None,
+        forceAdd: bool = False,
+        shortcut: str = "",
+        id: Optional[str] = None,
+        onEnter: Optional[Callable[..., Any]] = None,
+        onExit: Optional[Callable[..., Any]] = None,
         **kw
     ):
 
@@ -559,7 +549,7 @@ class Cue:
     def pushData(self):
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
-    def pushoneval(self, u, ch, v):
+    def pushoneval(self, u: str, ch: str | int, v: str | float):
         core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v])
                                            )
 
@@ -600,7 +590,7 @@ class Cue:
 
         self.push()
 
-    def setRules(self, r: Optional[List[List[Any]]]):
+    def setRules(self, r: Optional[List[List[str | float | bool] | str | float | bool]]):
         self.rules = r
         self.getScene().refreshRules()
 
@@ -608,7 +598,7 @@ class Cue:
         self.inherit_rules = r
         self.getScene().refreshRules()
 
-    def setShortcut(self, code, push=True):
+    def setShortcut(self, code: str, push: bool = True):
         disallow_special(code, allow="._")
 
         if code == "__generate__from__number__":
@@ -643,7 +633,8 @@ class Cue:
             if push:
                 self.push()
 
-    def set_value(self, universe: str, channel: str | int, value: str | float):
+    @typechecked
+    def set_value(self, universe: str, channel: str | int, value: str | float | None):
         disallow_special(universe, allow="_@.")
 
         scene = self.getScene()
@@ -658,7 +649,8 @@ class Cue:
 
         if isinstance(channel, (int, float)):
             pass
-        elif isinstance(channel, str):
+
+        else:
             x = channel.strip()
             if not x == channel:
                 raise Exception(
@@ -670,8 +662,6 @@ class Cue:
                 channel = int(channel)
             except ValueError:
                 pass
-        else:
-            raise Exception("Only str or int channel numbers allowed")
 
         # Assume anything that can be an int, is meant to be
         if isinstance(channel, str):
@@ -682,6 +672,7 @@ class Cue:
 
         with core.lock:
             if universe == "__variables__":
+                assert isinstance(channel, str)
                 scene.scriptContext.setVar(channel, scene.evalExpr(value))
 
             reset = False
@@ -762,7 +753,7 @@ class Scene:
     def __init__(
         self,
         name: str,
-        cues=None,
+        cues: Optional[Dict[str, Dict[str, Any]]] = None,
         active: bool = False,
         alpha: float = 1,
         priority: float = 50,
@@ -775,17 +766,17 @@ class Scene:
         sound_output: str = "",
         event_buttons: List[Iterable[str]] = [],
         display_tags=[],
-        info_display="",
-        utility=False,
-        notes="",
-        mqtt_server="",
-        crossfade=0,
-        midi_source="",
-        default_next="",
-        command_tag="",
-        slide_overlay_url="",
-        music_visualizations="",
-        mqtt_sync_features=None,
+        info_display: str = "",
+        utility: bool = False,
+        notes: str = "",
+        mqtt_server: str = "",
+        crossfade: float = 0,
+        midi_source: str = "",
+        default_next: str = "",
+        command_tag: str = "",
+        slide_overlay_url: str = "",
+        music_visualizations: str = "",
+        mqtt_sync_features: Optional[Dict[str, Any]] = None,
         **ignoredParams
     ):
         """
@@ -829,6 +820,7 @@ class Scene:
             raise ValueError("Invalid Name")
 
         self.mqttConnection = None
+        self.mqttSubscribed: Dict[str, bool]
 
         disallow_special(name)
 
@@ -892,7 +884,7 @@ class Scene:
         self.displayTagSubscriptions = []
         self.display_tags = []
         self.displayTagValues = {}
-        self.displayTagMeta = {}
+        self.displayTagMeta: Dict[str, Dict[str, Any]] = {}
         self.setDisplayTags(display_tags)
 
         self.notes = notes
@@ -994,7 +986,7 @@ class Scene:
 
         if 'default' not in self.cues:
             Cue(self, "default")
-        self.cue = self.cues['default']
+        self.cue: Cue = self.cues['default']
 
         # Used for the tap tempo algorithm
         self.lastTap: float = 0
@@ -1013,11 +1005,11 @@ class Scene:
         self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
         # Used to avoid an excessive number of repeats in random cues
-        self.cueHistory = []
+        self.cueHistory: List[str] = []
 
-        # List of universes we should be affecting.
+        # List of universes we should be affecting right now
         # Based on what values are in the cue and what values are inherited
-        self.affect = []
+        self.affect: List[str] = []
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
@@ -1130,6 +1122,12 @@ class Scene:
             if scenes.get(self.id, None) is self:
                 del scenes[self.id]
 
+    def evalExprFloat(self, s: str | float) -> float:
+        f = self.evalExpr(s)
+        assert isinstance(f, float)
+        return f
+
+    # -> Any | bool | float | int | str | Callable[[], float] | Callable[..., int] | type[int] | type[float] | type[str] | slice | tuple[Any, Any] | None:
     def evalExpr(self, s: str | float | bool | None):
         """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
         return the input.
@@ -1246,7 +1244,7 @@ class Scene:
             if len(board.newDataFunctions) < 100:
                 board.newDataFunctions.append(lambda s: self.pushCueList(i.id))
 
-    def _addCue(self, cue, prev=None, forceAdd=True):
+    def _addCue(self, cue: Cue, prev: str = None, forceAdd=True):
         name = cue.name
         self.insertSorted(cue)
         if name in self.cues and not forceAdd:
@@ -1256,34 +1254,24 @@ class Scene:
             raise RuntimeError("Not supported this code path")
             self.cues[prev].next_cue = self.cues[name]
 
-        for board in core.iter_boards():
-            if len(board.newDataFunctions) < 100:
-                board.newDataFunctions.append(
-                    lambda s: s.pushCueMeta(self.cues[name].id))
-        for board in core.iter_boards():
-            if len(board.newDataFunctions) < 100:
-                board.newDataFunctions.append(lambda s: s.pushCueData(cue.id))
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.cues[name].id))
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(cue.id))
 
     def pushMeta(self, cue: str | bool = False, statusOnly: bool = False, keys: None | Iterable[str] = None):
         # Push cue first so the client already has that data when we jump to the new display
         if cue and self.cue:
-            for board in core.iter_boards():
-                if len(board.newDataFunctions) < 100:
-                    board.newDataFunctions.append(lambda s: s.pushCueMeta(self.cue.id))
+            core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.cue.id))
 
-        for board in core.iter_boards():
-            if len(board.newDataFunctions) < 100:
-                board.newDataFunctions.append(
-                    lambda s: s.pushMeta(
-                        self.id, statusOnly=statusOnly, keys=keys)
-                )
+        core.add_data_pusher_to_all_boards(lambda s: s.pushMeta(
+            self.id, statusOnly=statusOnly, keys=keys)
+        )
 
     def event(self, s: str, value: Any = True, info=""):
         # No error loops allowed!
         if not s == "script.error":
             self._event(s, value, info)
 
-    def _event(self, s: str, value: Any, info=""):
+    def _event(self, s: str, value: Any, info: str = ""):
         "Manually trigger any script bindings on an event"
         try:
             if self.scriptContext:
@@ -1292,20 +1280,21 @@ class Scene:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
 
-    def pickRandomCueFromNames(self, cues):
-        names = []
-        weights = []
+    def pickRandomCueFromNames(self, cues: List[str] | Set[str] | Dict[str, Any]) -> str:
+        names: List[str] = []
+        weights: List[float] = []
 
         for i in cues:
             i = i.strip()
             if i in self.cues:
-                weights.append(self.evalExpr(
-                    self.cues[i].probability.strip() or 1))
+                weights.append(self.evalExprFloat(
+                    str(self.cues[i].probability).strip() or 1))
                 names.append(i)
 
         return random.choices(names, weights=weights)[0]
 
-    def _parseCueName(self, cue: str):
+    def _parseCueName(self, cue: str) -> str:
+        "Take a raw cue name and find an actual matching cue. Handles things like shuffle"
         if cue == "__shuffle__":
             x = [i.name for i in self.cues_ordered if not (
                 i.name == self.cue.name)]
@@ -1546,7 +1535,7 @@ class Scene:
                                 None,
                                 length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.cue.media_wind_down,
+                                winddown=self.evalExprFloat(self.cue.media_wind_down),
                             )
                         else:
                             stopSound(str(self.id))
@@ -1557,7 +1546,7 @@ class Scene:
                                 None,
                                 length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.cue.media_wind_down,
+                                winddown=self.evalExprFloat(self.cue.media_wind_down),
                             )
                         else:
                             stopSound(str(self.id))
@@ -1588,8 +1577,8 @@ class Scene:
                             self.cueVolume = min(
                                 5,
                                 max(
-                                    0, float(self.evalExpr(
-                                        self.cues[cue].sound_volume))
+                                    0, self.evalExprFloat(
+                                        self.cues[cue].sound_volume)
                                 ),
                             )
                         except Exception:
@@ -1625,13 +1614,16 @@ class Scene:
                                     spd = self.scriptContext.preprocessArgument(
                                         self.cues[cue].media_speed
                                     )
+                                    spd = spd or 1
+                                    assert isinstance(spd, float)
+                                    
                                     play_sound(
                                         sound,
                                         handle=str(self.id),
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
                                         loop=self.cues[cue].sound_loops,
-                                        start=self.cues[cue].sound_start_position,
+                                        start=self.evalExprFloat((self.cues[cue].sound_start_position)),
                                         speed=spd,
                                     )
                                 else:
@@ -1643,9 +1635,9 @@ class Scene:
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
                                         loop=self.cues[cue].sound_loops,
-                                        start=self.cues[cue].sound_start_position,
-                                        windup=self.cues[cue].media_wind_up,
-                                        winddown=self.cue.media_wind_down,
+                                        start=self.evalExprFloat(self.cues[cue].sound_start_position),
+                                        windup=self.evalExprFloat(self.cues[cue].media_wind_up),
+                                        winddown=self.evalExprFloat(self.cue.media_wind_down),
                                     )
 
                             else:
@@ -1814,7 +1806,7 @@ class Scene:
                 except Exception:
                     print(traceback.format_exc())
 
-    def resolve_sound(self, sound):
+    def resolve_sound(self, sound) -> str:
         return core.resolve_sound(sound)
 
     def recalcRandomizeModifier(self):
@@ -1886,7 +1878,7 @@ class Scene:
     def recalcCueVals(self):
         self.cueValsToNumpyCache(self.cue, not self.cue.track)
 
-    def cueValsToNumpyCache(self, cuex, clearBefore=False):
+    def cueValsToNumpyCache(self, cuex: Cue, clearBefore=False):
         """Apply everything from the cue to the fade canvas"""
         # Loop over universes in the cue
         if clearBefore:
@@ -2007,7 +1999,7 @@ class Scene:
         scriptContext.commands["sendMQTT"] = sendMQTT
         return scriptContext
 
-    def refreshRules(self, rulesFrom=None):
+    def refreshRules(self, rulesFrom: Optional[Cue] = None):
         with core.lock:
             # We copy over the event recursion depth so that we can detct infinite loops
             if not self.scriptContext:
@@ -2350,7 +2342,8 @@ class Scene:
             if mqtt_server == self.activeMqttServer:
                 return
 
-            self.unusedMqttTopics = {}
+            # Track time.monotonic of when they became unused
+            self.unusedMqttTopics: Dict[str, float] = {}
 
             if self.mqttConnection:
                 self.mqttConnection.disconnect()
@@ -2391,7 +2384,7 @@ class Scene:
             self.hasNewInfo = {}
             self.scriptContext.setVar("SCENE", self.name)
 
-    def setMQTTFeature(self, feature, state):
+    def setMQTTFeature(self, feature: str, state):
         if state:
             self.mqtt_sync_features[feature] = state
         else:
@@ -2420,7 +2413,7 @@ class Scene:
             self.rerender = True
         self.hasNewInfo = {}
 
-    def tap(self, t=None):
+    def tap(self, t: Optional[float] = None):
         "Do a tap tempo tap. If the tap happened earlier, use t to enter that time"
         t = t or time.time()
 
@@ -2546,7 +2539,7 @@ class Scene:
 
         self.midi_source = s
 
-    def onMidiMessage(self, t, v):
+    def onMidiMessage(self, t: str, v: List[Any]):
         if v[0] == "noteon":
             self.noteOn(v[1], v[2], v[3])
         if v[0] == "noteoff":
@@ -2554,7 +2547,7 @@ class Scene:
         if v[0] == "cc":
             self.cc(v[1], v[2], v[3])
 
-    def setMusicVisualizations(self, s):
+    def setMusicVisualizations(self, s: str):
         if s == self.music_visualizations:
             return
 
@@ -2607,7 +2600,7 @@ class Scene:
 
         self.mediaLink.send(["volume", val])
 
-    def addCue(self, name, **kw):
+    def addCue(self, name: str, **kw: Dict[str, Any]):
         return Cue(self, name, **kw)
 
     def setBlend(self, blend: str):
@@ -2648,9 +2641,9 @@ class Scene:
     def render(self, force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fade_in:
-            fadePosition = min(
+            fadePosition: float = min(
                 (time.time() - self.enteredCue) /
-                (self.cue.fade_in * (60 / self.bpm)), 1
+                (self.cue.fade_in * (60.0 / self.bpm)), 1.0
             )
             fadePosition = ease(fadePosition)
         else:

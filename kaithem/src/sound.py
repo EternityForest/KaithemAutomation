@@ -88,6 +88,7 @@ def soundPath(fn: str, extrapaths: List[str] = []) -> str:
     # Raise an error if the file doesn't exist
     if not filename or not os.path.isfile(filename):
         raise ValueError("Specified audio file '" + fn + "' was not found")
+    assert isinstance(filename, str)
     return filename
 
 
@@ -146,7 +147,7 @@ class SoundWrapper(object):
                    extraPaths: List[str] = [],
                    volume: float = 1,
                    finalGain: Optional[float] = None,
-                   output: str = "",
+                   output: Optional[str] = "",
                    loop: float = 1,
                    start: float = 0,
                    speed: float = 1):
@@ -164,15 +165,17 @@ class SoundWrapper(object):
     def resume(self, handle: str = "PRIMARY"):
         pass
 
-    def fade_to(self,        
-                file: str,
+    def fade_to(self,
+                file: str | None,
                 length: float = 1.0,
                 block: bool = False,
                 handle: str = "PRIMARY",
-                output: str = "",
+                output: Optional[str] = "",
                 volume: float = 1,
                 windup: float = 0,
                 winddown: float = 0,
+                loop: int = 1,
+                start: float = 0,
                 speed: float = 1):
         self.play_sound(file, handle)
 
@@ -506,7 +509,7 @@ class MPVBackend(SoundWrapper):
         extraPaths: List[str] = [],
         volume: float = 1,
         finalGain: Optional[float] = None,
-        output: str = "",
+        output: Optional[str] = "",
         loop: float = 1,
         start: float = 0,
         speed: float = 1
@@ -587,14 +590,16 @@ class MPVBackend(SoundWrapper):
 
     def fade_to(
         self,
-        file: str,
+        file: str | None,
         length: float = 1.0,
         block: bool = False,
         handle: str = "PRIMARY",
-        output: str = "",
+        output: Optional[str] = "",
         volume: float = 1,
         windup: float = 0,
         winddown: float = 0,
+        loop: int = 1,
+        start: float = 0,
         speed: float = 1,
     ):
         x = self.runningSounds.pop(handle, None)
@@ -617,7 +622,8 @@ class MPVBackend(SoundWrapper):
                 volume=0,
                 output=output,
                 finalGain=volume,
-                loop=kwargs.get("loop", 1),
+                loop=loop,
+                start=start,
                 speed=sspeed,
             )
 
