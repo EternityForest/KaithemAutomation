@@ -33,7 +33,7 @@ class ManageAuthorization:
         pages.require("/admin/users.edit")
         pages.postOnly()
         auth.removeUser(kwargs["user"])
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/user/deleted",
             {"user": kwargs["user"], "deletedby": pages.getAcessingUser()},
         )
@@ -45,7 +45,7 @@ class ManageAuthorization:
         pages.require("/admin/users.edit")
         pages.postOnly()
         auth.removeGroup(kwargs["group"])
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/group/deleted",
             {"group": kwargs["group"], "deletedby": pages.getAcessingUser()},
         )
@@ -95,10 +95,10 @@ class ManageAuthorization:
             useSystem="useSystemPassword" in kwargs,
         )
         # Take the user back to the users page
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications", 'New user "' + kwargs["username"] + '" added'
         )
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/user/added",
             {"user": kwargs["username"], "addedby": pages.getAcessingUser()},
         )
@@ -115,7 +115,7 @@ class ManageAuthorization:
         pages.postOnly()
         # create the new user
         auth.addGroup(kwargs["groupname"])
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/group/added",
             {"group": kwargs["groupname"], "addedby": pages.getAcessingUser()},
         )
@@ -168,7 +168,7 @@ class ManageAuthorization:
 
         auth.changeUsername(user, kwargs["username"])
 
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/user/modified",
             {"user": user, "modifiedby": pages.getAcessingUser()},
         )
@@ -194,7 +194,7 @@ class ManageAuthorization:
 
         # Take the user back to the users page
         auth.generateUserPermissions()  # update all users to have the new permissions lists
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/group/changed",
             {"group": group, "changedby": pages.getAcessingUser()},
         )

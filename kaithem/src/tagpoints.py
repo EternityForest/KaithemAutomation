@@ -1,7 +1,7 @@
 from __future__ import annotations
 import typing
 from . import widgets
-from .unitsofmeasure import convert, unitTypes
+from .unitsofmeasure import convert, unit_types
 from . import scheduling, workers, messagebus, directories, persist, alerts, taghistorian, util
 import time
 import threading
@@ -57,13 +57,11 @@ lock = threading.RLock()
 allTags: Dict[str, weakref.ref[GenericTagPointClass[Any]]] = {}
 allTagsAtomic: Dict[str, weakref.ref[GenericTagPointClass[Any]]] = {}
 
-providers = {}
-
 subscriberErrorHandlers: List[Callable[..., Any]] = []
 
 hasUnsavedData = [0]
 
-defaultDisplayUnits = {
+default_display_units = {
     "temperature": "degC|degF",
     "length": "m",
     "weight": "g",
@@ -185,7 +183,7 @@ class GenericTagPointClass(Generic[T]):
             raise RuntimeError(
                 "Tag with this name already exists, use the getter function to get it instead"
             )
-        
+
         self.kweb_manualOverrideClaim: Optional[Claim]
 
         # Dependancu tracking, if a tag depends on other tags, such as =expression based ones
@@ -351,7 +349,7 @@ class GenericTagPointClass(Generic[T]):
         self._runtimeConfigData = {}
 
         with lock:
-            messagebus.postMessage("/system/tags/created",
+            messagebus.post_message("/system/tags/created",
                                    self.name,
                                    synchronous=True)
 
@@ -472,10 +470,10 @@ class GenericTagPointClass(Generic[T]):
                     self.dataSourceAutoControl = widgets.DataSource(
                         id="tag.control:" + self.name)
                     self.dataSourceAutoControl.write(None)
-                    w.setPermissions([i.strip() for i in d2[0].split(",")],
+                    w.set_permissions([i.strip() for i in d2[0].split(",")],
                                      [i.strip() for i in d2[1].split(",")])
 
-                    self.dataSourceAutoControl.setPermissions(
+                    self.dataSourceAutoControl.set_permissions(
                         [i.strip() for i in d2[0].split(",")],
                         write=[i.strip() for i in d2[1].split(",")])
                     w.value = self.value
@@ -597,7 +595,7 @@ class GenericTagPointClass(Generic[T]):
                 self.lock.release()
             else:
                 if not self.alreadyPostedDeadlock:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors",
                         "Tag point: " + self.name +
                         " has been unavailable for 30s and may be involved in a deadlock. see threads view."
@@ -1055,7 +1053,7 @@ class GenericTagPointClass(Generic[T]):
         except Exception:
             logger.exception("Error in test run of alarm function for :" +
                              name)
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors",
                 "Error with tag point alarm\n" + traceback.format_exc())
 
@@ -1135,7 +1133,7 @@ class GenericTagPointClass(Generic[T]):
                                                        target)
                     self.configLoggers.append(c)
                 except Exception:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors",
                         "Error creating logger for: " + self.name + "\n" +
                         traceback.format_exc())
@@ -1268,7 +1266,7 @@ class GenericTagPointClass(Generic[T]):
         else:
             self._interval = 0
 
-        messagebus.postMessage("/system/tags/interval" + self.name,
+        messagebus.post_message("/system/tags/interval" + self.name,
                                self._interval,
                                synchronous=True)
         with self.lock:
@@ -1307,7 +1305,7 @@ class GenericTagPointClass(Generic[T]):
                                  "Code default")
 
     @classmethod
-    def Tag(cls: Type[T], name: str, defaults: Dict[str, Any] = {}) -> T:
+    def Tag(cls, name: str, defaults: Dict[str, Any] = {}):
         name: str = normalizeTagName(name)
         rval = None
         with lock:
@@ -1320,16 +1318,10 @@ class GenericTagPointClass(Generic[T]):
                             + str(x.__class__) + " New: " + str(cls))
                     rval = x
 
-            else:
-                for i in sorted(providers.keys(),
-                                key=lambda p: len(p.path),
-                                reverse=True):
-                    if name.startswith(i):
-                        rval = providers[i].getTag(i)
-
             if not rval:
                 rval = cls(name)
 
+            assert isinstance(rval, cls)
             return rval
 
     @property
@@ -1355,7 +1347,7 @@ class GenericTagPointClass(Generic[T]):
                 allTagsAtomic = allTags.copy()
             except Exception:
                 logger.exception("Tag may have already been deleted")
-            messagebus.postMessage("/system/tags/deleted",
+            messagebus.post_message("/system/tags/deleted",
                                    self.name,
                                    synchronous=True)
 
@@ -1467,7 +1459,7 @@ class GenericTagPointClass(Generic[T]):
                         torm.append(i)
                 for i in torm:
                     self.subscribers.remove(i)
-                messagebus.postMessage("/system/tags/subscribers" + self.name,
+                messagebus.post_message("/system/tags/subscribers" + self.name,
                                        len(self.subscribers),
                                        synchronous=True)
 
@@ -1494,7 +1486,7 @@ class GenericTagPointClass(Generic[T]):
                         x = i
                 if x:
                     self.subscribers.remove(x)
-                messagebus.postMessage("/system/tags/subscribers" + self.name,
+                messagebus.post_message("/system/tags/subscribers" + self.name,
                                        len(self.subscribers),
                                        synchronous=True)
                 self._managePolling()
@@ -2018,7 +2010,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
             self._meterWidget.defaultLabel = self.name.split(".")[-1][:24]
 
-            self._meterWidget.setPermissions(['/users/tagpoints.view'],
+            self._meterWidget.set_permissions(['/users/tagpoints.view'],
                                              ['/users/tagpoints.edit'])
             self._setupMeter()
             # Try to immediately put the correct data in the gui
@@ -2177,7 +2169,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             # Rarely does anyone want alternate views of dB values
             if "dB" not in value:
                 try:
-                    self._displayUnits = defaultDisplayUnits[unitTypes[value]]
+                    self._displayUnits = default_display_units[unit_types[value]]
                     # Always show the native unit
                     if not value in self._displayUnits:
                         self._displayUnits = value + '|' + self._displayUnits
@@ -2292,7 +2284,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
 
             self._spanWidget.defaultLabel = self.name.split(".")[-1][:24]
 
-            self._spanWidget.setPermissions(['/users/tagpoints.view'],
+            self._spanWidget.set_permissions(['/users/tagpoints.view'],
                                             ['/users/tagpoints.edit'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
@@ -2401,7 +2393,7 @@ class ObjectTagPointClass(GenericTagPointClass[Dict[str, Any]]):
 
             self._spanWidget = widgets.DynamicSpan()
 
-            self._spanWidget.setPermissions(['/users/tagpoints.view'],
+            self._spanWidget.set_permissions(['/users/tagpoints.view'],
                                             ['/users/tagpoints.edit'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
@@ -2944,7 +2936,7 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
                 configTagFromData(i, configTagData[i].getAllData())
             except Exception:
                 logging.exception("Failure with configured tag: " + i)
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Failed to preconfigure tag " + i + "\n" +
                     traceback.format_exc())

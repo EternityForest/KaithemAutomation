@@ -555,7 +555,7 @@ class DMXSender():
         except Exception as e:
             try:
                 self.port = None
-                self.setStatus('disconnected, ' + str(e)[:100] + '...', False)
+                self.setStatus('dis_connected, ' + str(e)[:100] + '...', False)
             except Exception:
                 pass
 
@@ -587,7 +587,7 @@ class DMXSender():
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus('disconnected, ' + str(e)
+                        self.setStatus('dis_connected, ' + str(e)
                                        [:100] + '...', False)
                     self.port = None
                     print("Attempting reconnect")
@@ -944,7 +944,7 @@ class RawDMXSender():
 
         except Exception as e:
             try:
-                self.setStatus('disconnected, ' + str(e)[:100] + '...', False)
+                self.setStatus('dis_connected, ' + str(e)[:100] + '...', False)
             except Exception:
                 pass
 
@@ -981,7 +981,7 @@ class RawDMXSender():
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus('disconnected, ' + str(e)
+                        self.setStatus('dis_connected, ' + str(e)
                                        [:100] + '...', False)
                     self.port = None
                     # reconnect is designed not to raise Exceptions, so if there's0

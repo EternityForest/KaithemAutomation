@@ -515,7 +515,7 @@ def getPagesFromModules():
                                 ]
                             )
                             try:
-                                messagebus.postMessage(
+                                messagebus.post_message(
                                     "system/errors/pages/" +
                                     i + "/" + m, str(tb)
                                 )
@@ -526,7 +526,7 @@ def getPagesFromModules():
                             # If this is the first error(high level: transition from ok to not ok)
                             # send a global system messsage that will go to the front page.
                             if len(_Pages[i][m].errors) == 1:
-                                messagebus.postMessage(
+                                messagebus.post_message(
                                     "/system/notifications/errors",
                                     'Page "'
                                     + m
@@ -551,7 +551,7 @@ def getPagesFromModules():
                                     ]
                                 )
                                 try:
-                                    messagebus.postMessage(
+                                    messagebus.post_message(
                                         "system/errors/pages/" +
                                         i + "/" + m, str(tb)
                                     )
@@ -562,7 +562,7 @@ def getPagesFromModules():
                                 # If this is the first error(high level: transition from ok to not ok)
                                 # send a global system messsage that will go to the front page.
                                 if len(_Pages[i][m].errors) == 1:
-                                    messagebus.postMessage(
+                                    messagebus.post_message(
                                         "/system/notifications/errors",
                                         'Page "'
                                         + m
@@ -640,7 +640,7 @@ class KaithemPage:
     def _serve(self, module, *args, **kwargs):
         page = lookup(module, args)
         if None == page:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/errors/http/nonexistant",
                 "Someone tried to access a page that did not exist in module %s with path %s"
                 % (module, args),
@@ -764,7 +764,7 @@ class KaithemPage:
             page.errors.append(
                 [time.strftime(config["time-format"]), tb, data])
             try:
-                messagebus.postMessage(
+                messagebus.post_message(
                     "system/errors/pages/" + module +
                     "/" + "/".join(args), str(tb)
                 )
@@ -775,7 +775,7 @@ class KaithemPage:
             # If this is the first error(high level: transition from ok to not ok)
             # send a global system messsage that will go to the front page.
             if len(page.errors) == 1:
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     'Page "'
                     + "/".join(args)

@@ -47,7 +47,7 @@ def onAttempt():
     if recentAttempts > 150 and not alreadySent:
         alreadySent = 1
         logging.warning("Many failed login attempts have occurred")
-        messagebus.postMessage("/system/notifications/warnings",
+        messagebus.post_message("/system/notifications/warnings",
                                "Excessive number of failed attempts in the last 30 minutes.")
 
 
@@ -152,7 +152,7 @@ class LoginScreen():
                     (time.time(), cherrypy.request.remote.ip))
                 x['loginhistory'] = x['loginhistory'][:100]
 
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/auth/login", [kwargs['username'], cherrypy.request.remote.ip])
 
             if 'maxgotime' in kwargs:
@@ -170,7 +170,7 @@ class LoginScreen():
                 raise cherrypy.HTTPRedirect("/index")
         else:
             onFail(cherrypy.request.remote.ip, kwargs['username'])
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/auth/loginfail", [kwargs['username'], cherrypy.request.remote.ip])
             raise cherrypy.HTTPRedirect("/errors/loginerror")
 
@@ -179,7 +179,7 @@ class LoginScreen():
         # Change the security token to make the old one invalid and thus log user out.
         pages.postOnly()
         if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens:
-            messagebus.postMessage("/system/auth/logout", [auth.whoHasToken(
+            messagebus.post_message("/system/auth/logout", [auth.whoHasToken(
                 cherrypy.request.cookie['kaithem_auth'].value), cherrypy.request.remote.ip])
             auth.assignNewToken(auth.whoHasToken(
                 cherrypy.request.cookie['kaithem_auth'].value))

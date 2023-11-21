@@ -53,7 +53,7 @@ sliders rendered from the same object will move in synch.
 
 
 
-### kaithem.widget.getConnectionRefForID(id, deleteCallback=None)
+### kaithem.widget.get_connectionRefForID(id, deleteCallback=None)
 
 Using the connection ID from Widget.attach2, return the actual
 websocket object.   This allows you to detect when a a particular session
@@ -83,20 +83,20 @@ Causes the object to reject AJAX read or write requests from any device
 that does not have the permissions. You can apply as many permissions as
 you want.
 
-### Widget.requireToWrite(permission) (Always Available)
+### Widget.require_to_write(permission) (Always Available)
 
 Causes the object to reject AJAX write requests from any device that
 does not have the permissions. You can apply as many permissions as you
 want.
 
-### Widget.setPermissions(read,write) (Always Available)
+### Widget.set_permissions(read,write) (Always Available)
 
 Sets the widget's read and write permissions to the two lists specified.
 This is the prefered form when dealing with widgets that may already have permissions
 that you want to replace.
 
 
-### Widget.onRequest(user,uuid) (Always Available)
+### Widget.on_request(user,uuid) (Always Available)
 
 This function is automatically called when Kaithem needs to access the latest value, such as when
 a new subscrber subscribes and needs to immediately know.  JS Widgets can no longer explicitly make requests.
@@ -106,7 +106,7 @@ JSON serializable value specific to the widget type. You only need to
 know about this function when creating custom widgets. uuid is the
 connection ID.
 
-### Widget.onUpdate(user,value,uuid) (Always Available)
+### Widget.on_update(user,value,uuid) (Always Available)
 
 This function is automatically called when an authorized client requests
 to set a new value. value will be specific to the widget. You only need
@@ -135,7 +135,7 @@ use send.
 
 Send value to all subscribed clients.
 
-### Widget.sendTo(value,connectionID)
+### Widget.sendTo(value,connection_id)
 
 Send only to one client by it's connection ID
 

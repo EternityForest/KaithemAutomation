@@ -215,6 +215,6 @@ class Bluetoothctl:
             return False
         else:
             res = self.process.expect(
-                ["Failed to disconnect", "Successful disconnected", pexpect.EOF]
+                ["Failed to disconnect", "Successful dis_connected", pexpect.EOF]
             )
             return res == 1

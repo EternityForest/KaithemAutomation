@@ -248,7 +248,7 @@ else:
 <table border="1" class="w-full">
     <tr>
         <td>Time Since Update</td>
-        <td>${((unitsofmeasure.formatTimeInterval(time.monotonic()-tag.timestamp,3)+" ago") if int(tag.timestamp) else 'never')}</td>
+        <td>${((unitsofmeasure.format_time_interval(time.monotonic()-tag.timestamp,3)+" ago") if int(tag.timestamp) else 'never')}</td>
     </tr>
     <tr>
         <td>Timestamp(monotonic time)</td>

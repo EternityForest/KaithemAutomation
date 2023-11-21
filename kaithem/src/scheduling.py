@@ -31,7 +31,7 @@ localLogger = logging.getLogger("scheduling")
 def handleFirstError(f):
     "Callback to deal with the first error from any given event"
     m = f.__module__
-    messagebus.postMessage(
+    messagebus.post_message(
         "/system/notifications/errors",
         "Problem in scheduled event function: "
         + repr(f)
@@ -566,7 +566,7 @@ def a():
     if selftest[1] < time.monotonic() - 40:
         if lastpost[0] < time.monotonic() - 600:
             lastpost[0] = time.monotonic()
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors",
                 "Something caused a scheduler continual selftest function not to run.",
             )
@@ -577,7 +577,7 @@ def b():
     if selftest[0] < time.monotonic() - 40:
         if lastpost[0] < time.monotonic() - 600:
             lastpost[0] = time.monotonic()
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors",
                 "Something caused a scheduler continual selftest function not to run.",
             )

@@ -355,7 +355,7 @@ syslogger = LoggingHandler("system", fn="system" if not config['log-format'] == 
                            folder=os.path.join(directories.logdir, "dumps"), level=20,
                            entries_per_file=config['log-dump-size'],
                            bufferlen=config['log-buffer'],
-                           keep=unitsofmeasure.strToIntWithSIMultipliers(
+                           keep=unitsofmeasure.str_to_int_si_multipliers(
                                config['keep-log-files']),
                            compress=config['log-compress'], doprint=False)
 
@@ -374,7 +374,7 @@ if os.path.exists("/dev/shm/kaithemdbglog_" + getpass.getuser()):
         except:
             pass
 
-        messagebus.postMessage("/system/notifications/errors",
+        messagebus.post_message("/system/notifications/errors",
                                """Kaithem may have shutdown uncleanly due to a segfault, kill-9, or similar.
         Recovered logs have been backed up to '/dev/shm/kaithemdbglogbackup'
         """)

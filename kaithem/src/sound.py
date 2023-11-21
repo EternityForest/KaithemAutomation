@@ -716,7 +716,7 @@ for i in ["mpv"] + list(config["audio-backends"]):
             backend = l[i]()
             break
     except Exception:
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications/errors",
             "Failed to initialize audio backend "
             + i
@@ -726,7 +726,7 @@ for i in ["mpv"] + list(config["audio-backends"]):
 
 try:
     if backend.backendname == "Dummy Sound Driver(No real sound player found)":
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications/errors",
             "Using adummy sound backend. Suggest installing MPV if you want sound",
         )
@@ -735,7 +735,7 @@ except Exception:
 
 
 def stop_allSounds():
-    midi.allNotesOff()
+    midi.all_notes_off()
     backend.stop_allSounds()
 
 

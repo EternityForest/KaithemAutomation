@@ -89,7 +89,7 @@ _str_error_map = {
     LIBUSB_ERROR_IO:'Input/output error',
     LIBUSB_ERROR_INVALID_PARAM:'Invalid parameter',
     LIBUSB_ERROR_ACCESS:'Access denied (insufficient permissions)',
-    LIBUSB_ERROR_NO_DEVICE:'No such device (it may have been disconnected)',
+    LIBUSB_ERROR_NO_DEVICE:'No such device (it may have been dis_connected)',
     LIBUSB_ERROR_NOT_FOUND:'Entity not found',
     LIBUSB_ERROR_BUSY:'Resource busy',
     LIBUSB_ERROR_TIMEOUT:'Operation timed out',
@@ -139,7 +139,7 @@ _str_transfer_error = {
     LIBUSB_TRANSFER_STALL:'For bulk/interrupt endpoints: halt condition '\
                           'detected (endpoint stalled). For control '\
                           'endpoints: control request not supported.',
-    LIBUSB_TRANSFER_NO_DEVICE:'Device was disconnected',
+    LIBUSB_TRANSFER_NO_DEVICE:'Device was dis_connected',
     LIBUSB_TRANSFER_OVERFLOW:'Device sent more data than requested'
 }
 
@@ -682,7 +682,7 @@ class _IsoTransferHandler(_objfinalizer.AutoFinalizedObject):
         r = n % packet_length
         if r:
             iso_packets = _get_iso_packet_list(self.transfer.contents)
-            # When the device is disconnected, this list may
+            # When the device is dis_connected, this list may
             # return with length 0
             if len(iso_packets):
                 iso_packets[-1].length = r

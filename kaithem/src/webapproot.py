@@ -561,7 +561,7 @@ def startServer():
 
     def save():
         if config["save-before-shutdown"]:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/important/", "System saving before shutting down"
             )
             util.SaveAllState()
@@ -607,8 +607,8 @@ def startServer():
 
     wsgiapp = cherrypy.tree.mount(root, config=cnf)
 
-    messagebus.postMessage("/system/startup", "System Initialized")
-    messagebus.postMessage(
+    messagebus.post_message("/system/startup", "System Initialized")
+    messagebus.post_message(
         "/system/notifications/important", "System Initialized")
 
     cherrypy.server.unsubscribe()
@@ -699,7 +699,7 @@ def startServer():
     if config["https-port"]:
         if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
             cherrypy.server.unsubscribe()
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications",
                 "You do not have an SSL certificate set up. HTTPS is not enabled.",
             )

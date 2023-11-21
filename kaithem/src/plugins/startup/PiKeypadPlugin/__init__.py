@@ -113,7 +113,7 @@ class PiMatrixKeypad(devices.Device):
     def _onKeyPress(self, key, fromUI=None):
         if fromUI or not self.testMode:
             #Synchronous must be true, no out of order messages allowed
-            messagebus.postMessage("/devices/"+self.name+"/keypress", key, synchronous=True)
+            messagebus.post_message("/devices/"+self.name+"/keypress", key, synchronous=True)
             self.onKeyPress(key)
 
         else:

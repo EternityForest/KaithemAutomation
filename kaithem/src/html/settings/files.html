@@ -5,7 +5,7 @@ import os,urllib
 
 def size(f):
     try:
-        return unitsofmeasure.siFormatNumber(os.path.getsize(os.path.join(dir,f)),1)
+        return unitsofmeasure.si_format_number(os.path.getsize(os.path.join(dir,f)),1)
     except Exception as e:
         return str(e)
 %>

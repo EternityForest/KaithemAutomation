@@ -501,7 +501,7 @@ otherwise. Also returns False if the user does not exist.
 ### kaithem.midi
 This namespace deals with MIDI.
 
-#### kaithem.midi.FluidSynth(soundfont=DEFAULT, jackClientName=None)
+#### kaithem.midi.FluidSynth(soundfont=DEFAULT, jack_client_name=None)
 Creates a FluidSynth instance using a specified soundfont. It
 is a wrapper around https://github.com/nwhitehead/pyfluidsynth.
 
@@ -1023,8 +1023,8 @@ becomes 1M. d is the number of digits of precision to use.
 #### kaithem.string.format_time_interval(n,places=2,clock=False)
 
 Takes a length of time in secons and formats it. Places is the mx units
-to use. formatTimeInterval(5,1) becomes ""5 seconds",
-formatTimeInterval(65,2) returns "1 minute 5 seconds"
+to use. format_time_interval(5,1) becomes ""5 seconds",
+format_time_interval(65,2) returns "1 minute 5 seconds"
 
 If clock==True, places is ignored and output is in HH:MM format. If
 places is 3 or 4 format will be HH:MM:SS or HH:MM:SS:mmm where mmmm is

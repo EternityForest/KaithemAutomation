@@ -44,7 +44,7 @@ wifi.setAlarm("NoWiredNetwork", "(value>-1) and (value < 1) and not (tv('/system
 
 getAllDevicesAttempted = [0]
 
-def getConnectionStatus():
+def get_connectionstatus():
     import nmcli
     nmcli.disable_use_sudo()
     
@@ -74,7 +74,7 @@ def getConnectionStatus():
 
 def handleMessage(u, v):
     if v[0] == 'refresh':
-        api.send(['status', getConnectionStatus()])
+        api.send(['status', get_connectionstatus()])
 
 
 try:
@@ -87,11 +87,11 @@ try:
     @scheduling.scheduler.everyMinute
     def worker():
         try:
-            api.send(['status', getConnectionStatus()])
+            api.send(['status', get_connectionstatus()])
         except Exception:
             log.exception("Error in WifiManager")
 
-    workers.do(getConnectionStatus())
+    workers.do(get_connectionstatus())
 
 except Exception:
     log.exception(

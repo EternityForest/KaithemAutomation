@@ -60,7 +60,7 @@ if 'default' in file:
 if not lat or not lon:
     try:
         l = ip_geolocate()
-        messagebus.postMessage("/system/notifications/important",
+        messagebus.post_message("/system/notifications/important",
                                "Got server location by IP geolocation.  You can change this in settings.")
         file['default'] = l
     except Exception:

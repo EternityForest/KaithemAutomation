@@ -145,7 +145,7 @@ def SaveAllState():
         try:
             x = False
 
-            messagebus.postMessage("/system/save", None, synchronous=True)
+            messagebus.post_message("/system/save", None, synchronous=True)
 
             if auth.dumpDatabase():
                 x = True
@@ -155,7 +155,7 @@ def SaveAllState():
             pylogginghandler.syslogger.flush()
             return x
         except Exception as e:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors", 'Failed to save state:' + traceback.format_exc(8))
 
 
@@ -169,11 +169,11 @@ def SaveAllStateExceptLogs():
             messagelogging.saveLogList()
             if x:
                 # Send the message only if something was actually saved.
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/important", "Global server state was saved to disk")
             return x
         except Exception as e:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors", 'Failed to save state:' + repr(e))
 
 # http://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory
@@ -387,14 +387,14 @@ def timeaccuracy():
             response = c.request("ntp.pool.org", version=3)
             oldNTPOffset = response.offset + response.root_delay + response.root_dispersion
             if not hasInternet:
-                messagebus.postMessage("/system/internet", True)
+                messagebus.post_message("/system/internet", True)
             hasInternet = True
             return oldNTPOffset
         else:
             return oldNTPOffset + (time.time() - lastNTP)/10000.0
     except:
         if hasInternet:
-            messagebus.postMessage("/system/internet", False)
+            messagebus.post_message("/system/internet", False)
         hasInternet = False
         return oldNTPOffset + (time.time() - lastNTP)/10000.0
 

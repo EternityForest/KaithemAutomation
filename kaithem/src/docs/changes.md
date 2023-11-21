@@ -6,6 +6,7 @@ Change Log
 - :bug: Fix mixer channel not changing after refresh button until changing the slider
 - :lipstick: autoAck and tripDelay are snake_case now
 - :sparkles: Add nicer system alerts in the chandler page
+- :sparkles: The Scullery framework uses snake_case now
 
 
 ### 0.71.2
@@ -1089,7 +1090,7 @@ cart - Help boxes(paragraph or div class 'help') now show up minimized until you
 -   UTF-8 encoding in page responses
 -   kaithem.time.lantime() for a time value automatically synced across
     the LAN (py3.3 only, netifaces required)
--   **BREAKING CHANGE** Widget.doCallback,onRequest, and onUpdate now
+-   **BREAKING CHANGE** Widget.doCallback,on_request, and on_update now
     expect a connection ID parameter.
 -   New Widget.attach2(f) function for 3 parameter callbacks,
     username,value, and connection ID
@@ -1323,7 +1324,7 @@ immediately.
     exceptions that might result.
 -   Automatic daily check of mail settings in case someone changed
     things.
--   kaithem.string.formatTimeInterval()
+-   kaithem.string.format_time_interval()
 -   When a user logs in, his \[username,ip\] is posted to
     /system/auth/login, or to /auth/user/logout when he logs out.
 -   Ability to set default vaules for lattitude and longitude in astro

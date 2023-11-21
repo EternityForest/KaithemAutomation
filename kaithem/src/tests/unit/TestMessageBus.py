@@ -11,7 +11,7 @@ def test():
             pass
         time.sleep(random.random()/100)
         subscribe('a',dummy)
-        postMessage('a','poopoo')
+        post_message('a','poopoo')
         del dummy
     
     def datatest():
@@ -21,7 +21,7 @@ def test():
         
         subscribe(i,recive)
         x =str(os.urandom(100))
-        postMessage(i,x)
+        post_message(i,x)
         time.sleep((random.random()/100)+0.05)
         if not tester[i] == x:
             fail('Message not properly recieved')
@@ -35,7 +35,7 @@ def test():
         
         subscribe('potty/',recive)
         x =str(os.urandom(100))
-        postMessage(i,x)
+        post_message(i,x)
         time.sleep((random.random()/100)+0.05)
         if not tester[i] == x:
             fail('Message not properly recieved.')

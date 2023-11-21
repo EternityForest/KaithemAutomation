@@ -18,6 +18,7 @@ types-PyYaml
 scullery
 iot-devices
 NVRChannel
+boltons
 
 
 ffmpeg-python

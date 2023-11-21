@@ -64,14 +64,14 @@ bootTime = time.time()
 # Persist is one of the ones that we want to be usable outside of kaithem, so we add our path resolution stuff here.
 
 
-def resolvePath(fn: str, expand: bool = False):
+def resolve_path(fn: str, expand: bool = False):
     if not fn.startswith(os.pathsep) or fn.startswith("~") or fn.startswith("$"):
         fn = os.path.join(directories.moduledatadir, fn)
 
     return (os.path.expandvars(os.path.expanduser(fn))) if expand else fn
 
 
-persist.resolvePath = resolvePath
+persist.resolve_path = resolve_path
 
 # This exception is what we raise from within the page handler to serve a static file
 
@@ -142,8 +142,8 @@ class Kaithem():
     class units():
         convert = unitsofmeasure.convert
         units = unitsofmeasure.units
-        getType = unitsofmeasure.getUnitType
-        define = unitsofmeasure.defineUnit
+        getType = unitsofmeasure.get_unit_type
+        define = unitsofmeasure.define_unit
 
     class users(object):
         @staticmethod
@@ -535,7 +535,7 @@ class Kaithem():
                 from . import jackmanager
                 # Always
                 try:
-                    x = [i.name for i in jackmanager.getPorts(
+                    x = [i.name for i in jackmanager.get_ports(
                         is_audio=True, is_input=True)]
                 except Exception:
                     print(traceback.format_exc())
@@ -582,8 +582,8 @@ class Kaithem():
             sound.wait(*args, **kwargs)
 
         @staticmethod
-        def stop(*args, **kwargs):
-            sound.stopSound(*args, **kwargs)
+        def stop(handle: str = "PRIMARY"):
+            sound.stopSound(handle)
 
         @staticmethod
         def pause(*args, **kwargs):
@@ -641,7 +641,7 @@ class Kaithem():
     class message():
         @staticmethod
         def post(topic: str, message: Any):
-            messagebus.postMessage(topic, message)
+            messagebus.post_message(topic, message)
 
         @staticmethod
         def subscribe(topic: str, callback: Callable[..., Any]):
@@ -669,11 +669,11 @@ class Kaithem():
 
         @staticmethod
         def si_format(number, d=2):
-            return unitsofmeasure.siFormatNumber(number, d)
+            return unitsofmeasure.si_format_number(number, d)
 
         @staticmethod
         def format_time_interval(s, places=2, clock=False):
-            return unitsofmeasure.formatTimeInterval(s, places, clock)
+            return unitsofmeasure.format_time_interval(s, places, clock)
 
     class events():
         pass

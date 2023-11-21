@@ -96,7 +96,7 @@ def in_folder(r, f, n):
 
 def get_f_size(name, i):
     try:
-        return unitsofmeasure.siFormatNumber(os.path.getsize(modules_state.fileResourceAbsPaths[name, i]))
+        return unitsofmeasure.si_format_number(os.path.getsize(modules_state.fileResourceAbsPaths[name, i]))
     except Exception:
         return "Could not get size"
 
@@ -124,7 +124,7 @@ def breadcrumbs(path):
 
 
 module_page_context = {
-    "siFormatNumber": unitsofmeasure.siFormatNumber,
+    "si_format_number": unitsofmeasure.si_format_number,
     "url": util.url,
     "fileResourceAbsPaths": modules.fileResourceAbsPaths,
     "external_module_locations": modules.external_module_locations,
@@ -315,7 +315,7 @@ class WebInterface:
         ):
             pass
 
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/modules/uploaded", {"user": pages.getAcessingUser()}
         )
         raise cherrypy.HTTPRedirect("/modules/")
@@ -360,7 +360,7 @@ class WebInterface:
         pages.postOnly()
         modules.rmModule(
             kwargs["name"], "Module Deleted by " + pages.getAcessingUser())
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications",
             "User " + pages.getAcessingUser() + " Deleted module " +
             kwargs["name"],
@@ -658,7 +658,7 @@ class WebInterface:
                     "Resource Deleted by " + pages.getAcessingUser(),
                 )
 
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications",
                     "User "
                     + pages.getAcessingUser()
@@ -667,7 +667,7 @@ class WebInterface:
                     + " from module "
                     + module,
                 )
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/modules/deletedresource",
                     {
                         "ip": cherrypy.request.remote.ip,
@@ -872,7 +872,7 @@ def addResourceTarget(module, type, name, kwargs, path):
                 if f:
                     f(module, name, r)
 
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications",
             "User "
             + pages.getAcessingUser()
@@ -1065,7 +1065,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                     modules.saveResource(
                         module, resource, resourceobj, newname)
 
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "system/errors/misc/failedeventupdate",
                         "In: "
                         + module
@@ -1178,7 +1178,7 @@ def resourceUpdateTarget(module, resource, kwargs):
 
         prev_versions[(module, resource)] = old_resource
 
-    messagebus.postMessage(
+    messagebus.post_message(
         "/system/notifications",
         "User "
         + pages.getAcessingUser()

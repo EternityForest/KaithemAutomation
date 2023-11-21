@@ -163,7 +163,7 @@ def loadAllCustomResourceTypes():
                         try:
                             additionalTypes[r["resource-type"]].onload(i, j, r)
                         except Exception:
-                            messagebus.postMessage(
+                            messagebus.post_message(
                                 "/system/notifications/errors",
                                 "Error loading resource:" + str((i, j)),
                             )
@@ -278,7 +278,7 @@ class ModuleObject(object):
         def f():
             with modulesLock:
                 if not isinstance(value, dict):
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors",
                         "VirtualResource is removed. Can't add "
                         + name
@@ -437,7 +437,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                     r["action"] = sections[2]
 
         if wasProblem:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/warnings",
                 "Potential problem or nonstandard encoding with file: " + fn,
             )
@@ -501,7 +501,7 @@ def initModules():
             loadModules(possibledir)
 
     except Exception:
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications/errors",
             " Error loading modules: " + traceback.format_exc(4),
         )
@@ -535,7 +535,7 @@ def loadModules(modulesdir: str):
             # We use the ignore func when loading ext modules
             loadModule(s, util.unurl(i[2:-9]), detect_ignorable)
         except Exception:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors",
                 " Error loading external module: " + traceback.format_exc(4),
             )
@@ -596,7 +596,7 @@ def loadOneResource(folder, relpath, module):
         r, resourcename = readResourceFromFile(
             os.path.join(folder, relpath), relpath, module)
     except Exception:
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications/errors",
             "Error loadingresource from: " + os.path.join(folder, relpath),
         )
@@ -648,7 +648,7 @@ def loadOneResource(folder, relpath, module):
                 "Missing file resource: " +
                 fileResourceAbsPaths[module, resourcename]
             )
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors",
                 "Missing file resource: " +
                 fileResourceAbsPaths[module, resourcename],
@@ -713,14 +713,14 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                                 "Missing file resource: "
                                 + fileResourceAbsPaths[modulename, resourcename]
                             )
-                            messagebus.postMessage(
+                            messagebus.post_message(
                                 "/system/notifications/errors",
                                 "Missing file resource: "
                                 + fileResourceAbsPaths[modulename, resourcename],
                             )
 
                 except Exception:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors",
                         "Error loading from: " + fn + "\r\n" + traceback.format_exc(),
                     )
@@ -757,7 +757,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
 
         scopes[modulename] = ModuleObject(modulename)
         modules_state.ActiveModules[modulename] = module
-        messagebus.postMessage("/system/modules/loaded", modulename)
+        messagebus.post_message("/system/modules/loaded", modulename)
 
         logger.info(
             "Loaded module "
@@ -919,7 +919,7 @@ def load_modules_from_zip(f, replace=False):
                     + " during process of update",
                 )
 
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications",
                     "User "
                     + pages.getAcessingUser()
@@ -927,8 +927,8 @@ def load_modules_from_zip(f, replace=False):
                     + i
                     + " for auto upgrade",
                 )
-                messagebus.postMessage("/system/modules/unloaded", i)
-                messagebus.postMessage(
+                messagebus.post_message("/system/modules/unloaded", i)
+                messagebus.post_message(
                     "/system/modules/deleted", {
                         "user": pages.getAcessingUser()}
                 )
@@ -937,7 +937,7 @@ def load_modules_from_zip(f, replace=False):
             for i in new_modules:
                 modules_state.ActiveModules[i] = new_modules[i]
 
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications",
                     "User "
                     + pages.getAcessingUser()
@@ -952,7 +952,7 @@ def load_modules_from_zip(f, replace=False):
                 if i in backup:
                     modules_state.ActiveModules[i] = backup[i]
 
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications",
                         "User "
                         + pages.getAcessingUser()
@@ -997,7 +997,7 @@ def bookkeeponemodule(module, update=False):
             except Exception as e:
                 usrpages.makeDummyPage(i, module)
                 logger.exception("failed to load resource")
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Failed to load page resource: "
                     + i
@@ -1012,7 +1012,7 @@ def bookkeeponemodule(module, update=False):
     newevt.getEventsFromModules([module])
     auth.importPermissionsFromModules()
     if not update:
-        messagebus.postMessage("/system/modules/loaded", module)
+        messagebus.post_message("/system/modules/loaded", module)
 
 
 def mvResource(module: str, resource: str, toModule: str, toResource: str):
@@ -1115,7 +1115,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
             os.remove(fn)
 
     except Exception:
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/modules/errors/unloading",
             "Error deleting resource: " + str((module, resource)),
         )
@@ -1150,11 +1150,11 @@ def newModule(name: str, location: Optional[str] = None):
 
         bookkeeponemodule(name)
         # Go directly to the newly created module
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications",
             "User " + pages.getAcessingUser() + " Created Module " + name,
         )
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/modules/new", {"user": pages.getAcessingUser(),
                                     "module": name}
         )
@@ -1177,7 +1177,7 @@ def rmModule(module, message="deleted"):
                 additionalTypes[j[k]["resource-type"]
                                 ].ondelete(module, k, j[k])
             except Exception:
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/modules/errors/unloading",
                     "Error deleting resource: " + str(module, k),
                 )
@@ -1200,8 +1200,8 @@ def rmModule(module, message="deleted"):
     modules_state.modulesHaveChanged()
     # Get rid of any garbage cycles associated with the event.
     gc.collect()
-    messagebus.postMessage("/system/modules/unloaded", module)
-    messagebus.postMessage("/system/modules/deleted",
+    messagebus.post_message("/system/modules/unloaded", module)
+    messagebus.post_message("/system/modules/deleted",
                            {"user": pages.getAcessingUser()})
 
 

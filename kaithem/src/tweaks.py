@@ -184,7 +184,7 @@ def installThreadLogging():
                     )
                     from . import messagebus
 
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors",
                         "Thread: "
                         + self.name

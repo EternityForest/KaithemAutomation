@@ -77,12 +77,12 @@ lastsaved = time.time()
 def getcfg():
     global saveinterval, dumplogsinterval, lastdumpedlogs
     if not config['autosave-state'] == 'never':
-        saveinterval = unitsofmeasure.timeIntervalFromString(
+        saveinterval = unitsofmeasure.time_interval_from_string(
             config['autosave-state'])
 
     lastdumpedlogs = time.time()
     if not config['autosave-logs'] == 'never':
-        dumplogsinterval = unitsofmeasure.timeIntervalFromString(
+        dumplogsinterval = unitsofmeasure.time_interval_from_string(
             config['autosave-logs'])
 
 
@@ -132,7 +132,7 @@ def aPageJustLoaded():
     global pageviewsthisminute
     pageviewsthisminute = pageviewsthisminute + 1
     if config["log-http"]:
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/http/access", {"ip": cherrypy.request.remote.ip, "req": cherrypy.request.request_line},synchronous=True)
 
 
@@ -164,7 +164,7 @@ def checkBitErrors():
         if not lastRamTestValue:
             for i in ramTestData:
                 if(not i == 0):
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors", "RAM Bitflip 0>1 detected: val"+str(i))
 
             ramTestData = b'\xff'*int(1024*2048*random.random())
@@ -173,7 +173,7 @@ def checkBitErrors():
         else:
             for i in ramTestData:
                 if(not i == 255):
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors", "RAM Bitflip 1>0 detected: val"+str(i))
 
             ramTestData = b'\0'*int(1024*2048*random.random())
@@ -196,7 +196,7 @@ def check_scheduler():
     global time_last_minute
     if time_last_minute:
         if time.time() - (time_last_minute) < 58:
-            messagebus.postMessage("/system/notifications/warnings",
+            messagebus.post_message("/system/notifications/warnings",
                                    "Kaithem has detected a scheduled event running too soon.  This tasks should run every 60s.  This error may indicate a 'catch up' event after high load. History:"+repr(rhistory))
     time_last_minute = time.time()
 
@@ -239,7 +239,7 @@ def logstats():
                 if not MemUseWasTooHigh:
                     MemUseWasTooHigh = True
                     if (time.time()-lastramwarn > 3600):
-                        messagebus.postMessage(
+                        messagebus.post_message(
                             "/system/notifications/warnings", "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
                         lastramwarn = time.time()
 
@@ -267,9 +267,9 @@ def autosave():
 
 
 def sd():
-    messagebus.postMessage(
+    messagebus.post_message(
         '/system/shutdown', "System about to shut down or restart")
-    messagebus.postMessage(
+    messagebus.post_message(
         '/system/notifications/important', "System shutting down now")
 
 
@@ -279,13 +279,13 @@ cherrypy.engine.subscribe("stop", sd)
 
 
 if time.time() < 1420070400:
-    messagebus.postMessage(
+    messagebus.post_message(
         "/system/notifications/errors",
         "System Clock is wrong, some features may not work properly.",
     )
 
 if time.time() < util.min_time:
-    messagebus.postMessage(
+    messagebus.post_message(
         "/system/notifications/errors",
         "System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.",
     )

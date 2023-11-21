@@ -26,7 +26,7 @@
     </td>
     <td>
     %try:
-    ${unitsofmeasure.siFormatNumber(os.path.getsize(fileResourceAbsPaths[module,resource]))}
+    ${unitsofmeasure.si_format_number(os.path.getsize(fileResourceAbsPaths[module,resource]))}
     %except:
     File not acessible or does not exist
     %endtry

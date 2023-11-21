@@ -150,7 +150,7 @@ def _eventSystemTest():
 
     time.sleep(0.25)
     #Give it a value to change from
-    messagebus.postMessage("/system/selftest",'foo')
+    messagebus.post_message("/system/selftest",'foo')
     #Let it notice the old value
 
     time.sleep(0.25)
@@ -182,7 +182,7 @@ def _eventSystemTest():
         if testObj():
             raise RuntimeError("Object in event scope still exists after module deletion and GC")
 
-    messagebus.postMessage('foo',"/system/selftest")
+    messagebus.post_message('foo',"/system/selftest")
     #If there is no y or pymodule, this test won't work but we can probably assume it unregistered correctly.
     #Maybe we should add a real test that works either way?
     if hasattr(x, 'pymodule') and hasattr(x.pymodule,'y'):            

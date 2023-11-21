@@ -51,11 +51,11 @@ def play_sound(filename: str,
         doSoundAction(doFunction)
 
 
-def stopSound(*args, **kwargs):
+def stopSound(handle: str = "PRIMARY"):
     if core.ratelimit.limit():
 
         def doFunction():
-            kaithem.sound.stop(*args, **kwargs)
+            kaithem.sound.stop(handle)
 
         doSoundAction(doFunction)
 
@@ -86,4 +86,4 @@ def fadeSound(file: str,
     else:
         # A bit of a race condition here, if the sound had not started yet. But if we are triggering rate limit we
         # have other issues.
-        kaithem.sound.stop(kwargs["handle"])
+        kaithem.sound.stop(handle)

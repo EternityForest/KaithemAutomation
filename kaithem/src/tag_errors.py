@@ -17,7 +17,7 @@ def tagErrorHandler(tag, f, val):
                 # Better than nothing to have this global limit instead of no posted errors at all.
                 if time.monotonic() > globalMethodRateLimit[0] + 60 * 30:
                     globalMethodRateLimit[0] = time.monotonic()
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors",
                         "First err in tag subscriber "
                         + str(f)
@@ -29,7 +29,7 @@ def tagErrorHandler(tag, f, val):
 
             elif not hasattr(f, "_kaithemFirstErrorMarker"):
                 f._kaithemFirstErrorMarker = True
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "First err in tag subscriber "
                     + str(f)

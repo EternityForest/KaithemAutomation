@@ -21,23 +21,23 @@ from scullery import jacktools
 # as defensive fallback
 from scullery.jacktools import *
 
-from scullery.jacktools import Airwire, getPorts
+from scullery.jacktools import Airwire, get_ports
 
 
 __doc__ = ""
 
 
 def onFail():
-    messagebus.postMessage("/system/notifications/errors", "JACK server has failed")
+    messagebus.post_message("/system/notifications/errors", "JACK server has failed")
 
 
 def onStart():
-    messagebus.postMessage("/system/notifications/important", "JACK server connected")
-    messagebus.postMessage("/system/sound/jackstart", "JACK server connected")
+    messagebus.post_message("/system/notifications/important", "JACK server connected")
+    messagebus.post_message("/system/sound/jackstart", "JACK server connected")
 
 
-jacktools.onJackFailure = onFail
-jacktools.onJackStart = onStart
+jacktools.on_jack_failure = onFail
+jacktools.on_jack_start = onStart
 
 
 def checkIfProcessRunning(processName):
@@ -66,9 +66,9 @@ pipewireprocess2 = None
 
 
 try:
-    jacktools.startManaging()
+    jacktools.start_managing()
 except Exception:
-    messagebus.postMessage(
+    messagebus.post_message(
         "/system/notifications/errors",
         "Failed to launch JACK integration. Maybe JACK is not installed\n"
         + traceback.format_exc(),

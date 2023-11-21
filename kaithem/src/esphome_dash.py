@@ -17,7 +17,7 @@ def start_web_server():
         status_thread = dashboard.MDNSStatusThread(daemon=True)
         status_thread.start()
     except Exception as e:
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications/errors",
             "Failed to initialize ESPHome server",
         )

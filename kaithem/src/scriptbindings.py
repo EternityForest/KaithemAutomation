@@ -847,7 +847,7 @@ class BaseChandlerScriptContext():
                 self.slowpoller.unregister()
                 self.slowpoller = None
 
-            self.onClearBindingsHook()
+            self.on_clearBindingsHook()
 
             # Odd behavior note: Clearing a binding resets the edge detect behavior
             self.risingEdgeDetects = {}
@@ -909,7 +909,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             raise NameError(
                 "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
 
-    def onClearBindingsHook(self):
+    def on_clearBindingsHook(self):
         for i in self.tagHandlers:
             self.tagHandlers[i][0].unsubscribe(self.tagHandlers[i][1])
 

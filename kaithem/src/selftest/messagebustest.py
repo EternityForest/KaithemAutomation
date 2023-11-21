@@ -6,7 +6,7 @@ def test():
     def f(m,v):
         succeed[0]= 1
     messagebus.subscribe("/system/selftest", f)
-    messagebus.postMessage("/system/selftest","Test")
+    messagebus.post_message("/system/selftest","Test")
 
     time.sleep(0.2)
     if not succeed[0]:
@@ -21,7 +21,7 @@ def test():
     succeed[0] = 0
     time.sleep(1)
 
-    messagebus.postMessage("/system/selftest","Test")
+    messagebus.post_message("/system/selftest","Test")
     time.sleep(3)
     if succeed[0]:
         if f2():

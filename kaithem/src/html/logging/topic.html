@@ -2,7 +2,7 @@
 <%!
 from kaithem.src import messagelogging
 import time,itertools,math
-from kaithem.src.unitsofmeasure import formatTimeInterval,strftime
+from kaithem.src.unitsofmeasure import format_time_interval,strftime
 from kaithem.src.util import url,saferepr
 from kaithem.src.config import config
 def dump(j):
@@ -31,7 +31,7 @@ Page:
 %endfor
 <p>
 %for i in e:
-    <h3>${strftime(i[0])}(about ${formatTimeInterval(time.time()-i[0],2)} ago)</h3>
+    <h3>${strftime(i[0])}(about ${format_time_interval(time.time()-i[0],2)} ago)</h3>
     <p><pre>${dump(i[1])|h}</pre></p>
 %endfor
 </div>

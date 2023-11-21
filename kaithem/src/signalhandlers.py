@@ -40,7 +40,7 @@ signal.signal(signal.SIGUSR1, dumpThreads)
 def stop(*args):
     import cherrypy
     from . import messagebus
-    messagebus.postMessage(
+    messagebus.post_message(
         '/system/notifications/shutdown', "Recieved SIGINT.")
     
     import tornado

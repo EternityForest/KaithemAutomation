@@ -239,7 +239,7 @@ class _ResourceManager(object):
                 self.managed_release_interface(device, i)
             except USBError:
                 # Ignore errors when releasing the interfaces
-                # When the device is disconnected, the call may fail
+                # When the device is dis_connected, the call may fail
                 pass
 
     @synchronized

@@ -29,7 +29,7 @@ def memtest():
         #Wait a bit, in case it's a time retention thing
         time.sleep(1)
         if not x1==x2:
-            messagebus.postMessage("/system/notifications/errors","Memory may be corrupt")
+            messagebus.post_message("/system/notifications/errors","Memory may be corrupt")
 
 
 def mathtest():
@@ -113,7 +113,7 @@ def runtest():
         t.start()
         logging.info("Self test was sucessful")
     except:
-        messagebus.postMessage("/system/notifications/errors",    "Self Test Error\n"+traceback.format_exc(chain=True))
+        messagebus.post_message("/system/notifications/errors",    "Self Test Error\n"+traceback.format_exc(chain=True))
     finally:
        pass
 

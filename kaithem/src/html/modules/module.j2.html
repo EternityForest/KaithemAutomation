@@ -119,7 +119,7 @@
                 Last Ran:
                 {% if newevt.getEventLastRan(name,i) %}
                 <code>{{ unitsofmeasure.strftime(newevt.getEventLastRan(name,i) )| escape }}
-                            ({{ (unitsofmeasure.formatTimeInterval(time.time() -newevt.getEventLastRan(name,i),2)) }} ago)</code>
+                            ({{ (unitsofmeasure.format_time_interval(time.time() -newevt.getEventLastRan(name,i),2)) }} ago)</code>
                 {% if newevt.getEventCompleted(name, i) %}
                 <code>Completed in {{ round(newevt.EventReferences[name,i].lastcompleted-newevt.EventReferences[name,i].lastexecuted,3) | escape }}s</code>
                 {% else %}

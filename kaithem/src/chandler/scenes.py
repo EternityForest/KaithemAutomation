@@ -63,10 +63,10 @@ def makeWrappedConnectionClass(parent: Scene):
             return super().on_connect()
 
         def on_disconnect(self):
-            self_closure_ref.event("board.mqtt.disconnected")
+            self_closure_ref.event("board.mqtt.dis_connected")
             self_closure_ref.pushMeta(statusOnly=True)
             if self_closure_ref.mqtt_server:
-                self_closure_ref.event("board.mqtt.error", "Disconnected")
+                self_closure_ref.event("board.mqtt.error", "Dis_connected")
             return super().on_disconnect()
 
         def on_message(self, t: str, m: str | bytes):
@@ -256,7 +256,7 @@ def ifCueCommand(scene: str, cue: str):
 ifCueCommand.summaryTemplate = "True if cue is running"
 
 
-def eventCommand(scene="=SCENE", ev="DummyEvent", value=""):
+def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
     "Send an event to a scene, or to all scenes if scene is __global__"
     if scene == "__global__":
         event(ev, value)
@@ -275,7 +275,7 @@ rootContext.commands["setTag"].completionTags = {
     "tagName": "tagPointsCompleter"}
 
 
-def sendMqttMessage(topic, message):
+def sendMqttMessage(topic: str, message: str):
     "JSON encodes message, and publishes it to the scene's MQTT server"
     raise RuntimeError(
         "This was supposed to be overridden by a scene specific version")
@@ -763,17 +763,17 @@ class Scene:
         self,
         name: str,
         cues=None,
-        active=False,
+        active: bool = False,
         alpha: float = 1,
-        priority=50,
-        blend="normal",
-        id=None,
-        default_active=True,
-        blend_args=None,
-        backtrack=True,
-        bpm=60,
-        sound_output="",
-        event_buttons=[],
+        priority: float = 50,
+        blend: str = "normal",
+        id: Optional[str] = None,
+        default_active: bool = True,
+        blend_args: Optional[Dict[str, Any]] = None,
+        backtrack: bool = True,
+        bpm: float = 60,
+        sound_output: str = "",
+        event_buttons: List[Iterable[str]] = [],
         display_tags=[],
         info_display="",
         utility=False,
@@ -788,6 +788,40 @@ class Scene:
         mqtt_sync_features=None,
         **ignoredParams
     ):
+        """
+
+
+        Args:
+            name (str): _description_
+            cues (_type_, optional):
+            active (bool, optional):
+            alpha (float, optional):
+            priority (float, optional):
+            blend (str, optional):
+            id (Optional[str], optional):
+            default_active (bool, optional):
+            blend_args (Optional[Dict[str, Any]], optional):
+            backtrack (bool, optional):
+            bpm (float, optional):
+            sound_output (str, optional):
+            event_buttons (List[Iterable[str]], optional): List of ButtonLabel, EventName pairs
+            display_tags (list, optional):
+            info_display (str, optional):
+            utility (bool, optional):
+            notes (str, optional):
+            mqtt_server (str, optional):
+            crossfade (int, optional):
+            midi_source (str, optional):
+            default_next (str, optional):
+            command_tag (str, optional):
+            slide_overlay_url (str, optional):
+            music_visualizations (str, optional):
+            mqtt_sync_features (_type_, optional):
+
+        Raises:
+            RuntimeError: _description_
+            ValueError: _description_
+        """
         if name and name in scenes_by_name:
             raise RuntimeError("Cannot have 2 scenes sharing a name: " + name)
 
@@ -1045,7 +1079,7 @@ class Scene:
 
         self.subscribeCommandTags()
 
-    def toDict(self):
+    def toDict(self) -> Dict[str, Any]:
         return {
             "bpm": self.bpm,
             "alpha": self.defaultalpha,
@@ -1079,7 +1113,7 @@ class Scene:
         x = ""
         if self.mqttConnection:
             if not self.mqttConnection.is_connected:
-                x += "MQTT Disconnected "
+                x += "MQTT Dis_connected "
         return x
 
     def close(self):
@@ -2279,7 +2313,7 @@ class Scene:
     def isActive(self):
         return self.active
 
-    def setPriority(self, p):
+    def setPriority(self, p: float):
         global activeScenes, _activeScenes
         self.hasNewInfo = {}
         self.priority = p
@@ -2294,7 +2328,7 @@ class Scene:
             except Exception:
                 print(traceback.format_exc())
 
-    def mqttStatusEvent(self, value, timestamp, annotation):
+    def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":
             self.event("board.mqtt.connect")
         else:

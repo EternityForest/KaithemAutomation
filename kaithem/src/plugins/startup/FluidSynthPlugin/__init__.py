@@ -69,13 +69,13 @@ class JackFluidSynth(devices.Device):
         def f():
             try:
                 if len(name)==1:
-                    self.handleError('Single letter names may not work correctly.  JACK in general may have subpar performace with this plugin badly configured.')
+                    self.handle_error('Single letter names may not work correctly.  JACK in general may have subpar performace with this plugin badly configured.')
                 self.synthLock=threading.Lock()
 
                 self.synth = scullery.fluidsynth.FluidSynth(
                                             soundfont=data.get("device.soundfont", "").strip(),
-                                            jackClientName= name,
-                                            connectOutput=data.get("device.connectOutput", "").strip()
+                                            jack_client_name= name,
+                                            connect_output=data.get("device.connect_output", "").strip()
                                             )
 
 
@@ -99,13 +99,13 @@ class JackFluidSynth(devices.Device):
                         if inst:
                             self.synth.setInstrument(i,inst,bank=bank)
                     except:
-                        self.handleError("Error setting instrument:" +inst+" for channel "+str(i)+"\n"+traceback.format_exc())
+                        self.handle_error("Error setting instrument:" +inst+" for channel "+str(i)+"\n"+traceback.format_exc())
 
 
 
-                connectMidi=data.get("device.connectMidi", "").strip().replace(":",'_').replace("[",'').replace("]",'').replace(" ",'')
+                connect_midi=data.get("device.connect_midi", "").strip().replace(":",'_').replace("[",'').replace("]",'').replace(" ",'')
 
-                messagebus.subscribe("/midi/"+connectMidi,self.onMidiMsg)
+                messagebus.subscribe("/midi/"+connect_midi,self.onMidiMsg)
                 
             
 

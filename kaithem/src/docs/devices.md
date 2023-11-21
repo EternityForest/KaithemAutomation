@@ -51,7 +51,7 @@ Keys starting with temp. do not become part of persistent config.
 Subclasses should never raise errors, and should instead just act as "dummy" devices,
 to allow the user to edit and correct any problems.
 
-handleError should be used to inform the user of issues.
+handle_error should be used to inform the user of issues.
 
 #### dev.print(msg)
 
@@ -83,7 +83,7 @@ Items in this dict will create UI with links to the management pages for the poi
 Tag points should usually be named relative to the device, like "/devices/NAME/property".
 
 
-#### dev.handleError(string)
+#### dev.handle_error(string)
 
 Logs an error as a string. Old errors are automatically flushed to make room for new, and all recent errors will show on the device page.
 

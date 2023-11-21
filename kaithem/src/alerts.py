@@ -206,7 +206,7 @@ def _highestUnacknowledged(excludeSilent=False):
 
 def sendMessage():
     x = _highestUnacknowledged()
-    messagebus.postMessage("/system/alerts/level", x)
+    messagebus.post_message("/system/alerts/level", x)
 
 
 def cleanup():
@@ -292,12 +292,12 @@ class Alert():
 
         self.sm = statemachines.StateMachine("normal")
 
-        self.sm.add_state("normal", enter=self._onNormal)
-        self.sm.add_state("tripped", enter=self._onTrip)
-        self.sm.add_state("active", enter=self._onActive)
-        self.sm.add_state("acknowledged", enter=self._onAck)
-        self.sm.add_state("cleared", enter=self._onClear)
-        self.sm.add_state("retripped", enter=self._onTrip)
+        self.sm.add_state("normal", enter=self._on_normal)
+        self.sm.add_state("tripped", enter=self._on_trip)
+        self.sm.add_state("active", enter=self._on_active)
+        self.sm.add_state("acknowledged", enter=self._on_ack)
+        self.sm.add_state("cleared", enter=self._on_clear)
+        self.sm.add_state("retripped", enter=self._on_trip)
         self.sm.add_state("error")
 
         # After N seconds in the trip state, we go active
@@ -340,7 +340,7 @@ class Alert():
             %s""" % (
             hex(id(self)),
             self.sm.state,
-            unitsofmeasure.formatTimeInterval(
+            unitsofmeasure.format_time_interval(
                 time.time()-self.sm.entered_state, 2),
             unitsofmeasure.strftime(self.sm.entered_state),
             ('\n' if self.description else '')+self.description
@@ -365,7 +365,7 @@ class Alert():
         return self._trip_delay
 
     # I don't like the undefined thread aspec of __del__. Change this?
-    def _onActive(self):
+    def _on_active(self):
         global unacknowledged
         global active
 
@@ -393,22 +393,22 @@ class Alert():
 
         if self.priority in ("error", "critical"):
             logger.error("Alarm "+self.name + " ACTIVE")
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors", "Alarm "+self.name+" is active")
         if self.priority in ("warning"):
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/warnings", "Alarm "+self.name+" is active")
             logger.warning("Alarm "+self.name + " ACTIVE")
         else:
             logger.info("Alarm "+self.name + " active")
 
         if self.priority in ("info"):
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications", "Alarm "+self.name+" is active")
         sendMessage()
         pushAlertState()
 
-    def _onAck(self):
+    def _on_ack(self):
         global unacknowledged
         with lock:
             cleanup()
@@ -420,12 +420,12 @@ class Alert():
         sendMessage()
         pushAlertState()
 
-    def _onNormal(self):
+    def _on_normal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
         global unacknowledged, active, tripped
         if not self.sm.prev_state == 'tripped':
             if self.priority in ("info", "warning", "error", "critical"):
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications", "Alarm "+self.name+" returned to normal")
 
         with lock:
@@ -446,7 +446,7 @@ class Alert():
         sendMessage()
         pushAlertState()
 
-    def _onTrip(self):
+    def _on_trip(self):
         global tripped
         with lock:
             cleanup()
@@ -479,10 +479,10 @@ class Alert():
             active = _active.copy()
         self.sm.event("release")
 
-    def _onClear(self):
+    def _on_clear(self):
         if self.priority in ("error", "critical", "warning"):
             if self.sm.state == 'active':
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications", "Alarm "+self.name+" condition cleared, waiting for ACK")
 
         logger.info("Alarm "+self.name + " cleared")
@@ -509,7 +509,7 @@ class Alert():
             logger.info("Alarm "+self.name + " acknowledged by" + by+notes)
 
             if self.priority in ("error", "critical", "warning"):
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications", "Alarm "+self.name+" acknowledged by " + by+notes)
 
     def error(self, msg=""):

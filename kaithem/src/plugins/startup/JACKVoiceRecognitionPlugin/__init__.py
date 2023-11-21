@@ -44,22 +44,22 @@ class JackVoicePipeline(iceflow.GStreamerPipeline):
             with open("/dev/shm/kaithem_dict_file_"+name, 'w') as f:
                 f.write(v)
 
-        self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
+        self.src = self.add_element("jackaudiosrc", buffer_time=10, latency_time=10,
                                    port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in", connect=0)
 
-        self.capsfilter = self.addElement(
+        self.capsfilter = self.add_element(
             "capsfilter", caps="audio/x-raw,channels="+str(1))
-        self.cnv = self.addElement("audioconvert")
-        self.rs = self.addElement("audioresample")
-        self.q = self.addElement("queue")
+        self.cnv = self.add_element("audioconvert")
+        self.rs = self.add_element("audioresample")
+        self.q = self.add_element("queue")
 
-        self.pocketsphinx = self.addElement(
+        self.pocketsphinx = self.add_element(
             "pocketsphinx", 
             kws=("/dev/shm/kaithem_kw_file_"+name) if keywords else None,
             dict=("/dev/shm/kaithem_dict_file_"+name) if dictionary else '/usr/share/pocketsphinx/model/en-us/cmudict-en-us.dict',
             )
    
-        self.addElement("fakesink", sync=False)
+        self.add_element("fakesink", sync=False)
 
     def on_message(self, bus, message, userdata):
         s = message.get_structure()
@@ -70,13 +70,13 @@ class JackVoicePipeline(iceflow.GStreamerPipeline):
         # Speech recognition, forward it on to the message bus.
         if msgtype == 'pocketsphinx':
             if message.get_structure().get_value('hypothesis'):
-                messagebus.postMessage("/devices/"+self.name+"/hypothesis",
+                messagebus.post_message("/devices/"+self.name+"/hypothesis",
                                        (message.get_structure().get_value('hypothesis'),))
 
             if message.get_structure().get_value('final'):
                 self.controller().print(str((message.get_structure().get_value(
                     'hypothesis'), message.get_structure().get_value('confidence'))))
-                messagebus.postMessage("/devices/"+self.name+"/final",
+                messagebus.post_message("/devices/"+self.name+"/final",
                                        (message.get_structure().get_value('hypothesis'), message.get_structure().get_value('confidence')))
         return True
 

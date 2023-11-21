@@ -2,7 +2,7 @@
 <%!
 from kaithem.src import messagelogging
 from kaithem.src import messagebus
-from kaithem.src.unitsofmeasure import formatTimeInterval,strftime
+from kaithem.src.unitsofmeasure import format_time_interval,strftime
 import time
 import cherrypy
 from kaithem.src.util import url,saferepr
@@ -85,7 +85,7 @@ function f(element)
                     </tr>
                     <tr>
                     <td>Most Recent Message Posted at:</td> <td>${strftime(messagelogging.log[i][-1][0])}
-                    (${formatTimeInterval(time.time()-messagelogging.log[i][-1][0],1)} ago)</td>
+                    (${format_time_interval(time.time()-messagelogging.log[i][-1][0],1)} ago)</td>
                     </tr>
                     <tr>
                     <td>Total Messages Available: </td><td>${len(messagelogging.log[i])}<a href="/logs/viewall/${url(i)}">View History</a></td>

@@ -89,7 +89,7 @@ x = newevt.Event("!onmsg /test","global y\ny='test'",locals())
 #Register event with polling.
 x.register()
 #Give it a value to change from
-messagebus.postMessage("/test",'poo')
+messagebus.post_message("/test",'poo')
 #Let it notice the old value
 
 time.sleep(0.25)
@@ -101,7 +101,7 @@ if not  x.pymodule.y == 'test':
 x.unregister() 
 x.pymodule.y =1
 
-messagebus.postMessage('poo',"/test")
+messagebus.post_message('poo',"/test")
 if x.pymodule.y == 'test':
         common.fail("Message Event did not go away when unregistered")
         

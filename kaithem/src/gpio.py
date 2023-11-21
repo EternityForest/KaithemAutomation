@@ -110,7 +110,7 @@ class GPIOTag():
         self.tag.min = 0
         self.pin = pin
         if pin in inUsePins:
-            messagebus.postMessage("/system/notifications/warnings",
+            messagebus.post_message("/system/notifications/warnings",
                                    "Pin already in use, old connection closed. The old pin will no longer correctly. If the old connection is unwanted, ignore this.")
             try:
                 inUsePins[pin].mock_alert.clear()
@@ -183,7 +183,7 @@ class GPIOTag():
             except gpiozero.exc.BadPinFactory:
                 global alreadySentMockWarning
                 if not alreadySentMockWarning:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/warnings", "No real GPIO found, using mock pins")
 
                 # Redo in mock mode
@@ -352,7 +352,7 @@ class DigitalInput(GPIOTag):
         return self.tag.value
 
     def _setInputCallbacks(self):
-        self.gpio.when_activated = self._onActive
+        self.gpio.when_activated = self._on_active
         self.gpio.when_deactivated = self._onInactive
         self.gpio.when_held = self._onHold
 
@@ -387,13 +387,13 @@ class DigitalInput(GPIOTag):
         self._selectReal()
         api.send(["ipin", self.pin, formatPin(self)])
 
-    def _onActive(self):
+    def _on_active(self):
 
         # Now was the last time it WAS inactive, this is the moment it starts being active
         self.lastInactive = time.monotonic()
 
-        messagebus.postMessage("/system/gpio/change/"+str(self.pin), True)
-        messagebus.postMessage("/system/gpio/active/"+str(self.pin), True)
+        messagebus.post_message("/system/gpio/change/"+str(self.pin), True)
+        messagebus.post_message("/system/gpio/active/"+str(self.pin), True)
 
         self.phyclaim.set(1)
 
@@ -407,8 +407,8 @@ class DigitalInput(GPIOTag):
 
     def _onInactive(self):
         self.lastInactive = time.monotonic()
-        messagebus.postMessage("/system/gpio/change/"+str(self.pin), False)
-        messagebus.postMessage("/system/gpio/inactive/"+str(self.pin), False)
+        messagebus.post_message("/system/gpio/change/"+str(self.pin), False)
+        messagebus.post_message("/system/gpio/inactive/"+str(self.pin), False)
 
         self.phyclaim.set(0)
         t = time.time()
@@ -417,7 +417,7 @@ class DigitalInput(GPIOTag):
         self.lastPushed = time.time()
 
     def _onHold(self):
-        messagebus.postMessage("/system/gpio/hold/"+str(self.pin), True)
+        messagebus.post_message("/system/gpio/hold/"+str(self.pin), True)
 
     def on_active(self, f):
         return messagebus.subscribe("/system/gpio/active/"+str(self.pin), f)
@@ -454,14 +454,14 @@ class DigitalInput(GPIOTag):
                 self.fakeGpio.when_deactivated = None
 
             self.gpio = self.realGpio
-            self.gpio.when_activated = self._onActive
+            self.gpio.when_activated = self._on_active
             self.gpio.when_deactivated = self._onInactive
             self.gpio.when_held = self._onHold
 
             if self.gpio.value:
                 self.phyclaim.set(1)
                 if not oldValue:
-                    self._onActive()
+                    self._on_active()
             else:
                 self.phyclaim.set(0)
                 if oldValue:
@@ -492,7 +492,7 @@ class DigitalInput(GPIOTag):
 
             if not oldValue == self.phyclaim.value:
                 if self.phyclaim.value:
-                    self._onActive()
+                    self._on_active()
 
                     def f():
                         # Wait until it's been long enough

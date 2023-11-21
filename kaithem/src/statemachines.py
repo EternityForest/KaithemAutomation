@@ -129,7 +129,7 @@ class StateMachine():
             %s""" % (
             hex(id(self)),
             self.state,
-            unitsofmeasure.formatTimeInterval(
+            unitsofmeasure.format_time_interval(
                 time.time()-self.entered_state, 2),
             unitsofmeasure.strftime(self.entered_state),
             ('\n' if self.description else '')+self.description

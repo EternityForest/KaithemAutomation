@@ -2,22 +2,22 @@ import common
 import src.unitsofmeasure as unitsofmeasure
 import random
 
-x = unitsofmeasure.timeIntervalFromString("1 minute")
+x = unitsofmeasure.time_interval_from_string("1 minute")
 if not x == 60:
     common.fail(x)
     
-x = unitsofmeasure.timeIntervalFromString("1 minute 10 seconds")
+x = unitsofmeasure.time_interval_from_string("1 minute 10 seconds")
 if not x == 70:
     common.fail(x)
     
-x = unitsofmeasure.timeIntervalFromString("1 minute and 10 secondsbutwithanextra42milliseconds")
+x = unitsofmeasure.time_interval_from_string("1 minute and 10 secondsbutwithanextra42milliseconds")
 if not x == 70.042:
     common.fail(x)
     
-if not unitsofmeasure.formatTimeInterval(60.1,2) == '1 minute, 100 milliseconds':
+if not unitsofmeasure.format_time_interval(60.1,2) == '1 minute, 100 milliseconds':
     common.fail()
     
-if not unitsofmeasure.strToIntWithSIMultipliers('10k') ==10000:
+if not unitsofmeasure.str_to_int_si_multipliers('10k') ==10000:
     common.fail()
 
 x = unitsofmeasure.DayOfWeek("Tuesday")

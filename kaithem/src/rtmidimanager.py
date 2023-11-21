@@ -26,7 +26,7 @@ def setTag14(n, v, a=None):
 
 def onMidiMessage(m, d):
     if m.isNoteOn():
-        messagebus.postMessage(
+        messagebus.post_message(
             "/midi/" + d, ("noteon", m.getChannel(), m.getNoteNumber(), m.getVelocity())
         )
         setTag(
@@ -36,13 +36,13 @@ def onMidiMessage(m, d):
         )
 
     elif m.isNoteOff():
-        messagebus.postMessage(
+        messagebus.post_message(
             "/midi/" + d, ("noteoff", m.getChannel(), m.getNoteNumber())
         )
         setTag("/midi/" + d + "/" + str(m.getChannel()) + ".note", 0, a=0)
 
     elif m.isController():
-        messagebus.postMessage(
+        messagebus.post_message(
             "/midi/" + d,
             ("cc", m.getChannel(), m.getControllerNumber(), m.getControllerValue()),
         )
@@ -59,7 +59,7 @@ def onMidiMessage(m, d):
         )
 
     elif m.isPitchWheel():
-        messagebus.postMessage(
+        messagebus.post_message(
             "/midi/" + d, ("pitch", m.getChannel(), m.getPitchWheelValue())
         )
         setTag14(
@@ -77,19 +77,19 @@ def onMidiMessageTuple(m, d):
     b = m[0][2]
 
     if code == 144:
-        messagebus.postMessage("/midi/" + d, ("noteon", ch, a, b))
+        messagebus.post_message("/midi/" + d, ("noteon", ch, a, b))
         setTag("/midi/" + d + "/" + str(ch) + ".note", a, a=b)
 
     elif code == 128:
-        messagebus.postMessage("/midi/" + d, ("noteoff", ch, a, b))
+        messagebus.post_message("/midi/" + d, ("noteoff", ch, a, b))
         setTag("/midi/" + d + "/" + str(ch) + ".note", 0, a=0)
 
     elif code == 224:
-        messagebus.postMessage("/midi/" + d, ("pitch", ch, a, b))
+        messagebus.post_message("/midi/" + d, ("pitch", ch, a, b))
         setTag14("/midi/" + d + "/" + str(ch) + ".pitch", a + b * 128, a=0)
 
     elif code == 176:
-        messagebus.postMessage("/midi/" + d, ("cc", a, b))
+        messagebus.post_message("/midi/" + d, ("cc", a, b))
         setTag("/midi/" + d + "/" + str(ch) + ".cc[" + str(a) + "]", b, a=0)
 
 
@@ -104,7 +104,7 @@ def doScan():
         import rtmidi
     except ImportError:
         if once[0] == 0:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors/",
                 "python-rtmidi is missing. Most MIDI related features will not work.",
             )

@@ -216,7 +216,7 @@ time_as_seconds_abbr = {
 }
 
 
-def timeIntervalFromString(s):
+def time_interval_from_string(s):
     """Take a string like '10 hours' or 'five minutes 32 milliseconds'
     or '1 year and 1 day' to a number of seconds"""
     regex = r"([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?"
@@ -230,10 +230,10 @@ def timeIntervalFromString(s):
     return total
 
 
-def formatTimeIntervallong(t, maunitss, clock=False):
+def format_time_interval_long(t, max_units, clock=False):
     """Take a length of time t in seconds, and return a nicely formatted string
     like "2 hours, 4 minutes, 12 seconds".
-    maunitss is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
+    max_units is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
 
     """
     if clock:
@@ -246,9 +246,9 @@ def formatTimeIntervallong(t, maunitss, clock=False):
         hours = t/3600
 
         s = "%02d:%02d" % (hours, minutes)
-        if maunitss > 2:
+        if max_units > 2:
             s += ":%02d" % (seconds)
-        if maunitss > 3:
+        if max_units > 3:
             # Adding 0.01 seems to help with some kind of obnoxious rounding bug thing. Prob a better way to do things.
             s += ":%03d" % (0.01+frac*1000)
 
@@ -256,7 +256,7 @@ def formatTimeIntervallong(t, maunitss, clock=False):
     s = ""
 
     for i in sorted(time_as_seconds.items(), key=lambda x: x[1], reverse=True):
-        if maunitss == 0:
+        if max_units == 0:
             return s[:-2]
         x = t % i[1]
         b = (t-x)
@@ -265,17 +265,17 @@ def formatTimeIntervallong(t, maunitss, clock=False):
         t = t-b
         if y > 1:
             s += str(int(round(y))) + " " + i[0]+"s, "
-            maunitss -= 1
+            max_units -= 1
         elif y == 1:
             s += str(int(round(y))) + " " + i[0]+", "
-            maunitss -= 1
+            max_units -= 1
     return s[:-2]
 
 
-def formatTimeIntervalabbr(t, maunitss, clock=False):
+def format_time_interval_abbr(t, max_units, clock=False):
     """Take a length of time t in seconds, and return a nicely formatted string
     like "2 hours, 4 minutes, 12 seconds".
-    maunitss is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
+    max_units is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
 
     """
     if clock:
@@ -288,16 +288,16 @@ def formatTimeIntervalabbr(t, maunitss, clock=False):
         hours = t/3600
 
         s = "%02d:%02d" % (hours, minutes)
-        if maunitss > 2:
+        if max_units > 2:
             s += ":%02d" % (seconds)
-        if maunitss > 3:
+        if max_units > 3:
             # Adding 0.01 seems to help with some kind of obnoxious rounding bug thing. Prob a better way to do things.
             s += ":%03d" % (0.01+frac*1000)
 
         return s
     s = ""
     for i in sorted(time_as_seconds_abbr.items(), key=lambda x: x[1], reverse=True):
-        if maunitss == 0:
+        if max_units == 0:
             return s[:-1]
         x = t % i[1]
         b = (t-x)
@@ -309,20 +309,20 @@ def formatTimeIntervalabbr(t, maunitss, clock=False):
                 s += str(int(round(y))) + i[0]+"s "
             else:
                 s += str(int(round(y))) + i[0]+" "
-            maunitss -= 1
+            max_units -= 1
         elif y:
             s += str(int(round(y))) + i[0]+" "
-            maunitss -= 1
+            max_units -= 1
     return s[:-1]
 
 
 if not config['full-time-intervals']:
-    formatTimeInterval = formatTimeIntervalabbr
+    format_time_interval = format_time_interval_abbr
 else:
-    formatTimeInterval = formatTimeIntervallong
+    format_time_interval = format_time_interval_long
 
 
-def strToIntWithSIMultipliers(s):
+def str_to_int_si_multipliers(s):
     """Take a string of the form number[k|m|g] or just number and convert to an actual number
     '0'-> 0, '5k'->5000 etc. Does not do division!!!! m is mega not milli!!!"""
     s = s.lower()

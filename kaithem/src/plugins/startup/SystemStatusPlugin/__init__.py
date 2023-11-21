@@ -232,13 +232,13 @@ if util.which("vcgencmd"):
 
             if x & (2**16):
                 if not undervoltageDuringBootPosted:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors", "A low input voltage condition has occurred at some point on this system")
                     undervoltageDuringBootPosted = True
 
             if x & (2**19):
                 if not overTempDuringBootPosted:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors", "An overtemperature condition has occurred at some point on this system")
                     overTempDuringBootPosted = True
 

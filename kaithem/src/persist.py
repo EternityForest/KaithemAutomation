@@ -19,7 +19,7 @@ import os
 import json
 from pwd import getpwuid, getpwnam
 from scullery.persist import *
-from scullery.messagebus import subscribe, postMessage
+from scullery.messagebus import subscribe, post_message
 
 import weakref
 import threading
@@ -51,7 +51,7 @@ if os.path.exists("/dev/shm"):
         os.chown(recoveryDir, p.pw_uid, p.pw_gid)
     else:
         if not getpwuid(os.stat(recoveryDir).st_uid).pw_name == selected_user:
-            postMessage("/system/notifications/errors",
+            post_message("/system/notifications/errors",
                         "Hacking Detected? "+recoveryDir+" not owned by this user")
             recoveryDir = ''
 else:
@@ -82,7 +82,7 @@ class SharedStateFile():
                 self.data = load(filename)
             except Exception:
                 self.data = {}
-                postMessage("/system/notifications/errors",
+                post_message("/system/notifications/errors",
                             filename+"\n"+traceback.format_exc())
         else:
             self.data = {}
@@ -260,5 +260,5 @@ def loadRecursiveFrom(f, d, remapToDirForSave=None):
                         d[x] = data
                     except:
                         from . import messagebus
-                        messagebus.postMessage(
+                        messagebus.post_message(
                             "/system/notifications/errors", "Failed to load data file"+x)

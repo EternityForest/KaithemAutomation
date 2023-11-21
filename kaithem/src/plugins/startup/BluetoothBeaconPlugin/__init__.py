@@ -76,7 +76,7 @@ class EspruinoHubBLEClient(devices.Device):
                 data.get("device.server", "localhost"),
                 int(data.get("device.port", "1883").strip() or 1883),
                 password=data.get("device.password", "").strip(),
-                connectionID=str("EspruinoConnection")
+                connection_id=str("EspruinoConnection")
             )
             self.tagPoints['EspruinoHubStatus'] = self.connection.statusTag
 

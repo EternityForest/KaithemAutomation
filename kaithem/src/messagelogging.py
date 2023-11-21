@@ -44,7 +44,7 @@ try:
         for i in config["log-topics"]:
             toSave.add(normalize_topic(i))
 except Exception:
-    messagebus.postMessage(
+    messagebus.post_message(
         "/system/notifications/errors",
         "Error loading logged topics list. using defaults:\n" + traceback.format_exc(6),
     )
@@ -71,7 +71,7 @@ def isSaved(topic):
     "Determine of logging is set up for a given topic"
     if topic in known_unsaved:
         return False
-    if messagebus.MessageBus.parseTopic(topic).isdisjoint(toSave):
+    if messagebus.MessageBus.parse_topic(topic).isdisjoint(toSave):
         known_unsaved[topic] = True
         if len(known_unsaved) > 1200:
             known_unsaved.pop(last=False)

@@ -3,7 +3,7 @@ from kaithem.src import notifications,auth,unitsofmeasure,pages,alerts
 import time
 import cherrypy
 from kaithem.src.config import config
-from kaithem.src.unitsofmeasure import formatTimeInterval
+from kaithem.src.unitsofmeasure import format_time_interval
 
 
 pcolor={
@@ -134,7 +134,7 @@ ${alertsapi.render("alertapi")}
 
                 <span class="grey">
             Priority: ${i.priority}</span> <br><span class="grey">
-            Tripped at: ${unitsofmeasure.strftime(i.trippedAt)}(about ${formatTimeInterval(time.time()-i.trippedAt,2)}
+            Tripped at: ${unitsofmeasure.strftime(i.trippedAt)}(about ${format_time_interval(time.time()-i.trippedAt,2)}
                 ago)<br>
             Trip Message: ${i.trip_message}</span>
             </div>

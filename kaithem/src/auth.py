@@ -346,7 +346,7 @@ def initializeAuthentication():
         except Exception as e:
             logger.exception(
                 "Error loading auth data, may be able to continue from old state")
-            messagebus.postMessage("/system/notifications/errors",
+            messagebus.post_message("/system/notifications/errors",
                                    "Error loading auth data, may be able to continue from old state:\n" + str(e))
             data_bad = True
             try:
@@ -354,7 +354,7 @@ def initializeAuthentication():
                     directories.usersdir)
                 tryToLoadFrom(dirname)
                 loaded = True
-                messagebus.postMessage("/system/notifications/warnings",
+                messagebus.post_message("/system/notifications/warnings",
                                        """Saving was interrupted. Using last version of users list.
                 This could create a secuirty issue if the old version allowes access to a malicious user.
                 To suppress this warning, please review your users and groups, and re-save the server state. You must make at least
@@ -362,7 +362,7 @@ def initializeAuthentication():
                 for them to actually be saved.
                 """)
             except:
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors", "Could not load old state:\n" + str(e))
                 pass
 
@@ -407,7 +407,7 @@ def generateUserPermissions(username=None):
 
             for j in Users[i].permissions:
                 if not j in newp:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/permissions/rmfromuser", (i, j))
 
             # Speed up by using a set

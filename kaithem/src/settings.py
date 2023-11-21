@@ -429,7 +429,7 @@ class Settings():
         if len(kwargs['email']) > 120:
             raise RuntimeError("Limit 120 chars for email address")
         auth.setUserSetting(pages.getAcessingUser(), 'email', kwargs['email'])
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/user/changedemail", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect("/settings/account")
 
@@ -450,7 +450,7 @@ class Settings():
                 raise cherrypy.HTTPRedirect("/errors/mismatch")
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/auth/user/selfchangedepassword", pages.getAcessingUser())
 
         raise cherrypy.HTTPRedirect("/")
@@ -521,7 +521,7 @@ class Settings():
         geolocation.setDefaultLocation(float(kwargs['lat']), float(kwargs['lon']), kwargs['city'],
                                        country=kwargs['country'], region=kwargs['region'], timezone=kwargs['timezone'])
 
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
 
@@ -566,7 +566,7 @@ class Settings():
         l = geolocation.ip_geolocate()
         geolocation.setDefaultLocation(
             l['lat'], l['lon'], l['city'], l['timezone'], l['regionName'], l['countryCode'])
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
 
@@ -611,7 +611,7 @@ class Settings():
                     logging.exception("CPU time profiling not supported")
 
             time.sleep(0.5)
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/settings/activatedprofiler", pages.getAcessingUser())
             raise cherrypy.HTTPRedirect("/settings/profiler")
 

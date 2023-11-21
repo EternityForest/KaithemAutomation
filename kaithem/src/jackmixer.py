@@ -58,18 +58,18 @@ PW_BLOCKSIZE=128
 
 
 class DummySource(iceflow.GStreamerPipeline):
-    "Nasty hack. When gstreamer is disconnected it stops.  So we have a special silent thing to always connect to"
+    "Nasty hack. When gstreamer is dis_connected it stops.  So we have a special silent thing to always connect to"
     def __init__(self):
         iceflow.GStreamerPipeline.__init__(self)
-        self.addElement('audiotestsrc', volume=0)
-        self.addElement('pipewiresink', client_name="SILENCE")
+        self.add_element('audiotestsrc', volume=0)
+        self.add_element('pipewiresink', client_name="SILENCE")
 
 
 try:
     ds = DummySource()
     ds.start()
     for i in range(25):
-        if [i.name for i in jackmanager.getPorts() if i.name.startswith("SILENCE")]:
+        if [i.name for i in jackmanager.get_ports() if i.name.startswith("SILENCE")]:
             break
         time.sleep(0.1)
 except Exception:
@@ -268,14 +268,14 @@ class Recorder(gstwrapper.Pipeline):
     def __init__(self, name="krecorder", channels=2, pattern="mixer_"):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
-        self.src = self.addElement(
+        self.src = self.add_element(
             "jackaudiosrc",
             port_pattern="fgfcghfhftyrtw5ew453xvrt",
             client_name="krecorder",
             connect=0,
             slave_method=0,
         )
-        self.capsfilter = self.addElement(
+        self.capsfilter = self.add_element(
             "capsfilter", caps="audio/x-raw,channels=" + str(channels)
         )
 
@@ -289,12 +289,12 @@ class Recorder(gstwrapper.Pipeline):
         if not os.path.exists(os.path.join(directories.vardir, "recordings", "mixer")):
             os.makedirs(os.path.join(directories.vardir, "recordings", "mixer"))
 
-        self.addElement("queue")
-        self.addElement("audioconvert")
-        self.addElement("opusenc", bitrate=96000)
+        self.add_element("queue")
+        self.add_element("audioconvert")
+        self.add_element("opusenc", bitrate=96000)
 
-        self.addElement("oggmux")
-        self.addElement("filesink", location=filename)
+        self.add_element("oggmux")
+        self.add_element("filesink", location=filename)
 
 
 class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
@@ -335,27 +335,27 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.created_time = time.monotonic()
 
             if not input or not input.startswith("rtplisten://"):
-                self.src = self.addElement('pipewiresrc',
+                self.src = self.add_element('pipewiresrc',
                                             blocksize=PW_BLOCKSIZE,
                                             client_name=name + "_in",
                                             do_timestamp=False,
                                             always_copy=True
                                             )
                     
-                self.capsfilter = self.addElement(
+                self.capsfilter = self.add_element(
                     "capsfilter", caps="audio/x-raw,channels=" + str(channels),
                 )
             else:
-                self.src = self.addElement("udpsrc", port=int(input.split("://")[1]))
-                self.capsfilter = self.addElement(
+                self.src = self.add_element("udpsrc", port=int(input.split("://")[1]))
+                self.capsfilter = self.add_element(
                     "capsfilter",
                     caps="application/x-rtp, media=(string)audio, clock-rate=(int)48000, encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00, payload=(int)96, ssrc=(uint)950073154, clock-base=(uint)639610336, seqnum-base=(uint)55488",
                 )
-                self.addElement("rtpjitterbuffer")
-                self.addElement("rtpopusdepay")
-                self.addElement("opusdec")
-                self.addElement("audioconvert")
-                self.addElement("audioresample")
+                self.add_element("rtpjitterbuffer")
+                self.add_element("rtpopusdepay")
+                self.add_element("opusdec")
+                self.add_element("audioconvert")
+                self.add_element("audioresample")
 
             self.input = input
             self._input = None
@@ -397,9 +397,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     
     def check_ports(self):
         "Check that the ports actually exist"
-        if not [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_in:")]:
+        if not [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_in:")]:
             return False
-        if not [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_out:")]:
+        if not [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_out:")]:
             return False
         return True
     
@@ -428,7 +428,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         ]
 
         x = jackmanager.Airwire(
-            n, self.name + "_in", forceCombining=(self.channels == 1)
+            n, self.name + "_in", force_combining=(self.channels == 1)
         )
         x.connect()
 
@@ -461,10 +461,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def finalize(self, wait=3):
         with self.lock:
-            # self.addElement("audioconvert")
-            # self.capsfilter2= self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
+            # self.add_element("audioconvert")
+            # self.capsfilter2= self.add_element("capsfilter", caps="audio/x-raw,channels="+str(channels))
 
-            self.addElement("audiorate")
+            self.add_element("audiorate")
 
             # We can connect faster letting gstreamer do the work where possible
             # and maybe avoid some timeout oddness
@@ -472,7 +472,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self.outputs:
                 pattern = self.outputs[0]
 
-            self.sink = self.addElement(
+            self.sink = self.add_element(
                 'pipewiresink',
                 client_name=self.name + "_out",
                 blocksize=PW_BLOCKSIZE,
@@ -485,21 +485,21 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self.usingJack:
                 t = time.time()
                 while (time.time() - t) < 3:
-                    if jackmanager.getPorts():
+                    if jackmanager.get_ports():
                         break
-                if not jackmanager.getPorts():
+                if not jackmanager.get_ports():
                     return
                 
         self.start(timeout=wait)
         # We unfortunately can't suppress auto connect in this version
         # use this hack.  Wait till ports show up then disconnect.
         for i in range(25):
-            if [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_in:")]:
+            if [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_in:")]:
                 break
             time.sleep(0.1)
 
         for i in range(25):
-            if [i.name for i in jackmanager.getPorts() if i.name.startswith(self.name+"_out:")]:
+            if [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_out:")]:
                 break
             time.sleep(0.1)
 
@@ -521,8 +521,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         # wait till it exists for real
         for i in range(8):
-            p = [i.name for i in jackmanager.getPorts()]
-            p2 = [i.clientName for i in jackmanager.getPorts()]
+            p = [i.name for i in jackmanager.get_ports()]
+            p2 = [i.clientName for i in jackmanager.get_ports()]
             p = p + p2
             if (self.name + "_out" in p) and (self.name + "_in") in p:
                 break
@@ -531,7 +531,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         for i in self.outputs:
             x = jackmanager.Airwire(
-                self.name + "_out", i, forceCombining=(self.channels == 1)
+                self.name + "_out", i, force_combining=(self.channels == 1)
             )
             x.connect()
             self._outputs.append(x)
@@ -563,8 +563,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         # wait till jack catches up
         for i in range(15):
-            p = [i.name for i in jackmanager.getPorts()]
-            p2 = [i.clientName for i in jackmanager.getPorts()]
+            p = [i.name for i in jackmanager.get_ports()]
+            p2 = [i.clientName for i in jackmanager.get_ports()]
             p = p + p2
             if (self.name + "_out" in p) or (self.name + "_in") in p:
                 time.sleep(0.5)
@@ -574,10 +574,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def backup(self):
         c = []
 
-        for i in jackmanager.getPorts(self.name + "_in:"):
-            c.append((i, jackmanager.getConnections(i)))
-        for i in jackmanager.getPorts(self.name + "_out:"):
-            c.append((i, jackmanager.getConnections(i)))
+        for i in jackmanager.get_ports(self.name + "_in:"):
+            c.append((i, jackmanager.get_connections(i)))
+        for i in jackmanager.get_ports(self.name + "_out:"):
+            c.append((i, jackmanager.get_connections(i)))
         return c
 
     def setInput(self, input):
@@ -591,7 +591,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self._input.disconnect()
             if not "://" in self.input:
                 self._input = jackmanager.Airwire(
-                    self.input, self.name + "_in", forceCombining=(self.channels == 1)
+                    self.input, self.name + "_in", force_combining=(self.channels == 1)
                 )
                 self._input.connect()
             else:
@@ -607,7 +607,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self._outputs = []
             for i in self.outputs:
                 x = jackmanager.Airwire(
-                    self.name + "_out", i, forceCombining=(self.channels == 1)
+                    self.name + "_out", i, force_combining=(self.channels == 1)
                 )
                 x.connect()
                 self._outputs.append(x)
@@ -619,7 +619,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         with self.lock:
             if not isinstance(target, str):
                 raise ValueError("Target must be string")
-            l, e2 = self.addJackMixerSendElements(target, id, volume)
+            l, e2 = self.add_jack_mixer_send_elements(target, id, volume)
 
             self.effectsById[id] = l
             self.effectsById[id + "*destination"] = e2
@@ -634,7 +634,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             e2.set_property("client-name", cname)
 
             self.sendAirwires[id] = jackmanager.Airwire(
-                cname, target, forceCombining=(self.channels == 1)
+                cname, target, force_combining=(self.channels == 1)
             )
             self.sends.append(e2)
 
@@ -647,7 +647,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if not "id" in i or not i["id"]:
                 i["id"] = str(uuid.uuid4())
             if i["type"] == "fader":
-                self.fader = self.addElement("volume")
+                self.fader = self.add_element("volume")
                 # Set to 0 until all is set up
                 self.initialFader = d['fader']
                 self.fader.set_property("volume", 0.0)
@@ -663,9 +663,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 # Sidechain lets us split off a whole effect chain that does not
                 # feed the main chain, such as fir the speech recognition effect
                 if i.get("sidechain", 0):
-                    linkTo = self.addElement("tee")
-                    self.addElement("queue")
-                    linkTo = self.addElement(
+                    linkTo = self.add_element("tee")
+                    self.add_element("queue")
+                    linkTo = self.add_element(
                         "queue", sidechain=True, connectToOutput=linkTo
                     )
                     sidechain = True
@@ -678,7 +678,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 supports = []
                 if "preSupportElements" in i:
                     for j in i["preSupportElements"]:
-                        linkTo = self.addElement(
+                        linkTo = self.add_element(
                             j["gstElement"],
                             **j["gstSetup"],
                             sidechain=sidechain,
@@ -690,7 +690,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
                 # Prioritize specific mono or stereo version of elements
                 if self.channels == 1 and "monoGstElement" in i:
-                    linkTo = self.effectsById[i["id"]] = self.addElement(
+                    linkTo = self.effectsById[i["id"]] = self.add_element(
                         i["monoGstElement"],
                         **i["gstSetup"],
                         sidechain=sidechain,
@@ -700,7 +700,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         connectWhenAvailable=i.get("connectWhenAvailable", None)
                     )
                 elif self.channels == 2 and "stereoGstElement" in i:
-                    linkTo = self.effectsById[i["id"]] = self.addElement(
+                    linkTo = self.effectsById[i["id"]] = self.add_element(
                         i["stereoGstElement"],
                         **i["gstSetup"],
                         sidechain=sidechain,
@@ -710,7 +710,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         connectWhenAvailable=i.get("connectWhenAvailable", None)
                     )
                 else:
-                    linkTo = self.effectsById[i["id"]] = self.addElement(
+                    linkTo = self.effectsById[i["id"]] = self.add_element(
                         i["gstElement"],
                         **i["gstSetup"],
                         sidechain=sidechain,
@@ -728,7 +728,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 supports = []
                 if "postSupportElements" in i:
                     for j in i["postSupportElements"]:
-                        linkTo = self.addElement(
+                        linkTo = self.add_element(
                             j["gstElement"],
                             **j["gstSetup"],
                             sidechain=sidechain,
@@ -745,7 +745,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     if i["type"] in specialCaseParamCallbacks:
                         x = specialCaseParamCallbacks[i["type"]]
                         if x(self.effectsById[i["id"]], j, i["params"][j]["value"]):
-                            self.setProperty(
+                            self.set_property(
                                 self.effectsById[i["id"]], j, i["params"][j]["value"]
                             )
                     else:
@@ -754,7 +754,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 # Sidechain FX have a bug where they always cause an output to the system channel, we have to work around
                 # That with a hack.  Basically sidechains only exist to let us to alternative outputs anyway.
                 if i.get("silenceMainChain", False):
-                    self.addElement("volume", volume=0)
+                    self.add_element("volume", volume=0)
 
 
         self.setInput(d["input"])
@@ -793,7 +793,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         self.sendAirwires[effectId] = jackmanager.Airwire(
                             self.sendAirwires[effectId].orig,
                             value,
-                            forceCombining=(self.channels == 1),
+                            force_combining=(self.channels == 1),
                         )
                         try:
                             self.sendAirwires[effectId].connect()
@@ -809,7 +809,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     if r:
                         if r == "pause":
                             self.pause()
-                        self.setProperty(self.effectsById[effectId], param, value)
+                        self.set_property(self.effectsById[effectId], param, value)
                         if r == "pause":
                             self.play()
 
@@ -825,11 +825,11 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         fx = fx.postSupports[int(v[1])]
                         param = v[2]
 
-                    self.setProperty(fx, param, value)
+                    self.set_property(fx, param, value)
         return value
 
     def addLevelDetector(self):
-        self.levelDetector = self.addElement(
+        self.levelDetector = self.add_element(
             "level",
             post_messages=True,
             peak_ttl=300 * 1000 * 1000,
@@ -855,12 +855,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.board.pushLevel(self.name, level)
 
     def onSTTMessage(self, v):
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/mixer/channels/" + self.name + "/stt/hypothesis", (v,)
         )
 
     def onSTTMessageFinal(self, v):
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/mixer/channels/" + self.name + "/stt/final", (v,)
         )
 
@@ -1053,7 +1053,7 @@ class MixingBoard:
             try:
                 self._createChannel(i, self.channels[i])
             except Exception as e:
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Failed to create mixer channel " + i + " see logs.",
                 )
@@ -1061,14 +1061,14 @@ class MixingBoard:
                 self.pushStatus(i, "error " + str(e))
 
     def sendState(self):
-            inPorts = jackmanager.getPortNamesWithAliases(is_audio=True, is_input=True)
-            outPorts = jackmanager.getPortNamesWithAliases(
+            inPorts = jackmanager.get_port_names_with_aliases(is_audio=True, is_input=True)
+            outPorts = jackmanager.get_port_names_with_aliases(
                 is_audio=True, is_output=True
             )
-            midiOutPorts = jackmanager.getPortNamesWithAliases(
+            midiOutPorts = jackmanager.get_port_names_with_aliases(
                 is_midi=True, is_output=True
             )
-            midiInPorts = jackmanager.getPortNamesWithAliases(
+            midiInPorts = jackmanager.get_port_names_with_aliases(
                 is_midi=True, is_input=True
             )
 
@@ -1407,7 +1407,7 @@ board = MixingBoard()
 try:
     board.loadPreset("default")
 except Exception:
-    messagebus.postMessage("Could not load default preset for JACK mixer")
+    messagebus.post_message("Could not load default preset for JACK mixer")
     log.exception(
         "Could not load default preset for JACK mixer. Maybe it doesn't exist?"
     )

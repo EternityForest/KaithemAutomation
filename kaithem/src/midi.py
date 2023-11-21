@@ -33,8 +33,8 @@ if not os.path.isfile("/usr/share/sounds/sf2/FluidR3_GM.sf2"):
 
 
 class MidiAPI():
-    instrumentSearch = getGMInstruments
+    instrumentSearch = get_gm_instruments
     FluidSynth = FluidSynth
     @property
     def numbersToGM(self):
-        return getGMInstruments()
+        return get_gm_instruments()

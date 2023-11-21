@@ -17,7 +17,7 @@ import tornado
 from tornado import httputil
 from tornado.concurrent import Future
 from typeguard import typechecked
-from .unitsofmeasure import convert, unitTypes
+from .unitsofmeasure import convert, unit_types
 import weakref
 import time
 import json
@@ -97,7 +97,7 @@ def eventErrorHandler(f):
         print(traceback.format_exc())
 
 
-defaultDisplayUnits = {
+default_display_units = {
     "temperature": "degC|degF",
     "length": "m",
     "weight": "g",
@@ -140,7 +140,7 @@ def subsc_closure(self, i, widget):
         except:
             if not widget.errored_send:
                 widget.errored_send = True
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Problem in widget " + repr(widget) + ", see logs",
                 )
@@ -170,7 +170,7 @@ def raw_subsc_closure(self, i, widget):
         except:
             if not widget.errored_send:
                 widget.errored_send = True
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Problem in widget " + repr(widget) + ", see logs",
                 )
@@ -188,7 +188,7 @@ clients_info = weakref.WeakValueDictionary()
 ws_connections = weakref.WeakValueDictionary()
 
 
-def getConnectionRefForID(id, deleteCallback=None):
+def get_connectionRefForID(id, deleteCallback=None):
     try:
         return weakref.ref(ws_connections[id], deleteCallback)
     except KeyError:
@@ -327,7 +327,7 @@ class websocket_impl:
             upd = o["upd"]
             for i in upd:
                 if i[0] in widgets:
-                    widgets[i[0]]._onUpdate(user, i[1], self.uuid)
+                    widgets[i[0]]._on_update(user, i[1], self.uuid)
                 elif i[0] == "__url__":
                     self.pageURL = i[1]
 
@@ -435,7 +435,7 @@ class websocket_impl:
 
                             self.subscriptions.append(i)
                             if not widgets[i].noOnConnectData:
-                                x = widgets[i]._onRequest(user, self.uuid)
+                                x = widgets[i]._on_request(user, self.uuid)
                                 if not x is None:
                                     widgets[i].send(x)
                             self.subCount += 1
@@ -461,7 +461,7 @@ class websocket_impl:
 
         except Exception as e:
             logging.exception("Error in widget, responding to " + str(d))
-            messagebus.postMessage(
+            messagebus.post_message(
                 "system/errors/widgets/websocket", traceback.format_exc(6)
             )
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
@@ -690,7 +690,7 @@ class Widget:
             callback(clients_info[i])
 
     # This function is called by the web interface code
-    def _onRequest(self, user, uuid):
+    def _on_request(self, user, uuid):
         """Widgets on the client side send AJAX requests for the new value. This function must
         return the value for the widget. For example a slider might request the newest value.
 
@@ -708,11 +708,11 @@ class Widget:
             if not pages.canUserDoThis(i, user):
                 return "PERMISSIONDENIED"
         try:
-            return self.onRequest(user, uuid)
+            return self.on_request(user, uuid)
         except Exception as e:
             logger.exception("Error in widget request to " + repr(self))
             if not (self.errored_getter == id(self._callback)):
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
                     % (self._callback.__name__, self._callback.__module__),
@@ -720,7 +720,7 @@ class Widget:
                 self.errored_getter = id(self._callback)
 
     # This function is meant to be overridden or used as is
-    def onRequest(self, user: str, uuid):
+    def on_request(self, user: str, uuid):
         """This function is called after permissions have been verified when a client requests the current value. Usually just returns self.value
 
         Args:
@@ -730,7 +730,7 @@ class Widget:
         return self.value
 
     # This function is called by the web interface whenever this widget is written to
-    def _onUpdate(self, user, value, uuid):
+    def _on_update(self, user, value, uuid):
         """Called internally to write a value to the widget. Responisble for verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
             if not pages.canUserDoThis(i, user):
@@ -740,7 +740,7 @@ class Widget:
             if not pages.canUserDoThis(i, user):
                 return
 
-        self.onUpdate(user, value, uuid)
+        self.on_update(user, value, uuid)
 
     def doCallback(self, user, value, uuid):
         "Run the callback, and if said callback fails, post a message about it."
@@ -750,7 +750,7 @@ class Widget:
             eventErrorHandler(self._callback)
             logger.exception("Error in widget callback for " + repr(self))
             if not (self.errored_function == id(self._callback)):
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
                     % (self._callback.__name__, self._callback.__module__),
@@ -764,7 +764,7 @@ class Widget:
             logger.exception("Error in widget callback for " + repr(self))
             eventErrorHandler(self._callback2)
             if not (self.errored_function == id(self._callback)):
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
                     % (self._callback.__name__, self._callback.__module__),
@@ -791,7 +791,7 @@ class Widget:
         self._callback2 = f
 
     # meant to be overridden or used as is
-    def onUpdate(self, user, value, uuid):
+    def on_update(self, user, value, uuid):
         self.value = value
         self.doCallback(user, value, uuid)
         if self.echo:
@@ -857,10 +857,10 @@ class Widget:
     def require(self, permission: str):
         self._read_perms.append(permission)
 
-    def requireToWrite(self, permission: str):
+    def require_to_write(self, permission: str):
         self._write_perms.append(permission)
 
-    def setPermissions(self, read: List[str], write: List[str]):
+    def set_permissions(self, read: List[str], write: List[str]):
         self._read_perms = copy.copy(read)
         self._write_perms = copy.copy(write)
 
@@ -869,7 +869,7 @@ class Widget:
 
 
 class TimeWidget(Widget):
-    def onRequest(self, user, uuid):
+    def on_request(self, user, uuid):
         return str(unitsofmeasure.strftime())
 
     def render(self, type="widget"):
@@ -938,7 +938,7 @@ class DynamicSpan(Widget):
         self.value = str(value)[:255]
         Widget.write(self, self.value, push)
 
-    def getExtraInfo(self):
+    def get_extra_info(self):
         if self.extraInfo:
             return self.extraInfo()
         else:
@@ -1048,7 +1048,7 @@ class Meter(Widget):
                 # Throw an error if you give it a bad unit
                 self.unit = kwargs["unit"]
                 # Do a KeyError if we don't support the unit
-                unitTypes[self.unit] + "_format"
+                unit_types[self.unit] + "_format"
             except:
                 self.unit = None
                 logging.exception("Bad unit")
@@ -1056,7 +1056,7 @@ class Meter(Widget):
         Widget.__init__(self, *args, **kwargs)
         self.value = [0, "normal", self.formatForUser(0)]
 
-    def getExtraInfo(self):
+    def get_extra_info(self):
         if self.extraInfo:
             return self.extraInfo()
         else:
@@ -1105,13 +1105,13 @@ class Meter(Widget):
                 self.unit = unit
 
                 # Do a KeyError if we don't support the unit
-                unitTypes[self.unit] + "_format"
+                unit_types[self.unit] + "_format"
             except:
                 logging.exception("Bad unit")
                 self.unit = None
         Widget.write(self, self.value + [d])
 
-    def onUpdate(self, *a, **k):
+    def on_update(self, *a, **k):
         raise RuntimeError("Only the server can edit this widget")
 
     def formatForUser(self, v, displayUnit=None):
@@ -1123,11 +1123,11 @@ class Meter(Widget):
             if unit:
                 s = ""
 
-                x = unitTypes[unit]
+                x = unit_types[unit]
 
-                if x in defaultDisplayUnits:
+                if x in default_display_units:
                     if not unit == "dBm":
-                        units = defaultDisplayUnits[x]
+                        units = default_display_units[x]
                     else:
                         units = "dBm"
                 else:
@@ -1147,16 +1147,16 @@ class Meter(Widget):
                         s += "/"
                     # Si abbreviations and symbols work with prefixes
                     if i in siUnits:
-                        s += unitsofmeasure.siFormatNumber(convert(v, unit, i)) + i
+                        s += unitsofmeasure.si_format_number(convert(v, unit, i)) + i
                     else:
                         # If you need more than three digits,
                         # You should probably use an SI prefix.
                         # We're just hardcoding this for now
                         s += str(round(convert(v, unit, i), 2)) + i
 
-                return s.replace("degC", "C").replace("degF", "F") + self.getExtraInfo()
+                return s.replace("degC", "C").replace("degF", "F") + self.get_extra_info()
             else:
-                return str(round(v, 3)) + self.getExtraInfo()
+                return str(round(v, 3)) + self.get_extra_info()
         except Exception as e:
             print(traceback.format_exc())
             return str(round(v, 3)) + str(e)[:16]

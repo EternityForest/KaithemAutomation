@@ -18,10 +18,10 @@ def load_plugins():
                 logger.info("Loaded plugin " + i)
             except Exception:
                 logger.exception("Error loading plugin " + i)
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Error loading plugin " + i + "\n" + traceback.format_exc(),
                 )
     except Exception:
-        messagebus.postMessage("/system/notifications/errors", "Error loading plugins")
+        messagebus.post_message("/system/notifications/errors", "Error loading plugins")
         logger.exception("Error loading plugins")

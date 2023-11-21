@@ -5,7 +5,7 @@ def listRtmidi():
         import rtmidi
     except ImportError:
         if once[0] == 0:
-            messagebus.postMessage("/system/notifications/errors/","python-rtmidi is missing. Most MIDI related features will not work.")
+            messagebus.post_message("/system/notifications/errors/","python-rtmidi is missing. Most MIDI related features will not work.")
             once[0]=1
         return []
 

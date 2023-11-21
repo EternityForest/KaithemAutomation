@@ -66,19 +66,19 @@ except:
     <td>${i.name}</td>
     <td>${0}</td>
 
-    <td>${unitsofmeasure.siFormatNumber(i.ncall)}</td>
-    <td>${unitsofmeasure.siFormatNumber(i.tsub)}s</td>
-    <td>${unitsofmeasure.siFormatNumber(i.tavg)}s</td>
-    <td>${unitsofmeasure.siFormatNumber(i.ttot)}s</td>
+    <td>${unitsofmeasure.si_format_number(i.ncall)}</td>
+    <td>${unitsofmeasure.si_format_number(i.tsub)}s</td>
+    <td>${unitsofmeasure.si_format_number(i.tavg)}s</td>
+    <td>${unitsofmeasure.si_format_number(i.ttot)}s</td>
     %else:
     <td>${i.module}</td>
     <td>${i.name}</td>
     <td>${i.lineno}</td>
 
-    <td>${unitsofmeasure.siFormatNumber(i.ncall)}</td>
-    <td>${unitsofmeasure.siFormatNumber(i.tsub)}s</td>
-    <td>${unitsofmeasure.siFormatNumber(i.tavg)}s</td>
-    <td>${unitsofmeasure.siFormatNumber(i.ttot)}s</td>
+    <td>${unitsofmeasure.si_format_number(i.ncall)}</td>
+    <td>${unitsofmeasure.si_format_number(i.tsub)}s</td>
+    <td>${unitsofmeasure.si_format_number(i.tavg)}s</td>
+    <td>${unitsofmeasure.si_format_number(i.ttot)}s</td>
     %endif
 
     </tr>

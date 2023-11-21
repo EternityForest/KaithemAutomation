@@ -19,8 +19,8 @@ import cherrypy
 import weakref
 import logging
 
-postMessage = messagebus.postMessage
-post = messagebus.postMessage
+post_message = messagebus.post_message
+post = messagebus.post_message
 subscribe = messagebus.subscribe
 unsubscribe = messagebus.unsubscribe
 normalize_topic = messagebus.normalize_topic

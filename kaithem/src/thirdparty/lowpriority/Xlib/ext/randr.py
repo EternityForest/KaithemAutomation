@@ -95,7 +95,7 @@ ClockDivideBy2              = 0x00002000
 
 # event types?
 Connected                   = 0
-Disconnected                = 1
+Dis_connected                = 1
 UnknownConnection           = 2
 
 # Conventional RandR output properties

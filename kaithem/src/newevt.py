@@ -669,7 +669,7 @@ class BaseEvent:
                         (self.lastexecuted, self.lastcompleted))
                     if len(self.history) > 250:
                         self.history.pop(0)
-                    # messagebus.postMessage('/system/events/ran',[self.module, self.resource])
+                    # messagebus.post_message('/system/events/ran',[self.module, self.resource])
                 except Exception as e:
                     # This is not a child of system
                     logger.exception(
@@ -699,7 +699,7 @@ class BaseEvent:
         )
 
         try:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/errors/events/" + self.module +
                 "/" + self.resource, str(tb)
             )
@@ -731,7 +731,7 @@ class BaseEvent:
             syslogger.exception(
                 "Error running event " + self.resource + " of " + self.module
             )
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors",
                 'Event "'
                 + self.resource
@@ -1633,7 +1633,7 @@ def getEventsFromModules(only=None):
                         # Fix any unsupported devices that may now be supported because we just added a driver for them.
                         retryDeviceCreation()
 
-                        messagebus.postMessage(
+                        messagebus.post_message(
                             "/system/events/loaded", [i.module, i.resource]
                         )
                         logging.debug(
@@ -1690,7 +1690,7 @@ def getEventsFromModules(only=None):
                 __EventReferences[i.module, i.resource].errors.append(
                     [time.strftime(config["time-format"]), str(i.error)]
                 )
-                messagebus.postMessage(
+                messagebus.post_message(
                     "/system/notifications/errors",
                     "Failed to load event resource: "
                     + i.resource

@@ -42,7 +42,7 @@ def makeThread(c, ref):
             c.loop_forever(retry_first_connection=True)
         except Exception:
             if ref():
-                ref().onConnectionCrash(traceback.format_exc())
+                ref().on_connection_crash(traceback.format_exc())
                 logger.exception("MQTT Crash")
 
     return f2
@@ -78,9 +78,9 @@ def getWeakrefHandlers(self):
         try:
             if not self():
                 return
-            logger.info("Disconnected from MQTT server: " + self().name)
+            logger.info("Dis_connected from MQTT server: " + self().name)
             self().on_disconnect()
-            logger.info("Disconnected from MQTT server: " + self().name)
+            logger.info("Dis_connected from MQTT server: " + self().name)
         except Exception:
             logging.exception("MQTT")
 

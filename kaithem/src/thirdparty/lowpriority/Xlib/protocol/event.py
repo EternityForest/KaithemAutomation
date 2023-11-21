@@ -319,8 +319,8 @@ class PropertyNotify(rq.Event):
                          rq.Pad(15),
                          )
 
-class SelectionClear(rq.Event):
-    _code = X.SelectionClear
+class Selection_clear(rq.Event):
+    _code = X.Selection_clear
     _fields = rq.Struct( rq.Card8('type'),
                          rq.Pad(1),
                          rq.Card16('sequence_number'),
@@ -330,8 +330,8 @@ class SelectionClear(rq.Event):
                          rq.Pad(16),
                          )
 
-class SelectionRequest(rq.Event):
-    _code = X.SelectionRequest
+class Selection_request(rq.Event):
+    _code = X.Selection_request
     _fields = rq.Struct( rq.Card8('type'),
                          rq.Pad(1),
                          rq.Card16('sequence_number'),
@@ -425,8 +425,8 @@ event_class = {
     X.CirculateNotify:  CirculateNotify,
     X.CirculateRequest: CirculateRequest,
     X.PropertyNotify:   PropertyNotify,
-    X.SelectionClear:   SelectionClear,
-    X.SelectionRequest: SelectionRequest,
+    X.Selection_clear:   Selection_clear,
+    X.Selection_request: Selection_request,
     X.SelectionNotify:  SelectionNotify,
     X.ColormapNotify:   ColormapNotify,
     X.ClientMessage:    ClientMessage,

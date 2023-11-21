@@ -210,14 +210,14 @@ or code your own API for that.
 If configured is True, will actually set the persistant config rather than the runtime config. This will not be made permanent till the user clicks "save server state to disk".
 
 
-#### tagPoint.mqttConnect(self, **,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None, incomingExpiration=None)
+#### tagPoint.mqttConnect(self, **,server=None, port=1883, password=None,message_bus_name=None, mqttTopic=None, incomingPriority=None, incomingExpiration=None)
 
 Used to connect a tag point for 2-way sync to an MQTT server.  When the tag's value changes, the value will be sent, JSON encoded if needed, to
 the server at the selected topic, or under /tagpoints/TAGNAME.  Messages will be sent with the retain flag active.
 
 When a message is incoming, it's value will set the local tag's value using a claim that has incomingPriority.
 
-This uses Scullery's connection pool system. The suggested use is to leave the server blank, set and set a messageBusName to use an existing connection
+This uses Scullery's connection pool system. The suggested use is to leave the server blank, set and set a message_bus_name to use an existing connection
 configured through the device manager.
 
 

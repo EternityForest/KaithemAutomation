@@ -441,5 +441,5 @@ try:
     ramHistorian = TagHistorian(ramdbfile)
     os.chmod(ramdbfile,0o750)
 except Exception:
-    messagebus.postMessage("/system/notifications/errors",
+    messagebus.post_message("/system/notifications/errors",
                            "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc())

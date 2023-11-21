@@ -450,7 +450,7 @@ class Device():
 
     def handleException(self):
         try:
-            self.handleError(traceback.format_exc(chain=True))
+            self.handle_error(traceback.format_exc(chain=True))
         except Exception:
             print(traceback.format_exc())
 
@@ -472,7 +472,7 @@ class Device():
     # def handler(v,t or None, a="Set by device"):
     #     self.setClaimVal("default", v, t or time.monotonic(), a)
 
-    def handleError(self, s):
+    def handle_error(self, s):
         self.errors.append([time.time(), str(s)])
 
         if self.errors:
@@ -489,7 +489,7 @@ class Device():
                                         unitsofmeasure.strftime(time.time()),
                                         self))
         if len(self.errors) == 1:
-            messagebus.postMessage("/system/notifications/errors",
+            messagebus.post_message("/system/notifications/errors",
                                    "First error in device: " + self.name)
             syslogger.error("in device: " + self.name + "\n" + s)
 
@@ -607,7 +607,7 @@ class UnsupportedDevice(Device):
     device_type = 'unsupported'
 
     def warn(self):
-        self.handleError("This device type has no support.")
+        self.handle_error("This device type has no support.")
 
     def __init__(self, name, data):
         super().__init__(name, data)
@@ -620,7 +620,7 @@ class UnusedSubdevice(Device):
     device_type = 'UnusedSubdevice'
 
     def warn(self):
-        self.handleError("This device type has no support.")
+        self.handle_error("This device type has no support.")
 
     def __init__(self, name, data):
         super().__init__(name, data)
@@ -790,7 +790,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in x:
                 doOutputBinding(t, x[name], 'Set by device: ' + self.name)
 
-            messagebus.postMessage("/system/tags/configured", t.name)
+            messagebus.post_message("/system/tags/configured", t.name)
 
     def string_data_point(self,
                           name: str,
@@ -843,7 +843,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in x:
                 doOutputBinding(t, x[name], 'Set by device: ' + self.name)
 
-            messagebus.postMessage("/system/tags/configured", t.name)
+            messagebus.post_message("/system/tags/configured", t.name)
 
     def object_data_point(self,
                           name: str,
@@ -896,7 +896,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in x:
                 doOutputBinding(t, x[name], 'Set by device: ' + self.name)
 
-            messagebus.postMessage("/system/tags/configured", t.name)
+            messagebus.post_message("/system/tags/configured", t.name)
 
     def bytestream_data_point(self,
                               name: str,
@@ -944,7 +944,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             if name in x:
                 doOutputBinding(t, x[name], 'Set by device: ' + self.name)
 
-            messagebus.postMessage("/system/tags/configured", t.name)
+            messagebus.post_message("/system/tags/configured", t.name)
 
     def push_bytes(self, name, value,):
         self.tagPoints[name].fastPush(value, None, None)
@@ -991,7 +991,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             self.set_config_option(key, value.strip())
 
     def handle_error(self, e: str, title=''):
-        self.handleError(e)
+        self.handle_error(e)
 
     def on_data_change(self, name: str, value, timestamp: float, annotation):
         """used for subclassing, this is how you watch for data changes.
@@ -1063,7 +1063,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     def handle_exception(self):
         try:
-            self.handleError(traceback.format_exc(chain=True))
+            self.handle_error(traceback.format_exc(chain=True))
         except:
             print(traceback.format_exc())
 
@@ -1147,7 +1147,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
             if not subdevice:
                 remote_devices[devname].close()
-                messagebus.postMessage("/devices/removed/", devname)
+                messagebus.post_message("/devices/removed/", devname)
 
             # Delete and then recreate because we may be renaming to a different name
 
@@ -1234,7 +1234,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
-        messagebus.postMessage("/devices/added/", name)
+        messagebus.post_message("/devices/added/", name)
 
 
 def url(u):
@@ -1505,7 +1505,7 @@ class WebDevices():
             remote_devices[name] = makeDevice(name, kwargs, m, r)
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
-            messagebus.postMessage("/devices/added/", name)
+            messagebus.post_message("/devices/added/", name)
 
         saveDevice(name)
 
@@ -1668,7 +1668,7 @@ class WebDevices():
             gc.collect()
 
             saveDevice(name)
-            messagebus.postMessage("/devices/removed/", name)
+            messagebus.post_message("/devices/removed/", name)
 
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -1813,7 +1813,7 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
         d.handleException()
 
     if err:
-        d.handleError(err)
+        d.handle_error(err)
 
     if module:
         d.parentModule = module
@@ -1915,7 +1915,7 @@ def configureInputBindings(d):
 
         else:
             if not hasattr(d, "_isCrossFramework"):
-                d.handleError(
+                d.handle_error(
                     "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
                 )
 
@@ -1928,7 +1928,7 @@ def configureInputBindings(d):
 
         else:
             if not hasattr(d, "_isCrossFramework"):
-                d.handleError(
+                d.handle_error(
                     "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
                 )
 
@@ -1950,7 +1950,7 @@ def configureInputBindings(d):
                 not t.subtype == 'trigger'))
         else:
             if not hasattr(d, "_isCrossFramework"):
-                d.handleError(
+                d.handle_error(
                     "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
                 )
 
@@ -2044,7 +2044,7 @@ def createDevicesFromData():
                 remote_devices[i] = makeDevice(i, device_data[i], cls=cls)
             syslogger.info("Created device from config: " + i)
         except Exception:
-            messagebus.postMessage(
+            messagebus.post_message(
                 "/system/notifications/errors",
                 "Error creating device: " + i + "\n" + traceback.format_exc())
             syslogger.exception("Error initializing device " + str(i))
@@ -2106,7 +2106,7 @@ def init_devices():
                 try:
                     loadDeviceType(*i)
                 except Exception:
-                    messagebus.postMessage(
+                    messagebus.post_message(
                         "/system/notifications/errors",
                         "Error with device driver :" + i[1] + "\n" +
                         traceback.format_exc(chain=True))
@@ -2114,7 +2114,7 @@ def init_devices():
         else:
             os.mkdir(driversLocation)
     except Exception:
-        messagebus.postMessage(
+        messagebus.post_message(
             "/system/notifications/errors",
             "Error with device drivers:\n" + traceback.format_exc(chain=True))
 

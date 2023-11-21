@@ -8,7 +8,7 @@ try:
 	from pyHS100 import SmartPlug, SmartBulb
 except:
 	logger.exception("err")
-	messagebus.postMessage("/system/notifications/errors","Problem loading Kasa support")
+	messagebus.post_message("/system/notifications/errors","Problem loading Kasa support")
 
 from kaithem.src import widgets
 
@@ -100,7 +100,7 @@ class KasaDevice(devices.Device):
 				getDevice(data['device.locator'],10,self.kdClass).set_wifi(data.get('temp.ssid'), data.get('temp.psk'))
 
 		except:
-			self.handleError()
+			self.handle_error()
 			
 	def getRawDevice(self):
 		return getDevice(self.data.get("device.locator"),3,self.kdClass)
@@ -112,7 +112,7 @@ class KasaDevice(devices.Device):
 				return self.rssiCache
 
 			#Not ideal, but we really can't be retrying this too often.
-			#if it's disconnected. Way too much slowdown
+			#if it's dis_connected. Way too much slowdown
 			self.rssiCacheTime=time.time()
 
 			try:
@@ -123,7 +123,7 @@ class KasaDevice(devices.Device):
 				self._has_emeter = ('model' in info) and ('HS110' in info['model'])
 			except:
 				if self.lastLoggedUnreachable< time.monotonic()-30:
-					self.handleError("Device was unreachable")
+					self.handle_error("Device was unreachable")
 					self.lastLoggedUnreachable=time.monotonic()
 				self.unreachableAlert.trip()
 				raise
@@ -255,7 +255,7 @@ class KasaSmartplug(KasaDevice):
 					getDevice(self.data.get("device.locator"),3, self.kdClass).turn_off()
 			except:
 				if self.lastLoggedUnreachable< time.monotonic()-30:
-					self.handleError("Device was unreachable")
+					self.handle_error("Device was unreachable")
 					self.lastLoggedUnreachable=time.monotonic()
 				self.unreachableAlert.trip()
 				raise
@@ -272,7 +272,7 @@ class KasaSmartplug(KasaDevice):
 				s = getDevice(self.data.get("device.locator"),3,self.kdClass).state=="ON"
 			except:
 				if self.lastLoggedUnreachable< time.monotonic()-30:
-					self.handleError("Device was unreachable")
+					self.handle_error("Device was unreachable")
 					self.lastLoggedUnreachable=time.monotonic()
 				self.unreachableAlert.trip()
 				raise
@@ -452,7 +452,7 @@ class KasaBulb(KasaDevice):
 				self.oldTransitionRate=duration
 			except:
 				if self.lastLoggedUnreachable< time.monotonic()-30:
-					self.handleError("Device was unreachable")
+					self.handle_error("Device was unreachable")
 					self.lastLoggedUnreachable=time.monotonic()
 				self.unreachableAlert.trip()
 				raise

@@ -303,7 +303,7 @@ ${newevt.EventReferences[module,name].logWindow.render()}
 This event last ran:
 %if newevt.getEventLastRan(module,name):
 <b>${unitsofmeasure.strftime(newevt.getEventLastRan(module,name))|h}
-(about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(module,name),2)} ago)
+(about ${unitsofmeasure.format_time_interval(time.time()-newevt.getEventLastRan(module,name),2)} ago)
 </b>
 
 
@@ -317,7 +317,7 @@ This event last ran:
         avg_time =x/c
 %>
 %if c:
-    <br>Average Time(Last ${c} runs): ${unitsofmeasure.formatTimeInterval(avg_time,2)}<br>
+    <br>Average Time(Last ${c} runs): ${unitsofmeasure.format_time_interval(avg_time,2)}<br>
 %endif
 
 %endif
@@ -345,7 +345,7 @@ This event last ran:
 %for i in newevt.EventReferences[module,name].history:
 <tr>
     <td>${unitsofmeasure.strftime(i[0])}</td>
-    <td>${unitsofmeasure.formatTimeInterval(i[1]-i[0],2)}</td>
+    <td>${unitsofmeasure.format_time_interval(i[1]-i[0],2)}</td>
 </tr>
 %endfor
 %except Exception as e:

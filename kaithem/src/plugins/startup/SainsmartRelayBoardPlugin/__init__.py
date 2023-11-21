@@ -108,7 +108,7 @@ class Relayft245r(devices.Device):
 
         self.widgets = []
 
-        self.connectedTag.setAlarm("Disconnected", "not value")
+        self.connectedTag.setAlarm("Dis_connected", "not value")
 
         for n in range(8):
             i = n + 1
