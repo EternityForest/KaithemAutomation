@@ -160,6 +160,17 @@ Use `make dev-run-isolated` to run inside the isolated virtualenv.
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
 
+### 0.72.0
+- :bug: Fix chandler cue slide set button
+- :bug: Fix mixer channel not changing after refresh button until changing the slider
+- :lipstick: autoAck and tripDelay are snake_case now
+- :lipstick: System status tag points are snake_case
+- :sparkles: Add nicer system alerts in the chandler page
+- :sparkles: The Scullery framework uses snake_case now
+- :bug: Fix wifi status tagpoint
+- :bug: Fix missing peewee
+- :sparkles: The makefile has tools to test in a venv sans site packages, to prevent future missing stuff.
+
 ### 0.71.2
 - :bug: Fix contextInfo > context_info snake case bug
 - :bug: Pipewire stuttering in some cases
