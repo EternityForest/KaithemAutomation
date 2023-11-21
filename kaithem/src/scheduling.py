@@ -20,6 +20,7 @@ import traceback
 import logging
 import types
 from . import workers, util
+from typing import Callable, Any
 
 from scullery import messagebus
 
@@ -451,7 +452,7 @@ class NewScheduler:
         e.schedule()
         return e
 
-    def scheduleRepeating(self, f, t, sync=True):
+    def scheduleRepeating(self, f: Callable[..., Any], t: float, sync: bool = True):
         e = UnsynchronizedRepeatingEvent(f, float(t))
 
         e.register()

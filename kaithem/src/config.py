@@ -67,10 +67,27 @@ _argp.add_argument("--nosecurity")
 argcmd = _argp.parse_args(sys.argv[1:])
 
 
+def initialize_defaults_for_testing():
+    """Load up the default config with a few alterations specifically for running unit tests
+        Points things at a ramdisk.
+    """
+    with open(os.path.join(_dn, "default_configuration.yaml")) as f:
+        _defconfig = yaml.load(f,Loader=yaml.SafeLoader)
+    c = _defconfig.copy()
+    
+    config.update(c)
+
+    config['site-data-dir'] = "/dev/shm/kaithem_tests"
+    config['ssl-dir'] = "/dev/shm/kaithem_tests/ssl"
+
 def load():
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:
         _defconfig = yaml.load(f,Loader=yaml.SafeLoader)
+    # Config starts out as the default but individual options
+    # Can be added or overridden by the user's settings.
+    config = _defconfig.copy()
+
 
     # Attempt to open any manually specified config file
     if argcmd.c:
@@ -80,10 +97,6 @@ def load():
     else:
         _usr_config = {}
         logger.info("No CFG File Specified. Using Defaults.")
-
-    # Config starts out as the default but individual options
-    # Can be added or overridden by the user's settings.
-    config = _defconfig.copy()
 
     for i in _usr_config:
         config[i] = _usr_config[i]

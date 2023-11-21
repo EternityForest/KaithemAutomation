@@ -267,7 +267,7 @@ class GenericTagPointClass(Generic[T]):
         # This is only used for fast stream mode
         self.subscribers_atomic: List[weakref.ref[Callable[..., Any]]] = []
 
-        self.poller: Union[None, Callable[..., Any]] = None
+        self.poller: Optional[scheduling.UnsynchronizedRepeatingEvent] = None
 
         # The "Owner" of a tag can use this to say if anyone else should write it
         self.writable = True
@@ -1335,7 +1335,7 @@ class GenericTagPointClass(Generic[T]):
                 time.sleep(0.001)
         return self.activeClaim().name
 
-    def filterValue(self, v):
+    def filterValue(self, v: T):
         "Pure function that returns a cleaned up or normalized version of the value"
         return v
 
@@ -1377,7 +1377,7 @@ class GenericTagPointClass(Generic[T]):
                 self.poller.unregister()
                 self.poller = None
 
-    def fastPush(self, value, timestamp=None, annotation=None):
+    def fastPush(self, value: T, timestamp: Optional[float] = None, annotation: Any = None) -> None:
         """
             Push a value to all subscribers. Does not set the tag's value.
             Bypasses all claims. Does not guarantee to get any locks, multiples of this call can happen at once.
@@ -1411,7 +1411,7 @@ class GenericTagPointClass(Generic[T]):
             print("Timed out in the push function")
 
     @typechecked
-    def subscribe(self, f: Callable, immediate=False):
+    def subscribe(self, f: Callable[[T, float, Any], Any], immediate: bool = False):
 
         if isinstance(f, GenericTagPointClass) and (f.unreliable or self.unreliable):
             f = f.fastPush
@@ -1425,7 +1425,7 @@ class GenericTagPointClass(Generic[T]):
 
         timestamp = time.monotonic()
 
-        def errcheck(*a):
+        def errcheck(*a: Any):
             if time.monotonic() < timestamp - 0.5:
                 logging.warning(
                     "Function: " + desc +
@@ -1435,7 +1435,8 @@ class GenericTagPointClass(Generic[T]):
         if self.lock.acquire(timeout=20):
             try:
 
-                ref: Union[weakref.WeakMethod, weakref.ref, None] = None
+                ref: Union[weakref.WeakMethod[Callable[[T, float, Any], Any]],
+                           weakref.ref[Callable[[T, float, Any], Any]], None] = None
 
                 if isinstance(f, types.MethodType):
                     ref = weakref.WeakMethod(f, errcheck)
@@ -1500,10 +1501,10 @@ class GenericTagPointClass(Generic[T]):
             )
 
     @typechecked
-    def setHandler(self, f: Callable):
+    def setHandler(self, f: Callable[[T, float, Any], Any]):
         self.handler = weakref.ref(f)
 
-    def _debugAdminPush(self, value, t, a):
+    def _debugAdminPush(self, value: T, t: float, a: Any):
         pass
 
     def poll(self):
@@ -1830,7 +1831,7 @@ class GenericTagPointClass(Generic[T]):
         finally:
             self.lock.release()
 
-    def setClaimVal(self, claim, val, timestamp, annotation):
+    def setClaimVal(self, claim: str, val: T, timestamp: Optional[float], annotation: Any):
         "Set the value of an existing claim"
 
         if timestamp is None:
