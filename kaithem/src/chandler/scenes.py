@@ -76,7 +76,8 @@ def makeWrappedConnectionClass(parent: Scene):
             gn = self_closure_ref.mqtt_sync_features.get("syncGroup", False)
             if gn:
                 topic = f"/kaithem/chandler/syncgroup/{gn}"
-                if t == topic:
+                # Leading slash or no, stay compatible
+                if t == topic or t == topic[1:]:
                     self_closure_ref.onCueSyncMessage(t, m2)
 
             self_closure_ref.onMqttMessage(t, m2)
@@ -548,7 +549,7 @@ class Cue:
     def pushData(self):
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
-    def pushoneval(self, u: str, ch: str | int, v: str | float| None):
+    def pushoneval(self, u: str, ch: str | int, v: str | float | None):
         core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v])
                                            )
 
@@ -2071,8 +2072,13 @@ class Scene:
     def doMqttSubscriptions(self, keepUnused=120):
         if self.mqttConnection:
             if self.mqtt_sync_features.get("syncGroup", False):
+
+                # In the future we will not use a leading slash
                 self.mqttConnection.subscribe(
                     f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
+                )
+                self.mqttConnection.subscribe(
+                    f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
                 )
 
         if self.mqttConnection and self.scriptContext:
