@@ -154,13 +154,13 @@ but also to let you manually play around in the .venv.
 Should you want to clean things or start over, it's best to just burn it to the ground and delete the virtualenvs.
 
 
-Use `make dev-run-isolated` to run inside the isolated virtualenv.
+To run inside the isolated virtualenv, deactivate the current virtualenv and run `make dev-run-isolated` 
 
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
 
-### 0.72.0
+### 0.73.0
 - :bug: Fix chandler cue slide set button
 - :bug: Fix mixer channel not changing after refresh button until changing the slider
 - :lipstick: autoAck and tripDelay are snake_case now
