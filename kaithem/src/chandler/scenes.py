@@ -548,7 +548,7 @@ class Cue:
     def pushData(self):
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
-    def pushoneval(self, u: str, ch: str | int, v: str | float):
+    def pushoneval(self, u: str, ch: str | int, v: str | float| None):
         core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v])
                                            )
 
@@ -1905,12 +1905,16 @@ class Scene:
                 chCount = len(fixture.channels)
 
             if "__length__" in cuex.values[i]:
-                repeats = int(cuex.values[i]["__length__"])
+                s = cuex.values[i]["__length__"]
+                assert s
+                repeats = int(self.evalExprFloat(s))
             else:
                 repeats = 1
 
             if "__spacing__" in cuex.values[i]:
-                chCount = int(cuex.values[i]["__spacing__"])
+                s = cuex.values[i]["__spacing__"]
+                assert s
+                chCount = int(self.evalExprFloat(s))
 
             uobj = getUniverse(universe)
 
@@ -2014,7 +2018,9 @@ class Scene:
                 self.scriptContext.setVar("CUE", (rulesFrom or self.cue).name)
 
                 # Actually add the bindings
-                self.scriptContext.addBindings((rulesFrom or self.cue).rules)
+                rules = (rulesFrom or self.cue).rules
+                if rules:
+                    self.scriptContext.addBindings(rules)
 
                 loopPrevent = {(rulesFrom or self.cue.name): True}
 
@@ -2037,11 +2043,11 @@ class Scene:
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
 
-    def onMqttMessage(self, topic: str, message: bytes):
+    def onMqttMessage(self, topic: str, message: str | bytes):
         try:
-            self.event("$mqtt:" + topic, json.loads(message.decode("utf-8")))
-        except Exception:
             self.event("$mqtt:" + topic, message)
+        except Exception:
+            self.event("$mqtt:" + topic, json.loads(message.decode("utf-8")))
 
     def onCueSyncMessage(self, topic: str, message: str):
         gn = self.mqtt_sync_features.get("syncGroup", False)
@@ -2121,11 +2127,12 @@ class Scene:
         t = kaithem.tags[n[1]]
         sn = n[1]
         self.displayTagMeta[sn] = {}
-        self.displayTagMeta[sn]["min"] = t.min
-        self.displayTagMeta[sn]["max"] = t.max
-        self.displayTagMeta[sn]["hi"] = t.hi
-        self.displayTagMeta[sn]["lo"] = t.lo
-        self.displayTagMeta[sn]["unit"] = t.unit
+        if isinstance(t, kaithem.tags.NumericTagPointClass):
+            self.displayTagMeta[sn]["min"] = t.min
+            self.displayTagMeta[sn]["max"] = t.max
+            self.displayTagMeta[sn]["hi"] = t.hi
+            self.displayTagMeta[sn]["lo"] = t.lo
+            self.displayTagMeta[sn]["unit"] = t.unit
         self.displayTagMeta[sn]["subtype"] = t.subtype
 
         self.pushMeta(keys=["displayTagMeta"])

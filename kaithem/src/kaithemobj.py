@@ -106,10 +106,11 @@ class TagInterface():
     def __iter__(self):
         return tagpoints.allTagsAtomic
 
-    TagPointClass = tagpoints.GenericTagPointClass
+    GenericTagPointClass = tagpoints.GenericTagPointClass
     StringTagPointClass = tagpoints.StringTagPointClass
     ObjectTagPointClass = tagpoints.ObjectTagPointClass
     BinaryTagPointClass = tagpoints.BinaryTagPointClass
+    NumericTagPointClass = tagpoints.NumericTagPointClass
 
     # HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter

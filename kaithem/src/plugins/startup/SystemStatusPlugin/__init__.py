@@ -47,25 +47,25 @@ except ImportError:
         print("Plyer not available either")
 
 if battery:
-    batteryTag = tagpoints.Tag("/system/power/batteryLevel")
+    batteryTag = tagpoints.Tag("/system/power/battery_level")
     batteryTag.value = battery.percent
     batteryTag.unit = "%"
     batteryTag.min = 0
     batteryTag.max = 100
     batteryTag.lo = 25
 
-    batteryTime = tagpoints.Tag("/system/power/batteryTime")
-    batteryTime.unit = 's'
-    batteryTime.max = 30 * 60 * 60
-    batteryTime.lo = 40 * 60
-    batteryTime.value = battery.secsleft if battery.secsleft > 0 else 9999999
-    batteryTime.setAlarm("lowBatteryTimeRemaining", "value < 60*15")
+    battery_time = tagpoints.Tag("/system/power/battery_time")
+    battery_time.unit = 's'
+    battery_time.max = 30 * 60 * 60
+    battery_time.lo = 40 * 60
+    battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
+    battery_time.setAlarm("lowbattery_timeRemaining", "value < 60*15")
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged or 0
     acPowerTag.subtype = 'bool'
     acPowerTag.setAlarm(
-        "runningOnBattery", "(not value) and (tv('/system/power/batteryLevel')< 80)", priority='info')
+        "runningOnBattery", "(not value) and (tv('/system/power/battery_level')< 80)", priority='info')
 
 
 sdhealth = getSDHealth()
@@ -164,7 +164,7 @@ if psutil:
         if battery:
             acPowerTag.value = battery.power_plugged or 0
             batteryTag.value = battery.percent
-            batteryTime.value = battery.secsleft if battery.secsleft > 0 else 9999999
+            battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
     doPsutil()
 
 
@@ -176,7 +176,7 @@ elif plyer:
         if battery:
             acPowerTag.value = battery.status['isCharging']
             batteryTag.value = battery.status['percentage']
-            batteryTime.value = batteryTag.value = (
+            battery_time.value = batteryTag.value = (
                 (3 * 3600) * battery.status['percentage']) / 100
 
     from plyer import flash

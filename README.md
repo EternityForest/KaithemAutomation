@@ -141,9 +141,14 @@ dev_run.py can be your entry point for debug. If you get weird errors, check you
 make sure it's not overriding the interpreter, because then you would be running outside the virtualenv.
 
 
-### Dependencies
-To update dependencies, run `make dev-update-dependencies`. this installs `direct_dependencies.txt` in the project folder .venv.  When you're happy with the result, run `make dev-freeze-dependencies` to update the frozen requirements file.
+### Dependencies for devs
+To update dependencies, run `make dev-update-dependencies`.
 
+This installs `direct_dependencies.txt` in the project folder .isolated_venv, uses that to build
+a new `requirements_frozen.txt`, and installs that into the main .venv.
+
+The reason we do this is so that we always have a non `system-site-packages` venv to test in,
+but also
 
 
 

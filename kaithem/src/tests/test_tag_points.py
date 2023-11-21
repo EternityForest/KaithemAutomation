@@ -78,7 +78,7 @@ def test_tags():
     x = []
 
     def f(v, t, a):
-        c.append(v)
+        x.append(v)
 
     t1 = tagpoints.Tag("/system/selftest")
 

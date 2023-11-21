@@ -5,8 +5,10 @@ Change Log
 - :bug: Fix chandler cue slide set button
 - :bug: Fix mixer channel not changing after refresh button until changing the slider
 - :lipstick: autoAck and tripDelay are snake_case now
+- :lipstick: System status tag points are snake_case
 - :sparkles: Add nicer system alerts in the chandler page
 - :sparkles: The Scullery framework uses snake_case now
+- :bug: Fix wifi status tagpoint
 
 
 ### 0.71.2

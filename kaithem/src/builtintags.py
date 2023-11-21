@@ -12,7 +12,7 @@ log = logging.getLogger("system")
 
 
 def create():
-    def civilTwilight():
+    def civil_twilight():
         try:
             if kaithemobj.kaithem.time.is_dark():
                 return 1
@@ -21,14 +21,14 @@ def create():
         except Exception:
             return -1
 
-    twilightTag = tagpoints.Tag("/sky/civilTwilight")
+    twilightTag = tagpoints.Tag("/sky/civil_twilight")
     twilightTag.min = -1
     twilightTag.max = 1
     twilightTag.interval = 60
     twilightTag.description = (
         "Unless overridden, 1 if dark, else 0, -1 if no location is set"
     )
-    twilightTag.value = civilTwilight
+    twilightTag.value = civil_twilight
     refs.append(twilightTag)
 
     alertTag = tagpoints.Tag("/system/alerts.level")
@@ -66,7 +66,7 @@ def create():
     refs.append(night)
     refs.append(nTag)
 
-    ipTag = tagpoints.StringTag("/system/network/publicIP")
+    ipTag = tagpoints.StringTag("/system/network/public_ip")
     refs.append(ipTag)
 
     def publicIP():

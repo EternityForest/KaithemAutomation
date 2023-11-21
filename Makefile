@@ -54,12 +54,17 @@ help: # Show help for each of the available commands
 
 ${ROOT_DIR}/.venv: # Create the virtualenv in the project folder
 	@cd ${ROOT_DIR}
-	@virtualenv .venv
+	@virtualenv --system-site-packages .venv
+
+${ROOT_DIR}/.isolated_venv: # Create the virtualenv in the project folder
+	@cd ${ROOT_DIR}
+	@virtualenv --system-site-packages .isolated_venv
+
 
 update: # Fetch new code into this project folder
 	git pull
 
-dev-make-venv: ${ROOT_DIR}/.venv # Make the virtualenv in this project folder.
+dev-make-venv: ${ROOT_DIR}/.venv ${ROOT_DIR}/.isolated_venv # Make the virtualenv in this project folder.
 	@echo "Making venv if not present"
 
 dev-install: dev-make-venv # Install Kaithem and all it's dependencies in the Venv.
@@ -72,20 +77,14 @@ dev-run: # Run the kaithem app.
 	@cd ${ROOT_DIR}
 	@pw-jack .venv/bin/python -m kaithem	
 
-dev-update-dependencies: .venv # Install latest version of dependencies into the venv. New versions might break something!
+dev-update-dependencies: dev-make-venv # Install latest version of dependencies into the venv. New versions might break something!
 	@cd ${ROOT_DIR}
+	@.isolated_venv/bin/python -m pip install --ignore-installed  -U -r direct_dependencies.txt
 	@.venv/bin/python -m pip install --ignore-installed  -U -r direct_dependencies.txt
-
-dev-clean-venv: # Cleans the .venv in the project folder
-	@cd ${ROOT_DIR}
-	@bash -c ".venv/bin/python -m pip uninstall -y -r <(pip freeze -l)"
-
-dev-freeze-dependencies: # Create requirements_frozen.txt
-	@cd ${ROOT_DIR}
-	@.venv/bin/python -m pip freeze -l > requirements_frozen.txt
+	@.isolated_venv/bin/python -m pip freeze -l > requirements_frozen.txt
 	# If kaithem itself installed here, avoid circular nonsense
 	@sed -i '/.*kaithem.*/d' ./requirements_frozen.txt
-
+	@.venv/bin/python -m pip install --ignore-installed -r requirements_frozen.txt
 
 user-install-kaithem: # Install kaithem to run as your user. Note that it only runs when you are logged in.
 	@cd ${ROOT_DIR}
@@ -114,7 +113,7 @@ user-kaithem-status: # Get the status of the running kaithem instance
 
 root-install-system-dependencies: # Install non-python libraries using apt
 	@sudo apt install python3-virtualenv scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins baresip gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv gstreamer1.0-pipewire
-
+	
 root-use-pipewire-jack: # Make JACK clients work with pipewire
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-pipewire-jack.sh
