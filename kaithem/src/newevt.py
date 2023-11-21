@@ -216,7 +216,7 @@ def when(trigger, action, priority="interactive"):
         + "set at "
         + str(time.time())
         + "by thread: "
-        + str(threading.currentThread().ident)
+        + str(threading.current_thread().ident)
         + " id="
         + str(base64.b64encode(os.urandom(16)))
     )

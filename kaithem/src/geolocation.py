@@ -15,7 +15,7 @@
 
 import logging
 import os
-from . import directories, messagebus
+from . import directories, messagebus, config
 from scullery import persist
 from urllib.request import urlopen
 import time
@@ -40,54 +40,28 @@ if os.path.exists(fn):
 else:
     file = {}
 
-lat = None
-lon = None
-
-country = None
-city = None
-region = None
-tz = None
-
-if 'default' in file:
-    lat = file['default'].get('lat', None)
-    lon = file['default'].get('lon', None)
-    country = file['default'].get('countryCode', None)
-    region = file['default'].get('regionName', None)
-    city = file['default'].get('city', None)
-    tz = file['default'].get('timezone', None)
+if config.config['location']:
+    if not 'default' in file:
+        file['default'] = {}
+    latlon = config.config['location'].split(",")
+    file['default']['lat'] = float(latlon[0].strip())
+    file['default']['lon'] = float(latlon[1].strip())
 
 
-if not lat or not lon:
-    try:
-        l = ip_geolocate()
-        messagebus.post_message("/system/notifications/important",
-                               "Got server location by IP geolocation.  You can change this in settings.")
-        file['default'] = l
-    except Exception:
-        # The location called "default" is to be the main one.
-        file['default'] = {
-            'lat': lat,
-            'lon': lon,
-            'city': city,
-            'timezone': tz,
-            'countryCode': country,
-            "region": region
-        }
-else:
-    # The location called "default" is to be the main one.
-    file['default'] = {
-        'lat': lat,
-        'lon': lon,
-        'city': '',
-        'timezone': tz,
-        'countryCode': country,
-        "regionName": region
-    }
+def use_api_if_needed():
+    if not file['default']['lat'] or not file['default']['lol']:
+        try:
+            l = ip_geolocate()
+            messagebus.post_message("/system/notifications/important",
+                                    "Got server location by IP geolocation.  You can change this in settings.")
+            file['default'] = l
 
-try:
-    persist.save(file, fn, private=True)
-except Exception:
-    logging.exception("Save fail")
+            try:
+                persist.save(file, fn, private=True)
+            except Exception:
+                logging.exception("Save fail")
+        except Exception:
+            logging.exception("IP Geolocation failed")
 
 
 def getCoords():
@@ -95,23 +69,24 @@ def getCoords():
 
 
 def getLocation(l='default'):
-    file['default']=file.get('default',{})
-    file['default']['lat'] = file['default'].get('lat',None)
-    file['default']['lon'] = file['default'].get('lon',None)
-    file['default']['city'] = file['default'].get('city','')
-    file['default']['timezone'] = file['default'].get('timezone','')
-    file['default']['regionName'] = file['default'].get('regionName','')
-    file['default']['countryCode'] = file['default'].get('countryCode','')
+    file['default'] = file.get('default', {})
+    file['default']['lat'] = file['default'].get('lat', None)
+    file['default']['lon'] = file['default'].get('lon', None)
+    file['default']['city'] = file['default'].get('city', '')
+    file['default']['timezone'] = file['default'].get('timezone', '')
+    file['default']['regionName'] = file['default'].get('regionName', '')
+    file['default']['countryCode'] = file['default'].get('countryCode', '')
 
     return file[l]
 
-def setDefaultLocation(lat, lon, city='',timezone='', region='', country=''):
-    if len(country)>2:
+
+def setDefaultLocation(lat, lon, city='', timezone='', region='', country=''):
+    if len(country) > 2:
         raise RuntimeError("not a valid ISO country code")
     country = country.upper()
 
     file['default'].clear()
-    
+
     file['default']['lat'] = float(lat)
     file['default']['lon'] = float(lon)
     file['default']['city'] = str(city)
@@ -124,5 +99,6 @@ def setDefaultLocation(lat, lon, city='',timezone='', region='', country=''):
 
 def deviceLocationGetter():
     return (file['default']['lat'], file['default']['lon'])
+
 
 iot_devices.host.api['get_site_coordinates'] = deviceLocationGetter

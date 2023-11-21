@@ -165,8 +165,9 @@ def installThreadLogging():
                         "Thread starting: "
                         + self.name
                         + " with ID: "
-                        + str(threading.current_thread().ident)
-                    )
+                        + str(threading.current_thread().ident) +
+                              " Daemon: "+str(self.daemon) )
+                    
                     run_old(*args, **kw)
                     threadlogger.info(
                         "Thread stopping: "

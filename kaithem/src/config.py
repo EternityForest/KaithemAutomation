@@ -21,6 +21,7 @@ import sys
 import os
 import jsonschema
 import logging
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger("system")
 config = {}
@@ -67,27 +68,16 @@ _argp.add_argument("--nosecurity")
 argcmd = _argp.parse_args(sys.argv[1:])
 
 
-def initialize_defaults_for_testing():
-    """Load up the default config with a few alterations specifically for running unit tests
-        Points things at a ramdisk.
-    """
-    with open(os.path.join(_dn, "default_configuration.yaml")) as f:
-        _defconfig = yaml.load(f,Loader=yaml.SafeLoader)
-    c = _defconfig.copy()
-    
-    config.update(c)
-
-    config['site-data-dir'] = "/dev/shm/kaithem_tests"
-    config['ssl-dir'] = "/dev/shm/kaithem_tests/ssl"
-
-def load():
+def load(cfg: Dict[str, Any]):
+    "Param overrtides defaults"
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:
-        _defconfig = yaml.load(f,Loader=yaml.SafeLoader)
+        _defconfig = yaml.load(f, Loader=yaml.SafeLoader)
     # Config starts out as the default but individual options
     # Can be added or overridden by the user's settings.
     config = _defconfig.copy()
 
+    config.update(cfg)
 
     # Attempt to open any manually specified config file
     if argcmd.c:
@@ -113,12 +103,12 @@ def reload():
     config.update(c)
 
 
-def initialize():
-    c = load()
+def initialize(cfg: Optional[Dict[str, Any]] = None):
+    "Load the config from defaults and the command line, "
+    c = load(cfg)
     with open(os.path.join(_dn, "config-schema.yaml")) as f:
         jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
     # Allow code to set config keys before this loads that can override the
     # file
     c.update(config)
     config.update(c)
-

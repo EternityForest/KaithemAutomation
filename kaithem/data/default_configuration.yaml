@@ -7,6 +7,9 @@ https-port : 8001
 http-port : 8002
 
 
+# GPS coords default
+location: ''
+
 #What host to bind to. Default is determined by local-access-only
 host: "default"
 

@@ -109,7 +109,7 @@ def test_tags():
     assert t2.alarms['TestTagAlarm'].sm.state == 'active'
 
     t.value = 0
-    time.sleep(3)
+    time.sleep(1)
     assert t2.alarms['TestTagAlarm'].sm.state == 'cleared'
 
     t2.alarms['TestTagAlarm'].acknowledge()
@@ -123,9 +123,9 @@ def test_tags():
     t1.value = 0
 
     c1 = t1.claim(5, priority=70)
-    c1.setExpiration(2)
+    c1.setExpiration(0.5)
     assert t1.value == 5
-    time.sleep(3)
+    time.sleep(1)
     assert t1.value == 0
 
     c1.set(30)

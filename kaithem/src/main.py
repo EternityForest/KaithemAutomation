@@ -18,21 +18,27 @@ import logging
 import os
 import sys
 
-from kaithem import __version__ 
+from kaithem import __version__
 from . import config
+from typing import Dict, Any, Optional
+
 
 __version_info__ = __version__.__version_info__
 __version__ = __version__.__version__
 
 
-
-def initialize():
+def initialize(cfg: Optional[Dict[str, Any]] = None):
+    "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
     from . import tweaks  # noqa: F401
     from . import logconfig  # noqa: F401
     # config needs to be available before init for overrides
     # but it can't be initialized until after pathsetup which may
-    config.initialize()
+    config.initialize(cfg)
 
+    from . import geolocation
+
+    geolocation.use_api_if_needed()
+    
     # must load AFTER config init
     from . import directories
 
@@ -41,12 +47,9 @@ def initialize():
     # This must be done before CherryPy
     from . import pathsetup  # noqa: F401
 
-
-
     # Thhese happpen early so we cab start logging stuff soon
     from . import messagelogging  # noqa: F401
     from . import pylogginghandler  # noqa: F401
-
 
     from . import notifications  # noqa: F401
 
@@ -87,7 +90,6 @@ def initialize():
     logger = logging.getLogger("system")
     logger.setLevel(logging.INFO)
 
-
     os.makedirs(os.path.join(directories.vardir, "static"), exist_ok=True)
 
     auth.initializeAuthentication()
@@ -113,10 +115,8 @@ def initialize():
 
     workers.do(systasks.doUPnP)
 
-
     def loadJackMixer():
         from . import jackmixer  # noqa: F401
-
 
     workers.do(loadJackMixer)
 

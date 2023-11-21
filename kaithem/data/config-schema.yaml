@@ -21,6 +21,11 @@ properties:
         default: "default"
         description: "IP to bind to. Default all interfaces unless local-access-only set"
     
+    location:
+        type: string
+        default: ""
+        description: "Comma delimited server location default value, can be changed by user"
+    
     ssl-dir:
         type: string
 
