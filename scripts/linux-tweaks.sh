@@ -21,7 +21,6 @@
 # * Disable Wifi sleep and privacy MAC
 # * Give lots of permissions to KAITHEM_UID
 # * Remove rsyslog if present
-# * Make PipeWire work with JACK
 # * Disable auto-update
 
 set -x

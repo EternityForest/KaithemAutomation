@@ -69,6 +69,12 @@ make user-max-volume-at-boot
 ```
 as whatever user you plan to run kaithem under.
 
+### Sound bad on the Pi?
+
+You might not have pipewire configured correctly.  The pi default config seems
+to set the buffer too low. 
+
+Update kaithem and run `make user-set-global-pipewire-conf` as the user that will be doing this stuff, to get some reasonable defaults. `nano ~/.config/pipewire/pipewire.conf` to tweak further.
 
 ### Install globally and run at boot
 

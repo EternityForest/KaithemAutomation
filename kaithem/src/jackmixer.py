@@ -54,9 +54,6 @@ presetsDir = os.path.join(directories.mixerdir, "presets")
 
 recorder = None
 
-PW_BLOCKSIZE=128
-
-
 class DummySource(iceflow.GStreamerPipeline):
     "Nasty hack. When gstreamer is dis_connected it stops.  So we have a special silent thing to always connect to"
     def __init__(self):
@@ -336,7 +333,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             if not input or not input.startswith("rtplisten://"):
                 self.src = self.add_element('pipewiresrc',
-                                            blocksize=PW_BLOCKSIZE,
                                             client_name=name + "_in",
                                             do_timestamp=False,
                                             always_copy=True
@@ -475,7 +471,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.sink = self.add_element(
                 'pipewiresink',
                 client_name=self.name + "_out",
-                blocksize=PW_BLOCKSIZE,
                 mode=2,
             )
         

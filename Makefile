@@ -29,6 +29,10 @@ ifndef KIOSK_HOME
 KIOSK_HOME:="http://localhost:8002"
 endif
 
+USER:= $(shell id -un)
+
+
+export USER
 export KIOSK_HOME
 export ROOT_DIR
 
@@ -89,9 +93,17 @@ dev-update-dependencies: dev-make-venv # Install latest version of dependencies 
 	@sed -i '/.*kaithem.*/d' ./requirements_frozen.txt
 	@.venv/bin/python -m pip install --ignore-installed -r requirements_frozen.txt
 
+
+user-set-global-pipewire-conf:
+	@echo ${USER}
+	@cd ${ROOT_DIR}
+	@mkdir -p /home/${USER}/.config/pipewire/
+	@cat ./scripts/pipewire.conf > /home/${USER}/.config/pipewire/pipewire.conf
+	@systemctl --user restart pipewire wireplumber
+
 user-install-kaithem: # Install kaithem to run as your user. Note that it only runs when you are logged in.
 	@cd ${ROOT_DIR}
-	@echo "Kaithem will be installed to /home/$(id -un)/kaithem/.venv"
+	@echo "Kaithem will be installed to /home/${USER}/kaithem/.venv"
 	@bash ./scripts/install-kaithem.sh
 
 user-max-volume-at-boot: #Install a service that sets the max volume when you log in.
