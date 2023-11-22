@@ -1,5 +1,5 @@
 import logging
-from . import kaithemobj, tagpoints, alerts, messagebus
+from kaithem.src import kaithemobj, tagpoints, alerts, messagebus
 import traceback
 import time
 import json

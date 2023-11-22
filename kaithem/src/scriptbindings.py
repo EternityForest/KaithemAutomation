@@ -148,7 +148,7 @@ def paramDefault(p):
     if isinstance(p, int):
         return '=' + str(p)
 
-    if isinstance(p, float):
+    if isinstance(p, (int,float)):
         return '=' + str(p)
 
     if isinstance(p, str):
@@ -605,11 +605,22 @@ class BaseChandlerScriptContext():
         a = self.commands.get(c[0], None)
         a = self.contextCommands.get(c[0], a)
 
-        if not a:
-            p = self.parentContext
+        seen = {}
+        
+        p = self
+
+        while not a:
+            if id(p) in seen:
+                break
+            seen[id(p)] = True
+
+            p = p.parentContext
             if p:
                 a = p.commands.get(c[0], None)
                 a = p.contextCommands.get(c[0], a)
+            else:
+                break
+
         if a:
             try:
                 return a(*[self.preprocessArgument(i) for i in c[1:]])

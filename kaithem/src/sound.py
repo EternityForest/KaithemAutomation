@@ -189,6 +189,22 @@ class SoundWrapper(object):
             pass
 
 
+test_sound_logs=[]
+play_logs = []
+
+
+class TestSoundWrapper(SoundWrapper):
+    def play_sound(self, filename: str, handle: str = "PRIMARY", extraPaths: List[str] = [], volume: float = 1, finalGain: float | None = None, output: str | None = "", loop: float = 1, start: float = 0, speed: float = 1):
+        test_sound_logs.append(['play',handle, filename])
+        play_logs.append(['play',handle, filename])
+
+    def fade_to(self, file: str | None, length: float = 1, block: bool = False, handle: str = "PRIMARY", output: str | None = "", volume: float = 1, windup: float = 0, winddown: float = 0, loop: int = 1, start: float = 0, speed: float = 1):
+        test_sound_logs.append(['fade_to', handle, filename])
+        play_logs.append(['fade_to', handle, filename])
+
+    def stopSound(self, handle: str = "PRIMARY"):
+        test_sound_logs.append(['stop', handle])
+
 objectPoolLock = threading.RLock()
 
 objectPool = []
@@ -704,6 +720,7 @@ class MPVBackend(SoundWrapper):
 
 l = {
     "mpv": MPVBackend,
+    "test": TestSoundWrapper
 }
 
 backend = SoundWrapper()
@@ -714,7 +731,7 @@ else:
 
 # MPV is alwaus auto chosen if available!!!
 # All the others are deprecated!!
-for i in ["mpv"] + list(config["audio-backends"]):
+for i in list(config["audio-backends"]):
     if i not in l:
         continue
     try:

@@ -156,10 +156,18 @@ Should you want to clean things or start over, it's best to just burn it to the 
 
 To run inside the isolated virtualenv, deactivate the current virtualenv and run `make dev-run-isolated` 
 
+### Tests
+The new unit tests initiative uses pytest.  Use the test_run.py file if you want to run them in the debugger.
+
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
 
+### 0.73.1
+- :bug: Fix chandler not liking cues with empty strings for some settings
+- :bug: Fix incredibly dumb bug where I forgot that isinstance doesn't consider int  subtype of float. :facepalm:
+- :lipstick: Snake-casifying internals
+- 
 ### 0.73.0
 - :bug: Fix chandler cue slide set button
 - :bug: Fix mixer channel not changing after refresh button until changing the slider

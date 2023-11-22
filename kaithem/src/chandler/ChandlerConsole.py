@@ -113,8 +113,8 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.id = uuid.uuid4().hex
 
         # mutable and immutable versions of the active scenes list.
-        self._activeScenes = []
-        self.activeScenes = []
+        self._active_scenes = []
+        self.active_scenes = []
 
         self.presets = {}
 
@@ -605,7 +605,10 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any]] = None):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
-        scene = scenes.scenes[sceneid]
+        scene = scenes.scenes.get(sceneid, None)
+        # Race condition of deleted scenes
+        if not scene:
+            return
 
         v = {}
         if scene.scriptContext:
@@ -817,7 +820,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                         ]
                     )
 
-            for i in scenes.activeScenes:
+            for i in scenes.active_scenes:
                 # Tell clients about any changed alpha values and stuff.
                 if self.id not in i.hasNewInfo:
                     self.pushMeta(i.id)

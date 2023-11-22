@@ -969,8 +969,8 @@ appData = {
         api_link.send(['prevcue', sc]);
     },
 
-    'addcue': function (sc, v) {
-        api_link.send(['addcue', sc, v]);
+    'add_cue': function (sc, v) {
+        api_link.send(['add_cue', sc, v]);
         //There's a difference between "not there" undefined and actually set to undefined....
         if (appData.scenecues[sc][v] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives
@@ -1004,7 +1004,7 @@ appData = {
         if (!cue) {
             return
         }
-        api_link.send(['addcue', appData.scenename, nextcue]);
+        api_link.send(['add_cue', appData.scenename, nextcue]);
         api_link.send(['getcuedata', cue]);
 
         //There's a difference between "not there" undefined and actually set to undefined....
@@ -1231,7 +1231,7 @@ appData = {
 
         }
 
-        api_link.send(['addcuef', appData.scenecues[
+        api_link.send(['add_cuef', appData.scenecues[
             appData.scenename]
         [appData.selectedCues[appData.scenename]],
             fix, idx, len, spacing
@@ -1247,7 +1247,7 @@ appData = {
         if (!appData.newcueu) {
             return
         }
-        api_link.send(['addcueval', appData.scenecues[
+        api_link.send(['add_cueval', appData.scenecues[
             appData.scenename]
         [appData.selectedCues[appData.scenename]],
             appData.newcueu, appData.newcuevnumber

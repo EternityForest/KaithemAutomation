@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.73.1
+- :bug: Fix chandler not liking cues with empty strings for some settings
+- :bug: Fix incredibly dumb bug where I forgot that isinstance doesn't consider int  subtype of float. :facepalm:
+- :lipstick: Snake-casifying internals
+
 ### 0.73.0
 - :bug: Fix chandler cue slide set button
 - :bug: Fix mixer channel not changing after refresh button until changing the slider

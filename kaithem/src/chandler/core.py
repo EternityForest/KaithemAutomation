@@ -134,9 +134,11 @@ def getSoundFolders() -> Dict[str, str]:
     for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
         soundfolders[i] = i
 
-    for i in os.listdir(os.path.join(kaithem.misc.vardir, "modules", 'data')):
-        soundfolders[os.path.join(kaithem.misc.vardir, "modules", 'data',
-                                  i, "__filedata__", 'media')] = "Module:" + i + "/media"
+    modulesdata = os.path.join(kaithem.misc.vardir, "modules", 'data')
+    if os.path.exists(modulesdata):
+        for i in os.listdir():
+            soundfolders[os.path.join(kaithem.misc.vardir, "modules", 'data',
+                                      i, "__filedata__", 'media')] = "Module:" + i + "/media"
     return soundfolders
 
 

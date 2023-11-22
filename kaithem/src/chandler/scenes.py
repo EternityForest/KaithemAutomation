@@ -48,8 +48,8 @@ scenes_by_name: weakref.WeakValueDictionary[str,
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
-_activeScenes: List[Scene] = []
-activeScenes: List[Scene] = []
+_active_scenes: List[Scene] = []
+active_scenes: List[Scene] = []
 
 
 def makeWrappedConnectionClass(parent: Scene):
@@ -341,7 +341,7 @@ def event(s: str, value: Any = None, info: str = "") -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
     with core.lock:
-        for i in activeScenes:
+        for i in active_scenes:
             i._event(s, value=value, info=info)
 
 
@@ -447,7 +447,7 @@ class Cue:
         id: Optional[str] = None,
         onEnter: Optional[Callable[..., Any]] = None,
         onExit: Optional[Callable[..., Any]] = None,
-        **kw
+        **kw: Any
     ):
 
         # declare vars
@@ -519,7 +519,7 @@ class Cue:
         cues[self.id] = self
 
         self.next_ll: Optional[Cue] = None
-        parent._addCue(self, forceAdd=forceAdd)
+        parent._add_cue(self, forceAdd=forceAdd)
         self.changed = {}
 
         self.scene: weakref.ref[Scene] = weakref.ref(parent)
@@ -1063,7 +1063,7 @@ class Scene:
         if active:
             self.goto_cue("default", sendSync=False, cause="start")
             self.go()
-            if isinstance(active, float):
+            if isinstance(active, (int, float)):
                 self.started = time.time() - active
 
         else:
@@ -1124,7 +1124,7 @@ class Scene:
 
     def evalExprFloat(self, s: str | float) -> float:
         f = self.evalExpr(s)
-        assert isinstance(f, float)
+        assert isinstance(f, (int, float))
         return f
 
     # -> Any | bool | float | int | str | Callable[[], float] | Callable[..., int] | type[int] | type[float] | type[str] | slice | tuple[Any, Any] | None:
@@ -1244,7 +1244,7 @@ class Scene:
             if len(board.newDataFunctions) < 100:
                 board.newDataFunctions.append(lambda s: self.pushCueList(i.id))
 
-    def _addCue(self, cue: Cue, prev: str = None, forceAdd=True):
+    def _add_cue(self, cue: Cue, prev: str = None, forceAdd=True):
         name = cue.name
         self.insertSorted(cue)
         if name in self.cues and not forceAdd:
@@ -1503,7 +1503,7 @@ class Scene:
                         self.scriptContext.setVar(i, self.evalExpr(cuevars[i]))
                     except Exception:
                         print(traceback.format_exc())
-                        core.rl_log_exc("Error with cue variable " + i)
+                        core.rl_log_exc("Error with cue variable " + str(i))
 
                 if self.cues[cue].track:
                     self.applyTrackedValues(cue)
@@ -1535,7 +1535,7 @@ class Scene:
                                 None,
                                 length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.evalExprFloat(self.cue.media_wind_down),
+                                winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                             )
                         else:
                             stopSound(str(self.id))
@@ -1546,7 +1546,7 @@ class Scene:
                                 None,
                                 length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.evalExprFloat(self.cue.media_wind_down),
+                                winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                             )
                         else:
                             stopSound(str(self.id))
@@ -1578,7 +1578,7 @@ class Scene:
                                 5,
                                 max(
                                     0, self.evalExprFloat(
-                                        self.cues[cue].sound_volume)
+                                        self.cues[cue].sound_volume or 1)
                                 ),
                             )
                         except Exception:
@@ -1624,7 +1624,7 @@ class Scene:
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
                                         loop=self.cues[cue].sound_loops,
-                                        start=self.evalExprFloat((self.cues[cue].sound_start_position)),
+                                        start=self.evalExprFloat((self.cues[cue].sound_start_position or 0)),
                                         speed=spd,
                                     )
                                 else:
@@ -1636,9 +1636,9 @@ class Scene:
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
                                         loop=self.cues[cue].sound_loops,
-                                        start=self.evalExprFloat(self.cues[cue].sound_start_position),
-                                        windup=self.evalExprFloat(self.cues[cue].media_wind_up),
-                                        winddown=self.evalExprFloat(self.cue.media_wind_down),
+                                        start=self.evalExprFloat(self.cues[cue].sound_start_position or 0),
+                                        windup=self.evalExprFloat(self.cues[cue].media_wind_up or 0),
+                                        winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                                     )
 
                             else:
@@ -2266,11 +2266,11 @@ class Scene:
                     self.blend_args[i] = self.blendClass.parameters[i][3]
 
     def go(self, nohandoff=False):
-        global activeScenes, _activeScenes
+        global active_scenes, _active_scenes
         self.setDisplayTags(self.display_tags)
 
         with core.lock:
-            if self in activeScenes:
+            if self in active_scenes:
                 return
 
             # Not sure if we need to remake this, keep it for defensive
@@ -2302,12 +2302,12 @@ class Scene:
             self.hasNewInfo = {}
             self.started = time.time()
 
-            if self not in _activeScenes:
-                _activeScenes.append(self)
-            _activeScenes = sorted(
-                _activeScenes, key=lambda k: (k.priority, k.started)
+            if self not in _active_scenes:
+                _active_scenes.append(self)
+            _active_scenes = sorted(
+                _active_scenes, key=lambda k: (k.priority, k.started)
             )
-            activeScenes = _activeScenes[:]
+            active_scenes = _active_scenes[:]
 
             self.setMqttServer(self.mqtt_server)
 
@@ -2319,14 +2319,14 @@ class Scene:
         return self.active
 
     def setPriority(self, p: float):
-        global activeScenes, _activeScenes
+        global active_scenes, _active_scenes
         self.hasNewInfo = {}
         self.priority = p
         with core.lock:
-            _activeScenes = sorted(
-                _activeScenes, key=lambda k: (k.priority, k.started)
+            _active_scenes = sorted(
+                _active_scenes, key=lambda k: (k.priority, k.started)
             )
-            activeScenes = _activeScenes[:]
+            active_scenes = _active_scenes[:]
             try:
                 for i in self.affect:
                     rerenderUniverse(i)
@@ -2363,7 +2363,7 @@ class Scene:
                 self.mqttConnection = None
 
             if mqtt_server:
-                if self in activeScenes:
+                if self in active_scenes:
 
                     self.mqttConnection = makeWrappedConnectionClass(self)(
                         server,
@@ -2472,7 +2472,7 @@ class Scene:
         self.pushMeta(keys={"bpm"})
 
     def stop(self):
-        global activeScenes, _activeScenes
+        global active_scenes, _active_scenes
         with core.lock:
             # No need to set rerender
             if self.scriptContext:
@@ -2496,9 +2496,9 @@ class Scene:
                 print(traceback.format_exc())
 
             self.affect = []
-            if self in _activeScenes:
-                _activeScenes.remove(self)
-                activeScenes = _activeScenes[:]
+            if self in _active_scenes:
+                _active_scenes.remove(self)
+                active_scenes = _active_scenes[:]
 
             self.active = False
             self.cue_cached_vals_as_arrays = {}
@@ -2613,7 +2613,7 @@ class Scene:
 
         self.mediaLink.send(["volume", val])
 
-    def addCue(self, name: str, **kw: Dict[str, Any]):
+    def add_cue(self, name: str, **kw: Any):
         return Cue(self, name, **kw)
 
     def setBlend(self, blend: str):

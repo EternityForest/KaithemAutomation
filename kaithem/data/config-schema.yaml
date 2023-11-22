@@ -117,12 +117,8 @@ properties:
         uniqueItems: yes
         items:
             enum:
-                - mpg123
-                - sox
-                - mplayer
-                - madplay
                 - mpv
-                - gstreamer
+                - test
 
     audio-paths:
         type: array

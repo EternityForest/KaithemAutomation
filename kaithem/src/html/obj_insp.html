@@ -157,7 +157,7 @@ ${getsource(obj)|h}
 <dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},s${i.replace(",","\\,")|u}"><button>${i|h}</button></form></dt>
 %elif isinstance(i,tuple):
 <dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},t${util.url(json.dumps(i).replace(",","\\,"))}"><button>${i|h}</button></form></dt>
-%elif isinstance(i,float):
+%elif isinstance(i,(int,float)):
 <dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},f${i}"><button>${i|h}</button></form></dt>
 %elif isinstance(i,int):
 <dt><form method="post" action="?objname=${objname}['${i}']&objpath=${objpath|u},i${i}"><button>${i|h}</button></form></dt>

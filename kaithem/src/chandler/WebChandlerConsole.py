@@ -255,7 +255,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     except Exception:
                         print(traceback.format_exc())
 
-                for i in scenes.activeScenes:
+                for i in scenes.active_scenes:
                     # Tell clients about any changed alpha values and stuff.
                     if i.id not in self.scenememory:
                         self.pushMeta(i.id)
@@ -564,7 +564,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             else:
                 del universes.universes[msg[1]]().channels[msg[2]]
 
-        elif cmd_name == "addcueval":
+        elif cmd_name == "add_cueval":
             if hasattr(cues[msg[1]].scene().blendClass, "default_channel_value"):
                 val = cues[msg[1]].scene().blendClass.default_channel_value
             else:
@@ -595,7 +595,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     # Hack. because JSON and yaml are giving us strings
                     cues[msg[1]].set_value(i, j, msg[2][i][j])
 
-        elif cmd_name == "addcuef":
+        elif cmd_name == "add_cuef":
             cue = cues[msg[1]]
 
             # Can add a length and start point to the cue.
@@ -696,10 +696,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setdalpha":
             scenes.scenes[msg[1]].setAlpha(msg[2], sd=True)
 
-        elif cmd_name == "addcue":
+        elif cmd_name == "add_cue":
             n = msg[2].strip()
             if not msg[2] in scenes.scenes[msg[1]].cues:
-                scenes.scenes[msg[1]].addCue(n)
+                scenes.scenes[msg[1]].add_cue(n)
 
         elif cmd_name == "searchsounds":
             self.linkSend(
@@ -722,7 +722,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in scenes.scenes[msg[1]].cues:
-                scenes.scenes[msg[1]].addCue(bn)
+                scenes.scenes[msg[1]].add_cue(bn)
                 scenes.scenes[msg[1]].cues[bn].rel_length = True
                 scenes.scenes[msg[1]].cues[bn].length = 0.01
 
@@ -749,7 +749,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in scenes.scenes[msg[1]].cues:
-                scenes.scenes[msg[1]].addCue(bn)
+                scenes.scenes[msg[1]].add_cue(bn)
                 soundfolders = core.getSoundFolders()
 
                 for i in soundfolders:
@@ -965,7 +965,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.scenes[msg[1]].setName(msg[2])
 
         elif cmd_name == "del":
-            # X is there in case the activeScenes listing was the last string reference, we want to be able to push the data still
+            # X is there in case the active_scenes listing was the last string reference, we want to be able to push the data still
             x = scenes.scenes[msg[1]]
             scenes.checkPermissionsForSceneData(x.toDict(), user)
 

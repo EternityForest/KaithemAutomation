@@ -91,7 +91,7 @@ try:
         except Exception:
             log.exception("Error in WifiManager")
 
-    workers.do(get_connectionstatus())
+    workers.do(get_connectionstatus)
 
 except Exception:
     log.exception(

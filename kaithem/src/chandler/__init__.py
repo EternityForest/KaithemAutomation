@@ -33,7 +33,7 @@ def refresh_scenes(t, v):
     when a new universes is added
     """
     with core.lock:
-        for i in scenes.activeScenes:
+        for i in scenes.active_scenes:
             # Attempt to restart all scenes.
             # Try to put them back in the same state
             # A lot of things are written assuming the list stays constant,
@@ -75,7 +75,7 @@ kaithem.message.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
 
 
 def pollsounds():
-    for i in scenes.activeScenes:
+    for i in scenes.active_scenes:
         # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
         # We keep this in case we get a sound format we can'r read the length of in advance
         if i.cuelen == 0:
@@ -166,7 +166,7 @@ def pre_render():
     universes = getUniverses()
 
     # Important to reverse, that way scenes that need a full reset come after and don't get overwritten
-    for i in reversed(scenes.activeScenes):
+    for i in reversed(scenes.active_scenes):
         for u in i.affect:
             if u in universes:
                 universe = universes[u]
@@ -212,7 +212,7 @@ def render(t=None):
     universesSnapshot = getUniverses()
 
     # Remember that scenes get rendered in ascending priority order here
-    for i in scenes.activeScenes:
+    for i in scenes.active_scenes:
         # We don't need to call render() if the frame is a static scene and the opacity
         # and all that is the same, we can just re-layer it on top of the values
         if i.rerender or (
@@ -257,7 +257,7 @@ def render(t=None):
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                 # or if this is the last one, mark it as the one we should save just before
-                if i.rerender or (i is scenes.activeScenes[-1]):
+                if i.rerender or (i is scenes.active_scenes[-1]):
                     if universeObject.all_static:
                         # Copy it and set to none as a flag that we already found it
                         universeObject.all_static = False

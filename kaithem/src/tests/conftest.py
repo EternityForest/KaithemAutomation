@@ -19,7 +19,8 @@ cfg = {
     'ssl-dir': "/dev/shm/kaithem_tests/ssl",
     'site-data-dir': "/dev/shm/kaithem_tests",
     # Prevent it from getting IP geolocation every time
-    'location': "0,0"
+    'location': "0,0",
+    'audio-backends': ['test']
 }
 
 kaithem.initialize_app(cfg)
