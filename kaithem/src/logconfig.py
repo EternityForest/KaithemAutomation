@@ -58,6 +58,7 @@ excludeDebug = {
     'zeep.wsdl.wsdl': 1,
     'zeep.xsd.visitor': 1,
     'zeep.transports': 1,
+    'mpv-jsonipc': 1
 }
 
 for i in excludeDebug:

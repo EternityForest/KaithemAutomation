@@ -210,66 +210,16 @@ objectPoolLock = threading.RLock()
 objectPool = []
 
 
-class RemoteMPV:
-    def __del__(self):
-        self.stop()
 
-    def __init__(self, *a, **k):
-        # -*- coding: utf-8 -*-
-
-        # If del can't find this it would to an infinite loop
-        self.worker = None
-        self.stopping = False
-        from jsonrpyc import RPC
-
-        f = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "mpv_server.py")
-        self.lock = threading.RLock()
-        env = {}
-        env.update(os.environ)
-        env["GST_DEBUG"] = "0"
-        self.worker = Popen(
-            ["python3", f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env
-        )
-        self.rpc = RPC(
-            target=self, stdin=self.worker.stdout, stdout=self.worker.stdin, daemon=True
-        )
-
+class PlayerHolder(object):
+    def __init__(self, p) -> None:
+        self.player = p
         self.usesCounter = 0
-
-    def stop(self):
-        if self.stopping:
-            return
-        if not hasattr(self, "rpc"):
-            return
-
-        self.stopping = True
-        self.rpc.stopFlag = True
-        # v =  self.rpc.call('get',['volume'],block=0.001)
-        # self.rpc.call('set',['volume',v/2])
-        # self.rpc.call('set',['volume',v/8])
-        # self.rpc.call('set',['volume',0])
-
-        if self.worker.poll() is not None:
-            tryCloseFds(self.worker)
-            return
-
-        try:
-            self.rpc.call("call", ["stop"], block=0.001, timeout=3)
-        except TimeoutError:
-            pass
-        except Exception:
-            # I hate this. But I guess it's rather obvious if the stop function doesn't work,
-            # And this makes nuisance errors if the process is already dead.
-            pass
-
-        self.worker.kill()
-        self.worker.wait()
-        tryCloseFds(self.worker)
-
-    def print(self, s):
-        print(s)
-
+        self.conf = [0]
+        self.isConfigured = False
+        self.lastvol = -99089798
+        self.conf_speed = 1
+        self.loop_conf = -1
 
 class MPVBackend(SoundWrapper):
     @staticmethod
@@ -303,62 +253,52 @@ class MPVBackend(SoundWrapper):
             self.stopped = False
             self.is_playingCache = None
 
+            self.player: PlayerHolder
+
             if output == "__disable__":
                 return
 
             self.alreadySetCorrection = False
-
-            settings_key = (speed, loop)
 
             # I think this leaks memory when created and destroyed repeatedly
             with objectPoolLock:
                 if len(objectPool):
                     self.player = objectPool.pop()
                 else:
-                    self.player = RemoteMPV()
+                    from python_mpv_jsonipc import MPV
+                    self.player = PlayerHolder(MPV())
+
 
             # Avoid somewhat slow RPC calls if we can
-            if (not hasattr(self.player, "isConfigured")) or (
-                not self.player.isConfigured
-            ):
+            if not self.player.isConfigured:
                 cname = "kplayer" + str(time.monotonic()) + "_out"
+                self.player.player.vid = 'no'
+                self.player.player.keep_open ='yes'
+                self.player.player.ao = "jack,pulse,alsa"
+                self.player.player.jack_name = cname
+                self.player.player.gapless_audio = "weak"
+                self.player.player.isConfigured = True
 
-                self.player.rpc.call("set", ["vid", "no"])
-                self.player.rpc.call("set", ["keep_open", "yes"])
+            if speed != self.player.conf_speed:
+                self.player.player.audio_pitch_correction = False
+                self.player.player.speed = speed
 
-                self.player.rpc.call("set", ["ao", "jack,pulse,alsa"])
-                self.player.rpc.call("set", ["jack_name", cname])
-                self.player.rpc.call("set", ["gapless_audio", "weak"])
-                self.player.isConfigured = True
 
-            if (
-                not hasattr(self.player, "conf")
-            ) or not self.player.conf == settings_key:
-                if (not speed == 1) or (
-                    hasattr(self.player, "conf") and (
-                        speed != self.player.conf[0])
-                ):
-                    self.player.rpc.call(
-                        "set", ["audio_pitch_correction", False], block=0.001
-                    )
-                    self.player.rpc.call("set", ["speed", speed], block=0.001)
-                self.player.conf = settings_key
-
+            if not loop == self.player.loop_conf:
                 # For legavy reasons some stuff used tens of millions instead of actual infinite loop.
                 # But it seems mpv ignores everything past a certain number. So we replace effectively forever with
                 # actually forever to get the same effect, assuming that was user intent.
                 if not (loop == -1 or loop > 900000000):
-                    self.player.rpc.call(
-                        "set", ["loop_playlist", int(max(loop, 1))])
+                    self.player.player.loop_playlist = int(max(loop, 1))
                 else:
-                    self.player.rpc.call("set", ["loop_playlist", "inf"])
+                    self.player.player.loop_playlist = 'inf'
 
             # Due to memory leaks, these have a limited lifespan
             self.player.usesCounter += 1
 
             if (not hasattr(self.player, "lastvol")) or not self.player.lastvol == vol:
                 self.player.lastvol = vol
-                self.player.rpc.call("set", ["volume", vol * 100])
+                self.player.player.volume = vol * 100
 
             self.volume = vol
             self.finalGain = finalGain if finalGain is not None else vol
@@ -371,20 +311,18 @@ class MPVBackend(SoundWrapper):
                     jp = output
 
             if (not hasattr(self.player, "lastjack")) or not self.player.lastjack == jp:
-                self.player.rpc.call("set", ["jack_port", jp])
-                self.player.lastjack = jp
+                self.player.player.jack_port = jp
+                self.player.player.lastjack = jp
 
             self.started = time.time()
 
             if filename:
                 self.is_playingCache = None
-                self.player.rpc.call(
-                    "call", ["loadfile", filename], block=0.001, timeout=12
-                )
-                self.player.rpc.call("set", ["pause", False])
+                self.player.player.loadfile(filename)
+
+                self.player.player.pause = False
                 if start:
-                    self.player.rpc.call(
-                        "call", ["seek", str(start), "absolute"])
+                    self.player.player.seek(str(start), "absolute")
 
         def __del__(self):
             self.stop()
@@ -396,21 +334,15 @@ class MPVBackend(SoundWrapper):
             bad = True
             if hasattr(self, "player"):
                 # Only do the maybe recycle logic when stopping a still good SFX
+    
                 try:
-                    w = self.player.worker
+                    with self.lock:
+                        self.player.stop()
+                    bad = False
                 except Exception:
-                    return
-                if w.poll() is None:
-                    try:
-                        with self.lock:
-                            self.player.rpc.call(
-                                "call", ["stop"], block=0.001, timeout=1
-                            )
-                        bad = False
-                    except Exception:
-                        # Sometimes two threads try to stop this at the same time and we get a race condition
-                        # I really hate this but stopping a crashed sound can't be allowed to take down anything else.
-                        pass
+                    # Sometimes two threads try to stop this at the same time and we get a race condition
+                    # I really hate this but stopping a crashed sound can't be allowed to take down anything else.
+                    pass
 
                 # When the player only has a few uses left, if we don't have many spare objects in
                 # the pool, we are going to make the replacement ahead of time in a background thread.
@@ -423,7 +355,8 @@ class MPVBackend(SoundWrapper):
 
                             def f():
                                 # Can't make it under lock that is slow
-                                o = RemoteMPV()
+                                from python_mpv_jsonipc import MPV
+                                o = PlayerHolder(MPV())
                                 with objectPoolLock:
                                     if len(objectPool) < 4:
                                         objectPool.append(o)
@@ -436,7 +369,7 @@ class MPVBackend(SoundWrapper):
                     p = self.player
 
                     def f():
-                        p.stop()
+                        p.player.stop()
 
                     workers.do(f)
 
@@ -458,12 +391,7 @@ class MPVBackend(SoundWrapper):
                     if not refresh:
                         if self.is_playingCache is not None:
                             return self.is_playingCache
-                    c = (
-                        self.player.rpc.call(
-                            "get", ["eof_reached"], block=0.001, timeout=12
-                        )
-                        == False
-                    )
+                    c = self.player.player.eof_reached == False
 
                     if c is False:
                         self.is_playingCache = c
@@ -479,9 +407,7 @@ class MPVBackend(SoundWrapper):
 
         def wait(self):
             with self.lock:
-                # Block until sound is finished playing.
-                self.player.rpc.call("wait_for_playback",
-                                     block=0.001, timeout=3)
+                self.player.player.wait_for_playback()
 
         def seek(self, position):
             pass
@@ -492,31 +418,28 @@ class MPVBackend(SoundWrapper):
                 if final:
                     self.finalGain = volume
                 self.player.lastvol = volume
-                self.player.rpc.call(
-                    "set", ["volume", volume * 100], block=0.001)
+                self.player.player.volume= volume * 100
 
         def setSpeed(self, speed):
             with self.lock:
                 if not self.alreadySetCorrection:
-                    self.player.rpc.call(
-                        "set", ["audio_pitch_correction", False], block=0.001
-                    )
+                    self.player.player.audio_pitch_correction = False
                     self.alreadySetCorrection = True
                 # Mark as needing to be updated
-                self.player.conf = (speed, self.player.conf[1])
-                self.player.rpc.call("set", ["speed", speed], block=0.001)
+                self.player.conf_speed = speed
+                self.player.player.speed = speed
 
         def getVol(self):
             with self.lock:
-                return self.player.rpc.call("get", ["volume"], block=0.001)
+                return self.player.player.volume
 
         def pause(self):
             with self.lock:
-                self.player.rpc.call("set", ["pause", True])
+                self.player.player.pause = True
 
         def resume(self):
             with self.lock:
-                self.player.rpc.call("set", ["pause", False])
+                self.player.player.pause = False
 
     def play_sound(
         self,
