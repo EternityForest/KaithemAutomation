@@ -169,6 +169,9 @@ The new unit tests initiative uses pytest.  Use the test_run.py file if you want
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
 
+### 0.73.2
+- :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum
+
 ### 0.73.1
 - :bug: Fix chandler not liking cues with empty strings for some settings
 - :bug: Fix incredibly dumb bug where I forgot that isinstance doesn't consider int  subtype of float. :facepalm:
