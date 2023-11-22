@@ -21,7 +21,6 @@ else
     echo "Found venv"
 fi
 
-# As the $KAITHEM_UID user, in a virtualenv
 ~/kaithem/.venv/bin/python -m pip install -U --ignore-installed -r requirements_frozen.txt
 ~/kaithem/.venv/bin/python setup.py install
 

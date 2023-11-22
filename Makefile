@@ -91,12 +91,12 @@ dev-update-dependencies: dev-make-venv # Install latest version of dependencies 
 
 user-install-kaithem: # Install kaithem to run as your user. Note that it only runs when you are logged in.
 	@cd ${ROOT_DIR}
-	@echo "Kaithem will be installed to /home/$(id -un $KAITHEM_UID)/kaithem/.venv"
+	@echo "Kaithem will be installed to /home/$(id -un)/kaithem/.venv"
 	@bash ./scripts/install-kaithem.sh
 
 user-max-volume-at-boot: #Install a service that sets the max volume when you log in.
 	@cd ${ROOT_DIR}
-	@sudo -u $(KAITHEM_USER) bash ./scripts/max-volume.sh
+	@bash ./scripts/max-volume.sh
 
 
 user-kaithem-force-restart: # Force kill the process and restart it.
