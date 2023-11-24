@@ -41,7 +41,9 @@ def stop(*args):
     import cherrypy
     from . import messagebus
     messagebus.post_message(
-        '/system/notifications/shutdown', "Recieved SIGINT.")
+        '/system/notifications/shutdown', "Recieved SIGINT or SIGTERM.")
+    messagebus.post_message(
+        '/system/shutdown', "Recieved SIGINT or SIGTERM.")
     
     import tornado
     ioloop = tornado.ioloop.IOLoop.instance()
@@ -50,3 +52,4 @@ def stop(*args):
 
 
 signal.signal(signal.SIGINT, stop)
+signal.signal(signal.SIGTERM, stop)
