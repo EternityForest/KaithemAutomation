@@ -330,44 +330,10 @@ class Settings():
         return pages.get_template("settings/broadcast.html").render()
 
     @cherrypy.expose
-    def console(self, **kwargs):
+    def consoleui(self, **kwargs):
         pages.require("/admin/settings.edit")
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        if 'script' in kwargs:
-            pages.postOnly()
-            x = ''
-            env = {}
-            env.update(os.environ)
-
-            if util.which("bash"):
-                p = subprocess.Popen("bash -i", universal_newlines=True, shell=True, env=env,
-                                     stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-            else:
-                p = subprocess.Popen("sh -i", universal_newlines=True, shell=True, env=env,
-                                     stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            t = p.communicate(kwargs['script'])
-
-            if isinstance(t, bytes):
-                try:
-                    t = t.decode('utf-8')
-                except Exception:
-                    pass
-
-            x += t[0] + t[1]
-            try:
-                time.sleep(0.1)
-                t = p.communicate('')
-                x += t[0] + t[1]
-                p.kill()
-                p.stdout.close()
-                p.stderr.close()
-                p.stdin.close()
-            except Exception:
-                pass
-            return pages.get_template("settings/console.html").render(output=x)
-        else:
-            return pages.get_template("settings/console.html").render(output="Kaithem System Shell")
+        return pages.render_jinja_template("settings/console_ui.j2.html")
 
     @cherrypy.expose
     def account(self):

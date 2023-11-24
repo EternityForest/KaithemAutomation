@@ -21,6 +21,8 @@ NVRChannel
 pytest
 nmcli
 peewee
+flask-socketio
+
 
 
 ffmpeg-python

@@ -1,3 +1,7 @@
+from cherrypy import _cperror
+from cherrypy.lib.static import serve_file
+from .config import config
+from .chandler import web as cweb
 import cherrypy
 import mako
 import tornado
@@ -50,12 +54,6 @@ from . import (
     tileserver
 )
 
-
-from .chandler import web as cweb
-from .config import config
-
-from cherrypy.lib.static import serve_file
-from cherrypy import _cperror
 
 
 logger = logging.getLogger("system")
@@ -627,7 +625,7 @@ def startServer():
     class KAuthMatcher(Matcher):
         def __init__(self, path, permission) -> None:
             super().__init__()
-            self.pm = PathMatches(path)
+            self.pm = PathMatches(path) if path else AnyMatches()
             self.perm = permission
 
         def match(self, request) -> Dict[str, Any] | None:
@@ -645,6 +643,7 @@ def startServer():
                 [("/maptiles/tile/.*", tileserver.MainHandler)]),
         ),
     ]
+    from .pyxtermjs import app
 
     from . import tableview
 
@@ -653,6 +652,18 @@ def startServer():
             AnyMatches(),
             tornado.web.Application(
                 [
+                    (
+                        KAuthMatcher('/settings/console.*', "/admin/settings.edit"),
+                        wsgi_adapter.WSGIHandler,
+                        {"wsgi_application": app.app_prefixed},
+                    ),
+                    (
+                        PathMatches('/settings/console.*'),
+                        tornado.web.RedirectHandler,
+                        {"url": "/login", 'permanent': False},
+                    ),
+
+
                     (
                         KAuthMatcher("/database.*", "/admin/settings.edit"),
                         wsgi_adapter.WSGIHandler,
@@ -663,6 +674,8 @@ def startServer():
                         tornado.web.RedirectHandler,
                         {"url": "/login", 'permanent': False},
                     ),
+
+
                     (
                         AnyMatches(),
                         wsgi_adapter.WSGIHandler,
@@ -689,6 +702,7 @@ def startServer():
                 ),
             ]
         )
+
     router = RuleRouter(rules)
 
     http_server = tornado.httpserver.HTTPServer(router)
