@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.73.2
+- :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum
+
 ### 0.73.1
 - :bug: Fix chandler not liking cues with empty strings for some settings
 - :bug: Fix incredibly dumb bug where I forgot that isinstance doesn't consider int  subtype of float. :facepalm:
