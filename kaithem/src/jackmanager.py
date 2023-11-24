@@ -23,6 +23,13 @@ from scullery.jacktools import *
 
 from scullery.jacktools import Airwire, get_ports
 
+from scullery import messagebus 
+
+def exit(*a,**k):
+    scullery.jacktools.stop_managing()
+
+messagebus.subscribe('/system/shutdown', exit)
+
 
 __doc__ = ""
 
