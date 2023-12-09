@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.74.0
+- :sparkles: Use Terminado and xterm.js to finally provide a proper system console shell!!!
+
+
 ### 0.73.2
 - :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum
 

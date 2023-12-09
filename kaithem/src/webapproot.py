@@ -649,7 +649,9 @@ def startServer():
     from . import tableview
 
     import terminado
-    term_manager = terminado.SingleTermManager(shell_command=["bash"])
+    bashrc = os.path.join(directories.vardir, 'core.settings/bashrc.sh')
+
+    term_manager = terminado.UniqueTermManager(shell_command=["bash", '--rcfile', bashrc])
 
     wsgi_apps = []
     tornado_apps = [(
