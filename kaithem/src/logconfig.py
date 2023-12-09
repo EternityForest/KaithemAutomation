@@ -43,10 +43,12 @@ logger.setLevel(logging.WARNING)
 logger = logging.getLogger("peewee")
 logger.setLevel(logging.WARNING)
 
+logger = logging.getLogger('aioesphomeapi.host_resolver')
+logger.setLevel(logging.WARNING)
+
 
 logger = logging.getLogger("tornado.general")
 logger.setLevel(logging.WARNING)
-
 
 logging.getLogger("cherrypy.access").propagate = False
 logging.getLogger("tornado.access").propagate = False
@@ -58,7 +60,7 @@ excludeDebug = {
     'zeep.wsdl.wsdl': 1,
     'zeep.xsd.visitor': 1,
     'zeep.transports': 1,
-    'mpv-jsonipc': 1
+    'mpv-jsonipc': 1,
 }
 
 for i in excludeDebug:
