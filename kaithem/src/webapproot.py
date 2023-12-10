@@ -47,7 +47,8 @@ from . import (
     util,
     systasks,
     widgets,
-    tileserver
+    tileserver,
+    web_console
 )
 
 
@@ -639,30 +640,19 @@ def startServer():
 
     rules = [
         Rule(PathMatches("/widgets/ws.*"), wsapp),
-        Rule(
-            PathMatches("/maptiles/tile/.*"),
-            tornado.web.Application(
-                [("/maptiles/tile/.*", tileserver.MainHandler)]),
-        ),
     ]
 
     from . import tableview
 
-    import terminado
-    bashrc = os.path.join(directories.vardir, 'core.settings/bashrc.sh')
+    from . import kaithemobj
 
-    term_manager = terminado.UniqueTermManager(shell_command=["bash", '--rcfile', bashrc])
 
-    wsgi_apps = []
-    tornado_apps = [(
-        "/web_console_ws.*", terminado.TermSocket, {"term_manager": term_manager}
-    )]
 
     x = []
-    for i in wsgi_apps:
+    for i in kaithemobj.wsgi_apps:
         x += [
             (
-                KAuthMatcher(i[0], "/admin/settings.edit"),
+                KAuthMatcher(i[0], i[2]),
                 wsgi_adapter.WSGIHandler,
                 {"wsgi_application": i[1]},
             ),
@@ -674,10 +664,10 @@ def startServer():
         ]
 
     xt = []
-    for i in tornado_apps:
+    for i in kaithemobj.tornado_apps:
         xt += [
             (
-                KAuthMatcher(i[0], "/admin/settings.edit"),
+                KAuthMatcher(i[0], i[3]),
                 i[1], i[2]
             ),
             (
@@ -686,6 +676,23 @@ def startServer():
                 {"url": "/login", 'permanent': False},
             )
         ]
+
+    if config["esphome-config-dir"]:
+        from . import esphome_dash
+
+        rules.extend(
+            [
+                Rule(
+                    KAuthMatcher("/esphome.*", "/admin/settings.edit"),
+                    esphome_dash.start_web_server(),
+                ),
+                Rule(
+                    PathMatches("/esphome.*"),
+                    tornado.web.RedirectHandler,
+                    {"url": "/login", 'permanent': False},
+                ),
+            ]
+        )
 
     rules.append(
         Rule(
@@ -713,22 +720,7 @@ def startServer():
         )
     )
 
-    if config["esphome-config-dir"]:
-        from . import esphome_dash
 
-        rules.extend(
-            [
-                Rule(
-                    KAuthMatcher("/esphome.*", "/admin/settings.edit"),
-                    esphome_dash.start_web_server(),
-                ),
-                Rule(
-                    PathMatches("/esphome.*"),
-                    tornado.web.RedirectHandler,
-                    {"url": "/login", 'permanent': False},
-                ),
-            ]
-        )
     router = RuleRouter(rules)
 
     http_server = tornado.httpserver.HTTPServer(router)

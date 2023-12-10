@@ -991,7 +991,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             self.set_config_option(key, value.strip())
 
     def handle_error(self, e: str, title=''):
-        self.handle_error(e)
+        iot_devices.device.Device.handle_error(self, str(title) + ':' + str(e))
 
     def on_data_change(self, name: str, value, timestamp: float, annotation):
         """used for subclassing, this is how you watch for data changes.

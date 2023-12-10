@@ -4,7 +4,10 @@ Change Log
 
 ### 0.74.0
 - :sparkles: Use Terminado and xterm.js to finally provide a proper system console shell!!!
-
+- :bug: Fix recursion issue in device.handle_error
+- :bug: Fix chatty logs from aioesphomeapi
+- :coffin: Deprecate kaithem.web.controllers
+- :sparkles: kaithem.web.add_wsgi_app and add_tornado_app allow for addon apps from other frameworks.
 
 ### 0.73.2
 - :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum

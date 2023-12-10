@@ -28,13 +28,7 @@ from cherrypy.lib.static import serve_file
 from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 
 
-bashrc = os.path.join(directories.vardir, 'core.settings/bashrc.sh')
-os.makedirs(os.path.join(directories.vardir, 'core.settings'), exist_ok=True)
 
-if not os.path.exists(bashrc):
-    with open(bashrc, 'w') as f:
-        with open(os.path.join(directories.datadir, 'default_bashrc.sh')) as f2:
-            f.write(f2.read())
 
 upnpsettingsfile = os.path.join(
     directories.vardir, "core.settings", "upnpsettings.yaml")
@@ -498,7 +492,7 @@ class Settings():
         subprocess.call(["date", "-s",
                          time.strftime("%Y%m%d%H%M%S", time.gmtime(t - 0.05)), "+%Y%m%d%H%M%S", ])
         try:
-            subprocess.call(["hwclock", "--systohc"])
+            subprocess.call(["sudo", "hwclock", "--systohc"])
         except Exception:
             pass
 
