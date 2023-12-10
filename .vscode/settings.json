@@ -44,5 +44,20 @@
     "html.format.templating": true,
     "pylint.args": [
         " \"--max-line-length=120\""
-    ]
+    ],
+
+    "LineCount.includes": [     
+        "**/*" 
+        ],    
+
+    "LineCount.excludes": [ 
+            "**/.vscode/**",
+            "**/thrdparty/**",
+            "**/.buildozer/**",
+            "**/.venv/**",
+            "**/.isolated_venv/**",
+            "**/src/js/**"
+
+            ],
+
 }

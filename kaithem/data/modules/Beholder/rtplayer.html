@@ -1,5 +1,6 @@
 ---
-allow-origins: ['*']
+allow-origins:
+- '*'
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
@@ -7,8 +8,11 @@ code: ''
 mimetype: text/html
 no-header: true
 no-navheader: true
-require-method: [GET, POST]
-require-permissions: [users.nvr.view]
+require-method:
+- GET
+- POST
+require-permissions:
+- users.nvr.view
 resource-timestamp: 1690502472006620
 resource-type: page
 setupcode: ''
@@ -16,7 +20,7 @@ streaming-response: false
 template-engine: mako
 
 ---
-<script type="text/javascript" src="/static/widget.js"></script>
+<script type="text/javascript" src="/static/js/widget.js"></script>
 
 
 

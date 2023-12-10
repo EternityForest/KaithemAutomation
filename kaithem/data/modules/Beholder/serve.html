@@ -1,13 +1,17 @@
 ---
-allow-origins: ['*']
+allow-origins:
+- '*'
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 mimetype: text/html
 no-header: false
 no-navheader: false
-require-method: [GET, POST]
-require-permissions: [users.nvr.view]
+require-method:
+- GET
+- POST
+require-permissions:
+- users.nvr.view
 resource-timestamp: 1646328863381615
 resource-type: page
 template-engine: mako

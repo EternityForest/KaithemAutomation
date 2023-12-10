@@ -58,7 +58,7 @@ vueApp = """
 <%block name="title">{basename}</%block>
 
 <main>
-<script src="/static/js/vue3.js"></script>
+<script src="/static/js/thirdparty/vue3.js"></script>
 
 
 <section id="app">

@@ -1,13 +1,16 @@
 ---
-allow-origins: ['*']
+allow-origins:
+- '*'
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 mimetype: text/html
 no-header: false
 no-navheader: false
-require-method: [GET]
-require-permissions: [users.nvr.view]
+require-method:
+- GET
+require-permissions:
+- users.nvr.view
 resource-timestamp: 1647218821855624
 resource-type: page
 streaming-response: false
@@ -41,6 +44,6 @@ b="data:image/jpeg;base64,"+base64.b64encode(b.getvalue()).decode()
 <h2>serve_jpg</h2>
 <title>serve_jpg</title>
 
-<div class="window paper">
+<div class="window">
 <img src="${b}">
 </div>
