@@ -1,8 +1,13 @@
 ## Code outside the data string, and the setup and action blocks is ignored
 ## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new
 __data__="""
-{continual: false, enable: true, once: true, priority: interactive, rate-limit: 0.0,
-  resource-timestamp: 1645141613510257, resource-type: event}
+continual: false
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-timestamp: 1645141613510257
+resource-type: event
 
 """
 

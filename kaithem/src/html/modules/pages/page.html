@@ -24,9 +24,9 @@ page['code'] = page.get('code','')
 
 <%include file="/pageheader.html"/>
 %if using_monaco_editor:
-<script src="/static/js/vs/loader.js"></script>
+<script src="/static/js/thirdparty/vs/loader.js"></script>
 <script>
-    	require.config({ paths: { 'vs': '/static/js/vs' }});
+    	require.config({ paths: { 'vs': '/static/js/thirdparty/vs' }});
 </script>
 %endif
 
@@ -236,13 +236,13 @@ window.onbeforeunload = function(){
 
 %if using_monaco_editor and (not noCodeEdits):
 <script src="${config['monaco-theme-url']}"></script>
-<script src="/static/js/monaco-actions.js"></script>
-<script src="/static/js/tidy.js"></script>
+<script src="/static/js/thirdparty/monaco-actions.js"></script>
+<script src="/static/js/thirdparty/tidy.js"></script>
 
 
-<script src="/static/js/beautify/beautify.js"></script>
-<script src="/static/js/beautify/beautify-css.js"></script>
-<script src="/static/js/beautify/beautify-html.js"></script>
+<script src="/static/js/thirdparty/beautify/beautify.js"></script>
+<script src="/static/js/thirdparty/beautify/beautify-css.js"></script>
+<script src="/static/js/thirdparty/beautify/beautify-html.js"></script>
 
 <script>
 	require(['vs/editor/editor.main'], function() {      
@@ -556,8 +556,8 @@ Saving this module will cause it to be immediately acessable from the web.
 </section>
 
 %if not using_monaco_editor:
-<script src="/static/js/src-min-noconflict/ace.js"></script>
-<script src="/static/js/jquery3.js"></script>
+<script src="/static/js/thirdparty/src-min-noconflict/ace.js"></script>
+<script src="/static/js/thirdparty/jquery3.js"></script>
 
 <script>
     // Hook up ACE editor to all textareas with data-editor attribute

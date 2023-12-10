@@ -5,6 +5,7 @@ kaithem/var/
 build/**
 kaithem.egg-info*
 dist/**
+out/**
 
 # This is for when building under nix
 result/**

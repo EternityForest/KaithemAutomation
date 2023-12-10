@@ -14,7 +14,7 @@ Somewhere in your page before the first widget, you must include this
 line:
 
 ```html
-<script type="text/javascript" src="/static/widget.js"></script>
+<script type="text/javascript" src="/static/js/widget.js"></script>
 ```
 
 This will include a small JS library that will automatically handle just aboud everything for you.

@@ -881,7 +881,7 @@ class TimeWidget(Widget):
         """
         if type == "widget":
             return """<div id="%s" class="widgetcontainer">
-            <script type="text/javascript" src="/static/js/strftime-min.js">
+            <script type="text/javascript" src="/static/js/thirdparty/strftime-min.js">
             </script>
             <script type="text/javascript">
             var f = function(val)
@@ -902,7 +902,7 @@ class TimeWidget(Widget):
 
         elif type == "inline":
             return """<span id="%s">
-            <script type="text/javascript" src="/static/js/strftime-min.js">
+            <script type="text/javascript" src="/static/js/thirdparty/strftime-min.js">
             </script>
             <script type="text/javascript">
             var f = function(val)

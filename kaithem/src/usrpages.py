@@ -66,7 +66,7 @@ def markdownToSelfRenderingHTML(content, title):
         + """</section>
     <script src="/static/showdown.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
-    <script src="/static/js/highlight.pack.js"></script>
+    <script src="/static/js/thirdparty/highlight.pack.js"></script>
     <script>
     showdown.extension('codehighlight', function() {
     function htmlunencode(text) {

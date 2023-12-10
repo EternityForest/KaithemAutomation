@@ -18,11 +18,11 @@ tagpoints.exposedTags.keys()})
             <meta name="apple-mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-status-bar-style" content="black" />
             <meta name="viewport" content="width = device-width, initial-scale = 1, user-scalable = no" />
-            <link href="/static/js/freeboard/css/freeboard.min.css" rel="stylesheet" />
-            <script src="/static/widget.js"></script>
+            <link href="/static/js/thirdparty/freeboard/css/freeboard.min.css" rel="stylesheet" />
+            <script src="/static/js/widget.js"></script>
 
-            <script src="/static/js/freeboard/js/freeboard.thirdparty.min.js"></script>
-            <script src="/static/js/js-yaml.min.js"></script>
+            <script src="/static/js/thirdparty/freeboard/js/freeboard.thirdparty.min.js"></script>
+            <script src="/static/js/thirdparty/js-yaml.min.js"></script>
             <style>
                 tags-list-data {
                     display: none;
@@ -63,8 +63,8 @@ tagpoints.exposedTags.keys()})
                 function showPages() {
                     freeboard.showPageManager();
                 }
-                head.js("/static/js/freeboard/js/freeboard_plugins.min.js",
-                    "/static/js/freeboard/kaithem_plugin.js",
+                head.js("/static/js/thirdparty/freeboard/js/freeboard_plugins.min.js",
+                    "/static/js/thirdparty/freeboard/kaithem_plugin.js",
 
                     function () {
                         $(function () { //DOM Ready
