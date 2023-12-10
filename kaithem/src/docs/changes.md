@@ -8,6 +8,8 @@ Change Log
 - :bug: Fix chatty logs from aioesphomeapi
 - :coffin: Deprecate kaithem.web.controllers
 - :sparkles: kaithem.web.add_wsgi_app and add_tornado_app allow for addon apps from other frameworks.
+- :lipstick: Legacy /static/widget.js moved to /static/js/widget.js
+- :lipstick: Third party JS moved to /static/js/thirdparty/
 
 ### 0.73.2
 - :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum
