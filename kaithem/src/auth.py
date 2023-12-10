@@ -75,8 +75,10 @@ defaultData = {
 }
 
 # Python doesn't let us make custom attributes on normal dicts
+
+
 class User(dict):
-    permissions : Union[Dict,set]= {}
+    permissions: Union[Dict, set] = {}
     pass
 
 
@@ -85,7 +87,7 @@ logger = logging.getLogger("system.auth")
 Tokens: Dict[str, User] = {}
 
 Groups = {}
-Users  = {}
+Users = {}
 
 # This maps hashed tokens to users. There's an easy timing attack I'd imagine
 # with looking up tokens literally in a dict.
@@ -109,7 +111,7 @@ if sys.version_info < (3, 0):
     # It's ok if it doesn't actually do anything because of the fact that hash.update is fine with str in 2.xx
     def usr_bytes(s, x):
         "Bytes is an alias for str in py2x, so we make this wrapper so it has the same interface as py3x"
-        return(str(s))
+        return (str(s))
 
 else:
     usr_bytes = bytes
@@ -188,7 +190,6 @@ def importPermissionsFromModules():
     Permissions = p2
 
 
-
 def changeUsername(old, new):
     "Change a user's username"
     global authchanged
@@ -230,7 +231,7 @@ def changePassword(user, newpassword, useSystem=False):
         Users[user]['password'] = p
 
 
-def addUser(username, password,useSystem=False):
+def addUser(username, password, useSystem=False):
     global authchanged
     with lock:
         authchanged = True
@@ -294,6 +295,7 @@ def removeUserFromGroup(username, group):
         # Regenerate the per-user permissions cache for that user
         generateUserPermissions(username)
 
+
 def tryToLoadFrom(d):
     global tokenHashes
     with lock:
@@ -329,7 +331,7 @@ def loadFromData(d):
             assignNewToken(user)
         generateUserPermissions()
         return True
-    
+
 
 data_bad = False
 
@@ -347,7 +349,7 @@ def initializeAuthentication():
             logger.exception(
                 "Error loading auth data, may be able to continue from old state")
             messagebus.post_message("/system/notifications/errors",
-                                   "Error loading auth data, may be able to continue from old state:\n" + str(e))
+                                    "Error loading auth data, may be able to continue from old state:\n" + str(e))
             data_bad = True
             try:
                 dirname = util.getHighestNumberedTimeDirectory(
@@ -355,13 +357,13 @@ def initializeAuthentication():
                 tryToLoadFrom(dirname)
                 loaded = True
                 messagebus.post_message("/system/notifications/warnings",
-                                       """Saving was interrupted. Using last version of users list.
+                                        """Saving was interrupted. Using last version of users list.
                 This could create a secuirty issue if the old version allowes access to a malicious user.
                 To suppress this warning, please review your users and groups, and re-save the server state. You must make at least
                 one change to users and groups (Or click save on a user or group without making changes)
                 for them to actually be saved.
                 """)
-            except:
+            except Exception:
                 messagebus.post_message(
                     "/system/notifications/errors", "Could not load old state:\n" + str(e))
                 pass
@@ -418,7 +420,7 @@ def addFloatingUser():
     """
         Add a "floating" admin user, representing the Linux system user actually running the process, using the system
         login mechanism.
-        
+
         The rationale for this is that the system user has full acess to everything anyway.  Restrict to LAN for the obvious reason
         we might to that on a local system.
     """
@@ -429,18 +431,16 @@ def addFloatingUser():
         authchanged = True
         if username not in Users:  # stop overwriting attempts
             Users[username] = User({
-                'username': username, 
-                'groups': ['Administrators'], 
-                'password': 'system', 
-                'settings' : {
-                    'restrict-lan': True 
-                    }
-                })
-
+                'username': username,
+                'groups': ['Administrators'],
+                'password': 'system',
+                'settings': {
+                    'restrict-lan': True
+                }
+            })
 
             Users[username].limits = {}
             generateUserPermissions()
-
 
 
 def userLogin(username, password):
@@ -452,10 +452,9 @@ def userLogin(username, password):
         import pwd
         import getpass
 
-
-        if username in Users and ('password' in Users[username]) and Users[username]['password']=='system':
+        if username in Users and ('password' in Users[username]) and Users[username]['password'] == 'system':
             runningUser = getpass.getuser()
-            if runningUser in(username, 'root'):
+            if runningUser in (username, 'root'):
                 if pwd.getpwnam(username):
                     import pam
                     # Two APIs??
@@ -468,9 +467,8 @@ def userLogin(username, password):
                             if not hasattr(Users[username], 'token'):
                                 assignNewToken(username)
                             return (Users[username].token)
-            
-            return 'failure'
 
+            return 'failure'
 
     except ImportError:
         tryLinuxUser = None
