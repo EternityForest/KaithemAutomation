@@ -47,7 +47,7 @@
     ],
 
     "LineCount.includes": [     
-        "**/*" 
+        "**/kaithem/src/**" 
         ],    
 
     "LineCount.excludes": [ 
@@ -56,8 +56,6 @@
             "**/.buildozer/**",
             "**/.venv/**",
             "**/.isolated_venv/**",
-            "**/src/js/**"
-
             ],
 
 }
