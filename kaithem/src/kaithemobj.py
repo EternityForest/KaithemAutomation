@@ -59,6 +59,11 @@ from kaithem import __version__
 from . import astrallibwrapper as sky
 from . import scriptbindings
 
+
+wsgi_apps = []
+tornado_apps = []
+
+
 bootTime = time.time()
 
 # Persist is one of the ones that we want to be usable outside of kaithem, so we add our path resolution stuff here.
@@ -481,6 +486,18 @@ class Kaithem():
         nav_bar_plugins = pages.nav_bar_plugins
 
         theming = theming
+
+
+        @staticmethod
+        def add_wsgi_app(pattern: str, app, permission="/admin/settings.edit"):
+            "Mount a WSGI application to handle all URLs matching the pattern regex"
+            wsgi_apps.append((pattern, app, permission))
+
+        @staticmethod
+        def add_tornado_app(pattern: str, app, args, permission="/admin/settings.edit"):
+            "Mount a Tornado application to handle all URLs matching the pattern regex"
+            tornado_apps.append((pattern, app, args, permission))
+
 
         @staticmethod
         def freeboard(page, kwargs, plugins=[]):

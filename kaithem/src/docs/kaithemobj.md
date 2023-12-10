@@ -826,34 +826,12 @@ This is a WeakValueDictionary that you can use to add items to the top navbar. E
 values must be a function that returns None for no item, or a tuple of (sort order, HTML).
 HTML will typically be an a tag link.  Default sort order should be 50.
 
-#### kaithem.web.controllers 
+#### kaithem.web.add_wsgi_app(pattern: str, app, permission="/admin/settings.edit"):
+Mount a WSGI application to handle all URLs matching the pattern regex.  The app will only be accessible
+to users having the specified permission.
 
-This is a WeakValueDict that maps path tuples to CherryPy
-style controller objects.  It allows you to handle requests for
-arbitrary URLs so long as they do not conflict.
-
-These are raw CherryPy pages. You are responsible for checking permissions
-yourself.
-
-Controllers are simply objects with @cherrypy.expose methods. Putting
-them in this dict "Mounts" them at a given path.
-
-The controller with a key of ("hello","test") would map to
-/hello/test, and would also be used for hello/test/foo, etc.
-
-The handler which is mounted at the longest path is chosen.
-
-You may also mount Exception objects this way. These will be raised if anyone
-tries to go to that path.
-
-Note that these are just straight up native Cherrypy handlers. You cannot
-use kaithem.web.serveFile like you can in a page created as a Page Resource, you must use CherryPy's API for this.
-
-You can't mount objects with levels of heirarchy this way. Visiting mountpoint/foo will access the foo methond on the controller, and /foo/bar/ will pass bar as a path arg to foo,  but you can't have a second object baz as a property of the controller.
-
-
-You can't bind to the root / path, because there is already a default index page there.
-
+#### kaithem.web.add_tornado_app(pattern: str, app, args, permission="/admin/settings.edit"):
+Mount a Tornado application to handle all URLs matching the pattern regex
 
 ##### Subdomains
 

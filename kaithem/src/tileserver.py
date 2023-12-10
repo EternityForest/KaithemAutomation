@@ -6,7 +6,7 @@ import tornado
 import os
 import random
 from tornado import httpclient
-from . import pages, directories
+from . import pages, directories, kaithemobj
 
 
 http_client = httpclient.AsyncHTTPClient()
@@ -90,3 +90,6 @@ class MainHandler(tornado.web.RequestHandler):
             if os.path.exists(get_fn(x, y, z)):
                 return self.serve(get_fn(x, y, z))
         raise RuntimeError("No Tile Found")
+
+
+kaithemobj.kaithem.web.add_wsgi_app("/maptiles/tile/.*", MainHandler)
