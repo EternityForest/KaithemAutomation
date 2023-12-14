@@ -391,7 +391,7 @@ class Alert():
 
             workers.do(f)
 
-        if self.priority in ("error", "critical"):
+        if self.priority in ("error", "critical", "important"):
             logger.error("Alarm "+self.name + " ACTIVE")
             messagebus.post_message(
                 "/system/notifications/errors", "Alarm "+self.name+" is active")
@@ -421,12 +421,15 @@ class Alert():
         pushAlertState()
 
     def _on_normal(self):
-        "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
+        "Mostly defensivem but also cleans up if the autoclear occurs and we skip the acknowledged state"
         global unacknowledged, active, tripped
         if not self.sm.prev_state == 'tripped':
-            if self.priority in ("info", "warning", "error", "critical"):
-                messagebus.post_message(
-                    "/system/notifications", "Alarm "+self.name+" returned to normal")
+            if self.priority in ("info", "warning", "error", "critical", "important"):
+                if self.priority in ("warning", "error", "critical", "important"):
+                    messagebus.post_message(
+                        "/system/notifications/important", "Alarm "+self.name+" returned to normal")
+                else:
+                    messagebus.post_message("/system/notifications", "Alarm "+self.name+" returned to normal")
 
         with lock:
             cleanup()
@@ -453,7 +456,7 @@ class Alert():
             _tripped[self.id] = weakref.ref(self)
             tripped = _tripped.copy()
 
-        if self.priority in ("error", "critical"):
+        if self.priority in ("error", "critical", "important"):
             logger.error("Alarm "+self.name + " tripped:\n "+self.trip_message)
         if self.priority in ("warning"):
             logger.warning("Alarm "+self.name +
@@ -480,7 +483,7 @@ class Alert():
         self.sm.event("release")
 
     def _on_clear(self):
-        if self.priority in ("error", "critical", "warning"):
+        if self.priority in ("error", "critical", "warning", "important"):
             if self.sm.state == 'active':
                 messagebus.post_message(
                     "/system/notifications", "Alarm "+self.name+" condition cleared, waiting for ACK")
@@ -508,7 +511,7 @@ class Alert():
         if not by == "<DELETED>":
             logger.info("Alarm "+self.name + " acknowledged by" + by+notes)
 
-            if self.priority in ("error", "critical", "warning"):
+            if self.priority in ("error", "critical", "warning", "important"):
                 messagebus.post_message(
                     "/system/notifications", "Alarm "+self.name+" acknowledged by " + by+notes)
 

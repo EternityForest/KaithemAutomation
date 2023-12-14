@@ -46,6 +46,8 @@ logger.setLevel(logging.WARNING)
 logger = logging.getLogger('aioesphomeapi.host_resolver')
 logger.setLevel(logging.WARNING)
 
+logger = logging.getLogger("apprise")
+logger.setLevel(logging.INFO)
 
 logger = logging.getLogger("tornado.general")
 logger.setLevel(logging.WARNING)

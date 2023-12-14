@@ -639,7 +639,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     _noSetAlarmPriority = True
 
     _isCrossFramework = True
-
+        
     def get_config_folder(self, create=True):
         return getDeviceConfigFolder(self.name, create=create)
 
