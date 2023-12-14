@@ -65,7 +65,7 @@ function f(element)
     %if messagelogging.log:
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
             <div id="f_${i}">
-                %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
+                %if not set(messagebus.MessageBus.parse_topic(i)).isdisjoint(set(messagelogging.toSave)):
                     <h3 ${'class="danger"' if 'error' in i else ''}>${i|h}</h3>
                     (logging)
                     %if i in messagelogging.toSave:

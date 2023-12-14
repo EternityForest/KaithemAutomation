@@ -20,7 +20,8 @@ import json
 import logging
 import cherrypy
 import os
-from . import messagebus, pages, auth, widgets, persist, directories
+import threading
+from . import messagebus, pages, auth, widgets, persist, directories, scheduling
 from .unitsofmeasure import strftime
 from .config import config
 
@@ -101,6 +102,29 @@ class WI():
 
 epochAndRemaining = [0,15]
 
+pending_notifications = []
+
+apprise_lock = threading.RLock()
+
+@scheduling.scheduler.everyHour
+def apprise():
+    with apprise_lock:
+        while pending_notifications:
+            f = pending_notifications.pop(0)
+            try:
+                f()
+                time.sleep(5)
+            except Exception:
+                # There's still room!  We can just keep retrying!
+                if len(pending_notifications) < 35:
+                    pending_notifications.append(f)
+
+                logging.error("Error pushing AppRise notification")
+                # If one fails, retry all of them later.
+                return
+
+
+
 def subscriber(topic, message):
     global notificationslog
     notificationslog.append((time.time(), topic, message))
@@ -125,6 +149,10 @@ def subscriber(topic, message):
         if epochAndRemaining[1] > 1:
             epochAndRemaining[1] -= 1
 
+            ts = strftime(time.time())
+            if len(pending_notifications) > 35:
+                pending_notifications.pop(0)
+    
             def f():
                 if pushsettings.get('apprise_target', None):
                     import apprise
@@ -139,9 +167,11 @@ def subscriber(topic, message):
                     # notify all of the services loaded into our Apprise object.
                     apobj.notify(
                         body=str(message),
-                        title='Notification' if not 'error' in topic else 'Error')
-    
-            workers.do(f)
+                        title=('Notification' if not 'error' in topic else 'Error') + " " + ts)
+                    
+            pending_notifications.append(f)
+
+            workers.do(apprise)
 
 
 

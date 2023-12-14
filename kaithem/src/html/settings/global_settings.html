@@ -42,12 +42,12 @@ location = geolocation.getLocation('default')
 <form method="POST" action="/settings/changepushsettings">
     <p>
         This allows you to get Kaithem notifications via any AppRise supported target.
-        Only important notifications and errors are supported for now. Currently, notifications
-        that fail to send will not be retried later.
+        Only important notifications and errors are supported for now. Failed notifications can be retried later when internet
+        returns.
     </p>
 
-    <p>The simplest way to get started is to set the target to ntfy://your_secret_topic_name, and use 
-        <a href="https://ntfy.sh/"></a> to subscribe.  No account setup is needed.</p>
+    <p>The simplest way to get started is to set the target to "ntfy://your_secret_topic_name", and use 
+        <a href="https://ntfy.sh/">ntfy.sh</a> via the web or the Android app, to subscribe to the topic.  No account setup is needed.  "dbus://"" will give linux desktop notifications.</p>
 
 <table border=1>
 <tr>
