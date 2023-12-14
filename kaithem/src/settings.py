@@ -28,6 +28,11 @@ from cherrypy.lib.static import serve_file
 from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 
 
+notificationsfn = os.path.join(
+    directories.vardir, "core.settings", "pushnotifications.toml")
+
+pushsettings = persist.getStateFile(notificationsfn)
+
 
 
 upnpsettingsfile = os.path.join(
@@ -38,6 +43,7 @@ upnpsettings = persist.getStateFile(upnpsettingsfile)
 
 redirectsfn = os.path.join(
     directories.vardir, "core.settings", "httpredirects.toml")
+
 
 if os.path.exists(redirectsfn):
     redirects = persist.load(redirectsfn)
@@ -526,6 +532,20 @@ class Settings():
         messagebus.post_message(
             "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
+
+
+    @cherrypy.expose
+    def changepushsettings(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
+
+        t = kwargs['apprise_target']
+
+        pushsettings.set("apprise_target", t.strip())
+
+        systasks.doUPnP()
+        raise cherrypy.HTTPRedirect('/settings/system')
+
 
     @cherrypy.expose
     def changeupnptarget(self, **kwargs):

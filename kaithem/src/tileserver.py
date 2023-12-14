@@ -92,4 +92,4 @@ class MainHandler(tornado.web.RequestHandler):
         raise RuntimeError("No Tile Found")
 
 
-kaithemobj.kaithem.web.add_wsgi_app("/maptiles/tile/.*", MainHandler)
+kaithemobj.kaithem.web.add_tornado_app("/maptiles/tile/.*", MainHandler, {}, '__guest__')

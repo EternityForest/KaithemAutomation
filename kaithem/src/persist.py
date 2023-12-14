@@ -39,44 +39,14 @@ import pwd
 
 selected_user = pwd.getpwuid( os.geteuid() ).pw_name
 
-recoveryDir : str = os.path.join("/dev/shm/SculleryRFRecovery", selected_user)
-if os.path.exists("/dev/shm"):
-    if not os.path.exists("/dev/shm/SculleryRFRecovery"):
-        os.mkdir("/dev/shm/SculleryRFRecovery")
-    if not os.path.exists(recoveryDir):
-        os.mkdir(recoveryDir)
-        # Nobody else van put stuff in there!!!
-        os.chmod(recoveryDir, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
-        p = getpwnam(selected_user)
-        os.chown(recoveryDir, p.pw_uid, p.pw_gid)
-    else:
-        if not getpwuid(os.stat(recoveryDir).st_uid).pw_name == selected_user:
-            post_message("/system/notifications/errors",
-                        "Hacking Detected? "+recoveryDir+" not owned by this user")
-            recoveryDir = ''
-else:
-    recoveryDir = ''
-
-
-def recoveryPath(f):
-    if f.startswith("/"):
-        f = f[1:]
-    return os.path.join(recoveryDir, urllib.parse.quote(f, safe="/"))
 
 
 class SharedStateFile():
     """
-        This is a dict that is savable when the system state gets saved.
-        But it will aso use /dev/shm based recovery if the program crashes
+        This is a dict that is backed by a file
     """
 
     def __init__(self, filename, save_topic="/system/save"):
-        # Save all changes immediately to /dev/shm, for crash recovery.
-        if not os.path.exists("/dev/shm") or not recoveryDir:
-            self.recoveryFile = None
-        else:
-            self.recoveryFile = recoveryPath(filename)
-
         if os.path.exists(filename):
             try:
                 self.data = load(filename)
@@ -86,12 +56,7 @@ class SharedStateFile():
                             filename+"\n"+traceback.format_exc())
         else:
             self.data = {}
-        try:
-            if os.path.exists(self.recoveryFile):
-                self.data = load(self.recoveryFile)
-                dirty[filename] = self
-        except:
-            print(traceback.format_exc())
+
         self.filename = filename
         self.lock = threading.RLock()
         self.noFileForEmpty = False
@@ -135,26 +100,17 @@ class SharedStateFile():
             if  key in self.data and self.data[key]==value:
                 return
             self.data[key] = value
-
-
-            dirty[self.filename] = self
-
-            if self.recoveryFile:
-                save(self.data, self.recoveryFile, nolog=True,private=True)
+            self.save()
 
     def clear(self):
         with self.lock:
             self.data.clear()
-            dirty[self.filename] = self
-            if self.recoveryFile:
-                save(self.data, self.recoveryFile, nolog=True,private=True)
+            self.save()
 
     def pop(self, key, default=None):
         with self.lock:
             self.data.pop(key, default)
-            dirty[self.filename] = self
-            if self.recoveryFile:
-                save(self.data, self.recoveryFile, nolog=True,private=True)
+            self.save()
 
     def delete(self, key):
         with self.lock:
@@ -162,41 +118,17 @@ class SharedStateFile():
                 del self.data[key]
             except KeyError:
                 pass
-
-            dirty[self.filename] = self
-            if self.recoveryFile:
-                save(self.data, self.recoveryFile,private=True)
+            self.save()
 
     def save(self):
         with self.lock:
-            if not self.filename in dirty:
-                return
             # NoFileForEmpty mode deleted
             if self.noFileForEmpty and (not self.data):
                 self.tryDeleteFile()
             else:
                 save(self.data, self.filename,private=self.private)
-            if self.recoveryFile and os.path.exists(self.recoveryFile):
-                try:
-                    os.remove(self.recoveryFile)
-                except:
-                    pass
-            try:
-                del dirty[self.filename]
-            except:
-                pass
-
-    def isDirty(self):
-        "Return true if no unsaved data"
-        return self.filename in dirty
 
     def tryDeleteFile(self):
-        if self.recoveryFile and os.path.exists(self.recoveryFile):
-            try:
-                os.remove(self.recoveryFile)
-            except:
-                logging.exception("wat")
-
         if os.path.exists(self.filename):
             try:
                 os.remove(self.filename)
@@ -231,8 +163,6 @@ def loadAllStateFiles(f):
     """
     d = {}
     loadRecursiveFrom(f, d)
-    if recoveryDir:
-        loadRecursiveFrom(recoveryPath(f), d, remapToDirForSave=f)
     return d
 
 

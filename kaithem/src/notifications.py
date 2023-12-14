@@ -19,7 +19,8 @@ import time
 import json
 import logging
 import cherrypy
-from . import messagebus, pages, auth, widgets
+import os
+from . import messagebus, pages, auth, widgets, persist, directories
 from .unitsofmeasure import strftime
 from .config import config
 
@@ -30,6 +31,12 @@ ilogger = logging.getLogger("system.notifications.important")
 
 notificationslog = []
 
+
+
+notificationsfn = os.path.join(
+    directories.vardir, "core.settings", "pushnotifications.toml")
+
+pushsettings = persist.getStateFile(notificationsfn)
 
 
 
@@ -92,21 +99,6 @@ class WI():
 
 
 
-
-def doPlyer(t,m):
-    try:
-        try:
-            from plyer import notification
-        except ImportError:
-            return
-        n=notification
-
-        n.notify(title='Kaithem '+t, message=m[:140], ticker='')
-    except Exception:
-        logger.exception("Could not do the notification")
-
-
-
 epochAndRemaining = [0,15]
 
 def subscriber(topic, message):
@@ -125,8 +117,7 @@ def subscriber(topic, message):
     api.send(['notification', [time.time(), topic, message]])
 
 
-    if 'error' in topic or 'warning' in topic:
-
+    if 'error' in topic or 'warning' in topic or 'important' in topic:
         # Add allowed notifications at a rate of  under 1 per miniute up to 15 "stored credits"
         epochAndRemaining[1] = max((time.monotonic()-epochAndRemaining[0])/240 + epochAndRemaining[1], 15)
         epochAndRemaining[0]=time.monotonic()
@@ -135,7 +126,21 @@ def subscriber(topic, message):
             epochAndRemaining[1] -= 1
 
             def f():
-                doPlyer(topic.split("/")[-1],message)
+                if pushsettings.get('apprise_target', None):
+                    import apprise
+                    # Create an Apprise instance
+                    apobj = apprise.Apprise()
+
+                    # Add all of the notification services by their server url.
+                    # A sample email notification:
+                    apobj.add(pushsettings.get('apprise_target', None))
+
+                    # Then notify these services any time you desire. The below would
+                    # notify all of the services loaded into our Apprise object.
+                    apobj.notify(
+                        body=str(message),
+                        title='Notification' if not 'error' in topic else 'Error')
+    
             workers.do(f)
 
 
