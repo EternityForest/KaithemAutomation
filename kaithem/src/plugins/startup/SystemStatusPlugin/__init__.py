@@ -59,13 +59,13 @@ if battery:
     battery_time.max = 30 * 60 * 60
     battery_time.lo = 40 * 60
     battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
-    battery_time.setAlarm("lowbattery_timeRemaining", "value < 60*15")
+    battery_time.setAlarm("lowbattery_timeRemaining", "value < 60*15",  priority='error')
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged or 0
     acPowerTag.subtype = 'bool'
     acPowerTag.setAlarm(
-        "runningOnBattery", "(not value) and (tv('/system/power/battery_level')< 80)", priority='info')
+        "runningOnBattery", "(not value) and (tv('/system/power/battery_level')< 80)", priority='warning')
 
 
 sdhealth = getSDHealth()
@@ -150,7 +150,7 @@ if psutil:
                 tempTags[i] = tagpoints.Tag(
                     tagpoints.normalizeTagName("/system/sensors/temp/" + i, "_"))
                 tempTags[i].setAlarm(
-                    "temperature", "value>78", releaseCondition="value<65")
+                    "temperature", "value>78", releaseCondition="value<65", priority='warning')
                 tempTags[i].setAlarm("lowtemperature", "value<5")
 
                 tempTags[i].unit = 'degC'
@@ -167,34 +167,6 @@ if psutil:
             battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
     doPsutil()
 
-
-elif plyer:
-    from plyer import battery
-
-    @scheduling.scheduler.everyMinute
-    def doPlyer():
-        if battery:
-            acPowerTag.value = battery.status['isCharging']
-            batteryTag.value = battery.status['percentage']
-            battery_time.value = batteryTag.value = (
-                (3 * 3600) * battery.status['percentage']) / 100
-
-    from plyer import flash
-
-    lightTag = tagpoints.Tag(
-        tagpoints.normalizeTagName("/system/hw/flashlight"))
-
-    def lightTagHandler(v, t, a):
-        if v:
-            flash.on()
-        else:
-            try:
-                flash.off()
-            except Exception as e:
-                print(e)
-            flash.release()
-
-    doPlyer()
 
 
 # Every minute, we check for overtemperature or overvoltage problems

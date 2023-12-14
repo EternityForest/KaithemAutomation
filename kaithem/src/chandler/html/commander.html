@@ -88,7 +88,7 @@
 
 
 <div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
-    <section class="window w-full h-8rem" v-if="sys_alerts">
+    <section class="window w-full max-h-12rem margin" v-if="sys_alerts">
         <div class="flex-row scroll gaps padding">
             <div class="card" v-for="v,i of sys_alerts">
                 <header :class="v['barrel-class']" class="padding">
@@ -228,7 +228,7 @@
     </div>
 
 
-    <div class="window paper" v-if="editingScene && cuemeta[editingScene.cue]"
+    <div class="window paper margin" v-if="editingScene && cuemeta[editingScene.cue]"
         style="display:inline-block;" class="scroll">
         <header>
             <h3>{{editingScene.name}}
@@ -274,7 +274,7 @@
         </div>
     </div>
 
-    <div class="w-full">
+    <div class="w-full window margin">
         <div class="scroll h-12rem w-full" id="eventlogbox">
             <div v-if="i[0].indexOf('err')>-1" v-for="i in evlog.slice().reverse()">
                 {{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}:

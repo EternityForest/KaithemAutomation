@@ -22,7 +22,7 @@ pytest
 nmcli
 peewee
 terminado
-
+apprise
 
 ffmpeg-python
 yappi

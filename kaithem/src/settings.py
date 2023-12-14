@@ -543,7 +543,9 @@ class Settings():
 
         pushsettings.set("apprise_target", t.strip())
 
-        systasks.doUPnP()
+        messagebus.post_message(
+            "/system/notifications/important", "Push notification config was changed")
+        
         raise cherrypy.HTTPRedirect('/settings/system')
 
 
