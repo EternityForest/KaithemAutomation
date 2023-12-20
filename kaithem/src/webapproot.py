@@ -648,10 +648,48 @@ def startServer():
 
     from . import tableview
 
+    import terminado
+    term_manager = terminado.SingleTermManager(shell_command=["bash"])
+
+    wsgi_apps = []
+    tornado_apps = [(
+        "/web_console_ws.*", terminado.TermSocket, {"term_manager": term_manager}
+    )]
+
+    x = []
+    for i in wsgi_apps:
+        x += [
+            (
+                KAuthMatcher(i[0], "/admin/settings.edit"),
+                wsgi_adapter.WSGIHandler,
+                {"wsgi_application": i[1]},
+            ),
+            (
+                PathMatches(i[0]),
+                tornado.web.RedirectHandler,
+                {"url": "/login", 'permanent': False},
+            )
+        ]
+
+    xt = []
+    for i in tornado_apps:
+        xt += [
+            (
+                KAuthMatcher(i[0], "/admin/settings.edit"),
+                i[1], i[2]
+            ),
+            (
+                PathMatches("i[0]"),
+                tornado.web.RedirectHandler,
+                {"url": "/login", 'permanent': False},
+            )
+        ]
+
     rules.append(
         Rule(
             AnyMatches(),
             tornado.web.Application(
+                x + xt +
                 [
                     (
                         KAuthMatcher("/database.*", "/admin/settings.edit"),

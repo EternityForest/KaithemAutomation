@@ -21,6 +21,7 @@ NVRChannel
 pytest
 nmcli
 peewee
+terminado
 
 
 ffmpeg-python
