@@ -1,0 +1,86 @@
+{% extends "pagetemplate.j2.html" %}
+
+{% set traceback = imp0rt('traceback') %}
+{% set json = imp0rt('json') %}
+{% set os = imp0rt('os') %}
+{% set unitsofmeasure = imp0rt('kaithem.src.unitsofmeasure') %}
+{% set tagpoints = imp0rt('kaithem.src.tagpoints') %}
+{% set modules_state = imp0rt('kaithem.src.modules_state') %}
+{% set auth = imp0rt('kaithem.src.auth') %}
+{% set pages = imp0rt('kaithem.src.pages') %}
+{% set devices = imp0rt('kaithem.src.devices') %}
+{% block body %}
+<style>
+    img{
+        max-width: min(50vw, 100%);
+        width: 28rem;
+    }
+</style>
+<script src="/static/qrcode.min.js"></script>
+
+<div class="window">
+<div class="flex-row gaps">
+
+    {% for dev in devs %}
+    <div class="card">
+        <header><h3>{{ dev }}</h3></header>
+        <div class="two-columns balance-columns">
+            <h4>Settings</h4>
+            <table border="1">
+            {% for i in devs[dev]().config %}
+                {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512   and not i in ('subclass','notes', 'description')  %}
+                <tr>
+                    {% if i.startswith('device.') %}
+                    <td>{{i[7:]|escape}}</td>
+                    {% elif i.startswith('kaithem.') %}
+                    <td>{{i[8:]|escape}}</td>
+                    {% else %}
+                    <td>{{i|escape}}</td>
+                    {% endif %}
+
+                    <td><div class="w-12rem" style="word-wrap: break-word;">{{devs[dev]().config[i]|escape}}</div></td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+            </table>
+
+            {% if devs[dev]().metadata %}
+            <h4>Info</h4>
+            <table border="1">
+                {% for i in devs[dev]().metadata %}
+                    {% if devs[dev]().metadata[i] and not len(str(devs[dev]().metadata[i])) > 128 %}
+                    <tr>
+                        {% if i.startswith('device.') %}
+                        <td>{{i[7:]|escape}}</td>
+                        {% else %}
+                        <td>{{i|escape}}</td>
+                        {% endif %}
+                            <td><div class="w-12rem" style="word-wrap: break-word;">{{devs[dev]().metadata[i]|escape}}</div></td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </table>
+            {% endif %}
+
+            <div id="{{dev}}qr"></div>
+            <script>
+            new QRCode(document.getElementById("{{dev}}qr"), '{{json.dumps(devs[dev]().config)}}');
+            </script>
+        </div>
+
+        {% if devs[dev]().config.get('description','') %}
+        <div>
+            <p>{{devs[dev]().config.get('description','')}}</p>
+        </div>
+        {% endif %}
+
+        {% if devs[dev]().config.get('notes','') %}
+            <div>
+                <p>{{devs[dev]().config.get('notes','')}}</p>
+            </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+</div>
+{% endblock %}

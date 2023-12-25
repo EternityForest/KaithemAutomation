@@ -1,5 +1,8 @@
 Change Log
 ----------
+### 0.75.0
+- :sparkles: Default page title is now the hostname
+- :sparkles: Devices report feature lets you print out all the device settings
 
 
 ### 0.74.0

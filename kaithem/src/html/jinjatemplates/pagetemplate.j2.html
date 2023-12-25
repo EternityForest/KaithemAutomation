@@ -14,7 +14,7 @@
 <html>
 
 <head>
-  <title>{% filter trim %}{%block title %}KaithemAutomation{% endblock %}{% endfilter %}</title>
+  <title>{% filter trim %}{%block title %}{{socket.gethostname()|escape}}{% endblock %}{% endfilter %}</title>
 
   <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -95,7 +95,7 @@
 <body id="pagebody">
 
   {% if not cherrypy.request.params.get("kaithem_disable_header",0) %}
-  <header class="undecorated">
+  <header class="undecorated noprint">
 
     <div class="tool-bar w-full" style="position: relative;">
       {% if pages.canUserDoThis("/admin/mainpage.view") %}

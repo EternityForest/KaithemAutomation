@@ -8,7 +8,7 @@ import cherrypy,socket,base64
 <html>
 
 <head>
-  <title><%block name="title">KaithemAutomation</%block></title>
+  <title><%block name="title">${socket.gethostname()|h}</%block></title>
 
   <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
   <meta name="viewport" content="width=device-width, initial-scale=1">

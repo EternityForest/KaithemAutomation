@@ -33,6 +33,15 @@ parts:
       - gstreamer1.0-opencv
       - gstreamer1.0-vaapi
       - pipewire-audio-client-libraries
+      
+      # Utils not directly needed by kaithem but we want to make sure they're always in
+      # The web terminal
+      - vim-tiny
+      - units 
+      - git 
+      - wget
+      - gstreamer1.0-tools
+      - neofetch
 
 
 apps:

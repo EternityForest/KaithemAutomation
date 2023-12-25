@@ -190,7 +190,10 @@ dd {
         --graphical-fg: grey !important;
         --concave-item-box-shadow: none !important;
         --heading-font: var(--sans-font) !important;
-        --hover-color: transparent;
+        --hover-color: transparent  !important;
+        --heading-text-shadow: none  !important;
+        --control-text-shadow: none  !important;
+        --border-color: black  !important;
     }
 
     * {
@@ -1007,6 +1010,9 @@ header:not(.undecorated) .tool-bar {
     column-count: 2;
     column-fill: auto;
     break-inside: avoid;
+}
+.balance-columns{
+    column-fill: balance;
 }
 
 .pagebreak {
