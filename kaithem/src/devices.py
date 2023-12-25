@@ -1364,16 +1364,22 @@ class WebDevices():
     def report(self):
         pages.require("/admin/settings.edit")
 
-        def get_report_data(dev):
+        def get_report_data(dev: Device):
             o = {}
             for i in dev.config:
                 if not i in ('notes', 'subclass') or len(str(dev.config[i])) < 256:
                     o[i] = dev.config[i]
                     continue
             return json.dumps(o)
+        
+        def has_secrets(dev: Device):
+            for i in dev.config:
+                if dev.config_properties.get(i,{}).get("secret",False):
+                    if dev.config[i]:
+                        return True
 
 
-        return pages.render_jinja_template("devices/device_report.j2.html",devs=remote_devices_atomic, get_report_data=get_report_data, **device_page_env)
+        return pages.render_jinja_template("devices/device_report.j2.html",devs=remote_devices_atomic, has_secrets=has_secrets, get_report_data=get_report_data, **device_page_env)
         
     @cherrypy.expose
     def device(self, name, *args, **kwargs):

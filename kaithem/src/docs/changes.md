@@ -3,6 +3,8 @@ Change Log
 ### 0.75.0
 - :sparkles: Default page title is now the hostname
 - :sparkles: Devices report feature lets you print out all the device settings
+- :bug: Nuisance gstreamer output
+- :bug: esphome api key correctly marked as secret 
 
 
 ### 0.74.0

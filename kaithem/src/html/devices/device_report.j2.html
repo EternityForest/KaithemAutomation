@@ -11,7 +11,7 @@
 {% set devices = imp0rt('kaithem.src.devices') %}
 {% block body %}
 <style>
-    img{
+    img {
         max-width: min(50vw, 100%);
         width: 28rem;
     }
@@ -19,68 +19,136 @@
 <script src="/static/qrcode.min.js"></script>
 
 <div class="window">
-<div class="flex-row gaps">
+    <div class="flex-row gaps">
 
-    {% for dev in devs %}
-    <div class="card">
-        <header><h3>{{ dev }}</h3></header>
-        <div class="two-columns balance-columns">
-            <h4>Settings</h4>
-            <table border="1">
-            {% for i in devs[dev]().config %}
-                {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512   and not i in ('subclass','notes', 'description')  %}
-                <tr>
-                    {% if i.startswith('device.') %}
-                    <td>{{i[7:]|escape}}</td>
-                    {% elif i.startswith('kaithem.') %}
-                    <td>{{i[8:]|escape}}</td>
-                    {% else %}
-                    <td>{{i|escape}}</td>
+        {% for dev in sorted(devs.keys()) %}
+        <div class="card col-6">
+            <header>
+                <h3>{{ dev }} <small>{{devs[dev]().config['type']}}</small> </h3>
+            </header>
+            <div class="two-columns balance-columns">
+                <dl class="nopadding nomargin">
+                    {% for i in sorted(devs[dev]().config.keys()) %}
+                    {% if (not devs[dev]().config_properties.get(i,{}).get("secret",False)) or devs[dev]().config[i] in ('password', 'admin', '1234', '12345678', '123456', 'raspberry','')  %}
+
+                    {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512 and not i in ('subclass','notes', 'description', 'name', 'type')  %}
+                    <dt class="nomargin"><small>
+                            {% if i.startswith('device.') %}
+                            {{i[7:]|escape}}
+                            {% elif i.startswith('kaithem.') %}
+                            {{i[8:]|escape}}
+                            {% else %}
+                            {{i|escape}}
+                            {% endif %}
+                        </small>
+                    </dt>
+
+                    <dd class="nomargin" style="word-wrap: break-word;">
+                        <p class="nomargin margin-indent">{{devs[dev]().config[i]|escape}}</p>
+                    </dd>
+
                     {% endif %}
+                    {% endif %}
+                    {% endfor %}
+                </dl>
 
-                    <td><div class="w-12rem" style="word-wrap: break-word;">{{devs[dev]().config[i]|escape}}</div></td>
-                </tr>
-                {% endif %}
-            {% endfor %}
-            </table>
-
-            {% if devs[dev]().metadata %}
-            <h4>Info</h4>
-            <table border="1">
-                {% for i in devs[dev]().metadata %}
+                {% if devs[dev]().metadata %}
+                <dl class="nopadding">
+                    {% for i in devs[dev]().metadata %}
                     {% if devs[dev]().metadata[i] and not len(str(devs[dev]().metadata[i])) > 128 %}
-                    <tr>
-                        {% if i.startswith('device.') %}
-                        <td>{{i[7:]|escape}}</td>
-                        {% else %}
-                        <td>{{i|escape}}</td>
-                        {% endif %}
-                            <td><div class="w-12rem" style="word-wrap: break-word;">{{devs[dev]().metadata[i]|escape}}</div></td>
-                    </tr>
+                    <dt class="nomargin"><small>
+                            {% if i.startswith('device.') %}
+                            {{i[7:]|escape}}
+                            {% elif i.startswith('kaithem.') %}
+                            {{i[8:]|escape}}
+                            {% else %}
+                            {{i|escape}}
+                            {% endif %}
+                        </small>
+                    </dt>
+
+                    <dd class="nomargin" style="word-wrap: break-word;">
+                        <p class="nomargin margin-indent">{{devs[dev]().metadata[i]|escape}}</p>
+                    </dd>
+
+
                     {% endif %}
-                {% endfor %}
-            </table>
+                    {% endfor %}
+                </dl>
+                {% endif %}
+
+
+            </div>
+            {% if devs[dev]().config.get('description','') or  devs[dev]().config.get('notes','') %}
+            <hr>
             {% endif %}
 
-            <div id="{{dev}}qr"></div>
-            <script>
-            new QRCode(document.getElementById("{{dev}}qr"), '{{json.dumps(devs[dev]().config)}}');
-            </script>
-        </div>
 
-        {% if devs[dev]().config.get('description','') %}
-        <div>
-            <p>{{devs[dev]().config.get('description','')}}</p>
-        </div>
-        {% endif %}
+            {% if devs[dev]().config.get('description','') %}
+            <div>
+                <p>{{devs[dev]().config.get('description','')}}</p>
+            </div>
+            {% endif %}
 
-        {% if devs[dev]().config.get('notes','') %}
+            {% if devs[dev]().config.get('notes','') %}
             <div>
                 <p>{{devs[dev]().config.get('notes','')}}</p>
             </div>
-        {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="margin"></div>
     </div>
-    {% endfor %}
 </div>
-</div>
+
+<details>
+
+    <summary>
+        <h2>Secrets</h2>
+    </summary>
+    <div class="window">
+        <div class="flex-row gaps">
+
+            {% for dev in sorted(devs.keys()) %}
+            {% if has_secrets(devs[dev]())%}
+
+            <div class="card col-6">
+                <header>
+                    <h3>{{ dev }} <small>{{devs[dev]().config['type']}}</small> </h3>
+                </header>
+                <div class="two-columns balance-columns">
+                    <dl class="nopadding nomargin">
+                        {% for i in sorted(devs[dev]().config.keys()) %}
+                        {% if devs[dev]().config_properties.get(i,{}).get("secret",False) %}
+
+                        {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512 and not i in ('subclass','notes', 'description', 'name', 'type')  %}
+                        <dt class="nomargin"><small>
+                                {% if i.startswith('device.') %}
+                                {{i[7:]|escape}}
+                                {% elif i.startswith('kaithem.') %}
+                                {{i[8:]|escape}}
+                                {% else %}
+                                {{i|escape}}
+                                {% endif %}
+                            </small>
+                        </dt>
+
+                        <dd class="nomargin" style="word-wrap: break-word;">
+                            <p class="nomargin margin-indent">{{devs[dev]().config[i]|escape}}</p>
+                        </dd>
+
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+
+            {% endfor %}
+            <div class="margin"></div>
+
+        </div>
+    </div>
+</details>
 {% endblock %}

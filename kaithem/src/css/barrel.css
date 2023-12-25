@@ -194,6 +194,9 @@ dd {
         --heading-text-shadow: none  !important;
         --control-text-shadow: none  !important;
         --border-color: black  !important;
+        --item-box-shadow: none !important;
+        --window-box-shadow: none !important
+
     }
 
     * {
@@ -343,12 +346,19 @@ canvas {
 
 
 
+@media screen {
+    dl,
+    ul,
+    ol {
+        &:not(.tool-bar, .nomargin){
+            margin: var(--padding);
+        }
+    }
+}
+
 dl,
 ul,
 ol {
-    &:not(.tool-bar){
-        margin: var(--padding);
-    }
     &:is(.tool-bar){
         padding: 0px;
     }
@@ -356,6 +366,7 @@ ol {
 
 dt {
     margin-block-end: var(--padding);
+    break-after: avoid;
 }
 
 li,
@@ -1010,6 +1021,7 @@ header:not(.undecorated) .tool-bar {
     column-count: 2;
     column-fill: auto;
     break-inside: avoid;
+    column-gap: var(--gap);
 }
 .balance-columns{
     column-fill: balance;
@@ -1754,6 +1766,10 @@ footer.padding {
 
 .nomargin {
     margin: 0px;
+}
+
+.margin-indent{
+    margin-inline-start: var(--gap);
 }
 
 /*This user added margin is likely unwanted on tiny screens where*/
