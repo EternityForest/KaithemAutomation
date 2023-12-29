@@ -5,80 +5,125 @@
 <script src="/static/js/thirdparty/image-map-creator.bundle.js"></script>
 <script src="/static/js/thirdparty/p5/p5.min.js"></script>
 <script src="/static/js/thirdparty/p5/addons/p5.dom.min.js"></script>
-<div>
-<h1>Leaflet maps demo</h1>
-</div>
+
 <div class="window paper" style="height: auto;">
 
 
+	<style>
+		main {
+			width: 100%;
+		}
+	</style>
 
-<!DOCTYPE html>
-<html>
-<head>
-	
 	<title>map tile server Maps</title>
 
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
-
-    <link rel="stylesheet" href="/static/js/thirdparty/leaflet/leaflet.css"/>
-    <script src="/static/js/thirdparty/leaflet/leaflet.min.js" ></script>
-    <script src="/static/js/thirdparty/leaflet/leaflet.tilelayer.fallback.js"></script>
-
-
-	
-</head>
-<body>
-
-
-<p>To update or get new maps, either browse around or add them to vardir/maptiles/opentopomap/z/x/y.png</p>
-<p>If available maps are served to anyone with /users/maptiles.view.   If the user has /admin/settings.edit, the tiles will be fetched
-	automatically from opentopomap.org.
-</p>
-
-<p>This is a rather large privacy issue if you aren't careful, as it allows people with the view permission to see which maps
-	are cached and thus which areas someone must have been looking at.  Avoid using this for highly sensitive applications.
-</p>
-<p>Use /static/js/leaflet/leaflet.min.js and /static/js/leaflet/leaflet.css to make your own map-enabled modules.  Kaithem's builtin tile server is on: /maptiles/tile/{z}/{x}/{y}.png when
-    enabled.
-</p>
-
-<p></p>
-
-<div id="mapid" style="width: 80vw; height: 80vh;"></div>
-<script>
-
-	var mymap = L.map('mapid').setView([51.505, -0.09], 6);
-
-    
-    var myTileLayer = L.tileLayer.fallback('/maptiles/tile/{z}/{x}/{y}.png', {
-		attribution: 'OpenTopoMap (CC-BY-SA)' +
-			'<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
-		id: 'osm/streets-v11',
-		tileSize: 512,
-		zoomOffset: -1
-    });
-
-    myTileLayer.addTo(mymap);
-
-	var popup = L.popup();
-
-	function onMapClick(e) {
-		popup
-			.setLatLng(e.latlng)
-			.setContent("You clicked the map at " + e.latlng.toString())
-			.openOn(mymap);
-	}
-
-	mymap.on('click', onMapClick);
-
-</script>
+	<link rel="stylesheet" href="/static/js/thirdparty/leaflet/leaflet.css" />
+	<script src="/static/js/thirdparty/leaflet/leaflet.min.js"></script>
+	<script src="/static/js/thirdparty/leaflet/leaflet.tilelayer.fallback.js"></script>
+	<script src="/static/js/thirdparty/vue3.js"></script>
 
 
 
-</body>
-</html>
+
+	<div class="flex-row">
+		<div id="mapid" class="col-9" style="height:80vh;"></div>
+
+		<section id="app" class="col-3">
+
+
+			<div class="card">
+				<div class="stacked-form">
+					<label>
+						Selected Point
+						<input v-model="last_click">
+					</label>
+					<button type="button" v-on:click="get_gps()">Go to current location</button>
+
+				</div>
+
+			</div>
+
+
+		</section>
+	</div>
+
+	<details>
+		<p>To update or get new maps, either browse around or add them to vardir/maptiles/opentopomap/z/x/y.png</p>
+		<p>If available maps are served to anyone with /users/maptiles.view. If the user has /admin/settings.edit, the
+			tiles will be fetched
+			automatically from opentopomap.org.
+		</p>
+
+		<p>This is a rather large privacy issue if you aren't careful, as it allows people with the view permission to
+			see which maps
+			are cached and thus which areas someone must have been looking at. Avoid using this for highly sensitive
+			applications.
+		</p>
+		<p>Use /static/js/leaflet/leaflet.min.js and /static/js/leaflet/leaflet.css to make your own map-enabled
+			modules. Kaithem's builtin tile server is on: /maptiles/tile/{z}/{x}/{y}.png when
+			enabled.
+		</p>
+
+	</details>
+
+
+
+	<script>
+
+		function parseCoords(s) {
+			s = s.split(",")
+			var l = newLatLng = new L.LatLng(parseFloat(s[0]), parseFloat(s[1]));
+			return l
+
+		}
+
+		const { createApp, ref, watch } = Vue;
+		function showPosition(position) {
+			app.$data.last_click = position.coords.latitude + ", " + position.coords.longitude;
+		}
+		const app = createApp({
+			data() {
+				return {
+					message: "Hello World!",
+					last_click: "",
+					get_gps: function () {
+						var c = navigator.geolocation.getCurrentPosition(showPosition)
+					}
+				}
+			}
+		}).mount('#app')
+
+
+		var mymap = L.map('mapid').setView([51.505, -0.09], 6);
+
+
+		var myTileLayer = L.tileLayer.fallback('/maptiles/tile/{z}/{x}/{y}.png', {
+			attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+			id: 'osm/streets-v11',
+		});
+
+		myTileLayer.addTo(mymap);
+
+		var popup = L.popup();
+
+		function onMapClick(e) {
+			popup
+				.setLatLng(e.latlng)
+				.setContent("You clicked the map at " + e.latlng.toString())
+				.openOn(mymap);
+			app.$data.last_click = e.latlng.lat + ", " + e.latlng.lng
+		}
+
+		app.$watch('last_click', async (n, o) => {
+			popup.setLatLng(parseCoords(n)).setContent(parseCoords(n).toString()).openOn(mymap)
+
+			mymap.setView(parseCoords(n), 11)
+		})
+
+		mymap.on('click', onMapClick);
+
+
+	</script>
 
 </div>
 <%include file="/pagefooter.html"/>

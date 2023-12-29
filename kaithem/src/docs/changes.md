@@ -5,6 +5,7 @@ Change Log
 - :sparkles: Devices report feature lets you print out all the device settings
 - :bug: Nuisance gstreamer output
 - :bug: esphome api key correctly marked as secret 
+- :sparkles: Improve maps quality
 
 
 ### 0.74.0
