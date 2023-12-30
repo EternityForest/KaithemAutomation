@@ -5,7 +5,7 @@
 <title>Help</title>
 <link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
 <script src="/static/js/thirdparty/highlight.pack.js"></script>
-<script src="/static/showdown.min.js"></script>
+<script src="/static/js/thirdparty/showdown.min.js"></script>
 <script>
 var url = new URL(window.location.href);
 var dl = url.searchParams.get("detectlanguages");
@@ -76,6 +76,7 @@ xhr.onload = function (e) {
   if (xhr.readyState === 4) {
     if (xhr.status === 200) {
         var conv = new showdown.Converter({metadata: true,extensions:['codehighlight']});
+        conv.setOption('tables', true)
         var html = conv.makeHtml(xhr.responseText);
         document.getElementById("help").innerHTML=html;
     } else {
