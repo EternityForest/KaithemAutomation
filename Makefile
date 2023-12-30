@@ -94,6 +94,16 @@ dev-update-dependencies: dev-make-venv # Install latest version of dependencies 
 	@.venv/bin/python -m pip install --ignore-installed -r requirements_frozen.txt
 
 
+
+root-install-zrok: # Install or update Zrok for remote access
+	@cd ${ROOT_DIR}
+	@bash ./scripts/install-zrok.sh
+
+user-setup-zrok-sharing: # Create an account with zrok
+	@cd ${ROOT_DIR}
+	@bash ./scripts/setup-zrok.sh
+
+
 user-set-global-pipewire-conf:
 	@echo ${USER}
 	@cd ${ROOT_DIR}

@@ -6,7 +6,7 @@ build/**
 kaithem.egg-info*
 dist/**
 out/**
-
+**.snap
 # This is for when building under nix
 result/**
 

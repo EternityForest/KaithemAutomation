@@ -43,6 +43,46 @@ make dev-run
 Then visit http://localhost:8002 and log in with your normal Linux username and password.
 
 
+### Access from Anywhere
+
+You can remotely access Kaithem(or any other service you might want!) using zrok(https://zrok.io/).
+
+This service has a lot of features, but you can get started with just a few commands.
+
+First, set up a *strong* password, and be aware that Kaithem has not had third party security audits.
+
+For an extra layer of security, do not share the access URL with anyone who shouldn't have access.
+
+This installs the latest zrok in /usr/local/bin.  You may need to update manually by running root-install-zrok again.
+
+```bash
+make root-install-zrok
+
+# This will prompt you for an email address.
+# When you get the email, use the activation link.
+zrok invite
+
+# The activation link will give you a token
+zrok activate <token>
+
+# This creates a systemd service as your user
+# which will make kaithem publically available at a randomly generated URL.
+# It will automatically start when your user logs in.
+# Go to https://api.zrok.io/ to see the status of this share.
+make user-setup-zrok-sharing
+```
+
+To disable this, just use normal systemd commands:
+
+```bash
+
+# This stops the sharing service
+systemctl --user stop kaithem-zrok-share.service
+# Stop it from running at boot
+systemctl --user disable kaithem-zrok-share.service
+
+```
+
 ### Sound Mixing Broken?
 
 Kaithem does not support advanced audio features on anything other than pipewire via the JACK protocol.
