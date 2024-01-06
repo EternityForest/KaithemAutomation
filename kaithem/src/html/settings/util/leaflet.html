@@ -36,7 +36,7 @@ from kaithem.src import tagpoints
 						<input v-model="last_click">
 					</label>
 					<button type="button" v-on:click="get_gps()">Go to current location</button>
-
+					<button type="button" v-on:click="geocode()">Search for location(geocode.xyz)</button>
 				</div>
 
 			</div>
@@ -68,6 +68,8 @@ from kaithem.src import tagpoints
 
 	<script>
 
+
+
 		function parseCoords(s) {
 			s = s.split(",")
 			var l = newLatLng = new L.LatLng(parseFloat(s[0]), parseFloat(s[1]));
@@ -79,11 +81,33 @@ from kaithem.src import tagpoints
 		function showPosition(position) {
 			app.$data.last_click = position.coords.latitude + ", " + position.coords.longitude;
 		}
+
+		function geocode() {
+			var s = prompt("Web search for location");
+			if (!s){
+				return
+			}
+			var xmlhttp = new XMLHttpRequest();
+			var url = "https://geocode.xyz/" + s.replace("?", '').replace("/", " ") + "?json=1";
+
+			xmlhttp.onreadystatechange = function () {
+				if (this.readyState == 4 && this.status == 200) {
+					var myArr = JSON.parse(this.responseText);
+					var n = myArr.latt + "," + myArr.longt
+					popup.setLatLng(parseCoords(n)).setContent(parseCoords(n).toString()).openOn(mymap)
+					mymap.setView(parseCoords(n), 11)
+				}
+			}
+			xmlhttp.open("GET", url, true);
+			xmlhttp.send();
+		}
+
 		const app = createApp({
 			data() {
 				return {
 					message: "Hello World!",
 					last_click: "",
+					geocode: geocode,
 					get_gps: function () {
 						var c = navigator.geolocation.getCurrentPosition(showPosition)
 					}
@@ -96,7 +120,7 @@ from kaithem.src import tagpoints
 
 
 		var myTileLayer = L.tileLayer.fallback('/maptiles/tile/{z}/{x}/{y}.png', {
-			attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 			id: 'osm/streets-v11',
 		});
 
