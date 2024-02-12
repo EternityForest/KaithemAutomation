@@ -72,8 +72,39 @@ def test_trigger_shortcuts():
     assert "TestingScene3" not in scenes.scenes_by_name
     assert "TestingScene4" not in scenes.scenes_by_name
 
+=tv('/system/alerts.level') >= 30 
 
 def test_cue_logic():
+    logging.warning(scenes.rootContext.commands.scriptcommands)
+    s = scenes.Scene(name="TestingScene5", id='TEST')
+    s2 = scenes.Scene(name="TestingScene6", id='TEST2')
+
+    s.go()
+    s2.go()
+
+    assert s.active
+    assert s in scenes.active_scenes
+    assert s.cue.name == 'default'
+
+    s.add_cue('cue2', rules=[
+        ["cue.enter", [['goto', 'TestingScene6', 'cue2']]],
+        ["cue.enter", [['setAlpha', '=SCENE', '0.76']]]
+    ]
+    )
+
+    s2.add_cue("cue2")
+
+    s.goto_cue('cue2')
+    time.sleep(0.5)
+    assert s2.cue.name == 'cue2'
+    assert s.alpha == 0.76
+
+    s.close()
+    s2.close()
+    assert "TestingScene5" not in scenes.scenes_by_name
+    assert "TestingScene6" not in scenes.scenes_by_name
+
+def test_():
     logging.warning(scenes.rootContext.commands.scriptcommands)
     s = scenes.Scene(name="TestingScene5", id='TEST')
     s2 = scenes.Scene(name="TestingScene6", id='TEST2')

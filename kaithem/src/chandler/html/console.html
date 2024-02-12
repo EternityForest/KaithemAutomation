@@ -120,6 +120,7 @@ ${lists}
 <script type="text/javascript" src="/static/js/widget.js"></script>
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
 <script src="/static/js/thirdparty/js-yaml.min.js"></script>
+<script src="/static/js/thirdparty/strftime-min.js"></script>
 
 
 <script>
@@ -252,7 +253,7 @@ ${lists}
                         </header>
                         <p>
 
-                            <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span>
+                            <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small></span>
                             <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
 
 
@@ -1993,6 +1994,7 @@ ${lists}
 
 ${core.boards[0]().link.render('api_link')}
 <script src="/static/js/thirdparty/jquery3.js"></script>
+<script src="/static/js/thirdparty/strftime-min.js"></script>
 
 <script>
     Vue.component('cue-countdown',
@@ -2082,6 +2084,11 @@ ${core.boards[0]().link.render('api_link')}
 <script src="dyn_js/boardapi.js"></script>
 
 <script>
+    appData.formatTime= function(t) {
+        var date = new Date(t * 1000);
+        return date.strftime("%I:%M:%S%p")
+    }
+
     var vueapp = new Vue(
         {
             el: '#app',

@@ -6,7 +6,7 @@ Change Log
 - :bug: Nuisance gstreamer output
 - :bug: esphome api key correctly marked as secret 
 - :sparkles: Improve maps quality
-
+- :sparkles: Chandler shows time at which each scene entered the current cue
 
 ### 0.74.0
 - :sparkles: Use Terminado and xterm.js to finally provide a proper system console shell!!!

@@ -15,6 +15,7 @@ parts:
       - mpv
       - python3
       - lm-sensors
+      - python3-gi
       - python3-gst-1.0
       - python3-libnacl
       - gstreamer1.0-plugins-good

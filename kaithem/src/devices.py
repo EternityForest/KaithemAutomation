@@ -368,7 +368,8 @@ class Device():
         except Exception:
             self.title = name
 
-        self.config_properties = {}
+        if not hasattr(self, 'config_properties'):
+            self.config_properties = {}
 
         self.logWindow = widgets.ScrollingWindow(2500)
 

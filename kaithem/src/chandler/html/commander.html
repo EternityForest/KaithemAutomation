@@ -149,7 +149,7 @@
                     <div class="flex-row nogaps nogrow w-full">
                         
                         
-                        <div :class="{'success':i[1].active, 'grow': 1, 'h-min-content': 1}" v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
+                        <div :class="{'success':i[1].active, 'grow': 1, 'h-min-content': 1}" v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small>
                         
                             <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         </div>
@@ -313,6 +313,7 @@ ${module.board.link.render('api_link')}
 
 
 <script type="text/javascript" src="dyn_js/boardapi.js"></script>
+<script src="/static/js/thirdparty/strftime-min.js"></script>
 
 
 <script>
@@ -325,6 +326,10 @@ ${module.board.link.render('api_link')}
             }
         })
 
+    appData.formatTime= function(t) {
+        var date = new Date(t * 1000);
+        return date.strftime("%I:%M:%S%p")
+    }
 
     var appInstance = new Vue(
         {

@@ -209,6 +209,14 @@ The new unit tests initiative uses pytest.  Use the test_run.py file if you want
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
 
+### 0.75.0
+- :sparkles: Default page title is now the hostname
+- :sparkles: Devices report feature lets you print out all the device settings
+- :bug: Nuisance gstreamer output
+- :bug: esphome api key correctly marked as secret 
+- :sparkles: Improve maps quality
+- :sparkles: Chandler shows time at which each scene entered the current cue
+
 ### 0.74.0
 - :sparkles: Use Terminado and xterm.js to finally provide a proper system console shell!!!
 - :bug: Fix recursion issue in device.handle_error
@@ -222,74 +230,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 
 ### 0.73.2
 - :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum
-
-### 0.73.1
-- :bug: Fix chandler not liking cues with empty strings for some settings
-- :bug: Fix incredibly dumb bug where I forgot that isinstance doesn't consider int  subtype of float. :facepalm:
-- :lipstick: Snake-casifying internals
-- 
-### 0.73.0
-- :bug: Fix chandler cue slide set button
-- :bug: Fix mixer channel not changing after refresh button until changing the slider
-- :lipstick: autoAck and tripDelay are snake_case now
-- :lipstick: System status tag points are snake_case
-- :sparkles: Add nicer system alerts in the chandler page
-- :sparkles: The Scullery framework uses snake_case now
-- :bug: Fix wifi status tagpoint
-- :bug: Fix missing peewee
-- :sparkles: The makefile has tools to test in a venv sans site packages, to prevent future missing stuff.
-
-### 0.71.2
-- :bug: Fix contextInfo > context_info snake case bug
-- :bug: Pipewire stuttering in some cases
-- :bug: Fix page editors
-
-### 0.71.1
-- :bug: Further minor CSS work
-- :bug: Fix mixing board not working on Firefox
-
-
-### 0.71.0
-
-- :bug: Further minor CSS work
-- :sparkles: iot_devices now comes from Pip. There is no longer any need for git-lfs
-- :bug: manually disabling a default tag alert
-- :bug: Fix mixer channels not immediately connecting
-- :bug: Bump scullery version to fix bugwhere similarly named JACK ports got confused
-- :bug: Fix missing snake_compat.py
-
-### 0.70.0
-This release has some big changes to the install process, but not many to the
-functionality.  Expect a few bugs in the next few versions as we rewrite old code to be more in line with best practices.
-
-- :bug: Fix bogus "sound did not report as playing" message
-- :sparkles: "Make file publically acessible" option in the upload for file resources.
-- :bug: Fix disabling resource serving
-- :sparkles: Dmesg viewer
-- :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
-- :bug: Improve slow/hanging shutdown
-- :bug: Fix Mixer processes hanging around when they should not be
-- :sparkles: Let's try to stick to Semantic Versioning for future releases
-- :sparkles: Mixer can now accept m3u and m3u8 URLs as sources(Looped, high latency)
-- :sparkles: Chandler cues have a "Trigger Shortcut" option and will trigger cues in other scenes having that shortcut code.
-- :coffin: None of that included thirdparty stuff!  Now we use Pip dependencies
-- :bug: Disenhorriblize the install instructions
-- :recycle: Refactor the Chandler Python
-- :coffin: Remove non-MPV audio backends
-- :coffin: Remove codemirror config options
-- :coffin: Remove reap library
-- :coffin: Remove old jackd2 stuff 
-- :coffin: Remove embedded python3 docs
-- :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
-- :sparkles: The buttonbar CSS class has been changed to tool-bar
-- :coffin: Remove embedded python3 docs
-- :sparkles: jackmixer now uses pipewire directly
-- :coffin: The page header including in user pages is deprecated.  Use <%inherit file="/pagetemplate.html" /> in your code.
-- :coffin: BREAKING: the styling on .sectionbox, section, and article is gone. Use .window and .card.
-- :sparkles: Work on getting rid of inline styles. We are moving to a custom [CSS Framework](https://eternityforest.github.io/barrel.css/) See css.md in the docs folder.
-- :coffin: MAJOR BREAKING user facing APIs are now snake_case. If you see anything not snake_case, it's deprecated.
-- :sparkles: Jinja2 support in user-created pages. Mako user pages are deprecated and will eventually be removed.
-- :coffin: Remove ancient example modules that had accumulated useless stuff.
 
 License Terms
 =============

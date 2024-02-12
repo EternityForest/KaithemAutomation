@@ -446,6 +446,12 @@ except Exception:
                     <td>${time.tzname[0]|h}</td>
                 </tr>
             </table>
+            <h3>Python Path</h3>
+            <ul>
+                %for i in sys.path:
+                <li>${i|h}</li>
+                %endfor
+            </ul>
 
             <h3>RTMidi Inputs</h3>
             <ul>

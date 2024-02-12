@@ -34,7 +34,6 @@ notificationsfn = os.path.join(
 pushsettings = persist.getStateFile(notificationsfn)
 
 
-
 upnpsettingsfile = os.path.join(
     directories.vardir, "core.settings", "upnpsettings.yaml")
 
@@ -169,8 +168,8 @@ class Settings():
     def mixer(self, *a, **k):
         pages.require("/users/mixer.edit",)
         from kaithem.src import jackmixer, directories
-        return pages.get_template("settings/mixer.html").render(os=os, 
-                                                                jackmixer=jackmixer, 
+        return pages.get_template("settings/mixer.html").render(os=os,
+                                                                jackmixer=jackmixer,
                                                                 directories=directories)
 
     @cherrypy.expose
@@ -533,7 +532,6 @@ class Settings():
             "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
 
-
     @cherrypy.expose
     def changepushsettings(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
@@ -545,9 +543,20 @@ class Settings():
 
         messagebus.post_message(
             "/system/notifications/important", "Push notification config was changed")
-        
+
         raise cherrypy.HTTPRedirect('/settings/system')
 
+    @cherrypy.expose
+    def changestartupscript(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
+
+        t = kwargs['data']
+        util.ensure_dir(os.path.join(directories.vardir, 'core.settings', 'startup.sh'))
+        with open(os.path.join(directories.vardir, 'core.settings', 'startup.sh'), 'w') as f:
+            f.write(t)
+
+        raise cherrypy.HTTPRedirect('/settings/system')
 
     @cherrypy.expose
     def changeupnptarget(self, **kwargs):
