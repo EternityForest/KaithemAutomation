@@ -23,7 +23,7 @@ evdev==1.7.0
 exceptiongroup==1.2.0
 ffmpeg-python==0.2.0
 Flask==3.0.2
-future==0.18.3
+future==1.0.0
 gpiozero==2.0.1
 holidays==0.43
 idna==3.6
@@ -112,7 +112,7 @@ types-requests==2.31.0.20240218
 typing_extensions==4.9.0
 upnpclient==1.0.3
 urllib3==2.2.1
-urwid==2.6.2
+urwid==2.6.4
 vignette==5.1.1
 wcwidth==0.2.13
 websockets==12.0

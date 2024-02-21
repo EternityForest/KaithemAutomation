@@ -99,6 +99,7 @@ def getWeakrefHandlers(self):
 class MQTTConnection:
     def __init__(self, host, port) -> None:
         import paho.mqtt.client as mqtt
+        import paho.mqtt
 
         # Ok so the connection is supposed to do this by itself. Some condition can
         # Cause the loop to crash and I do not know what!
@@ -118,7 +119,11 @@ class MQTTConnection:
             except Exception:
                 pass
 
-            self.connection = mqtt.Client()
+            try:
+                self.connection = mqtt.Client()
+            except TypeError:
+                self.connection = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+
             # We don't want the connection to stringly reference us, that would interfere with GC
             on_connect, on_disconnect, on_message = getWeakrefHandlers(self)
 

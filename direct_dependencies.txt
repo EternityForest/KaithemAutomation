@@ -65,7 +65,7 @@ yeelight
 
 pyserial
 python-rtmidi==1.5.0
-paho-mqtt
+paho-mqtt<=1.6.0
 setproctitle
 psutil
 toml

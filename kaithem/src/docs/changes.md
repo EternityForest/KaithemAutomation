@@ -1,5 +1,10 @@
 Change Log
 ----------
+
+### 0.75.1
+- :bug: Fix chandler scenes sometimes sharing all data for the default cues
+- :bug: Fix makefile install process
+
 ### 0.75.0
 - :sparkles: Default page title is now the hostname
 - :sparkles: Devices report feature lets you print out all the device settings
