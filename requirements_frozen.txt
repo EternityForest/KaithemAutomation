@@ -17,7 +17,7 @@ CherryPy==18.9.0
 click==8.1.7
 click-datetime==0.2
 colorzero==2.0
-cryptography==42.0.2
+cryptography==42.0.4
 evdev==1.6.1
 exceptiongroup==1.2.0
 ffmpeg-python==0.2.0
