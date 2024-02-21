@@ -4,6 +4,9 @@ Change Log
 ### 0.75.1
 - :bug: Fix chandler scenes sometimes sharing all data for the default cues
 - :bug: Fix makefile install process
+- :bug: More reliable max-volume-at-boot script
+- :sparkles: Web console runs in ~/kaithem/venv if it exists(Change this if desired in kaithem's bashrc)
+- :sparkles: Settings page link to set ALSA mixer volume to full
 
 ### 0.75.0
 - :sparkles: Default page title is now the hostname
