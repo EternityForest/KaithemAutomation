@@ -71,6 +71,16 @@ else:
     }
 
 
+fix_alsa = """
+/bin/amixer set Master 100%
+/bin/amixer -c 1 set PCM 100%
+/bin/amixer -c 0 set PCM 100%
+/bin/amixer set Headphone 100%
+/bin/amixer set Speaker 100%
+exit 0
+"""
+
+
 def setScreenRotate(direction):
     if not direction in ('', 'left', 'right', 'normal', 'invert'):
         raise RuntimeError("Security!!!")
@@ -171,6 +181,11 @@ class Settings():
         return pages.get_template("settings/mixer.html").render(os=os,
                                                                 jackmixer=jackmixer,
                                                                 directories=directories)
+    @cherrypy.expose
+    def fix_alsa_volume(self, *a, **k):
+        pages.require("/users/mixer.edit",)
+        subprocess.check_call(fix_alsa, shell=True)
+        raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
     def wifi(self, *a, **k):

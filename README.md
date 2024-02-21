@@ -102,12 +102,18 @@ Kaithem's installer does this automatically.
 
 ### Sound Too Quiet?
 
-Pipewire likes to set volume to 40% at boot, at the ALSA level. Try:
+Some systems like to set volume to 40% at boot, at the ALSA mixer level. Try:
 
 ```bash
 make user-max-volume-at-boot
 ```
 as whatever user you plan to run kaithem under.
+
+You can also try setting volume to full and storing it
+```bash
+amixer set Master 100%
+sudo alsactl store
+```
 
 ### Sound bad on the Pi?
 

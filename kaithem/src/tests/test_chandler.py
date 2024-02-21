@@ -72,8 +72,6 @@ def test_trigger_shortcuts():
     assert "TestingScene3" not in scenes.scenes_by_name
     assert "TestingScene4" not in scenes.scenes_by_name
 
-=tv('/system/alerts.level') >= 30 
-
 def test_cue_logic():
     logging.warning(scenes.rootContext.commands.scriptcommands)
     s = scenes.Scene(name="TestingScene5", id='TEST')
