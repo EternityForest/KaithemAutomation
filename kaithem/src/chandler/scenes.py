@@ -504,7 +504,7 @@ class Cue:
                 if i in kw:
                     setattr(self, i, kw[i])
                 else:
-                    setattr(self, i, cue_schema['properties'][i]['default'])
+                    setattr(self, i, copy.deepcopy(cue_schema['properties'][i]['default']))
 
         for i in kw:
             if i not in cue_schema['properties']:
@@ -986,6 +986,7 @@ class Scene:
 
         if 'default' not in self.cues:
             Cue(self, "default")
+
         self.cue: Cue = self.cues['default']
 
         # Used for the tap tempo algorithm
