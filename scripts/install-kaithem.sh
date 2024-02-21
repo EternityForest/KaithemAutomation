@@ -22,7 +22,8 @@ else
 fi
 
 ~/kaithem/.venv/bin/python -m pip install -U --ignore-installed -r requirements_frozen.txt
-~/kaithem/.venv/bin/python setup.py install
+! ~/kaithem/.venv/bin/python -m pip uninstall kaithem -y
+~/kaithem/.venv/bin/python setup.py install --force
 
 
 cat << EOF > ~/kaithem/config.yaml

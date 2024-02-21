@@ -5,6 +5,15 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
+if [ ! -d ~/kaithem/.venv ]; then
+    echo "Not running in venv"
+else
+    echo "This shell running in venv:"
+	echo  ~/kaithem/.venv
+	
+    source ~/kaithem/.venv/bin/activate
+fi
+
 colors() {
 	local fgc bgc vals seq0
 
