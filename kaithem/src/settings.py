@@ -404,7 +404,7 @@ class Settings():
     @cherrypy.expose
     def leaflet(self, *a, **k):
         pages.require("/admin/mainpage.view")
-        return pages.get_template("settings/util/leaflet.html").render()
+        return pages.render_jinja_template("settings/util/leaflet.html")
 
     @cherrypy.expose
     def refreshuserpage(self, target):

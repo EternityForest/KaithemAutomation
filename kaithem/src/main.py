@@ -63,6 +63,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     import iot_devices.host
 
     from . import config as cfg
+    from . import gis # noqa: F401
     from . import tagpoints  # noqa: F401
     from . import builtintags  # noqa: F401
     from . import kaithemobj  # noqa: F401

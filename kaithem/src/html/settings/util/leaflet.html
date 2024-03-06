@@ -1,8 +1,10 @@
-<%include file="/pageheader.html"/>
-<%!
-from kaithem.src import tagpoints
-%>
+{% extends "pagetemplate.j2.html" %}
+{% set gis = imp0rt('kaithem.src.gis') %}
+{% set tagpoints = imp0rt('kaithem.src.tagpoints') %}
 
+{% block body %}
+
+{{ gis.api.render('api') }}
 
 <div class="window paper" style="height: auto;">
 
@@ -69,7 +71,6 @@ from kaithem.src import tagpoints
 	<script>
 
 
-
 		function parseCoords(s) {
 			s = s.split(",")
 			var l = newLatLng = new L.LatLng(parseFloat(s[0]), parseFloat(s[1]));
@@ -84,7 +85,7 @@ from kaithem.src import tagpoints
 
 		function geocode() {
 			var s = prompt("Web search for location");
-			if (!s){
+			if (!s) {
 				return
 			}
 			var xmlhttp = new XMLHttpRequest();
@@ -145,7 +146,15 @@ from kaithem.src import tagpoints
 		mymap.on('click', onMapClick);
 
 
+		api.upd = function(d){
+			console.log(d)
+		}
+
+		api.send(['get_all_points'])
+		
+
+
 	</script>
 
 </div>
-<%include file="/pagefooter.html"/>
+{% endblock %}

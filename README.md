@@ -221,7 +221,7 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - :bug: More reliable max-volume-at-boot script
 - :sparkles: Web console runs in ~/kaithem/venv if it exists(Change this if desired in kaithem's bashrc)
 - :sparkles: Settings page link to set ALSA mixer volume to full
-- 
+
 ### 0.75.0
 - :sparkles: Default page title is now the hostname
 - :sparkles: Devices report feature lets you print out all the device settings
