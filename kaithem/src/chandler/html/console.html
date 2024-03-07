@@ -290,13 +290,30 @@ ${lists}
                         <table border="1" v-if="i[1].displayTags.length > 0">
                             <tr v-for="v in i[1].displayTags">
                                 <td>{{v[0]}}</td>
-                                <td>
-                                    <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min"
-                                        :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
-                                        :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
 
-                                    {{i[1].displayTagValues[v[1]]}}
-                                </td>
+                                <template v-if="v[2].type == 'auto'">
+                                    <td>
+                                        <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min"
+                                            :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
+                                            :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
+
+                                        {{i[1].displayTagValues[v[1]] }}
+                                    </td>
+                                </template>
+
+
+                                <template v-if="v[2].type == 'string_input'">
+                                    <td>
+                                        <input v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
+                                    </td>
+                                </template>
+
+                                <template v-if="v[2].type == 'numeric_input'">
+                                    <td>
+                                        <input type="number" v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[0],i[1].displayTagValues[v[1]])">
+                                    </td>
+                                </template>
+
                             </tr>
                         </table>
                         <table border="0">
@@ -1784,8 +1801,14 @@ ${lists}
 
                         <div class="stacked-form">
                             <label>Utility Scene(No controls):
-                                <input type="checkbox" v-on:change="setutility(scenename,currentcue.utility)"
-                                    v-model="currentcue.utility"
+                                <input type="checkbox" v-on:change="setutility(scenename,editingScene.utility)"
+                                    v-model="editingScene.utility"
+                                    title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                            </label>
+
+                            <label>Hide in Runtime Mode:
+                                <input type="checkbox" v-on:change="setHide(scenename,editingScene.hide)"
+                                    v-model="editingScene.hide"
                                     title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
                             </label>
 
@@ -1836,6 +1859,7 @@ ${lists}
                             <tr>
                                 <th>Label</th>
                                 <th>Tag</th>
+                                <th>Type</th>
                                 <th>Action</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.displayTags">
@@ -1845,9 +1869,24 @@ ${lists}
                                 <td><input list="tagslisting" v-model="v[1]"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
+
+
+                                <td><select v-model="v[2].type"
+                                    v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                        <option value="auto">Auto Display</option>
+                                        <option value="string_input">Text Input</option>
+                                        <option value="numeric_input">Numeric Input</option>
+
+                                    </select>
+                                </td>
+
                                 <td><button
                                         v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button>
+                                    
+                                    <a v-bind:href="'/tagpoints/'+encodeURIComponent(v[1])"><i class="icofont-gear"></i></a>
                                 </td>
+
+
                             </tr>
 
 
@@ -1855,7 +1894,7 @@ ${lists}
                                 <td></td>
                                 <td></td>
                                 <td><button
-                                        v-on:click="editingScene.displayTags.push(['Label','=1']); setDisplayTags(scenename, editingScene.displayTags);">Add
+                                        v-on:click="editingScene.displayTags.push(['Label','=1', {'type':'auto'}]); setDisplayTags(scenename, editingScene.displayTags);">Add
                                         Tag</button>
                             </tr>
                         </table>

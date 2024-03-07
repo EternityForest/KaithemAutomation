@@ -536,6 +536,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.scenes[msg[1]].event_buttons = msg[2]
             self.pushMeta(msg[1], keys={"event_buttons"})
 
+        elif cmd_name == "sethide":
+            scenes.scenes[msg[1]].hide = msg[2]
+            self.pushMeta(msg[1], keys={"hide"})
+
         elif cmd_name == "setinfodisplay":
             scenes.scenes[msg[1]].info_display = msg[2]
             self.pushMeta(msg[1], keys={"info_display"})
@@ -547,6 +551,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setdisplaytags":
             scenes.scenes[msg[1]].setDisplayTags(msg[2])
             self.pushMeta(msg[1], keys={"display_tags"})
+
+        elif cmd_name == "inputtagvalue":
+            for i in scenes.scenes[msg[1]].display_tags:
+                # Defensive programming, don't set a tag that wasn't ever actually configured
+                if msg[2] == i[1]:
+                    if not msg[2].startswith("/"):
+                        msg[2] = "/" + msg[2]
+                    kaithem.tags.all_tags_raw[msg[2]]().value = msg[3]
+                    return
+
 
         elif cmd_name == "setMqttServer":
             if kaithem.users.check_permission(user, "/admin/modules.edit"):

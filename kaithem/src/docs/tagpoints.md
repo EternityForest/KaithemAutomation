@@ -286,6 +286,13 @@ BinaryTags are created or fetched on demand by kaithem.tags.BinaryTag(name). The
 
 You can set the default value from the management page for any particular tag, but for BinaryTags it will be interpreted as a hex string.
 
+### Get arbitrary existing tag ignoring type
+
+kaithem.tags.all_tags_raw is a dict containing a weak reference to every tag.  It
+allows raw access to the internal tags list.
+
+kaithem.tags.all_tags_raw['foo']() gets you the foo tag.
+
 #### BinaryTag.unreliable
 
 Set to true, makes tag act more like a UDP connection. Setting the value just pushed to subscribers. Polling not guaranteed to work. Type checking disabled.

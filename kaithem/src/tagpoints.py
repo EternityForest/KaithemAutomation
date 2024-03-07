@@ -43,7 +43,7 @@ exposedTags: weakref.WeakValueDictionary[str,
 
 # These are the atrtibutes of a tag that can be overridden by configuration.
 # Setting tag.hi sets the runtime property, but we ignore it if the configuration takes precedence.
-configAttrs = {'hi', 'lo', 'min', 'max', 'interval', 'displayUnits'}
+configAttrs = {'hi', 'lo', 'min', 'max', 'interval', 'displayUnits', 'enum'}
 softConfigAttrs = {
     'overrideName', 'overrideValue', 'overridePriority', 'type', 'value'
 }
@@ -231,6 +231,9 @@ class GenericTagPointClass(Generic[T]):
         self.alarms: Dict[str, alerts.Alert] = {}
 
         self._configuredAlarms: Dict[str, object] = {}
+
+        # Used to optionally record a list of allowed values
+        self._enum: Optional[List[Any]] = None
 
         # In unreliable mode the tag's acts like a simple UDP connection.
         # The only supported feature is that writing the tag notifies subscribers.
@@ -1301,7 +1304,7 @@ class GenericTagPointClass(Generic[T]):
             if self.timestamp == 0:
                 # Set timestamp to 0, this marks the tag as still using a default
                 # Which can be further changed
-                self.setClaimVal("default", float(self._default), 0,
+                self.setClaimVal("default", self._default, 0,
                                  "Code default")
 
     @classmethod

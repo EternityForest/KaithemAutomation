@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.76.0
+- :bug: Fix utility scene checkbox in chandler not showing correct value
+- :sparkles: Can hide a scene in runtime mode
+
+
 ### 0.75.1
 - :bug: Fix chandler scenes sometimes sharing all data for the default cues
 - :bug: Fix makefile install process

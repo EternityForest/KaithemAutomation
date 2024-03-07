@@ -448,6 +448,15 @@ appData = {
         api_link.send(['seteventbuttons', sc, i])
     },
 
+    'setHide': function (sc, i) {
+
+        api_link.send(['sethide', sc, i])
+    },
+
+    'setTagInputValue': function (sc, tag, v) {
+
+        api_link.send(['inputtagvalue', sc, tag, v])
+    },
 
     'setDisplayTags': function (sc, i) {
 
@@ -626,13 +635,13 @@ appData = {
     },
 
 
-    'formatScenes': function () {
+    'formatScenes': function (hide_hidden) {
         return appData.dictView(appData.scenemeta, [
             '!priority', '!started', 'name'
         ]).filter(
             function (x) {
                 return (x[1].name && x[1].name.includes(
-                    appData.scenefilter))
+                    appData.scenefilter) && (!(x[1].hide && hide_hidden)))
             });
 
     },
@@ -1380,8 +1389,7 @@ function f(v) {
         appData.serports = v[1]
     }
 
-    if (c == 'alerts')
-    {
+    if (c == 'alerts') {
         appData.sys_alerts = v[1]
     }
     if (c == 'confuniverses') {

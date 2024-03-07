@@ -656,6 +656,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "event_buttons": scene.event_buttons,
                 "info_display": scene.info_display,
                 "utility": scene.utility,
+                "hide": scene.hide,
                 "display_tags": scene.display_tags,
                 "displayTagValues": scene.displayTagValues,
                 "displayTagMeta": scene.displayTagMeta,

@@ -78,6 +78,9 @@ properties:
   utility:
     type: boolean
 
+  hide:
+    type: boolean
+
   uuid:
     type: string
 

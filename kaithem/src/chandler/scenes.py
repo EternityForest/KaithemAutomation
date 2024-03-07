@@ -29,6 +29,7 @@ import time
 import traceback
 import urllib.parse
 import uuid
+import gc
 from typing import Any, Dict, Optional, Set, Type, Iterable, List, Callable
 import copy
 import recur
@@ -768,6 +769,7 @@ class Scene:
         display_tags=[],
         info_display: str = "",
         utility: bool = False,
+        hide: bool = False,
         notes: str = "",
         mqtt_server: str = "",
         crossfade: float = 0,
@@ -799,6 +801,7 @@ class Scene:
             display_tags (list, optional):
             info_display (str, optional):
             utility (bool, optional):
+            hide (bool):
             notes (str, optional):
             mqtt_server (str, optional):
             crossfade (int, optional):
@@ -843,6 +846,8 @@ class Scene:
         # The active media file being played through the remote playback mechanism.
         self.allowMediaUrlRemote = None
 
+        self.hide = hide
+
         def handleMediaLink(u, v):
             if v[0] == "initial":
                 self.sendVisualizations()
@@ -884,6 +889,7 @@ class Scene:
         self.displayTagSubscriptions = []
         self.display_tags = []
         self.displayTagValues = {}
+        self.displayTagPointObjects: Dict[str, object] = {}
         self.displayTagMeta: Dict[str, Dict[str, Any]] = {}
         self.setDisplayTags(display_tags)
 
@@ -1088,6 +1094,7 @@ class Scene:
             "event_buttons": self.event_buttons,
             "info_display": self.info_display,
             "utility": self.utility,
+            "hide": self.hide,
             "display_tags": self.display_tags,
             "midi_source": self.midi_source,
             "music_visualizations": self.music_visualizations,
@@ -2125,13 +2132,23 @@ class Scene:
             self.displayTagSubscriptions = []
             self.displayTagValues = {}
             self.displayTagMeta = {}
+            self.displayTagPointObjects = {}
 
     def displayTagSubscriber(self, n):
         t = n[1]
+        if not t.startswith("/"):
+            t = "/" + t
+
         if not self.scriptContext.canGetTagpoint(t):
             raise ValueError("Not allowed tag " + t)
 
-        t = kaithem.tags[n[1]]
+        try:    
+            t = kaithem.tags.all_tags_raw[t]()
+        except Exception:
+            t = kaithem.tags[n[1]]
+        if not t:
+            t = kaithem.tags[n[1]]
+
         sn = n[1]
         self.displayTagMeta[sn] = {}
         if isinstance(t, kaithem.tags.NumericTagPointClass):
@@ -2158,12 +2175,37 @@ class Scene:
         dt = dt[:]
         with core.lock:
             self.clearDisplayTags()
+            gc.collect()
+            gc.collect()
+            gc.collect()
+
             try:
                 for i in dt:
+
+                    # Upgrade legacy format
+                    if len(i) == 2:
+                        i.append({'type': 'auto'})
+
+                    if 'type' not in i[2]:
+                        i[2]['type'] = 'auto'
+
+                    if not i[1].startswith("="):
+                        t = None
+
+                        if i[2]['type'] == 'numeric_input':
+                            t = kaithem.tags[i[1]]
+
+                        if i[2]['type'] == 'string_input':
+                            t = kaithem.tags.StringTag(i[1])
+
+                        if t:
+                            self.displayTagPointObjects[i[1]] = t
+
                     self.displayTagSubscriptions.append(
                         self.displayTagSubscriber(i))
             except Exception:
                 print(traceback.format_exc())
+                self.event('board.error',traceback.format_exc())
             self.display_tags = dt
 
     def clearConfiguredTags(self):

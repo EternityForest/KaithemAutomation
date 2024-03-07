@@ -87,6 +87,20 @@ plugins = weakref.WeakValueDictionary()
 
 
 class TagInterface():
+
+    @property
+    def all_tags_raw(self):
+        return tagpoints.allTagsAtomic
+    
+    def __contains__(self, k: str):
+        try:
+            x = tagpoints.allTagsAtomic[k]()
+            if not x:
+                return False
+            return True
+        except KeyError:
+            return False
+        
     def __getitem__(self, k: str):
         try:
             x = tagpoints.allTagsAtomic[k]()

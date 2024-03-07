@@ -117,7 +117,7 @@
 
 
         <div class="flex-row gaps padding scroll max-h-48rem">
-            <article v-for="i in formatScenes()" v-if="i"
+            <article v-for="i in formatScenes(true)" v-if="i"
                 style="position:relative"
                 v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'nogrow':1, 'flex-col': 1, 'h-18rem':1}"
                 >
