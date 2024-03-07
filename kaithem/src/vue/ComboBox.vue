@@ -1,7 +1,7 @@
 <style scoped>
 .comboboxdropdown {
-    background-color: rgb(235, 235, 235, 0.95);
     position: absolute;
+    backdrop-filter: blur(2px);
     border-radius: 1em;
     border-style: solid;
     border-color: black;
@@ -27,7 +27,7 @@
         <button title="Show/Hide selector" style="width:3em;" v-on:click="showmenu = !(showmenu | (focused)); focused = false;"
             v-bind:class="{ 'highlight': showmenu }">...</button>
     </div>
-    <div v-if="showmenu || (focused)" class="comboboxdropdown">
+    <div v-if="showmenu || (focused)" class="comboboxdropdown paper">
             <div style="overflow: scroll; margin: 0.8em; border: 1px solid; height: 18em;">
                 <div v-for="i in pinned"
                     v-if="(!value) || i[0].toLowerCase().includes(value.toLowerCase()) || i[1].toLowerCase().includes(value.toLowerCase()) || showmenu">

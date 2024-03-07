@@ -2643,11 +2643,6 @@ label {
         background: var(--hover-color);
     }
 
-
-    label:hover {
-        color: var(--accent-color);
-    }
-
 }
 
 ::selection {

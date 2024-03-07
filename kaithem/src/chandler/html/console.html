@@ -314,6 +314,12 @@ ${lists}
                                     </td>
                                 </template>
 
+                                <template v-if="v[2].type == 'switch_input'">
+                                    <td>
+                                        <input type="checkbox" class="toggle" v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[0],i[1].displayTagValues[v[1]])">
+                                    </td>
+                                </template>
+
                             </tr>
                         </table>
                         <table border="0">
@@ -1845,14 +1851,25 @@ ${lists}
                             </tr>
                         </table>
 
-                        <h5>Display Tags</h5>
+                        <h5>Display and Input Tags</h5>
 
                         <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>Lets you display some tag
+                            <summary><i class="icofont-question-circle"></i></summary>
+                            <p>Lets you display some tag
                             points
                             in
                             the
-                            scene overview
+                            scene overview.</p>
+
+                            <p>Tags will be created if they do not exist. Use the tag settings page to configure defaults an limits</p>
+
+                            <p>Expression tags are allowed, =tv('tag1') + 6 will display 6 plus the tag 'tv'</p>
+
+                            <p>You can also add inputs to the scene overview. You can then respond to these inputs
+                                in the cue logic.
+                            </p>
+
+
                         </details>
 
                         <table border="1" class="w-full">
@@ -1876,6 +1893,7 @@ ${lists}
                                         <option value="auto">Auto Display</option>
                                         <option value="string_input">Text Input</option>
                                         <option value="numeric_input">Numeric Input</option>
+                                        <option value="switch_input">Switch Input</option>
 
                                     </select>
                                 </td>

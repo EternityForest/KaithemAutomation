@@ -2195,6 +2195,9 @@ class Scene:
                         if i[2]['type'] == 'numeric_input':
                             t = kaithem.tags[i[1]]
 
+                        if i[2]['type'] == 'switch_input':
+                            t = kaithem.tags[i[1]]
+
                         if i[2]['type'] == 'string_input':
                             t = kaithem.tags.StringTag(i[1])
 
