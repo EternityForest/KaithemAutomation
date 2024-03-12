@@ -3,6 +3,8 @@ Change Log
 
 ### 0.76.0
 - :bug: Fix utility scene checkbox in chandler not showing correct value
+- :bug: Fix Chandler relative length with web slides
+- :bug: Fix iot_devices not setting the default
 - :sparkles: Can hide a scene in runtime mode
 
 

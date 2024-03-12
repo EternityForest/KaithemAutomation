@@ -738,7 +738,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                            unit: str = '',
                            handler: Optional[Callable[[str, float, Any],
                                                       Any]] = None,
-                           default: float = 0,
+                           default: Optional[float] = None,
                            interval: float = 0,
                            writable: bool = True,
                            subtype: str = '',
@@ -760,7 +760,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.lo = lo
             t.description = description
             t.unit = unit
-            t.default = default
+            t.default = default or 0
             t.interval = interval
             t.subtype = subtype
             t.writable = writable
@@ -779,7 +779,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 t.subscribe(handler)
 
             self.tagPoints[name] = t
-            self.datapoints[name] = None
+            self.datapoints[name] = default
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:
@@ -798,7 +798,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                           description: str = "",
                           handler: Optional[Callable[[str, float, Any],
                                                      Any]] = None,
-                          default: float = 0,
+                          default: Optional[str] = None,
                           interval: float = 0,
                           writable: bool = True,
                           subtype: str = '',
@@ -813,7 +813,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t._dev_ui_writable = writable
 
             t.description = description
-            t.default = default
+            t.default = default or ''
             t.interval = interval
             t.subtype = subtype
             t.writable = writable
@@ -832,7 +832,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 t.subscribe(handler)
 
             self.tagPoints[name] = t
-            self.datapoints[name] = None
+            self.datapoints[name] = ''
 
             # On demand subscribe to the binding for the tag we just made
             if name in self._kBindings:

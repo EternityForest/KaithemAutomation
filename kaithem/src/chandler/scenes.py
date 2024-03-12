@@ -1877,6 +1877,31 @@ class Scene:
                         self.cuelen = 300
                         return
 
+            if self.cue.slide and self.cue.rel_length:
+                path = self.resolve_sound(self.cue.slide)
+                if (core.is_img_file(path)):
+                    pass
+                else:
+                    try:
+                        # If we are doing crossfading, we have to stop slightly early for
+                        # The crossfade to work
+                        # TODO this should not stop early if the next cue overrides
+                        duration = core.get_audio_duration(path)
+                        if duration > 0:
+                            slen = (duration -
+                                    self.crossfade) + cuelen
+                            # Choose the longer of slide and main sound if both present
+                            v = max(0, self.randomizeModifier + slen, v)
+                        else:
+                            raise RuntimeError(
+                                "Failed to get length")
+                    except Exception:
+                        logging.exception(
+                            "Error getting length for sound " + str(path))
+                        # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
+                        self.cuelen = 300
+                        return
+
         if v <= 0:
             self.cuelen = 0
         else:
@@ -2142,7 +2167,7 @@ class Scene:
         if not self.scriptContext.canGetTagpoint(t):
             raise ValueError("Not allowed tag " + t)
 
-        try:    
+        try:
             t = kaithem.tags.all_tags_raw[t]()
         except Exception:
             t = kaithem.tags[n[1]]
@@ -2208,7 +2233,7 @@ class Scene:
                         self.displayTagSubscriber(i))
             except Exception:
                 print(traceback.format_exc())
-                self.event('board.error',traceback.format_exc())
+                self.event('board.error', traceback.format_exc())
             self.display_tags = dt
 
     def clearConfiguredTags(self):
