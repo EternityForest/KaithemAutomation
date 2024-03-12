@@ -169,11 +169,15 @@ def saveDevice(d):
 
 
 def getDeviceConfigFolder(d, create=True):
-    saveLocation = os.path.join(directories.vardir, "devices", d)
+    if not hasattr(remote_devices[d],'parentModule') or not remote_devices[d].parentModule:
+        saveLocation = os.path.join(directories.vardir, "devices", d)
+    else:
+        saveLocation = os.path.join(directories.vardir, "modules", 'data', remote_devices[d].parentModule, "__filedata__", d+".config.d")
+
     if not os.path.exists(saveLocation):
         if not create:
             return None
-        os.mkdir(saveLocation)
+        os.makedirs(saveLocation, mode=0o700, exist_ok=True)
 
     return saveLocation
 
@@ -745,10 +749,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                            **kwargs):
 
         with modules_state.modulesLock:
-            if "/" in name:
-                t = tagpoints.Tag("/devices/" + self.name + "/" + name)
-            else:
-                t = tagpoints.Tag("/devices/" + self.name + "." + name)
+            t = tagpoints.Tag("/devices/" + self.name + "." + name)
 
             self.__setupTagPerms(t, writable)
 

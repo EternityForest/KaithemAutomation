@@ -79,15 +79,6 @@ def unlockFile(f):
         pass
 
 
-# Map filenames to the module,resource tuple they represent.
-# May contain deleted data, but never contains old data for existing stuff
-
-
-# In particular, deleted stuff is still here until we save, we need to know
-# What the file on disk we delete used to represent
-fnToModuleResource = {}
-
-
 def new_empty_module():
     return {"__description": {"resource-type": "module-description", "text": ""}}
 
@@ -608,12 +599,11 @@ def loadOneResource(folder, relpath, module):
         return
 
     modules_state.ActiveModules[module][resourcename] = r
-    fnToModuleResource[resourcename] = (module, resourcename)
 
     if "resource-type" not in r:
         logger.warning("No resource type found for " + resourcename)
         return
-    
+
     validate(r)
     handleResourceChange(module, resourcename)
 
@@ -632,27 +622,38 @@ def loadOneResource(folder, relpath, module):
             os.path.join(folder, relpath), directories.vardir
         ) or util.in_directory(os.path.join(folder, relpath), directories.datadir):
             t = parseTarget(r["target"], module)
-            fileResourceAbsPaths[module, resourcename] = os.path.normpath(
+            target = os.path.normpath(
                 os.path.join(
                     directories.vardir, "modules", "data", module, "__filedata__", t
                 )
             )
         else:
             t = parseTarget(r["target"], module, True)
-            fileResourceAbsPaths[module, resourcename] = os.path.normpath(
+            target = os.path.normpath(
                 os.path.join(folder, "__filedata__", t)
             )
 
-        if not os.path.exists(fileResourceAbsPaths[module, resourcename]):
-            logger.error(
+        if not os.path.exists(target):
+            logger.info(
                 "Missing file resource: " +
-                fileResourceAbsPaths[module, resourcename]
+                target
             )
+
             messagebus.post_message(
-                "/system/notifications/errors",
-                "Missing file resource: " +
-                fileResourceAbsPaths[module, resourcename],
+                "/system/notifications",
+                "File Resource: " +
+                target + "Was deleted",
             )
+
+            try:
+                del  modules_state.ActiveModules[module][resourcename]
+                
+                # Remove the no longer relevant internal fileref
+                os.remove(os.path.join(folder, relpath))
+            except Exception:
+                logger.exception("Error cleaning up old file ref")
+        else:
+            fileResourceAbsPaths[module, resourcename] = target
 
 
 def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=None):
@@ -694,8 +695,6 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                         continue
 
                     module[resourcename] = r
-                    fnToModuleResource[resourcename] = (
-                        modulename, resourcename)
                     if "resource-type" not in r:
                         logger.warning(
                             "No resource type found for " + resourcename)
@@ -978,39 +977,21 @@ def bookkeeponemodule(module, update=False):
     if module not in scopes:
         scopes[module] = ModuleObject(module)
 
-    # This does NOT use handleResourceChange because it has optimizations to do stuff one module at a time not one event at a time.
     for i in modules_state.ActiveModules[module]:
-        # TODO this is a bad awful hack we need to DRY this and only have one resource updater or something
-        if (
-            modules_state.ActiveModules[module][i]["resource-type"]
-            == "internal-fileref"
+
+        # Handle events separately due to dependency resolution logic
+        if not (
+            modules_state.ActiveModules[module][i]["resource-type"] in ('event')
         ):
             try:
-                usrpages.updateOnePage(i, module)
+                handleResourceChange(module, i)
             except Exception:
-                pass
-
-        if modules_state.ActiveModules[module][i]["resource-type"] == "page":
-            # TODO: why were pages failing? Or was this just defensive?
-            try:
-                usrpages.updateOnePage(i, module)
-            except Exception as e:
-                usrpages.makeDummyPage(i, module)
-                logger.exception("failed to load resource")
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Failed to load page resource: "
-                    + i
-                    + " module: "
-                    + module
-                    + "\n"
-                    + str(e)
-                    + "\n"
-                    + "please edit and reload.",
-                )
-    loadAllCustomResourceTypes()
+                    "Failed to load  resource: "+ i)
+
     newevt.getEventsFromModules([module])
-    auth.importPermissionsFromModules()
+
     if not update:
         messagebus.post_message("/system/modules/loaded", module)
 
@@ -1202,7 +1183,7 @@ def rmModule(module, message="deleted"):
     gc.collect()
     messagebus.post_message("/system/modules/unloaded", module)
     messagebus.post_message("/system/modules/deleted",
-                           {"user": pages.getAcessingUser()})
+                            {"user": pages.getAcessingUser()})
 
 
 class KaithemEvent(dict):
@@ -1214,13 +1195,23 @@ def handleResourceChange(module, resource, obj=None):
 
     with modules_state.modulesLock:
         t = modules_state.ActiveModules[module][resource]["resource-type"]
+
         resourceobj = modules_state.ActiveModules[module][resource]
 
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         elif t == "internal-fileref":
-            usrpages.updateOnePage(resource, module)
+            try:
+                usrpages.updateOnePage(resource, module)
+            except Exception:
+                messagebus.post_message(
+                    "/system/notifications/errors",
+                    "Failed to load file resource: "
+                    + resource
+                    + " module: "
+                    + module
+                )
 
         elif t == "event":
             # if the test compile fails, evt will be None and the function will look up the old one in the modules database
@@ -1228,7 +1219,22 @@ def handleResourceChange(module, resource, obj=None):
             newevt.updateOneEvent(resource, module, obj)
 
         elif t == "page":
-            usrpages.updateOnePage(resource, module)
+            try:
+                usrpages.updateOnePage(resource, module)
+            except Exception:
+                usrpages.makeDummyPage(resource, module)
+                logger.exception("failed to load resource")
+                messagebus.post_message(
+                    "/system/notifications/errors",
+                    "Failed to load page resource: "
+                    + resource
+                    + " module: "
+                    + module
+                    + "\n"
+                    + str(e)
+                    + "\n"
+                    + "please edit and reload.",
+                )
 
         else:
             additionalTypes[resourceobj["resource-type"]
