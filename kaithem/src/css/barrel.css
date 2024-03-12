@@ -2581,7 +2581,6 @@ input[type="checkbox"].toggle {
         border: var(--control-border);
         left: var(--slider-position);
         top: var(--control-border-width);
-        vertical-align: middle;
         border-radius: 50px;
         margin: 0px;
         padding: 0px;
