@@ -126,13 +126,17 @@ p.small {
 
 
                 <div class="flex-row gaps col-9">
-                    <div v-for="i in rules" class="w-sm-double card">
+                    <div v-for="(i, idx) in rules" class="w-sm-double card">
                         <header>
-                            <button v-bind:class="{ highlight: selectedBinding == i }"
-                                v-on:click="selectedBindingIndex = rules.indexOf(i); selectedCommandIndex = -1">
+                            <div class="tool-bar">
+                                <button v-bind:class="{ highlight: selectedBinding == i }" style="flex-grow: 50;"
+                                    v-on:click="selectedBindingIndex = rules.indexOf(i); selectedCommandIndex = -1">
 
-                                <b>On {{ i[0] }}</b>
-                            </button>
+                                    <b>On {{ i[0] }}</b>
+                                </button>
+
+                                <button v-on:click="moveCueRuleDown(idx)">Move down</button>
+                            </div>
 
                         </header>
 
@@ -253,6 +257,19 @@ module.exports = {
                     return [];
                 }
             },
+
+
+            'moveCueRuleDown': function (idx) {
+                var rules = [...this.value];
+
+                if (idx < rules.length - 1) {
+                    var t = rules[idx + 1]
+                    rules[idx + 1] = rules[idx]
+                    rules[idx] = t
+                }
+                this.$emit('input', rules)
+            },
+
 
             swapArrayElements: function (arr, indexA, indexB) {
                 var temp = arr[indexA];

@@ -347,8 +347,26 @@ def number_to_shortcut(number: int | float | str):
     return s
 
 
+def normalize_shortcut(code: str | int | float) -> str:
+    # Normalize away any trailing zeroes if it's a float
+    try:
+        code = round(float(code), 4)
+        c2 = int(code)
+
+        if code == c2:
+            code = c2
+        code = str(code)
+    except Exception:
+        pass
+
+    return str(code)
+
+
 def shortcutCode(code: str, limitScene: Optional[Scene] = None, exclude: Optional[Scene] = None):
     "API to activate a cue by it's shortcut code"
+
+    code = normalize_shortcut(code)
+
     if not limitScene:
         event("shortcut." + str(code)[:64], None)
 
@@ -636,6 +654,9 @@ class Cue:
         self.getScene().refreshRules()
 
     def setShortcut(self, code: str, push: bool = True):
+
+        code = normalize_shortcut(code)
+
         disallow_special(code, allow="._")
 
         if code == "__generate__from__number__":
@@ -2877,7 +2898,7 @@ class Scene:
                             event("board.error", "Error locating "+str(i))
                 except Exception:
                     event("board.error", "Error locating "+str(i))
-                
+
                 info = None
 
     def get_m3u(self, rel=None):
