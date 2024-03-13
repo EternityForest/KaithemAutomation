@@ -1029,6 +1029,9 @@ appData = {
             30)
     },
     'rmcue': function (cue) {
+        if (!confirm("Delete cue?")) {
+            return;
+        }
         appData.selectedCues[appData.scenename] = 'default'
         api_link.send(['rmcue', cue]);
     },

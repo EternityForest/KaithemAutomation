@@ -8,6 +8,7 @@ Change Log
 - :bug: Upload new chandler scene adds to rather than replaces the existing scenes
 - :sparkles: Can hide a scene in runtime mode
 - :sparkles: Chandler can now import and export audio cues in a scene as M3U playlists(With fuzzy search for broken paths!)
+- :sparkles: Confirm before delete cues
 
 
 ### 0.75.1
