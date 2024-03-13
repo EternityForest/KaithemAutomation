@@ -1835,17 +1835,19 @@ ${lists}
                         </header>
 
                         <div class="stacked-form">
-                            <label>Utility Scene(No controls):
-                                <input type="checkbox" v-on:change="setutility(scenename,editingScene.utility)"
-                                    v-model="editingScene.utility"
-                                    title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
-                            </label>
+                            <p>
+                                <label>Utility Scene(No controls)
+                                    <input type="checkbox" v-on:change="setutility(scenename,editingScene.utility)"
+                                        v-model="editingScene.utility"
+                                        title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                                </label>
 
-                            <label>Hide in Runtime Mode:
-                                <input type="checkbox" v-on:change="setHide(scenename,editingScene.hide)"
-                                    v-model="editingScene.hide"
-                                    title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
-                            </label>
+                                <label>Hide in Runtime Mode
+                                    <input type="checkbox" v-on:change="setHide(scenename,editingScene.hide)"
+                                        v-model="editingScene.hide"
+                                        title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                                </label>
+                            </p>
 
                             <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
                                 <input v-on:change="setinfodisplay(scenename,$event.target.value)"

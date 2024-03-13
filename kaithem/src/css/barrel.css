@@ -129,8 +129,7 @@ dd {
     --concave-highlight: color-mix(in srgb, var(--3d-highlight) 60%, var(--control-bg));
 
     --concave-item-bg: linear-gradient(180deg, var(--concave-shadow) 4px, var(--concave-highlight) 43%);
-
-    --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
+    --convex-item-bg: linear-gradient(180deg, var(--concave-highlight) 0%, var(--concave-shadow) 96%);
     --convex-item-active-bg: linear-gradient(180deg, color-mix(in srgb, var(--concave-shadow) 90%, var(--control-fg)) 3%, color-mix(in srgb, var(--3d-highlight) 90%, var(--control-fg)) 45%);
     --concave-item-box-shadow: inset 0px 0px 4px 2px color-mix(in srgb, var(--fg) 7%, transparent);
 
@@ -714,8 +713,6 @@ header {
     }
 
     &:not(.undecorated) {
-        --convex-item-bg: var(--control-bg);
-
         &>:only-child,
         &>:only-child>:only-child,
         & :is(h1, h2, h3, h4, h5, h6)>button {
@@ -1863,14 +1860,14 @@ footer.padding {
 
 .highlight:not(.specificity_hack) {
     --highlight-tint: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
+    --alt-control-bg: var(--highlight-tint);
+    background-color: var(--highlight-tint);
 
     &:not(meter),
     & :not(meter) {
-        --control-bg: var(--highlight-tint)
+        --control-bg: var(--highlight-tint);
     }
 
-    --alt-control-bg: var(--highlight-tint);
-    background-color: var(--highlight-tint);
 }
 
 .success:not(.specificity_hack) {
@@ -1915,10 +1912,15 @@ footer.padding {
 .highlight:not(.specificity_hack),
 .success:not(.specificity_hack),
 .warning:not(.specificity_hack) {
-
     &:not(meter),
     & :is(input, button, textarea, select, .button) {
-        --control-bg: var(--highlight-tint)
+        --control-bg: var(--highlight-tint);
+
+        /* Hacky duplication */
+        --concave-shadow: color-mix(in srgb, var(--3d-shadow) 40%, var(--control-bg));
+        --concave-highlight: color-mix(in srgb, var(--3d-highlight) 60%, var(--control-bg));
+        --concave-item-bg: linear-gradient(180deg, var(--concave-shadow) 4px, var(--concave-highlight) 43%);
+        --convex-item-bg: linear-gradient(180deg, var(--concave-highlight) 0%, var(--concave-shadow) 96%);
     }
 }
 

@@ -27,7 +27,7 @@ SOFTWARE.
 :root {
     color-scheme: only light;
     --teal: #8bc7d9;
-    --3d-highlight: rgb(245 237 20);
+    --3d-highlight: rgb(252, 245, 40);
     --3d-shadow: rgb(223 160 17);
     --bg: linear-gradient(175deg, rgba(255, 255, 255, 0) 7vh, rgba(255, 255, 255, 0.1882528011204482) 30vh, rgba(208, 208, 208, 0) 70vh, rgba(0, 0, 0, 0) 80vh),
         linear-gradient(126deg, rgba(255, 255, 255, 0) 7%, rgba(255, 255, 255, 0.1282528011204482) 30%, rgba(208, 208, 208, 0) 40%, rgba(6, 70, 50, 0.136) 90%),
@@ -70,10 +70,6 @@ SOFTWARE.
     background: var(--convex-item-bg);
 }
 
-/*Override the default flattening*/
-:is(.card, .window)>:is(header, footer):not(.undecorated) {
-    --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
-}
 
 .tool-bar {
     box-shadow: none;

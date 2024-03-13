@@ -5,10 +5,14 @@ Change Log
 - :bug: Fix utility scene checkbox in chandler not showing correct value
 - :bug: Fix Chandler relative length with web slides
 - :bug: Fix iot_devices not setting the default
+- :bug: Fix shortcut code normalization(10.0 is treated same as 10)
 - :bug: Upload new chandler scene adds to rather than replaces the existing scenes
+- :bug: Fix broken highlighting in some themes
 - :sparkles: Can hide a scene in runtime mode
 - :sparkles: Chandler can now import and export audio cues in a scene as M3U playlists(With fuzzy search for broken paths!)
 - :sparkles: Confirm before delete cues
+- :sparkles: Add ability to move Chandler rules arounr
+- :sparkles: Scene display tags can now be inputs
 
 
 ### 0.75.1

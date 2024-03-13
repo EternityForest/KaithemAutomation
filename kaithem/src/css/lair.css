@@ -1,17 +1,17 @@
 :root {
     color-scheme: light dark;
     --red: rgb(255, 0, 119);
-    --fg: #cdb8a6;
+    --fg: #927c6b;
     --graphical-fg: #1a091a;
     --accent-color: rgb(151 41 102);
-    --bg: #49011c;
-    --box-bg: #2e2424;
+    --bg: #3a0418;
+    --box-bg: #0f0a08;
     --padding: 2px;
     --gap: 2px;
     --border-color: #1a091a;
     --border-radius: 0rem;
     --control-border-radius: 0px;
-    --control-border-width: 2px;
+    --control-border-width: 1px;
     --control-border-color: black;
     --3d-highlight: #8b053d;
     --3d-shadow: #73043d;
@@ -21,5 +21,5 @@
     --concave-item-box-shadow: #17161659;
     --control-bg: #482155;
     --alt-control-bg: #620d38;
-    --control-fg: #cdb8a6;
+    --control-fg: #a18275;
 }
