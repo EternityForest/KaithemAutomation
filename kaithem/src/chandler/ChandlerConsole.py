@@ -352,7 +352,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "presets": self.presets,
             }
 
-    def loadSceneFile(self, data, filename: str, errs=False):
+    def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
         data = yaml.load(data, Loader=yaml.SafeLoader)
 
         # Detect if the user is trying to upload a single scenefile, if so, wrap it in a multi-dict of scenes to keep the reading code
@@ -361,8 +361,6 @@ class ChandlerConsole(console_abc.Console_ABC):
             # Remove the .yaml
             data = {filename[:-5]: data}
 
-        for i in data:
-            scenes.checkPermissionsForSceneData(data, kaithem.web.user())
 
         with core.lock:
             for i in self.scenememory:
@@ -370,8 +368,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                     self.scenememory[i].toDict(), kaithem.web.user()
                 )
             for i in self.scenememory:
-                self.scenememory[i].stop()
-                self.scenememory[i].close()
+                if clear_old or (i in data):
+                    self.scenememory[i].stop()
+                    self.scenememory[i].close()
+                    
             self.scenememory = {}
             self.loadDict(data, errs)
 

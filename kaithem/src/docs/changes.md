@@ -5,7 +5,9 @@ Change Log
 - :bug: Fix utility scene checkbox in chandler not showing correct value
 - :bug: Fix Chandler relative length with web slides
 - :bug: Fix iot_devices not setting the default
+- :bug: Upload new chandler scene adds to rather than replaces the existing scenes
 - :sparkles: Can hide a scene in runtime mode
+- :sparkles: Chandler can now import and export audio cues in a scene as M3U playlists(With fuzzy search for broken paths!)
 
 
 ### 0.75.1

@@ -17,41 +17,6 @@ from . import universes
 from .core import disallow_special
 
 
-def fnToCueName(fn: str):
-    isNum = False
-    try:
-        int(fn.split(".")[0])
-        isNum = True
-    except Exception:
-        print(traceback.format_exc())
-
-    # Nicely Handle stuff of the form "84. trackname"
-    if isNum and len(fn.split(".")) > 2:
-        fn = fn.split(".", 1)[-1]
-
-    fn = fn.split(".")[0]
-
-    fn = fn.replace("-", "_")
-    fn = fn.replace("_", " ")
-    fn = fn.replace(":", " ")
-
-    # Sometimes used as a stylized S
-    fn = fn.replace("$", "S")
-    fn = fn.replace("@", " at ")
-
-    # Usually going to be the number sign, we can ditch
-    fn = fn.replace("#", "")
-
-    # Handle spaces already there or not
-    fn = fn.replace(" & ", " and ")
-    fn = fn.replace("&", " and ")
-
-    for i in r"""\~!@#$%^&*()+`-=[]\{}|;':"./,<>?""":
-        if i not in scenes.allowedCueNameSpecials:
-            fn = fn.replace(i, "")
-
-    return fn
-
 
 def listsoundfolder(path: str):
     "return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
@@ -726,7 +691,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "newFromSound":
             bn = os.path.basename(msg[2])
-            bn = fnToCueName(bn)
+            bn = scenes.fnToCueName(bn)
             try:
                 tags = TinyTag.get(msg[2])
                 if tags.artist and tags.title:
@@ -759,7 +724,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "newFromSlide":
             bn = os.path.basename(msg[2])
-            bn = fnToCueName(bn)
+            bn = scenes.fnToCueName(bn)
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in scenes.scenes[msg[1]].cues:

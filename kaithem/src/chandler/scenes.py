@@ -52,6 +52,42 @@ cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 _active_scenes: List[Scene] = []
 active_scenes: List[Scene] = []
 
+def fnToCueName(fn: str):
+    isNum = False
+    try:
+        int(fn.split(".")[0])
+        isNum = True
+    except Exception:
+        print(traceback.format_exc())
+
+    # Nicely Handle stuff of the form "84. trackname"
+    if isNum and len(fn.split(".")) > 2:
+        fn = fn.split(".", 1)[-1]
+
+    fn = fn.split(".")[0]
+
+    fn = fn.replace("-", "_")
+    fn = fn.replace("_", " ")
+    fn = fn.replace(":", " ")
+
+    # Sometimes used as a stylized S
+    fn = fn.replace("$", "S")
+    fn = fn.replace("@", " at ")
+
+    # Usually going to be the number sign, we can ditch
+    fn = fn.replace("#", "")
+
+    # Handle spaces already there or not
+    fn = fn.replace(" & ", " and ")
+    fn = fn.replace("&", " and ")
+
+    for i in r"""\~!@#$%^&*()+`-=[]\{}|;':"./,<>?""":
+        if i not in allowedCueNameSpecials:
+            fn = fn.replace(i, "")
+
+    return fn
+
+
 
 def makeWrappedConnectionClass(parent: Scene):
     self_closure_ref = parent
@@ -2785,3 +2821,85 @@ class Scene:
                             v = u.values[x[1]]
                             self.cue.values[i][j] = float(v)
             self.valueschanged = {}
+
+
+
+    def new_cue_from_sound(self, snd):
+            bn = os.path.basename(snd)
+            bn = fnToCueName(bn)
+            try:
+                tags = TinyTag.get(snd)
+                if tags.artist and tags.title:
+                    bn = tags.title + " ~ " + tags.artist
+            except Exception:
+                print(traceback.format_exc())
+
+            bn = disallow_special(bn, "_~", replaceMode=" ")
+            if bn not in self.cues:
+                self.add_cue(bn)
+                self.cues[bn].rel_length = True
+                self.cues[bn].length = 0.01
+
+                soundfolders = core.getSoundFolders()
+                s = None
+                for i in soundfolders:
+                    s = snd
+                    # Make paths relative to a sound folder
+                    if not i.endswith("/"):
+                        i = i + "/"
+                    if s.startswith(i):
+                        s = s[len(i):]
+                        break
+                if not s:
+                    raise RuntimeError("Unknown, linter said was possible")
+                self.cues[bn].sound = s
+                self.cues[bn].named_for_sound = True
+
+
+    def import_m3u(self, d):
+        d = d.replace("\r",'').split("\n")
+
+        for i in d:
+            if i.strip() and not i.strip().startswith("#"):
+                i = os.path.expanduser(i)
+                try:
+                    if os.path.exists(i.strip()):
+                        self.new_cue_from_sound(i.strip())
+                    else:
+                        # Try to find it wherever it may be.
+                        # This is a fuzzy match that could in theory make mistakes.
+                        i2 = core.resolve_sound_fuzzy(i)
+                        if os.path.exists(i2):
+                            self.new_cue_from_sound(i2)
+                        else:
+                            event("board.error","Error locating "+str(i))
+                except Exception:
+                    event("board.error","Error locating "+str(i))
+
+
+
+    def get_m3u(self, rel=None):
+        "Convert the sounds mentioned in cues to m3u files."
+        o = "#EXTM3U\r\n\r\n"
+
+        for i in self.cues_ordered:
+            if i.sound:
+                try:
+                    c = self.resolve_sound(i.sound)
+
+                    d= core.get_audio_duration(c)
+                    if d:
+                        o+="#EXTINF:"+str(d)+"\r\n"
+
+                    h = os.path.expanduser("~")
+
+                    if c.startswith(h):
+                        c = "~"+c[len(h):]
+
+                    o+= c +"\r\n"
+
+                except Exception:
+                    pass
+            
+        return o
+                

@@ -148,7 +148,10 @@ class Web():
         if '.' not in path:
             path = path + '.html'
         try:
-            return get_template(path).render(module=core, kaithem=kaithem, kwargs=kwargs, scenes=scenes, request= cherrypy.request)
+            r = get_template(path).render(module=core, kaithem=kaithem, kwargs=kwargs, scenes=scenes, request= cherrypy.request)
+            if isinstance(r, str):
+                r = r.encode()
+            return r
         except pages.ServeFileInsteadOfRenderingPageException as e:
             if not isinstance(e.f_filepath, (str, os.PathLike)):
                 # bytesio not a real path....

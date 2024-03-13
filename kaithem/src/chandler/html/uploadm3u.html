@@ -1,0 +1,19 @@
+<%include file="/pageheader.html" />
+<%
+if 'file' in kwargs:
+   x = kwargs['file'].file.read().decode()
+   module.board.scenememory[kwargs['id']].import_m3u(x)
+
+%>
+<h2>Upload a setup file</h2>
+<div class="window paper">
+    <form method=POST enctype="multipart/form-data">
+
+        You can upload a M3U setup file here.  All sound files will be added as new cues.
+        This process may take a rather long time if some filenames are broken.
+        <input type="file" name="file"></input>
+        <input type="submit"></input>
+    </form>
+</div>
+<%include file="/pagefooter.html" />
+

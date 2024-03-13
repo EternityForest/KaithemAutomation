@@ -869,9 +869,6 @@ ${lists}
                         <button v-on:click="cuefilter=''">x</button>
                     </p>
 
-                    <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
-                        title="Download your scenes as a file"><i class="icofont-download"></i>Download Scene</a>
-
                     <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
 
 
@@ -1749,6 +1746,38 @@ ${lists}
                             </label>
                         </div>
                     </div>
+
+
+                    <div class="card w-sm-full">
+                        <header>
+                            <h4>Import/Export</h4>
+                        </header>
+                        <div class="stacked-form">
+                            <label>Download just this scene
+                                <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
+                                title="Download your scene as a file"><i class="icofont-download"></i>Download Scene</a>
+                            </label>
+
+                            <label>Download audio playlist as m3u
+                                <a class="button" v-bind:href="'downloadm3u?id='+scenename+'&rel=&name='+editingScene.name"
+                                title="Download your scene as a file"><i class="icofont-download"></i>Download Playlist</a>
+                            </label>
+
+                            <p>This playlist should work in other apps such as VLC on other computers, as long as the same media folders are
+                                in the same place relative to your home folder.
+                            </p>
+
+                            <label>Add new cues from playlist
+                                <a class="button"  v-bind:href="'uploadm3u?id='+scenename" title="Upload a playlist"><i
+                                    class="icofont-folder-open"></i>Upload M3U Playlist</a>
+                            </label>
+
+                            <p>Uploads use fuzzy search and should work as long as media files exist somewhere in a media folder, you can use playlists from other devices.
+                            </p>
+
+                        </div>
+                    </div>
+
 
 
                     <div class="card w-sm-full" v-if="editingScene.blend!='normal'">

@@ -5,6 +5,8 @@ import time
 import weakref
 import logging
 import traceback
+import textdistance
+import unicodedata
 from tinytag import TinyTag
 from ..kaithemobj import kaithem
 from typing import Optional, Dict, List, Callable, Any
@@ -148,6 +150,51 @@ def resolve_sound(sound: str) -> str:
         for i in getSoundFolders():
             if os.path.isfile(os.path.join(i, sound)):
                 sound = os.path.join(i, sound)
+    if not sound.startswith("/"):
+        sound = kaithem.sound.resolve_sound(sound)
+    return sound
+
+
+# https://stackoverflow.com/questions/517923/what-is-the-best-way-to-remove-accents-normalize-in-a-python-unicode-string
+LATIN = "ä  æ  ǽ  đ ð ƒ ħ ı ł ø ǿ ö  œ  ß  ŧ ü  Ä  Æ  Ǽ  Đ Ð Ƒ Ħ I Ł Ø Ǿ Ö  Œ  ẞ  Ŧ Ü "
+ASCII = "ae ae ae d d f h i l o o oe oe ss t ue AE AE AE D D F H I L O O OE OE SS T UE"
+
+
+def remove_diacritics(s, outliers=str.maketrans(dict(zip(LATIN.split(), ASCII.split())))):
+    return "".join(c for c in unicodedata.normalize("NFD", s.translate(outliers)) if not unicodedata.combining(c))
+
+
+def simplify_name(n):
+    "Remove fancy chars for the fuzzy matcher to work."
+    for i in "_-;:'/+=?! ":
+        n = n.replace(i, '')
+    n = n.replace("$", "s")
+    n = remove_diacritics(n)
+
+    return n.lower()
+
+
+def resolve_sound_fuzzy(sound: str) -> str:
+    try:
+        s = resolve_sound(sound)
+        if s and os.path.exists(s):
+            return s
+    except Exception:
+        pass
+
+    sound = simplify_name(os.path.basename(sound))
+
+    # Allow relative paths
+    if not os.path.exists(sound):
+        for i in getSoundFolders():
+            if os.path.isfile(os.path.join(i, sound)):
+                sound = os.path.join(i, sound)
+            else:
+                for dirpath, dirnames, filenames in os.walk(i):
+                    for j in filenames:
+                        if textdistance.damerau_levenshtein(simplify_name(j), sound) < 2:
+                            sound = os.path.join(dirpath, j)
+
     if not sound.startswith("/"):
         sound = kaithem.sound.resolve_sound(sound)
     return sound
