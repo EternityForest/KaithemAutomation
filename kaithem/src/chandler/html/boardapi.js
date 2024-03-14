@@ -154,10 +154,7 @@ appData = {
     'sc_code': "",
     'unixtime': 0,
     'serports': [],
-    'bindingsListTest': [],
     'keyboardJS': keyboardJS,
-    //Code view for the fixture assignments
-    'fixturescode': '',
     //Index by name
     'fixtureAssignments': {},
     'newfixname': '',
@@ -337,7 +334,6 @@ appData = {
     {
         'blah': { 'type': 'enttec', 'interface': 'xyz' }
     },
-    'gamepad': false,
     'newuniversename': "",
     'fixtureClasses': { 'dfjlkdjf': [] },
     'selectedFixtureClass': '',
@@ -501,10 +497,6 @@ appData = {
         api_link.send(['setfixtureclassopz', i, appData.fixtureClasses[
             i]])
     },
-    'pushfixturescode': function () {
-        api_link.send(['setfixturesfromcode', appData.fixturescode])
-    },
-
     'setFixtureAssignment': function (i, v) {
         api_link.send(['setFixtureAssignment', i, v])
     },
@@ -889,11 +881,6 @@ appData = {
     'getallcuemeta': function (sn) {
         api_link.send(['getallcuemeta', sn]);
 
-    },
-    'cond_getcuemeta': function (b) {
-        if (b) {
-            api_link.send(['getallcuemeta', this.scenename]);
-        }
     },
     'selectscene': function (sc, sn) {
         this.getcuedata(this.scenecues[sn][this.selectedCues[
@@ -1559,11 +1546,6 @@ function f(v) {
     if (c == "fixtureclass") {
 
         Vue.set(appData.fixtureClasses, v[1], v[2])
-    }
-
-    else if (c == "fixtureascode") {
-
-        appData.fixturescode = v[1]
     }
 
     if (c == "fixtureAssignments") {
