@@ -715,12 +715,8 @@ appData = {
     'soundsearchresults': [],
     'currentBindingBank': 'default',
     'localStorage': localStorage,
-    'keybindscript': localStorage.getItem("keybind-script"),
     'keybindmode': 'edit',
     'showAddChannels': false,
-    'showLightingControls': true,
-    'showAdvancedControls': true,
-    'showSoundControls': true,
     //Keep track of what timers are running in a scene
     'scenetimers': {},
     //Formatted for display
@@ -1268,7 +1264,7 @@ appData = {
         appData.keybindmode = "edit";
     },
     'runMode': function () {
-        rebind(appData.keybindscript);
+        rebind();
         appData.keybindmode = "run";
     },
     //https://stackoverflow.com/questions/18082/validate-decimal-numbers-in-javascript-isnumeric
@@ -1627,7 +1623,7 @@ keyUpHandle = function (e) {
     keysdown[e.key] = false;
     api_link.send(['event', "keyup." + e.key, 1, 'int', "__global__"])
 }
-rebind = function (data) {
+rebind = function () {
     keyboardJS.reset()
     keyboardJS.bind(keyHandle)
     keyboardJS.bind(null, keyUpHandle)

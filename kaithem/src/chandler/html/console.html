@@ -347,7 +347,7 @@ ${lists}
 
                             <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
                             <small
-                                v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
+                                v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound)"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
                         </footer>
                     </article>
                 </div>
@@ -622,8 +622,7 @@ ${lists}
                     <summary><i class="icofont-question-circle"></i></summary>
                     Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign
                     tags
-                    to channels. Assigning
-                    tags to channels requires admin permissions unless the tag begins with /chandler. You can give
+                    to channels. You can give
                     channels
                     names in addition
                     to numbers by using number:name syntax.
@@ -1021,7 +1020,7 @@ ${lists}
                         <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
                                 class="icofont-listing-box"></i>Channels</button>
                     </div>
-                    <div style="overflow: auto; max-height:30em;" class="fadersbox" v-if="showLightingControls">
+                    <div style="overflow: auto; max-height:30em;" class="fadersbox">
                         <article class="universe card flex-col gaps" v-for="(h,uname) in cuevals[currentcueid]"
                             v-if="uname[0]!='@'">
                             <header>
@@ -1607,14 +1606,14 @@ ${lists}
                                         v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
                                 </label>
 
-                                <label v-if="showLightingControls">Default Alpha
+                                <label>Default Alpha
                                     <input type="number" max=1 step=0.01 min=0
                                         v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
                                         v-model="editingScene.dalpha"></input>
                                 </label>
                             </p>
 
-                            <label v-if="showLightingControls">Blend Mode
+                            <label>Blend Mode
                                 <select title="This setting controls blending multiple scenes together"
                                     v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend">
 
@@ -1656,7 +1655,7 @@ ${lists}
                                         v-model="editingScene.defaultActive"></input>
                                 </label>
 
-                                <label v-if="showLightingControls"
+                                <label
                                     title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack
                                     <input type="checkbox"
                                         v-on:change="apiCommand(scenename,'setbacktrack', $event.target.checked)"

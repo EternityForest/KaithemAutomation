@@ -18,7 +18,7 @@ template-engine: mako
 
 ---
 var t = `
-  <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls">
+  <div style="overflow: scroll; max-height:30em;" class="fadersbox">
     <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" style="border-style:solid">
         <div class="fixture" v-for="h in groupByFixture(h)" style="display:inline-block">
 
