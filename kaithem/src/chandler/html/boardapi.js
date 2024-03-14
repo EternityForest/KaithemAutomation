@@ -112,41 +112,6 @@ hfaderdata =
 
 //# sourceURL=appcode.js 
 appData = {
-    //Ace code editor
-    htmloptions: {
-        mode: 'html',
-        theme: 'tomorrow',
-        fontSize: 11,
-        fontFamily: 'monospace',
-        highlightActiveLine: false,
-        highlightGutterLine: false
-    },
-    cssoptions: {
-        mode: 'css',
-        theme: 'tomorrow',
-        fontSize: 11,
-        fontFamily: 'monospace',
-        highlightActiveLine: false,
-        highlightGutterLine: false
-    },
-    jsoptions: {
-        mode: 'javascript',
-        theme: 'tomorrow',
-        fontSize: 11,
-        fontFamily: 'monospace',
-        highlightActiveLine: false,
-        highlightGutterLine: false
-    },
-    mdooptions: {
-        mode: 'markdown',
-        theme: 'tomorrow',
-        fontSize: 11,
-        fontFamily: 'monospace',
-        highlightActiveLine: false,
-        highlightGutterLine: false
-    },
-
-
     'eventlogautoscroll': true,
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'formatInterval': formatInterval,
