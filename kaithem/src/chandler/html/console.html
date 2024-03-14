@@ -232,7 +232,7 @@ ${lists}
 
             <div class="h-24rem scroll">
                 <div class="flex-col gaps">
-                    <article v-for="i in formatScenes()" v-if="i" style="position:relative;"
+                    <article v-for="i in formatScenes()" style="position:relative;"
                         v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
                         <header>
@@ -373,7 +373,7 @@ ${lists}
                     v-model="eventlogautoscroll"></label><br>
             <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
                 <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                    v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b>
+                    v-for="i in evlog.filter((d) => (d[1].search(evfilt)>-1 || d[0].search(evfilt)>-1) )" >{{i[2]}}: <b>{{i[0]}}</b>
                     at
                     {{i[1]}}:
 
@@ -894,7 +894,7 @@ ${lists}
                         </thead>
 
                         <tbody>
-                            <tr v-for="i in formatCues(1)" v-if="i[1].id"
+                            <tr v-for="i in formatCues(1)"
                                 v-bind:class="{'highlight' : selectedCues[scenename]==i[1].name}">
                                 <td class="rowname" data-label="Cue: " style=" user-select: none;"
                                     title="Click the cue name to edit that cue"
@@ -1189,7 +1189,7 @@ ${lists}
                     <h3>Event Log</h3>
                     <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
                         <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                            v-for="i in evlog" v-if="i[0].search(editingScene.name)">{{i[2]}}: <b>{{i[0]}}</b> at
+                            v-for="i in evlog.filter((d) => d[1].search(editingScene.name) )">{{i[2]}}: <b>{{i[0]}}</b> at
                             {{i[1]}}:
 
                             <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>

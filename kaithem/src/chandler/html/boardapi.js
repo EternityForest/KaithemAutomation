@@ -626,11 +626,11 @@ appData = {
             }
         }
         if (!filt) {
-            appData.formattedCues = appData.dictView(z, ['number'])
+            appData.formattedCues = appData.dictView(z, ['number']).filter((item) => item[1].id)
             return appData.formattedCues
         }
         else {
-            return appData.dictView(z, ['number'])
+            return appData.dictView(z, ['number']).filter((item) => item[1].id)
         }
     },
 
