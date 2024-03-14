@@ -132,6 +132,10 @@
             </td>
           {% endfor %}
             <td>
+              {% if not table_pk %}
+                No Primary Key, cannot edit
+              {% endif %}
+
               {% if not dataset.is_readonly and table_pk %}
                 {% set pk = row|encode_pk(table_pk) %}
                 {% if not is_view or 'update' in view_ops %}
