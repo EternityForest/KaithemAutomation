@@ -687,6 +687,8 @@ def getUserSetting(user, setting):
     # I suppose this doesnt need a lock?
     if user == '__guest__':
         return defaultusersettings[setting]
+    if user == '__no_request__':
+        return defaultusersettings[setting]
     user = Users[user]
     if not 'settings' in user:
         return defaultusersettings[setting]
@@ -705,6 +707,7 @@ def getUserLimit(user, limit, maximum=2**64):
         guestlimit = min(Users['__guest__'].limits.get(limit, 0), maximum)
     else:
         guestlimit = 0
+
     if user in Users:
         if not '__all_permissions__' in Users[user].permissions:
             val = max(min(Users[user].limits.get(
@@ -713,6 +716,8 @@ def getUserLimit(user, limit, maximum=2**64):
             val = maximum
         return min(val, maximum)
     else:
+        if user == '__no_request__':
+            return maximum
         return guestlimit
     return 0
 

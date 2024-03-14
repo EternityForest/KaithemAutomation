@@ -768,7 +768,6 @@ class BaseEvent:
                 del self.schedulerobj
 
     def unregister(self):
-        logging.debug("Unregistering event " + repr(self))
         self.disable = True
         with self.register_lock:
             if hasattr(self, "schedulerobj"):
@@ -978,7 +977,6 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
 
     # This is the solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
     def unregister(self):
-        logging.debug("Unregistering event " + repr(self))
         if hasattr(self, "action_wrapper_because_we_need_to_keep_a_reference"):
             del self.action_wrapper_because_we_need_to_keep_a_reference
         self.disable = True
@@ -1192,7 +1190,6 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
     def unregister(self):
         with self.lock:
-            logging.debug("Unregistering event " + repr(self))
             self.runthread = False
             self.disable = True
             self.pauseflag.clear()
