@@ -816,21 +816,7 @@ def addResourceTarget(module, type, name, kwargs, path):
         if type == "directory":
             insertResource({"resource-type": "directory"})
             raise cherrypy.HTTPRedirect("/modules/module/" + util.url(module))
-
-        # Create a permission
-        if type == "k4dprog_sq":
-            insertResource(
-                {
-                    "resource-type": "k4dprog_sq",
-                    "device": "__none__",
-                    "code": "",
-                    "prgid": name[-15:].replace("/", "_"),
-                }
-            )
-
-            devices.updateProgram(root, escapedName, None, False)
-            raise cherrypy.HTTPRedirect("/modules/module/" + util.url(module))
-
+        
         elif type == "permission":
             insertResource(
                 {"resource-type": "permission",

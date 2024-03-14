@@ -76,7 +76,7 @@ _lastGC = 0
 _event_list_lock = threading.RLock()
 
 # Let us now have a way to get at active event objects by
-# means of their origin (resource, module) tuple.
+# means of their origin (module, resource) tuple.
 __EventReferences = {}
 EventReferences = __EventReferences
 

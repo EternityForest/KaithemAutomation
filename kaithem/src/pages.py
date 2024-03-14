@@ -130,6 +130,10 @@ def getSubdomain():
 def postOnly():
     """Redirect user to main page if the request is anything but POST"""
     if not cherrypy.request.method == "POST":
+        user = getAcessingUser()
+        # This is not a web request, this is the server itself
+        if user == "__no_request__":
+            return
         raise cherrypy.HTTPRedirect("/errors/wrongmethod")
 
 
@@ -191,6 +195,10 @@ def require(permission, noautoreturn=False):
             continue
 
         user = getAcessingUser()
+
+        # This is not a web request, this is the server itself
+        if user == "__no_request__":
+            return
 
         if (
             permission in auth.crossSiteRestrictedPermissions
@@ -291,6 +299,8 @@ def getAcessingUser(tornado_mode=None):
         base = tornado_mode.host
 
     else:
+        if (not cherrypy.request.request_line) and (not cherrypy.request.app) and (not cherrypy.request.config):
+            return "__no_request__"
         headers = cherrypy.request.headers
         scheme = cherrypy.request.scheme
         remote_ip = cherrypy.request.remote.ip
