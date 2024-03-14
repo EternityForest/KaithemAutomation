@@ -148,7 +148,7 @@ def installThreadLogging():
         run_old = self.run
 
         def run_with_except_hook(*args, **kw):
-            if self.name.startswith("nostartstoplog."):
+            if self.name.startswith("nostartstoplog.") or self.name.startswith("Thread-"):
                 try:
                     run_old(*args, **kw)
                 except Exception as e:

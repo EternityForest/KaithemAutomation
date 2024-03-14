@@ -14,6 +14,7 @@ Change Log
 - :sparkles: Confirm before delete cues
 - :sparkles: Add ability to move Chandler rules arounr
 - :sparkles: Scene display tags can now be inputs
+- :sparkles: Don't log thread start/stop if they have generic Thread-xx names
 
 
 ### 0.75.1
