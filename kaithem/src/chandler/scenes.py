@@ -2655,6 +2655,9 @@ class Scene:
     def cc(self, ch: int, n: int, v: float):
         self.event("midi.cc:" + str(ch) + "." + str(n), v)
 
+    def pitch(self, ch: int, v: int):
+        self.event("midi.pitch:" + str(ch), v)
+
     def setMidiSource(self, s: str):
         if s == self.midi_source:
             return
@@ -2687,7 +2690,8 @@ class Scene:
             self.noteOff(v[1], v[2])
         if v[0] == "cc":
             self.cc(v[1], v[2], v[3])
-
+        if v[0] == "pitch":
+            self.pitch(v[1], v[2])
     def setMusicVisualizations(self, s: str):
         if s == self.music_visualizations:
             return

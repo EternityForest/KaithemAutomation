@@ -95,7 +95,7 @@ def onMidiMessageTuple(m, d):
         setTag14("/midi/" + normalizetag(d) + "/" + str(ch) + ".pitch", a + b * 128, a=0)
 
     elif code == 176:
-        messagebus.post_message("/midi/" + d, ("cc", a, b))
+        messagebus.post_message("/midi/" + d, ("cc", ch, a, b))
         setTag("/midi/" + normalizetag(d) + "/" + str(ch) + ".cc[" + str(a) + "]", b, a=0)
 
 

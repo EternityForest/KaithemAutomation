@@ -1119,11 +1119,21 @@ ${lists}
                     <div>
                         <h3>Automation Logic</h3>
                         <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>Here you can create rules that
+                            <summary><i class="icofont-question-circle"></i></summary>
+                        <p>
+                            Here you can create rules that
                             apply whenever the scene is in this cue, to
                             do things like trigger other cues when
                             this one enters or exits.
-                            <a href="docs/RulesEngine">Documentation</a>
+                        </p>
+
+                        <p>Action parameters can use spreadsheet-style =expressions.  The special function tv('name') or stv('name') gets the value of
+                            a tag or string tag.
+                        </p>
+
+                        <p>The variables "event.name", "event.value", and "event.time" are available to get info on the event that triggered a rule.</p>
+
+                    
                         </details>
                     </div>
                     <div class="card w-sm-full" style="overflow: visible;">
@@ -1956,7 +1966,7 @@ ${lists}
             </details>
 
             <details class="undecorated">
-                <summary>Event History</summary>
+                <summary>Cue History</summary>
                 <div>
                     <button v-on:click="refreshhistory(scenename)">Refresh</button>
                     <h3>Cue History</h3>
