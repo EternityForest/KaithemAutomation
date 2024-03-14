@@ -1411,8 +1411,7 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
             self.next = scheduler.schedule(
                 self.handler, dt_to_ts(self.nextruntime, self.tz), False
             )
-            logging.debug("scheduled" + repr(self.next) +
-                          str(self.nextruntime))
+
             self.disable = False
 
     def unregister(self):

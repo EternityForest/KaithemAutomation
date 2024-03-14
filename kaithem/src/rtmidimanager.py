@@ -68,6 +68,12 @@ def onMidiMessage(m, d):
             a=0,
         )
 
+def normalizetag(t):
+    t = t.replace("-","_")
+    for i in tagpoints.ILLEGAL_NAME_CHARS:
+        t = t.replace(i,'')
+
+    return t
 
 def onMidiMessageTuple(m, d):
     sb = m[0][0]
@@ -78,19 +84,19 @@ def onMidiMessageTuple(m, d):
 
     if code == 144:
         messagebus.post_message("/midi/" + d, ("noteon", ch, a, b))
-        setTag("/midi/" + d + "/" + str(ch) + ".note", a, a=b)
+        setTag("/midi/" + normalizetag(d) + "/" + str(ch) + ".note", a, a=b)
 
     elif code == 128:
         messagebus.post_message("/midi/" + d, ("noteoff", ch, a, b))
-        setTag("/midi/" + d + "/" + str(ch) + ".note", 0, a=0)
+        setTag("/midi/" + normalizetag(d) + "/" + str(ch) + ".note", 0, a=0)
 
     elif code == 224:
         messagebus.post_message("/midi/" + d, ("pitch", ch, a, b))
-        setTag14("/midi/" + d + "/" + str(ch) + ".pitch", a + b * 128, a=0)
+        setTag14("/midi/" + normalizetag(d) + "/" + str(ch) + ".pitch", a + b * 128, a=0)
 
     elif code == 176:
         messagebus.post_message("/midi/" + d, ("cc", a, b))
-        setTag("/midi/" + d + "/" + str(ch) + ".cc[" + str(a) + "]", b, a=0)
+        setTag("/midi/" + normalizetag(d) + "/" + str(ch) + ".cc[" + str(a) + "]", b, a=0)
 
 
 once = [0]
@@ -112,11 +118,15 @@ def doScan():
         return
 
     if not scanning_connection:
-        scanning_connection = rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
-    
+        # Support versions of rtmidi where it does not work the first time
+        try:
+            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
+        except Exception:
+            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
+
     torm = []
     try:
-        present = [(i, scanning_connection.getPortName(i)) for i in range(scanning_connection.getPortCount())]
+        present = [(i, scanning_connection.get_port_name(i)) for i in range(scanning_connection.get_port_count())]
     except Exception:
         scanning_connection = None
         raise
@@ -130,8 +140,8 @@ def doScan():
     for i in present:
         if not i in allInputs:
             try:
-                m = rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
-                m.openPort(i[0])
+                m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
+                m.open_port(i[0])
 
                 def f(
                     x,
@@ -153,7 +163,7 @@ def doScan():
                         except:
                             print(traceback.format_exc())
 
-                m.setCallback(f)
+                m.set_callback(f)
                 allInputs[i] = (m, f)
             except Exception:
                 print("Can't use MIDI:" + str(i))

@@ -8,6 +8,7 @@ Change Log
 - :bug: Fix shortcut code normalization(10.0 is treated same as 10)
 - :bug: Upload new chandler scene adds to rather than replaces the existing scenes
 - :bug: Fix broken highlighting in some themes
+- :bug: Fix support for midi devices with odd chars in the names
 - :sparkles: Can hide a scene in runtime mode
 - :sparkles: Chandler can now import and export audio cues in a scene as M3U playlists(With fuzzy search for broken paths!)
 - :sparkles: Confirm before delete cues
