@@ -79,8 +79,7 @@
     }
 </style>
 
-<script src="/static/js/thirdparty/vue2.js"></script>
-<script src="/static/js/thirdparty/http-vue-loader.js"></script>
+<script src="/static/js/thirdparty/vue3.js"></script>
 
 
 
@@ -117,7 +116,8 @@
 
 
         <div class="flex-row gaps padding scroll max-h-48rem">
-            <article v-for="i in formatScenes(true)" v-if="i"
+            <template v-for="i in formatScenes" >
+            <article v-if="i"
                 style="position:relative"
                 v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'nogrow':1, 'flex-col': 1, 'h-18rem':1}"
                 >
@@ -239,6 +239,7 @@
                         </div>
                     </footer>
             </article>
+        </template>
         </div>
 
     </div>
@@ -255,7 +256,7 @@
         <div id="cuesbox">
             <div class="flex-row gaps align-left padding">
 
-                <article class="w-sm-full flex-col h-18rem" v-for="i in formatCues(1)" v-if="i[1].id"
+                <article class="w-sm-full flex-col h-18rem" v-for="i in formatCues"
                     v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
 
                     <header>
@@ -292,12 +293,14 @@
 
     <div class="w-full window margin">
         <div class="scroll h-12rem w-full" id="eventlogbox">
-            <div v-if="i[0].indexOf('err')>-1" v-for="i in evlog.slice().reverse()">
-                {{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}:
-                <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
-                <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
-                <pre v-if="i[4]">{{i[4]}}</pre>
-            </div>
+            <template v-for="i in evlog.slice().reverse()">
+                <div v-if="i[0].indexOf('err')>-1">
+                    {{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}:
+                    <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
+                    <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
+                    <pre v-if="i[4]">{{i[4]}}</pre>
+                </div>
+            </template>
         </div>
     </div>
 
@@ -330,32 +333,64 @@ ${module.board.link.render('api_link')}
 
 <script type="text/javascript" src="dyn_js/boardapi.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
+<script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 
 <script>
-    Vue.component('cue-countdown',
-        {
-            template: '#cue-cd',
-            props: ['unixtime', 'cue', 'scene'],
-            data: function () {
-                return ({ 'formatInterval': formatInterval })
-            }
-        })
-
     appData.formatTime = function (t) {
         var date = new Date(t * 1000);
         return date.strftime("%I:%M:%S%p")
     }
+    const options = {
+        moduleCache: {
+            vue: Vue
+        },
+        async getFile(url) {
 
-    var appInstance = new Vue(
+            const res = await fetch(url);
+            if (!res.ok)
+                throw Object.assign(new Error(res.statusText + ' ' + url), { res });
+            return {
+                getContentData: asBinary => asBinary ? res.arrayBuffer() : res.text(),
+            }
+        },
+        addStyle(textContent) {
+
+            const style = Object.assign(document.createElement('style'), { textContent });
+            const ref = document.head.getElementsByTagName('style')[0] || null;
+            document.head.insertBefore(style, ref);
+        },
+    }
+
+    const { loadModule } = window['vue3-sfc-loader'];
+
+
+    function httpVueLoader(u) {
+        return Vue.defineAsyncComponent(() => loadModule(u, options))
+    }
+
+
+    var vueapp = Vue.createApp(
         {
-            el: '#app',
-            data: appData,
+            data: function(){
+                return appData;
+            },
+            computed: appComputed,
+            methods: appMethods,
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
-                "script-editor": httpVueLoader('ui/ScriptEditor.vue'),
+                'cue-countdown':
+                {
+                    template: '#cue-cd',
+                    props: ['unixtime', 'cue', 'scene'],
+                    data: function () {
+                        return ({ 'formatInterval': formatInterval })
+                    }
+                }
             }
-        })
+        }).mount("#app")
+        init_api_link()
+
 </script>
 
 <%include file="/pagefooter.html" />

@@ -712,12 +712,14 @@ appComputed = {
     },
 
     'formatScenes': function () {
+        var flt = this.scenefilter
+
         return this.dictView(this.scenemeta, [
             '!priority', '!started', 'name'
         ]).filter(
             function (x) {
                 return (x[1].name && x[1].name.includes(
-                    this.scenefilter) && (!(x[1].hide)))
+                    flt) && (!(x[1].hide)))
             });
 
     },
