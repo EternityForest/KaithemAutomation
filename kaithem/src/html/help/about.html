@@ -167,17 +167,20 @@ except Exception:
     <%include file="/pageheader.html"/>
 	<title>About Kaithem </title>
     <h1>About</h1>
-	<section class="fancy" style="text-align:center">
+	<section style="text-align:center">
     <img class="round-feathered" src="/static/img/nov23-ai-watercolor-tavern.webp" style="width: 80%;"></img><br>
+    </section>
+    <section class="window paper margin">
+
     <b>Copyright 2013-2023 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.</br>
-    Includes external open-source libraries by third parties.
+    Includes external open-source libraries by third parties. <a href="https://github.com/EternityForest/KaithemAutomation/tree/master/kaithem">Get the full source code or join the conversation at GitHub.</a>
     </section>
 
-    <div class="window paper">${config['about-box-banner']}</div>
-    <section class="window paper">
+    <div class="window paper margin">${config['about-box-banner']}</div>
+    <section class="window paper margin">
     <b>Version:</b> ${kaithemobj.kaithem.misc.version|h}
     </section>
-    <section class="window paper">
+    <section class="window paper margin">
         <b>LAN access QR(${lanip[1]}):</b><br>
         <div id="lanqr"></div>
         <script>
@@ -185,7 +188,7 @@ except Exception:
         </script>
     </section>
     <br>
-<div class="window paper">
+<div class="window paper margin">
 <p>
 
 
@@ -489,6 +492,8 @@ def module_version(m):
 %>
 
                 <h2>Imported Module Versions</h2>
+                <details>
+                    <summary>Click to expand</summary>
                 <table border=1 class="w-full">
                     <tr>
                         <th>Module</th>
@@ -503,49 +508,26 @@ def module_version(m):
                     %endif 
                     %endfor
                 </table>
+            </details>
                 </div>
 
 
 <h2>Acknowledgements</h2>
-<div class="window paper">
+<div class="window paper margin">
     <h3>General</h3>
-Kaithem is powered by CherryPy, Mako, and Tornado, and too many libs to list here! See the legal page for the full list!
+    Kaithem is powered by CherryPy, Mako, and Tornado, and too many libs to list here!
+    See the source code for full info!
 
-    <h3>Command Line Utilities</h3>
-    <ul>
-        <li><a href="http://www.mplayerhq.hu/design7/news.html">mplayer(Default audio backend)</a></li>
-        <li><a href="http://www.lm-sensors.org/">lm-sensors(Used for about box temperature display if availible</a></li>
-        <li><a href="https://piware.de/2012/02/fatrace-report-system-wide-file-access-events/">fatrace(Monitor
-                filesystem access)</a></li>
-    </ul>
-
-    <h3>Graphics</h3>
-    <ul>
-        <li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC(Main background in the default scrapbook
-                theme)</a></li>
-        <li><a href="https://openclipart.org/detail/1337/large-barrel">kevie at openclipart.org</a></li>
-        <li><a href="http://sourcefoundry.org/hack/">Hack</a>(Font for source code)</a>
-            <li><a href="https://fontawesome.com/">Font Awesome</a>(More icons)</li>
-            <li><a href="http://p.yusukekamiyamane.com/">Fuge Icons</a> by Yusuke Kamiyamane. Licensed under
-                a Creative Commons Attribution 3.0 License.</li>
-    </ul>
     <h3>Tools</h3>
     <p>Kaithem is developed using open source tools.></p>
     <ul>
         <li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>
-        <li><a href="https://krita.org/">Krita(Photo editing and digital painting)</a></li>
         <li><a href="https://code.visualstudio.com/">Visual Studio Code</a></li>
-        <li><a href="https://www.python.org/">Python (Language)</a></li>
-        <li><a href="https://www.debian.org/">Debian (Linux Distro)</a></li>
-        <li><a href="http://www.linuxmint.com/index.php">Linux Mint (Linux Distro)</a></li>
-        <li><a href="https://www.kde.org/plasma-desktop">KDE Plasma(Linux desktop environment)</a></li>
-        <li><a href="http://bluegriffon.org/">BlueGriffon (Web Editor, UI Prototyping)</a></li>
-        <li><a href="https://github.com/alonho/pystuck">pystuck(Python debugging tool)</a></li>
-        <li><a href="http://winpdb.org/">winpdb</a></li>
+        <li><a href="https://www.python.org/">Python</a></li>
+        <li><a href="https://ubuntu.com/">Ubuntu</a></li>
     </ul>
     <h3>Other</h3>
     <ul>
-        <li><a href="http://www.jigsawrenaissance.org/">Jigsaw Renaissance</a></li>
         <li><a href="http://stackoverflow.com/">Stack Overflow</a></li>
         <li><a href="http://www.raspberrypi.org/">Raspberry Pi</a></li>
         <li><a href="https://github.com/">GitHub</a></li>
@@ -553,7 +535,6 @@ Kaithem is powered by CherryPy, Mako, and Tornado, and too many libs to list her
                 in the login screen)</a></li>
         <li><a href="https://freesound.org/people/fins/">fins</a> and <a href="https://freesound.org/people/KIZILSUNGUR"
             />KIZILSUNGUR</a> of <a href="https://freesound.org/">freesound.org</a></li>
-        <li><a href="http://web.archive.org/web/20101031205747/http://www.tothink.com/mnemonic/">Oren Tirosh's excellent wordlist</a></li>
     </ul>
 
 </div>
