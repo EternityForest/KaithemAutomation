@@ -1253,10 +1253,10 @@ function f(v) {
     if (c == 'scenetimers') {
         vueapp.$data.scenemeta[v[1]].timers = v[2]
     }
-    if (c == 'cuehistory') {
+    else if (c == 'cuehistory') {
         vueapp.$data.scenemeta[v[1]].history = v[2]
     }
-    if (c == "scenemeta") {
+    else if (c == "scenemeta") {
         if (v[2].cue) {
             if (vueapp.$data.cuemeta[v[2].cue] == undefined) {
                 vueapp.$data.getcuemeta(v[2].cue)
@@ -1287,7 +1287,7 @@ function f(v) {
         };
     }
 
-    if (c == "cuemeta") {
+    else if (c == "cuemeta") {
         //Make an empty list of cues if it's not there yet
         if (vueapp.$data.scenecues[v[2].scene] == undefined) {
             old_vue_set(vueapp.$data.scenecues, v[2].scene, {});
@@ -1304,7 +1304,7 @@ function f(v) {
 
     }
 
-    if (c == "event") {
+    else if (c == "event") {
 
         vueapp.$data.evlog.push(v[1])
         if (vueapp.$data.evlog.length > 250) {
@@ -1343,26 +1343,26 @@ function f(v) {
             }, 150)
         }
     }
-    if (c == "serports") {
+    else if (c == "serports") {
         vueapp.$data.serports = v[1]
     }
 
-    if (c == 'alerts') {
+    else if (c == 'alerts') {
         vueapp.$data.sys_alerts = v[1]
     }
-    if (c == 'confuniverses') {
+    else if (c == 'confuniverses') {
         vueapp.$data.configuredUniverses = v[1]
     }
-    if (c == 'universe_status') {
+    else if (c == 'universe_status') {
         vueapp.$data.universes[v[1]].status = v[2]
         vueapp.$data.universes[v[1]].ok = v[3]
         vueapp.$data.universes[v[1]].telemetry = v[4]
     }
 
-    if (c == "varchange") {
+    else if (c == "varchange") {
         vueapp.$data.scenemeta[v[1]]['vars'][v[2]] = v[3]
     }
-    if (c == "delcue") {
+    else if (c == "delcue") {
         c = vueapp.$data.cuemeta[v[1]]
         old_vue_delete(vueapp.$data.cuemeta, v[1]);
         old_vue_delete(vueapp.$data.cuevals, v[1]);
@@ -1370,22 +1370,22 @@ function f(v) {
         vueapp.$data.recomputeformattedCues();
     }
 
-    if (c == "cnames") {
+    else if (c == "cnames") {
         old_vue_set(vueapp.$data.channelNames, v[1], v[2])
     }
-    if (c == "universes") {
+    else if (c == "universes") {
         vueapp.$data.universes = v[1]
     }
-    if (c == "soundoutputs") {
+    else if (c == "soundoutputs") {
         vueapp.$data.soundCards = v[1]
     }
 
-    if (c == 'soundsearchresults') {
+    else if (c == 'soundsearchresults') {
         if (vueapp.$data.soundsearch == v[1]) {
             vueapp.$data.soundsearchresults = v[2]
         }
     }
-    if (c == 'scenecues') {
+    else if (c == 'scenecues') {
         //Scenecues only gives us cue number and id info.
         //So if the data isn't in cuemeta, fill in what we can
         d = v[2]
@@ -1409,7 +1409,7 @@ function f(v) {
         }
         vueapp.$data.recomputeformattedCues();
     }
-    if (c == "cuedata") {
+    else if (c == "cuedata") {
         d = {}
         old_vue_set(vueapp.$data.cuevals, v[1], d)
 
@@ -1438,7 +1438,7 @@ function f(v) {
         vueapp.$data.availableCommands = v[1]
     }
 
-    if (c == "scv") {
+    else if (c == "scv") {
         x = []
 
         cue = v[1]
@@ -1476,46 +1476,46 @@ function f(v) {
     }
 
 
-    if (c == "go") {
+    else if (c == "go") {
 
         old_vue_set(vueapp.$data.scenemeta[v[1]], 'active', true)
 
     }
 
-    if (c == "refreshPage") {
+    else if (c == "refreshPage") {
         window.reload()
     }
 
-    if (c == "stop") {
+    else if (c == "stop") {
 
         old_vue_set(vueapp.$data.scenemeta[v[1]], 'active', false)
 
     }
-    if (c == "ferrs") {
+    else if (c == "ferrs") {
 
         vueapp.$data.ferrs = v[1]
 
     }
-    if (c == "fixtures") {
+    else if (c == "fixtures") {
 
         vueapp.$data.fixtures = v[1]
 
     }
-    if (c == "fixtureclasses") {
+    else if (c == "fixtureclasses") {
 
         vueapp.$data.fixtureClasses = v[1]
     }
-    if (c == "fixtureclass") {
+    else if (c == "fixtureclass") {
 
         old_vue_set(vueapp.$data.fixtureClasses, v[1], v[2])
     }
 
-    if (c == "fixtureAssignments") {
+    else if (c == "fixtureAssignments") {
 
         vueapp.$data.fixtureAssignments = v[1]
     }
 
-    if (c == "del") {
+    else if (c == "del") {
         old_vue_delete(vueapp.$data.selectedCues, v[1])
         old_vue_delete(vueapp.$data.scenemeta, v[1])
         old_vue_delete(vueapp.$data.running_scenes, v[1])
@@ -1524,16 +1524,16 @@ function f(v) {
 
     }
 
-    if (c == "newscene") {
+    else if (c == "newscene") {
         vueapp.$data.allScenes.push([v[1], v[2]])
     }
-    if (c == 'soundfolderlisting') {
+    else if (c == 'soundfolderlisting') {
         if (v[1] == vueapp.$data.soundfilesdir) {
             vueapp.$data.soundfileslisting = v[2]
         }
     }
 
-    if (c == 'presets') {
+    else if (c == 'presets') {
         vueapp.$data.presets = v[1]
     }
 }
@@ -1546,7 +1546,7 @@ init_api_link = function () {
 
 
     setInterval(function () {
-        this.unixtime = api_link.now() / 1000
+        vueapp.$data.unixtime = api_link.now() / 1000
     }, 1000 / 8)
 
 }

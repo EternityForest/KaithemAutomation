@@ -2051,10 +2051,6 @@ ${core.boards[0]().link.render('api_link')}
 </script>
 
 <script>
-    setInterval(function () {
-        appData.unixtime = api_link.now() / 1000
-    }, 1000 / 8)
-
     keysdown = {}
     keyHandle = function (e) {
         if (keysdown[e.key] != undefined) {

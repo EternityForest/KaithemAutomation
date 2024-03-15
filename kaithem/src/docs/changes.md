@@ -15,6 +15,8 @@ Change Log
 - :sparkles: Add ability to move Chandler rules arounr
 - :sparkles: Scene display tags can now be inputs
 - :sparkles: Don't log thread start/stop if they have generic Thread-xx names
+- :sparkles: Chandler updated to work with Vue3
+- :coffin: Raw cue data text view has been removed
 
 
 ### 0.75.1
