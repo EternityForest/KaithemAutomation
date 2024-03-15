@@ -9,6 +9,7 @@ from .core import logger
 from .universes import getUniverse, getUniverses
 from ..kaithemobj import kaithem
 from ..import schemas
+from ..import scheduling
 
 from .scenes import cues, event
 
@@ -103,7 +104,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
                     d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
-        self.loadDict(d)
+            self.loadDict(d)
 
         self.linkSend(["refreshPage", self.fixtureAssignments])
 
@@ -120,6 +121,9 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         # This light board's scene memory, or the set of scenes 'owned' by this board.
         self.scenememory: Dict[str, Scene] = {}
+
+        # For change etection in scenes
+        self.last_saved_versions : Dict[str, Dict[str,Any]] = {}
 
         self.ext_scenes = {}
 
@@ -150,6 +154,8 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         # For logging ratelimiting
         self.lastLoggedGuiSendError = 0
+
+        self.autosave_checker = scheduling.scheduler.every(self.check_autosave, 10*60)
 
     def refreshFixtures(self):
         with core.lock:
@@ -195,6 +201,42 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.ferrs = self.ferrs or "No Errors!"
             self.pushfixtures()
 
+    def save_setup(self, force=True):
+
+        # These pre-checks are just for performance reasons, saveasfiles already knows how not
+        # to unnecessarily do disk writes
+        # as does persist.save
+        if force or not self.fixtureClasses == self.last_saved_versions.get("__INTERNAL__:__FIXTURECLASSES__", None):
+            self.last_saved_versions["__INTERNAL__:__FIXTURECLASSES__"] = copy.deepcopy(self.fixtureClasses)
+            self.saveAsFiles(
+                    "fixturetypes", self.fixtureClasses, "lighting/fixtureclasses"
+                )
+
+        if force or not self.configuredUniverses == self.last_saved_versions.get("__INTERNAL__:__UNIVERSES__", None):
+            self.last_saved_versions["__INTERNAL__:__UNIVERSES__"] = copy.deepcopy(self.configuredUniverses)
+            self.saveAsFiles(
+                "universes", self.fixtureAssignments, "lighting/universes"
+            )
+
+        if force or not self.fixtureAssignments == self.last_saved_versions.get("__INTERNAL__:__ASSG__", None):
+            self.last_saved_versions["__INTERNAL__:__ASSG__"] = copy.deepcopy(self.fixtureAssignments)
+                
+            self.saveAsFiles(
+                "fixtures", self.fixtureAssignments, "lighting/fixtures"
+            )
+
+        saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
+        if not os.path.exists(saveLocation):
+            os.makedirs(saveLocation, mode=0o755)
+
+        kaithem.persist.save(
+            core.config, os.path.join(saveLocation, "config.yaml")
+        )
+
+        kaithem.persist.save(
+            self.presets, os.path.join(saveLocation, "presets.yaml")
+        )
+        
     def createUniverses(self, data):
         assert isinstance(data, Dict)
         for i in self.universeObjs:
@@ -371,7 +413,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if clear_old or (i in data):
                     self.scenememory[i].stop()
                     self.scenememory[i].close()
-                    
+
             self.scenememory = {}
             self.loadDict(data, errs)
 
@@ -552,6 +594,20 @@ class ChandlerConsole(console_abc.Console_ABC):
                 sd[x.name] = x.toDict()
 
             return sd
+        
+
+    def check_autosave(self):
+        changed = False
+        s = self.getScenes()
+        for i in s:
+            if not s[i] == self.last_saved_versions.get(i,None):
+                changed = True
+                logger.info("Chandler scenes changed. Autosaving.")
+
+        if changed:
+            self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
+
+        self.save_setup(force=False)
 
     def saveAsFiles(self, dirname: str, data: Any, legacyKey: Optional[str] = None):
         sd = data
@@ -564,6 +620,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         with core.lock:
             for i in sd:
                 saved[i + ".yaml"] = True
+                self.last_saved_versions[i] = copy.deepcopy(sd[i])
                 kaithem.persist.save(
                     sd[i], os.path.join(saveLocation, i + ".yaml"))
 
@@ -572,6 +629,10 @@ class ChandlerConsole(console_abc.Console_ABC):
             fn = os.path.join(saveLocation, i)
             if os.path.isfile(fn) and i.endswith(".yaml"):
                 if i not in saved:
+                    try:
+                        self.last_saved_versions.pop(i, None)
+                    except Exception:
+                        pass
                     os.remove(fn)
 
     def pushChannelNames(self, u):

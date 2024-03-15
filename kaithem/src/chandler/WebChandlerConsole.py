@@ -341,6 +341,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             else:
                 self.presets[msg[1]] = msg[2]
 
+        elif cmd_name == "saveState":
+            self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
+            self.save_setup()
+
+
         elif cmd_name == "saveScenes":
             self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
 
@@ -354,27 +359,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.loadShow(msg[1])
 
         elif cmd_name == "saveSetup":
-            self.saveAsFiles(
-                "fixturetypes", self.fixtureClasses, "lighting/fixtureclasses"
-            )
-            self.saveAsFiles(
-                "universes", self.configuredUniverses, "lighting/universes"
-            )
-            self.saveAsFiles(
-                "fixtures", self.fixtureAssignments, "lighting/fixtures"
-            )
-
-            saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
-            if not os.path.exists(saveLocation):
-                os.makedirs(saveLocation, mode=0o755)
-
-            kaithem.persist.save(
-                core.config, os.path.join(saveLocation, "config.yaml")
-            )
-
-            kaithem.persist.save(
-                self.presets, os.path.join(saveLocation, "presets.yaml")
-            )
+            self.save_setup()
 
         elif cmd_name == "saveSetupPreset":
             self.saveAsFiles(

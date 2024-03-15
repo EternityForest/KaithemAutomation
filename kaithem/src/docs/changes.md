@@ -12,10 +12,13 @@ Change Log
 - :sparkles: Can hide a scene in runtime mode
 - :sparkles: Chandler can now import and export audio cues in a scene as M3U playlists(With fuzzy search for broken paths!)
 - :sparkles: Confirm before delete cues
-- :sparkles: Add ability to move Chandler rules arounr
+- :sparkles: Add ability to move Chandler rules around
 - :sparkles: Scene display tags can now be inputs
 - :sparkles: Don't log thread start/stop if they have generic Thread-xx names
 - :sparkles: Chandler updated to work with Vue3
+- :sparkles: Chandler has autosave(10min)
+- :sparkles: Chandler save setup and save scenes buttons now just one save button.
+- :sparkles: Chandler has a proper loading animation
 - :coffin: Raw cue data text view has been removed
 
 

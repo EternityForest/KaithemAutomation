@@ -418,7 +418,7 @@ class websocket_impl:
                                             ]
                                         )
                                     )
-                                    raise RuntimeError(
+                                    raise PermissionError(
                                         user + " missing permission: " + str(p)
                                     )
                                 self.usedPermissions[p] += 1
@@ -459,12 +459,17 @@ class websocket_impl:
                                 i
                             ].subscriptions.copy()
 
+        # Permissionerrors are too common to do the full logging thing
+        except PermissionError as e:
+            self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
+
         except Exception as e:
             logging.exception("Error in widget, responding to " + str(d))
             messagebus.post_message(
                 "system/errors/widgets/websocket", traceback.format_exc(6)
             )
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
+        
 
 
 def makeTornadoSocket(wsimpl=websocket_impl):

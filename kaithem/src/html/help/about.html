@@ -10,6 +10,7 @@
     import multiprocessing
     import re
     import threading
+    import random
     
     import kaithem
     from scullery import workers as sworkers
@@ -82,9 +83,13 @@
                 once[0]=1
             return []
     
-        m=rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
-    
-        return [(m.getPortName(i)) for i in range(m.getPortCount())]
+        try:
+            m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name="KaithemTemp"+str(random.random()))
+            x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
+
+            return x
+        except Exception:
+            return ''
 
     def list_ips():
         ips={}

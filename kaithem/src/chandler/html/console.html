@@ -121,17 +121,14 @@ ${lists}
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
 
-<div id="app" class="flex-row gaps">
+<div id="app" v-cloak class="flex-row gaps">
     <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
         <div class="menubar tool-bar">
 
             <button v-on:click="saveToDisk()"
-                title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><i
-                    class="icofont-quill-pen"></i>Save Scenes</button>
-            <button v-on:click="saveSetup()"
-                title="Save the fixtures and universes to disk as the default when the Lightboard boots">
-                <i class="icofont-quill-pen"></i>Save Setup</button>
+                title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
+                    class="icofont-quill-pen"></i>Save</button>
         </div>
 
 
@@ -1984,7 +1981,6 @@ ${lists}
 
 
 ${core.boards[0]().link.render('api_link')}
-<script src="/static/js/thirdparty/jquery3.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
 <script src="dyn_js/boardapi.js"></script>

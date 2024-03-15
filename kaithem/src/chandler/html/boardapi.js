@@ -100,20 +100,10 @@ getValueRange = function (d, v) {
 appMethods = {
 
     'saveToDisk': function () {
-        if (this.savedThisSession == false) {
-            var x = confirm("This saves directly to disk, overwriting the previous default. This message only shows the first save.")
-            if (!x) {
-                return
-            }
-            this.savedThisSession = true;
-        }
+        api_link.send(['saveSetup'])
         api_link.send(['saveScenes'])
     },
 
-    'saveSetup': function () {
-
-        api_link.send(['saveSetup'])
-    },
     'saveLibrary': function () {
 
         api_link.send(['saveLibrary'])
@@ -1259,7 +1249,7 @@ function f(v) {
     else if (c == "scenemeta") {
         if (v[2].cue) {
             if (vueapp.$data.cuemeta[v[2].cue] == undefined) {
-                vueapp.$data.getcuemeta(v[2].cue)
+               appMethods.getcuemeta(v[2].cue)
             }
         }
 

@@ -86,7 +86,7 @@
 <script type="text/javascript" src="/static/js/widget.js"></script>
 
 
-<div id="app" style="display:flex; flex-wrap:wrap; justify-content: center;">
+<div id="app" v-cloak style="display:flex; flex-wrap:wrap; justify-content: center;">
     <section class="window w-full max-h-12rem margin" v-if="sys_alerts">
         <div class="flex-row scroll gaps padding">
             <div class="card" v-for="v,i of sys_alerts">
@@ -324,9 +324,6 @@
             ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
         </span></span>
 </template>
-
-
-<script src="/static/js/thirdparty/jquery3.js"></script>
 
 ${module.board.link.render('api_link')}
 

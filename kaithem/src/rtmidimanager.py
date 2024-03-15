@@ -103,8 +103,10 @@ once = [0]
 
 scanning_connection = None
 
+ctr = 0
+
 def doScan():
-    global scanning_connection
+    global scanning_connection, ctr
 
     try:
         import rtmidi
@@ -120,10 +122,10 @@ def doScan():
     if not scanning_connection:
         # Support versions of rtmidi where it does not work the first time
         try:
-            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
+            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name="Kaithem"+str(ctr))
         except Exception:
-            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
-
+            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name="Kaithem"+str(ctr))
+        ctr+=1
     torm = []
     try:
         present = [(i, scanning_connection.get_port_name(i)) for i in range(scanning_connection.get_port_count())]
