@@ -1,14 +1,29 @@
 ${ vars }
+
+/* This rather hacky file expects this to become the app data for a vue instance
+ named vueapp, and provides the chandler API that way.
+
+*/
+
+// Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
+function old_vue_set(o, k, v) {
+    o[k] = v
+}
+
+function old_vue_delete(o, k) {
+    delete o[k]
+}
+
 function set(o, k, v) {
 
     if (o[k] == undefined) {
-        Vue.set(o, k, v)
+        old_vue_set(o, k, v)
     }
     for (var key in v) {
         // If values of same property are not equal,
         // objects are not equivalent
         if (o[k][key] !== v[key]) {
-            Vue.set(o[k], key, v[key])
+            old_vue_set(o[k], key, v[key])
         }
     }
 
@@ -69,177 +84,9 @@ getValueRange = function (d, v) {
 }
 
 
-hfaderdata =
-{
-    'promptExactVal': function (cue, u, v) {
-        var x = prompt("Enter new value for scene")
 
-        if (x != null) {
+appMethods = {
 
-            this.setCueValNolock(cue, u, v, x);
-        }
-    },
-    'setCueVal': function (sc, u, ch, val) {
-        appData.lockedFaders[sc + ":" + u + ":" + ch] = true;
-        api_link.send(['scv', sc, u, ch, val]);
-    },
-    'setCueValNolock': function (sc, u, ch, val) {
-        api_link.send(['scv', sc, u, ch, val]);
-    },
-    'unlockCueValFader': function (sc, u, ch) {
-        delete appData.lockedFaders[sc + ":" + u + ":" + ch];
-    },
-    'getValueRange': getValueRange,
-
-    'rmValFromCue': function (universe, ch) {
-        api_link.send(['scv', appData.scenecues[appData.scenename]
-        [appData.selectedCues[appData.scenename]],
-            universe,
-            ch,
-            null
-        ])
-        Vue.delete(appData.cuevals[appData.selectedCues[appData
-            .scenename]][appData.newcueu],
-            ch)
-        Vue.delete(appData.cuevals[appData.selectedCues[appData
-            .scenename]][appData.newcueu],
-            ch)
-    },
-}
-
-
-
-
-//# sourceURL=appcode.js 
-appData = {
-    'eventlogautoscroll': true,
-    //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
-    'formatInterval': formatInterval,
-    'console': console,
-    'sc_code': "",
-    'unixtime': 0,
-    'serports': [],
-    'keyboardJS': keyboardJS,
-    //Index by name
-    'fixtureAssignments': {},
-    'newfixname': '',
-    'newfixtype': '',
-    'newfixaddr': '',
-    'newfixuniverse': '',
-    //Fixture error info str
-    'ferrs': '',
-    'fixtures': '',
-    'evfilt': '',
-    'newcueu': '',
-    'newcuevnumber': '',
-    'newscenename': '',
-    'specialvars': [
-        ["_", "Output of the previous action"]
-    ],
-
-    'evlog': [
-    ],
-    'soundCards': KaithemSoundCards,
-
-    //What universe if any to show the full settings page for
-    'universeFullSettings': false,
-
-    'showfixtureassg': false,
-    'fixtureassg': '',
-    'showsoundoptions': false,
-    'showevents': false,
-
-    'example_events': [['now', "Run when script loads"], ['cue.exit', 'When exiting the cue'], ['cue.enter', 'When entering a cue'], ['button.a', 'A button in scenes sidebar']
-    ['keydown.a', "When a lowercase A is pressed in the Send Events mode on the console"], ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
-    ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'],
-    ['@every 10 seconds', 'Simple repeating trigger'],
-    ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
-    ["=tv('/system/alerts.level') >= 30 ", "Run if the highest priority alert is warning(30), error(40), or critical(50) level"],
-    ["=isDark()", 'Run if it is civil twilight'],
-    ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'],
-    ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
-
-
-    'availableTags': availableTags,
-    'completers': {
-
-        'gotoSceneNamesCompleter': function (a) {
-            var c = []
-
-
-            var x = appData.scenemeta
-
-            if (!x) {
-                return []
-            }
-
-            for (i in x) {
-                c.push([x[i].name, ''])
-            }
-            return c;
-        },
-
-        'gotoSceneCuesCompleter': function (a) {
-            var c = []
-            var n = a[1]
-            if (n.indexOf('=SCENE') > -1) {
-                n = appData.scenename
-            }
-            else {
-                for (i in appData.scenemeta) {
-                    var s = appData.scenemeta[i]
-                    if (s.name == n) {
-                        n = i
-                        break
-                    }
-                }
-            }
-
-
-            var x = appData.scenecues[n]
-
-            if (!x) {
-                return []
-            }
-
-            for (i in x) {
-                c.push([i, ''])
-            }
-            return c;
-        },
-
-        'tagPointsCompleter': function (a) {
-            var c = [];
-            for (i of appData.availableTags) {
-                c.push([i, ''])
-            }
-            return c;
-        },
-
-        'defaultExpressionCompleter': function (a) {
-            var c = [
-
-                ['1', 'Literal 1'],
-                ['0', ''],
-                ['=1+2+3', 'Spreadsheet-style expression'],
-                ['=tv("TagName")', 'Get the value of TagName(0 if nonexistant)'],
-                ['=stv("TagName")', 'Get the value of a string tagpoint(empty if nonexistant)'],
-                ['=random()', 'Random from 0 to 1'],
-                ['=SCENE', 'Name of the scene']
-            ];
-            for (i of appData.availableTags) {
-                c.push(['=tv("' + i + '")', ''])
-            }
-            return c;
-        }
-    },
-
-    'showimportexport': false,
-    'evtosend': '',
-    'evtypetosend': 'float',
-    'evval': '',
-    'savedThisSession': false,
-    'useBlankDescriptions': useBlankDescriptions,
     'saveToDisk': function () {
         if (this.savedThisSession == false) {
             var x = confirm("This saves directly to disk, overwriting the previous default. This message only shows the first save.")
@@ -260,549 +107,11 @@ appData = {
         api_link.send(['saveLibrary'])
     },
     'sendev': function (where) {
-        api_link.send(['event', appData.evtosend, appData.evval, appData.evtypetosend, where])
+        api_link.send(['event', this.evtosend, this.evval, this.evtypetosend, where])
     },
 
     'sceneev': function (evt, where) {
         api_link.send(['event', evt, '', 'str', where])
-    },
-    //For the raw cue data edit thing
-    'cuedatafield': "",
-    'refreshcuedata': function () {
-        try {
-            scene = this.scenename
-            cueid = this.scenecues[scene][this.selectedCues[scene]]
-
-            this.cuedatafield = jsyaml.safeDump(this
-                .formatCueVals(
-                    this.cuevals[cueid]));
-        }
-        catch
-        {
-
-        }
-    },
-
-    'del': Vue.delete,
-    'refreshPorts': function () {
-        api_link.send(['getserports'])
-    },
-    'pushSettings': function () {
-        api_link.send(['setconfuniverses', appData.configuredUniverses])
-    },
-
-    'showDMXSetup': false,
-    'showPresets': false,
-    'showsceneoptions': false,
-    'scenetab': 'cue',
-    'configuredUniverses':
-    {
-        'blah': { 'type': 'enttec', 'interface': 'xyz' }
-    },
-    'newuniversename': "",
-    'fixtureClasses': { 'dfjlkdjf': [] },
-    'selectedFixtureClass': '',
-    'showFixtureSetup': false,
-    //The selected dir and [[folders][files]] in that dir, for the
-    //sound file browser
-    'soundfilesdir': '',
-    'soundfileslisting': [
-        [],
-        []
-    ],
-    'setSoundfileDir': function (i) {
-
-        if (!((i == '') | (i[0] == '/'))) {
-            appData.soundfilesdir += i;
-        }
-        else {
-            appData.soundfilesdir = i;
-        }
-        appData.soundfileslisting = [
-            [],
-            []
-        ]
-        api_link.send(['listsoundfolder', i])
-    },
-    'setSoundOutput': function (cueid, i) {
-
-        api_link.send(['setcuesoundoutput', cueid, i])
-    },
-
-    'setCueSoundStart': function (cueid, i) {
-
-        api_link.send(['setcuesoundstartposition', cueid, i])
-    },
-
-    'setCueSlide': function (cueid, i) {
-
-        api_link.send(['setcueslide', cueid, i])
-    },
-
-
-
-    'setCueMediaSpeed': function (cueid, i) {
-
-        api_link.send(['setcuemediaspeed', cueid, i])
-    },
-
-    'setCueMediaWindup': function (cueid, i) {
-
-        api_link.send(['setcuemediawindup', cueid, i])
-    },
-
-    'setCueMediaWinddown': function (cueid, i) {
-
-        api_link.send(['setcuemediawinddown', cueid, i])
-    },
-    'setSoundfile': function (cueid, i) {
-
-        api_link.send(['setcuesound', cueid, i])
-    },
-    'setSceneSoundOutput': function (cueid, i) {
-
-        api_link.send(['setscenesoundout', cueid, i])
-    },
-
-    'setSceneSlideOverlay': function (cueid, i) {
-
-        api_link.send(['setsceneslideoverlay', cueid, i])
-    },
-
-
-    'newCueFromSlide': function (sc, i) {
-
-        api_link.send(['newFromSlide', sc, i])
-    },
-
-    'newCueFromSound': function (sc, i) {
-
-        api_link.send(['newFromSound', sc, i])
-    },
-    'chTypeChanged': function (i) {
-        if (appData.fixtureClasses[appData.selectedFixtureClass]
-        [i][1] == 'fine') {
-            Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-            [i], 2, i - 1)
-            Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-            [i], 3, undefined)
-        }
-
-        else if (appData.fixtureClasses[appData.selectedFixtureClass]
-        [i][1] == 'fixed') {
-            var v = appData.fixtureClasses[appData.selectedFixtureClass][i]
-            Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-                , i, [v[0], v[1], 0, {}])
-        }
-        else {
-            Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-            [i], 2, 0)
-            Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-            [i], 3, undefined)
-
-        }
-        appData.pushfixture(i)
-    },
-
-    'setEventButtons': function (sc, i) {
-
-        api_link.send(['seteventbuttons', sc, i])
-    },
-
-    'setHide': function (sc, i) {
-
-        api_link.send(['sethide', sc, i])
-    },
-
-    'setTagInputValue': function (sc, tag, v) {
-
-        api_link.send(['inputtagvalue', sc, tag, v])
-    },
-
-    'setDisplayTags': function (sc, i) {
-
-        api_link.send(['setdisplaytags', sc, i])
-    },
-
-    'setSceneNotes': function (sc, i) {
-
-        api_link.send(['setNotes', sc, i])
-    },
-    'getValueRange': getValueRange,
-    //Returns new value mapped into the range when user clicks to change the range of a custom val
-    //Given current val, new range info and old range info
-    'mapvaluerange': function (oldv, d, newrange) {
-        for (i of d) {
-            if (i[2] == newrange) {
-                var newd = i
-                break;
-            }
-        }
-        var d = appData.getValueRange(d, oldv)
-
-        try {
-            var asfraction = (oldv - d[0]) / ((d[1] - d[0]) +
-                1)
-            return Math.round(asfraction * (newd[1] - newd[
-                0] + 1) + newd[0])
-        }
-        catch (e) {
-            return newd[0]
-        }
-    },
-
-
-    'pushfixture': function (i) {
-        api_link.send(['setfixtureclass', i, appData.fixtureClasses[
-            i]])
-    },
-
-
-    'pushfixtureopz': function (i) {
-        api_link.send(['setfixtureclassopz', i, appData.fixtureClasses[
-            i]])
-    },
-    'setFixtureAssignment': function (i, v) {
-        api_link.send(['setFixtureAssignment', i, v])
-    },
-
-    'rmFixtureAssignment': function (i) {
-        api_link.send(['rmFixtureAssignment', i])
-    },
-
-
-    'lookupFixtureType': function (f) {
-        for (i in appData.fixtureAssignments) {
-            if (appData.fixtureAssignments[i].name = f) {
-                return appData.fixtureAssignments[i].type;
-            }
-        }
-        return '';
-    },
-
-    'addFixtureAssignment': function (name, t, univ, addr) {
-        if (!name) {
-            return;
-        }
-        var d = {
-            'name': name,
-            'type': t,
-            'universe': univ,
-            'addr': addr
-        }
-
-        api_link.send(['setFixtureAssignment', name, d])
-
-    },
-    'getfixtureassg': function () {
-        api_link.send(['getfixtureassg'])
-    },
-
-    'getChannelCompletions': function (u) {
-        var x = appData.configuredUniverses[u];
-        if (x) {
-            return useBlankDescriptions(x.channelConfig);
-        }
-    },
-    'showhidefixtures': function () {
-        appData.showFixtureSetup = !appData.showFixtureSetup
-        appData.getfixtureclasses()
-        appData.selectedFixtureClass = ''
-    },
-    'showhidefixtureassignments': function () {
-        appData.getfixtureclasses()
-        appData.showfixtureassg = !appData.showfixtureassg;
-        api_link.send(['getfixtureassg']);
-    },
-    'getfixtureclasses': function () {
-        api_link.send(['getfixtureclasses'])
-    },
-    'getfixtureclass': function (i) {
-        if (i == '') {
-            return;
-        }
-        api_link.send(['getfixtureclass', i])
-    },
-
-    'addfixturetype': function () {
-        x = prompt("New Fixture Type Name:", appData.selectedFixtureType)
-        if (x) {
-            Vue.set(appData.fixtureClasses, x, [])
-            appData.selectedFixtureType = x
-            api_link.send(['setfixtureclass', x, appData.fixtureClasses[x]])
-            api_link.send(['getfixtureclass', x])
-        }
-    },
-    'delfixturetype': function () {
-        x = confirm("Really delete?")
-        if (x) {
-            Vue.delete(appData.fixtureClasses, appData.selectedFixtureType)
-            api_link.send(['rmfixtureclass', appData.selectedFixtureType])
-            appData.selectedFixtureType = '';
-        }
-    },
-    'dictView': function (dict, sorts, filterf) {
-        //Given a dict  and a list of sort keys sorts,
-        //return a list of [key,value] pairs sorted by the sort
-        //keys. Earlier sort keys take precendence.
-
-        // the lowest precedence sort key is the actual dict key.
-
-        //Keys starting with ! are interpreted as meanng to sort in descending order
-
-        var o = []
-        Object.keys(dict).forEach(
-            function (key, index) {
-                if (filterf == undefined || filterf(key, dict[key])) {
-                    o.push([key, dict[key]])
-                }
-            })
-
-        var l = []
-        for (var i of sorts) {
-            //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
-            //Get rid of the fist char if so
-            l.push([
-                i[0] == '!' ? -1 : 1,
-                i[0] == "!" ? i.slice(1) : i
-            ])
-        }
-
-        o.sort(function (a, b) {
-            //For each of the possible soft keys, check if they
-            //are different. If so, compare and possible reverse the ouptut
-
-            var d = a[1]
-            var d2 = b[1]
-            for (i of l) {
-                var key = i[1]
-                var rev = i[0]
-                if (!(d[key] == d2[key])) {
-                    return (d[key] > d2[key] ? 1 : -1) * rev
-                }
-
-            }
-            // Fallback sort is the keys themselves
-            if (a[0] != b[0]) {
-                return (a[0] > b[0]) ? 1 : -1
-            }
-            return 0
-        });
-        return (o)
-    },
-
-
-    'formatScenes': function (hide_hidden) {
-        return appData.dictView(appData.scenemeta, [
-            '!priority', '!started', 'name'
-        ]).filter(
-            function (x) {
-                return (x[1].name && x[1].name.includes(
-                    appData.scenefilter) && (!(x[1].hide && hide_hidden)))
-            });
-
-    },
-    'cueNamesBySceneName': function () {
-        var d = {}
-        for (i in appData.scenemeta) {
-            d[appData.scenemeta[i].name] = []
-
-            for (j in appData.scenecues[i]) {
-                d[appData.scenemeta[i].name].push(j)
-            }
-        }
-        return d;
-    },
-    'formatCues': function (filt) {
-        z = {}
-        //list cue objects
-        for (i in appData.scenecues[appData.scenename]) {
-            m = appData.cuemeta[appData.scenecues[appData.scenename]
-            [i]]
-            if (m !== undefined) {
-                if ((!filt) | i.includes(this.cuefilter)) {
-                    z[i] = m
-                }
-            }
-        }
-        if (!filt) {
-            appData.formattedCues = appData.dictView(z, ['number']).filter((item) => item[1].id)
-            return appData.formattedCues
-        }
-        else {
-            return appData.dictView(z, ['number']).filter((item) => item[1].id)
-        }
-    },
-
-    'formatCueVals': function (c) {
-        //Return a simplified version of the data in cuevals
-        //Meant for direct display
-        op = {}
-        for (i in c) {
-            op[i] = {}
-            for (j in c[i]) {
-                op[i][j] = c[i][j].v
-            }
-        }
-        return op
-    },
-
-
-
-    'toggleTransparent': function (cue, u, c, v) {
-        if (v != null) {
-            appData.setCueValNolock(cue, u, c, null)
-        }
-        else {
-            appData.setCueValNolock(cie, u, c, null)
-        }
-    },
-    'promptRename'(s) {
-        var x = prompt(
-            "Enter new name for scene(May break existing references to scene)"
-        )
-
-        if (x != null) {
-
-            api_link.send(['setscenename', s, x])
-
-        }
-
-    },
-    'deleteUniverse': function (u) {
-        console.log(u)
-        Vue.delete(appData.configuredUniverses, u)
-    },
-    //Filter which scenes are shown in the list
-    'scenefilter': '',
-    'cuefilter': '',
-    'soundsearch': '',
-    'soundsearchresults': [],
-    'currentBindingBank': 'default',
-    'localStorage': localStorage,
-    'keybindmode': 'edit',
-    'showAddChannels': false,
-    //Keep track of what timers are running in a scene
-    'scenetimers': {},
-    //Formatted for display
-    'cuevals': {},
-
-    'fuzzyIncludes'(s, search) {
-        for (i of search.toLowerCase().split(" ")) {
-            if (!s.toLowerCase().includes(i)) {
-                return 0;
-            }
-        }
-        return 1;
-    },
-    'setCueInheritRules': function (c, r) {
-        api_link.send(['setCueInheritRules', c, r])
-    },
-
-
-    'setCueRules': function (c, r) {
-        api_link.send(['setCueRules', c, r])
-    },
-
-    'doSoundSearch': function (s) {
-        api_link.send(["searchsounds", s])
-    },
-
-    //Current per scene alpha channel
-    'alphas': {},
-    //Used only for autocompletion, it's a list of all known tracks that we've seen so far.
-    'knownTracks': {},
-    'scenemeta': {},
-    'scenename': null,
-    'editingScene': null,
-    'running_scenes': {},
-    'universes': {},
-    'allScenes': [],
-    'cues': {},
-    'newcuename': '',
-    'cuemeta': {},
-    'availableCommands': {},
-    'selectedCues': {},
-    'showPages': false,
-    //go from cue name to cue id
-    //scenecues[sceneuuid][cuename]=cueid
-    'scenecues': {},
-    'formattedCues': [],
-    //Indexed by universe then channel number
-    'channelNames': {},
-    //same info as scenevals, indexed hierarchally, as [universe][channel]
-    //Actual objs are shared too so changing one obj change in in the other.
-
-    //We must track faders the user is actively touching so new data doesn't
-    //Annoy you jumping them around
-    'lockedFaders': {},
-    'presets': {},
-
-    //All alarms active on server
-    'sys_alerts': {},
-
-
-
-    'deletePreset': function (p) {
-        if (confirm("Really Delete")) {
-            delete appData.presets[p];
-            api_link.send(['preset', p, None]);
-
-        }
-    },
-
-
-    'renamePreset': function (p) {
-        var n = prompt("Preset Name?")
-
-        if (n && n.length) {
-            var b = appData.presets[p]
-            if (b) {
-                delete appData.presets[p];
-                api_link.send(['preset', p, None]);
-
-                appData.presets[n] = b;
-                api_link.send(['preset', n, b]);
-            }
-        }
-    },
-
-    'savePreset': function (v) {
-        /*Prompt saving data from the cuevals dict as a preset*/
-        var v2 = {}
-
-        // Just the vals
-        for (i in v) {
-            v2[i] = v[i].v
-        }
-
-        var n = prompt("Preset Name?")
-
-        if (n && n.length) {
-            appData.presets[n] = v2;
-            api_link.send(['preset', n, v2]);
-
-        }
-    },
-
-    'updatePreset': function (i, v) {
-        /*Update given a name and the modified data as would be found in the presets file*/
-        appData.presets[i] = v;
-        api_link.send(['preset', i, v]);
-    },
-    'recomputeformattedCues': function () {
-        appData.formatCues(0)
-
-    },
-    'chnamelookup': function (u, c) {
-        if (appData.channelNames[u] == undefined) {
-            return undefined
-        }
-
-        return appData.channelNames[u][c]
-    },
-    "getcueid": function (sceneid, cuename) {
-        return (this.scenecues[sceneid][cuename])
     },
 
     'refreshhistory': function (sc) {
@@ -815,10 +124,10 @@ appData = {
     },
 
     'setFixturePreset': function (sc, fix, preset) {
-        for (i in appData.cuevals[sc][fix]) {
+        for (i in this.cuevals[sc][fix]) {
             if ((!(preset[i] == undefined)) && preset[i].toString().length) {
                 api_link.send(['scv', sc, fix, i, preset[i]]);
-                appData.cuevals[sc][fix][i].v = preset[i]
+                this.cuevals[sc][fix][i].v = preset[i]
             }
 
         }
@@ -836,7 +145,7 @@ appData = {
     'selectcue': function (sc, cue) {
         this.selectedCues[sc] = cue
         this.getcuedata(this.scenecues[sc][cue])
-        appData.refreshcuedata()
+        this.refreshcuedata()
 
     },
     'getallcuemeta': function (sn) {
@@ -850,8 +159,8 @@ appData = {
         this.scenename = sn;
         api_link.send(['gsd', sn]);
         api_link.send(['getallcuemeta', sn]);
-        appData.refreshcuedata()
-        appData.recomputeformattedCues();
+        this.refreshcuedata()
+        this.recomputeformattedCues();
 
 
     },
@@ -883,8 +192,8 @@ appData = {
     },
 
     'shortcut': function (sc) {
-        api_link.send(['shortcut', appData.sc_code]);
-        appData.sc_code = ''
+        api_link.send(['shortcut', this.sc_code]);
+        this.sc_code = ''
 
     },
 
@@ -900,12 +209,12 @@ appData = {
 
 
     'setalpha': function (sc, v) {
-        appData.lockedFaders[sc] = true;
+        this.lockedFaders[sc] = true;
         api_link.send(['setalpha', sc, v]);
-        appData.alphas[sc] = v
+        this.alphas[sc] = v
     },
     'unlockAlpha': function (sc) {
-        delete appData.lockedFaders[sc];
+        delete this.lockedFaders[sc];
     },
 
 
@@ -929,13 +238,13 @@ appData = {
     'add_cue': function (sc, v) {
         api_link.send(['add_cue', sc, v]);
         //There's a difference between "not there" undefined and actually set to undefined....
-        if (appData.scenecues[sc][v] == undefined) {
+        if (this.scenecues[sc][v] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives
-            Vue.set(appData.scenecues[sc], v, undefined);
-            appData.recomputeformattedCues();
+            old_vue_set(this.scenecues[sc], v, undefined);
+            this.recomputeformattedCues();
         };
         setTimeout(function () {
-            Vue.set(appData.selectedCues,
+            old_vue_set(this.selectedCues,
                 sc, v)
         }, 70)
     },
@@ -943,36 +252,36 @@ appData = {
     'clonecue': function (sc, cue, v) {
         api_link.send(['clonecue', cue, v]);
         //There's a difference between "not there" undefined and actually set to undefined....
-        if (appData.scenecues[sc][v] == undefined) {
+        if (this.scenecues[sc][v] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives
-            Vue.set(appData.scenecues[sc], v, undefined);
-            appData.recomputeformattedCues();
+            old_vue_set(this.scenecues[sc], v, undefined);
+            this.recomputeformattedCues();
         };
         setTimeout(function () {
-            Vue.set(appData.selectedCues,
+            old_vue_set(this.selectedCues,
                 sc, v)
         }, 70)
 
     },
     'gotonext': function (currentcueid) {
-        nextcue = appData.cuemeta[currentcueid].next
+        nextcue = this.cuemeta[currentcueid].next
 
-        cue = nextcue || (appData.cuemeta[currentcueid].defaultnext)
+        cue = nextcue || (this.cuemeta[currentcueid].defaultnext)
         if (!cue) {
             return
         }
-        api_link.send(['add_cue', appData.scenename, nextcue]);
+        api_link.send(['add_cue', this.scenename, nextcue]);
         api_link.send(['getcuedata', cue]);
 
         //There's a difference between "not there" undefined and actually set to undefined....
-        if (appData.scenecues[cue] == undefined) {
+        if (this.scenecues[cue] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives
-            set(appData.scenecues[appData.scenename], cue,
+            set(this.scenecues[this.scenename], cue,
                 undefined);
         }
         setTimeout(function () {
-            Vue.set(appData.selectedCues,
-                appData.scenename, cue)
+            old_vue_set(this.selectedCues,
+                this.scenename, cue)
         },
             30)
     },
@@ -980,7 +289,7 @@ appData = {
         if (!confirm("Delete cue?")) {
             return;
         }
-        appData.selectedCues[appData.scenename] = 'default'
+        this.selectedCues[this.scenename] = 'default'
         api_link.send(['rmcue', cue]);
     },
     'jumptocue': function (cue) {
@@ -1099,19 +408,19 @@ appData = {
 
     'setdalpha': function (sc, v) {
 
-        appData.scenemeta[sc].alpha = v;
+        this.scenemeta[sc].alpha = v;
         api_link.send(['setdalpha', sc, v]);
     },
 
 
     'setcrossfade': function (sc, v) {
 
-        appData.scenemeta[sc].crossfade = v;
+        this.scenemeta[sc].crossfade = v;
         api_link.send(['setcrossfade', sc, v]);
     },
     'setmqtt': function (sc, v) {
 
-        appData.scenemeta[sc].mqttServer = v;
+        this.scenemeta[sc].mqttServer = v;
         api_link.send(['setMqttServer', sc, v]);
     },
 
@@ -1120,34 +429,34 @@ appData = {
     },
     'setmidi': function (sc, v) {
 
-        appData.scenemeta[sc].midiSource = v;
+        this.scenemeta[sc].midiSource = v;
         api_link.send(['setMidiSource', sc, v]);
     },
     'setvisualization': function (sc, v) {
 
-        appData.scenemeta[sc].musicVisualizations = v;
+        this.scenemeta[sc].musicVisualizations = v;
         api_link.send(['setMusicVisualizations', sc, v]);
     },
 
     'setcommandtag': function (sc, v) {
 
-        appData.scenemeta[sc].commandTag = v;
+        this.scenemeta[sc].commandTag = v;
         api_link.send(['setscenecommandtag', sc, v]);
     },
 
     'setdefaultnext': function (sc, v) {
 
-        appData.scenemeta[sc].defaultNext = v;
+        this.scenemeta[sc].defaultNext = v;
         api_link.send(['setDefaultNext', sc, v]);
     },
     'setinfodisplay': function (sc, v) {
 
-        appData.scenemeta[sc].infoDisplay = v;
+        this.scenemeta[sc].infoDisplay = v;
         api_link.send(['setinfodisplay', sc, v]);
     },
     'setutility': function (sc, v) {
 
-        appData.scenemeta[sc].utility = v;
+        this.scenemeta[sc].utility = v;
         api_link.send(['setutility', sc, v]);
     },
     'setpriority': function (sc, v) {
@@ -1165,17 +474,16 @@ appData = {
 
 
     'addScene': function () {
-        api_link.send(['addscene', appData.newscenename]);
+        api_link.send(['addscene', this.newscenename]);
     },
-    'prompt': prompt,
 
     'addMonitorScene': function () {
-        api_link.send(['addmonitor', appData.newscenename]);
+        api_link.send(['addmonitor', this.newscenename]);
     },
 
 
     'addRangeEffect': function (fix) {
-        appData.addThisFixToCurrentCue(fix,
+        this.addThisFixToCurrentCue(fix,
             prompt("Bulb # offset(2 represents the first identical fixture after this one, etc)", 1),
             prompt("Range effect length(# of identical fixtures to cover with pattern)"),
             prompt("Channel spacing between first channel of successive fixtures(If fix #1 is on DMX1 and fix #2 is on 11, spacing is 10). 0 if spacing equals fixture channel count."))
@@ -1191,9 +499,9 @@ appData = {
 
         }
 
-        api_link.send(['add_cuef', appData.scenecues[
-            appData.scenename]
-        [appData.selectedCues[appData.scenename]],
+        api_link.send(['add_cuef', this.scenecues[
+            this.scenename]
+        [this.selectedCues[this.scenename]],
             fix, idx, len, spacing
         ]);
 
@@ -1204,34 +512,745 @@ appData = {
     },
 
     'addValToCue': function () {
-        if (!appData.newcueu) {
+        if (!this.newcueu) {
             return
         }
-        api_link.send(['add_cueval', appData.scenecues[
-            appData.scenename]
-        [appData.selectedCues[appData.scenename]],
-            appData.newcueu, appData.newcuevnumber
+        api_link.send(['add_cueval', this.scenecues[
+            this.scenename]
+        [this.selectedCues[this.scenename]],
+            this.newcueu, this.newcuevnumber
         ]);
-        if (parseInt(appData.newcuevnumber) != NaN) {
-            appData.newcuevnumber = parseInt(appData.newcuevnumber) + 1
+        if (parseInt(this.newcuevnumber) != NaN) {
+            this.newcuevnumber = parseInt(this.newcuevnumber) + 1
         }
 
     },
 
-    'sortscenes': function () {
-
-        appData.allScenes.sort(function (a, b) {
-            return a[3] - b[3]
-        })
-    },
     'editMode': function () {
         keyboardJS.reset();
-        appData.keybindmode = "edit";
+        this.keybindmode = "edit";
     },
     'runMode': function () {
         rebind();
-        appData.keybindmode = "run";
+        this.keybindmode = "run";
     },
+    'refreshPorts': function () {
+        api_link.send(['getserports'])
+    },
+    'pushSettings': function () {
+        api_link.send(['setconfuniverses', this.configuredUniverses])
+    },
+
+
+    'setSoundfileDir': function (i) {
+
+        if (!((i == '') | (i[0] == '/'))) {
+            this.soundfilesdir += i;
+        }
+        else {
+            this.soundfilesdir = i;
+        }
+        this.soundfileslisting = [
+            [],
+            []
+        ]
+        api_link.send(['listsoundfolder', i])
+    },
+    'setSoundOutput': function (cueid, i) {
+
+        api_link.send(['setcuesoundoutput', cueid, i])
+    },
+
+    'setCueSoundStart': function (cueid, i) {
+
+        api_link.send(['setcuesoundstartposition', cueid, i])
+    },
+
+    'setCueSlide': function (cueid, i) {
+
+        api_link.send(['setcueslide', cueid, i])
+    },
+
+
+
+    'setCueMediaSpeed': function (cueid, i) {
+
+        api_link.send(['setcuemediaspeed', cueid, i])
+    },
+
+    'setCueMediaWindup': function (cueid, i) {
+
+        api_link.send(['setcuemediawindup', cueid, i])
+    },
+
+    'setCueMediaWinddown': function (cueid, i) {
+
+        api_link.send(['setcuemediawinddown', cueid, i])
+    },
+    'setSoundfile': function (cueid, i) {
+
+        api_link.send(['setcuesound', cueid, i])
+    },
+    'setSceneSoundOutput': function (cueid, i) {
+
+        api_link.send(['setscenesoundout', cueid, i])
+    },
+
+    'setSceneSlideOverlay': function (cueid, i) {
+
+        api_link.send(['setsceneslideoverlay', cueid, i])
+    },
+
+
+    'newCueFromSlide': function (sc, i) {
+
+        api_link.send(['newFromSlide', sc, i])
+    },
+
+    'newCueFromSound': function (sc, i) {
+
+        api_link.send(['newFromSound', sc, i])
+    },
+    'chTypeChanged': function (i) {
+        if (this.fixtureClasses[this.selectedFixtureClass]
+        [i][1] == 'fine') {
+            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+            [i], 2, i - 1)
+            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+            [i], 3, undefined)
+        }
+
+        else if (this.fixtureClasses[this.selectedFixtureClass]
+        [i][1] == 'fixed') {
+            var v = this.fixtureClasses[this.selectedFixtureClass][i]
+            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+                , i, [v[0], v[1], 0, {}])
+        }
+        else {
+            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+            [i], 2, 0)
+            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+            [i], 3, undefined)
+
+        }
+        this.pushfixture(i)
+    },
+
+    'setEventButtons': function (sc, i) {
+
+        api_link.send(['seteventbuttons', sc, i])
+    },
+
+    'setHide': function (sc, i) {
+
+        api_link.send(['sethide', sc, i])
+    },
+
+    'setTagInputValue': function (sc, tag, v) {
+
+        api_link.send(['inputtagvalue', sc, tag, v])
+    },
+
+    'setDisplayTags': function (sc, i) {
+
+        api_link.send(['setdisplaytags', sc, i])
+    },
+
+    'setSceneNotes': function (sc, i) {
+
+        api_link.send(['setNotes', sc, i])
+    }
+}
+
+appComputed = {
+    "currentcue": function () {
+        return (this.cuemeta[this.scenecues[this.scenename]
+        [this.selectedCues[this.scenename]]
+        ])
+    },
+    "currentcueid": function () {
+        return (this.scenecues[this.scenename][this
+            .selectedCues[
+            this.scenename]
+        ])
+    },
+
+    'formatCues': function () {
+        z = {}
+        var filt = true
+        //list cue objects
+        for (i in this.scenecues[this.scenename]) {
+            m = this.cuemeta[this.scenecues[this.scenename]
+            [i]]
+            if (m !== undefined) {
+                if ((!filt) | i.includes(this.cuefilter)) {
+                    z[i] = m
+                }
+            }
+        }
+        if (!filt) {
+            this.formattedCues = this.dictView(z, ['number']).filter((item) => item[1].id)
+            return this.formattedCues
+        }
+        else {
+            return this.dictView(z, ['number']).filter((item) => item[1].id)
+        }
+    },
+
+    'formatAllScenes': function () {
+        /*Sorted list of scene objects*/
+        var flt = this.scenefilter
+        var x = this.dictView(this.scenemeta, [
+            '!priority', '!started', 'name'
+        ]).filter(
+            function (x) {
+                return (x[1].name && x[1].name.includes(
+                    flt))
+            });
+        return x
+
+    },
+
+    'formatScenes': function () {
+        return this.dictView(this.scenemeta, [
+            '!priority', '!started', 'name'
+        ]).filter(
+            function (x) {
+                return (x[1].name && x[1].name.includes(
+                    this.scenefilter) && (!(x[1].hide)))
+            });
+
+    },
+
+
+
+}
+
+
+//# sourceURL=appcode.js 
+appData = {
+    'eventlogautoscroll': true,
+    //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
+    'formatInterval': formatInterval,
+    'console': console,
+    'sc_code': "",
+    'unixtime': 0,
+    'serports': [],
+    'keyboardJS': keyboardJS,
+    //Index by name
+    'fixtureAssignments': {},
+    'newfixname': '',
+    'newfixtype': '',
+    'newfixaddr': '',
+    'newfixuniverse': '',
+    //Fixture error info str
+    'ferrs': '',
+    'fixtures': '',
+    'evfilt': '',
+    'newcueu': '',
+    'newcuevnumber': '',
+    'newscenename': '',
+    'specialvars': [
+        ["_", "Output of the previous action"]
+    ],
+
+    'evlog': [
+    ],
+    'soundCards': KaithemSoundCards,
+
+    //What universe if any to show the full settings page for
+    'universeFullSettings': false,
+
+    'showfixtureassg': false,
+    'fixtureassg': '',
+    'showsoundoptions': false,
+    'showevents': false,
+
+    'example_events': [['now', "Run when script loads"], ['cue.exit', 'When exiting the cue'], ['cue.enter', 'When entering a cue'], ['button.a', 'A button in scenes sidebar']
+    ['keydown.a', "When a lowercase A is pressed in the Send Events mode on the console"], ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
+    ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'],
+    ['@every 10 seconds', 'Simple repeating trigger'],
+    ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
+    ["=tv('/system/alerts.level') >= 30 ", "Run if the highest priority alert is warning(30), error(40), or critical(50) level"],
+    ["=isDark()", 'Run if it is civil twilight'],
+    ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'],
+    ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
+
+
+    'availableTags': availableTags,
+    'completers': {
+
+        'gotoSceneNamesCompleter': function (a) {
+            var c = []
+
+
+            var x = this.scenemeta
+
+            if (!x) {
+                return []
+            }
+
+            for (i in x) {
+                c.push([x[i].name, ''])
+            }
+            return c;
+        },
+
+        'gotoSceneCuesCompleter': function (a) {
+            var c = []
+            var n = a[1]
+            if (n.indexOf('=SCENE') > -1) {
+                n = this.scenename
+            }
+            else {
+                for (i in this.scenemeta) {
+                    var s = this.scenemeta[i]
+                    if (s.name == n) {
+                        n = i
+                        break
+                    }
+                }
+            }
+
+
+            var x = this.scenecues[n]
+
+            if (!x) {
+                return []
+            }
+
+            for (i in x) {
+                c.push([i, ''])
+            }
+            return c;
+        },
+
+        'tagPointsCompleter': function (a) {
+            var c = [];
+            for (i of this.availableTags) {
+                c.push([i, ''])
+            }
+            return c;
+        },
+
+        'defaultExpressionCompleter': function (a) {
+            var c = [
+
+                ['1', 'Literal 1'],
+                ['0', ''],
+                ['=1+2+3', 'Spreadsheet-style expression'],
+                ['=tv("TagName")', 'Get the value of TagName(0 if nonexistant)'],
+                ['=stv("TagName")', 'Get the value of a string tagpoint(empty if nonexistant)'],
+                ['=random()', 'Random from 0 to 1'],
+                ['=SCENE', 'Name of the scene']
+            ];
+            for (i of this.availableTags) {
+                c.push(['=tv("' + i + '")', ''])
+            }
+            return c;
+        }
+    },
+
+    'showimportexport': false,
+    'evtosend': '',
+    'evtypetosend': 'float',
+    'evval': '',
+    'savedThisSession': false,
+    //For the raw cue data edit thing
+    'cuedatafield': "",
+    'scenetab': 'cue',
+    'showDMXSetup': false,
+    'showPresets': false,
+    'showsceneoptions': false,
+    'configuredUniverses':
+    {
+        'blah': { 'type': 'enttec', 'interface': 'xyz' }
+    },
+    'newuniversename': "",
+    'fixtureClasses': { 'dfjlkdjf': [] },
+    'selectedFixtureClass': '',
+    'showFixtureSetup': false,
+    //The selected dir and [[folders][files]] in that dir, for the
+    //sound file browser
+    'soundfilesdir': '',
+    'soundfileslisting': [
+        [],
+        []
+    ],
+    //Filter which scenes are shown in the list
+    'scenefilter': '',
+    'cuefilter': '',
+    'soundsearch': '',
+    'soundsearchresults': [],
+    'currentBindingBank': 'default',
+    'localStorage': localStorage,
+    'keybindmode': 'edit',
+    'showAddChannels': false,
+    //Keep track of what timers are running in a scene
+    'scenetimers': {},
+    //Formatted for display
+    'cuevals': {},
+
+
+    'useBlankDescriptions': useBlankDescriptions,
+    
+
+    'formatCueVals': function (c) {
+        //Return a simplified version of the data in cuevals
+        //Meant for direct display
+        op = {}
+        for (i in c) {
+            op[i] = {}
+            for (j in c[i]) {
+                op[i][j] = c[i][j].v
+            }
+        }
+        return op
+    },
+    //For the raw cue data edit thing
+    'refreshcuedata': function () {
+        try {
+            scene = this.scenename
+            cueid = this.scenecues[scene][this.selectedCues[scene]]
+
+            this.cuedatafield = jsyaml.safeDump(this
+                .formatCueVals(
+                    this.cuevals[cueid]));
+        }
+        catch
+        {
+
+        }
+    },
+
+    'del': function (a, b) {
+        old_vue_delete(a, b)
+    },
+
+    'getValueRange': getValueRange,
+    //Returns new value mapped into the range when user clicks to change the range of a custom val
+    //Given current val, new range info and old range info
+    'mapvaluerange': function (oldv, d, newrange) {
+        for (i of d) {
+            if (i[2] == newrange) {
+                var newd = i
+                break;
+            }
+        }
+        var d = this.getValueRange(d, oldv)
+
+        try {
+            var asfraction = (oldv - d[0]) / ((d[1] - d[0]) +
+                1)
+            return Math.round(asfraction * (newd[1] - newd[
+                0] + 1) + newd[0])
+        }
+        catch (e) {
+            return newd[0]
+        }
+    },
+
+
+    'pushfixture': function (i) {
+        api_link.send(['setfixtureclass', i, this.fixtureClasses[
+            i]])
+    },
+
+
+    'pushfixtureopz': function (i) {
+        api_link.send(['setfixtureclassopz', i, this.fixtureClasses[
+            i]])
+    },
+    'setFixtureAssignment': function (i, v) {
+        api_link.send(['setFixtureAssignment', i, v])
+    },
+
+    'rmFixtureAssignment': function (i) {
+        api_link.send(['rmFixtureAssignment', i])
+    },
+
+
+    'lookupFixtureType': function (f) {
+        for (i in this.fixtureAssignments) {
+            if (this.fixtureAssignments[i].name = f) {
+                return this.fixtureAssignments[i].type;
+            }
+        }
+        return '';
+    },
+
+    'addFixtureAssignment': function (name, t, univ, addr) {
+        if (!name) {
+            return;
+        }
+        var d = {
+            'name': name,
+            'type': t,
+            'universe': univ,
+            'addr': addr
+        }
+
+        api_link.send(['setFixtureAssignment', name, d])
+
+    },
+    'getfixtureassg': function () {
+        api_link.send(['getfixtureassg'])
+    },
+
+    'getChannelCompletions': function (u) {
+        var x = this.configuredUniverses[u];
+        if (x) {
+            return useBlankDescriptions(x.channelConfig);
+        }
+    },
+
+    'showhidefixtures': function () {
+        vueapp.$data.showFixtureSetup = !vueapp.$data.showFixtureSetup
+        vueapp.$data.getfixtureclasses()
+        vueapp.$data.selectedFixtureClass = ''
+    },
+    'showhidefixtureassignments': function () {
+        vueapp.$data.getfixtureclasses()
+        vueapp.$data.showfixtureassg = !vueapp.$data.showfixtureassg;
+        api_link.send(['getfixtureassg']);
+    },
+    'getfixtureclasses': function () {
+        api_link.send(['getfixtureclasses'])
+    },
+    'getfixtureclass': function (i) {
+        if (i == '') {
+            return;
+        }
+        api_link.send(['getfixtureclass', i])
+    },
+
+    'addfixturetype': function () {
+        x = prompt("New Fixture Type Name:", this.selectedFixtureType)
+        if (x) {
+            old_vue_set(this.fixtureClasses, x, [])
+            this.selectedFixtureType = x
+            api_link.send(['setfixtureclass', x, this.fixtureClasses[x]])
+            api_link.send(['getfixtureclass', x])
+        }
+    },
+    'delfixturetype': function () {
+        x = confirm("Really delete?")
+        if (x) {
+            old_vue_delete(this.fixtureClasses, this.selectedFixtureType)
+            api_link.send(['rmfixtureclass', this.selectedFixtureType])
+            this.selectedFixtureType = '';
+        }
+    },
+    'dictView': function (dict, sorts, filterf) {
+        //Given a dict  and a list of sort keys sorts,
+        //return a list of [key,value] pairs sorted by the sort
+        //keys. Earlier sort keys take precendence.
+
+        // the lowest precedence sort key is the actual dict key.
+
+        //Keys starting with ! are interpreted as meanng to sort in descending order
+
+        var o = []
+        Object.keys(dict).forEach(
+            function (key, index) {
+                if (filterf == undefined || filterf(key, dict[key])) {
+                    o.push([key, dict[key]])
+                }
+            })
+
+        var l = []
+        for (var i of sorts) {
+            //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
+            //Get rid of the fist char if so
+            l.push([
+                i[0] == '!' ? -1 : 1,
+                i[0] == "!" ? i.slice(1) : i
+            ])
+        }
+
+        o.sort(function (a, b) {
+            //For each of the possible soft keys, check if they
+            //are different. If so, compare and possible reverse the ouptut
+
+            var d = a[1]
+            var d2 = b[1]
+            for (i of l) {
+                var key = i[1]
+                var rev = i[0]
+                if (!(d[key] == d2[key])) {
+                    return (d[key] > d2[key] ? 1 : -1) * rev
+                }
+
+            }
+            // Fallback sort is the keys themselves
+            if (a[0] != b[0]) {
+                return (a[0] > b[0]) ? 1 : -1
+            }
+            return 0
+        });
+        return (o)
+    },
+
+    'cueNamesBySceneName': function () {
+        var d = {}
+        for (i in this.scenemeta) {
+            d[this.scenemeta[i].name] = []
+
+            for (j in this.scenecues[i]) {
+                d[this.scenemeta[i].name].push(j)
+            }
+        }
+        return d;
+    },
+
+
+    'toggleTransparent': function (cue, u, c, v) {
+        if (v != null) {
+            this.setCueValNolock(cue, u, c, null)
+        }
+        else {
+            this.setCueValNolock(cie, u, c, null)
+        }
+    },
+    'promptRename'(s) {
+        var x = prompt(
+            "Enter new name for scene(May break existing references to scene)"
+        )
+
+        if (x != null) {
+
+            api_link.send(['setscenename', s, x])
+
+        }
+
+    },
+    'deleteUniverse': function (u) {
+        console.log(u)
+        old_vue_delete(this.configuredUniverses, u)
+    },
+
+
+    'fuzzyIncludes'(s, search) {
+        for (i of search.toLowerCase().split(" ")) {
+            if (!s.toLowerCase().includes(i)) {
+                return 0;
+            }
+        }
+        return 1;
+    },
+    'setCueInheritRules': function (c, r) {
+        api_link.send(['setCueInheritRules', c, r])
+    },
+
+
+    'setCueRules': function (c, r) {
+        api_link.send(['setCueRules', c, r])
+    },
+
+    'doSoundSearch': function (s) {
+        api_link.send(["searchsounds", s])
+    },
+
+    //Current per scene alpha channel
+    'alphas': {},
+    //Used only for autocompletion, it's a list of all known tracks that we've seen so far.
+    'knownTracks': {},
+    'scenemeta': {},
+    'scenename': null,
+    'editingScene': null,
+    'running_scenes': {},
+    'universes': {},
+    'allScenes': [],
+    'cues': {},
+    'newcuename': '',
+    'cuemeta': {},
+    'availableCommands': {},
+    'selectedCues': {},
+    'showPages': false,
+    //go from cue name to cue id
+    //scenecues[sceneuuid][cuename]=cueid
+    'scenecues': {},
+    'formattedCues': [],
+    //Indexed by universe then channel number
+    'channelNames': {},
+    //same info as scenevals, indexed hierarchally, as [universe][channel]
+    //Actual objs are shared too so changing one obj change in in the other.
+
+    //We must track faders the user is actively touching so new data doesn't
+    //Annoy you jumping them around
+    'lockedFaders': {},
+    'presets': {},
+
+    //All alarms active on server
+    'sys_alerts': {},
+
+
+
+    'deletePreset': function (p) {
+        if (confirm("Really Delete")) {
+            delete this.presets[p];
+            api_link.send(['preset', p, None]);
+
+        }
+    },
+
+
+    'renamePreset': function (p) {
+        var n = prompt("Preset Name?")
+
+        if (n && n.length) {
+            var b = this.presets[p]
+            if (b) {
+                delete this.presets[p];
+                api_link.send(['preset', p, None]);
+
+                this.presets[n] = b;
+                api_link.send(['preset', n, b]);
+            }
+        }
+    },
+
+    'savePreset': function (v) {
+        /*Prompt saving data from the cuevals dict as a preset*/
+        var v2 = {}
+
+        // Just the vals
+        for (i in v) {
+            v2[i] = v[i].v
+        }
+
+        var n = prompt("Preset Name?")
+
+        if (n && n.length) {
+            this.presets[n] = v2;
+            api_link.send(['preset', n, v2]);
+
+        }
+    },
+
+    'updatePreset': function (i, v) {
+        /*Update given a name and the modified data as would be found in the presets file*/
+        this.presets[i] = v;
+        api_link.send(['preset', i, v]);
+    },
+    'recomputeformattedCues': function () {
+
+    },
+    'chnamelookup': function (u, c) {
+        if (this.channelNames[u] == undefined) {
+            return undefined
+        }
+
+        return this.channelNames[u][c]
+    },
+    "getcueid": function (sceneid, cuename) {
+        return (this.scenecues[sceneid][cuename])
+    },
+
+
+    'prompt': prompt,
+
+
     //https://stackoverflow.com/questions/18082/validate-decimal-numbers-in-javascript-isnumeric
     'isNumeric': function (input) {
         var RE = /^-{0,1}\d*\.{0,1}\d+$/;
@@ -1244,72 +1263,72 @@ function f(v) {
     c = v[0]
 
     if (c == 'scenetimers') {
-        appData.scenemeta[v[1]].timers = v[2]
+        vueapp.$data.scenemeta[v[1]].timers = v[2]
     }
     if (c == 'cuehistory') {
-        appData.scenemeta[v[1]].history = v[2]
+        vueapp.$data.scenemeta[v[1]].history = v[2]
     }
     if (c == "scenemeta") {
         if (v[2].cue) {
-            if (appData.cuemeta[v[2].cue] == undefined) {
-                appData.getcuemeta(v[2].cue)
+            if (vueapp.$data.cuemeta[v[2].cue] == undefined) {
+                vueapp.$data.getcuemeta(v[2].cue)
             }
         }
 
         if (v[2].alpha != undefined) {
-            if (!appData.lockedFaders[v[1]]) {
-                Vue.set(appData.alphas, v[1], v[2].alpha);
+            if (!vueapp.$data.lockedFaders[v[1]]) {
+                old_vue_set(vueapp.$data.alphas, v[1], v[2].alpha);
             }
         }
 
         //Just update existing data if we can
-        if (appData.scenemeta[v[1]]) {
-            Object.assign(appData.scenemeta[v[1]], v[2])
+        if (vueapp.$data.scenemeta[v[1]]) {
+            Object.assign(vueapp.$data.scenemeta[v[1]], v[2])
         }
         else {
             var meta = v[2];
-            set(appData.scenemeta, v[1], meta);
+            set(vueapp.$data.scenemeta, v[1], meta);
         }
 
-        if (appData.selectedCues[v[1]] == undefined) {
-            Vue.set(appData.selectedCues, v[1], 'default')
+        if (vueapp.$data.selectedCues[v[1]] == undefined) {
+            old_vue_set(vueapp.$data.selectedCues, v[1], 'default')
         }
         //Make an empty list of cues as a placeholder till the real data arrives
-        if (appData.scenecues[v[1]] == undefined) {
-            Vue.set(appData.scenecues, v[1], {});
+        if (vueapp.$data.scenecues[v[1]] == undefined) {
+            old_vue_set(vueapp.$data.scenecues, v[1], {});
         };
     }
 
     if (c == "cuemeta") {
         //Make an empty list of cues if it's not there yet
-        if (appData.scenecues[v[2].scene] == undefined) {
-            Vue.set(appData.scenecues, v[2].scene, {});
+        if (vueapp.$data.scenecues[v[2].scene] == undefined) {
+            old_vue_set(vueapp.$data.scenecues, v[2].scene, {});
         };
-        Vue.set(appData.scenecues[v[2].scene], v[2].name, v[1]);
+        old_vue_set(vueapp.$data.scenecues[v[2].scene], v[2].name, v[1]);
 
 
         //Make an empty list of cues as a placeholder till the real data arrives
-        if (appData.cuemeta[v[1]] == undefined) {
-            Vue.set(appData.cuemeta, v[1], {});
+        if (vueapp.$data.cuemeta[v[1]] == undefined) {
+            old_vue_set(vueapp.$data.cuemeta, v[1], {});
         };
-        set(appData.cuemeta, v[1], v[2]);
-        appData.recomputeformattedCues();
+        set(vueapp.$data.cuemeta, v[1], v[2]);
+        vueapp.$data.recomputeformattedCues();
 
     }
 
     if (c == "event") {
 
-        appData.evlog.push(v[1])
-        if (appData.evlog.length > 250) {
-            appData.evlog = appData.evlog.slice(-250)
+        vueapp.$data.evlog.push(v[1])
+        if (vueapp.$data.evlog.length > 250) {
+            vueapp.$data.evlog = vueapp.$data.evlog.slice(-250)
         }
 
         if (v[1][0].includes("error")) {
-            appData.showevents = true;
+            vueapp.$data.showevents = true;
         }
 
-        if (appData.showevents) {
-            if (appData.eventlogautoscroll) {
+        if (vueapp.$data.showevents) {
+            if (vueapp.$data.eventlogautoscroll) {
                 var d = document.getElementById('eventlogbox');
                 var isscrolled = d.scrollTop + d.clientHeight + 35 >= d.scrollHeight;
 
@@ -1337,45 +1356,45 @@ function f(v) {
         }
     }
     if (c == "serports") {
-        appData.serports = v[1]
+        vueapp.$data.serports = v[1]
     }
 
     if (c == 'alerts') {
-        appData.sys_alerts = v[1]
+        vueapp.$data.sys_alerts = v[1]
     }
     if (c == 'confuniverses') {
-        appData.configuredUniverses = v[1]
+        vueapp.$data.configuredUniverses = v[1]
     }
     if (c == 'universe_status') {
-        appData.universes[v[1]].status = v[2]
-        appData.universes[v[1]].ok = v[3]
-        appData.universes[v[1]].telemetry = v[4]
+        vueapp.$data.universes[v[1]].status = v[2]
+        vueapp.$data.universes[v[1]].ok = v[3]
+        vueapp.$data.universes[v[1]].telemetry = v[4]
     }
 
     if (c == "varchange") {
-        appData.scenemeta[v[1]]['vars'][v[2]] = v[3]
+        vueapp.$data.scenemeta[v[1]]['vars'][v[2]] = v[3]
     }
     if (c == "delcue") {
-        c = appData.cuemeta[v[1]]
-        Vue.delete(appData.cuemeta, v[1]);
-        Vue.delete(appData.cuevals, v[1]);
-        Vue.delete(appData.scenecues[c.scene], c.name);
-        appData.recomputeformattedCues();
+        c = vueapp.$data.cuemeta[v[1]]
+        old_vue_delete(vueapp.$data.cuemeta, v[1]);
+        old_vue_delete(vueapp.$data.cuevals, v[1]);
+        old_vue_delete(vueapp.$data.scenecues[c.scene], c.name);
+        vueapp.$data.recomputeformattedCues();
     }
 
     if (c == "cnames") {
-        Vue.set(appData.channelNames, v[1], v[2])
+        old_vue_set(vueapp.$data.channelNames, v[1], v[2])
     }
     if (c == "universes") {
-        appData.universes = v[1]
+        vueapp.$data.universes = v[1]
     }
     if (c == "soundoutputs") {
-        appData.soundCards = v[1]
+        vueapp.$data.soundCards = v[1]
     }
 
     if (c == 'soundsearchresults') {
-        if (appData.soundsearch == v[1]) {
-            appData.soundsearchresults = v[2]
+        if (vueapp.$data.soundsearch == v[1]) {
+            vueapp.$data.soundsearchresults = v[2]
         }
     }
     if (c == 'scenecues') {
@@ -1383,8 +1402,8 @@ function f(v) {
         //So if the data isn't in cuemeta, fill in what we can
         d = v[2]
         for (i in v[2]) {
-            if (appData.cuemeta[d[i][0]] == undefined) {
-                Vue.set(appData.cuemeta, d[i][0],
+            if (vueapp.$data.cuemeta[d[i][0]] == undefined) {
+                old_vue_set(vueapp.$data.cuemeta, d[i][0],
                     {
                         'name': i,
                         'number': d[
@@ -1393,25 +1412,25 @@ function f(v) {
             }
 
             //Make the empty list
-            if (appData.scenecues[v[1]] == undefined) {
-                Vue.set(appData.scenecues, v[1], {});
+            if (vueapp.$data.scenecues[v[1]] == undefined) {
+                old_vue_set(vueapp.$data.scenecues, v[1], {});
             };
 
 
-            Vue.set(appData.scenecues[v[1]], i, d[i][0])
+            old_vue_set(vueapp.$data.scenecues[v[1]], i, d[i][0])
         }
-        appData.recomputeformattedCues();
+        vueapp.$data.recomputeformattedCues();
     }
     if (c == "cuedata") {
         d = {}
-        Vue.set(appData.cuevals, v[1], d)
+        old_vue_set(vueapp.$data.cuevals, v[1], d)
 
         for (i in v[2]) {
 
-            if (!(i in appData.channelNames)) {
+            if (!(i in vueapp.$data.channelNames)) {
                 api_link.send(['getcnames', i])
             }
-            Vue.set(appData.cuevals[v[1]], i, {})
+            old_vue_set(vueapp.$data.cuevals[v[1]], i, {})
 
             for (j in v[2][i]) {
                 y = {
@@ -1419,18 +1438,18 @@ function f(v) {
                     'ch': j,
                     "v": v[2][i][j]
                 }
-                Vue.set(appData.cuevals[v[1]][i], j, y)
+                old_vue_set(vueapp.$data.cuevals[v[1]][i], j, y)
                 //The other 2 don't need to be reactive, v does
-                Vue.set(y, 'v', v[2][i][j])
+                old_vue_set(y, 'v', v[2][i][j])
 
             }
         }
-        appData.refreshcuedata()
+        vueapp.$data.refreshcuedata()
 
     }
 
     else if (c == "commands") {
-        appData.availableCommands = v[1]
+        vueapp.$data.availableCommands = v[1]
     }
 
     if (c == "scv") {
@@ -1441,16 +1460,16 @@ function f(v) {
         channel = v[3]
         value = v[4]
 
-        if (appData.lockedFaders[cue + ":" + universe + ":" + channel] == true) {
+        if (vueapp.$data.lockedFaders[cue + ":" + universe + ":" + channel] == true) {
             return;
         }
 
 
         var needRefresh = false;
         //Empty universe dict
-        if (!appData.cuevals[cue][universe]) {
+        if (!vueapp.$data.cuevals[cue][universe]) {
 
-            Vue.set(appData.cuevals[cue], universe, {})
+            old_vue_set(vueapp.$data.cuevals[cue], universe, {})
             needRefresh = 1;
         }
 
@@ -1461,15 +1480,15 @@ function f(v) {
                 'ch': channel,
                 "v": value
             }
-            Vue.set(y, 'v', value)
-            Vue.set(appData.cuevals[cue][universe], channel, y)
+            old_vue_set(y, 'v', value)
+            old_vue_set(vueapp.$data.cuevals[cue][universe], channel, y)
         }
         else {
-            Vue.delete(appData.cuevals[cue][universe], channel)
+            old_vue_delete(vueapp.$data.cuevals[cue][universe], channel)
             needRefresh = 1;
         }
         if (needRefresh) {
-            appData.refreshcuedata()
+            vueapp.$data.refreshcuedata()
         }
 
     }
@@ -1477,7 +1496,7 @@ function f(v) {
 
     if (c == "go") {
 
-        Vue.set(appData.scenemeta[v[1]], 'active', true)
+        old_vue_set(vueapp.$data.scenemeta[v[1]], 'active', true)
 
     }
 
@@ -1487,65 +1506,69 @@ function f(v) {
 
     if (c == "stop") {
 
-        Vue.set(appData.scenemeta[v[1]], 'active', false)
+        old_vue_set(vueapp.$data.scenemeta[v[1]], 'active', false)
 
     }
     if (c == "ferrs") {
 
-        appData.ferrs = v[1]
+        vueapp.$data.ferrs = v[1]
 
     }
     if (c == "fixtures") {
 
-        appData.fixtures = v[1]
+        vueapp.$data.fixtures = v[1]
 
     }
     if (c == "fixtureclasses") {
 
-        appData.fixtureClasses = v[1]
+        vueapp.$data.fixtureClasses = v[1]
     }
     if (c == "fixtureclass") {
 
-        Vue.set(appData.fixtureClasses, v[1], v[2])
+        old_vue_set(vueapp.$data.fixtureClasses, v[1], v[2])
     }
 
     if (c == "fixtureAssignments") {
 
-        appData.fixtureAssignments = v[1]
+        vueapp.$data.fixtureAssignments = v[1]
     }
 
     if (c == "del") {
-        Vue.delete(appData.selectedCues, v[1])
-        Vue.delete(appData.scenemeta, v[1])
-        Vue.delete(appData.running_scenes, v[1])
-        Vue.delete(appData.mtimes, v[1])
-        appData.editingScene = null
+        old_vue_delete(vueapp.$data.selectedCues, v[1])
+        old_vue_delete(vueapp.$data.scenemeta, v[1])
+        old_vue_delete(vueapp.$data.running_scenes, v[1])
+        old_vue_delete(vueapp.$data.mtimes, v[1])
+        vueapp.$data.editingScene = null
 
     }
 
     if (c == "newscene") {
-        appData.allScenes.push([v[1], v[2]])
+        vueapp.$data.allScenes.push([v[1], v[2]])
     }
     if (c == 'soundfolderlisting') {
-        if (v[1] == appData.soundfilesdir) {
-            appData.soundfileslisting = v[2]
+        if (v[1] == vueapp.$data.soundfilesdir) {
+            vueapp.$data.soundfileslisting = v[2]
         }
     }
 
     if (c == 'presets') {
-        appData.presets = v[1]
+        vueapp.$data.presets = v[1]
     }
 }
 
 
-boardapi_msghandler = f
-api_link.upd = f
-api_link.send(['gasd']);
-api_link.send(['getCommands']);
+init_api_link = function () {
+    api_link.upd = f
+    api_link.send(['gasd']);
+    api_link.send(['getCommands']);
 
-setInterval(function () {
-    appData.unixtime = api_link.now() / 1000
-}, 1000 / 8)
+
+    setInterval(function () {
+        this.unixtime = api_link.now() / 1000
+    }, 1000 / 8)
+
+}
+
 var shortcut = function (sc) {
     return function () {
         api_link.send(['shortcut', sc]);

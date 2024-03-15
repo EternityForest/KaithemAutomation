@@ -78,7 +78,7 @@
 
 
 <script>
-hfaderdata =
+var hfaderdata =
 {
     'promptExactVal': function (cue, u, v) {
         var x = prompt("Enter new value for scene")

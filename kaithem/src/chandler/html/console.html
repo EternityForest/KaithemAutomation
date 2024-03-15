@@ -111,11 +111,9 @@ ${lists}
     }
 </style>
 
-<script src="/static/js/thirdparty/vue2.js"></script>
-<script src="/static/js/thirdparty/http-vue-loader.js"></script>
+<script src="/static/js/thirdparty/vue3.js"></script>
 
 <script src="/static/js/thirdparty/sortable.min.js"></script>
-<script src="/static/js/thirdparty/vuedraggable.umd.min.js"></script>
 
 <script type="text/javascript" src="/static/js/widget.js"></script>
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
@@ -123,41 +121,6 @@ ${lists}
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
 
-<script>
-    function set(o, k, v) {
-
-        if (o[k] == undefined) {
-            Vue.set(o, k, v)
-        }
-        for (var key in v) {
-            // If values of same property are not equal,
-            // objects are not equivalent
-            if (o[k][key] !== v[key]) {
-                Vue.set(o[k], key, v[key])
-            }
-        }
-
-        // If we made it this far, objects
-        // are considered equivalent
-        return true;
-    }
-
-    function useBlankDescriptions(l, additional) {
-        var l2 = [];
-        for (i in l) {
-            l2.push([i, '']);
-        }
-        if (additional) {
-            for (i in additional) {
-                l2.push([i, additional[i]]);
-
-            }
-        }
-        return l2;
-    }
-
-
-</script>
 <div id="app" class="flex-row gaps">
     <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
@@ -232,11 +195,11 @@ ${lists}
 
             <div class="h-24rem scroll">
                 <div class="flex-col gaps">
-                    <article v-for="i in formatScenes()" style="position:relative;"
+                    <article v-for="i in formatAllScenes" style="position:relative;"
                         v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
                         <header>
-                            <hgroup>
+                            <div>
                                 <h4>
                                     <button v-bind:class="{highlight:i[0]==scenename}"
                                         v-on:click="selectscene(i[1],i[0])" style="width: 100%">
@@ -249,11 +212,12 @@ ${lists}
                                     </button>
                                 </h4>
 
-                            </hgroup>
+                            </div>
                         </header>
                         <p>
 
-                            <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small></span>
+                            <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
+                                <small>{{formatTime(i[1].enteredCue)}}</small></span>
                             <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
 
 
@@ -295,7 +259,8 @@ ${lists}
                                     <td>
                                         <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min"
                                             :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
-                                            :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
+                                            :lo="i[1].displayTagMeta[v[1]].lo"
+                                            :value="i[1].displayTagValues[v[1]]"></meter>
 
                                         {{i[1].displayTagValues[v[1]] }}
                                     </td>
@@ -304,19 +269,22 @@ ${lists}
 
                                 <template v-if="v[2].type == 'string_input'">
                                     <td>
-                                        <input v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
+                                        <input v-model="i[1].displayTagValues[v[1]]"
+                                            v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
                                     </td>
                                 </template>
 
                                 <template v-if="v[2].type == 'numeric_input'">
                                     <td>
-                                        <input type="number" v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
+                                        <input type="number" v-model="i[1].displayTagValues[v[1]]"
+                                            v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
                                     </td>
                                 </template>
 
                                 <template v-if="v[2].type == 'switch_input'">
                                     <td>
-                                        <input type="checkbox" class="toggle" v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
+                                        <input type="checkbox" class="toggle" v-model="i[1].displayTagValues[v[1]]"
+                                            v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
                                     </td>
                                 </template>
 
@@ -373,7 +341,8 @@ ${lists}
                     v-model="eventlogautoscroll"></label><br>
             <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
                 <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                    v-for="i in evlog.filter((d) => (d[1].search(evfilt)>-1 || d[0].search(evfilt)>-1) )" >{{i[2]}}: <b>{{i[0]}}</b>
+                    v-for="i in evlog.filter((d) => (d[1].search(evfilt)>-1 || d[0].search(evfilt)>-1) )">{{i[2]}}:
+                    <b>{{i[0]}}</b>
                     at
                     {{i[1]}}:
 
@@ -894,7 +863,7 @@ ${lists}
                         </thead>
 
                         <tbody>
-                            <tr v-for="i in formatCues(1)"
+                            <tr v-for="i in formatCues"
                                 v-bind:class="{'highlight' : selectedCues[scenename]==i[1].name}">
                                 <td class="rowname" data-label="Cue: " style=" user-select: none;"
                                     title="Click the cue name to edit that cue"
@@ -916,12 +885,11 @@ ${lists}
                                     <i class="icofont-audio nomargin" v-if="i[1].sound"></i>
                                     <i class="icofont-monitor nomargin" v-if="i[1].slide"></i>
 
-                                    <span v-if="i[1].inheritRules" title="This cue has rules inherited"
-                                        v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
+                                    <span v-if="i[1].inheritRules" title="This cue has rules inherited"><i
                                             class="icofont-law-document nomargin"></i></span>
 
-                                    <span v-if="i[1].rules && i[1].rules.length>0" title="This cue has rules attatched"
-                                        v-on:click="scenetab='logic';selectcue(scenename,i[1].name)"><i
+                                    <span v-if="i[1].rules && i[1].rules.length>0"
+                                        title="This cue has rules attatched"><i
                                             class="icofont-law-document nomargin"></i></span>
                                 </td>
 
@@ -953,7 +921,7 @@ ${lists}
                                         title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)">
                                         <option value="">&gt&gt&gt</option>
-                                        <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}:
+                                        <option v-for="j in formatCues" v-bind:value="j[1].name">{{j[1].number}}:
                                             {{j[1].name}}</option>
                                         <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
 
@@ -1004,7 +972,7 @@ ${lists}
             <hr>
 
 
-            <div v-if="currentcue && scenetab !='blend'">
+            <div v-if="currentcue">
                 <h3>Editing Cue: {{currentcue.name}}</h3>
 
 
@@ -1021,46 +989,46 @@ ${lists}
                                 class="icofont-listing-box"></i>Channels</button>
                     </div>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox">
-                        <article class="universe card flex-col gaps" v-for="(h,uname) in cuevals[currentcueid]"
-                            v-if="uname[0]!='@'">
-                            <header>
-                                <h3>{{uname}}</h3>
-                            </header>
-                            <div class="scroll nomargin h-24rem">
-                                <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                    :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
-                                    :showdelete="scenetab=='channels'" v-for="i in h">
-                                </h-fader>
-                            </div>
-                        </article>
-
-
-                        <article class="fixture card flex-col gaps" v-for="(h,fname) in cuevals[currentcueid]"
-                            v-if="fname[0]=='@'">
-                            <header>
-                                <div class="tool-bar" v-if="editingScene.blend!='monitor'">
-                                    <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
-                                    <select
-                                        v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
-                                        <option value="__dummy__">Presets</option>
-                                        <option
-                                            v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
-                                            :value="ps[0]">{{ps[0]}}</option>
-                                    </select>
-                                    <button v-on:click="savePreset(h)">Save</button>
+                        <template v-for="(h,uname) in cuevals[currentcueid]">
+                            <article class="universe card flex-col gaps" v-if="uname[0]!='@'">
+                                <header>
+                                    <h3>{{uname}}</h3>
+                                </header>
+                                <div class="scroll nomargin h-24rem">
+                                    <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
+                                        :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
+                                        :showdelete="scenetab=='channels'" v-for="i in h">
+                                    </h-fader>
                                 </div>
-                                <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
-                                    <i class="icofont-trash"></i>
-                                </button>
-                            </header>
-                            <div class="scroll nomargin h-24rem padding-bottom">
-                                <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                    :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
-                                    :showdelete="scenetab=='channels'" v-for="i in h">
-                                </h-fader>
-                            </div>
-                        </article>
+                            </article>
+                        </template>
+                        <template v-for="(h,fname) in cuevals[currentcueid]">
 
+                            <article class="fixture card flex-col gaps" v-if="fname[0]=='@'">
+                                <header>
+                                    <div class="tool-bar" v-if="editingScene.blend!='monitor'">
+                                        <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
+                                        <select
+                                            v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
+                                            <option value="__dummy__">Presets</option>
+                                            <option
+                                                v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
+                                                :value="ps[0]">{{ps[0]}}</option>
+                                        </select>
+                                        <button v-on:click="savePreset(h)">Save</button>
+                                    </div>
+                                    <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
+                                        <i class="icofont-trash"></i>
+                                    </button>
+                                </header>
+                                <div class="scroll nomargin h-24rem padding-bottom">
+                                    <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
+                                        :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
+                                        :showdelete="scenetab=='channels'" v-for="i in h">
+                                    </h-fader>
+                                </div>
+                            </article>
+                        </template>
                         <div v-if="scenetab=='channels'" class="flex-row gaps">
                             <div class="card margin">
                                 <header>
@@ -1119,20 +1087,22 @@ ${lists}
                         <h3>Automation Logic</h3>
                         <details class="help">
                             <summary><i class="icofont-question-circle"></i></summary>
-                        <p>
-                            Here you can create rules that
-                            apply whenever the scene is in this cue, to
-                            do things like trigger other cues when
-                            this one enters or exits.
-                        </p>
+                            <p>
+                                Here you can create rules that
+                                apply whenever the scene is in this cue, to
+                                do things like trigger other cues when
+                                this one enters or exits.
+                            </p>
 
-                        <p>Action parameters can use spreadsheet-style =expressions.  The special function tv('name') or stv('name') gets the value of
-                            a tag or string tag.
-                        </p>
+                            <p>Action parameters can use spreadsheet-style =expressions. The special function tv('name')
+                                or stv('name') gets the value of
+                                a tag or string tag.
+                            </p>
 
-                        <p>The variables "event.name", "event.value", and "event.time" are available to get info on the event that triggered a rule.</p>
+                            <p>The variables "event.name", "event.value", and "event.time" are available to get info on
+                                the event that triggered a rule.</p>
 
-                    
+
                         </details>
                     </div>
                     <div class="card w-sm-full" style="overflow: visible;">
@@ -1189,7 +1159,8 @@ ${lists}
                     <h3>Event Log</h3>
                     <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
                         <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                            v-for="i in evlog.filter((d) => d[1].search(editingScene.name) )">{{i[2]}}: <b>{{i[0]}}</b> at
+                            v-for="i in evlog.filter((d) => d[1].search(editingScene.name) )">{{i[2]}}: <b>{{i[0]}}</b>
+                            at
                             {{i[1]}}:
 
                             <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
@@ -1225,7 +1196,9 @@ ${lists}
                         <div class="flex-row gaps">
 
                             <div class="card w-sm-full">
-                                <header><h3>Cue Sound</h3></header>
+                                <header>
+                                    <h3>Cue Sound</h3>
+                                </header>
                                 <div class="stacked-form">
                                     <label>Sound
                                         <input placeholder="No sound file" v-model="currentcue.sound"
@@ -1427,35 +1400,38 @@ ${lists}
                                         videos will play in the browser on connected remote displays.
                                     </details>
                                     <div class="scroll">
-                                    <dl>
+                                        <dl>
 
 
-                                        <dt>Web Player</dt>
-                                        <dd>
-                                            <div class="tool-bar">
-                                                <button v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set
-                                                    for
-                                                    Cue</button>
-                                                <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
-                                                    as
-                                                    Scene Default</button>
-                                            </div>
-                                        </dd>
-
-
-                                        <template v-for="i of soundCards">
-                                            <dt>{{i || "UNSET" }}</dt>
+                                            <dt>Web Player</dt>
                                             <dd>
                                                 <div class="tool-bar">
-                                                    <button v-on:click="setSoundOutput(currentcueid,i)">Set for
+                                                    <button
+                                                        v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set
+                                                        for
                                                         Cue</button>
-                                                    <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
-                                                        Default</button>
-                                                    <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                                    <button
+                                                        v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
+                                                        as
+                                                        Scene Default</button>
                                                 </div>
                                             </dd>
-                                        </template>
-                                    </dl>
+
+
+                                            <template v-for="i of soundCards">
+                                                <dt>{{i || "UNSET" }}</dt>
+                                                <dd>
+                                                    <div class="tool-bar">
+                                                        <button v-on:click="setSoundOutput(currentcueid,i)">Set for
+                                                            Cue</button>
+                                                        <button v-on:click="setSceneSoundOutput(scenename,i)">Set as
+                                                            Scene
+                                                            Default</button>
+                                                        <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                                    </div>
+                                                </dd>
+                                            </template>
+                                        </dl>
                                     </div>
                                 </div>
                             </div>
@@ -1578,7 +1554,7 @@ ${lists}
 
                 <div style="overflow: auto; max-height:30em;">
                     <h4>Scene Notes</h4>
-                    <textarea v-model:value="editingScene.notes"></textarea><br>
+                    <textarea v-model="editingScene.notes"></textarea><br>
                     <button v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
                 </div>
             </details>
@@ -1763,25 +1739,31 @@ ${lists}
                         </header>
                         <div class="stacked-form">
                             <label>Download just this scene
-                                <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
-                                title="Download your scene as a file"><i class="icofont-download"></i>Download Scene</a>
+                                <a class="button"
+                                    v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
+                                    title="Download your scene as a file"><i class="icofont-download"></i>Download
+                                    Scene</a>
                             </label>
 
                             <label>Download audio playlist as m3u
-                                <a class="button" v-bind:href="'downloadm3u?id='+scenename+'&rel=&name='+editingScene.name"
-                                title="Download your scene as a file"><i class="icofont-download"></i>Download Playlist</a>
+                                <a class="button"
+                                    v-bind:href="'downloadm3u?id='+scenename+'&rel=&name='+editingScene.name"
+                                    title="Download your scene as a file"><i class="icofont-download"></i>Download
+                                    Playlist</a>
                             </label>
 
-                            <p>This playlist should work in other apps such as VLC on other computers, as long as the same media folders are
+                            <p>This playlist should work in other apps such as VLC on other computers, as long as the
+                                same media folders are
                                 in the same place relative to your home folder.
                             </p>
 
                             <label>Add new cues from playlist
-                                <a class="button"  v-bind:href="'uploadm3u?id='+scenename" title="Upload a playlist"><i
-                                    class="icofont-folder-open"></i>Upload M3U Playlist</a>
+                                <a class="button" v-bind:href="'uploadm3u?id='+scenename" title="Upload a playlist"><i
+                                        class="icofont-folder-open"></i>Upload M3U Playlist</a>
                             </label>
 
-                            <p>Uploads use fuzzy search and should work as long as media files exist somewhere in a media folder, you can use playlists from other devices.
+                            <p>Uploads use fuzzy search and should work as long as media files exist somewhere in a
+                                media folder, you can use playlists from other devices.
                             </p>
 
                         </div>
@@ -1801,7 +1783,8 @@ ${lists}
                             </label>
 
                             <label>Value
-                                <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+                                <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value"
+                                    placeholder="value">
                             </label>
                             <label>Type
                                 <select v-model="evtypetosend">
@@ -1896,12 +1879,13 @@ ${lists}
                         <details class="help">
                             <summary><i class="icofont-question-circle"></i></summary>
                             <p>Lets you display some tag
-                            points
-                            in
-                            the
-                            scene overview.</p>
+                                points
+                                in
+                                the
+                                scene overview.</p>
 
-                            <p>Tags will be created if they do not exist. Use the tag settings page to configure defaults an limits</p>
+                            <p>Tags will be created if they do not exist. Use the tag settings page to configure
+                                defaults an limits</p>
 
                             <p>Expression tags are allowed, =tv('tag1') + 6 will display 6 plus the tag 'tv'</p>
 
@@ -1929,7 +1913,7 @@ ${lists}
 
 
                                 <td><select v-model="v[2].type"
-                                    v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                        v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                         <option value="auto">Auto Display</option>
                                         <option value="string_input">Text Input</option>
                                         <option value="numeric_input">Numeric Input</option>
@@ -1940,8 +1924,9 @@ ${lists}
 
                                 <td><button
                                         v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button>
-                                    
-                                    <a v-bind:href="'/tagpoints/'+encodeURIComponent(v[1])"><i class="icofont-gear"></i></a>
+
+                                    <a v-bind:href="'/tagpoints/'+encodeURIComponent(v[1])"><i
+                                            class="icofont-gear"></i></a>
                                 </td>
 
 
@@ -2014,42 +1999,8 @@ ${core.boards[0]().link.render('api_link')}
 <script src="/static/js/thirdparty/jquery3.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
-<script>
-    Vue.component('cue-countdown',
-        {
-            template: '#cue-cd',
-            props: ['unixtime', 'cue', 'scene'],
-            data: function () {
-                return ({ 'formatInterval': formatInterval })
-            }
-        })
-
-    getValueRange = function (d, v) {
-        //Given a channel info list structure thing and a value, return the [min,max,name] of the range
-        //that the value is in
-        if (d == undefined) { return ([0, 255, "Unknown"]) }
-        var c = 0
-        for (i of d) {
-            if (c > 2) {
-                if (i[1] >= v) {
-                    //Better to return Unknown then bad data
-                    if (i.length == 3) {
-                        return (i)
-                    }
-                }
-            }
-            c += 1
-        }
-        return ([0, 255, "Unknown"])
-    }
-
-
-
-
-
-</script>
-
 <script src="dyn_js/boardapi.js"></script>
+<script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 <script>
     appData.formatTime = function (t) {
@@ -2057,70 +2008,64 @@ ${core.boards[0]().link.render('api_link')}
         return date.strftime("%I:%M:%S%p")
     }
 
-    var vueapp = new Vue(
+    const options = {
+        moduleCache: {
+            vue: Vue
+        },
+        async getFile(url) {
+
+            const res = await fetch(url);
+            if (!res.ok)
+                throw Object.assign(new Error(res.statusText + ' ' + url), { res });
+            return {
+                getContentData: asBinary => asBinary ? res.arrayBuffer() : res.text(),
+            }
+        },
+        addStyle(textContent) {
+
+            const style = Object.assign(document.createElement('style'), { textContent });
+            const ref = document.head.getElementsByTagName('style')[0] || null;
+            document.head.insertBefore(style, ref);
+        },
+    }
+
+    const { loadModule } = window['vue3-sfc-loader'];
+
+
+    function httpVueLoader(u) {
+        return Vue.defineAsyncComponent(() => loadModule(u, options))
+    }
+
+    var vueapp = Vue.createApp(
         {
-            el: '#app',
-            data: appData,
+            data: function () {
+                return appData
+            },
+            methods: appMethods, 
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 "script-editor": httpVueLoader('static/ScriptEditor.vue'),
                 "h-fader": httpVueLoader('static/hfader.vue'),
-
-            },
-            computed:
-            {
-                "currentcue": function () {
-                    return (this.cuemeta[this.scenecues[this.scenename]
-                    [this.selectedCues[this.scenename]]
-                    ])
-                },
-                "currentcueid": function () {
-                    return (this.scenecues[this.scenename][this
-                        .selectedCues[
-                        this.scenename]
-                    ])
+                'cue-countdown':
+                {
+                    template: '#cue-cd',
+                    props: ['unixtime', 'cue', 'scene'],
+                    data: function () {
+                        return ({ 'formatInterval': formatInterval })
+                    }
                 }
+            },
+            computed: appComputed
+        }).mount("#app")
 
-            }
-        })
+    init_api_link()
 
-    function f(v) {
-        c = v[0]
-        // Handling messages happens in the common shared code
-        boardapi_msghandler(v)
-    }
-
-
-
-    api_link.upd = f
-    api_link.send(['gasd']);
-    api_link.send(['getCommands']);
-    api_link.send(['getfixtureassg'])
 </script>
 
 <script>
     setInterval(function () {
         appData.unixtime = api_link.now() / 1000
     }, 1000 / 8)
-    var shortcut = function (sc) {
-        return function () {
-            api_link.send(['shortcut', sc]);
-
-        }
-    }
-    var next = function (sc) {
-        return function () {
-            api_link.send(['nextcuebyname', sc]);
-
-        }
-    }
-    var goto = function (sc, cue) {
-        return function () {
-            api_link.send(['jumpbyname', sc, cue]);
-
-        }
-    }
-
 
     keysdown = {}
     keyHandle = function (e) {

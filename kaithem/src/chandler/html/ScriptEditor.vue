@@ -188,12 +188,12 @@ p.small {
 <script>
 module.exports = {
 
-    props: ['value', 'commands', 'pinnedvars', "inspector", "completers", "example_events"],
+    props: ['modelValue', 'commands', 'pinnedvars', "inspector", "completers", "example_events"],
     components: {
         "combo-box": httpVueLoader("/static/vue/ComboBox.vue"),
     },
     watch: {
-        value: function (newVal) {
+        modelValue: function (newVal) {
             this.rules = newVal
         },
         completers: function (newVal) {
@@ -260,7 +260,7 @@ module.exports = {
 
 
             'moveCueRuleDown': function (idx) {
-                var rules = [...this.value];
+                var rules = [...this.modelValue];
 
                 if (idx < rules.length - 1) {
                     var t = rules[idx + 1]
@@ -276,7 +276,7 @@ module.exports = {
                 arr[indexA] = arr[indexB];
                 arr[indexB] = temp;
             },
-            rules: this.value,
+            rules: this.modelValue,
             argcompleters: (this.completers || {}),
             getPossibleActions: function () {
                 var l = [];
