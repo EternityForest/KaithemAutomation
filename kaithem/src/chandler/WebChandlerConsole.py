@@ -557,23 +557,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if not hadVals:
                 self.pushCueMeta(msg[1])
 
-        elif cmd_name == "setcuevaldata":
-            # Verify correct data
-            for i in msg[2]:
-                for j in msg[2][i]:
-                    float(msg[2][i][j])
-
-            cues[msg[1]].clearValues()
-
-            for i in msg[2]:
-                for j in msg[2][i]:
-                    try:
-                        ch = int(j)
-                    except Exception:
-                        ch = j
-                    # Hack. because JSON and yaml are giving us strings
-                    cues[msg[1]].set_value(i, j, msg[2][i][j])
-
         elif cmd_name == "add_cuef":
             cue = cues[msg[1]]
 

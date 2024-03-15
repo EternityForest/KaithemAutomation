@@ -3,6 +3,18 @@ ${ vars }
 /* This rather hacky file expects this to become the app data for a vue instance
  named vueapp, and provides the chandler API that way.
 
+ It's slowly being refactored after getting very out of hand.
+
+ It expects an APIWidget rendered with the name api_link
+
+ It provides appData, appComputed, and appMethods to add to your vue instance.
+
+ Things are done oddly because:
+
+ 1. It was not originally planned to be this feature rich
+ 2. It started with Vue2
+ 
+
 */
 
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -145,8 +157,6 @@ appMethods = {
     'selectcue': function (sc, cue) {
         this.selectedCues[sc] = cue
         this.getcuedata(this.scenecues[sc][cue])
-        this.refreshcuedata()
-
     },
     'getallcuemeta': function (sn) {
         api_link.send(['getallcuemeta', sn]);
@@ -159,10 +169,7 @@ appMethods = {
         this.scenename = sn;
         api_link.send(['gsd', sn]);
         api_link.send(['getallcuemeta', sn]);
-        this.refreshcuedata()
         this.recomputeformattedCues();
-
-
     },
     'delscene': function (sc) {
         var r = confirm("Really delete scene?");
@@ -310,10 +317,6 @@ appMethods = {
     'setprobability': function (sc, cue, v) {
         api_link.send(['setprobability', sc, cue, v]);
     },
-    'setcuevaldata': function (cue, v) {
-        api_link.send(['setcuevaldata', cue, jsyaml.safeLoad(v)]);
-    },
-
 
     'promptsetnumber': function (cue) {
         api_link.send(['setnumber', cue, Number(prompt(
@@ -858,8 +861,6 @@ appData = {
     'evtypetosend': 'float',
     'evval': '',
     'savedThisSession': false,
-    //For the raw cue data edit thing
-    'cuedatafield': "",
     'scenetab': 'cue',
     'showDMXSetup': false,
     'showPresets': false,
@@ -908,21 +909,6 @@ appData = {
             }
         }
         return op
-    },
-    //For the raw cue data edit thing
-    'refreshcuedata': function () {
-        try {
-            scene = this.scenename
-            cueid = this.scenecues[scene][this.selectedCues[scene]]
-
-            this.cuedatafield = jsyaml.safeDump(this
-                .formatCueVals(
-                    this.cuevals[cueid]));
-        }
-        catch
-        {
-
-        }
     },
 
     'del': function (a, b) {
@@ -1446,8 +1432,6 @@ function f(v) {
 
             }
         }
-        vueapp.$data.refreshcuedata()
-
     }
 
     else if (c == "commands") {
@@ -1489,10 +1473,6 @@ function f(v) {
             old_vue_delete(vueapp.$data.cuevals[cue][universe], channel)
             needRefresh = 1;
         }
-        if (needRefresh) {
-            vueapp.$data.refreshcuedata()
-        }
-
     }
 
 
