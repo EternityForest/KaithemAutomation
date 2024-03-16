@@ -248,55 +248,7 @@ ${lists}
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                             v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
 
-                        <table border="1" v-if="i[1].displayTags.length > 0">
-                            <tr v-for="v in i[1].displayTags">
-                                <td>{{v[0]}}</td>
-
-                                <template v-if="v[2].type == 'auto'">
-                                    <td>
-                                        <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min"
-                                            :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
-                                            :lo="i[1].displayTagMeta[v[1]].lo"
-                                            :value="i[1].displayTagValues[v[1]]"></meter>
-
-                                        {{i[1].displayTagValues[v[1]] }}
-                                    </td>
-                                </template>
-
-
-                                <template v-if="v[2].type == 'string_input'">
-                                    <td>
-                                        <input v-model="i[1].displayTagValues[v[1]]"
-                                            v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
-                                    </td>
-                                </template>
-
-                                <template v-if="v[2].type == 'numeric_input'">
-                                    <td>
-                                        <input type="number" v-model="i[1].displayTagValues[v[1]]"
-                                            v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
-                                    </td>
-                                </template>
-
-                                <template v-if="v[2].type == 'switch_input'">
-                                    <td>
-                                        <input type="checkbox" class="toggle" v-model="i[1].displayTagValues[v[1]]"
-                                            v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
-                                    </td>
-                                </template>
-
-                            </tr>
-                        </table>
-                        <table border="0">
-
-                            <tr v-for="(v,i) in i[1].timers">
-                                <td>{{i}}</td>
-                                <td style="width:8em;"
-                                    v-bind:class="{warning:(v-unixtime)<60, blinking:(v-unixtime)<5}">
-                                    {{formatInterval((v-unixtime))}}
-                                </td>
-                            </tr>
-                        </table>
+                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime"></scene-ui>
 
 
                         <div class="w-full flex">
@@ -2018,7 +1970,10 @@ ${core.boards[0]().link.render('api_link')}
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 "script-editor": httpVueLoader('static/ScriptEditor.vue'),
                 "h-fader": httpVueLoader('static/hfader.vue'),
-                'cue-countdown': httpVueLoader('static/cue-countdown.vue')
+                'cue-countdown': httpVueLoader('static/cue-countdown.vue'),
+                // Currently contains the timers and the display tags for the scenes overview
+                'scene-ui': httpVueLoader('static/scene-ui-controls.vue')
+
             },
             computed: appComputed
         }).mount("#app")

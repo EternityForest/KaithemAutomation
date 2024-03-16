@@ -689,6 +689,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         if not statusOnly:
             data: Dict[str, Any] = {
                 "ext": sceneid not in self.scenememory,
+                "id": sceneid,
                 "dalpha": scene.defaultalpha,
                 "alpha": scene.alpha,
                 "active": scene.isActive(),
@@ -731,6 +732,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         else:
             data = {
                 "alpha": scene.alpha,
+                "id": sceneid,
                 "active": scene.isActive(),
                 "default_active": scene.default_active,
                 "displayTagValues": scene.displayTagValues,

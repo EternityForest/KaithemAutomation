@@ -119,7 +119,7 @@
             <template v-for="i in formatScenes" >
             <article v-if="i"
                 style="position:relative"
-                v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'nogrow':1, 'flex-col': 1, 'h-18rem':1}"
+                v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'nogrow':1, 'flex-col': 1, 'min-h-18rem':1, 'max-h-24rem':1}"
                 >
 
 
@@ -170,50 +170,8 @@
                     <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0"
                         :src="i[1].infoDisplay"></iframe>
 
+                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime"></scene-ui>
 
-
-                    <table border="1" v-if="i[1].displayTags.length > 0">
-                        <tr v-for="v in i[1].displayTags">
-                            <td>{{v[0]}}</td>
-
-                            <template v-if="v[2].type == 'auto'">
-                                <td>
-                                    <meter v-if="i[1].displayTagMeta[v[1]]" :min="i[1].displayTagMeta[v[1]].min"
-                                        :max="i[1].displayTagMeta[v[1]].max" :high="i[1].displayTagMeta[v[1]].hi"
-                                        :lo="i[1].displayTagMeta[v[1]].lo" :value="i[1].displayTagValues[v[1]]"></meter>
-
-                                    {{i[1].displayTagValues[v[1]] }}
-                                </td>
-                            </template>
-
-
-                            <template v-if="v[2].type == 'string_input'">
-                                <td>
-                                    <input v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
-                                </td>
-                            </template>
-
-                            <template v-if="v[2].type == 'numeric_input'">
-                                <td>
-                                    <input type="number" v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
-                                </td>
-                            </template>
-
-                            <template v-if="v[2].type == 'switch_input'">
-                                <td>
-                                    <input type="checkbox" class="toggle" v-model="i[1].displayTagValues[v[1]]" v-on:change="setTagInputValue(i[0], v[1],i[1].displayTagValues[v[1]])">
-                                </td>
-                            </template>
-
-                        </tr>
-
-                        <tr v-for="(v,n) in i[1].timers">
-                            <td>Timer {{n}}</td>
-                            <td style="width:12em; font-family:Monospace;"
-                                v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
-                                {{formatInterval((v-unixtime))}}
-                            </td>
-                        </tr>
 
                     </table>
 
@@ -364,7 +322,9 @@ ${module.board.link.render('api_link')}
             methods: appMethods,
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
-                'cue-countdown': httpVueLoader('static/cue-countdown.vue')
+                'cue-countdown': httpVueLoader('static/cue-countdown.vue'),
+                 // Currently contains the timers and the display tags for the scenes overview
+                'scene-ui': httpVueLoader('static/scene-ui-controls.vue')
             }
         }).mount("#app")
         init_api_link()
