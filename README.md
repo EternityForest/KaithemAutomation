@@ -45,43 +45,8 @@ Then visit http://localhost:8002 and log in with your normal Linux username and 
 
 ### Access from Anywhere
 
-You can remotely access Kaithem(or any other service you might want!) using zrok(https://zrok.io/).
-
-This service has a lot of features, but you can get started with just a few commands.
-
-First, set up a *strong* password, and be aware that Kaithem has not had third party security audits.
-
-For an extra layer of security, do not share the access URL with anyone who shouldn't have access.
-
-This installs the latest zrok in /usr/local/bin.  You may need to update manually by running root-install-zrok again.
-
-```bash
-make root-install-zrok
-
-# This will prompt you for an email address.
-# When you get the email, use the activation link.
-zrok invite
-
-# The activation link will give you a token
-zrok activate <token>
-
-# This creates a systemd service as your user
-# which will make kaithem publically available at a randomly generated URL.
-# It will automatically start when your user logs in.
-# Go to https://api.zrok.io/ to see the status of this share.
-make user-setup-zrok-sharing
-```
-
-To disable this, just use normal systemd commands:
-
-```bash
-
-# This stops the sharing service
-systemctl --user stop kaithem-zrok-share.service
-# Stop it from running at boot
-systemctl --user disable kaithem-zrok-share.service
-
-```
+See Wiki Tutorial
+(https://github.com/EternityForest/KaithemAutomation/wiki/Remote-Access)
 
 ### Sound Mixing Broken?
 
@@ -186,34 +151,32 @@ Audio is managed through the Kaithem mixer.  It should work out of the box if yo
 
 Otherwise if using HDMI, or if you want to remotely adjust volume, go to the mixer and make sure that channel has the output you want selected, and that the input matches Chromium's name. You can also add effects like EQ from this page.  Don't forget to save the setup as the default!
 
+### Development
 
-
-### VSCode Dev
-dev_run.py can be your entry point for debug. If you get weird errors, check your debug launch config and
-make sure it's not overriding the interpreter, because then you would be running outside the virtualenv.
-
-
-### Dependencies for devs
-
-To update dependencies, run `make dev-update-dependencies`.
-
-This installs `direct_dependencies.txt` in the project folder .isolated_venv, uses that to build
-a new `requirements_frozen.txt`, and installs that into the main .venv.
-
-The reason we do this is so that we always have a non `system-site-packages` venv to test in,
-but also to let you manually play around in the .venv.
-
-Should you want to clean things or start over, it's best to just burn it to the ground and delete the virtualenvs.
-
-
-To run inside the isolated virtualenv, deactivate the current virtualenv and run `make dev-run-isolated` 
-
-### Tests
-The new unit tests initiative uses pytest.  Use the test_run.py file if you want to run them in the debugger.
+Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
+### 0.76.0
+- :bug: Fix utility scene checkbox in chandler not showing correct value
+- :bug: Fix Chandler relative length with web slides
+- :bug: Fix iot_devices not setting the default
+- :bug: Fix shortcut code normalization(10.0 is treated same as 10)
+- :bug: Upload new chandler scene adds to rather than replaces the existing scenes
+- :bug: Fix broken highlighting in some themes
+- :bug: Fix support for midi devices with odd chars in the names
+- :sparkles: Can hide a scene in runtime mode
+- :sparkles: Chandler can now import and export audio cues in a scene as M3U playlists(With fuzzy search for broken paths!)
+- :sparkles: Confirm before delete cues
+- :sparkles: Add ability to move Chandler rules around
+- :sparkles: Scene display tags can now be inputs
+- :sparkles: Don't log thread start/stop if they have generic Thread-xx names
+- :sparkles: Chandler updated to work with Vue3
+- :sparkles: Chandler has autosave(10min)
+- :sparkles: Chandler save setup and save scenes buttons now just one save button.
+- :sparkles: Chandler has a proper loading animation
+- :coffin: Raw cue data text view has been removed
 
 ### 0.75.1
 - :bug: Fix chandler scenes sometimes sharing all data for the default cues
@@ -230,28 +193,8 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - :sparkles: Improve maps quality
 - :sparkles: Chandler shows time at which each scene entered the current cue
 
-### 0.74.0
-- :sparkles: Use Terminado and xterm.js to finally provide a proper system console shell!!!
-- :bug: Fix recursion issue in device.handle_error
-- :bug: Fix chatty logs from aioesphomeapi
-- :coffin: Deprecate kaithem.web.controllers
-- :sparkles: kaithem.web.add_wsgi_app and add_tornado_app to allow for addon apps from other frameworks.
-- :lipstick: Legacy /static/widget.js moved to /static/js/widget.js
-- :lipstick: Third party JS moved to /static/js/thirdparty/
-- :sparkles: Support AppRise notifications(Configure them in global settings)
-
-
-### 0.73.2
-- :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum
-
 License Terms
 =============
 The original python code and and the HTML files under /pages are licensed under the GNU GPL v3.
+
 However, Kaithem includes code copied unmodifed from many other open source projects. under various licenses. This code is generally in a separate folder and accompanied by the corresponding license.
-
-Some images used in theming are taken from this site: http://webtreats.mysitemyway.com/ and may be considered non-free
-by some due to a restriction on "redistribution as-is for free in a manner that directly competes with our own websites."
-However they are royalty free for personal and commercial use ad do not require attribution, So I consider them appropriate
-for an open project
-
-Some icons from the silk icon set(http://www.famfamfam.com/lab/icons/silk/) have also been used under the terms of the Creative Commons Attribution license.
