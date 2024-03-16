@@ -1968,18 +1968,6 @@ ${lists}
 
 
 
-<template id="cue-cd">
-    <span>
-        <meter v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))"
-            v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
-            v-bind:value="unixtime-scene.enteredCue"></meter>
-        <span v-if="scene.active && cue && cue.length">{{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1
-            ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
-        </span></span>
-</template>
-
-
-
 ${core.boards[0]().link.render('api_link')}
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
@@ -2030,14 +2018,7 @@ ${core.boards[0]().link.render('api_link')}
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 "script-editor": httpVueLoader('static/ScriptEditor.vue'),
                 "h-fader": httpVueLoader('static/hfader.vue'),
-                'cue-countdown':
-                {
-                    template: '#cue-cd',
-                    props: ['unixtime', 'cue', 'scene'],
-                    data: function () {
-                        return ({ 'formatInterval': formatInterval })
-                    }
-                }
+                'cue-countdown': httpVueLoader('static/cue-countdown.vue')
             },
             computed: appComputed
         }).mount("#app")
