@@ -10,7 +10,7 @@ def listRtmidi():
         return []
 
     m=rtmidi.RtMidiIn(rtmidi.API_UNIX_JACK)
-
+    m.close_port()
     return [(m.getPortName(i)) for i in range(m.getPortCount())]
 %>
 

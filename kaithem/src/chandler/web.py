@@ -36,7 +36,9 @@ def listRtmidi():
         except:
             m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
 
-        return [(m.get_port_name(i)) for i in range(m.get_port_count())]
+        x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
+        m.close_port()
+        return x
     except Exception:
         core.logger.exception("Error in MIDI system")
         return []

@@ -129,6 +129,7 @@ def doScan():
     torm = []
     try:
         present = [(i, scanning_connection.get_port_name(i)) for i in range(scanning_connection.get_port_count())]
+        scanning_connection.close_port()
     except Exception:
         scanning_connection = None
         raise
