@@ -826,15 +826,15 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediaspeed":
-            cues[msg[1]].media_speed = float(msg[2].strip())
+            cues[msg[1]].media_speed = float(str(msg[2]).strip())
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawindup":
-            cues[msg[1]].media_wind_up = float(msg[2].strip())
+            cues[msg[1]].media_wind_up = float(str(msg[2]).strip())
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawinddown":
-            cues[msg[1]].media_wind_down = float(msg[2].strip())
+            cues[msg[1]].media_wind_down = float(str(msg[2]).strip())
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "settrack":

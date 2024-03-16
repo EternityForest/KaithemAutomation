@@ -1117,7 +1117,7 @@ ${lists}
 
 
                     <script-editor :completers="completers" v-bind:example_events="example_events"
-                        v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
+                        v-model="currentcue.rules"  @update:model-value="setCueRules(currentcueid, $event);"
                         v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
                         v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"
                         v-bind:parentscene="editingScene.name">
@@ -1456,7 +1456,7 @@ ${lists}
 
                                         <label>Shortcut
                                             <input title="Shortcut code used to quickly activate a cue" size="8"
-                                                v-on:change="setshortcut(currentcueid,$event.target.value)"
+                                                v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)"
                                                 v-model="currentcue.shortcut">
                                         </label>
 
@@ -1563,8 +1563,8 @@ ${lists}
 
                             <p> <label>
                                     Alpha:<input type="number" max=1 step=0.01 min=0
-                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));"
-                                        v-on:change="unlockAlpha(scenename);" :value="alphas[scenename]">
+                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));unlockAlpha(scenename);"
+                                        v-model="alphas[scenename]">
                                 </label>
 
                                 <label>Default Alpha

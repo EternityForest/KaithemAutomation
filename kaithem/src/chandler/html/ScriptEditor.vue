@@ -66,11 +66,11 @@ p.small {
                     <h4>Parameters</h4>
 
                     <label>Run on
-                        <combo-box v-model="selectedBinding[0]" v-bind:options="example_events"
-                            v-on:change="$emit('input', rules);"></combo-box>
+                        <combo-box @update:modelValue="" v-model="selectedBinding[0]" v-bind:options="example_events"
+                            v-on:change="$emit('update:modelValue', rules);"></combo-box>
                     </label>
                     <h4>Delete</h4>
-                    <button v-on:click="deleteBinding(selectedBinding); $emit('input', rules);">Remove binding and all
+                    <button v-on:click="deleteBinding(selectedBinding); $emit('update:modelValue', rules);">Remove binding and all
                         actions</button>
                 </div>
 
@@ -78,13 +78,13 @@ p.small {
                     <h3>Block Inspector</h3>
                     Type
                     <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"
-                        v-bind:pinned="getSpecialActions()" v-on:input="setCommandDefaults(selectedCommand);"
-                        v-on:change="$emit('input', rules);"></combo-box>
+                        v-bind:pinned="getSpecialActions()" @update:modelValue="setCommandDefaults(selectedCommand);"
+                        v-on:change="$emit('update:modelValue', rules);"></combo-box>
                     <h4>Config</h4>
                     <div v-if="selectedCommand[0] == 'set'">
                         Set a variable named <combo-box v-model="selectedCommand[1]" v-bind:pinned="pinnedvars"
-                            v-on:change="$emit('input', rules)"></combo-box> <br>to<br> <combo-box
-                            v-model="selectedCommand[2]" v-on:change="$emit('input', rules)"></combo-box><br>
+                            v-on:change="$emit('update:modelValue', rules)"></combo-box> <br>to<br> <combo-box
+                            v-model="selectedCommand[2]" v-on:change="$emit('update:modelValue', rules)"></combo-box><br>
                         and always return True.
                     </div>
 
@@ -93,7 +93,7 @@ p.small {
                     </div>
 
                     <div v-if="selectedCommand[0] == 'maybe'">
-                        Continue action with :<input v-model="selectedCommand[1]" v-on:change="$emit('input', rules)">%
+                        Continue action with :<input v-model="selectedCommand[1]" v-on:change="$emit('update:modelValue', rules)">%
                         chance <br> otherwise
                         return None and stop the action.
                     </div>
@@ -102,7 +102,7 @@ p.small {
                         <table>
                             <tr v-for="i in commands[selectedCommand[0]].args.keys()">
                                 <td>{{ commands[selectedCommand[0]].args[i][0] }}</td>
-                                <td><combo-box v-model="selectedCommand[i + 1]" v-on:change="$emit('input', rules)"
+                                <td><combo-box v-model="selectedCommand[i + 1]" v-on:change="$emit('update:modelValue', rules)"
                                         :options="getCompletions(selectedCommand, commands[selectedCommand[0]].args[i][0])"></combo-box>
                                 </td>
                             </tr>
@@ -113,12 +113,12 @@ p.small {
 
                     </div>
                     <button
-                        v-on:click="rules[selectedBindingIndex][1].splice(selectedCommandIndex, 1); selectedCommandIndex -= 1; $emit('input', rules);">Delete</button>
+                        v-on:click="rules[selectedBindingIndex][1].splice(selectedCommandIndex, 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">Delete</button>
                     <button v-if="selectedCommandIndex > 0"
-                        v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex - 1); selectedCommandIndex -= 1; $emit('input', rules);">
+                        v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex - 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">
                         Move Back</button>
                     <button v-if="selectedCommandIndex < (rules[selectedBindingIndex][1].length - 1)"
-                        v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex + 1); selectedCommandIndex += 1; $emit('input', rules);">
+                        v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex + 1); selectedCommandIndex += 1; $emit('update:modelValue', rules);">
                         Move Forward</button>
 
                 </div>
@@ -166,14 +166,14 @@ p.small {
                             <div style="align-self:stretch;">
 
                                 <button class="action" style="align-self:stretch;"
-                                    v-on:click="i[1].push(['pass']); $emit('input', rules)"><b>Add Action</b></button>
+                                    v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add Action</b></button>
                             </div>
 
                         </div>
                     </div>
                     <button style="width: 95%; margin-top: 0.5em;"
                         title="Add a rule that the scene should do something when an event fires"
-                        v-on:click="rules.push(['cue.enter', [['goto', '=SCENE', '']]]); $emit('input', rules);"><b>Add
+                        v-on:click="rules.push(['cue.enter', [['goto', '=SCENE', '']]]); $emit('update:modelValue', rules);"><b>Add
                         Rule</b></button>
 
                 </div>
@@ -267,7 +267,8 @@ module.exports = {
                     rules[idx + 1] = rules[idx]
                     rules[idx] = t
                 }
-                this.$emit('input', rules)
+                this.$emit('update:modelValue', rules)
+
             },
 
 
