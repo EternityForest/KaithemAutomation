@@ -215,7 +215,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         if force or not self.configuredUniverses == self.last_saved_versions.get("__INTERNAL__:__UNIVERSES__", None):
             self.last_saved_versions["__INTERNAL__:__UNIVERSES__"] = copy.deepcopy(self.configuredUniverses)
             self.saveAsFiles(
-                "universes", self.fixtureAssignments, "lighting/universes"
+                "universes", self.configuredUniverses, "lighting/universes"
             )
 
         if force or not self.fixtureAssignments == self.last_saved_versions.get("__INTERNAL__:__ASSG__", None):

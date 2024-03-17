@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.76.1
+- :bug: Critical Bug: Fix chandler universes not being saved correctly
+
+
 ### 0.76.0
 - :bug: Fix utility scene checkbox in chandler not showing correct value
 - :bug: Fix Chandler relative length with web slides
