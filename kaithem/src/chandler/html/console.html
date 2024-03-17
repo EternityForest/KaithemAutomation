@@ -1206,7 +1206,7 @@ ${lists}
                                             <input type="number"
                                                 v-on:change="setSoundFadeOut(currentcueid,$event.target.value)" min=0
                                                 v-model="currentcue.soundFadeOut"
-                                                title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend">
+                                                title="Sound should fade out starting when the cue ends, taking this long.">
 
                                         </label>
                                     </p>
@@ -1216,7 +1216,7 @@ ${lists}
                                             <input type="number"
                                                 v-on:change="setSoundFadeIn(currentcueid,$event.target.value)" min=-1
                                                 v-model="currentcue.soundFadeIn"
-                                                title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use -1 to override and disable a global scene crossfade.">
+                                                title="Sound should fade in if starting from, taking this long. Use -1 to override and disable a global scene crossfade.">
 
                                         </label>
 
@@ -1927,10 +1927,14 @@ ${core.boards[0]().link.render('api_link')}
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 <script>
+
+    // Add console specific stuff to the appdata
     appData.formatTime = function (t) {
         var date = new Date(t * 1000);
         return date.strftime("%I:%M:%S%p")
     }
+
+    appData.keyboardJS = keyboardJS
 
     const options = {
         moduleCache: {

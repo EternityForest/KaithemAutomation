@@ -363,6 +363,11 @@ appMethods = {
         api_link.send([p, sc, v]);
     },
 
+    'setSoundFolders': function (folders) {
+        api_link.send(['setsoundfolders',folders]);
+
+    },
+
     'previewSound': function (s) {
 
         document.getElementById("soundpreviewdialog").show();
@@ -731,7 +736,6 @@ appData = {
     'sc_code': "",
     'unixtime': 0,
     'serports': [],
-    'keyboardJS': keyboardJS,
     //Index by name
     'fixtureAssignments': {},
     'newfixname': '',
@@ -846,6 +850,7 @@ appData = {
         }
     },
 
+    'soundfolders': [],
     'showimportexport': false,
     'evtosend': '',
     'evtypetosend': 'float',
@@ -883,10 +888,7 @@ appData = {
     'scenetimers': {},
     //Formatted for display
     'cuevals': {},
-
-
     'useBlankDescriptions': useBlankDescriptions,
-    
 
     'formatCueVals': function (c) {
         //Return a simplified version of the data in cuevals
@@ -1240,6 +1242,10 @@ appData = {
 function f(v) {
     c = v[0]
 
+    if (c == 'soundfolders') {
+        vueapp.$data.soundfolders = v[1]
+    }
+
     if (c == 'scenetimers') {
         vueapp.$data.scenemeta[v[1]].timers = v[2]
     }
@@ -1558,34 +1564,4 @@ var goto = function (sc, cue) {
         api_link.send(['jumpbyname', sc, cue]);
 
     }
-}
-
-
-keysdown = {}
-keyHandle = function (e) {
-    if (keysdown[e.key] != undefined) {
-        if (keysdown[e.key]) {
-            return;
-        }
-
-    }
-    keysdown[e.key] = true;
-    e.preventRepeat();
-    api_link.send(['event', "keydown." + e.key, 1, 'int', "__global__"])
-}
-keyUpHandle = function (e) {
-    if (keysdown[e.key] != undefined) {
-        if (!keysdown[e.key]) {
-            return;
-        }
-
-    }
-    keysdown[e.key] = false;
-    api_link.send(['event', "keyup." + e.key, 1, 'int', "__global__"])
-}
-rebind = function () {
-    keyboardJS.reset()
-    keyboardJS.bind(keyHandle)
-    keyboardJS.bind(null, keyUpHandle)
-
 }

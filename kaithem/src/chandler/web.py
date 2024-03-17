@@ -129,6 +129,46 @@ class Web():
             core=core,
             blendmodes=blendmodes
         )
+    
+
+    @cherrypy.expose
+    def config(self):
+        """Config page for web interface"""
+        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        pages.require('users.chandler.admin')
+        v = limitedTagsListing()
+        c = command_tagsListing()
+
+        datalists = {'midiinputs': [],
+                     'tagslisting': [], 'commandtagslisting': []}
+
+        for i in listRtmidi():
+            datalists['midiinputs'].append(
+                {
+                    'value': str(i)
+                }
+            )
+
+        for i in v:
+            datalists['tagslisting'].append(
+                {
+                    'value': str(i)
+                }
+            )
+
+        for i in c:
+            datalists['commandtagslisting'].append(
+                {
+                    'value': str(i)
+                }
+            )
+
+        return get_template("config.html").render(
+            lists=self.header(datalists, {}),
+            boardname='default',
+            core=core,
+            blendmodes=blendmodes
+        )
 
     @cherrypy.expose
     def dyn_js(self, file):

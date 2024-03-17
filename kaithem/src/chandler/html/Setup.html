@@ -4,12 +4,6 @@
 if request.method=="POST" and 'folders' in kwargs:
     module.config['soundFolders'] =  [i.strip() for i in kwargs['folders'].split('\n') if i]
 
-
-
-if request.method=="POST":
-    module.config['allowAllTags'] = 'allTags' in kwargs
-
-
 %>
 <h2>Lighting Setup</h2>
 <title>Setup</title>

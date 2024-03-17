@@ -197,6 +197,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.pushUniverses()
                 self.pushfixtures()
                 self.linkSend(['alerts', getAlertState()])
+                self.linkSend(['soundfolders', core.config.get('soundFolders')])
 
                 for i in self.scenememory:
                     s = self.scenememory[i]
@@ -918,3 +919,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             x.stop()
             self.delscene(msg[1])
+
+        elif cmd_name == "setsoundfolders":
+            # Set the global sound folders list
+            core.config['soundFolders'] = [i.strip().replace("\r",'').replace("\t",' ') for i in msg[1].split('\n') if i]
