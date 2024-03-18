@@ -727,6 +727,10 @@ def canUserDoThis(user, permission):
 
     if permission == '__never__':
         return False
+    
+    if user == '__admin__':
+        return True
+    
     if permission == '__guest__':
         return True
     if not user in Users:

@@ -123,7 +123,7 @@ ${lists}
         </section>
 
 
-        <section class="flex-item window paper w-24rem nogrow margin" style="flex-basis: 24rem;">
+        <section class="flex-item window paper w-56rem nogrow margin" style="flex-basis: 56rem;">
             <header>
                 <div class="tool-bar">
                     <h3>Media Folders</h3>
@@ -131,10 +131,12 @@ ${lists}
             </header>
 
             <p>Enter your sound folder paths here, one per line</p>
-            <textarea class="w-full h-36rem" v-bind:value="soundfolders.join('\r\n')" 
-            v-on:change="setSoundFolders($event.target.value.replace('\r',''))"
-            v-on:blur="setSoundFolders($event.target.value.replace('\r',''))"
-            ></textarea>
+            <div class="scroll">
+                <textarea class="h-36rem"  style="width: 80rem;" v-bind:value="soundfolders.join('\r\n')" 
+                v-on:change="setSoundFolders($event.target.value.replace('\r',''))"
+                v-on:blur="setSoundFolders($event.target.value.replace('\r',''))"
+                ></textarea>
+            </div>
         </section>
 
         <div v-if="showDMXSetup" class="window margin flex-item">
