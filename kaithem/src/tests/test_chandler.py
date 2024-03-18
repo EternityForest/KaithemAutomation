@@ -166,7 +166,6 @@ def test_cue_logic():
 
 
 def test_commands():
-    logging.warning(scenes.rootContext.commands.scriptcommands)
     s = scenes.Scene(name="TestingScene5", id='TEST')
     s2 = scenes.Scene(name="TestingScene6", id='TEST2')
     board.addScene(s)
@@ -236,14 +235,14 @@ def test_lighting_value_set_tag():
     # Set values and check that tags change
     s.cues['default'].set_value('tags', 1, 50)
     s.cues['default'].set_value('tags', 2, 60)
-
+    time.sleep(0.25)
     assert tagpoints.Tag("/test1").value == 50
     assert tagpoints.Tag("/test2").value == 60
 
     # Half the alpha should have half the resulting values
     s.setAlpha(.50)
     # Give backround rerender time
-    time.sleep(0.15)
+    time.sleep(0.25)
     assert tagpoints.Tag("/test1").value == 25
     assert tagpoints.Tag("/test2").value == 30
 
@@ -285,4 +284,68 @@ def test_lighting_value_set_tag():
     s2.close()
     board.rmScene(s)
     board.rmScene(s2)
+    board.check_autosave()
+
+
+def test_tag_io():
+    "Tests the tag point UI inputs and meters that you can do in the scenes overview"
+    # Not as thorough of a test as it maybe should be...
+    display_tags = [
+        [
+            "Label",
+            "=177",
+            {
+                "type": "auto"
+            }
+        ],
+        [
+            "Label",
+            "blah",
+            {
+                "type": "string_input"
+            }
+        ],
+        [
+            "Label",
+            "goo",
+            {
+                "type": "switch_input"
+            }
+        ],
+        [
+            "Label",
+            "ghjgy",
+            {
+                "type": "numeric_input"
+            }
+        ]
+    ]
+
+    s = scenes.Scene(name="TestingScene5", id='TEST')
+    board.addScene(s)
+
+    s.setDisplayTags(display_tags)
+
+    s.go()
+
+    # Simulate user input
+    board._onmsg('__admin__', ['inputtagvalue', s.id, 'ghjgy', 97])
+
+    # Make sure the input tag thing actually sets the value
+    assert tagpoints.Tag("/ghjgy").value == 97
+
+    # Validate that the output display tag actually exists
+    assert '=177' in tagpoints.allTagsAtomic
+
+    board.check_autosave()
+
+    # Make sure cue vals saved
+    p = os.path.join(directories.vardir, 'chandler', 'scenes', 'TestingScene5.yaml')
+    with open(p) as f:
+        f2 = yaml.load(f, Loader=yaml.SafeLoader)
+
+    assert f2['display_tags'] == display_tags
+
+    s.close()
+    board.rmScene(s)
     board.check_autosave()

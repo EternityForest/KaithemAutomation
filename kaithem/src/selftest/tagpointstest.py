@@ -12,7 +12,7 @@ def testTags():
     tester = [0]
 
     if not t.value == 30:
-        raise RuntimeError("Unexpected Tag Value")
+        raise RuntimeError("Unexpected Tag Value"+str(t.value))
 
     def f(value, timestamp, annotation):
         tester[0] = value
