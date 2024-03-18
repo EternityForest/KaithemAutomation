@@ -1,12 +1,17 @@
-from kaithem.src.chandler import scenes
+from kaithem.src.chandler import scenes, core
 from kaithem.src.sound import test_sound_logs
 from kaithem.src.sound import play_logs
+from kaithem.src import directories
 import time
 import logging
-
+import os
+import yaml
+board = core.boards[0]()
 
 def test_make_scene():
     s = scenes.Scene("TestingScene1", id='TEST')
+    # Must add scenes to the board so we can save them and test the saving
+    board.addScene(s)
 
     assert 'TEST' in scenes.scenes
 
@@ -19,13 +24,23 @@ def test_make_scene():
     s.add_cue('cue2')
     s.goto_cue('cue2')
     assert s.cue.name == 'cue2'
-    s.close()
 
+    # Make sure a save file was created
+    board.check_autosave()
+    assert os.path.exists(os.path.join(directories.vardir, 'chandler','scenes', 'TestingScene1.yaml'))
+
+    s.close()
+    board.rmScene(s)
     assert "TestingScene1" not in scenes.scenes_by_name
+
+    board.check_autosave()
+    assert not os.path.exists(os.path.join(directories.vardir, 'chandler','scenes', 'TestingScene1.yaml'))
+
 
 
 def test_play_sound():
     s = scenes.Scene("TestingScene2", id='TEST')
+    board.addScene(s)
 
     assert 'TEST' in scenes.scenes
 
@@ -44,13 +59,30 @@ def test_play_sound():
     assert play_logs[-1][1] == 'TEST'
     assert play_logs[-1][2].endswith('alert.ogg')
 
+    board.check_autosave()
+
+    # Test that saved data is what it should be
+    p = os.path.join(directories.vardir, 'chandler','scenes', 'TestingScene2.yaml')
+    with open(p) as f:
+        f2 = yaml.load(f, Loader=yaml.SafeLoader)
+
+    assert 'cue2' in f2['cues']
+
+    assert f2['cues']['cue2']['sound'].endswith('alert.ogg')
+    
+
     s.close()
+    board.rmScene(s)
+    board.check_autosave()
+
     assert "TestingScene2" not in scenes.scenes_by_name
 
 
 def test_trigger_shortcuts():
     s = scenes.Scene(name="TestingScene3", id='TEST')
     s2 = scenes.Scene(name="TestingScene4", id='TEST2')
+    board.addScene(s)
+    board.addScene(s2)
 
     s.go()
     s2.go()
@@ -67,8 +99,26 @@ def test_trigger_shortcuts():
 
     # Cue2 in s should trigger the shortcut code foo, which triggers Cue2 in s2
     assert s2.cue.name == 'cue2'
+    board.check_autosave()
+
+    # Test that saved data is what it should be
+    p = os.path.join(directories.vardir, 'chandler','scenes', 'TestingScene3.yaml')
+    with open(p) as f:
+        f2 = yaml.load(f, Loader=yaml.SafeLoader)
+
+    assert f2['cues']['cue2']['trigger_shortcut'] == 'foo'
+
+    p = os.path.join(directories.vardir, 'chandler','scenes', 'TestingScene4.yaml')
+    with open(p) as f:
+        f2 = yaml.load(f, Loader=yaml.SafeLoader)
+        
+    assert f2['cues']['cue2']['shortcut'] == 'foo'
+
     s.close()
     s2.close()
+    board.rmScene(s)
+    board.rmScene(s2)
+
     assert "TestingScene3" not in scenes.scenes_by_name
     assert "TestingScene4" not in scenes.scenes_by_name
 
@@ -76,6 +126,8 @@ def test_cue_logic():
     logging.warning(scenes.rootContext.commands.scriptcommands)
     s = scenes.Scene(name="TestingScene5", id='TEST')
     s2 = scenes.Scene(name="TestingScene6", id='TEST2')
+    board.addScene(s)
+    board.addScene(s2)
 
     s.go()
     s2.go()
@@ -96,16 +148,29 @@ def test_cue_logic():
     time.sleep(0.5)
     assert s2.cue.name == 'cue2'
     assert s.alpha == 0.76
+    board.check_autosave()
+
+    p = os.path.join(directories.vardir, 'chandler','scenes', 'TestingScene5.yaml')
+    with open(p) as f:
+        f2 = yaml.load(f, Loader=yaml.SafeLoader)
+        
+    assert len(f2['cues']['cue2']['rules']) == 2
+
 
     s.close()
     s2.close()
+    board.rmScene(s)
+    board.rmScene(s2)
+
     assert "TestingScene5" not in scenes.scenes_by_name
     assert "TestingScene6" not in scenes.scenes_by_name
 
-def test_():
+def test_commands():
     logging.warning(scenes.rootContext.commands.scriptcommands)
     s = scenes.Scene(name="TestingScene5", id='TEST')
     s2 = scenes.Scene(name="TestingScene6", id='TEST2')
+    board.addScene(s)
+    board.addScene(s2)
 
     s.go()
     s2.go()
@@ -129,5 +194,8 @@ def test_():
 
     s.close()
     s2.close()
+    board.rmScene(s)
+    board.rmScene(s2)
+
     assert "TestingScene5" not in scenes.scenes_by_name
     assert "TestingScene6" not in scenes.scenes_by_name

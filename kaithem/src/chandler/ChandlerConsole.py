@@ -597,17 +597,28 @@ class ChandlerConsole(console_abc.Console_ABC):
         
 
     def check_autosave(self):
-        changed = False
+        # Both can already do their own checking for unneeded saves
+        self.save_scenes()
+        self.save_setup(force=False)
+
+    def save_scenes(self, force=False):
+        changed = force
+        
         s = self.getScenes()
         for i in s:
-            if not s[i] == self.last_saved_versions.get(i,None):
+            if not s[i] == self.last_saved_versions.get(i, None):
                 changed = True
                 logger.info("Chandler scenes changed. Autosaving.")
+
+        for i in self.last_saved_versions:
+            if not i.startswith("__INTERNAL__:"):
+                if not s.get(i, None) == self.last_saved_versions[i]:
+                    changed = True
+                    logger.info("Chandler scenes changed.") 
 
         if changed:
             self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
 
-        self.save_setup(force=False)
 
     def saveAsFiles(self, dirname: str, data: Any, legacyKey: Optional[str] = None):
         sd = data

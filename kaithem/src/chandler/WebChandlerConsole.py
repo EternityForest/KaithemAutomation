@@ -343,7 +343,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.presets[msg[1]] = msg[2]
 
         elif cmd_name == "saveState":
-            self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
+            self.save_scenes(force=True)
             self.save_setup()
 
 

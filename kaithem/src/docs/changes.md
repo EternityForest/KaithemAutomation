@@ -2,6 +2,10 @@ Change Log
 ----------
 
 
+### 0.76.2
+- :bug: Autosave did not save deletions, only changes
+
+
 ### 0.76.1
 - :bug: Critical Bug: Fix chandler universes not being saved correctly
 
