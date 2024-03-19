@@ -99,9 +99,14 @@ getValueRange = function (d, v) {
 
 appMethods = {
 
+
+    'setSceneProperty': function (scene, property, value) {
+        api_link.send(['setSceneProperty', scene, property, value])
+
+    },
+
     'saveToDisk': function () {
-        api_link.send(['saveSetup'])
-        api_link.send(['saveScenes'])
+        api_link.send(['saveState'])
     },
 
     'saveLibrary': function () {
@@ -425,11 +430,7 @@ appMethods = {
     "setmqttfeature": function (sc, feature, v) {
         api_link.send(['setmqttfeature', sc, feature, v]);
     },
-    'setmidi': function (sc, v) {
 
-        this.scenemeta[sc].midiSource = v;
-        api_link.send(['setMidiSource', sc, v]);
-    },
     'setvisualization': function (sc, v) {
 
         this.scenemeta[sc].musicVisualizations = v;
@@ -456,9 +457,6 @@ appMethods = {
 
         this.scenemeta[sc].utility = v;
         api_link.send(['setutility', sc, v]);
-    },
-    'setpriority': function (sc, v) {
-        api_link.send(['setpriority', sc, v]);
     },
     'setbpm': function (sc, v) {
         api_link.send(['setbpm', sc, v]);
@@ -593,12 +591,6 @@ appMethods = {
 
         api_link.send(['setscenesoundout', cueid, i])
     },
-
-    'setSceneSlideOverlay': function (cueid, i) {
-
-        api_link.send(['setsceneslideoverlay', cueid, i])
-    },
-
 
     'newCueFromSlide': function (sc, i) {
 
@@ -1540,11 +1532,14 @@ init_api_link = function () {
     api_link.send(['gasd']);
     api_link.send(['getCommands']);
 
-
-    setInterval(function () {
+    // Exact sync on half seconds
+    function unix_time_upd() {
         vueapp.$data.unixtime = api_link.now() / 1000
-    }, 1000 / 8)
+        setTimeout(unix_time_upd,
+            250-(api_link.now()%250) )
+    }
 
+    unix_time_upd()
 }
 
 var shortcut = function (sc) {

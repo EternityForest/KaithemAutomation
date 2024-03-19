@@ -943,15 +943,10 @@ class Scene:
         self.command_tagSubscriptions = []
         self.command_tag = command_tag
 
-        self.displayTagSubscriptions = []
-        self.display_tags = []
-        self.displayTagValues = {}
-        self.displayTagPointObjects: Dict[str, object] = {}
-        self.displayTagMeta: Dict[str, Dict[str, Any]] = {}
-        self.setDisplayTags(display_tags)
+
 
         self.notes = notes
-        self.midi_source: str = ""
+        self._midi_source: str = ""
         self.default_next = str(default_next).strip()
 
         self.id: str = id or uuid.uuid4().hex
@@ -1034,7 +1029,7 @@ class Scene:
         self.name = name
 
         self.canvas = FadeCanvas()
-        self.backtrack = backtrack
+        self._backtrack = backtrack
         self.bpm = bpm
         self.sound_output = sound_output
 
@@ -1089,7 +1084,8 @@ class Scene:
         # Map event name to runtime as unix timestamp
         self.runningTimers: Dict[str, float] = {}
 
-        self.priority = priority
+        self._priority = priority
+
         # Used by blend modes
         self.blend_args: Dict[str, float | int | bool | str] = blend_args or {}
         self.setBlend(blend)
@@ -1117,12 +1113,23 @@ class Scene:
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
         self.scriptContext = self.makeScriptContext()
+
+        self.displayTagSubscriptions = []
+        self.display_tags = []
+        self.displayTagValues = {}
+        self.displayTagPointObjects: Dict[str, object] = {}
+        self.displayTagMeta: Dict[str, Dict[str, Any]] = {}
+        self.setDisplayTags(display_tags)
+
         self.refreshRules()
+
 
         self.mqtt_server = mqtt_server
         self.activeMqttServer = None
 
-        self.setMidiSource(midi_source)
+        self._midi_source = ''
+
+        self.midi_source = midi_source
 
         if active:
             self.goto_cue("default", sendSync=False, cause="start")
@@ -2445,11 +2452,16 @@ class Scene:
 
     def isActive(self):
         return self.active
+    
+    @property
+    def priority(self):
+        return self._priority
 
-    def setPriority(self, p: float):
+    @priority.setter
+    def priority(self, p: float):
         global active_scenes, _active_scenes
         self.hasNewInfo = {}
-        self.priority = p
+        self._priority = p
         with core.lock:
             _active_scenes = sorted(
                 _active_scenes, key=lambda k: (k.priority, k.started)
@@ -2533,12 +2545,17 @@ class Scene:
         self.hasNewInfo = {}
         self.doMqttSubscriptions()
 
-    def setBacktrack(self, b):
+    @property
+    def backtrack(self):
+        return self._backtrack
+
+    @backtrack.setter
+    def backtrack(self, b):
         b = bool(b)
-        if self.backtrack == b:
+        if self._backtrack == b:
             return
         else:
-            self.backtrack = b
+            self._backtrack = b
             x = self.enteredCue
             self.goto_cue(self.cue.name)
             self.enteredCue = x
@@ -2658,8 +2675,13 @@ class Scene:
     def pitch(self, ch: int, v: int):
         self.event("midi.pitch:" + str(ch), v)
 
-    def setMidiSource(self, s: str):
-        if s == self.midi_source:
+    @property
+    def midi_source(self):
+        return self._midi_source
+    
+    @midi_source.setter
+    def midi_source(self, s: str):
+        if s == self._midi_source:
             return
 
         if not s:
@@ -2681,7 +2703,7 @@ class Scene:
                 self.onMidiMessage,
             )
 
-        self.midi_source = s
+        self._midi_source = s
 
     def onMidiMessage(self, t: str, v: List[Any]):
         if v[0] == "noteon":
@@ -2692,6 +2714,7 @@ class Scene:
             self.cc(v[1], v[2], v[3])
         if v[0] == "pitch":
             self.pitch(v[1], v[2])
+
     def setMusicVisualizations(self, s: str):
         if s == self.music_visualizations:
             return

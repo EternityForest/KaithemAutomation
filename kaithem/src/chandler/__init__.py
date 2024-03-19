@@ -15,6 +15,7 @@ from . import scenes
 from .universes import getUniverses
 from .scenes import rootContext
 
+from typing import Dict
 
 logger = core.logger
 soundLock = threading.Lock()
@@ -157,13 +158,12 @@ def applyLayer(universe, uvalues, scene, uobj):
     return uvalues
 
 
-def pre_render():
+def pre_render(universes: Dict[str,universes.Universe]):
     "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
     # Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
     changedUniverses = {}
     to_reset = {}
 
-    universes = getUniverses()
 
     # Important to reverse, that way scenes that need a full reset come after and don't get overwritten
     for i in reversed(scenes.active_scenes):
@@ -205,11 +205,12 @@ def pre_render():
 
 def render(t=None):
     "This is the primary rendering function"
-    changedUniverses = pre_render()
+    universesSnapshot = getUniverses()
+    # Getting list of universes is apparently slow, so we pass it as a param
+    changedUniverses = pre_render(universesSnapshot)
 
     t = t or time.time()
 
-    universesSnapshot = getUniverses()
 
     # Remember that scenes get rendered in ascending priority order here
     for i in scenes.active_scenes:

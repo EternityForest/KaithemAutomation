@@ -8,6 +8,7 @@ from tinytag import TinyTag
 from . import ChandlerConsole
 
 from ..alerts import getAlertState
+from .. import snake_compat
 
 from ..kaithemobj import kaithem
 from .scenes import Scene, cues, event
@@ -346,37 +347,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.save_scenes(force=True)
             self.save_setup()
 
-
-        elif cmd_name == "saveScenes":
-            self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
-
-        elif cmd_name == "saveShow":
-            self.saveAsFiles(
-                os.path.join("shows", msg[1], "scenes"),
-                self.getScenes()
-            )
-
         elif cmd_name == "loadShow":
             self.loadShow(msg[1])
-
-        elif cmd_name == "saveSetup":
-            self.save_setup()
-
-        elif cmd_name == "saveSetupPreset":
-            self.saveAsFiles(
-                "fixturetypes",
-                self.fixtureClasses,
-                "lighting/fixtureclasses",
-                noRm=True,
-            )
-            self.saveAsFiles(
-                os.path.join("setups", msg[1], "universes"),
-                self.configuredUniverses,
-            )
-            self.saveAsFiles(
-                os.path.join(
-                    "setups", msg[1], "fixtures"), self.fixtureAssignments
-            )
 
         elif cmd_name == "saveLibrary":
             self.saveAsFiles(
@@ -622,9 +594,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 # Count of values in the metadata changed
                 self.pushCueMeta(msg[1])
 
-        elif cmd_name == "setMidiSource":
-            scenes.scenes[msg[1]].setMidiSource(msg[2])
-
         elif cmd_name == "setMusicVisualizations":
             scenes.scenes[msg[1]].setMusicVisualizations(msg[2])
 
@@ -846,13 +815,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].notes = msg[2].strip()
             self.pushCueMeta(msg[1])
 
-        elif cmd_name == "setdefault_active":
-            scenes.scenes[msg[1]].default_active = bool(msg[2])
-            self.pushMeta(msg[1], keys={"active"})
+        elif cmd_name == 'setSceneProperty':
+            prop = snake_compat.camel_to_snake(msg[2])
+            # Generic setter for things that are just simple value sets.
 
-        elif cmd_name == "setbacktrack":
-            scenes.scenes[msg[1]].setBacktrack(bool(msg[2]))
-            self.pushMeta(msg[1], keys={"backtrack"})
+            # Try to get the attr, to ensure that it actually exists.
+            getattr(scenes.scenes[msg[1]], prop)
+
+            setattr(scenes.scenes[msg[1]], prop, msg[3])
+
+            self.pushMeta(msg[1], keys={prop})
 
         elif cmd_name == "setmqttfeature":
             scenes.scenes[msg[1]].setMQTTFeature(msg[2], msg[3])
@@ -906,9 +878,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setblendarg":
             scenes.scenes[msg[1]].setBlendArg(msg[2], msg[3])
 
-        elif cmd_name == "setpriority":
-            scenes.scenes[msg[1]].setPriority(msg[2])
-
         elif cmd_name == "setscenename":
             scenes.scenes[msg[1]].setName(msg[2])
 
@@ -923,3 +892,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setsoundfolders":
             # Set the global sound folders list
             core.config['soundFolders'] = [i.strip().replace("\r",'').replace("\t",' ') for i in msg[1].split('\n') if i]
+
+        else:
+            raise ValueError("Unrecognized Command " + str(cmd_name))

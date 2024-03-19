@@ -1547,7 +1547,7 @@ ${lists}
 
                                 <label>Priority
                                     <input type='number' min=0 max=100
-                                        v-on:change="setpriority(scenename,parseFloat($event.target.value))"
+                                        v-on:change="setSceneProperty(scenename,'priority', parseFloat($event.target.value))"
                                         v-model="editingScene.priority">
                                 </label>
                                 <label>BPM
@@ -1564,21 +1564,21 @@ ${lists}
                                 <label title="Check this box to make the scene active at startup">Active By
                                     Default
                                     <input type="checkbox"
-                                        v-on:change="apiCommand(scenename,'setdefaultactive',$event.target.checked)"
+                                        v-on:change="setSceneProperty(scenename,'defaultActive',$event.target.checked)"
                                         v-model="editingScene.defaultActive"></input>
                                 </label>
 
                                 <label
                                     title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack
                                     <input type="checkbox"
-                                        v-on:change="apiCommand(scenename,'setbacktrack', $event.target.checked)"
+                                        v-on:change="setSceneProperty(scenename,'backtrack', $event.target.checked)"
                                         v-model="editingScene.backtrack"></input>
                                 </label>
                             </p>
 
 
                             <label>Slideshow Overlay:
-                                <input v-on:change="setSceneSlideOverlay(scenename,$event.target.value)"
+                                <input v-on:change="setSceneProperty(scenename,'slideOverlayUrl',$event.target.value)"
                                     v-model="editingScene.slideOverlayUrl"></input>
                             </label>
 
@@ -1586,7 +1586,7 @@ ${lists}
 
                             <label title="Recieve note events from a MIDI input device">MIDI
                                 Source:
-                                <input list="midiinputs" v-on:change="setmidi(scenename,$event.target.value)"
+                                <input list="midiinputs" v-on:change="setSceneProperty(scenename,'midiSource', $event.target.value)"
                                     v-model="editingScene.midiSource"></input>
                             </label>
 
