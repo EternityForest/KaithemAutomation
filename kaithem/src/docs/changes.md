@@ -2,10 +2,11 @@ Change Log
 ----------
 
 
-### 0.76.2
+### 0.77.0
 - :bug: Autosave did not save deletions, only changes
 - :sparkles: New chandler setup page will eventually take over and declutter some of the main editor.
-
+- :sparkles: Can now rename cues
+  
 ### 0.76.1
 - :bug: Critical Bug: Fix chandler universes not being saved correctly
 

@@ -1092,9 +1092,18 @@ appData = {
         if (x != null) {
 
             api_link.send(['setscenename', s, x])
-
         }
+    },
 
+    'promptRenameCue'(sc, s) {
+        var x = prompt(
+            "Enter new name for cue(May break existing references to cue)"
+        )
+
+        if (x != null) {
+
+            api_link.send(['rename_cue', sc, s, x])
+        }
     },
     'deleteUniverse': function (u) {
         console.log(u)

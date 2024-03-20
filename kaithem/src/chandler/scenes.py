@@ -2354,6 +2354,32 @@ class Scene:
                 self.command_tagSubscriptions.append([t, s])
                 t.subscribe(s)
 
+    
+    def rename_cue(self, old: str, new: str):
+        disallow_special(new, allowedCueNameSpecials)
+        if new[0] in "1234567890 \t_":
+            new = "x" + new
+
+        if self.cue.name == old:
+            raise RuntimeError("Can't rename active cue")
+        if new in self.cues:
+            raise RuntimeError("Already exists")
+        if old == 'default':
+            raise RuntimeError("Can't rename default cue")
+        
+        cue = self.cues.pop(old)
+        cue.name = new
+        cue.named_for_sound = False
+        self.cues[new] = cue
+
+        # Delete old, push new
+        for board in core.iter_boards():
+            if len(board.newDataFunctions) < 100:
+                board.newDataFunctions.append(
+                    lambda s: s.linkSend(["delcue", cue.id]))
+                
+        cue.push()
+
     def setCommandTag(self, tag_name: str):
         tag_name = tag_name.strip()
 

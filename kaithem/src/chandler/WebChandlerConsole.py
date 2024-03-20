@@ -618,6 +618,15 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if not msg[2] in scenes.scenes[msg[1]].cues:
                 scenes.scenes[msg[1]].add_cue(n)
 
+        elif cmd_name == "rename_cue":
+            if not msg[3]:
+                return
+            
+            n = msg[2].strip()
+            n2 = msg[3].strip()
+
+            scenes.scenes[msg[1]].rename_cue(n, n2)    
+
         elif cmd_name == "searchsounds":
             self.linkSend(
                 [
