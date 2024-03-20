@@ -525,6 +525,33 @@ ${core.boards[0]().link.render('api_link')}
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 <script>
+
+    d = {
+        'showhidefixtures': function () {
+            vueapp.$data.showFixtureSetup = !vueapp.$data.showFixtureSetup
+            vueapp.$data.getfixtureclasses()
+            vueapp.$data.selectedFixtureClass = ''
+        },
+        'showhidefixtureassignments': function () {
+            vueapp.$data.getfixtureclasses()
+            vueapp.$data.showfixtureassg = !vueapp.$data.showfixtureassg;
+            api_link.send(['getfixtureassg']);
+        },
+        'getfixtureclasses': function () {
+            api_link.send(['getfixtureclasses'])
+        },
+        'getfixtureclass': function (i) {
+            if (i == '') {
+                return;
+            }
+            api_link.send(['getfixtureclass', i])
+        }
+    }
+
+    appData = Object.assign({}, appData, d)
+
+
+
     appData.formatTime = function (t) {
         var date = new Date(t * 1000);
         return date.strftime("%I:%M:%S%p")
@@ -563,7 +590,7 @@ ${core.boards[0]().link.render('api_link')}
             data: function () {
                 return appData
             },
-            methods: appMethods, 
+            methods: appMethods,
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
             },

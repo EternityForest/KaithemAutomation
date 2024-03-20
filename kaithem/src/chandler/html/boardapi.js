@@ -975,25 +975,6 @@ appData = {
         }
     },
 
-    'showhidefixtures': function () {
-        vueapp.$data.showFixtureSetup = !vueapp.$data.showFixtureSetup
-        vueapp.$data.getfixtureclasses()
-        vueapp.$data.selectedFixtureClass = ''
-    },
-    'showhidefixtureassignments': function () {
-        vueapp.$data.getfixtureclasses()
-        vueapp.$data.showfixtureassg = !vueapp.$data.showfixtureassg;
-        api_link.send(['getfixtureassg']);
-    },
-    'getfixtureclasses': function () {
-        api_link.send(['getfixtureclasses'])
-    },
-    'getfixtureclass': function (i) {
-        if (i == '') {
-            return;
-        }
-        api_link.send(['getfixtureclass', i])
-    },
 
     'addfixturetype': function () {
         x = prompt("New Fixture Type Name:", this.selectedFixtureType)
