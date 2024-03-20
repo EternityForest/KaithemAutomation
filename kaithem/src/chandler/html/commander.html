@@ -250,8 +250,8 @@
     </div>
 
     <div class="w-full window margin">
-        <div class="scroll h-12rem w-full" id="eventlogbox">
-            <template v-for="i in evlog.slice().reverse()">
+        <div class="scroll h-12rem w-full">
+            <template v-for="i in evlog.slice()">
                 <div v-if="i[0].indexOf('err')>-1">
                     {{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}:
                     <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>

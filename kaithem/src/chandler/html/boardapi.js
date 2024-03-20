@@ -721,7 +721,6 @@ appComputed = {
 
 //# sourceURL=appcode.js 
 appData = {
-    'eventlogautoscroll': true,
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'formatInterval': formatInterval,
     'console': console,
@@ -1303,41 +1302,13 @@ function f(v) {
 
     else if (c == "event") {
 
-        vueapp.$data.evlog.push(v[1])
+        vueapp.$data.evlog.unshift(v[1])
         if (vueapp.$data.evlog.length > 250) {
-            vueapp.$data.evlog = vueapp.$data.evlog.slice(-250)
+            vueapp.$data.evlog = vueapp.$data.evlog.slice(0,250)
         }
 
         if (v[1][0].includes("error")) {
             vueapp.$data.showevents = true;
-        }
-
-        if (vueapp.$data.showevents) {
-            if (vueapp.$data.eventlogautoscroll) {
-                var d = document.getElementById('eventlogbox');
-                var isscrolled = d.scrollTop + d.clientHeight + 35 >= d.scrollHeight;
-
-                if (isscrolled) {
-                    setTimeout(function () {
-                        if (d) {
-
-                            d.scrollTop = d.scrollHeight;
-
-                        }
-                    }, 150)
-                }
-
-            }
-
-        }
-        var element = document.getElementById('eventlogbox_scene');
-
-        if (element) {
-            setTimeout(function () {
-                if (element) {
-                    element.scrollTop = element.scrollHeight - element.clientHeight;
-                }
-            }, 150)
         }
     }
     else if (c == "serports") {

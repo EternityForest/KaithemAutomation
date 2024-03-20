@@ -286,9 +286,8 @@ ${lists}
             <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
                 Log
             </h2>
-            <input v-model="evfilt" placeholder="Filter events"><label>Autoscroll<input type="checkbox"
-                    v-model="eventlogautoscroll"></label><br>
-            <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
+            <input v-model="evfilt" placeholder="Filter events"><br>
+            <div class="max-h-12rem scroll border" style="height:6em">
                 <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
                     v-for="i in evlog.filter((d) => (d[1].search(evfilt)>-1 || d[0].search(evfilt)>-1) )">{{i[2]}}:
                     <b>{{i[0]}}</b>
@@ -1106,7 +1105,7 @@ ${lists}
 
 
                     <h3>Event Log</h3>
-                    <div class="max-h-12rem scroll border" id="eventlogbox" style="height:6em">
+                    <div class="max-h-12rem scroll border" style="height:6em">
                         <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
                             v-for="i in evlog.filter((d) => d[1].search(editingScene.name) )">{{i[2]}}: <b>{{i[0]}}</b>
                             at
