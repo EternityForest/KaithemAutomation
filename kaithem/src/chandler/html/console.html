@@ -315,9 +315,6 @@ ${lists}
 
 
 
-        <datalist id="serports">
-            <option v-for="i of serports" v-bind:value="i"></option>
-        </datalist>
 
 
 
@@ -644,8 +641,8 @@ ${lists}
                                 </header>
                                 <div class="scroll">
                                     <table>
-                                        <tr v-for="(v,i) in fixtures">
-                                            <td>{{v[0]}}:{{i}} at {{v[1]}}</td>
+                                        <tr v-for="(v,i) in fixtureAssignments">
+                                            <td>{{v.universe}}:{{i}} at {{v.channel}}</td>
                                             <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
                                                         class="icofont-ui-add"></i>Add</button>
                                             </td>

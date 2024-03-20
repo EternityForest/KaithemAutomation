@@ -4,9 +4,11 @@ Change Log
 
 ### 0.77.0
 - :bug: Autosave did not save deletions, only changes
+- :bug: Chandler missing fixtures info in UI until you modify something
 - :sparkles: Move universe and fixture setup to a separate chandler setup page
 - :sparkles: Can now rename cues
   
+
 ### 0.76.1
 - :bug: Critical Bug: Fix chandler universes not being saved correctly
 

@@ -550,22 +550,8 @@ class ChandlerConsole(console_abc.Console_ABC):
     def pushfixtures(self):
         "Errors in fixture list"
         self.linkSend(["ferrs", self.ferrs])
-        try:
-            self.linkSend(
-                [
-                    "fixtures",
-                    {
-                        i: [
-                            universes.fixtures[i]().universe,
-                            universes.fixtures[i]().startAddress,
-                            universes.fixtures[i]().channels,
-                        ]
-                        for i in universes.fixtures
-                    },
-                ]
-            )
-        except Exception:
-            print(traceback.format_exc())
+        self.linkSend(["fixtureAssignments", self.fixtureAssignments])
+
 
     def pushUniverses(self):
         snapshot = getUniverses()
@@ -603,7 +589,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def save_scenes(self, force=False):
         changed = force
-        
+
         s = self.getScenes()
         for i in s:
             if not s[i] == self.last_saved_versions.get(i, None):

@@ -601,30 +601,7 @@ appMethods = {
 
         api_link.send(['newFromSound', sc, i])
     },
-    'chTypeChanged': function (i) {
-        if (this.fixtureClasses[this.selectedFixtureClass]
-        [i][1] == 'fine') {
-            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-            [i], 2, i - 1)
-            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-            [i], 3, undefined)
-        }
 
-        else if (this.fixtureClasses[this.selectedFixtureClass]
-        [i][1] == 'fixed') {
-            var v = this.fixtureClasses[this.selectedFixtureClass][i]
-            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-                , i, [v[0], v[1], 0, {}])
-        }
-        else {
-            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-            [i], 2, 0)
-            old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-            [i], 3, undefined)
-
-        }
-        this.pushfixture(i)
-    },
 
     'setEventButtons': function (sc, i) {
 
@@ -735,7 +712,6 @@ appData = {
     'newfixuniverse': '',
     //Fixture error info str
     'ferrs': '',
-    'fixtures': '',
     'evfilt': '',
     'newcueu': '',
     'newcuevnumber': '',
@@ -751,9 +727,7 @@ appData = {
     //What universe if any to show the full settings page for
     'universeFullSettings': false,
 
-    'showfixtureassg': false,
     'fixtureassg': '',
-    'showsoundoptions': false,
     'showevents': false,
 
     'example_events': [['now', "Run when script loads"], ['cue.exit', 'When exiting the cue'], ['cue.enter', 'When entering a cue'], ['button.a', 'A button in scenes sidebar']
@@ -848,17 +822,12 @@ appData = {
     'evval': '',
     'savedThisSession': false,
     'scenetab': 'cue',
-    'showDMXSetup': false,
     'showPresets': false,
-    'showsceneoptions': false,
     'configuredUniverses':
     {
         'blah': { 'type': 'enttec', 'interface': 'xyz' }
     },
-    'newuniversename': "",
     'fixtureClasses': { 'dfjlkdjf': [] },
-    'selectedFixtureClass': '',
-    'showFixtureSetup': false,
     //The selected dir and [[folders][files]] in that dir, for the
     //sound file browser
     'soundfilesdir': '',
@@ -922,25 +891,6 @@ appData = {
     },
 
 
-    'pushfixture': function (i) {
-        api_link.send(['setfixtureclass', i, this.fixtureClasses[
-            i]])
-    },
-
-
-    'pushfixtureopz': function (i) {
-        api_link.send(['setfixtureclassopz', i, this.fixtureClasses[
-            i]])
-    },
-    'setFixtureAssignment': function (i, v) {
-        api_link.send(['setFixtureAssignment', i, v])
-    },
-
-    'rmFixtureAssignment': function (i) {
-        api_link.send(['rmFixtureAssignment', i])
-    },
-
-
     'lookupFixtureType': function (f) {
         for (i in this.fixtureAssignments) {
             if (this.fixtureAssignments[i].name = f) {
@@ -975,24 +925,6 @@ appData = {
         }
     },
 
-
-    'addfixturetype': function () {
-        x = prompt("New Fixture Type Name:", this.selectedFixtureType)
-        if (x) {
-            old_vue_set(this.fixtureClasses, x, [])
-            this.selectedFixtureType = x
-            api_link.send(['setfixtureclass', x, this.fixtureClasses[x]])
-            api_link.send(['getfixtureclass', x])
-        }
-    },
-    'delfixturetype': function () {
-        x = confirm("Really delete?")
-        if (x) {
-            old_vue_delete(this.fixtureClasses, this.selectedFixtureType)
-            api_link.send(['rmfixtureclass', this.selectedFixtureType])
-            this.selectedFixtureType = '';
-        }
-    },
     'dictView': function (dict, sorts, filterf) {
         //Given a dict  and a list of sort keys sorts,
         //return a list of [key,value] pairs sorted by the sort
@@ -1431,11 +1363,6 @@ function f(v) {
     else if (c == "ferrs") {
 
         vueapp.$data.ferrs = v[1]
-
-    }
-    else if (c == "fixtures") {
-
-        vueapp.$data.fixtures = v[1]
 
     }
     else if (c == "fixtureclasses") {

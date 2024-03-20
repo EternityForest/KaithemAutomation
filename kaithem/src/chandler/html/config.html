@@ -89,6 +89,9 @@ ${lists}
             <option v-for="i of serports" v-bind:value="i"></option>
         </datalist>
 
+        <datalist id="universes">
+            <option v-for="(v,i) of universes" v-bind:value="i"></option>
+        </datalist>
 
 
 
@@ -526,15 +529,54 @@ ${core.boards[0]().link.render('api_link')}
 
 <script>
 
+    // Add page specific stuff to boardapi which is shared between all
+    // the chandler apps
     d = {
+        'showfixtureassg': false,
+        'showDMXSetup': false,
+        'showFixtureSetup': false,
+        'selectedFixtureClass': '',
+        'newuniversename': "",
+    }
+
+    appData = Object.assign({}, appData, d)
+
+
+
+    m = {
+        'chTypeChanged': function (i) {
+            if (this.fixtureClasses[this.selectedFixtureClass]
+            [i][1] == 'fine') {
+                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+                [i], 2, i - 1)
+                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+                [i], 3, undefined)
+            }
+    
+            else if (this.fixtureClasses[this.selectedFixtureClass]
+            [i][1] == 'fixed') {
+                var v = this.fixtureClasses[this.selectedFixtureClass][i]
+                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+                    , i, [v[0], v[1], 0, {}])
+            }
+            else {
+                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+                [i], 2, 0)
+                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
+                [i], 3, undefined)
+    
+            }
+            this.pushfixture(i)
+        },
+
         'showhidefixtures': function () {
-            vueapp.$data.showFixtureSetup = !vueapp.$data.showFixtureSetup
-            vueapp.$data.getfixtureclasses()
-            vueapp.$data.selectedFixtureClass = ''
+            this.showFixtureSetup = !this.showFixtureSetup
+            this.getfixtureclasses()
+            this.selectedFixtureClass = ''
         },
         'showhidefixtureassignments': function () {
-            vueapp.$data.getfixtureclasses()
-            vueapp.$data.showfixtureassg = !vueapp.$data.showfixtureassg;
+            this.getfixtureclasses()
+            this.showfixtureassg = !this.showfixtureassg;
             api_link.send(['getfixtureassg']);
         },
         'getfixtureclasses': function () {
@@ -545,11 +587,45 @@ ${core.boards[0]().link.render('api_link')}
                 return;
             }
             api_link.send(['getfixtureclass', i])
-        }
+        },
+
+        'addfixturetype': function () {
+            x = prompt("New Fixture Type Name:", this.selectedFixtureType)
+            if (x) {
+                old_vue_set(this.fixtureClasses, x, [])
+                this.selectedFixtureType = x
+                api_link.send(['setfixtureclass', x, this.fixtureClasses[x]])
+                api_link.send(['getfixtureclass', x])
+            }
+        },
+        'delfixturetype': function () {
+            x = confirm("Really delete?")
+            if (x) {
+                old_vue_delete(this.fixtureClasses, this.selectedFixtureType)
+                api_link.send(['rmfixtureclass', this.selectedFixtureType])
+                this.selectedFixtureType = '';
+            }
+        },
+        'pushfixture': function (i) {
+            api_link.send(['setfixtureclass', i, this.fixtureClasses[
+                i]])
+        },
+    
+    
+        'pushfixtureopz': function (i) {
+            api_link.send(['setfixtureclassopz', i, this.fixtureClasses[
+                i]])
+        },
+        'setFixtureAssignment': function (i, v) {
+            api_link.send(['setFixtureAssignment', i, v])
+        },
+    
+        'rmFixtureAssignment': function (i) {
+            api_link.send(['rmFixtureAssignment', i])
+        },
     }
 
-    appData = Object.assign({}, appData, d)
-
+    appMethods = Object.assign({}, appMethods, m)
 
 
     appData.formatTime = function (t) {
