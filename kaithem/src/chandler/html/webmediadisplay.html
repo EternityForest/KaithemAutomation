@@ -471,7 +471,10 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         }
 
         if (v[0] == 'overlay') {
-            document.getElementById('overlay').src = v[1]
+            if(document.getElementById('overlay').src != v[1])
+            {
+                document.getElementById('overlay').src = v[1]
+            }
 
         }
 

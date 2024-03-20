@@ -245,7 +245,7 @@ ${lists}
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                             v-on:change="unlockAlpha(i[0]);" :value="alphas[i[0]]">
 
-                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime"></scene-ui>
+                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime" :cue="cuemeta[i[1].cue]"></scene-ui>
 
 
                         <div class="w-full flex">

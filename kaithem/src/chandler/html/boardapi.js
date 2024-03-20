@@ -183,11 +183,6 @@ appMethods = {
         api_link.send(['gobyname', sn]);
     },
 
-    'toggleByName': function (sn) {
-
-        api_link.send(['togglebyname', sn]);
-    },
-
     'stopByName': function (sn) {
 
         api_link.send(['stopbyname', sn]);
@@ -366,11 +361,6 @@ appMethods = {
     'apiCommand': function (sc, p, v) {
 
         api_link.send([p, sc, v]);
-    },
-
-    'setSoundFolders': function (folders) {
-        api_link.send(['setsoundfolders',folders]);
-
     },
 
     'previewSound': function (s) {
@@ -1046,12 +1036,9 @@ appData = {
 
     //Current per scene alpha channel
     'alphas': {},
-    //Used only for autocompletion, it's a list of all known tracks that we've seen so far.
-    'knownTracks': {},
     'scenemeta': {},
     'scenename': null,
     'editingScene': null,
-    'running_scenes': {},
     'universes': {},
     'allScenes': [],
     'cues': {},
@@ -1382,7 +1369,6 @@ function f(v) {
     else if (c == "del") {
         old_vue_delete(vueapp.$data.selectedCues, v[1])
         old_vue_delete(vueapp.$data.scenemeta, v[1])
-        old_vue_delete(vueapp.$data.running_scenes, v[1])
         old_vue_delete(vueapp.$data.mtimes, v[1])
         vueapp.$data.editingScene = null
 

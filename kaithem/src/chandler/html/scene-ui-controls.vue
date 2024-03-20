@@ -6,6 +6,8 @@ input{
 
 
 <template id="scene-ui"><div>
+
+    <a v-if="sceneData.slideOverlayUrl || (cue&&cue.slide)"  :href="'webmediadisplay?scene='+sceneData.name">(slideshow)</a>
     <table border="1" v-if="sceneData.displayTags.length > 0">
         <tbody>
 
@@ -82,7 +84,7 @@ formatInterval = function (seconds) {
 
 module.exports = {
     template: '#scene-ui',
-    props: ['unixtime', 'sceneData'],
+    props: ['unixtime', 'sceneData','cue'],
     data: function () {
         return ({ 'formatInterval': formatInterval })
     },

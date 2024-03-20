@@ -318,15 +318,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.scenes_by_name[msg[1]].stop()
             self.pushMeta(msg[1], statusOnly=True)
 
-        elif cmd_name == "togglebyname":
-            if scenes.scenes_by_name[msg[1]].isActive():
-                scenes.scenes_by_name[msg[1]].stop()
-            else:
-                scenes.scenes_by_name[msg[1]].go()
-            self.pushMeta(
-                msg[1],
-            )
-
         elif cmd_name == "stop":
             x = scenes.scenes[msg[1]]
             x.stop()

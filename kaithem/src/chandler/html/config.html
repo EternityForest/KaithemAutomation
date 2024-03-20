@@ -69,6 +69,7 @@ ${lists}
 
 
         <div class="menubar tool-bar">
+            <button v-on:click="showMediaFolders=!showMediaFolders"><i class="icofont-folder"></i>Media Folders</button>
             <button v-on:click="showDMXSetup=!showDMXSetup"><i class="icofont-globe"></i>Universes</button>
             <button v-on:click="showhidefixtures"><i class="icofont-pencil"></i> Fixture Types</button>
             <button v-on:click="showhidefixtureassignments"><i class="icofont-light-bulb"></i>Fixtures</button>
@@ -76,7 +77,6 @@ ${lists}
                     class="icofont-folder-open"></i>Import/Export</button>
 
             <a class="button" href="docs/index" target="_blank"><i class="icofont-question-circle"></i>Help</a>
-            <a class="button" href="Setup"><i class="icofont-gears"></i>Settings</a>
         </div>
 
     </section>
@@ -126,7 +126,7 @@ ${lists}
         </section>
 
 
-        <section class="flex-item window paper w-56rem nogrow margin" style="flex-basis: 56rem;">
+        <section v-if="showMediaFolders" class="flex-item window paper w-56rem nogrow margin" style="flex-basis: 56rem;">
             <header>
                 <div class="tool-bar">
                     <h3>Media Folders</h3>
@@ -534,6 +534,7 @@ ${core.boards[0]().link.render('api_link')}
     d = {
         'showfixtureassg': false,
         'showDMXSetup': false,
+        'showMediaFolders': false,
         'showFixtureSetup': false,
         'selectedFixtureClass': '',
         'newuniversename': "",
@@ -623,6 +624,12 @@ ${core.boards[0]().link.render('api_link')}
         'rmFixtureAssignment': function (i) {
             api_link.send(['rmFixtureAssignment', i])
         },
+
+        'setSoundFolders': function (folders) {
+            api_link.send(['setsoundfolders',folders]);
+    
+        },
+    
     }
 
     appMethods = Object.assign({}, appMethods, m)
