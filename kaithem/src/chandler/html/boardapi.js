@@ -1223,20 +1223,8 @@ appData = {
 
         return this.channelNames[u][c]
     },
-    "getcueid": function (sceneid, cuename) {
-        return (this.scenecues[sceneid][cuename])
-    },
-
 
     'prompt': prompt,
-
-
-    //https://stackoverflow.com/questions/18082/validate-decimal-numbers-in-javascript-isnumeric
-    'isNumeric': function (input) {
-        var RE = /^-{0,1}\d*\.{0,1}\d+$/;
-        return (RE.test(input));
-    }
-
 }
 
 function f(v) {
