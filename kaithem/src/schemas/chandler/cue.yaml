@@ -75,7 +75,7 @@ properties:
   reentrant:
     description: "If false, the system will block entering the cue if already in the cue"
     type: boolean
-    default: false
+    default: true
 
   length_randomize:
     type: number
