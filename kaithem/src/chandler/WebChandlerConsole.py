@@ -679,6 +679,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         break
                 scenes.scenes[msg[1]].cues[bn].slide = s
 
+                if not scenes.is_static_media(s):
+                    scenes.scenes[msg[1]].cues[bn].rel_length = True
+                    scenes.scenes[msg[1]].cues[bn].length=0.01
+
                 self.pushCueMeta(scenes.scenes[msg[1]].cues[bn].id)
 
         elif cmd_name == "rmcue":

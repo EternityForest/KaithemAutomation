@@ -8,13 +8,13 @@ input {
 <template id="scene-ui">
     <div>
 
-        <details v-on:toggle="sceneData.doSlideshowEmbed= $event.target.open"
+        <details v-on:toggle="sceneData.doSlideshowEmbed= $event.target.open" style="margin: 0px; padding: 0px;"
          v-if="sceneData.slideOverlayUrl || (cue && cue.slide) || sceneData.doSlideshowEmbed">
             <summary>
                 <a 
                     :href="'webmediadisplay?scene=' + sceneData.name">(slideshow)</a>
             </summary>
-            <iframe v-if="sceneData.doSlideshowEmbed"
+            <iframe v-if="sceneData.doSlideshowEmbed" style="width: 100%;"
                     :src="'webmediadisplay?scene=' + sceneData.name"></iframe>
         </details>
         <table border="1" v-if="sceneData.displayTags.length > 0">

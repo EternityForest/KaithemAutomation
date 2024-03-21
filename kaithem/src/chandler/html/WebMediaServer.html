@@ -39,6 +39,25 @@ if 'albumArt' in kwargs:
   kaithem.web.serve_file(io.BytesIO(t),name= kwargs['albumArt']+".jpg", contenttype="image/jpeg")
 
 
+if 'slideAlbumArt' in kwargs:
+  sound = scenes.cues[kwargs['albumArt']].slide or scenes.cues[kwargs['albumArt']].sound  
+  
+  if not sound:
+    return ''  
+    
+  sound = module.resolve_sound(sound)
+
+  if vignette:
+    t = vignette.try_get_thumbnail(sound)
+    if t:
+      kaithem.web.serve_file(t)
+    
+  soundMeta = TinyTag.get(sound,image=True)
+  t = soundMeta.get_image()
+  if not t:
+    return ""
+  kaithem.web.serve_file(io.BytesIO(t),name= kwargs['albumArt']+".jpg", contenttype="image/jpeg")
+
 
 
 else:

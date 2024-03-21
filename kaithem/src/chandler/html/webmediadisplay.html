@@ -351,7 +351,9 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
                     s.addEventListener("ended", (event) => {
                         link.send(['mediaEnded', sessionTag])
                     });
+
                     t.appendChild(s);
+
                 }
 
                 else if (this.isStillImage(f)) {

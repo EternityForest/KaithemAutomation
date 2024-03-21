@@ -186,7 +186,7 @@ class Web():
 
     @cherrypy.expose
     def default(self, path, **kwargs):
-        if path==['webmediadisplay']:
+        if path in ('webmediadisplay', 'WebMediaServer'):
             pass
         else:
             pages.require('users.chandler.admin')
@@ -203,7 +203,7 @@ class Web():
                 return e.f_filepath
             #cherrypy.response.headers['Content-Type'] = e.f_MIME
             #cherrypy.response.headers['Content-Disposition'] = 'attachment ; filename = "' + e.f_name + '"'
-            return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+            return cherrypy.lib.static.serve_file(e.f_filepath, content_type=e.f_MIME, name=e.f_name)
 
     # @cherrypy.expose
     # def butterchurn(self, file):

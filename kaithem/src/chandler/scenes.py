@@ -52,14 +52,26 @@ cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 _active_scenes: List[Scene] = []
 active_scenes: List[Scene] = []
 
-
+def is_static_media(s: str):
+    "True if it's definitely media that does not have a length"
+    for i in ('.bmp','.jpg','.html','.webp','.php'):
+        if s.startswith(i):
+            return True
+        
+    # Try to detect http stuff
+    if not '.' in s.split("?")[0].split("#")[0].split("/")[-1]:
+        if not os.path.exists(s):
+            return True
+    
+    return False
+        
 def fnToCueName(fn: str):
     isNum = False
     try:
         int(fn.split(".")[0])
         isNum = True
     except Exception:
-        print(traceback.format_exc())
+        pass
 
     # Nicely Handle stuff of the form "84. trackname"
     if isNum and len(fn.split(".")) > 2:
@@ -1917,8 +1929,8 @@ class Scene:
             v = nextruntime - time.time()
 
         else:
-            if self.cue.sound and self.cue.rel_length:
-                path = self.resolve_sound(self.cue.sound)
+            if len(self.cue.sound) and self.cue.rel_length:
+                path = self.resolve_sound(self.cue.sound or self.cue.slide)
                 if (core.is_img_file(path)):
                     v = 0
                 else:
@@ -1941,7 +1953,7 @@ class Scene:
                         self.cuelen = 300
                         return
 
-            if self.cue.slide and self.cue.rel_length:
+            if len(self.cue.slide) and self.cue.rel_length:
                 path = self.resolve_sound(self.cue.slide)
                 if (core.is_img_file(path)):
                     pass
