@@ -20,6 +20,12 @@
         padding: 0opx;
     }
 
+    #app, #media-container{
+        margin: 0px;
+        padding: 0px;
+        width: 100%;
+        height: 100%;
+    }
     .player {
         margin: 0px;
         padding: 0px;
@@ -50,12 +56,42 @@
 
 ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
-<div class="player" id='player1'></div>
-<div class="player" id='player2'></div>
-<iframe id="overlay"></iframe>
+<script src="/static/js/thirdparty/vue3.js"></script>
 
+
+<div id="app">
+    <media-player></media-player>
+</div>
 
 <script>
+
+    const { createApp, ref } = Vue;
+
+    var mediaPlayerComponent = {
+        data() {
+          return {
+          }
+        },
+        template: `
+        <div id="media_container">
+            <div class="player" id='player1'></div>
+            <div class="player" id='player2'></div>
+            <iframe id="overlay"></iframe>
+        </div>`
+      }
+
+    const app = createApp({
+      data() {
+        return {
+          message: "Hello World!"
+        }
+      },
+      components:{
+        'media-player': mediaPlayerComponent
+      }
+    }).mount('#app')
+
+
 
     atypes = ['.ogg', '.oga', '.aac', '.m4a', '.mp3', '.opus']
     itypes = ['.png', '.jpg', '.bmp', '.tiff', '.webp', '.gif', '.avif']
