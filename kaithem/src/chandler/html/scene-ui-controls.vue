@@ -9,7 +9,7 @@ input {
     <div>
 
         <details v-on:toggle="sceneData.doSlideshowEmbed= $event.target.open" style="margin: 0px; padding: 0px;"
-         v-if="sceneData.slideOverlayUrl || (cue && cue.slide) || sceneData.doSlideshowEmbed">
+         v-if="sceneData.slideOverlayUrl || (cue && cue.slide) || sceneData.doSlideshowEmbed || sceneData.soundOutput=='scenewebplayer' || cue.soundOutput=='scenewebplayer'">
             <summary>
                 <a 
                     :href="'webmediadisplay?scene=' + sceneData.name">(slideshow)</a>
