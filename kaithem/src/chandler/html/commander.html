@@ -170,7 +170,7 @@
                     <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0"
                         :src="i[1].infoDisplay"></iframe>
 
-                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime"></scene-ui>
+                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime" :cue="cuemeta[i[1].cue]"></scene-ui>
 
 
                     </table>

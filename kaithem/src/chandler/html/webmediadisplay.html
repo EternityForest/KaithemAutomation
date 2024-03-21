@@ -326,6 +326,8 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
             this.playMedia = async function (t, f, st, sessionTag) {
 
+                var ts = Date.now() / 1000
+
                 this.shouldbestopped = false
 
                 if (t.children.length > 0) {
@@ -390,6 +392,9 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
                 if (!(this.isStillImage(f) || this.isHTML(f))) {
                     t.children[0].volume = 0;
+
+                    st = st - ((Date.now()/1000)- ts)
+                    st = Math.max(st,0)
                     t.children[0].currentTime = st;
                     t.children[0].controls = true;
 
