@@ -965,6 +965,15 @@ class Scene:
 
                 self.mediaLink.send(
                     [
+                        "cue_ends",
+                        self.cuelen + self.enteredCue,
+                        self.cuelen
+                    ]
+                )
+
+
+                self.mediaLink.send(
+                    [
                         "mediaURL",
                         self.allowMediaUrlRemote,
                         self.enteredCue,
@@ -1852,6 +1861,14 @@ class Scene:
                 self.pushMeta(statusOnly=True)
 
                 self.preloadNextCueSound()
+
+                self.mediaLink.send(
+                    [
+                        "cue_ends",
+                        self.cuelen + self.enteredCue,
+                        self.cuelen
+                    ]
+                )
 
     def applyTrackedValues(self, cue) -> Dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.

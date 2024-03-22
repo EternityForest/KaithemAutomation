@@ -1666,6 +1666,9 @@ ${core.boards[0]().link.render('api_link')}
 
     appData.example_events[3] = ['FooEvent', 'Any custom name you want']
 
-
+    // Blur the active element to cause Onchange events
+    window.visibilitychange = function () {
+        document.activeElement.blur();
+      };
 
 </script>

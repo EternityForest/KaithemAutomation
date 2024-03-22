@@ -529,6 +529,11 @@ ${core.boards[0]().link.render('api_link')}
 
 <script>
 
+    // Blur the active element to cause Onchange events
+    window.visibilitychange = function () {
+        document.activeElement.blur();
+        };
+
     // Add page specific stuff to boardapi which is shared between all
     // the chandler apps
     d = {
