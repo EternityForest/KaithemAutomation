@@ -96,6 +96,7 @@ getValueRange = function (d, v) {
 }
 
 
+cueSetData = {}
 
 appMethods = {
 
@@ -107,6 +108,22 @@ appMethods = {
     },
     'setCueProperty': function (cue, property, value) {
         api_link.send(['setCueProperty', cue, property, value])
+
+    },
+
+    'setCuePropertyDeferred': function (cue, property, value) {
+        //Set the property in 5 seconds, unless we get another command to set
+        //it to something else
+        var x = cueSetData[cue + property]
+        if (x)
+        {
+            clearTimeout(x);
+        }
+
+        cueSetData[cue + property] = setTimeout(function () {
+            api_link.send(['setCueProperty', cue, property, value])
+            delete cueSetData[cue + property]
+        }, 3000)
 
     },
 
