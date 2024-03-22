@@ -52,19 +52,21 @@ cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 _active_scenes: List[Scene] = []
 active_scenes: List[Scene] = []
 
+
 def is_static_media(s: str):
     "True if it's definitely media that does not have a length"
-    for i in ('.bmp','.jpg','.html','.webp','.php'):
+    for i in ('.bmp', '.jpg', '.html', '.webp', '.php'):
         if s.startswith(i):
             return True
-        
+
     # Try to detect http stuff
     if not '.' in s.split("?")[0].split("#")[0].split("/")[-1]:
         if not os.path.exists(s):
             return True
-    
+
     return False
-        
+
+
 def fnToCueName(fn: str):
     isNum = False
     try:
@@ -491,18 +493,27 @@ def checkPermissionsForSceneData(data: Dict[str, Any], user: str):
 # All the properties that can be saved and loaded are actually defined in the schema,
 cue_schema = schemas.get_schema("chandler/cue")
 
+stored_as_property = ['markdown']
+
+slots = list(cue_schema['properties'].keys()) + ["id",     "changed",
+                                                 "next_ll",
+                                                 "name",
+                                                 "scene",
+                                                 "inherit",
+                                                 "onEnter",
+                                                 "onExit",
+                                                 "__weakref__"]
+s2 = []
+for i in slots:
+    if not i in stored_as_property:
+        s2.append(i)
+    else:
+        s2.append("_"+i)
+slots = s2
 
 class Cue:
     "A static set of values with a fade in and out duration"
-    __slots__ = list(cue_schema['properties'].keys()) + ["id",
-                                                         "changed",
-                                                         "next_ll",
-                                                         "name",
-                                                         "scene",
-                                                         "inherit",
-                                                         "onEnter",
-                                                         "onExit",
-                                                         "__weakref__"]
+    __slots__ = slots
 
     def __init__(
         self,
@@ -546,6 +557,8 @@ class Cue:
         self.media_wind_down: str
         self.probability: float | str
         self.values: Dict[str, Dict[str | int, str | int | float | None]]
+
+        self._markdown: str = kw.get('markdown', '').strip()
 
         if id:
             disallow_special(id)
@@ -656,6 +669,25 @@ class Cue:
         self.getScene().insertSorted(None)
 
         self.push()
+
+    @property
+    def markdown(self):
+        return self._markdown
+
+    @markdown.setter
+    def markdown(self, s: str):
+        s = s.strip().replace('\r', '')
+        if not s == self._markdown:
+            self._markdown = s
+            self.push()
+            scene = self.scene()
+            if scene:
+                scene.mediaLink.send(
+                    [
+                        "text",
+                        self._markdown,
+                    ]
+                )
 
     def setRules(self, r: Optional[List[List[str | float | bool] | str | float | bool]]):
         self.rules = r
@@ -926,6 +958,13 @@ class Scene:
 
                 self.mediaLink.send(
                     [
+                        "text",
+                        self.cue.markdown
+                    ]
+                )
+
+                self.mediaLink.send(
+                    [
                         "mediaURL",
                         self.allowMediaUrlRemote,
                         self.enteredCue,
@@ -954,8 +993,6 @@ class Scene:
 
         self.command_tagSubscriptions = []
         self.command_tag = command_tag
-
-
 
         self.notes = notes
         self._midi_source: str = ""
@@ -1134,7 +1171,6 @@ class Scene:
         self.setDisplayTags(display_tags)
 
         self.refreshRules()
-
 
         self.mqtt_server = mqtt_server
         self.activeMqttServer = None
@@ -1598,6 +1634,13 @@ class Scene:
                         self.cues[cue].slide,
                         self.enteredCue,
                         max(0, self.cues[cue].fade_in or self.crossfade),
+                    ]
+                )
+
+                self.mediaLink.send(
+                    [
+                        "text",
+                        self.cues[cue].markdown,
                     ]
                 )
 
@@ -2366,7 +2409,6 @@ class Scene:
                 self.command_tagSubscriptions.append([t, s])
                 t.subscribe(s)
 
-    
     def rename_cue(self, old: str, new: str):
         disallow_special(new, allowedCueNameSpecials)
         if new[0] in "1234567890 \t_":
@@ -2378,7 +2420,7 @@ class Scene:
             raise RuntimeError("Already exists")
         if old == 'default':
             raise RuntimeError("Can't rename default cue")
-        
+
         cue = self.cues.pop(old)
         cue.name = new
         cue.named_for_sound = False
@@ -2389,7 +2431,7 @@ class Scene:
             if len(board.newDataFunctions) < 100:
                 board.newDataFunctions.append(
                     lambda s: s.linkSend(["delcue", cue.id]))
-                
+
         cue.push()
 
     def setCommandTag(self, tag_name: str):
@@ -2490,7 +2532,7 @@ class Scene:
 
     def isActive(self):
         return self.active
-    
+
     @property
     def priority(self):
         return self._priority
@@ -2716,7 +2758,7 @@ class Scene:
     @property
     def midi_source(self):
         return self._midi_source
-    
+
     @midi_source.setter
     def midi_source(self, s: str):
         if s == self._midi_source:

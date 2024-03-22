@@ -46,6 +46,12 @@ properties:
   notes:
     type: string
     default: ''
+    description: Notes intended for the designer or operator.
+
+  markdown:
+    type: string
+    default: ''
+    description: Some rich text that could be displayed in the sidebar
 
   sound_output:
     type: string

@@ -1009,6 +1009,16 @@ ${lists}
                     </details>
 
                     <details class="undecorated">
+                        <summary>Cue Text</summary>
+                        <textarea v-model="currentcue.markdown" class="w-full h-16rem"
+                        v-on:change="setCueProperty(currentcue.id, 'markdown', $event.target.value)"
+                        
+                        >
+                        
+                        </textarea>
+                    </details>
+
+                    <details class="undecorated">
                         <summary>Cue Properties
                         </summary>
 

@@ -100,8 +100,13 @@ getValueRange = function (d, v) {
 appMethods = {
 
 
+    // Slowly we want to migrate to these two generic setters
     'setSceneProperty': function (scene, property, value) {
         api_link.send(['setSceneProperty', scene, property, value])
+
+    },
+    'setCueProperty': function (cue, property, value) {
+        api_link.send(['setCueProperty', cue, property, value])
 
     },
 

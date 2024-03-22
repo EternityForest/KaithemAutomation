@@ -819,6 +819,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].notes = msg[2].strip()
             self.pushCueMeta(msg[1])
 
+
+        # TODO: Almost everything should go through these two functions!!
         elif cmd_name == 'setSceneProperty':
             prop = snake_compat.camel_to_snake(msg[2])
             # Generic setter for things that are just simple value sets.
@@ -829,6 +831,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             setattr(scenes.scenes[msg[1]], prop, msg[3])
 
             self.pushMeta(msg[1], keys={prop})
+
+        elif cmd_name == 'setCueProperty':
+            prop = snake_compat.camel_to_snake(msg[2])
+            # Generic setter for things that are just simple value sets.
+
+            # Try to get the attr, to ensure that it actually exists.
+            getattr(cues[msg[1]], prop)
+
+            setattr(cues[msg[1]], prop, msg[3])
+            self.pushCueMeta(msg[1])
 
         elif cmd_name == "setmqttfeature":
             scenes.scenes[msg[1]].setMQTTFeature(msg[2], msg[3])

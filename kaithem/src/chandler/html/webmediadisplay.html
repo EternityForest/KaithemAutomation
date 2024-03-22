@@ -6,6 +6,8 @@
     }
 </style>
 <script src="/static/js/widget.js"></script>
+<script src="/static/showdown.min.js"></script>
+
 <!-- <script src="/static/js/thirdparty/butterchurn/butterchurn.min.js"></script>
 <script src="/static/js/thirdparty/butterchurn/butterchurnPresetsExtra.min.js"></script>
 <script src="/static/js/thirdparty/butterchurn/butterchurnPresetsExtra2.min.js"></script>
@@ -20,18 +22,34 @@
         padding: 0opx;
     }
 
+
     #app, #media-container{
         margin: 0px;
         padding: 0px;
-        width: 100%;
-        height: 100%;
     }
+
+    #media-container{
+        flex-grow: 5;
+        position: relative;
+    }
+
+    #app{
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        height: 100%;
+        width: 100%;
+    }
+
     .player {
         margin: 0px;
         padding: 0px;
         border-width: 0px;
         height: 100%;
         width: 100%;
+        position: absolute;
+        top: 0px;
+        left: 0px;
     }
 
     audio {
@@ -61,10 +79,13 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
 <div id="app">
     <media-player></media-player>
+    <div v-if="text" style="color: aliceblue; background-color: rgb(68, 62, 62); height: 100%"
+    v-html="text"></div>
 </div>
 
 <script>
-
+    var conv = new showdown.Converter({metadata: true});
+    
     const { createApp, ref } = Vue;
 
     var mediaPlayerComponent = {
@@ -73,17 +94,18 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
           }
         },
         template: `
-        <div id="media_container">
+        <div id="media-container">
             <div class="player" id='player1'></div>
             <div class="player" id='player2'></div>
-            <iframe id="overlay"></iframe>
+            <iframe id="overlay" :src="overlay" v-if="overlay"></iframe>
         </div>`
       }
 
     const app = createApp({
       data() {
         return {
-          message: "Hello World!"
+          text: "",
+          overlay: ''
         }
       },
       components:{
@@ -224,11 +246,11 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
 
             this.cstyle = {
-                position: 'absolute',
-                top: '0',
-                bottom: '0',
+                top: '0px',
+                right: '0px',
                 width: '100%',
                 height: '100%',
+                position: 'absolute',
                 overflow: 'hidden',
                 margin: '0px',
                 padding: '0px',
@@ -239,15 +261,15 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             }
 
             this.vstyle = {
+                top: '0px',
+                right: '0px',
+                height: "100%",
                 width: '100%',
                 margin: '0px',
                 padding: '0px',
-                height: 'auto',
-                "max-height": '100%',
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%,-50%)',
+                "max-height": '100%',
+                "max-width": '100%',
                 "object-fit": 'contain',
             };
 
@@ -445,6 +467,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
                         }
                     }
                     catch (e) {
+                        alert("Must click page to play, unless you enable autoplay in browser settings.")
                         this.deffered_play = t.children[0]
                         setInterval(async () => {
                             if (this.deffered_play) {
@@ -514,11 +537,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         }
 
         if (v[0] == 'overlay') {
-            if(document.getElementById('overlay').src != v[1])
-            {
-                document.getElementById('overlay').src = v[1]
-            }
-
+            app.$data.overlay == v[1]
         }
 
 
@@ -543,7 +562,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
 
         //Pretty much just for sounds
-        if (v[0] == 'slide') {
+        else if (v[0] == 'slide') {
 
             // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
             // But we more importantly want to prioritize not missing the start of a short clip
@@ -555,6 +574,10 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             //Use when it started as the session tag
             player2.switchMedia(v[1], v[3], t, v[2])
         }
+
+        else if (v[0] == 'text') {
+                    app.$data.text = conv.makeHtml(v[1])
+                }
     }
     link.upd = f
     link.timeSyncInterval = 10000
@@ -566,6 +589,6 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         link.send(['ask'])
     }
 
-    setInterval(f2, 1000)
+    setInterval(f2, 60000)
 
 </script>
