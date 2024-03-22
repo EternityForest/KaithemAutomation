@@ -21,20 +21,16 @@
 
 
     #app,
-    #media-container {
+    media-player {
         margin: 0px;
         padding: 0px;
     }
 
-    #media-container {
-        flex-grow: 5;
+    media-player {
         position: relative;
     }
 
     #app {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
         height: 100%;
         width: 100%;
     }
@@ -66,6 +62,9 @@
         background-color: transparent;
         position: absolute;
     }
+
+
+
 </style>
 
 
@@ -76,13 +75,38 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 <script src="/static/js/thirdparty/handlebars.js"></script>
 
 
+<style>
+    #sidebar {
+        color: aliceblue;
+        background-color: rgb(68, 62, 62);
+        height: 100%;
+        max-width: calc(max(30%, 24em));
+    }
+
+    #app {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    media-player {
+        flex-grow: 5;
+        position: relative;
+    }
+</style>
+
+
 <div id="app">
     <media-player></media-player>
-    <div v-if="cueText" style="color: aliceblue; background-color: rgb(68, 62, 62); height: 100%" v-html="cueText">
+    <div id="sidebar" v-if="cueText" v-html="cueText">
     </div>
 </div>
 
-<iframe id="overlay" :src="private_overlay" v-if="private_overlay"></iframe>
+
+
+
+
+
 
 <script>
     var conv = new showdown.Converter({ metadata: true });
@@ -95,11 +119,16 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             return {
             }
         },
+        compilerOptions: {
+            isCustomElement: function(tag) {
+            return true
+          }},
         template: `
-        <div id="media-container">
+        <media-player>
             <div class="player" id='player1'></div>
             <div class="player" id='player2'></div>
-        </div>`
+            <iframe id="overlay"></iframe>
+        </media-player>`
     }
 
 
@@ -109,7 +138,6 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         data() {
             return {
                 cueText: "",
-                "private_overlay": '',
                 "privateCueTamplate": Handlebars.compile(""),
 
                 // Vars meant for users to use in the handlebars templates if desired
@@ -146,6 +174,19 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
     player = new makePlayer(document.getElementById('player1'), "${kwargs['scene']}")
     player2 = new makePlayer(document.getElementById('player2'), "${kwargs['scene']}")
 
+
+    function renderCueText() {
+        var t = app.$data.privateCueTamplate(app.$data)
+        app.$data.cueText = conv.makeHtml(t)
+
+        var el = document.getElementsByTagName("cue-text")[0]
+        if (el) {
+            if (!el.innerHTML == app.$data.cueText) {
+                el.innerHTML = app.$data.cueText
+            }
+        }
+    }
+
     function f(v) {
         if (v[0] == 'volume') {
             player.targetVolume = v[1]
@@ -154,7 +195,12 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         }
 
         if (v[0] == 'overlay') {
-            app.$data.private_overlay == v[1]
+            var el = document.getElementById("overlay")
+            if (el) {
+                if (el.src != v[1]) {
+                    el.src = v[1]
+                }
+            }
         }
 
 
@@ -203,8 +249,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
         else if (v[0] == 'text') {
             app.$data.privateCueTamplate = Handlebars.compile(v[1])
-            var t = app.$data.privateCueTamplate(app.$data)
-            app.$data.cueText = conv.makeHtml(t)
+            renderCueText()
         }
     }
     link.upd = f
@@ -228,8 +273,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             app.$data.countdown = ''
         }
 
-        var t = app.$data.privateCueTamplate(app.$data)
-        app.$data.cueText = conv.makeHtml(t)
+        renderCueText()
     }
 
     setInterval(timers, 1000)
