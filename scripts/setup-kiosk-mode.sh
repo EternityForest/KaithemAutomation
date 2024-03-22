@@ -62,12 +62,6 @@ export DISPLAY=:0
 export XDG_CONFIG_HOME=/dev/shm/kiosk-temp-config
 export XDG_CACHE_HOME=/dev/shm/kiosk-temp-cache
 
-# Try to not use 4k because that is slow especially on old xwindows stuff
-if xrandr | grep -q "1920x1080"; then
-    DISPLAY=:0 xrandr -s 1920x1080
-fi
-
-
 # We don't do sound here, we intercept in kaithem so we have remote control of the effects
 STATUS="$(systemctl is-active kaithem.service)"
 if [ "${STATUS}" = "active" ]; then
