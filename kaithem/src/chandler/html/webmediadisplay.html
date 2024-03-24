@@ -35,7 +35,7 @@
         3px -3px 0 #000;
         background: black;
     }
-    
+
     slideshow-app {
         height: 100%;
         width: 100%;
@@ -252,6 +252,16 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
         else if (v[0] == 'text') {
             app.$data.privateCueTamplate = Handlebars.compile(v[1])
+            renderCueText()
+        }
+
+        else if (v[0] == 'all_variables') {
+            Object.assign(app.$data, v[1])
+            renderCueText()
+        }
+
+        else if (v[0] == 'web_var') {
+            app.$data[v[0]] = v[1]
             renderCueText()
         }
     }

@@ -428,11 +428,11 @@
 
                 this.fadeLength = Math.max(0, (t - startAt) * 1000)
 
-                if(v[1].length == 0){
-                    getElementsByTagName('media-player')[0].class ='player-idle'
+                if(v && v.length == 0){
+                    document.getElementsByTagName('media-player')[0].class ='player-idle'
                 }
                 else{
-                    getElementsByTagName('media-player')[0].class =''
+                    document.getElementsByTagName('media-player')[0].class =''
                 }
             };
 

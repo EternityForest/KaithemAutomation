@@ -318,7 +318,7 @@ def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = "")
 
 def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
     "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
-    if not key.startswith('var_'):
+    if not key.startswith('var'):
         raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
     scenes_by_name[scene].set_slideshow_variable(key, value)
     return True

@@ -1062,7 +1062,6 @@ appData = {
     'scenename': null,
     'editingScene': null,
     'universes': {},
-    'allScenes': [],
     'cues': {},
     'newcuename': '',
     'cuemeta': {},
@@ -1395,10 +1394,7 @@ function f(v) {
         vueapp.$data.editingScene = null
 
     }
-
-    else if (c == "newscene") {
-        vueapp.$data.allScenes.push([v[1], v[2]])
-    }
+        
     else if (c == 'soundfolderlisting') {
         if (v[1] == vueapp.$data.soundfilesdir) {
             vueapp.$data.soundfileslisting = v[2]

@@ -42,18 +42,18 @@ def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
 class ChandlerConsole(console_abc.Console_ABC):
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
-    def loadProject(self):
+    def load_project(self):
         for i in self.scenememory:
             self.scenememory[i].stop()
             self.scenememory[i].close()
         self.scenememory = {}
 
-        for i in self.configuredUniverses:
-            self.configuredUniverses[i].close()
+        for i in self.configured_universes:
+            self.configured_universes[i].close()
 
-        self.configuredUniverses = {}
-        self.fixtureClasses = {}
-        self.fixtureAssignments = {}
+        self.configured_universes = {}
+        self.fixture_classes = {}
+        self.fixture_assignments = {}
 
         saveLocation = os.path.join(
             kaithem.misc.vardir, "chandler", "universes")
@@ -61,7 +61,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.configuredUniverses[i[: -len(".yaml")]] = kaithem.persist.load(
+                    self.configured_universes[i[: -len(".yaml")]] = kaithem.persist.load(
                         fn
                     )
 
@@ -71,7 +71,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixtureClasses[i[: -
+                    self.fixture_classes[i[: -
                                           len(".yaml")]] = kaithem.persist.load(fn)
 
         saveLocation = os.path.join(
@@ -80,7 +80,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixtureAssignments[i[: -len(".yaml")]] = kaithem.persist.load(
+                    self.fixture_assignments[i[: -len(".yaml")]] = kaithem.persist.load(
                         fn
                     )
         saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
@@ -89,7 +89,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 os.path.join(saveLocation, "presets.yaml"))
 
         try:
-            self.createUniverses(self.configuredUniverses)
+            self.create_universes(self.configured_universes)
         except Exception:
             logger.exception("Error creating universes")
             print(traceback.format_exc(6))
@@ -106,7 +106,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
             self.loadDict(d)
 
-        self.linkSend(["refreshPage", self.fixtureAssignments])
+        self.linkSend(["refreshPage", self.fixture_assignments])
 
     def __init__(self):
         super().__init__()
@@ -123,22 +123,22 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.scenememory: Dict[str, Scene] = {}
 
         # For change etection in scenes
-        self.last_saved_versions : Dict[str, Dict[str,Any]] = {}
+        self.last_saved_versions: Dict[str, Dict[str,Any]] = {}
 
         self.ext_scenes = {}
 
         self.lock = threading.RLock()
 
-        self.configuredUniverses: Dict[str, Any] = {}
-        self.fixtureAssignments: Dict[str, Any] = {}
+        self.configured_universes: Dict[str, Any] = {}
+        self.fixture_assignments: Dict[str, Any] = {}
         self.fixtures = {}
 
-        self.universeObjs: Dict[str, universes.Universe] = {}
-        self.fixtureClasses: Dict[str, Any] = copy.deepcopy(fixtureslib.genericFixtureClasses)
+        self.universe_objects: Dict[str, universes.Universe] = {}
+        self.fixture_classes: Dict[str, Any] = copy.deepcopy(fixtureslib.genericFixtureClasses)
 
-        self.loadProject()
+        self.load_project()
 
-        self.refreshFixtures()
+        self.refresh_fixtures()
 
         def f(self: ChandlerConsole, *dummy: tuple[Any]):
             self.linkSend(
@@ -150,14 +150,14 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         # Use only for stuff in background threads, to avoid pileups that clog the
         # Whole worker pool
-        self.guiSendLock = threading.Lock()
+        self.gui_send_lock = threading.Lock()
 
         # For logging ratelimiting
-        self.lastLoggedGuiSendError = 0
+        self.last_logged_gui_send_error = 0
 
         self.autosave_checker = scheduling.scheduler.every(self.check_autosave, 10*60)
 
-    def refreshFixtures(self):
+    def refresh_fixtures(self):
         with core.lock:
             self.ferrs = ""
             try:
@@ -177,10 +177,10 @@ class ChandlerConsole(console_abc.Console_ABC):
 
             self.fixtures = {}
 
-            for i in self.fixtureAssignments.values():
+            for i in self.fixture_assignments.values():
                 try:
                     x = universes.Fixture(
-                        i["name"], self.fixtureClasses[i["type"]])
+                        i["name"], self.fixture_classes[i["type"]])
                     self.fixtures[i["name"]] = x
                     self.fixtures[i["name"]].assign(
                         i["universe"], int(i["addr"]))
@@ -206,23 +206,23 @@ class ChandlerConsole(console_abc.Console_ABC):
         # These pre-checks are just for performance reasons, saveasfiles already knows how not
         # to unnecessarily do disk writes
         # as does persist.save
-        if force or not self.fixtureClasses == self.last_saved_versions.get("__INTERNAL__:__FIXTURECLASSES__", None):
-            self.last_saved_versions["__INTERNAL__:__FIXTURECLASSES__"] = copy.deepcopy(self.fixtureClasses)
+        if force or not self.fixture_classes == self.last_saved_versions.get("__INTERNAL__:__FIXTURECLASSES__", None):
+            self.last_saved_versions["__INTERNAL__:__FIXTURECLASSES__"] = copy.deepcopy(self.fixture_classes)
             self.saveAsFiles(
-                    "fixturetypes", self.fixtureClasses, "lighting/fixtureclasses"
+                    "fixturetypes", self.fixture_classes, "lighting/fixtureclasses"
                 )
 
-        if force or not self.configuredUniverses == self.last_saved_versions.get("__INTERNAL__:__UNIVERSES__", None):
-            self.last_saved_versions["__INTERNAL__:__UNIVERSES__"] = copy.deepcopy(self.configuredUniverses)
+        if force or not self.configured_universes == self.last_saved_versions.get("__INTERNAL__:__UNIVERSES__", None):
+            self.last_saved_versions["__INTERNAL__:__UNIVERSES__"] = copy.deepcopy(self.configured_universes)
             self.saveAsFiles(
-                "universes", self.configuredUniverses, "lighting/universes"
+                "universes", self.configured_universes, "lighting/universes"
             )
 
-        if force or not self.fixtureAssignments == self.last_saved_versions.get("__INTERNAL__:__ASSG__", None):
-            self.last_saved_versions["__INTERNAL__:__ASSG__"] = copy.deepcopy(self.fixtureAssignments)
+        if force or not self.fixture_assignments == self.last_saved_versions.get("__INTERNAL__:__ASSG__", None):
+            self.last_saved_versions["__INTERNAL__:__ASSG__"] = copy.deepcopy(self.fixture_assignments)
                 
             self.saveAsFiles(
-                "fixtures", self.fixtureAssignments, "lighting/fixtures"
+                "fixtures", self.fixture_assignments, "lighting/fixtures"
             )
 
         saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
@@ -237,12 +237,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.presets, os.path.join(saveLocation, "presets.yaml")
         )
         
-    def createUniverses(self, data):
+    def create_universes(self, data):
         assert isinstance(data, Dict)
-        for i in self.universeObjs:
-            self.universeObjs[i].close()
+        for i in self.universe_objects:
+            self.universe_objects[i].close()
 
-        self.universeObjs = {}
+        self.universe_objects = {}
         import gc
 
         gc.collect()
@@ -281,7 +281,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 )
             else:
                 event("system.error", "No universe type: " + u[i]["type"])
-        self.universeObjs = universeObjects
+        self.universe_objects = universeObjects
 
         try:
             core.discoverColorTagDevices()
@@ -291,7 +291,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.pushUniverses()
 
-    def loadShow(self, showName):
+    def load_show(self, showName):
         saveLocation = os.path.join(
             kaithem.misc.vardir, "chandler", "shows", showName)
         d = {}
@@ -303,9 +303,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                     d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
         self.loadDict(d)
-        self.refreshFixtures()
+        self.refresh_fixtures()
 
-    def loadSetup(self, setupName):
+    def load_setup(self, setupName):
         saveLocation = os.path.join(
             kaithem.misc.vardir, "chandler", "setups", setupName, "universes"
         )
@@ -313,15 +313,15 @@ class ChandlerConsole(console_abc.Console_ABC):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.configuredUniverses[i[: -len(".yaml")]] = kaithem.persist.load(
+                    self.configured_universes[i[: -len(".yaml")]] = kaithem.persist.load(
                         fn
                     )
 
-        self.universeObjs = {}
-        self.fixtureAssignments = {}
+        self.universe_objects = {}
+        self.fixture_assignments = {}
         self.fixtures = {}
 
-        self.fixtureAssignments = {}
+        self.fixture_assignments = {}
 
         saveLocation = os.path.join(
             kaithem.misc.vardir, "chandler", "setups", setupName, "fixtures"
@@ -330,12 +330,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             for i in os.listdir(saveLocation):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixtureAssignments[i[: -len(".yaml")]] = kaithem.persist.load(
+                    self.fixture_assignments[i[: -len(".yaml")]] = kaithem.persist.load(
                         fn
                     )
 
-        self.refreshFixtures()
-        self.createUniverses(self.configuredUniverses)
+        self.refresh_fixtures()
+        self.create_universes(self.configured_universes)
 
         if os.path.exists(os.path.join(saveLocation, "presets.yaml")):
             self.presets = kaithem.persist.load(
@@ -348,19 +348,19 @@ class ChandlerConsole(console_abc.Console_ABC):
         data = yaml.load(data, Loader=yaml.SafeLoader)
 
         if "fixtureTypes" in data:
-            self.fixtureClasses.update(data["fixtureTypes"])
+            self.fixture_classes.update(data["fixtureTypes"])
 
         if "universes" in data:
-            self.configuredUniverses = data["universes"]
-            self.createUniverses(self.configuredUniverses)
+            self.configured_universes = data["universes"]
+            self.create_universes(self.configured_universes)
 
         # Compatibility with a legacy typo
         if "fixures" in data:
             data["fixtures"] = data["fixures"]
 
         if "fixtures" in data:
-            self.fixtureAssignments = data["fixtures"]
-            self.refreshFixtures()
+            self.fixture_assignments = data["fixtures"]
+            self.refresh_fixtures()
 
         if "presets" in data:
             self.presets = data["presets"]
@@ -369,9 +369,9 @@ class ChandlerConsole(console_abc.Console_ABC):
     def getSetupFile(self):
         with core.lock:
             return {
-                "fixtureTypes": self.fixtureClasses,
-                "universes": self.configuredUniverses,
-                "fixtures": self.fixtureAssignments,
+                "fixtureTypes": self.fixture_classes,
+                "universes": self.configured_universes,
+                "fixtures": self.fixture_assignments,
                 "presets": self.presets,
             }
 
@@ -381,16 +381,16 @@ class ChandlerConsole(console_abc.Console_ABC):
         if "fixtureTypes" in data:
             assert isinstance(data["fixtureTypes"], Dict)
 
-            self.fixtureClasses.update(data["fixtureTypes"])
+            self.fixture_classes.update(data["fixtureTypes"])
         else:
             raise ValueError("No fixture types in that file")
 
     def getLibraryFile(self):
         with core.lock:
             return {
-                "fixtureTypes": self.fixtureClasses,
-                "universes": self.configuredUniverses,
-                "fixures": self.fixtureAssignments,
+                "fixtureTypes": self.fixture_classes,
+                "universes": self.configured_universes,
+                "fixures": self.fixture_assignments,
                 "presets": self.presets,
             }
 
@@ -516,7 +516,7 @@ class ChandlerConsole(console_abc.Console_ABC):
     def pushEv(self, event, target, t=None, value=None, info=""):
         # TODO: Do we want a better way of handling this? We don't want to clog up the semi-re
         def f():
-            if self.guiSendLock.acquire(timeout=5):
+            if self.gui_send_lock.acquire(timeout=5):
                 try:
                     self.linkSend(
                         [
@@ -531,26 +531,26 @@ class ChandlerConsole(console_abc.Console_ABC):
                         ]
                     )
                 except Exception:
-                    if time.monotonic() - self.lastLoggedGuiSendError < 60:
+                    if time.monotonic() - self.last_logged_gui_send_error < 60:
                         logger.exception(
                             "Error when reporting event. (Log ratelimit: 30)"
                         )
-                        self.lastLoggedGuiSendError = time.monotonic()
+                        self.last_logged_gui_send_error = time.monotonic()
                 finally:
-                    self.guiSendLock.release()
+                    self.gui_send_lock.release()
             else:
-                if time.monotonic() - self.lastLoggedGuiSendError < 60:
+                if time.monotonic() - self.last_logged_gui_send_error < 60:
                     logger.error(
                         "Timeout getting lock to push event. (Log ratelimit: 60)"
                     )
-                    self.lastLoggedGuiSendError = time.monotonic()
+                    self.last_logged_gui_send_error = time.monotonic()
 
         kaithem.misc.do(f)
 
     def pushfixtures(self):
         "Errors in fixture list"
         self.linkSend(["ferrs", self.ferrs])
-        self.linkSend(["fixtureAssignments", self.fixtureAssignments])
+        self.linkSend(["fixtureAssignments", self.fixture_assignments])
 
 
     def pushUniverses(self):
@@ -813,7 +813,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.linkSend(["cuedata", cues[cueid].id, cues[cueid].values])
 
     def pushConfiguredUniverses(self):
-        self.linkSend(["confuniverses", self.configuredUniverses])
+        self.linkSend(["confuniverses", self.configured_universes])
 
     def pushCueList(self, scene: str):
         s = scenes.scenes[scene]

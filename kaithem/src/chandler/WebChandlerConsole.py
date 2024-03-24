@@ -180,13 +180,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "getfixtureclass":
             self.linkSend(
-                ["fixtureclass", msg[1], self.fixtureClasses[msg[1]]])
+                ["fixtureclass", msg[1], self.fixture_classes[msg[1]]])
 
         elif cmd_name == "getfixtureclasses":
             # Send placeholder lists
             self.linkSend(
                 ["fixtureclasses", {i: []
-                                    for i in self.fixtureClasses.keys()}]
+                                    for i in self.fixture_classes.keys()}]
             )
         elif cmd_name == "getcuemeta":
             s = cues[msg[1]]
@@ -339,29 +339,27 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.save_setup()
 
         elif cmd_name == "loadShow":
-            self.loadShow(msg[1])
+            self.load_show(msg[1])
 
         elif cmd_name == "saveLibrary":
             self.saveAsFiles(
-                "fixturetypes", self.fixtureClasses, "lighting/fixtureclasses"
+                "fixturetypes", self.fixture_classes, "lighting/fixtureclasses"
             )
 
         elif cmd_name == "addscene":
             s = Scene(msg[1].strip())
             self.scenememory[s.id] = s
-            self.linkSend(["newscene", msg[1].strip(), s.id])
             self.pushMeta(s.id)
 
         elif cmd_name == "addmonitor":
             s = Scene(msg[1].strip(), blend="monitor",
                       priority=100, active=True)
             self.scenememory[s.id] = s
-            self.linkSend(["newscene", msg[1].strip(), s.id])
 
         elif cmd_name == "setconfuniverses":
             if kaithem.users.check_permission(user, "/admin/settings.edit"):
-                self.configuredUniverses = msg[1]
-                self.createUniverses(self.configuredUniverses)
+                self.configured_universes = msg[1]
+                self.create_universes(self.configured_universes)
             else:
                 raise RuntimeError("User does not have permission")
 
@@ -372,8 +370,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     commandInfo.append(i[:2])
                 else:
                     commandInfo.append(i)
-            self.fixtureClasses[msg[1]] = commandInfo
-            self.refreshFixtures()
+            self.fixture_classes[msg[1]] = commandInfo
+            self.refresh_fixtures()
 
         elif cmd_name == "setfixtureclassopz":
             x = []
@@ -394,33 +392,33 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     commandInfo.append(i[:2])
                 else:
                     commandInfo.append(i)
-            self.fixtureClasses[msg[1].replace(
+            self.fixture_classes[msg[1].replace(
                 "-", " ").replace("/", " ")] = commandInfo
-            self.refreshFixtures()
+            self.refresh_fixtures()
 
         elif cmd_name == "rmfixtureclass":
-            del self.fixtureClasses[msg[1]]
-            self.refreshFixtures()
+            del self.fixture_classes[msg[1]]
+            self.refresh_fixtures()
 
         elif cmd_name == "setFixtureAssignment":
-            self.fixtureAssignments[msg[1]] = msg[2]
-            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
-            self.refreshFixtures()
+            self.fixture_assignments[msg[1]] = msg[2]
+            self.linkSend(["fixtureAssignments", self.fixture_assignments])
+            self.refresh_fixtures()
 
         elif cmd_name == "getcuehistory":
             self.linkSend(
                 ["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
 
         elif cmd_name == "rmFixtureAssignment":
-            del self.fixtureAssignments[msg[1]]
+            del self.fixture_assignments[msg[1]]
 
-            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
-            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
+            self.linkSend(["fixtureAssignments", self.fixture_assignments])
+            self.linkSend(["fixtureAssignments", self.fixture_assignments])
 
-            self.refreshFixtures()
+            self.refresh_fixtures()
 
         elif cmd_name == "getfixtureassg":
-            self.linkSend(["fixtureAssignments", self.fixtureAssignments])
+            self.linkSend(["fixtureAssignments", self.fixture_assignments])
             self.pushfixtures()
 
         elif cmd_name == "clonecue":
