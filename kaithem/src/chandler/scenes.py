@@ -316,11 +316,19 @@ def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = "")
     return True
 
 
+def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
+    "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
+    if not key.startswith('var_'):
+        raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
+    scenes_by_name[scene].set_slideshow_variable(key, value)
+    return True
+
 rootContext.commands["shortcut"] = codeCommand
 rootContext.commands["goto"] = gotoCommand
 rootContext.commands["setAlpha"] = setAlphaCommand
 rootContext.commands["ifCue"] = ifCueCommand
 rootContext.commands["sendEvent"] = eventCommand
+rootContext.commands["setSlideshowVariable"] = setWebVarCommand
 
 rootContext.commands["setTag"].completionTags = {
     "tagName": "tagPointsCompleter"}
@@ -426,7 +434,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         if scene:
             try:
                 if not k == "_" and scene.rerenderOnVarChange:
-                    scene.recalcCueVals()
+                    scene.recalc_cue_vals()
                     scene.rerender = True
 
             except Exception:
@@ -689,6 +697,7 @@ class Cue:
                     ]
                 )
 
+
     def setRules(self, r: Optional[List[List[str | float | bool] | str | float | bool]]):
         self.rules = r
         self.getScene().refreshRules()
@@ -808,7 +817,7 @@ class Cue:
                     unmappeduniverse in self.values
                     and "__length__" in self.values[unmappeduniverse]
                 ):
-                    scene.cueValsToNumpyCache(self, False)
+                    scene.cue_vals_to_numpy_cache(self, False)
 
                     # The FadeCanvas needs to know about this change
                     scene.render(force_repaint=True)
@@ -922,6 +931,11 @@ class Scene:
 
         if not name.strip():
             raise ValueError("Invalid Name")
+        
+
+        # Variables to send to the slideshow.  They are UI only and
+        # we don't have any reactive features
+        self.web_variables: Dict[str, Any] = {}
 
         self.mqttConnection = None
         self.mqttSubscribed: Dict[str, bool]
@@ -968,6 +982,13 @@ class Scene:
                         "cue_ends",
                         self.cuelen + self.enteredCue,
                         self.cuelen
+                    ]
+                )
+
+                self.mediaLink.send(
+                    [
+                        "all_variables",
+                        self.web_variables
                     ]
                 )
 
@@ -1170,7 +1191,7 @@ class Scene:
 
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
-        self.scriptContext = self.makeScriptContext()
+        self.scriptContext = self.make_script_context()
 
         self.displayTagSubscriptions = []
         self.display_tags = []
@@ -1236,6 +1257,17 @@ class Scene:
             if not self.mqttConnection.is_connected:
                 x += "MQTT Dis_connected "
         return x
+
+    def set_slideshow_variable(self, k: str, v: Any):
+        self.mediaLink.send(
+                [
+                    "web_var",
+                    k,
+                    v
+                ]
+            )
+        
+        self.web_variables[k] = v
 
     def close(self):
         "Unregister the scene and delete it from the lists"
@@ -1409,7 +1441,7 @@ class Scene:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
 
-    def pickRandomCueFromNames(self, cues: List[str] | Set[str] | Dict[str, Any]) -> str:
+    def pick_random_cue_from_names(self, cues: List[str] | Set[str] | Dict[str, Any]) -> str:
         names: List[str] = []
         weights: List[float] = []
 
@@ -1432,11 +1464,11 @@ class Scene:
                     break
                 elif i[0] in x:
                     x.remove(i[0])
-            cue = self.pickRandomCueFromNames(x)
+            cue = self.pick_random_cue_from_names(x)
 
         elif cue == "__random__":
             x = [i.name for i in self.cues_ordered if not i.name == self.cue.name]
-            cue = self.pickRandomCueFromNames(x)
+            cue = self.pick_random_cue_from_names(x)
 
         else:
             # Handle random selection option cues
@@ -1448,7 +1480,7 @@ class Scene:
                             break
                         elif i[0] in x:
                             x.remove(i)
-                cue = self.pickRandomCueFromNames(x)
+                cue = self.pick_random_cue_from_names(x)
 
             elif "*" in cue:
                 import fnmatch
@@ -1477,7 +1509,7 @@ class Scene:
                             break
                         elif i[0] in x:
                             x.remove(i)
-                cue = cue = self.pickRandomCueFromNames(x)
+                cue = cue = self.pick_random_cue_from_names(x)
 
         cue = cue.split("?")[0]
 
@@ -1635,7 +1667,7 @@ class Scene:
                         core.rl_log_exc("Error with cue variable " + str(i))
 
                 if self.cues[cue].track:
-                    self.applyTrackedValues(cue)
+                    self.apply_tracked_values(cue)
 
                 self.mediaLink.send(
                     [
@@ -1839,8 +1871,8 @@ class Scene:
                 self.cueTagClaim.set(
                     self.cues[cue].name, annotation="SceneObject")
 
-                self.recalcRandomizeModifier()
-                self.recalcCueLen()
+                self.recalc_randomize_modifier()
+                self.recalc_cue_len()
 
                 # Recalc what universes are affected by this scene.
                 # We don't clear the old universes, we do that when we're done fading in.
@@ -1850,7 +1882,7 @@ class Scene:
                         if i not in self.affect:
                             self.affect.append(i)
 
-                self.cueValsToNumpyCache(self.cue, not self.cue.track)
+                self.cue_vals_to_numpy_cache(self.cue, not self.cue.track)
                 self.fade_in_completed = False
 
                 # We don't render here. Very short cues coupt create loops of rerendering and goto
@@ -1860,7 +1892,7 @@ class Scene:
                 self.rerender = True
                 self.pushMeta(statusOnly=True)
 
-                self.preloadNextCueSound()
+                self.preload_next_cue_sound()
 
                 self.mediaLink.send(
                     [
@@ -1870,7 +1902,7 @@ class Scene:
                     ]
                 )
 
-    def applyTrackedValues(self, cue) -> Dict[str, Any]:
+    def apply_tracked_values(self, cue) -> Dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
         # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
         # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
@@ -1911,7 +1943,7 @@ class Scene:
 
             # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
             for cuex in reversed(to_apply):
-                self.cueValsToNumpyCache(cuex)
+                self.cue_vals_to_numpy_cache(cuex)
 
                 # cuevars = self.cues[cue].values.get("__variables__", {})
                 # for i in cuevars:
@@ -1923,7 +1955,7 @@ class Scene:
 
         return vars
 
-    def preloadNextCueSound(self):
+    def preload_next_cue_sound(self):
         # Preload the next cue's sound if we know what it is
         next_cue = None
         if self.cue:
@@ -1954,7 +1986,7 @@ class Scene:
     def resolve_sound(self, sound) -> str:
         return core.resolve_sound(sound)
 
-    def recalcRandomizeModifier(self):
+    def recalc_randomize_modifier(self):
         "Recalculate the random variance to apply to the length"
         if self.cue:
             self.randomizeModifier = random.triangular(
@@ -1962,7 +1994,7 @@ class Scene:
                 float(self.cue.length_randomize)
             )
 
-    def recalcCueLen(self):
+    def recalc_cue_len(self):
         "Calculate the actual cue len, without changing the randomizeModifier"
         if not self.active:
             return
@@ -2045,10 +2077,10 @@ class Scene:
             self.cuelen = max(0, float(v * 0.1),
                               self.randomizeModifier + float(v))
 
-    def recalcCueVals(self):
-        self.cueValsToNumpyCache(self.cue, not self.cue.track)
+    def recalc_cue_vals(self):
+        self.cue_vals_to_numpy_cache(self.cue, not self.cue.track)
 
-    def cueValsToNumpyCache(self, cuex: Cue, clearBefore=False):
+    def cue_vals_to_numpy_cache(self, cuex: Cue, clearBefore=False):
         """Apply everything from the cue to the fade canvas"""
         # Loop over universes in the cue
         if clearBefore:
@@ -2157,7 +2189,7 @@ class Scene:
                     if isinstance(cuev, str) and cuev.startswith("="):
                         self.rerenderOnVarChange = True
 
-    def makeScriptContext(self):
+    def make_script_context(self):
 
         scriptContext = DebugScriptContext(self,
                                            rootContext, variables=self.chandlerVars, gil=core.lock
@@ -2177,7 +2209,7 @@ class Scene:
         with core.lock:
             # We copy over the event recursion depth so that we can detct infinite loops
             if not self.scriptContext:
-                self.scriptContext = self.makeScriptContext()
+                self.scriptContext = self.make_script_context()
 
             self.scriptContext.clearBindings()
 

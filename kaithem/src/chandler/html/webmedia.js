@@ -427,6 +427,13 @@
                 this.currentMedia = await this.playMedia(this.currentLayer, v, startAt, sessionTag);
 
                 this.fadeLength = Math.max(0, (t - startAt) * 1000)
+
+                if(v[1].length == 0){
+                    getElementsByTagName('media-player')[0].class ='player-idle'
+                }
+                else{
+                    getElementsByTagName('media-player')[0].class =''
+                }
             };
 
             setInterval(() => {

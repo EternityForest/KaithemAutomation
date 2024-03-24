@@ -865,7 +865,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length = v
-            cues[msg[1]].scene().recalcCueLen()
+            cues[msg[1]].scene().recalc_cue_len()
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setrandomize":
@@ -874,7 +874,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length_randomize = v
-            cues[msg[1]].scene().recalcRandomizeModifier()
+            cues[msg[1]].scene().recalc_randomize_modifier()
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setnext":

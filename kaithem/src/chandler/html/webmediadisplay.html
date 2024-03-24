@@ -15,12 +15,12 @@
         overflow: hidden;
         margin: 0px;
         padding: 0px;
-        color: white;
+        color: aliceblue;
         text-align: center;
     }
 
 
-    #app,
+    slideshow-app,
     media-player {
         margin: 0px;
         padding: 0px;
@@ -28,9 +28,15 @@
 
     media-player {
         position: relative;
+        text-shadow:
+        3px 3px 0 #000,
+        -3px 3px 0 #000,
+        -3px -3px 0 #000,
+        3px -3px 0 #000;
+        background: black;
     }
-
-    #app {
+    
+    slideshow-app {
         height: 100%;
         width: 100%;
     }
@@ -76,31 +82,30 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
 
 <style>
-    #sidebar {
-        color: aliceblue;
-        background-color: rgb(68, 62, 62);
-        height: 100%;
+    .sidebar {
+        background: rgb(36,36,36);
+        background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
         max-width: calc(max(30%, 24em));
+        text-wrap: wrap;
     }
 
-    #app {
+    slideshow-app {
         display: flex;
-        flex-direction: row;
         flex-wrap: wrap;
+        flex-direction: row;
     }
 
     media-player {
         flex-grow: 5;
-        position: relative;
     }
 </style>
 
 
-<div id="app">
+<slideshow-app>
     <media-player></media-player>
-    <div id="sidebar" v-if="cueText" v-html="cueText">
+    <div class="sidebar" v-if="cueText" v-html="cueText">
     </div>
-</div>
+</slideshow-app>
 
 
 
@@ -148,7 +153,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         components: {
             'media-player': mediaPlayerComponent
         }
-    }).mount('#app')
+    }).mount('slideshow-app')
 </script>
 
 
@@ -194,7 +199,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 
         }
 
-        if (v[0] == 'overlay') {
+        else if (v[0] == 'overlay') {
             var el = document.getElementById("overlay")
             if (el) {
                 if (el.src != v[1]) {
@@ -204,8 +209,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         }
 
 
-        //Pretty much just for sounds
-        if (v[0] == 'mediaURL') {
+        else if (v[0] == 'mediaURL') {
 
             // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
             // But we more importantly want to prioritize not missing the start of a short clip
@@ -219,12 +223,11 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
         }
 
         //Pretty much just for sounds
-        if (v[0] == 'butterchurnfiles') {
+        else if (v[0] == 'butterchurnfiles') {
             player2.butterchurn_options = v[1]
         }
 
 
-        //Pretty much just for sounds
         else if (v[0] == 'slide') {
 
             // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
