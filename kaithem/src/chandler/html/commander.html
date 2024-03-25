@@ -108,7 +108,8 @@
                     v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
                 <button v-on:click="shortcut()">Go!</button>
                 <button v-on:click="showPages=!showPages">Toggle Compact</button>
-
+                <button onclick="document.documentElement.requestFullscreen()"><i
+                    class="icofont-expand"></i>Fullscreen</button>
             </div>
         </header>
 
