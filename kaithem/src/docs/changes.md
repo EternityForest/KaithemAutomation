@@ -13,6 +13,7 @@ Change Log
 - :bug: Fix web player not starting at the right time after needing manual click to start
 - :sparkles: Can now customize the HTML for the scene web player
 - :sparkles: Chandler cues can now have Markdown text content to show in the slideshow sidebar
+- :sparkles: User settings are instant, no more manual save step
 
 
 

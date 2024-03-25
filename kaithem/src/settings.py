@@ -494,6 +494,7 @@ class Settings():
 
     @cherrypy.expose
     def savetarget(self):
+        "Used to save the whole state.  Now just saves logs, everything else is instant or auto."
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         util.SaveAllState()

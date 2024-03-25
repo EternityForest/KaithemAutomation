@@ -199,7 +199,7 @@ def changeUsername(old, new):
         # the actual user object
         Users[new] = Users.pop(old)
         Users[new]['username'] = new
-
+        dumpDatabase()
 
 def changePassword(user, newpassword, useSystem=False):
     "Change a user's password"
@@ -211,6 +211,7 @@ def changePassword(user, newpassword, useSystem=False):
         authchanged = True
         if useSystem:
             Users[user]['password'] = 'system'
+            dumpDatabase()
             return
 
         salt = os.urandom(16)
@@ -229,7 +230,7 @@ def changePassword(user, newpassword, useSystem=False):
         if sys.version_info >= (3, 0):
             p = p.decode("utf8")
         Users[user]['password'] = p
-
+        dumpDatabase()
 
 def addUser(username, password, useSystem=False):
     global authchanged
@@ -239,7 +240,7 @@ def addUser(username, password, useSystem=False):
             Users[username] = User({'username': username, 'groups': []})
             Users[username].limits = {}
             changePassword(username, password, useSystem)
-
+        dumpDatabase()
 
 def removeUser(user):
     global authchanged, tokenHashes
@@ -253,8 +254,9 @@ def removeUser(user):
                 try:
                     tokenHashes.pop(hashToken(x.token))
                 except Exception:
+                    dumpDatabase()
                     raise
-
+        dumpDatabase()
 
 def removeGroup(group):
     global authchanged
@@ -266,7 +268,7 @@ def removeGroup(group):
             if group in Users[i]['groups']:
                 Users[i]['groups'].remove(group)
         generateUserPermissions()
-
+        dumpDatabase()
 
 def addGroup(groupname):
     global authchanged
@@ -274,7 +276,7 @@ def addGroup(groupname):
         authchanged = True
         if groupname not in Groups:  # stop from overwriting
             Groups[groupname] = {'permissions': []}
-
+        dumpDatabase()
 
 def addUserToGroup(username, group):
     global authchanged
@@ -285,7 +287,7 @@ def addUserToGroup(username, group):
             Users[username]['groups'].append(group)
         # Regenerate the per-user permissions cache for that user
         generateUserPermissions(username)
-
+        dumpDatabase()
 
 def removeUserFromGroup(username, group):
     global authchanged
@@ -294,6 +296,7 @@ def removeUserFromGroup(username, group):
         Users[username]['groups'].remove(group)
         # Regenerate the per-user permissions cache for that user
         generateUserPermissions(username)
+        dumpDatabase()
 
 
 def tryToLoadFrom(d):
@@ -442,6 +445,7 @@ def addFloatingUser():
             Users[username].limits = {}
             generateUserPermissions()
 
+        dumpDatabase()
 
 def userLogin(username, password):
     """return a base64 authentication token on sucess or return False on failure"""
@@ -536,38 +540,12 @@ def dumpDatabase():
         # Assemble the users and groups data and save it back where we found it
         temp = {"users": x, "groups": Groups.copy()}
 
-        if time.time() > util.min_time:
-            t = time.time()
-        else:
-            t = int(util.min_time) + 1.234
-
-        if os.path.isdir(os.path.join(directories.usersdir, str("data"))):
-            # Copy the data found in data to a new directory named after the current time. Don't copy completion marker
-
-            # If the data dir was corrupt, copy it to a different place than a normal backup.
-            if not data_bad:
-                copyto = os.path.join(directories.usersdir, str(t))
-            else:
-                copyto = os.path.join(
-                    directories.usersdir, str(t) + "INCOMPLETE")
-
-            shutil.copytree(os.path.join(directories.usersdir, str("data")), copyto,
-                            ignore=shutil.ignore_patterns("__COMPLETE__"))
-            # Add completion marker at the end
-            with open(os.path.join(copyto, '__COMPLETE__'), "w") as x:
-                util.chmod_private_try(os.path.join(
-                    copyto, '__COMPLETE__'), execute=False)
-                x.write("This file certifies this folder as valid")
-
         p = os.path.join(directories.usersdir, "data")
-
-        if os.path.isfile(os.path.join(p, '__COMPLETE__')):
-            os.remove(os.path.join(p, '__COMPLETE__'))
 
         util.ensure_dir2(p)
         util.chmod_private_try(p)
         try:
-            f = open(os.path.join(p, "users.json"), "w")
+            f = open(os.path.join(p, "users.json~"), "w")
             util.chmod_private_try(os.path.join(
                 p, "users.json"), execute=False)
             # pretty print
@@ -576,14 +554,8 @@ def dumpDatabase():
         finally:
             f.close()
 
-        try:
-            f = open(os.path.join(p, "__COMPLETE__"), "w")
-            util.chmod_private_try(os.path.join(
-                p, "__COMPLETE__"), execute=False)
-            f.write("completely arbitrary text")
-        finally:
-            f.close()
-        util.deleteAllButHighestNumberedNDirectories(directories.usersdir, 2)
+        shutil.move(os.path.join(p, "users.json~"), os.path.join(p, "users.json"))
+
         authchanged = False
         return True
 
@@ -603,6 +575,8 @@ def setGroupLimit(group, limit, val):
             if not 'limits' in gr:
                 gr['limits'] = {}
             gr['limits'][limit] = val
+        
+        dumpDatabase()
 
 
 def addGroupPermission(group, permission):
@@ -612,6 +586,7 @@ def addGroupPermission(group, permission):
         authchanged = True
         if permission not in Groups[group]['permissions']:
             Groups[group]['permissions'].append(permission)
+        dumpDatabase()
 
 
 def removeGroupPermission(group, permission):
@@ -619,6 +594,7 @@ def removeGroupPermission(group, permission):
     with lock:
         authchanged = True
         Groups[group]['permissions'].remove(permission)
+        dumpDatabase()
 
 # This is a salt for the token hint. The idea being that we look
 # up the tokens by hashing them, not by actually looking them up.
@@ -681,7 +657,7 @@ def setUserSetting(user, setting, value):
             user['settings'] = {}
 
         Users[un]['settings'][setting] = value
-
+        dumpDatabase()
 
 def getUserSetting(user, setting):
     # I suppose this doesnt need a lock?

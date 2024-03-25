@@ -141,41 +141,17 @@ def url(string: str, safe: str | Iterable[str] = ''):
 
 def SaveAllState():
     # fix circular import by putting it here
-    from . import auth, modules, messagelogging, messagebus, pylogginghandler
+    from . import messagebus, pylogginghandler
     with savelock:
         try:
             x = False
-
             messagebus.post_message("/system/save", None, synchronous=True)
-
-            if auth.dumpDatabase():
-                x = True
-
-            from . import directories
-            messagelogging.saveLogList()
             pylogginghandler.syslogger.flush()
             return x
         except Exception as e:
             messagebus.post_message(
                 "/system/notifications/errors", 'Failed to save state:' + traceback.format_exc(8))
 
-
-def SaveAllStateExceptLogs():
-    # fix circular import
-    from . import auth, modules, messagelogging, messagebus
-    with savelock:
-        try:
-            x = False
-            x = x or auth.dumpDatabase()
-            messagelogging.saveLogList()
-            if x:
-                # Send the message only if something was actually saved.
-                messagebus.post_message(
-                    "/system/notifications/important", "Global server state was saved to disk")
-            return x
-        except Exception as e:
-            messagebus.post_message(
-                "/system/notifications/errors", 'Failed to save state:' + repr(e))
 
 # http://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory
 # It looks like a lot of people might have contributed to this little bit of code.

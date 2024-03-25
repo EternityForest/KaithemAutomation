@@ -249,23 +249,6 @@ def logstats():
             raise e
 
 
-@scheduling.scheduler.everyMinute
-def autosave():
-    global lastsaved, lastdumpedlogs
-    if not config['autosave-state'] == 'never':
-        if (time.time() - lastsaved) > saveinterval:
-            lastsaved = time.time()
-            # This does not dump the log files. The log files change often.
-            # It would suck to have tons of tiny log files so we let the user configure
-            # Them separately
-            util.SaveAllStateExceptLogs()
-
-    if not config['autosave-logs'] == 'never':
-        if (time.time() - lastdumpedlogs) > dumplogsinterval:
-            lastdumpedlogs = time.time()
-            messagelogging.dumpLogFile()
-
-
 def sd():
     messagebus.post_message(
         '/system/shutdown', "System about to shut down or restart")

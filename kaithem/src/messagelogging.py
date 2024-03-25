@@ -131,6 +131,7 @@ class WebInterface(object):
         topic = topic[:]
         loglistchanged = True
         toSave.add(normalize_topic(topic))
+        saveLogList()
         return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
@@ -142,6 +143,7 @@ class WebInterface(object):
         topic = topic[1:]
         loglistchanged = True
         toSave.discard(normalize_topic(topic))
+        saveLogList()
         return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
@@ -161,6 +163,7 @@ class WebInterface(object):
             if line:
                 toSave.add(normalize_topic(line))
         known_unsaved = OrderedDict()
+        saveLogList()
         return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
