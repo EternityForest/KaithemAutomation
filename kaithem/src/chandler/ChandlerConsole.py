@@ -687,7 +687,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             data: Dict[str, Any] = {
                 "ext": sceneid not in self.scenememory,
                 "id": sceneid,
-                "dalpha": scene.defaultalpha,
+                "default_alpha": scene.default_alpha,
                 "alpha": scene.alpha,
                 "active": scene.isActive(),
                 "default_active": scene.default_active,
@@ -712,6 +712,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "command_tag": scene.command_tag,
                 "sound_output": scene.sound_output,
                 "slide_overlay_url": scene.slide_overlay_url,
+                "slideshow_layout": scene.slideshow_layout,
                 "event_buttons": scene.event_buttons,
                 "info_display": scene.info_display,
                 "utility": scene.utility,

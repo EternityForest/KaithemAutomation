@@ -81,37 +81,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
 <script src="/static/js/thirdparty/handlebars.js"></script>
 
 
-<style>
-    .sidebar {
-        background: rgb(36,36,36);
-        background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
-        max-width: calc(max(30%, 24em));
-        text-wrap: wrap;
-    }
-
-    slideshow-app {
-        display: flex;
-        flex-wrap: wrap;
-        flex-direction: row;
-    }
-
-    media-player {
-        flex-grow: 5;
-    }
-</style>
-
-
-<slideshow-app>
-    <media-player></media-player>
-    <div class="sidebar" v-if="cueText" v-html="cueText">
-    </div>
-</slideshow-app>
-
-
-
-
-
-
+${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
 
 <script>
     var conv = new showdown.Converter({ metadata: true });
@@ -265,6 +235,7 @@ ${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
             renderCueText()
         }
     }
+
     link.upd = f
     link.timeSyncInterval = 10000
 

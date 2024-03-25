@@ -1,10 +1,12 @@
 $schema: http://json-schema.org/draft-04/schema#
+
 type: object
 properties:
   active:
     type: boolean
     
   alpha:
+    description: The default alpha, called default_alpha in the code
     type: number
 
   backtrack:
@@ -71,6 +73,36 @@ properties:
 
   slide_overlay_url:
     type: string
+  
+  slideshow_layout:
+    type: string
+    description: Customize the scene web player view
+    default: |
+        <style>
+            .sidebar {
+                background: rgb(36,36,36);
+                background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
+                max-width: calc(max(30%, 24em));
+                text-wrap: wrap;
+            }
+
+            slideshow-app {
+                display: flex;
+                flex-wrap: wrap;
+                flex-direction: row;
+            }
+
+            media-player {
+                flex-grow: 5;
+            }
+        </style>
+
+
+        <slideshow-app>
+            <media-player></media-player>
+            <div class="sidebar" v-if="cueText" v-html="cueText">
+            </div>
+        </slideshow-app>
 
   sound_output:
     type: string

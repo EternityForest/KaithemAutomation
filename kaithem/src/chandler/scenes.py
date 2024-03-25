@@ -858,6 +858,9 @@ class Cue:
                 scene.setBlend(scene.blend)
 
 
+scene_schema = schemas.get_schema("chandler/scene")
+
+
 class Scene:
     "An objecting representing one scene. If noe default cue present one is made"
 
@@ -887,6 +890,7 @@ class Scene:
         default_next: str = "",
         command_tag: str = "",
         slide_overlay_url: str = "",
+        slideshow_layout: str = "",
         music_visualizations: str = "",
         mqtt_sync_features: Optional[Dict[str, Any]] = None,
         **ignoredParams
@@ -919,6 +923,7 @@ class Scene:
             default_next (str, optional):
             command_tag (str, optional):
             slide_overlay_url (str, optional):
+            slideshow_layout (str, optional):
             music_visualizations (str, optional):
             mqtt_sync_features (_type_, optional):
 
@@ -954,6 +959,9 @@ class Scene:
         self.mediaLink.echo = False
 
         self.slide_overlay_url: str = slide_overlay_url
+
+        # Kind of long so we do it in the external file
+        self.slideshow_layout: str = slideshow_layout.strip() or scene_schema['properties']['slideshow_layout']['default']
 
         # Audio visualizations
         self.music_visualizations = music_visualizations
@@ -1104,7 +1112,7 @@ class Scene:
         self.alphaTagHandler = alphaTagHandler
 
         self.active = False
-        self.defaultalpha = alpha
+        self.default_alpha = alpha
         self.name = name
 
         self.canvas = FadeCanvas()
@@ -1223,7 +1231,7 @@ class Scene:
     def toDict(self) -> Dict[str, Any]:
         return {
             "bpm": self.bpm,
-            "alpha": self.defaultalpha,
+            "alpha": self.default_alpha,
             "cues": {j: self.cues[j].serialize() for j in self.cues},
             "priority": self.priority,
             "active": self.default_active,
@@ -1233,6 +1241,7 @@ class Scene:
             "mqtt_sync_features": self.mqtt_sync_features,
             "sound_output": self.sound_output,
             "slide_overlay_url": self.slide_overlay_url,
+            "slideshow_layout": self.slideshow_layout,
             "event_buttons": self.event_buttons,
             "info_display": self.info_display,
             "utility": self.utility,
@@ -2410,7 +2419,7 @@ class Scene:
                 i[0].unsubscribe(i[1])
             self.command_tagSubscriptions = []
 
-    def command_tagSubscriber(self):
+    def command_tag_subscriber(self):
         sn = self.name
 
         def f(v, t, a):
@@ -2454,7 +2463,7 @@ class Scene:
         with core.lock:
             for i in [self.command_tag]:
                 t = kaithem.tags.ObjectTag(i)
-                s = self.command_tagSubscriber()
+                s = self.command_tag_subscriber()
                 self.command_tagSubscriptions.append([t, s])
                 t.subscribe(s)
 
@@ -2889,10 +2898,10 @@ class Scene:
         self.alpha = val
         self.alphaTagClaim.set(val, annotation="SceneObject")
         if sd:
-            self.defaultalpha = val
-            self.pushMeta(keys={"alpha", "dalpha"})
+            self.default_alpha = val
+            self.pushMeta(keys={"alpha", "default_alpha"})
         else:
-            self.pushMeta(keys={"alpha", "dalpha"})
+            self.pushMeta(keys={"alpha", "default_alpha"})
         self.rerender = True
 
         self.mediaLink.send(["volume", val])

@@ -1171,7 +1171,7 @@ ${lists}
                                 <label>Default Alpha
                                     <input type="number" max=1 step=0.01 min=0
                                         v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
-                                        v-model="editingScene.dalpha"></input>
+                                        v-model="editingScene.default_alpha"></input>
                                 </label>
                             </p>
 
@@ -1528,6 +1528,24 @@ ${lists}
                             </tr>
                         </table>
                     </div>
+
+                    <div class="card w-full">
+                        <header>
+                            <h4>Slideshow Layout</h4>
+                        </header>
+                        <p class="help">You have to refresh the player for this to take effect.</p>
+                        <details>
+                            <summary>Custom layout for slideshow</summary>
+                        <div class="stacked-form">
+                            <textarea v-model="editingScene.slideshowLayout" class="w-full h-16rem"
+                            @change="setSceneProperty(editingScene.id, 'slideshowLayout', $event.target.value)"
+                            @input="setScenePropertyDeferred(editingScene.id, 'slideshowLayout', $event.target.value)"
+
+                            ></textarea>
+                        </div>
+                    </details>
+                    </div>
+
 
                 </div>
 

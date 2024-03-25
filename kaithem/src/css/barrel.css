@@ -1069,6 +1069,12 @@ header:not(.undecorated) .tool-bar {
         margin-inline-end: var(--padding);
     }
 
+    & :is(textarea) {
+        width: 100%;
+        margin-inline-start: 0px;
+        margin-inline-end: 0px;
+    }
+
     &>:is(p, div, section),
     &>fieldset>:is(p, div, section) {
         &:not(.tool-bar){

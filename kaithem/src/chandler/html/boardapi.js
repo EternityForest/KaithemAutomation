@@ -127,6 +127,23 @@ appMethods = {
 
     },
 
+    'setScenePropertyDeferred': function (scene, property, value) {
+        //Set the property in 5 seconds, unless we get another command to set
+        //it to something else
+        var x = cueSetData[scene + property]
+        if (x)
+        {
+            clearTimeout(x);
+        }
+
+        cueSetData[cue + property] = setTimeout(function () {
+            api_link.send(['setSceneProperty', scene, property, value])
+            delete cueSetData[scene + property]
+        }, 3000)
+
+    },
+
+
     'saveToDisk': function () {
         api_link.send(['saveState'])
     },
