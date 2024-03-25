@@ -87,7 +87,7 @@
 
 
 <div id="app" v-cloak style="display:flex; flex-wrap:wrap; justify-content: center;">
-    <section class="window w-full max-h-12rem margin" v-if="sys_alerts">
+    <section class="window w-full max-h-12rem margin" v-if="sys_alerts.length">
         <div class="flex-row scroll gaps padding">
             <div class="card" v-for="v,i of sys_alerts">
                 <header :class="v['barrel-class']" class="padding">

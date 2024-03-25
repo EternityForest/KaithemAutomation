@@ -157,7 +157,7 @@ ${lists}
 
     <main style="display:flex; flex-wrap:wrap; justify-content: center;" class="w-full">
 
-        <section class="window w-full h-8rem" v-if="sys_alerts">
+        <section class="window w-full h-8rem" v-if="sys_alerts.length">
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
                     <header :class="v['barrel-class']" class="padding">
