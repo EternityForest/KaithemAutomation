@@ -101,8 +101,7 @@
     <div class="window paper w-full margin" style="overflow: auto; max-width:98vw; flex-grow:1">
         <header>
             <div class="tool-bar">
-                <h3 title="All currently active scenes and all scenes that were created through the light board are shown">
-                    Scenes</h3>
+                <p>{{clock}}</p>
                 <input size=8
                     title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
                     aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"

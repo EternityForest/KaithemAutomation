@@ -733,6 +733,7 @@ appComputed = {
 appData = {
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'formatInterval': formatInterval,
+    'clock':'time_should_be_here',
     'console': console,
     'sc_code': "",
     'unixtime': 0,
@@ -1435,6 +1436,7 @@ init_api_link = function () {
 
     // Exact sync on half seconds
     function unix_time_upd() {
+        vueapp.$data.clock = new Date(api_link.now()).toLocaleTimeString()
         vueapp.$data.unixtime = api_link.now() / 1000
         setTimeout(unix_time_upd,
             250-(api_link.now()%250) )
