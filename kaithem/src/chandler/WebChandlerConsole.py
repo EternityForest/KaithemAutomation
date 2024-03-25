@@ -440,10 +440,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].sound_output = msg[2]
             self.pushCueMeta(msg[1])
 
-        elif cmd_name == "setNotes":
-            scenes.scenes[msg[1]].notes = msg[2]
-            self.pushMeta(msg[1], keys={"notes"})
-
         elif cmd_name == "seteventbuttons":
             scenes.scenes[msg[1]].event_buttons = msg[2]
             self.pushMeta(msg[1], keys={"event_buttons"})
@@ -812,11 +808,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "settrack":
             cues[msg[1]].setTrack(msg[2])
             self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcuenotes":
-            cues[msg[1]].notes = msg[2].strip()
-            self.pushCueMeta(msg[1])
-
 
         # TODO: Almost everything should go through these two functions!!
         elif cmd_name == 'setSceneProperty':

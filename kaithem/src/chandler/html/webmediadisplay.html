@@ -29,10 +29,10 @@
     media-player {
         position: relative;
         text-shadow:
-        3px 3px 0 #000,
-        -3px 3px 0 #000,
-        -3px -3px 0 #000,
-        3px -3px 0 #000;
+            3px 3px 0 #000,
+            -3px 3px 0 #000,
+            -3px -3px 0 #000,
+            3px -3px 0 #000;
         background: black;
     }
 
@@ -69,8 +69,10 @@
         position: absolute;
     }
 
-
-
+    img,
+    iframe {
+        max-width: 100%;
+    }
 </style>
 
 
@@ -95,9 +97,10 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
             }
         },
         compilerOptions: {
-            isCustomElement: function(tag) {
-            return true
-          }},
+            isCustomElement: function (tag) {
+                return true
+            }
+        },
         template: `
         <media-player>
             <div class="player" id='player1'></div>

@@ -381,10 +381,6 @@ appMethods = {
         api_link.send(['settrack', cue, v]);
     },
 
-    'setcuenotes': function (cue, v) {
-        api_link.send(['setcuenotes', cue, v]);
-    },
-
     'setrellen': function (cue, v) {
         api_link.send(['setrellen', cue, v]);
     },
@@ -650,11 +646,6 @@ appMethods = {
     'setDisplayTags': function (sc, i) {
 
         api_link.send(['setdisplaytags', sc, i])
-    },
-
-    'setSceneNotes': function (sc, i) {
-
-        api_link.send(['setNotes', sc, i])
     }
 }
 

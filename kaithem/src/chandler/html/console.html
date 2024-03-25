@@ -1096,7 +1096,7 @@ ${lists}
 
                                     </p>
                                     <label>Notes
-                                        <input v-on:change="setcuenotes(currentcueid,$event.target.value)"
+                                        <input v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
                                             v-model="cuemeta[currentcueid].notes" min=0></input>
                                     </label>
 
@@ -1140,8 +1140,10 @@ ${lists}
 
                 <div style="overflow: auto; max-height:30em;">
                     <h4>Scene Notes</h4>
-                    <textarea v-model="editingScene.notes"></textarea><br>
-                    <button v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
+                    <textarea v-model="editingScene.notes"
+                    @change="setSceneProperty(editingScene.id, 'notes', $event.target.value)"
+                    @input="setScenePropertyDeferred(editingScene.id, 'notes', $event.target.value)"
+                    ></textarea>
                 </div>
             </details>
 

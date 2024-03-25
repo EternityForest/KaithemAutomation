@@ -11,6 +11,10 @@ Change Log
 - :sparkles: Move universe and fixture setup to a separate chandler setup page
 - :sparkles: Can now rename cues
 - :bug: Fix web player not starting at the right time after needing manual click to start
+- :sparkles: Can now customize the HTML for the scene web player
+- :sparkles: Chandler cues can now have Markdown text content to show in the slideshow sidebar
+
+
 
 
 ### 0.76.1

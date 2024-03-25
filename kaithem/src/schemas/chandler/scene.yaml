@@ -79,27 +79,37 @@ properties:
     description: Customize the scene web player view
     default: |
         <style>
-            .sidebar {
-                background: rgb(36,36,36);
-                background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
-                max-width: calc(max(30%, 24em));
-                text-wrap: wrap;
-            }
-
             slideshow-app {
                 display: flex;
                 flex-wrap: wrap;
                 flex-direction: row;
             }
 
+            main{
+              display: flex;
+              flex-direction: column;
+              flex-grow:10;
+            }
+
             media-player {
                 flex-grow: 5;
             }
+
+            .sidebar {
+                background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
+                max-width: calc(max(30%, min(24em, 100%) ));
+                text-wrap: wrap;
+            }
+
         </style>
 
 
         <slideshow-app>
-            <media-player></media-player>
+            <main>
+                <header></header>
+                <media-player></media-player>
+                <footer></footer>
+            </main>
             <div class="sidebar" v-if="cueText" v-html="cueText">
             </div>
         </slideshow-app>
