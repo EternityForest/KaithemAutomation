@@ -556,6 +556,8 @@ ${lists}
 
             <div v-if="currentcue">
                 <h3>Editing Cue: {{currentcue.name}}</h3>
+                <p v-if="currentcue.name.startsWith('__')" class="highlight">Cues starting with __ are special cues. 
+                    They are never chosen in random selections or as the default next cue and may have predefined system functions attatched.</p>
 
 
                 <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code.

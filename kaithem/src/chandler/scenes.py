@@ -1334,7 +1334,13 @@ class Scene:
         if self.default_next.strip():
             return self.default_next.strip()
         try:
-            return self.cues_ordered[self.cuePointer + 1].name
+            x = self.cues_ordered[self.cuePointer + 1].name
+
+            # Special cues are excluded from the normal flow
+            if not x.startswith("__"):
+                return x
+            else:
+                return None
         except Exception:
             return None
 
@@ -1456,6 +1462,9 @@ class Scene:
 
         for i in cues:
             i = i.strip()
+            # Exclude special cues
+            if i.startswith('__'):
+                continue
             if i in self.cues:
                 weights.append(self.evalExprFloat(
                     str(self.cues[i].probability).strip() or 1))
@@ -1641,6 +1650,7 @@ class Scene:
                 try:
                     # Take rules from new cue, don't actually set this as the cue we are in
                     # Until we succeed in running all the rules that happen as we enter
+                    # We do set the local variables for the incoming cue though.
                     self.refreshRules(cobj)
                 except Exception:
                     core.rl_log_exc("Error handling script")
