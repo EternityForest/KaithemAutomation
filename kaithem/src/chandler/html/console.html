@@ -11,6 +11,12 @@ ${lists}
     <option>__shuffle__</option>
 </datalist>
 
+
+<datalist name="specialcues" id="specialcues">
+    <option value="__rules__">All other cues in the scene will inherit rules</option>
+</datalist>
+
+
 <datalist name="lenoptions" id="lenoptions">
     <option>0.25</option>
     <option>1</option>
@@ -438,7 +444,6 @@ ${lists}
                                 <th class="desktop-only">Fadein</th>
                                 <th class="desktop-only" title="Length, 0 indicates until stopped">Length</th>
                                 <th title="The next cue, after this one ends">Next</th>
-                                <th class="desktop-only">Randomize</th>
                                 <th class="desktop-only">Track</th>
                                 <th>Jump to</th>
                             </tr>
@@ -520,11 +525,6 @@ ${lists}
                                 </td>
 
 
-
-                                <td class="desktop-only" data-label="Randomize">
-                                    <input type="number" v-on:change="setrandomize(i[1].id,$event.target.value)"
-                                        style="width:3em" min=0 v-model="i[1].lengthRandomize">
-                                </td>
                                 <td class="desktop-only" data-label="Track vals from prev: ">
                                     <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)"
                                         v-model="i[1].track"
@@ -541,7 +541,7 @@ ${lists}
                 </div>
 
                 <div class="tool-bar">
-                    <input v-model="newcuename" placeholder="New cue name">
+                    <input v-model="newcuename" placeholder="New cue name" list="specialcues">
                     <button v-on:click="add_cue(scenename,newcuename)">
                         <i class="icofont-ui-add"></i>Add Cue</button>
                     <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
@@ -690,11 +690,12 @@ ${lists}
                     <div class="card w-sm-full" style="overflow: visible;">
                         <label>Inherit rules from
                             <div style="overflow: visible;">
-                                <combo-box v-model="currentcue.inheritRules"
+                                <combo-box v-model="currentcue.inheritRules" :disabled="editingScene.name =='__rules__'"
                                     v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
                                     :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
                             </div>
-                            <p>inherited rules run after directly set rules</p>
+                            <p>Inherited rules run after directly set rules.</p>
+                            <p>If a cue names __rules__ exists, <br> all cues will additionally inherit from that cue.</p>
 
                         </label>
                     </div>
@@ -1172,7 +1173,7 @@ ${lists}
                                 <label>Default Alpha
                                     <input type="number" max=1 step=0.01 min=0
                                         v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
-                                        v-model="editingScene.default_alpha"></input>
+                                        v-model="editingScene.defaultAlpha"></input>
                                 </label>
                             </p>
 

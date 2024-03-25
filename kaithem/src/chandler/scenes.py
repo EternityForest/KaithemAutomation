@@ -572,7 +572,7 @@ class Cue:
             disallow_special(id)
 
         disallow_special(name, allowedCueNameSpecials)
-        if name[0] in "1234567890 \t_":
+        if name[0] in "1234567890":
             name = "x" + name
 
         # This is so we can loop through them and push to gui
@@ -2235,15 +2235,23 @@ class Scene:
 
                 loopPrevent = {(rulesFrom or self.cue.name): True}
 
+
                 x = (rulesFrom or self.cue).inherit_rules
                 while x and x.strip():
                     # Avoid infinite loop should the user define a cycle of cue inheritance
                     if x.strip() in loopPrevent:
                         break
+
+                    if x =='__rules__':
+                        break
+                    
                     loopPrevent[x.strip()] = True
 
                     self.scriptContext.addBindings(self.cues[x].rules)
                     x = self.cues[x].inherit_rules
+
+                if '__rules__' in self.cues:
+                    self.scriptContext.addBindings(self.cues['__rules__'].rules)
 
                 self.scriptContext.startTimers()
                 self.doMqttSubscriptions()

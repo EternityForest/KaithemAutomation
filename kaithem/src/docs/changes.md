@@ -14,6 +14,7 @@ Change Log
 - :sparkles: Can now customize the HTML for the scene web player
 - :sparkles: Chandler cues can now have Markdown text content to show in the slideshow sidebar
 - :sparkles: User settings are instant, no more manual save step
+- :sparkles: Cues inherit rules from the special \__rules\__ cue if it exists.
 
 
 
