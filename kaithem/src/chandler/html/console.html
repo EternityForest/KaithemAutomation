@@ -3,6 +3,7 @@
 
 ${lists}
 
+
 <datalist name="nextcueoptions" id="nextcueoptions">
     <option>default</option>
     <option></option>
@@ -384,7 +385,7 @@ ${lists}
             </dl>
         </section>
 
-    
+
 
 
         <dialog id='soundpreviewdialog'>
@@ -453,7 +454,7 @@ ${lists}
                                     <span title="Cue number, double click to change." style="width:6em"
                                         v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
 
-                                   {{i[1].name}}
+                                    {{i[1].name}}
 
                                     <i v-if="cuemeta[editingScene.cue].name==i[1].name"
                                         class="icofont-ui-play nomargin"></i>
@@ -701,7 +702,7 @@ ${lists}
 
 
                     <script-editor :completers="completers" v-bind:example_events="example_events"
-                        v-model="currentcue.rules"  @update:model-value="setCueRules(currentcueid, $event);"
+                        v-model="currentcue.rules" @update:model-value="setCueRules(currentcueid, $event);"
                         v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
                         v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"
                         v-bind:parentscene="editingScene.name">
@@ -1011,11 +1012,9 @@ ${lists}
                     <details class="undecorated">
                         <summary>Cue Text</summary>
                         <textarea v-model="currentcue.markdown" class="w-full h-16rem"
-                        @input="setCuePropertyDeferred(currentcue.id, 'markdown', $event.target.value)"
-                        @change="setCueProperty(currentcue.id, 'markdown', $event.target.value)"
+                            @input="setCuePropertyDeferred(currentcue.id, 'markdown', $event.target.value)"
+                            @change="setCueProperty(currentcue.id, 'markdown', $event.target.value)">
 
-                        >
-                        
                         </textarea>
                     </details>
 
@@ -1029,10 +1028,11 @@ ${lists}
                                     <legend>Basic</legend>
                                     <label>Action</label>
                                     <div class="tool-bar">
-                                        <button v-on:click="promptRenameCue(scenename,currentcue.name)">Rename Cue</button>
+                                        <button v-on:click="promptRenameCue(scenename,currentcue.name)">Rename
+                                            Cue</button>
 
                                     </div>
-                                    
+
                                     <label>Number
                                         <input type="number" title="Cue number"
                                             v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
@@ -1141,9 +1141,8 @@ ${lists}
                 <div style="overflow: auto; max-height:30em;">
                     <h4>Scene Notes</h4>
                     <textarea v-model="editingScene.notes"
-                    @change="setSceneProperty(editingScene.id, 'notes', $event.target.value)"
-                    @input="setScenePropertyDeferred(editingScene.id, 'notes', $event.target.value)"
-                    ></textarea>
+                        @change="setSceneProperty(editingScene.id, 'notes', $event.target.value)"
+                        @input="setScenePropertyDeferred(editingScene.id, 'notes', $event.target.value)"></textarea>
                 </div>
             </details>
 
@@ -1237,7 +1236,8 @@ ${lists}
 
                             <label title="Recieve note events from a MIDI input device">MIDI
                                 Source:
-                                <input list="midiinputs" v-on:change="setSceneProperty(scenename,'midiSource', $event.target.value)"
+                                <input list="midiinputs"
+                                    v-on:change="setSceneProperty(scenename,'midiSource', $event.target.value)"
                                     v-model="editingScene.midiSource"></input>
                             </label>
 
@@ -1536,24 +1536,41 @@ ${lists}
                             <h4>Slideshow Layout</h4>
                         </header>
                         <p class="help">You have to refresh the player for this to take effect.</p>
+
+                        <details>
+                            <summary>Special Vars</summary>
+                            <dl>
+                                <dt v-pre>{{clock}}</dt>
+                                <dd>Browser's local formatted time</dd>
+
+                                <dt v-pre>{{date}}</dt>
+                                <dd>Browser's local formatted date</dd>
+
+                                <dt v-pre>{{countdown}}</dt>
+                                <dd>Empty if cue has no length, otherwise, 00:00:00 formatted countdown to end
+                                    of current cue.
+                                </dd>
+
+                                <dt v-pre>{{var_XXX}}</dt>
+                                <dd>User defined variables set in cue logic.
+                                </dd>
+                            </dl>
+
+                        </details>
                         <details>
                             <summary>Custom layout for slideshow</summary>
-                        <div class="stacked-form">
-                            <textarea v-model="editingScene.slideshowLayout" class="w-full h-16rem"
-                            @change="setSceneProperty(editingScene.id, 'slideshowLayout', $event.target.value)"
-                            @input="setScenePropertyDeferred(editingScene.id, 'slideshowLayout', $event.target.value)"
-
-                            ></textarea>
-                        </div>
-                    </details>
+                            <div class="stacked-form">
+                                <textarea v-model="editingScene.slideshowLayout" class="w-full h-16rem"
+                                    @change="setSceneProperty(editingScene.id, 'slideshowLayout', $event.target.value)"
+                                    @input="setScenePropertyDeferred(editingScene.id, 'slideshowLayout', $event.target.value)"></textarea>
+                            </div>
+                        </details>
                     </div>
-
-
-                </div>
-
-
-
             </details>
+
+
+
+
 
             <details class="undecorated">
                 <summary>Cue History</summary>
@@ -1580,8 +1597,8 @@ ${lists}
             </div>
             <div v-if="showevents" style="height:25em">
             </div>
-
         </section>
+
     </main>
 
 </div>
@@ -1638,7 +1655,7 @@ ${core.boards[0]().link.render('api_link')}
             data: function () {
                 return appData
             },
-            methods: appMethods, 
+            methods: appMethods,
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 "script-editor": httpVueLoader('static/ScriptEditor.vue'),
@@ -1690,6 +1707,6 @@ ${core.boards[0]().link.render('api_link')}
     // Blur the active element to cause Onchange events
     window.visibilitychange = function () {
         document.activeElement.blur();
-      };
+    };
 
 </script>

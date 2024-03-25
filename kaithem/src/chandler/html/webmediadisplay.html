@@ -69,7 +69,7 @@
         position: absolute;
     }
 
-    img,
+    img,![img](http://localhost:8002/static/img/nov23-ai-watercolor-tavern.webp)
     iframe {
         max-width: 100%;
     }
@@ -119,7 +119,10 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
                 "privateCueTamplate": Handlebars.compile(""),
 
                 // Vars meant for users to use in the handlebars templates if desired
-                countdown: '00:00:00'
+                countdown: '00:00:00',
+
+                date: new Date().toLocaleDateString(),
+                clock: new Date().toLocaleTimeString()
 
             }
         },
@@ -259,6 +262,9 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
         else {
             app.$data.countdown = ''
         }
+
+        app.$data.date = new Date().toLocaleDateString()
+        app.$data.clock = new Date().toLocaleTimeString()
 
         renderCueText()
     }
