@@ -103,10 +103,23 @@ appMethods = {
 
     // Slowly we want to migrate to these two generic setters
     'setSceneProperty': function (scene, property, value) {
+        var x = cueSetData[scene + property]
+        if (x)
+        {
+            clearTimeout(x);
+            delete cueSetData[scene + property]
+        }
         api_link.send(['setSceneProperty', scene, property, value])
 
     },
     'setCueProperty': function (cue, property, value) {
+        var x = cueSetData[cue + property]
+        if (x)
+        {
+            clearTimeout(x);
+            delete cueSetData[cue + property]
+        }
+
         api_link.send(['setCueProperty', cue, property, value])
 
     },

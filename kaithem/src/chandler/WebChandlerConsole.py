@@ -815,21 +815,24 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Generic setter for things that are just simple value sets.
 
             # Try to get the attr, to ensure that it actually exists.
-            getattr(scenes.scenes[msg[1]], prop)
+            old = getattr(scenes.scenes[msg[1]], prop)
 
             setattr(scenes.scenes[msg[1]], prop, msg[3])
 
-            self.pushMeta(msg[1], keys={prop})
+            if not old == msg[3]:
+                self.pushMeta(msg[1], keys={prop})
 
         elif cmd_name == 'setCueProperty':
             prop = snake_compat.camel_to_snake(msg[2])
             # Generic setter for things that are just simple value sets.
 
             # Try to get the attr, to ensure that it actually exists.
-            getattr(cues[msg[1]], prop)
+            old = getattr(cues[msg[1]], prop)
 
             setattr(cues[msg[1]], prop, msg[3])
-            self.pushCueMeta(msg[1])
+            
+            if not old == msg[3]:
+                self.pushCueMeta(msg[1])
 
         elif cmd_name == "setmqttfeature":
             scenes.scenes[msg[1]].setMQTTFeature(msg[2], msg[3])
