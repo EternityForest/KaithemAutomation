@@ -172,8 +172,8 @@ class Web():
 
     @cherrypy.expose
     def dyn_js(self, file):
-        pages.require('view_admin_info')
         if file == "boardapi.js":
+            pages.require('view_admin_info')
 
             vars = {
                 'KaithemSoundCards': [i for i in kaithem.sound.outputs()],
@@ -189,7 +189,7 @@ class Web():
         if path in ('webmediadisplay', 'WebMediaServer'):
             pass
         else:
-            pages.require('view_admin_info')
+            pages.require('chandler_operator')
         if '.' not in path:
             path = path + '.html'
         try:
