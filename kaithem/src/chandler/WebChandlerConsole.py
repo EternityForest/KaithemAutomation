@@ -830,7 +830,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             old = getattr(cues[msg[1]], prop)
 
             setattr(cues[msg[1]], prop, msg[3])
-            
+
             if not old == msg[3]:
                 self.pushCueMeta(msg[1])
 
@@ -847,7 +847,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushMeta(msg[1], keys={"slide_overlay_url"})
 
         elif cmd_name == "setscenecommandtag":
-            scenes.scenes[msg[1]].setCommandTag(msg[2])
+            scenes.scenes[msg[1]].set_command_tag(msg[2])
 
             self.pushMeta(msg[1], keys={"command_tag"})
 

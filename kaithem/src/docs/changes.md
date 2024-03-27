@@ -8,6 +8,7 @@ Change Log
 - :bug: Chandler missing fixtures info in UI until you modify something
 - :bug: Fix some media files unable to be served to the web player
 - :bug: Cues now reentrant by default again
+- :bug: Fix fade in not displayed after loading
 - :sparkles: Move universe and fixture setup to a separate chandler setup page
 - :sparkles: Can now rename cues
 - :bug: Fix web player not starting at the right time after needing manual click to start

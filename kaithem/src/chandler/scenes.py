@@ -1006,7 +1006,7 @@ class Scene:
                         "mediaURL",
                         self.allowMediaUrlRemote,
                         self.enteredCue,
-                        max(0, self.cue.sound_fade_in or self.crossfade),
+                        max(0, self.cue.fade_in or self.cue.sound_fade_in or self.crossfade),
                     ]
                 )
                 self.mediaLink.send(
@@ -1226,36 +1226,26 @@ class Scene:
         else:
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
 
-        self.subscribeCommandTags()
+        self.subscribe_command_tags()
 
     def toDict(self) -> Dict[str, Any]:
-        return {
-            "bpm": self.bpm,
+
+        # These are the properties that aren't just straight 1 to 1 copies
+        # of props, but still get saved
+        d = {
             "alpha": self.default_alpha,
             "cues": {j: self.cues[j].serialize() for j in self.cues},
-            "priority": self.priority,
-            "active": self.default_active,
-            "blend": self.blend,
-            "blend_args": self.blend_args,
-            "backtrack": self.backtrack,
-            "mqtt_sync_features": self.mqtt_sync_features,
-            "sound_output": self.sound_output,
-            "slide_overlay_url": self.slide_overlay_url,
-            "slideshow_layout": self.slideshow_layout,
-            "event_buttons": self.event_buttons,
-            "info_display": self.info_display,
-            "utility": self.utility,
-            "hide": self.hide,
-            "display_tags": self.display_tags,
-            "midi_source": self.midi_source,
-            "music_visualizations": self.music_visualizations,
-            "default_next": self.default_next,
-            "command_tag": self.command_tag,
+            "active": self.default_active, 
             "uuid": self.id,
-            "notes": self.notes,
-            "mqtt_server": self.mqtt_server,
-            "crossfade": self.crossfade,
         }
+
+        for i in scene_schema['properties']:
+            if i not in d:
+                d[i] = getattr(self, i)
+
+        schemas.validate("chandler/scene", d)
+
+        return d
 
     def __del__(self):
         pass
@@ -2431,7 +2421,7 @@ class Scene:
                 self.event('board.error', traceback.format_exc())
             self.display_tags = dt
 
-    def clearConfiguredTags(self):
+    def clear_configured_tags(self):
         with core.lock:
             for i in self.command_tagSubscriptions:
                 i[0].unsubscribe(i[1])
@@ -2447,7 +2437,7 @@ class Scene:
                 shortcutCode(str(v[len("launch:"):]), sn)
 
             elif v == "Rev":
-                self.prevCue(cause="ECP")
+                self.prev_cue(cause="ECP")
 
             elif v == "Fwd":
                 self.next_cue(cause="ECP")
@@ -2475,7 +2465,7 @@ class Scene:
 
         return f
 
-    def subscribeCommandTags(self):
+    def subscribe_command_tags(self):
         if not self.command_tag.strip():
             return
         with core.lock:
@@ -2510,10 +2500,10 @@ class Scene:
 
         cue.push()
 
-    def setCommandTag(self, tag_name: str):
+    def set_command_tag(self, tag_name: str):
         tag_name = tag_name.strip()
 
-        self.clearConfiguredTags()
+        self.clear_configured_tags()
 
         self.command_tag = tag_name
 
@@ -2522,7 +2512,7 @@ class Scene:
             if tag.subtype and not tag.subtype == "event":
                 raise ValueError("That tag does not have the event subtype")
 
-            self.subscribeCommandTags()
+            self.subscribe_command_tags()
 
     def next_cue(self, t=None, cause="generic"):
 
@@ -2550,7 +2540,7 @@ class Scene:
                 c = c[0]
                 self.goto_cue(c, cause=cause)
 
-    def setupblend_args(self):
+    def setup_blend_args(self):
         if hasattr(self.blendClass, "parameters"):
             for i in self.blendClass.parameters:
                 if i not in self.blend_args:
@@ -2935,7 +2925,7 @@ class Scene:
             if self.isActive():
                 self._blend = blendmodes.blendmodes[blend](self)
             self.blendClass = blendmodes.blendmodes[blend]
-            self.setupblend_args()
+            self.setup_blend_args()
         else:
             self.blend_args = self.blend_args or {}
             self._blend = blendmodes.HardcodedBlendMode(self)

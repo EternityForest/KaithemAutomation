@@ -494,7 +494,7 @@ ${lists}
 
                                 <td class="desktop-only" data-label="Fade In:">
                                     <input type="number" v-on:change="setfadein(i[1].id,$event.target.value)"
-                                        style="width:3em" min=0 v-model="i[1].fade_in">
+                                        style="width:3em" min=0 v-model="i[1].fadeIn">
                                 </td>
 
                                 <td class="desktop-only" data-label="Length:">
@@ -1075,7 +1075,7 @@ ${lists}
                                         <label>Fadein
                                             <input type="number"
                                                 v-on:change="setfadein(currentcueid,$event.target.value)" min=0
-                                                v-model="currentcue.fade_in">
+                                                v-model="currentcue.fadeIn">
                                         </label>
                                         <label>Length
                                             <input v-on:change="setlength(currentcueid,$event.target.value)"

@@ -72,7 +72,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 fn = os.path.join(saveLocation, i)
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
                     self.fixture_classes[i[: -
-                                          len(".yaml")]] = kaithem.persist.load(fn)
+                                           len(".yaml")]] = kaithem.persist.load(fn)
 
         saveLocation = os.path.join(
             kaithem.misc.vardir, "chandler", "fixtures")
@@ -123,7 +123,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.scenememory: Dict[str, Scene] = {}
 
         # For change etection in scenes
-        self.last_saved_versions: Dict[str, Dict[str,Any]] = {}
+        self.last_saved_versions: Dict[str, Dict[str, Any]] = {}
 
         self.ext_scenes = {}
 
@@ -209,8 +209,8 @@ class ChandlerConsole(console_abc.Console_ABC):
         if force or not self.fixture_classes == self.last_saved_versions.get("__INTERNAL__:__FIXTURECLASSES__", None):
             self.last_saved_versions["__INTERNAL__:__FIXTURECLASSES__"] = copy.deepcopy(self.fixture_classes)
             self.saveAsFiles(
-                    "fixturetypes", self.fixture_classes, "lighting/fixtureclasses"
-                )
+                "fixturetypes", self.fixture_classes, "lighting/fixtureclasses"
+            )
 
         if force or not self.configured_universes == self.last_saved_versions.get("__INTERNAL__:__UNIVERSES__", None):
             self.last_saved_versions["__INTERNAL__:__UNIVERSES__"] = copy.deepcopy(self.configured_universes)
@@ -220,7 +220,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if force or not self.fixture_assignments == self.last_saved_versions.get("__INTERNAL__:__ASSG__", None):
             self.last_saved_versions["__INTERNAL__:__ASSG__"] = copy.deepcopy(self.fixture_assignments)
-                
+
             self.saveAsFiles(
                 "fixtures", self.fixture_assignments, "lighting/fixtures"
             )
@@ -236,7 +236,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         kaithem.persist.save(
             self.presets, os.path.join(saveLocation, "presets.yaml")
         )
-        
+
     def create_universes(self, data):
         assert isinstance(data, Dict)
         for i in self.universe_objects:
@@ -284,7 +284,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.universe_objects = universeObjects
 
         try:
-            core.discoverColorTagDevices()
+            universes.discoverColorTagDevices()
         except Exception:
             event("system.error", traceback.format_exc())
             print(traceback.format_exc())
@@ -375,7 +375,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "presets": self.presets,
             }
 
-    def loadLibraryFile(self, data_file_str: str, _asuser: bool = False, filename: str = None, errs: bool = False):
+    def loadLibraryFile(self, data_file_str: str, _asuser: bool = False,
+                        filename: Optional[str] = None, errs: bool = False):
         data = yaml.load(data_file_str, Loader=yaml.SafeLoader)
 
         if "fixtureTypes" in data:
@@ -397,18 +398,14 @@ class ChandlerConsole(console_abc.Console_ABC):
     def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
         data = yaml.load(data, Loader=yaml.SafeLoader)
 
-        # Detect if the user is trying to upload a single scenefile, if so, wrap it in a multi-dict of scenes to keep the reading code
+        # Detect if the user is trying to upload a single scenefile,
+        # if so, wrap it in a multi-dict of scenes to keep the reading code
         # The same for both
         if "uuid" in data and isinstance(data["uuid"], str):
             # Remove the .yaml
             data = {filename[:-5]: data}
 
-
         with core.lock:
-            for i in self.scenememory:
-                scenes.checkPermissionsForSceneData(
-                    self.scenememory[i].toDict(), kaithem.web.user()
-                )
             for i in self.scenememory:
                 if clear_old or (i in data):
                     self.scenememory[i].stop()
@@ -552,7 +549,6 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.linkSend(["ferrs", self.ferrs])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
 
-
     def pushUniverses(self):
         snapshot = getUniverses()
 
@@ -580,7 +576,6 @@ class ChandlerConsole(console_abc.Console_ABC):
                 sd[x.name] = x.toDict()
 
             return sd
-        
 
     def check_autosave(self):
         # Both can already do their own checking for unneeded saves
@@ -600,11 +595,10 @@ class ChandlerConsole(console_abc.Console_ABC):
             if not i.startswith("__INTERNAL__:"):
                 if not s.get(i, None) == self.last_saved_versions[i]:
                     changed = True
-                    logger.info("Chandler scenes changed.") 
+                    logger.info("Chandler scenes changed.")
 
         if changed:
             self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
-
 
     def saveAsFiles(self, dirname: str, data: Any, legacyKey: Optional[str] = None):
         sd = data
@@ -661,7 +655,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                         d[f.channels[i][0]] = [u[1:]] + f.channels[i]
             self.linkSend(["cnames", u, d])
 
-    def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any]] = None):
+    def pushMeta(self, sceneid: str, statusOnly: bool = False,
+                 keys: Optional[List[Any] | Set[Any] | Dict[Any, Any]] = None):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
         scene = scenes.scenes.get(sceneid, None)
         # Race condition of deleted scenes
@@ -685,48 +680,44 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if not statusOnly:
             data: Dict[str, Any] = {
-                "ext": sceneid not in self.scenememory,
-                "id": sceneid,
-                "default_alpha": scene.default_alpha,
-                "alpha": scene.alpha,
-                "active": scene.isActive(),
-                "default_active": scene.default_active,
-                "name": scene.name,
-                "bpm": round(scene.bpm, 6),
-                "blend": scene.blend,
-                "blend_args": scene.blend_args,
-                "blendDesc": blendmodes.getblenddesc(scene.blend),
+
+                # These dynamic runtime vars aren't part of the schema for stuff that gets saved
+                "status": scene.getStatusString(),
                 "blendParams": scene.blendClass.parameters
                 if hasattr(scene.blendClass, "parameters")
                 else {},
-                "priority": scene.priority,
-                "started": scene.started,
-                "enteredCue": scene.enteredCue,
-                "backtrack": scene.backtrack,
-                "mqtt_sync_features": scene.mqtt_sync_features,
+                "blendDesc": blendmodes.getblenddesc(scene.blend),
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
-                "cuelen": scene.cuelen,
-                "midi_source": scene.midi_source,
-                "music_visualizations": scene.music_visualizations,
-                "default_next": scene.default_next,
-                "command_tag": scene.command_tag,
-                "sound_output": scene.sound_output,
-                "slide_overlay_url": scene.slide_overlay_url,
-                "slideshow_layout": scene.slideshow_layout,
-                "event_buttons": scene.event_buttons,
-                "info_display": scene.info_display,
-                "utility": scene.utility,
-                "hide": scene.hide,
-                "display_tags": scene.display_tags,
-                "displayTagValues": scene.displayTagValues,
-                "displayTagMeta": scene.displayTagMeta,
+                "ext": sceneid not in self.scenememory,
+                "id": sceneid,
+                "uuid": sceneid,
                 "vars": v,
                 "timers": scene.runningTimers,
-                "notes": scene.notes,
-                "mqtt_server": scene.mqtt_server,
-                "crossfade": scene.crossfade,
-                "status": scene.getStatusString(),
+                "enteredCue": scene.enteredCue,
+                "displayTagValues": scene.displayTagValues,
+                "displayTagMeta": scene.displayTagMeta,
+                "cuelen": scene.cuelen,
+
+                "name": scene.name,
+
+                # Placeholder because cues are separate in the web thing.
+                "cues": {},
+
+                "started": scene.started,
+                # TODO ?? this is confusing because in the files and schemas alpha means
+                # default but everywhere else it means the current.  Maybe unify them.
+                # Maybe unify active default too
+                "alpha": scene.alpha,
+                "default_alpha": scene.default_alpha,
+                "default_active": scene.default_active,
+                "active": scene.isActive(),
             }
+
+            # Everything else should by as it is in the schema
+            for i in scenes.scene_schema['properties']:
+                if i not in data:
+                    data[i] = getattr(scene, i)
+
         else:
             data = {
                 "alpha": scene.alpha,
@@ -739,6 +730,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "cuelen": scene.cuelen,
                 "status": scene.getStatusString(),
             }
+
+        # TODO this do everything then filter approach seems excessively slow.
+        # Maybe keep it for simplicity but use it less
         if keys:
             for i in keys:
                 if i not in data:
@@ -797,15 +791,6 @@ class ChandlerConsole(console_abc.Console_ABC):
                     d,
                 ]
             )
-        except Exception:
-            core.rl_log_exc("Error pushing cue data")
-            print("cue data push error", cueid, traceback.format_exc())
-
-    def pushCueMetaAttr(self, cueid: str, attr: str):
-        "Be careful with this, some attributes can't be sent directly and need preprocessing"
-        try:
-            cue = cues[cueid]
-            self.linkSend(["cuemetaattr", cueid, {attr: getattr(cue, attr)}])
         except Exception:
             core.rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid, traceback.format_exc())
