@@ -63,7 +63,6 @@ _argp = argparse.ArgumentParser()
 _argp.add_argument("-c")
 _argp.add_argument("-p")
 _argp.add_argument("--initialpackagesetup")
-_argp.add_argument("--nosecurity")
 
 argcmd = _argp.parse_args(sys.argv[1:])
 

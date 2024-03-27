@@ -205,7 +205,7 @@ class EventAPI(ResourceObject):
         else:
             ev.unregister()
 
-    def reportException(self):
+    def report_exception(self):
         """Call in an exception handler to handle the exception as if it came from the given event"""
         newevt.EventReferences[self.module, self.resource]._handle_exception()
 

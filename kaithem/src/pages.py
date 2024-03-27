@@ -46,7 +46,6 @@ env = jinja2.Environment(
 )
 
 
-
 env.globals['len'] = len
 env.globals['str'] = str
 env.globals['hasattr'] = hasattr
@@ -58,30 +57,14 @@ len = len
 hasattr = hasattr
 str = str
 
+
 def render_jinja_template(n, **kw):
     return _jl.load(env, n, env.globals).render(imp0rt=importlib.import_module,
-                                   **kw)
+                                                **kw)
 
 
 def get_vardir_template(fn):
     return _varLookup.get_template(os.path.relpath(fn, directories.vardir))
-
-
-noSecurityMode = 0
-
-mode = int(cfg.argcmd.nosecurity) if cfg.argcmd.nosecurity else None
-# limit nosecurity to localhost
-if mode == 1:
-    bindto = "127.0.0.1"
-    noSecurityMode = 1
-
-# Unless it's mode 2
-if mode == 2:
-    noSecurityMode = 2
-
-# Unless it's mode 2
-if mode == 3:
-    noSecurityMode = 3
 
 
 nav_bar_plugins = weakref.WeakValueDictionary()
@@ -135,38 +118,6 @@ def postOnly():
         if user == "__no_request__":
             return
         raise cherrypy.HTTPRedirect("/errors/wrongmethod")
-
-
-def canOverrideSecurity():
-    "Check if nosecuritymode overrides for this request"
-    global noSecurityMode
-
-    if noSecurityMode:
-        if noSecurityMode == 1:
-            x = cherrypy.request.remote.ip
-            if isHTTPAllowed(x):
-                return True
-            else:
-                raise RuntimeError(
-                    "Nosecurity 1 enabled, but got request from ext IP:"
-                    + str(cherrypy.request.remote.ip)
-                )
-                return False
-
-        if noSecurityMode == 2:
-            x = cherrypy.request.remote.ip
-            if cherrypy.request.remote.ip.startswith == "::1":
-                return True
-            if x.startswith("192."):
-                return True
-            if x.startswith("10."):
-                return True
-            if x.startswith("127."):
-                return True
-            return False
-
-        if noSecurityMode == 3:
-            return True
 
 
 def require(permission, noautoreturn=False):
@@ -232,7 +183,9 @@ def require(permission, noautoreturn=False):
                 url = "/"
             else:
                 url = cherrypy.url()
-            # User has 5 minutes to log in.  Any more time than that and it takes him back to the main page.  This is so it can't auto redirect
+            # User has 5 minutes to log in.  Any more time
+            # than that and it takes him back to the main page.
+            # This is so it can't auto redirect
             # To something you forgot about and no longer want.
             raise cherrypy.HTTPRedirect(
                 "/login?go="
@@ -245,7 +198,6 @@ def require(permission, noautoreturn=False):
             raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
 
-# In NoSecurity mode we do things a bit differently
 def canUserDoThis(permissions, user=None):
     "None means get the user from the request context"
 
@@ -261,13 +213,6 @@ def canUserDoThis(permissions, user=None):
         if not auth.canUserDoThis(user, permission):
             return False
     return True
-
-
-if noSecurityMode:
-    def require(permission, noautoreturn=False):
-        if canOverrideSecurity():
-            return True
-        raise auth.canUserDoThis(getAcessingUser(), permission)
 
 
 def noCrossSite():
@@ -311,7 +256,7 @@ def getAcessingUser(tornado_mode=None):
         x = headers["Authorization"].split("Basic ")
         if len(x) > 1:
             # Get username and password from http header
-            b = base64.b64decode(x[1])
+            b = base64.b64decode(x[1]).decode()
             b = b.split(";")
 
             if not scheme == "https":
@@ -330,11 +275,8 @@ def getAcessingUser(tornado_mode=None):
                 logging.exception("Error finding accessing user")
                 return "__guest__"
 
-    if noSecurityMode:
-        if canOverrideSecurity():
-            return "admin"
     # Handle token based auth
-    if not "kaithem_auth" in cookie or (not cookie["kaithem_auth"].value):
+    if "kaithem_auth" not in cookie or (not cookie["kaithem_auth"].value):
         return "__guest__"
     try:
         user = auth.whoHasToken(cookie["kaithem_auth"].value)
@@ -355,7 +297,7 @@ def getAcessingUser(tornado_mode=None):
 
     except KeyError:
         return "__guest__"
-    except:
+    except Exception:
         logging.exception("Error in user lookup")
         return "__guest__"
 

@@ -550,12 +550,6 @@ def startServer():
         else:
             bindto = "::"
 
-    mode = int(
-        cfgmodule.argcmd.nosecurity) if cfgmodule.argcmd.nosecurity else None
-    # limit nosecurity to localhost
-    if mode == 1:
-        bindto = "127.0.0.1"
-
     logger.info("Ports are free")
 
     sys.modules["kaithem"] = sys.modules["__main__"]
