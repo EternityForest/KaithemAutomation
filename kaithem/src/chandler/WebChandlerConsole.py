@@ -289,6 +289,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "getconfuniverses":
             self.pushConfiguredUniverses()
             return
+        
+        elif cmd_name == "getcuehistory":
+            self.linkSend(
+                ["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
+            return
+
+        elif cmd_name == "getfixtureassg":
+            self.linkSend(["fixtureAssignments", self.fixture_assignments])
+            self.pushfixtures()
+            return
 
         else:
             # Not in allowed read only commands, need chandler_operator below this point
@@ -364,6 +374,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setalpha":
             scenes.scenes[msg[1]].setAlpha(msg[2])
+            return
+        
+        elif cmd_name == "getcnames":
+            self.pushChannelNames(msg[1])
             return
 
         else:
@@ -452,10 +466,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(["fixtureAssignments", self.fixture_assignments])
             self.refresh_fixtures()
 
-        elif cmd_name == "getcuehistory":
-            self.linkSend(
-                ["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
-
         elif cmd_name == "rmFixtureAssignment":
             del self.fixture_assignments[msg[1]]
 
@@ -464,9 +474,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             self.refresh_fixtures()
 
-        elif cmd_name == "getfixtureassg":
-            self.linkSend(["fixtureAssignments", self.fixture_assignments])
-            self.pushfixtures()
+
 
         elif cmd_name == "clonecue":
             cues[msg[1]].clone(msg[2])
@@ -522,8 +530,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 scenes.scenes[msg[1]].setMqttServer(msg[2])
                 self.pushMeta(msg[1], keys={"mqtt_server"})
 
-        elif cmd_name == "getcnames":
-            self.pushChannelNames(msg[1])
 
         elif cmd_name == "namechannel":
             if msg[3]:
