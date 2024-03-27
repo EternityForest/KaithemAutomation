@@ -130,7 +130,7 @@ def ctype_async_raise(thread_obj, exception):
 
 def validate_upload():
     # Allow large uploads for admin users, otherwise only allow 64k
-    return 64 * 1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024 * 1024 * 8192 * 4
+    return 64 * 1024 if not pages.canUserDoThis("system_admin") else 1024 * 1024 * 8192 * 4
 
 
 syslogger = logging.getLogger("system")
@@ -145,7 +145,7 @@ class Settings():
 
     @cherrypy.expose
     def loginfailures(self, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         with weblogin.recordslock:
             fr = weblogin.failureRecords.items()
         return pages.get_template("settings/security.html").render(history=fr)
@@ -153,7 +153,7 @@ class Settings():
     @cherrypy.expose
     def reloadcfg(self):
         """"Used to reload the config file"""
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         config.reload()
         raise cherrypy.HTTPRedirect("/settings")
@@ -161,12 +161,12 @@ class Settings():
     @cherrypy.expose
     def threads(self, *a, **k):
         """Return a page showing all of kaithem's current running threads"""
-        pages.require("/admin/settings.view", noautoreturn=True)
+        pages.require("view_admin_info", noautoreturn=True)
         return pages.get_template("settings/threads.html").render()
 
     @cherrypy.expose
     def killThread(self, a):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
 
         for i in threading.enumerate():
@@ -176,32 +176,32 @@ class Settings():
 
     @cherrypy.expose
     def mixer(self, *a, **k):
-        pages.require("/users/mixer.edit",)
+        pages.require("system_admin",)
         from kaithem.src import jackmixer, directories
         return pages.get_template("settings/mixer.html").render(os=os,
                                                                 jackmixer=jackmixer,
                                                                 directories=directories)
     @cherrypy.expose
     def fix_alsa_volume(self, *a, **k):
-        pages.require("/users/mixer.edit",)
+        pages.require("system_admin",)
         subprocess.check_call(fix_alsa, shell=True)
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
     def wifi(self, *a, **k):
         """Return a page showing the wifi config"""
-        pages.require("/admin/settings.edit",)
+        pages.require("system_admin",)
         return pages.get_template("settings/wifi.html").render()
 
     @cherrypy.expose
     def mdns(self, *a, **k):
         """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
 
     @cherrypy.expose
     def screenshot(self):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         try:
             os.remove("/dev/shm/kaithem_temp_screenshot.jpg")
         except Exception:
@@ -213,13 +213,13 @@ class Settings():
     @cherrypy.expose
     def upnp(self, *a, **k):
         """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         return pages.get_template("settings/upnp.html").render()
 
     @cherrypy.expose
     def stopsounds(self, *args, **kwargs):
         """Used to stop all sounds currently being played via kaithem's sound module"""
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         kaithemobj.kaithem.sound.stop_all()
         raise cherrypy.HTTPRedirect("/settings")
@@ -227,7 +227,7 @@ class Settings():
     @cherrypy.expose
     def gcsweep(self, *args, **kwargs):
         """Used to do a garbage collection. I think this is safe and doesn't need xss protection"""
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         import gc
         # I don't think we can return right away anyway or people would think it was broken and not doing anything,
         # Might as well retry a few times in case we have  cleanups that have to propagate through the thread pool or some
@@ -246,7 +246,7 @@ class Settings():
 
     @cherrypy.expose
     def updateytdl(self, *args, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
 
         if util.which("yt-dlp"):
@@ -262,7 +262,7 @@ class Settings():
     @cherrypy.config(**{'response.timeout': 7200})
     def files(self, *args, **kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         try:
             dir = os.path.join('/', *args)
 
@@ -326,7 +326,7 @@ class Settings():
     @cherrypy.expose
     def hlsplayer(self, *args, **kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         try:
             dir = os.path.join('/', *args)
             return pages.get_template("settings/hlsplayer.html").render(play=dir)
@@ -335,25 +335,25 @@ class Settings():
 
     @cherrypy.expose
     def cnfdel(self, *args, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         path = os.path.join('/', *args)
         return pages.get_template("settings/cnfdel.html").render(path=path)
 
     @cherrypy.expose
     def broadcast(self, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         return pages.get_template("settings/broadcast.html").render()
 
     @cherrypy.expose
     def snackbar(self, msg, duration):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         pages.postOnly()
         kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
         return pages.get_template("settings/broadcast.html").render()
 
     @cherrypy.expose
     def console(self, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         if 'script' in kwargs:
             pages.postOnly()
@@ -393,22 +393,22 @@ class Settings():
 
     @cherrypy.expose
     def account(self):
-        pages.require("/users/accountsettings.edit")
+        pages.require("own_account_settings")
         return pages.get_template("settings/user_settings.html").render()
 
     @cherrypy.expose
     def imgmap(self):
-        pages.require("/admin/modules.view")
+        pages.require("view_admin_info")
         return pages.get_template("settings/util/imgmap.html").render()
 
     @cherrypy.expose
     def leaflet(self, *a, **k):
-        pages.require("/admin/mainpage.view")
+        pages.require("view_status")
         return pages.render_jinja_template("settings/util/leaflet.html")
 
     @cherrypy.expose
     def refreshuserpage(self, target):
-        pages.require("/users/accountsettings.edit")
+        pages.require("own_account_settings")
         pages.require("/users/settings.edit")
         pages.postOnly()
 
@@ -418,7 +418,7 @@ class Settings():
 
     @cherrypy.expose
     def changeprefs(self, **kwargs):
-        pages.require("/users/accountsettings.edit")
+        pages.require("own_account_settings")
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         pages.postOnly()
         lists = []
@@ -445,7 +445,7 @@ class Settings():
 
     @cherrypy.expose
     def changeinfo(self, **kwargs):
-        pages.require("/users/accountsettings.edit")
+        pages.require("own_account_settings")
         pages.postOnly()
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         if len(kwargs['email']) > 120:
@@ -457,7 +457,7 @@ class Settings():
 
     @cherrypy.expose
     def changepwd(self, **kwargs):
-        pages.require("/users/accountsettings.edit")
+        pages.require("own_account_settings")
         pages.postOnly()
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         t = cherrypy.request.cookie['kaithem_auth'].value
@@ -479,35 +479,35 @@ class Settings():
 
     @cherrypy.expose
     def system(self):
-        pages.require("/admin/settings.view")
+        pages.require("view_admin_info")
         return pages.get_template("settings/global_settings.html").render()
 
     @cherrypy.expose
     def save(self):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         return pages.get_template("settings/save.html").render()
 
     @cherrypy.expose
     def theming(self):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         return pages.get_template("settings/theming.html").render()
 
     @cherrypy.expose
     def savetarget(self):
         "Used to save the whole state.  Now just saves logs, everything else is instant or auto."
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         util.SaveAllState()
         raise cherrypy.HTTPRedirect('/')
 
     @cherrypy.expose
     def settime(self):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         return pages.get_template("settings/settime.html").render()
 
     @cherrypy.expose
     def set_time_from_web(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         t = float(kwargs['time'])
         subprocess.call(["date", "-s",
@@ -521,7 +521,7 @@ class Settings():
 
     @cherrypy.expose
     def changealertsettingstarget(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         from . import alerts
 
@@ -538,7 +538,7 @@ class Settings():
 
     @cherrypy.expose
     def changesettingstarget(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         from . import geolocation
         geolocation.setDefaultLocation(float(kwargs['lat']), float(kwargs['lon']), kwargs['city'],
@@ -550,7 +550,7 @@ class Settings():
 
     @cherrypy.expose
     def changepushsettings(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
 
         t = kwargs['apprise_target']
@@ -564,7 +564,7 @@ class Settings():
 
     @cherrypy.expose
     def changestartupscript(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
 
         t = kwargs['data']
@@ -576,7 +576,7 @@ class Settings():
 
     @cherrypy.expose
     def changeupnptarget(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
 
         upnpsettings.set("wan_port", int(kwargs['exposeport']))
@@ -586,21 +586,21 @@ class Settings():
 
     @cherrypy.expose
     def changeredirecttarget(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         setRedirect(kwargs['url'])
         raise cherrypy.HTTPRedirect('/settings/system')
 
     @cherrypy.expose
     def changerotationtarget(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         setScreenRotate(kwargs['rotate'])
         raise cherrypy.HTTPRedirect('/settings/system')
 
     @cherrypy.expose
     def settheming(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         from . import theming
         theming.file['web']['csstheme'] = kwargs['cssfile']
@@ -609,7 +609,7 @@ class Settings():
 
     @cherrypy.expose
     def ip_geolocate(self, **kwargs):
-        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.require("system_admin", noautoreturn=True)
         pages.postOnly()
         from . import geolocation
         l = geolocation.ip_geolocate()
@@ -621,17 +621,17 @@ class Settings():
 
     @cherrypy.expose
     def processes(self):
-        pages.require("/admin/settings.view")
+        pages.require("view_admin_info")
         return pages.get_template("settings/processes.html").render()
 
     @cherrypy.expose
     def dmesg(self):
-        pages.require("/admin/settings.view")
+        pages.require("view_admin_info")
         return pages.get_template("settings/dmesg.html").render()
 
     @cherrypy.expose
     def environment(self):
-        pages.require("/admin/settings.view")
+        pages.require("view_admin_info")
         return pages.get_template("settings/environment.html").render()
 
     gpio = gpio.WebInterface()
@@ -639,17 +639,17 @@ class Settings():
     class profiler():
         @cherrypy.expose
         def index():
-            pages.require("/admin/settings.edit")
+            pages.require("system_admin")
             return pages.get_template("settings/profiler/index.html").render(sort='')
 
         @cherrypy.expose
         def bytotal():
-            pages.require("/admin/settings.edit")
+            pages.require("system_admin")
             return pages.get_template("settings/profiler/index.html").render(sort='total')
 
         @cherrypy.expose
         def start():
-            pages.require("/admin/settings.edit", noautoreturn=True)
+            pages.require("system_admin", noautoreturn=True)
             pages.postOnly()
             import yappi
             if not yappi.is_running():
@@ -666,7 +666,7 @@ class Settings():
 
         @cherrypy.expose
         def stop():
-            pages.require("/admin/settings.edit", noautoreturn=True)
+            pages.require("system_admin", noautoreturn=True)
             pages.postOnly()
             import yappi
             if yappi.is_running():
@@ -675,7 +675,7 @@ class Settings():
 
         @cherrypy.expose
         def clear():
-            pages.require("/admin/settings.edit", noautoreturn=True)
+            pages.require("system_admin", noautoreturn=True)
             pages.postOnly()
             import yappi
             yappi.clear_stats()

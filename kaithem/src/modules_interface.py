@@ -156,7 +156,7 @@ def validate_upload():
     # Allow 4gb uploads for admin users, otherwise only allow 64k
     return (
         64 * 1024
-        if not pages.canUserDoThis("/admin/modules.edit")
+        if not pages.canUserDoThis("system_admin")
         else 1024 * 1024 * 4096
     )
 
@@ -254,7 +254,7 @@ class WebInterface:
             mstart = int(kwargs["mstart"])
         if "start" in kwargs:
             start = int(kwargs["start"])
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         if not module == "__all__":
             return pages.get_template("modules/search.html").render(
                 search=kwargs["search"],
@@ -273,14 +273,14 @@ class WebInterface:
 
     @cherrypy.expose
     def nextrun(self, **kwargs):
-        pages.require("/admin/modules.view")
+        pages.require("view_admin_info")
 
         return str(scheduling.get_next_run(kwargs["string"]))
 
     # This lets the user download a module as a zip file with yaml encoded resources
     @cherrypy.expose
     def yamldownload(self, module):
-        pages.require("/admin/modules.view")
+        pages.require("view_admin_info")
         if config["downloads-include-md5-in-filename"]:
             cherrypy.response.headers[
                 "Content-Disposition"
@@ -292,7 +292,7 @@ class WebInterface:
         try:
             return modules.getModuleAsYamlZip(
                 module[:-4] if module.endswith(".zip") else module,
-                noFiles=not pages.canUserDoThis("/admin/modules.edit"),
+                noFiles=not pages.canUserDoThis("system_admin"),
             )
         except Exception:
             logging.exception("Failed to handle zip download request")
@@ -301,13 +301,13 @@ class WebInterface:
     # This lets the user upload modules
     @cherrypy.expose
     def upload(self):
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         return pages.get_template("modules/upload.html").render()
         # This lets the user upload modules
 
     @cherrypy.expose
     def uploadtarget(self, modulesfile, **kwargs):
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         pages.postOnly()
         modules_state.modulesHaveChanged()
         for i in modules.load_modules_from_zip(
@@ -323,7 +323,7 @@ class WebInterface:
     @cherrypy.expose
     def index(self):
         # Require permissions and render page. A lotta that in this file.
-        pages.require("/admin/modules.view")
+        pages.require("view_admin_info")
         return pages.get_template("modules/index.html").render(
             ActiveModules=modules_state.ActiveModules
         )
@@ -331,12 +331,12 @@ class WebInterface:
     @cherrypy.expose
     def library(self):
         # Require permissions and render page. A lotta that in this file.
-        pages.require("/admin/modules.view")
+        pages.require("view_admin_info")
         return pages.get_template("modules/library.html").render()
 
     @cherrypy.expose
     def newmodule(self):
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         return pages.get_template("modules/new.html").render()
 
     # @cherrypy.expose
@@ -350,13 +350,13 @@ class WebInterface:
     # CRUD screen to delete a module
     @cherrypy.expose
     def deletemodule(self):
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         return pages.get_template("modules/delete.html").render()
 
     # POST target for CRUD screen for deleting module
     @cherrypy.expose
     def deletemoduletarget(self, **kwargs):
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         pages.postOnly()
         modules.rmModule(
             kwargs["name"], "Module Deleted by " + pages.getAcessingUser())
@@ -371,7 +371,7 @@ class WebInterface:
     @cherrypy.expose
     def newmoduletarget(self, **kwargs):
         global scopes
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         pages.postOnly()
 
         # If there is no module by that name, create a blank template and the scope obj
@@ -387,7 +387,7 @@ class WebInterface:
     @cherrypy.expose
     def loadlibmodule(self, module, name=""):
         "Load a module from the library"
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         pages.postOnly()
         name = name or module
 
@@ -415,7 +415,7 @@ class WebInterface:
             fullpath += "/" + path[2]
         # If we are not performing an action on a module just going to its page
         if not path:
-            pages.require("/admin/modules.view")
+            pages.require("view_admin_info")
 
             return pages.render_jinja_template("modules/module.j2.html",
                                                module=modules_state.ActiveModules[root],
@@ -427,7 +427,7 @@ class WebInterface:
 
         else:
             if path[0] == "runevent":
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 pages.postOnly()
                 newevt.manualRun((module, kwargs["name"]))
                 raise cherrypy.HTTPRedirect(
@@ -435,7 +435,7 @@ class WebInterface:
 
             if path[0] == "runeventdialog":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
                 return pages.get_template("modules/events/run.html").render(
                     module=root, event=path[1]
@@ -443,7 +443,7 @@ class WebInterface:
 
             if path[0] == "obj":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 pages.postOnly()
 
                 if path[1] == "module":
@@ -494,7 +494,7 @@ class WebInterface:
 
             # This case handles the POST request from the new resource target
             if path[0] == "addresourcetarget":
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 pages.postOnly()
                 if len(path) > 2:
                     x = path[2]
@@ -516,13 +516,13 @@ class WebInterface:
 
             # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == "reloadresource":
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 pages.postOnly()
                 modules.reloadOneResource(module, path[1])
                 return resourceEditPage(module, path[1], version, kwargs)
 
             if path[0] == "getfileresource":
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 folder = os.path.join(
                     directories.vardir, "modules", "data", module, "__filedata__"
                 )
@@ -540,7 +540,7 @@ class WebInterface:
             # This gets the interface to add a page
             if path[0] == "addfileresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 if len(path) > 1:
                     x = path[1]
                 else:
@@ -552,7 +552,7 @@ class WebInterface:
 
             # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == "uploadfileresourcetarget":
-                pages.require("/admin/modules.edit", noautoreturn=True)
+                pages.require("system_admin", noautoreturn=True)
                 pages.postOnly()
 
                 if module not in external_module_locations:
@@ -639,7 +639,7 @@ class WebInterface:
             # This returns a page to delete any resource by name
             if path[0] == "deleteresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-                pages.require("/admin/modules.edit", noautoreturn=True)
+                pages.require("system_admin", noautoreturn=True)
                 if len(path) > 1:
                     x = path[1]
                 else:
@@ -650,7 +650,7 @@ class WebInterface:
 
             # This handles the POST request to actually do the deletion
             if path[0] == "deleteresourcetarget":
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 pages.postOnly()
                 modules.rmResource(
                     module,
@@ -689,7 +689,7 @@ class WebInterface:
 
             # This is the target used to change the name and description(basic info) of a module
             if path[0] == "update":
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 pages.postOnly()
                 modules_state.modulesHaveChanged()
                 with modules_state.modulesLock:
@@ -757,7 +757,7 @@ class WebInterface:
 
 
 def addResourceDispatcher(module, type, path):
-    pages.require("/admin/modules.edit")
+    pages.require("system_admin")
 
     # Return a crud to add a new permission
     if type == "permission":
@@ -791,7 +791,7 @@ def addResourceDispatcher(module, type, path):
 
 
 def addResourceTarget(module, type, name, kwargs, path):
-    pages.require("/admin/modules.edit")
+    pages.require("system_admin")
     pages.postOnly()
     modules_state.modulesHaveChanged()
 
@@ -878,7 +878,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 
 # show a edit page for a resource. No side effect here so it only requires the view permission
 def resourceEditPage(module, resource, version="default", kwargs={}):
-    pages.require("/admin/modules.view")
+    pages.require("view_admin_info")
     cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
     with modules_state.modulesLock:
         resourceinquestion = modules_state.ActiveModules[module][resource]
@@ -937,7 +937,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
             )
 
         if resourceinquestion["resource-type"] == "directory":
-            pages.require("/admin/modules.view")
+            pages.require("view_admin_info")
 
             return pages.render_jinja_template("modules/module.j2.html",
                                                module=modules_state.ActiveModules[module],
@@ -955,7 +955,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 
 
 def permissionEditPage(module, resource):
-    pages.require("/admin/modules.view")
+    pages.require("view_admin_info")
     return pages.get_template("modules/permissions/permission.html").render(
         module=module,
         permission=resource,
@@ -967,7 +967,7 @@ def permissionEditPage(module, resource):
 def resourceUpdateTarget(module, resource, kwargs):
     newname = kwargs.get("newname", "")
 
-    pages.require("/admin/modules.edit", noautoreturn=True)
+    pages.require("system_admin", noautoreturn=True)
     pages.postOnly()
     modules_state.modulesHaveChanged()
 

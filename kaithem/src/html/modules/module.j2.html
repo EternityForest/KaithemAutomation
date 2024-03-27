@@ -28,11 +28,11 @@
                     value="{{ external_module_locations.get(name,"") | escape }}">
                 </input>
                 <hr>
-                {% if pages.canUserDoThis("/admin/modules.edit") %}
+                {% if pages.canUserDoThis("system_admin") %}
                 <input type="submit" value="Save Changes">
                 </input>
                 {% else %}
-                <p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged
+                <p class="warning">You must have the "system_admin" permission to make changes. Are you logged
                     in?
                 </p>
                 {% endif %}

@@ -95,7 +95,7 @@ class Web():
     def editor(self):
         """Index page for web interface"""
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        pages.require('users.chandler.admin')
+        pages.require('view_admin_info')
         v = limitedTagsListing()
         c = command_tagsListing()
 
@@ -135,7 +135,7 @@ class Web():
     def config(self):
         """Config page for web interface"""
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        pages.require('users.chandler.admin')
+        pages.require('view_admin_info')
         v = limitedTagsListing()
         c = command_tagsListing()
 
@@ -172,7 +172,7 @@ class Web():
 
     @cherrypy.expose
     def dyn_js(self, file):
-        pages.require('users.chandler.admin')
+        pages.require('view_admin_info')
         if file == "boardapi.js":
 
             vars = {
@@ -189,7 +189,7 @@ class Web():
         if path in ('webmediadisplay', 'WebMediaServer'):
             pass
         else:
-            pages.require('users.chandler.admin')
+            pages.require('view_admin_info')
         if '.' not in path:
             path = path + '.html'
         try:

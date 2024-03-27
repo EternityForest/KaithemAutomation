@@ -503,12 +503,12 @@ class Kaithem():
 
 
         @staticmethod
-        def add_wsgi_app(pattern: str, app, permission="/admin/settings.edit"):
+        def add_wsgi_app(pattern: str, app, permission="system_admin"):
             "Mount a WSGI application to handle all URLs matching the pattern regex"
             wsgi_apps.append((pattern, app, permission))
 
         @staticmethod
-        def add_tornado_app(pattern: str, app, args, permission="/admin/settings.edit"):
+        def add_tornado_app(pattern: str, app, args, permission="system_admin"):
             "Mount a Tornado application to handle all URLs matching the pattern regex"
             tornado_apps.append((pattern, app, args, permission))
 
@@ -519,7 +519,7 @@ class Kaithem():
             if cherrypy.request.method == "POST":
                 import re
                 import html
-                pages.require("/admin/modules.edit")
+                pages.require("system_admin")
                 c = re.sub(r"<\s*freeboard-data\s*>[\s\S]*<\s*\/freeboard-data\s*>", "<freeboard-data>\n" + html.escape(
                     yaml.dump(json.loads(kwargs['bd']))) + "\n</freeboard-data>", page.getContent())
                 page.setContent(c)

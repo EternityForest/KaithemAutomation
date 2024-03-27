@@ -72,8 +72,8 @@
 </datalist>
 
 <datalist id="k_perms">
-    <option>/users/devices.write</option>
-    <option>/users/devices.read</option>
+    <option>write_devices</option>
+    <option>view_devices</option>
 
     {% for i in pages.sorted(auth.Permissions.keys()) %}
     <option>{{ i| escape }}</option>

@@ -43,7 +43,7 @@ def onKeyWrapper(o):
 
 def buttonPusher(dev, name):
     w = widgets.Button()
-    w.require("/admin/settings.edit")
+    w.require("system_admin")
 
     def f(u, v):
         if 'pushed' in v:

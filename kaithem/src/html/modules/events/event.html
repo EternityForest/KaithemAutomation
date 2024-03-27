@@ -117,7 +117,7 @@ onsubmit="presubmit()"
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
 You will need to use the global keyword in the event action to overwrite a variable defined here.
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
 <br>
 <span class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</span>
 %endif
@@ -130,7 +130,7 @@ else:
     xyz = "pass"
 %>
 <textarea  data-editor="python" rows=30 class="pythoncode" name="setup" id="setupbox" onchange="wasChanged=true"
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
             disabled=1\
 %endif
 >${xyz|h}</textarea>
@@ -150,7 +150,7 @@ else:
             scrollBeyondLastLine: false,
             theme:'kaithem',
             automaticLayout: true,
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
             readOnly:true
 %endif
 
@@ -185,7 +185,7 @@ ${e}
 
 
 <input class="pythoncode w-full" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
             disabled=1\
 %endif
 onchange="wasChanged=true"
@@ -210,7 +210,7 @@ ${e}
             checked="yes"
             %endif
          %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>Do the action repeatedly while the trigger is true<br>
@@ -221,7 +221,7 @@ ${e}
          %else:
             value="0"
          %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>seconds. Does not affect poll rate(To avoid missing short events). <br>
@@ -234,7 +234,7 @@ ${e}
             priority["interactive"] = 'selected="selected"'
         %>
        Polling Priority(to reduce CPU usage, use the lowest possible rate):<select name="priority"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
         >
@@ -259,7 +259,7 @@ you may need to use the global keyword. You may also need to use the global keyw
 
 <textarea data-editor="python" id="actionbox" name="action" rows=50 class="pythoncode" onchange="wasChanged=true"
 
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
 >${event["action"]|h}</textarea>
@@ -275,7 +275,7 @@ you may need to use the global keyword. You may also need to use the global keyw
             renderIndentGuides: true,
 	        fontSize: 14,
             scrollBeyondLastLine: false,
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
             readOnly:true
 %endif
 		});
@@ -372,7 +372,7 @@ This section the most recent errors that ocurred while executing the event or tr
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </details>
-%if pages.canUserDoThis("/admin/modules.edit"):
+%if pages.canUserDoThis("system_admin"):
 <input type="submit" value="Save Changes" onclick="wasChanged=false; kaithemapi.enableWidgetGoneAlert=false"></input>
 <label><input type="checkbox"  name="tabtospace"
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
@@ -380,7 +380,7 @@ Saving this module will case it to completely reload, including its local scope.
      %endif
    ></input>Convert tabs to spaces on saving</label>
 %else:
-<p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+<p>You must have the "system_admin" permission to make changes. Are you logged in?</p>
 %endif
 </form>
 <form method="post" action="/modules/module/${url(module)}/obj/event/${url(name)}"><button>Go to the event's namespace(requires edit permission, beware shoulder surfers)</button></form>
@@ -416,7 +416,7 @@ Saving this module will case it to completely reload, including its local scope.
             editor.getSession().on('change', function() {
                 wasChanged=true;
             })
-            %if not pages.canUserDoThis("/admin/modules.edit"):
+            %if not pages.canUserDoThis("system_admin"):
             editor.setReadOnly(true)
             %endif
             // copy back to textarea on form submit...

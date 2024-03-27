@@ -346,9 +346,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                 os.path.join(saveLocation, "presets.yaml"))
 
     def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
-        if not kaithem.users.check_permission(kaithem.web.user(), "/admin/modules.edit"):
+        if not kaithem.users.check_permission(kaithem.web.user(), "system_admin"):
             raise ValueError(
-                "You cannot change the setup without /admin/modules.edit")
+                "You cannot change the setup without system_admin")
         data = yaml.load(data, Loader=yaml.SafeLoader)
 
         if "fixtureTypes" in data:

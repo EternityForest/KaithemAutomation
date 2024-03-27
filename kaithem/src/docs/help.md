@@ -190,7 +190,7 @@ of the groups he or she is a member of.
 
 To create new users or groups, change group memberships or permissions,
 or delete users, you must have the<span style="font-style: italic;">
-/admin/users.edit </span>permission. Keep in mind a user with this
+system_admin </span>permission. Keep in mind a user with this
 permission can give himself any other permission and so has full access.
 Do not give this permission to an untrusted user.
 
@@ -215,8 +215,8 @@ used to allow members of certain groups to upload large files to the
 server. You can set limits from the group pages.
 
 Users with \_\_all\_permissions\_\_ have no practical upload limit.
-Users with /admin/modules.edit can upload up to 4Gb file resources and
-modules. Users with /admin/settings.edit can upload up to 4Gb files in
+Users with system_admin can upload up to 4Gb file resources and
+modules. Users with system_admin can upload up to 4Gb files in
 the file manager
 
 
@@ -384,7 +384,7 @@ The module and resource of any event that loads or reloads gets posted
 here.
 
 NOTE: the message logging system means that anyone with the
-/users/logs.view permission can see all traffic on the message bus,
+view_admin_info permission can see all traffic on the message bus,
 because even topics not set up to be logged are kept in ram and shown on
 the logs page for a short time. Be careful to either not send any
 private data on the message bus, or be very careful who you give

@@ -47,11 +47,11 @@ class API(widgets.APIWidget):
 
 
 api = API()
-api.require("/admin/mainpage.view")
+api.require("view_status")
 
 
 toolbarapi=widgets.APIWidget()
-toolbarapi.require("/admin/mainpage.view")
+toolbarapi.require("view_status")
 toolbarapi.echo=False
 
 def f(u,v,id):
@@ -90,12 +90,12 @@ def countnew(since):
 class WI():
     @cherrypy.expose
     def countnew(self, **kwargs):
-        pages.require('/admin/mainpage.view')
+        pages.require('view_status')
         return json.dumps(countnew(float(kwargs['since'])))
 
     @cherrypy.expose
     def mostrecent(self, **kwargs):
-        pages.require('/admin/mainpage.view')
+        pages.require('view_status')
         return json.dumps(notificationslog[-int(kwargs['count']):])
 
 

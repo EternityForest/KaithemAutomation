@@ -73,7 +73,7 @@ else:
       x = i
       break
     f = scenes.scenes_by_name[x].resolve_sound(kwargs['file'])
-    if kaithem.web.has_permission("users.chandler.admin"):
+    if kaithem.web.has_permission("view_admin_info"):
       for i in module.getSoundFolders():
         if not i.endswith("/"):
           i=i+'/'

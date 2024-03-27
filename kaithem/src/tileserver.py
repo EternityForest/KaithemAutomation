@@ -17,7 +17,7 @@ def get_fn(x, y, z, map='openstreetmap'):
 
 
 async def get_tile(x, y, z, r, map='openstreetmap'):
-    if pages.canUserDoThis("/admin/settings.edit", pages.getAcessingUser(r)):
+    if pages.canUserDoThis("system_admin", pages.getAcessingUser(r)):
         if os.path.isfile(get_fn(x, y, z)):
             return
 

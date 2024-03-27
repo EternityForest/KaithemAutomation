@@ -98,7 +98,7 @@ onsubmit="document.getElementById('box').value = editor.getValue();document.getE
 >
 <h3>Path</h3>
 <input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
 ></input>
@@ -106,7 +106,7 @@ onsubmit="document.getElementById('box').value = editor.getValue();document.getE
 
 
 
-%if pages.canUserDoThis("/admin/modules.edit"):
+%if pages.canUserDoThis("system_admin"):
 <input type="submit" name="GoNow" value="Save Changes and go to page" onclick="wasChanged=false">
 </input>
 
@@ -156,7 +156,7 @@ to the rendered page.  You can also add datalists like __datalists__= {'listid':
 
 
 <textarea data-editor="html" id="box" name="body" rows=25 class="htmlcode"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
 
@@ -185,7 +185,7 @@ window.onbeforeunload = function(){
 <h3>Setup Code</h3>
 
 <textarea data-editor="python" id="setupbox" name="setupcode" rows=25 class="htmlcode"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
 
@@ -205,7 +205,7 @@ window.onbeforeunload = function(){
 
 <h3>Handler Code</h3>
 <textarea data-editor="python" id="codebox" name="code" rows=25 class="htmlcode"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
 
@@ -256,7 +256,7 @@ window.onbeforeunload = function(){
             theme:'kaithem',
             automaticLayout: true,
             "bracketPairColorization.enabled": true,
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
             readOnly:true
 %endif
 		});
@@ -280,7 +280,7 @@ require(['vs/editor/editor.main'], function() {
             scrollBeyondLastLine: false,
             theme:'kaithem',
             automaticLayout: true,
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
             readOnly:true
 %endif
 		});
@@ -303,7 +303,7 @@ require(['vs/editor/editor.main'], function() {
             scrollBeyondLastLine: false,
             theme:'kaithem',
             automaticLayout: true,
-%if not pages.canUserDoThis("/admin/modules.edit"):
+%if not pages.canUserDoThis("system_admin"):
             readOnly:true
 %endif
 		});
@@ -335,7 +335,7 @@ document.getElementById("codebox").style="display:none;";
        checked="yes"
        %endif
    %endif
-   %if not pages.canUserDoThis("/admin/modules.edit"):
+   %if not pages.canUserDoThis("system_admin"):
                disabled=1\
    %endif
   ></input>kaithem.web.serve_file streaming response<br>
@@ -347,7 +347,7 @@ document.getElementById("codebox").style="display:none;";
             checked="yes"
             %endif
         %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>Don't show the navigation header on this page<br>
@@ -358,7 +358,7 @@ document.getElementById("codebox").style="display:none;";
             checked="yes"
             %endif
          %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>Don't add any additional content(raw plaintext/webservice mode)<br>
@@ -366,7 +366,7 @@ document.getElementById("codebox").style="display:none;";
 
 Preprocess Engine:<select name="template-engine"
 
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        >
@@ -383,7 +383,7 @@ Preprocess Engine:<select name="template-engine"
             %endif
          %else:
          %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>Make this page acessable by GET requests<br>
@@ -395,7 +395,7 @@ Preprocess Engine:<select name="template-engine"
             %endif
          %else:
          %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>Make this page acessable by POST requests<br>
@@ -406,7 +406,7 @@ Preprocess Engine:<select name="template-engine"
                 checked="yes"
             %endif
          %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>This page should auto-refresh every
@@ -417,7 +417,7 @@ Preprocess Engine:<select name="template-engine"
         %else:
                 value= 5.0
         %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)<br>
@@ -429,7 +429,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
         %else:
                 value= "text/html"
         %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input><br>
@@ -441,7 +441,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
                 checked="yes"
             %endif
         %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>Allow cross-origin requests from(comma separated, * means any)
@@ -456,7 +456,7 @@ else:
 %>
 <input type="text"  name="allow-origins"
         value= "${origins|h}"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
         ></input><br>
@@ -465,7 +465,7 @@ else:
         <label>Theme
             <input type="text"  name="themecss" list="themes"
                     value= "${page.get('theme-css-url','')|h}"
-                    %if not pages.canUserDoThis("/admin/modules.edit"):
+                    %if not pages.canUserDoThis("system_admin"):
                                 disabled=1\
                     %endif 
                     title="default"
@@ -474,7 +474,7 @@ else:
 
     <label>Alt top banner text(Applies when nav disabled)<input type="text"  name="alttopbanner"
     value= "${page.get('alt-top-banner','')|h}"
-    %if not pages.canUserDoThis("/admin/modules.edit"):
+    %if not pages.canUserDoThis("system_admin"):
                 disabled=1\
     %endif
     ></input></label><br>
@@ -492,7 +492,7 @@ else:
                     %if i in requiredpermissions:
                         checked="yes"
                     %endif
-                    %if not pages.canUserDoThis("/admin/modules.edit"):
+                    %if not pages.canUserDoThis("system_admin"):
                                 disabled=1\
                     %endif
                     ></input>${i|h}</label></li>
@@ -502,7 +502,7 @@ else:
 </details>
 
 %if usrpages.getPageErrors(module,name):
-%if (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):
+%if (pages.canUserDoThis("view_admin_info") or  pages.canUserDoThis("system_admin") or pages.canUserDoThis("view_admin_info")):
 <h3>Errors</h3>
 <p class ="help">
 This section shows up to the most recent 25 errors that occured while rendering the page.
@@ -512,7 +512,7 @@ This section shows up to the most recent 25 errors that occured while rendering 
 %for i in usrpages.getPageErrors(module,name):
     <h4>${i[0]|h}</h4>
 <pre>
-%if pages.canUserDoThis("/users/logs.view"):
+%if pages.canUserDoThis("view_admin_info"):
 ${str(i[2])|h}
 %endif
 ${str(i[1])|h}
@@ -538,19 +538,19 @@ p = usrpages.getPageOutput(module,name)
 <details class="help"><summary><i class="icofont-question-circle"></i></summary>
 Saving this module will cause it to be immediately acessable from the web.
 </details>
-%if pages.canUserDoThis("/admin/modules.edit"):
+%if pages.canUserDoThis("system_admin"):
 <input type="submit" value="Save Changes and go back" onclick="wasChanged=false">
 <label><input type="checkbox"  name="tabtospace"
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
         checked="yes"
      %endif
-    %if not pages.canUserDoThis("/admin/modules.edit"):
+    %if not pages.canUserDoThis("system_admin"):
         disabled=1\
     %endif
    ></input>Convert tabs to spaces on saving</label>
 </input>
 %else:
-<p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+<p class="warning">You must have the "system_admin" permission to make changes. Are you logged in?</p>
 %endif
 </form>
 </section>
@@ -585,7 +585,7 @@ Saving this module will cause it to be immediately acessable from the web.
             editor.getSession().on('change', function() {
                 wasChanged=true;
             })
-            %if not pages.canUserDoThis("/admin/modules.edit"):
+            %if not pages.canUserDoThis("system_admin"):
             editor.setReadOnly(true)
             %endif
             // copy back to textarea on form submit...

@@ -381,11 +381,11 @@ class Device():
 
         # The single shared broadcast data channel the spec suggests we have
         self._admin_ws_channel = widgets.APIWidget()
-        self._admin_ws_channel.require("/admin/settings.edit")
+        self._admin_ws_channel.require("system_admin")
 
         # This is for extra non device specific stuff we add to all devices
         self._generic_ws_channel = widgets.APIWidget()
-        self._generic_ws_channel.require("/admin/settings.edit")
+        self._generic_ws_channel.require("system_admin")
 
         # Widgets could potentially stay around after this was deleted,
         # because a connection was open. We wouldn't want that to keep this device around when it should not
@@ -701,11 +701,11 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         """
         if cherrypy.request.method in ('post', 'put'):
             perms = self.config.get(
-                "kaithem.write_perms", '').strip() or "/admin/settings.edit"
+                "kaithem.write_perms", '').strip() or "system_admin"
 
         if cherrypy.request.method == "get":
             perms = self.config.get(
-                "kaithem.write_perms", '').strip() or "/admin/settings.edit"
+                "kaithem.write_perms", '').strip() or "system_admin"
 
         for i in perms.split(","):
             pages.require(i)
@@ -1356,7 +1356,7 @@ class WebDevices():
     @cherrypy.expose
     def index(self):
         """Index page for web interface"""
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         return pages.get_template("devices/index.html").render(
@@ -1364,7 +1364,7 @@ class WebDevices():
 
     @cherrypy.expose
     def report(self):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
 
         def get_report_data(dev: Device):
             o = {}
@@ -1397,7 +1397,7 @@ class WebDevices():
                                                       e.f_name)
 
         if args and args[0] == 'manage':
-            pages.require("/admin/settings.edit")
+            pages.require("system_admin")
 
             # Some framework only keys are not passed to the actual device since we use what amounts
             # to an extension, so we have to merge them in
@@ -1431,7 +1431,7 @@ class WebDevices():
 
     @cherrypy.expose
     def devicedocs(self, name):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         x = remote_devices[name].readme
 
         if x is None:
@@ -1444,7 +1444,7 @@ class WebDevices():
 
     @cherrypy.expose
     def updateDevice(self, devname, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         pages.postOnly()
         updateDevice(devname, kwargs)
         raise cherrypy.HTTPRedirect("/devices")
@@ -1455,7 +1455,7 @@ class WebDevices():
             Do a step of iterative device discovery.  Can start either from just a type or we can take
             an existing device config and ask it for refinements.
         """
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         pages.postOnly()
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
@@ -1490,7 +1490,7 @@ class WebDevices():
     @cherrypy.expose
     def createDevice(self, name=None, **kwargs):
         "Actually create the new device"
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         pages.postOnly()
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
@@ -1506,8 +1506,8 @@ class WebDevices():
                 d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
 
                 # Set these as the default
-                kwargs['kaithem.read_perms'] = "/users/devices.read"
-                kwargs['kaithem.write_perms'] = "/users/devices.write"
+                kwargs['kaithem.read_perms'] = "view_devices"
+                kwargs['kaithem.write_perms'] = "write_devices"
 
                 modules_state.ActiveModules[m][r] = {
                     'resource-type': 'device',
@@ -1537,7 +1537,7 @@ class WebDevices():
     @cherrypy.expose
     def customCreateDevicePage(self, name, module='', resource='', **kwargs):
         "Ether create a 'blank' device, or, if supported, show the custom page"
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         pages.postOnly()
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
@@ -1557,7 +1557,7 @@ class WebDevices():
 
     @cherrypy.expose
     def deleteDevice(self, name, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         name = name or kwargs['name']
@@ -1570,7 +1570,7 @@ class WebDevices():
         x = remote_devices[name]
 
         perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "/admin/settings.edit"
+            "kaithem.write_perms", '').strip() or "system_admin"
 
         for i in perms.split(","):
             pages.require(i)
@@ -1585,7 +1585,7 @@ class WebDevices():
         x = remote_devices[name]
 
         perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "/admin/settings.edit"
+            "kaithem.write_perms", '').strip() or "system_admin"
 
         for i in perms.split(","):
             pages.require(i)
@@ -1600,7 +1600,7 @@ class WebDevices():
         x = remote_devices[name]
 
         perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "/admin/settings.edit"
+            "kaithem.write_perms", '').strip() or "system_admin"
 
         for i in perms.split(","):
             pages.require(i)
@@ -1619,7 +1619,7 @@ class WebDevices():
         x = remote_devices[name]
 
         perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "/admin/settings.edit"
+            "kaithem.write_perms", '').strip() or "system_admin"
 
         for i in perms.split(","):
             pages.require(i)
@@ -1629,7 +1629,7 @@ class WebDevices():
 
     @cherrypy.expose
     def deletetarget(self, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         pages.postOnly()
         name = kwargs['name']
         with modules_state.modulesLock:

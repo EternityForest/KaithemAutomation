@@ -120,7 +120,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def setup_link(self):
         self.link = kaithem.widget.APIWidget("api_link")
-        self.link.require("users.chandler.admin")
+        self.link.require("chandler_operator")
         self.link.echo = False
         # Bound method weakref nonsense prevention
         # also wrapping
@@ -155,6 +155,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         cmd_name: str = str(msg[0])
 
+
+        # read only commands
+
         if cmd_name == "gsd":
             # Could be long-running, so we offload to a workerthread
             # Used to be get scene data, Now its a general get everything to show pags thing
@@ -164,6 +167,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.pushMeta(msg[1])
                 self.pushfixtures()
             kaithem.misc.do(f)
+            return
 
         elif cmd_name == "getallcuemeta":
 
@@ -172,25 +176,31 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     self.pushCueMeta(scenes.scenes[msg[1]].cues[i].id)
 
             kaithem.misc.do(f)
+            return
 
         elif cmd_name == "getcuedata":
             s = cues[msg[1]]
             self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
+            return
 
         elif cmd_name == "getfixtureclass":
             self.linkSend(
                 ["fixtureclass", msg[1], self.fixture_classes[msg[1]]])
-
+            return
+        
         elif cmd_name == "getfixtureclasses":
             # Send placeholder lists
             self.linkSend(
                 ["fixtureclasses", {i: []
                                     for i in self.fixture_classes.keys()}]
             )
+            return
+        
         elif cmd_name == "getcuemeta":
             s = cues[msg[1]]
             self.pushCueMeta(msg[1])
+            return
 
         elif cmd_name == "gasd":
             with core.lock:
@@ -255,15 +265,18 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         ],
                     ]
                 )
-
+            return
+        
         # There's such a possibility for an iteration error if universes changes.
         # I'm not going to worry about it, this is only for the GUI list of universes.
         elif cmd_name == "getuniverses":
             self.pushUniverses()
+            return
 
         elif cmd_name == "getserports":
             self.linkSend(["serports", getSerPorts()])
-
+            return
+        
         elif cmd_name == "getCommands":
             c = scenes.rootContext.commands.scriptcommands
             commandInfo = {}
@@ -271,32 +284,48 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 f = c[i]
                 commandInfo[i] = kaithem.chandlerscript.get_function_info(f)
             self.linkSend(["commands", commandInfo])
+            return
 
         elif cmd_name == "getconfuniverses":
             self.pushConfiguredUniverses()
+            return
+
+        else:
+            # Not in allowed read only commands, need chandler_operator below this point
+            # Right now there's no separate chandler view, just operator
+            if not kaithem.users.check_permission(user, 'chandler_operator'):
+                if not kaithem.users.check_permission(user, 'system_admin'):
+                    raise PermissionError(cmd_name + "requires chandler_operator or system_admin")
+            
 
         # User level runtime stuff that can't change config
 
-        elif cmd_name == "jumptocue":
+        if cmd_name == "jumptocue":
             if not cues[msg[1]].scene().active:
                 cues[msg[1]].scene().go()
 
             cues[msg[1]].scene().goto_cue(cues[msg[1]].name, cause="manual")
-
+            return
+        
         elif cmd_name == "jumpbyname":
             scenes.scenes_by_name[msg[1]].goto_cue(msg[2], cause="manual")
-
+            return
+        
         elif cmd_name == "nextcue":
             scenes.scenes[msg[1]].next_cue(cause="manual")
+            return
 
         elif cmd_name == "prevcue":
             scenes.scenes[msg[1]].prev_cue(cause="manual")
+            return
 
         elif cmd_name == "nextcuebyname":
             scenes.scenes_by_name[msg[1]].next_cue(cause="manual")
+            return
 
         elif cmd_name == "shortcut":
             scenes.shortcutCode(msg[1])
+            return
 
         elif cmd_name == "gotonext":
             if cues[msg[1]].next_cue:
@@ -306,29 +335,47 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         s.next_cue(cause="manual")
                 except Exception:
                     print(traceback.format_exc())
+            return
+        
         elif cmd_name == "go":
             scenes.scenes[msg[1]].go()
             self.pushMeta(msg[1])
+            return
 
         elif cmd_name == "gobyname":
             scenes.scenes_by_name[msg[1]].go()
             self.pushMeta(scenes.scenes_by_name[msg[1]].id)
+            return
 
         elif cmd_name == "stopbyname":
             scenes.scenes_by_name[msg[1]].stop()
             self.pushMeta(msg[1], statusOnly=True)
+            return
 
         elif cmd_name == "stop":
             x = scenes.scenes[msg[1]]
             x.stop()
             self.pushMeta(msg[1], statusOnly=True)
+            return
 
         elif cmd_name == "testSoundCard":
             kaithem.sound.ogg_test(output=msg[1])
+            return
+
+        elif cmd_name == "setalpha":
+            scenes.scenes[msg[1]].setAlpha(msg[2])
+            return
+
+        else:
+            # Not in allowed runtime only commands
+            if not kaithem.users.check_permission(user, 'system_admin'):
+                raise PermissionError(cmd_name + "requires system_admin")
+            
+
 
         ###
 
-        elif cmd_name == "preset":
+        if cmd_name == "preset":
             if msg[2] is None:
                 self.presets.pop(msg[2], None)
             else:
@@ -357,7 +404,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.scenememory[s.id] = s
 
         elif cmd_name == "setconfuniverses":
-            if kaithem.users.check_permission(user, "/admin/settings.edit"):
+            if kaithem.users.check_permission(user, "system_admin"):
                 self.configured_universes = msg[1]
                 self.create_universes(self.configured_universes)
             else:
@@ -471,7 +518,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
 
         elif cmd_name == "setMqttServer":
-            if kaithem.users.check_permission(user, "/admin/modules.edit"):
+            if kaithem.users.check_permission(user, "system_admin"):
                 scenes.scenes[msg[1]].setMqttServer(msg[2])
                 self.pushMeta(msg[1], keys={"mqtt_server"})
 
@@ -589,8 +636,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setbpm":
             scenes.scenes[msg[1]].setBPM(msg[2])
 
-        elif cmd_name == "setalpha":
-            scenes.scenes[msg[1]].setAlpha(msg[2])
 
         elif cmd_name == "setcrossfade":
             scenes.scenes[msg[1]].crossfade = float(msg[2])

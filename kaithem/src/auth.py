@@ -53,9 +53,9 @@ defaultData = {
         },
         "Guests": {
             "permissions": [
-                "/admin/modules.view",
-                "/admin/settings.view",
-                "/admin/mainpage.view"
+                "view_admin_info",
+                "view_admin_info",
+                "view_status"
             ]
         }
     },
@@ -126,26 +126,26 @@ Groups: Dict[str, dict] = {}
 """These are the "built in" permissions required to control basic functions
 User code can add to these"""
 BasePermissions: Dict[str, str] = {
-    "/admin/users.edit": "Edit users, groups, and permissions, View and change usernames and passwords. Implies FULL ACCESS.",
-    "/admin/mainpage.view": "View the main page of the application.",
-    "/admin/modules.view": "View and download all module contents but not make any changes.",
-    "/admin/modules.edit": "Create, Edit, Import, Upload, and Download modules and module contents. Implies FULL ACCESS.",
-    "/admin/settings.view": "View but not change settings.",
-    "/admin/settings.edit": "Change settings. Also serves as a generic admin permission for several misc thingas. Implies FULL ACCESS.",
-    "/admin/logging.edit": "Modify settings in the logging subsystem",
-    "/admin/eventoutput.view": "View the message logs.",
-    "/users/logs.view": "View the message logs.",
-    "/users/accountsettings.edit": "Edit ones own account preferences",
-    "/users/tagpoints.view": "View tagpoints",
-    "/users/tagpoints.edit": "Override tagpoint values and modify configuration",
-    "/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
-    "/users/mixer.edit": "Control the audio mixing functionality",
+
+    "system_admin": "The main admin permission to configure the system. Implies that the user can do anything the base account running the server can.",
+    
+    "view_admin_info": "Allows read but not write access to most of the system state",
+
+    "view_status": "View the main page of the application, the active alerts, the about box, and other basic overview info",
+    
+    "acknowledge_alerts": "Required to acknowledge alerts",
+
+    "view_devices": "The default permission used to expose device points for reading, but devices can be configured to use others.",
+    "write_devices": "The default permission used to expose device points for writing, but devices can be configured to use others.",
+    
+    "own_account_settings": "Edit ones own account preferences",
+
+    "chandler_operator": "Access the Chandler console, jump to cues, change input fields.  Does not allow editing settings or scenes.",
+
+
+    "__guest__": "Everyone always has this permission even when not logged in",
     "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care.",
-    "/users/alerts.view": "Required to view alerts",
-    "/users/alerts.acknowlege": "Required to acknowledge alerts",
-    "/users/devices.read": "The default permission used to expose device points for reading, but devices can be configured to use others.",
-    "/users/devices.write": "The default permission used to expose device points for writing, but devices can be configured to use others.",
-    "__guest__": "Everyone always has this permission even when not logged in"
+
 }
 
 crossSiteRestrictedPermissions = BasePermissions.copy()

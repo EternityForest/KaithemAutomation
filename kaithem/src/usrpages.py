@@ -156,7 +156,7 @@ class CompiledPageAPIObject:
 
         """
 
-        pages.require("/admin/modules.edit")
+        pages.require("system_admin")
         pages.postOnly()
 
         if not isinstance(c, str):

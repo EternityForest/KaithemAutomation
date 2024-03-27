@@ -200,7 +200,7 @@ tagpoints.exposedTags.keys()})
                             <li class="column-tool add" data-bind="click: addGridColumnRight"></li>
                         </ul>
                     </div>
-                    %if pages.canUserDoThis("/admin/modules.edit"):
+                    %if pages.canUserDoThis("system_admin"):
                     <div id="toggle-header" data-bind="click: toggleEditing">
                         </div>
                     %endif

@@ -98,5 +98,5 @@ except Exception:
         "Could not use NetworkManager client. Network management disabled.")
 
 api = widgets.APIWidget()
-api.require("/admin/settings.edit")
+api.require("system_admin")
 api.attach(handleMessage)

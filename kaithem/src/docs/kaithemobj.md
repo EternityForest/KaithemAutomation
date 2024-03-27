@@ -361,7 +361,7 @@ telling the physical location being monitored. An example might be
 format you like.
 
 Permissions and ackPermissions are additional permissions besides
-/users/alerts.view and /users/alerts.acknowledge that are needed to see
+view_status and /users/alerts.acknowledge that are needed to see
 and ack the alert.
 
 ID is a unique string ID. What happens if you reuse these is undefined
@@ -842,11 +842,11 @@ This is a WeakValueDictionary that you can use to add items to the top navbar. E
 values must be a function that returns None for no item, or a tuple of (sort order, HTML).
 HTML will typically be an a tag link.  Default sort order should be 50.
 
-#### kaithem.web.add_wsgi_app(pattern: str, app, permission="/admin/settings.edit"):
+#### kaithem.web.add_wsgi_app(pattern: str, app, permission="system_admin"):
 Mount a WSGI application to handle all URLs matching the pattern regex.  The app will only be accessible
 to users having the specified permission.
 
-#### kaithem.web.add_tornado_app(pattern: str, app, args, permission="/admin/settings.edit"):
+#### kaithem.web.add_tornado_app(pattern: str, app, args, permission="system_admin"):
 Mount a Tornado application to handle all URLs matching the pattern regex
 
 ##### Subdomains

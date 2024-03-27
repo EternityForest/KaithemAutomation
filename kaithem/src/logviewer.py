@@ -24,7 +24,7 @@ from cherrypy.lib.static import serve_file
 
 
 syslogwidget = widgets.ScrollingWindow(2500)
-syslogwidget.require('/users/logs.view')
+syslogwidget.require('view_admin_info')
 
 
 try:
@@ -100,12 +100,12 @@ def listlogdumps():
 class WebInterface(object):
     @cherrypy.expose
     def index(self, *args, **kwargs):
-        pages.require('/users/logs.view')
+        pages.require('view_admin_info')
         return pages.get_template('syslog/index.html').render()
 
     @cherrypy.expose
     def servelog(self, filename):
-        pages.require('/users/logs.view')
+        pages.require('view_admin_info')
         # Make sure the user can't acess any file on the server like this
 
         # First security check, make sure there's no obvious special chars
@@ -129,5 +129,5 @@ class WebInterface(object):
 
     @cherrypy.expose
     def archive(self):
-        pages.require('/users/logs.view')
+        pages.require('view_admin_info')
         return pages.get_template('syslog/archive.html').render(files=listlogdumps())

@@ -30,7 +30,7 @@ globalMockFactory = None
 
 
 api = widgets.APIWidget()
-api.require("/admin/settings.edit")
+api.require("system_admin")
 
 inputs = {}
 outputs = {}
@@ -43,7 +43,7 @@ lastPushedValue = 0
 class WebInterface():
     @cherrypy.expose
     def index(self, **kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         return pages.get_template("settings/gpio.html").render(api=api)
 
 

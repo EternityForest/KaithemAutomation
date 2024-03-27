@@ -116,14 +116,14 @@ messagebus.subscribe("/#", messagelistener)
 class WebInterface(object):
     @cherrypy.expose
     def index(self, *args, **kwargs):
-        pages.require("/users/logs.view")
+        pages.require("view_admin_info")
         return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
     def startlogging(self, topic):
         global known_unsaved
         global loglistchanged
-        pages.require("/admin/logging.edit")
+        pages.require("system_admin")
         pages.postOnly()
         # Invalidate the cache of non-logged topics
         known_unsaved = OrderedDict()
@@ -137,7 +137,7 @@ class WebInterface(object):
     @cherrypy.expose
     def stoplogging(self, topic):
         global loglistchanged
-        pages.require("/admin/logging.edit")
+        pages.require("system_admin")
         pages.postOnly()
         topic = topic.encode("latin-1").decode("utf-8")
         topic = topic[1:]
@@ -149,7 +149,7 @@ class WebInterface(object):
     @cherrypy.expose
     def setlogging(self, txt):
         global known_unsaved
-        pages.require("/admin/logging.edit")
+        pages.require("system_admin")
         pages.postOnly()
         # Invalidate the cache of non-logged topics
         global loglistchanged
@@ -168,7 +168,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def viewall(self, topic, page=1):
-        pages.require("/users/logs.view")
+        pages.require("view_admin_info")
         return pages.get_template("logging/topic.html").render(
             topicname=normalize_topic(topic), page=int(page)
         )

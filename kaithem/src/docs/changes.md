@@ -23,6 +23,7 @@ This release is all about manual testing of rarely used features
 - :sparkles: Cues inherit rules from the special \__rules\__ cue if it exists.
 - :sparkles: If sound_fade_in is 0, then use the cue lighting fade for the sound as well if it exists
 - :coffin: nosecurity command line flag removed
+- :sparkles: Permissions have been consolidated.
 
 
 
@@ -1349,8 +1350,8 @@ cart - Help boxes(paragraph or div class 'help') now show up minimized until you
     event will now add a description on the module index.
 -   You can also add doc string descriptions to pages with a module
     level block comment and \_\_doc\_\_="str"
--   One must have either /admin/modules.edit, /users/logs.view, or
-    /admin/errors.view to view page or event errors.
+-   One must have either system_admin, view_admin_info, or
+    view_admin_info to view page or event errors.
 -   Better default new page contents
 -   Mouse over the unsaved change asterix to view specifically what has
     unsaved changes.

@@ -2014,8 +2014,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
             self._meterWidget.defaultLabel = self.name.split(".")[-1][:24]
 
-            self._meterWidget.set_permissions(['/users/tagpoints.view'],
-                                              ['/users/tagpoints.edit'])
+            self._meterWidget.set_permissions(['view_admin_info'],
+                                              ['system_admin'])
             self._setupMeter()
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
@@ -2288,8 +2288,8 @@ class StringTagPointClass(GenericTagPointClass[str]):
 
             self._spanWidget.defaultLabel = self.name.split(".")[-1][:24]
 
-            self._spanWidget.set_permissions(['/users/tagpoints.view'],
-                                             ['/users/tagpoints.edit'])
+            self._spanWidget.set_permissions(['view_admin_info'],
+                                             ['system_admin'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
                 try:
@@ -2397,8 +2397,8 @@ class ObjectTagPointClass(GenericTagPointClass[Dict[str, Any]]):
 
             self._spanWidget = widgets.DynamicSpan()
 
-            self._spanWidget.set_permissions(['/users/tagpoints.view'],
-                                             ['/users/tagpoints.edit'])
+            self._spanWidget.set_permissions(['view_admin_info'],
+                                             ['system_admin'])
             # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
                 try:

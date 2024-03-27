@@ -1874,9 +1874,9 @@
         ["css=p:nth-child(3)", "css:finder"],
         ["xpath=//body[@id='page']/main/section/form/a/p[2]", "xpath:idRelative"],
         ["xpath=//a/p[2]", "xpath:position"],
-        ["xpath=//p[contains(.,'You must have the \"/admin/modules.edit\" permission to make changes. Are you logged in?')]", "xpath:innerText"]
+        ["xpath=//p[contains(.,'You must have the \"system_admin\" permission to make changes. Are you logged in?')]", "xpath:innerText"]
       ],
-      "value": "You must have the \"/admin/modules.edit\" permission to make changes. Are you logged in?"
+      "value": "You must have the \"system_admin\" permission to make changes. Are you logged in?"
     }, {
       "id": "90031718-1e24-42ea-b6f4-e78f421f79b7",
       "comment": "",

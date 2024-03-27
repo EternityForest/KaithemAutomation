@@ -127,7 +127,7 @@ class API(widgets.APIWidget):
 
 
 api = API()
-api.require("/users/alerts.view")
+api.require("view_status")
 
 
 def handleApiCall(u: str, v: list):
@@ -274,7 +274,7 @@ class Alert():
             if i in name:
                 name = name.replace(i, ' ')
 
-        self.permissions = permissions + ['/users/alerts.view']
+        self.permissions = permissions + ['view_status']
         self.ackPermissions = ackPermissions + ['users/alerts.acknowledge']
         self.silent = silent
 

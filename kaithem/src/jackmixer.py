@@ -42,7 +42,7 @@ from . import jackmanager, gstwrapper, mixerfx
 
 import threading
 global_api = widgets.APIWidget()
-global_api.require("/users/mixer.edit")
+global_api.require("system_admin")
 
 # Configured list of mixer channel strips
 channels: Dict[str, Dict] = {}
@@ -995,7 +995,7 @@ actionLockout = {}
 class MixingBoard:
     def __init__(self, *args, **kwargs):
         self.api = widgets.APIWidget()
-        self.api.require("/users/mixer.edit")
+        self.api.require("system_admin")
         self.api.attach(self.f)
         self.channels = {}
         self.channelObjects: Dict[str, ChannelStrip] = {}

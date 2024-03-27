@@ -495,9 +495,9 @@ def checkPermissionsForSceneData(data: Dict[str, Any], user: str):
 
     """
     if "mqtt_server" in data and data["mqtt_server"].strip():
-        if not kaithem.users.check_permission(user, "/admin/modules.edit"):
+        if not kaithem.users.check_permission(user, "system_admin"):
             raise ValueError(
-                "You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: MQTT:"
+                "You cannot do this action on this scene without system_admin, because it uses advanced features: MQTT:"
                 + str(kaithem.web.user())
             )
 
@@ -1044,7 +1044,7 @@ class Scene:
         # TagPoint for managing the current cue
         self.cueTag = kaithem.tags.StringTag(
             "/chandler/scenes/" + name + ".cue")
-        self.cueTag.expose("users.chandler.admin", "users.chandler.admin")
+        self.cueTag.expose("view_status", "chandler_operator")
 
         self.cueTagClaim = self.cueTag.claim(
             "__stopped__", "Scene", 50, annotation="SceneObject"
@@ -1073,12 +1073,12 @@ class Scene:
             "/chandler/scenes/" + name + ".cueInfo"
         )
         self.cueInfoTag.value = {"audio.meta": {}}
-        self.cueInfoTag.expose("users.chandler.admin", "users.chandler.admin")
+        self.cueInfoTag.expose("view_status", "chandler_operator")
 
         self.albumArtTag = kaithem.tags.StringTag(
             "/chandler/scenes/" + name + ".albumArt"
         )
-        self.albumArtTag.expose("users.chandler.admin")
+        self.albumArtTag.expose("view_status")
 
         # Used to determine the numbering of added cues
         self.topCueNumber = 0
@@ -1098,7 +1098,7 @@ class Scene:
         self.alphaTag = kaithem.tags["/chandler/scenes/" + name + ".alpha"]
         self.alphaTag.min = 0
         self.alphaTag.max = 1
-        self.alphaTag.expose("users.chandler.admin", "users.chandler.admin")
+        self.alphaTag.expose("view_status", "chandler_operator")
 
         self.alphaTagClaim = self.alphaTag.claim(
             self.alpha, "Scene", 50, annotation="SceneObject"

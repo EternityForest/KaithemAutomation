@@ -293,7 +293,7 @@ class webapproot:
         ):
             raise cherrypy.HTTPRedirect(r)
 
-        pages.require("/admin/mainpage.view")
+        pages.require("view_status")
         cherrypy.response.cookie["LastSawMainPage"] = time.time()
         return pages.get_template("index.html").render(
             api=notifications.api, alertsapi=alerts.api
@@ -301,20 +301,20 @@ class webapproot:
 
     @cherrypy.expose
     def dropdownpanel(self, *path, **data):
-        pages.require("/admin/mainpage.view")
+        pages.require("view_status")
         return pages.get_template("dropdownpanel.html").render(
             api=notifications.api, alertsapi=alerts.api
         )
 
     # @cherrypy.expose
     # def alerts(self, *path, **data):
-    #     pages.require("/admin/mainpage.view")
+    #     pages.require("view_status")
     #     return pages.get_template('alerts.html').render(api=notifications.api, alertsapi=alerts.api)
 
     @cherrypy.expose
     def tagpoints(self, *path, show_advanced="", **data):
         # This page could be slow because of the db stuff, so we restrict it more
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         if "new_numtag" in data:
             pages.postOnly()
             return pages.get_template("settings/tagpoint.html").render(
@@ -348,7 +348,7 @@ class webapproot:
     @cherrypy.expose
     def tagpointlog(self, *path, **data):
         # This page could be slow because of the db stuff, so we restrict it more
-        pages.require("/admin/settings.edit")
+        pages.require("system_admin")
         pages.postOnly()
         if "exportRows" not in data:
             return pages.get_template("settings/tagpointlog.html").render(
@@ -677,7 +677,7 @@ def startServer():
         rules.extend(
             [
                 Rule(
-                    KAuthMatcher("/esphome.*", "/admin/settings.edit"),
+                    KAuthMatcher("/esphome.*", "system_admin"),
                     esphome_dash.start_web_server(),
                 ),
                 Rule(
@@ -695,7 +695,7 @@ def startServer():
                 x + xt +
                 [
                     (
-                        KAuthMatcher("/database.*", "/admin/settings.edit"),
+                        KAuthMatcher("/database.*", "system_admin"),
                         wsgi_adapter.WSGIHandler,
                         {"wsgi_application": tableview.get_app()},
                     ),

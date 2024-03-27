@@ -65,7 +65,7 @@
         %if i in requiredpermissions:
             checked="yes"
         %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
         ></input>${i|h}</li>
@@ -80,7 +80,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
         %else:
                 value= ""
         %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input><br>
@@ -92,7 +92,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
                 checked="yes"
             %endif
         %endif
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
        ></input>Allow cross-origin requests from(comma separated, * means any)<
@@ -107,12 +107,12 @@ else:
 %>
 <input type="text"  name="allow-origins"
         value= "${origins|h}"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
+        %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
         ></input>
 </div>
-%if pages.canUserDoThis("/admin/modules.edit"):
+%if pages.canUserDoThis("system_admin"):
 <br>
 <input type="submit" value="Save Changes" onclick="wasChanged=false">
 </input>

@@ -11,10 +11,10 @@ from kaithem.src import pages
 <h3>Description</h3>
 <div class="window paper">
 <textarea name="description" class="description" cols = 5 >${description|h}</textarea><br>
-%if pages.canUserDoThis("/admin/modules.edit"):
+%if pages.canUserDoThis("system_admin"):
 <input type="submit" value="Save Changes"></input>
 %else:
-<p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+<p class="warning">You must have the "system_admin" permission to make changes. Are you logged in?</p>
 %endif">
 </div>
 
