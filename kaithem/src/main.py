@@ -126,7 +126,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
             import setproctitle
 
             setproctitle.setproctitle("kaithem")
-            logger.info("setting process title")
         except Exception:
             logger.warning("error setting process title")
 

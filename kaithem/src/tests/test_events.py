@@ -1,43 +1,10 @@
-# Copyright Daniel Dunn 2019
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-
-# This file runs a self test when python starts
-
 import time
-import traceback
-import logging
-import threading
 import weakref
-
-running_tests = []
-
-
-def eventSystemTest():
-    from .. import newevt
-    try:
-        _eventSystemTest()
-    finally:
-        newevt.removeOneEvent('testevt', 'testevt')
-        newevt.removeOneEvent('TEST1', 'TEST1')
-        newevt.removeOneEvent('TEST2', 'TEST2')
+from kaithem.src import newevt, messagebus, modules_state
 
 
-def _eventSystemTest():
-    from .. import newevt, messagebus, modules_state
-    logging.info("Beginning self test of event system")
-    running_tests.append(1)
+def test_events():
+
     modules_state.scopes['x'] = {}
     # Create an event that sets y to 0 if it is 1
     with newevt._event_list_lock:
@@ -110,7 +77,7 @@ def _eventSystemTest():
         # Give it a value to change from
         x.pymodule.y = 0
 
-        x.module = x.resource = "TEST1"
+        x.module = x.resource = "pytest_TEST1"
         newevt.EventReferences[x.module, x.resource] = x
 
         # Register event with polling.
@@ -137,7 +104,7 @@ def _eventSystemTest():
     with newevt._event_list_lock:
         # Now we test the message bus event
         x = newevt.Event("!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0")
-        x.module = x.resource = 'TEST2'
+        x.module = x.resource = 'pytest_TEST2'
         # Make sure nobody is iterating the eventlist
         # Add new event
         x.register()
@@ -153,7 +120,7 @@ def _eventSystemTest():
 
     time.sleep(0.25)
     x.unregister()
-    # y should immediately be set back to 0 at the next polling cycle
+
     if not hasattr(x.pymodule, 'y'):
         time.sleep(5)
         if not hasattr(x.pymodule, 'y'):
@@ -161,11 +128,20 @@ def _eventSystemTest():
         else:
             raise RuntimeError("Message Event had slow performance, delivery took more than 0.25s")
 
+    assert x.pymodule.y == 'test'
+
     try:
         x.pymodule.y = 1
     except Exception:
         # This might fail if the implementatino makes pymodule not exist anymore
         pass
+
+    # Assert that after unregister, it no longer fires
+    messagebus.post_message("/system/selftest", 'foo')
+    time.sleep(2)
+    assert x.pymodule.y == 1
+
+
     x.cleanup()
 
     # Make sure the weakref isn't referencing
@@ -187,4 +163,3 @@ def _eventSystemTest():
         if x.pymodule.y == 'test':
             raise RuntimeError("Message Event did not go away when unregistered")
 
-    running_tests.pop()

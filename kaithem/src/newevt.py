@@ -22,7 +22,7 @@ import traceback
 import threading
 import sys
 import typing
-from typing import Callable
+from typing import Callable, Optional
 import time
 import cherrypy
 import os
@@ -98,10 +98,7 @@ def makePrintFunction(ev):
      Here we implement it as a closuse that only
       weakly references the actual event object.
     """
-    import uuid
-
-    printID = str(uuid.uuid4())
-    ev.printID = printID
+    printID = id(ev)
 
     ev = weakref.ref(ev)
 
@@ -121,7 +118,7 @@ def makePrintFunction(ev):
                 print(args)
             x = str(args) + "\n"
         ev2 = ev()
-        if not ev2.printID == printID:
+        if not id(ev2) == printID:
             w = "FROM OLD DELETED EVENT"
         else:
             w = ""
@@ -312,14 +309,11 @@ def ptim():
 
 # In a background thread, we use the worker pool to check all threads
 
-
-# Yeah yeah, the name isn't the best
-class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
+class EventSchedulerObject(scheduling.UnsynchronizedRepeatingEvent):
     def __init__(
         self,
         function,
         interval,
-        priority="realtime",
         phase=0,
         module=None,
         resource=None,
@@ -337,7 +331,7 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
 
     def __repr__(self):
         return (
-            "<newevt.EventEvent object for event at "
+            "<newevt.EventSchedulerObject object for event at "
             + str((self.module, self.resource))
             + "with id "
             + str(id(self))
@@ -367,38 +361,6 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
 
 
 insert_phase = 0
-
-
-def beginPolling(ev):
-    # Note that we spread out the intervals by 0.15% to make them not all bunch up at once constantly.
-    global insert_phase
-    ev.schedulerobj = EventEvent(
-        ev.check,
-        config["priority-response"].get(ev.symbolicpriority, 0.08)
-        + (insert_phase * 0.03)
-        - 0.015,
-        ev.symbolicpriority,
-    )
-    try:
-        ev.schedulerobj.module = ev.module
-        ev.schedulerobj.resource = ev.resource
-    except Exception:
-        # I have no idea what this was for
-        logging.exception("????????????????")
-        pass
-    # Basically we want to spread them out in the
-    # phase space from 0 to 1 in a deterministic ish way.
-    # There might be a better algorithm of better constant to use,
-    # but this one should be decent.
-    # The phase of this wave determines the frequency offset applied
-    insert_phase += 0.555555
-    insert_phase = insert_phase % 1
-    ev.schedulerobj.register()
-    ev.schedulerobj.schedule()
-
-
-def endPolling(ev):
-    ev.schedulerobj.unregister()
 
 
 def parseTrigger(when):
@@ -531,11 +493,14 @@ class BaseEvent:
         do: str | Callable,
         continual=False,
         ratelimit=0,
-        setup: str = None,
+        setup: Optional[str] = None,
         priority=2,
         m=None,
         r=None,
     ):
+        # Later we can use this to store performance info
+        self.timeTakenToLoad = 0.0
+
         # Copy in the data from args
         self.evt_persistant_data = PersistentData()
         self._prevstate = False
@@ -554,7 +519,7 @@ class BaseEvent:
         self.symbolicpriority = priority
         # realtime is always every frame even for legacy
         if self.symbolicpriority == 1:
-            self.symbolicpriority == "realtime"
+            self.symbolicpriority = "realtime"
 
         # try to look up the numeric priority from the symbolic
         try:
@@ -631,14 +596,17 @@ class BaseEvent:
         finally:
             self.lock.release()
 
+    def _do_action(self):
+        pass
+
     def cleanup(self):
         try:
             with self.lock:
                 try:
                     if hasattr(self, "pymodule"):
                         if "__del__" in self.pymodule.__dict__:
-                            self.pymodule.__dict__.__del__()
-                            del self.pymodule.__dict__.__del__
+                            self.pymodule.__dict__['__del__']()
+                            del self.pymodule.__dict__['__del__']
                 except Exception:
                     logger.exception("Error in delete function")
                 if hasattr(self, "pymodule"):
@@ -740,39 +708,65 @@ class BaseEvent:
                 + '" may need attention',
             )
 
+    def end_polling(self):
+        with self.register_lock:
+            if hasattr(self, "schedulerobj"):
+                self.schedulerobj.unregister()
+                del self.schedulerobj
+
+    def begin_polling(self):
+        # Note that we spread out the intervals by 0.15% to make them not all bunch up at once constantly.
+        global insert_phase
+
+        # Ensure we don't have 2 objects going.
+        self.end_polling()
+
+        self._prevstate = False
+
+        self.schedulerobj = EventSchedulerObject(
+            self.check,
+            config["priority-response"].get(self.symbolicpriority, 0.08)
+            + (insert_phase * 0.03)
+            - 0.015,
+        )
+        try:
+            self.schedulerobj.module = self.module
+            self.schedulerobj.resource = self.resource
+        except Exception:
+            # I have no idea what this was for
+            logging.exception("????????????????")
+            pass
+        # Basically we want to spread them out in the
+        # phase space from 0 to 1 in a deterministic ish way.
+        # There might be a better algorithm of better constant to use,
+        # but this one should be decent.
+        # The phase of this wave determines the frequency offset applied
+        insert_phase += 0.555555
+        insert_phase = insert_phase % 1
+        self.schedulerobj.register()
+        self.schedulerobj.schedule()
+
     def register(self):
         # Note: The whole self.disabled thing is
         # really laregly a hack to get instant response
         # To things if an event is based on some external thing
         # with a callback that takes time to unregister.
         self.disable = False
-        with self.register_lock:
-            # Some events are really just containers for a callback,
-            # so there is no need to poll them
-            if self.polled:
-                # Ensure we don't have 2 objects going.
-                # This is defensive, we still delete schedulerobj when unregistering
-                if hasattr(self, "schedulerobj"):
-                    endPolling(self)
-                self._prevstate = False
-                beginPolling(self)
+        self.begin_polling()
 
     def unpause(self):
         self.register()
 
     def pause(self):
         self.disable = True
-        with self.register_lock:
-            if hasattr(self, "schedulerobj"):
-                endPolling(self)
-                del self.schedulerobj
+        self.end_polling()
 
     def unregister(self):
         self.disable = True
-        with self.register_lock:
-            if hasattr(self, "schedulerobj"):
-                endPolling(self)
-                del self.schedulerobj
+        self.end_polling()
+
+    def _check(self):
+        raise NotImplementedError()
 
     def check(self):
         """This is the function that the polling system calls to poll the event.
@@ -827,7 +821,7 @@ class UnrecoverableEventInitError(RuntimeError):
     pass
 
 
-class CompileCodeStringsMixin:
+class CompileCodeStringsMixin(BaseEvent):
     "This mixin lets a class take strings of code for its setup and action"
 
     def _init_setup_and_action(self, setup, action, params={}):
@@ -925,9 +919,9 @@ class DirectFunctionsMixin:
         self._do_action = action
 
 
-class MessageEvent(BaseEvent, CompileCodeStringsMixin):
+class MessageEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
+        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
     ):
         # This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
@@ -982,9 +976,9 @@ class MessageEvent(BaseEvent, CompileCodeStringsMixin):
         self.disable = True
 
 
-class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
+class ChangedEvalEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
+        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
     ):
         # If the user tries to use the !onchanged trigger expression,
         # what we do is to make a function that does the actual checking and always returns false
@@ -1035,9 +1029,10 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
             self._on_trigger()
 
 
-class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
+class PolledEvalEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
+        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass",
+        *args, **kwargs
     ):
         BaseEvent.__init__(self, when, do, continual,
                            ratelimit, setup, *args, **kwargs)
@@ -1073,9 +1068,9 @@ class PolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
             self._prevstate = False
 
 
-class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
+class ThreadPolledEvalEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
+        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
     ):
         BaseEvent.__init__(self, when, do, continual,
                            ratelimit, setup, *args, **kwargs)
@@ -1261,11 +1256,11 @@ def dt_to_ts(dt, tz=None):
         ) - offset
 
 
-class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
+class RecurringEvent(CompileCodeStringsMixin):
     "This represents an event that happens on a schedule"
 
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup="pass", *args, **kwargs
+        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
     ):
         self.polled = False
         self.trigger = when
@@ -1288,8 +1283,8 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
         r = re.match(r"exact( ([0-9]*\.?[0-9]))?", self.trigger)
         if not r:
             return False
-        if re.groups():
-            return float(re.groups[1])
+        if r.groups():
+            return float(r.groups[1])
         else:
             return 3
 
@@ -1299,7 +1294,8 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
     # work in progress, might cause a missed event or something.
     def recalc_time(self):
         try:
-            self.next.unregister()
+            if self.next:
+                self.next.unregister()
         except AttributeError:
             pass
         if not self.nextruntime:
@@ -1325,6 +1321,9 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
             # If the scheduler misses it and we have exact configured, then we just don't do the
             # Actual action.
             def f():
+                # Make linter happy
+                if not self.nextruntime:
+                    return
                 if not (self.exact and (time.time() > (self.nextruntime + self.exact))):
                     self._on_trigger()
 
@@ -1394,7 +1393,8 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
 
     def __del__(self):
         try:
-            self.next.unregister()
+            if self.next:
+                self.next.unregister()
         except AttributeError:
             pass
 
@@ -1417,7 +1417,8 @@ class RecurringEvent(BaseEvent, CompileCodeStringsMixin):
     def unregister(self):
         self.nextruntime = None
         try:
-            self.next.unregister()
+            if self.next:
+                self.next.unregister()
         except AttributeError:
             pass
         self.disable = True
