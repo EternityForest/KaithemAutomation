@@ -22,7 +22,7 @@ This release is all about manual testing of rarely used features
 - :sparkles: User settings are instant, no more manual save step
 - :sparkles: Cues inherit rules from the special \__rules\__ cue if it exists.
 - :sparkles: If sound_fade_in is 0, then use the cue lighting fade for the sound as well if it exists
-
+- :coffin: nosecurity command line flag removed
 
 
 
