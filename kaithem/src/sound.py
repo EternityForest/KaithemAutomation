@@ -21,11 +21,10 @@ import threading
 import collections
 import logging
 import traceback
-from subprocess import PIPE, STDOUT, Popen
 
-from . import util, scheduling, directories, workers, messagebus, midi
+from . import util, directories, workers, messagebus, midi
 from .config import config
-from typing import List, Any, Optional, Dict
+from typing import List, Any, Optional
 
 log = logging.getLogger("system.sound")
 
@@ -111,7 +110,7 @@ class SoundWrapper(object):
 
     # little known fact: Kaithem is actually a large collection of
     # mini garbage collectors and bookkeeping code...
-    def deleteStoppedSounds(self):
+    def delete_stopped_sounds(self):
         x = list(self.runningSounds.keys())
         for i in x:
             try:
@@ -120,7 +119,7 @@ class SoundWrapper(object):
             except KeyError:
                 pass
 
-    def stop_allSounds(self):
+    def stop_all_sounds(self):
         x = list(self.runningSounds.keys())
         for i in x:
             try:
@@ -128,17 +127,17 @@ class SoundWrapper(object):
             except KeyError:
                 pass
 
-    def getPosition(self, channel: str = "PRIMARY"):
+    def get_position(self, channel: str = "PRIMARY"):
         "Return true if a sound is playing on channel"
         try:
             return self.runningSounds[channel].position()
         except KeyError:
             return False
 
-    def setVolume(self, vol: float, channel: str = "PRIMARY"):
+    def set_volume(self, vol: float, channel: str = "PRIMARY"):
         pass
 
-    def setSpeed(self, speed: float, channel: str = "PRIMARY", *a, **kw):
+    def set_speed(self, speed: float, channel: str = "PRIMARY", *a, **kw):
         pass
 
     def play_sound(self,
@@ -153,7 +152,7 @@ class SoundWrapper(object):
                    speed: float = 1):
         pass
 
-    def stopSound(self, handle: str = "PRIMARY"):
+    def stop_sound(self, handle: str = "PRIMARY"):
         pass
 
     def is_playing(self, handle: str = "blah", refresh: bool = False):
@@ -177,7 +176,10 @@ class SoundWrapper(object):
                 loop: int = 1,
                 start: float = 0,
                 speed: float = 1):
-        self.play_sound(file, handle)
+        if file:
+            self.play_sound(file, handle)
+        else:
+            self.stop_sound(handle)
 
     def preload(self, filename: str):
         pass
@@ -194,15 +196,22 @@ play_logs = []
 
 
 class TestSoundWrapper(SoundWrapper):
-    def play_sound(self, filename: str, handle: str = "PRIMARY", extraPaths: List[str] = [], volume: float = 1, finalGain: float | None = None, output: str | None = "", loop: float = 1, start: float = 0, speed: float = 1):
+    def play_sound(self, filename: str, handle: str = "PRIMARY",
+                   extraPaths: List[str] = [], volume: float = 1,
+                   finalGain: float | None = None, output: str | None = "",
+                   loop: float = 1, start: float = 0, speed: float = 1):
         test_sound_logs.append(['play', handle, filename])
         play_logs.append(['play', handle, filename])
 
-    def fade_to(self, file: str | None, length: float = 1, block: bool = False, handle: str = "PRIMARY", output: str | None = "", volume: float = 1, windup: float = 0, winddown: float = 0, loop: int = 1, start: float = 0, speed: float = 1):
-        test_sound_logs.append(['fade_to', handle, filename])
-        play_logs.append(['fade_to', handle, filename])
+    def fade_to(self, file: str | None, length: float = 1,
+                block: bool = False, handle: str = "PRIMARY",
+                output: str | None = "", volume: float = 1,
+                windup: float = 0, winddown: float = 0,
+                loop: int = 1, start: float = 0, speed: float = 1):
+        test_sound_logs.append(['fade_to', handle, file])
+        play_logs.append(['fade_to', handle, file])
 
-    def stopSound(self, handle: str = "PRIMARY"):
+    def stop_sound(self, handle: str = "PRIMARY"):
         test_sound_logs.append(['stop', handle])
 
 
@@ -220,7 +229,8 @@ class PlayerHolder(object):
         self.lastvol = -99089798
         self.conf_speed = 1
         self.loop_conf = -1
-
+        self.alreadyMadeReplacement = False
+        self.lastjack = "hgfdxcghjkufdszcxghjkuyfgdx"
 
 class MPVBackend(SoundWrapper):
     @staticmethod
@@ -309,7 +319,7 @@ class MPVBackend(SoundWrapper):
                 else:
                     jp = output
 
-            if (not hasattr(self.player, "lastjack")) or not self.player.lastjack == jp:
+            if not self.player.lastjack == jp:
                 self.player.player.jack_port = jp
                 self.player.player.lastjack = jp
 
@@ -336,7 +346,7 @@ class MPVBackend(SoundWrapper):
 
                 try:
                     with self.lock:
-                        self.player.stop()
+                        self.player.player.stop()
                     bad = False
                 except Exception:
                     # Sometimes two threads try to stop this at the same time and we get a race condition
@@ -348,7 +358,7 @@ class MPVBackend(SoundWrapper):
                 # But try tpo only make one replacement per object, we don't actually want to go up to the max
                 # in the pool because they can use CPU in the background
                 if bad or self.player.usesCounter > 8:
-                    if not hasattr(self.player, "alreadyMadeReplacement"):
+                    if not self.player.alreadyMadeReplacement:
                         if (len(objectPool) < 3) or self.player.usesCounter > 10:
                             self.player.alreadyMadeReplacement = True
 
@@ -360,7 +370,7 @@ class MPVBackend(SoundWrapper):
                                     if len(objectPool) < 4:
                                         objectPool.append(o)
                                         return
-                                o.stop()
+                                o.player.stop()
 
                             workers.do(f)
 
@@ -379,7 +389,7 @@ class MPVBackend(SoundWrapper):
                             if len(objectPool) < 4:
                                 objectPool.append(p)
                             else:
-                                self.player.stop()
+                                self.player.player.stop()
                 self.player = None
 
         def is_playing(self, refresh=False):
@@ -419,7 +429,7 @@ class MPVBackend(SoundWrapper):
                 self.player.lastvol = volume
                 self.player.player.volume = volume * 100
 
-        def setSpeed(self, speed):
+        def set_speed(self, speed):
             with self.lock:
                 if not self.alreadySetCorrection:
                     self.player.player.audio_pitch_correction = False
@@ -453,7 +463,7 @@ class MPVBackend(SoundWrapper):
         speed: float = 1
     ):
         # Those old sound handles won't garbage collect themselves
-        self.deleteStoppedSounds()
+        self.delete_stopped_sounds()
         # Raise an error if the file doesn't exist
         fn = soundPath(filename, extraPaths)
         # Play the sound with a background process and keep a reference to it
@@ -461,7 +471,7 @@ class MPVBackend(SoundWrapper):
             fn, volume, finalGain, output, loop, start=start, speed=speed
         )
 
-    def stopSound(self, handle="PRIMARY"):
+    def stop_sound(self, handle="PRIMARY"):
         # Delete the sound player reference object and its destructor will stop the sound
         if handle in self.runningSounds:
             # Instead of using a lock lets just catch the error is someone else got there first.
@@ -491,17 +501,17 @@ class MPVBackend(SoundWrapper):
         except KeyError:
             return False
 
-    def setVolume(self, vol, channel="PRIMARY", final=True):
+    def set_volume(self, vol, channel="PRIMARY", final=True):
         "Return true if a sound is playing on channel"
         try:
             return self.runningSounds[channel].setVol(vol, final=final)
         except KeyError:
             pass
 
-    def setSpeed(self, speed, channel="PRIMARY", *a, **kw):
+    def set_speed(self, speed, channel="PRIMARY", *a, **kw):
         "Return true if a sound is playing on channel"
         try:
-            return self.runningSounds[channel].setSpeed(speed)
+            return self.runningSounds[channel].set_speed(speed)
         except KeyError:
             pass
 
@@ -544,10 +554,7 @@ class MPVBackend(SoundWrapper):
 
         if x and not (length or winddown):
             x.stop()
-
-        k = kwargs.copy()
-        k.pop("volume", 0)
-
+            
         # Allow fading to silence
         if file:
             sspeed = speed
@@ -602,19 +609,19 @@ class MPVBackend(SoundWrapper):
                             wdratio = max(
                                 0, min(1, ((time.monotonic() - t) / winddown))
                             )
-                            x.setSpeed(max(0.1, v * (1 - wdratio)))
+                            x.set_speed(max(0.1, v * (1 - wdratio)))
                     except AttributeError:
                         print(traceback.format_exc())
 
                 if file and (handle in self.runningSounds):
                     targetVol = self.runningSounds[handle].finalGain
-                    self.setVolume(min(1, targetVol * firatio),
-                                   handle, final=False)
+                    self.set_volume(min(1, targetVol * firatio),
+                                    handle, final=False)
 
                     if windup:
                         wuratio = max(
                             0, min(1, ((time.monotonic() - t) / windup)))
-                        self.setSpeed(
+                        self.set_speed(
                             max(0.1, min(1, wuratio * speed)), handle)
 
                 # Don't overwhelm the backend with commands
@@ -627,7 +634,7 @@ class MPVBackend(SoundWrapper):
 
             if not targetVol == -1:
                 try:
-                    self.setVolume(min(1, targetVol), handle)
+                    self.set_volume(min(1, targetVol), handle)
                 except Exception as e:
                     print(e)
 
@@ -679,9 +686,9 @@ except Exception:
     print(traceback.format_exc())
 
 
-def stop_allSounds():
+def stop_all_sounds():
     midi.all_notes_off()
-    backend.stop_allSounds()
+    backend.stop_all_sounds()
 
 
 # Stop any old pulseaudio or something sound players that
@@ -690,7 +697,7 @@ def stop_allSounds():
 
 
 def sasWrapper(*a):
-    stop_allSounds()
+    stop_all_sounds()
 
 
 messagebus.subscribe("/system/sound/jackstart", sasWrapper)
@@ -708,13 +715,13 @@ def ogg_test(output=None):
 
 # Make fake module functions mapping to the bound methods.
 play_sound = backend.play_sound
-stopSound = backend.stopSound
+stop_sound = backend.stop_sound
 is_playing = backend.is_playing
 resolve_sound = soundPath
 pause = backend.pause
 resume = backend.resume
-setvol = backend.setVolume
-position = backend.getPosition
+setvol = backend.set_volume
+position = backend.get_position
 fade_to = backend.fade_to
 readySound = backend.readySound
 preload = backend.preload

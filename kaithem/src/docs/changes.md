@@ -9,6 +9,7 @@ Change Log
 - :bug: Fix some media files unable to be served to the web player
 - :bug: Cues now reentrant by default again
 - :bug: Fix fade in not displayed after loading
+- :bug: Fix sound fade in for non-web audio
 - :sparkles: Move universe and fixture setup to a separate chandler setup page
 - :sparkles: Can now rename cues
 - :bug: Fix web player not starting at the right time after needing manual click to start
@@ -16,6 +17,7 @@ Change Log
 - :sparkles: Chandler cues can now have Markdown text content to show in the slideshow sidebar
 - :sparkles: User settings are instant, no more manual save step
 - :sparkles: Cues inherit rules from the special \__rules\__ cue if it exists.
+- :sparkles: If sound_fade_in is 0, then use the cue lighting fade for the sound as well if it exists
 
 
 

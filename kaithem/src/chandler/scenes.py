@@ -3,7 +3,7 @@ from __future__ import annotations
 from .core import disallow_special
 from .universes import getUniverse, rerenderUniverse, mapUniverse, mapChannel
 from ..kaithemobj import kaithem
-from .soundmanager import fadeSound, play_sound, stopSound
+from .soundmanager import fadeSound, play_sound, stop_sound
 from . import core
 from . import universes
 from . import blendmodes
@@ -1715,7 +1715,7 @@ class Scene:
                                 winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                             )
                         else:
-                            stopSound(str(self.id))
+                            stop_sound(str(self.id))
                     # There is no next sound so crossfade to silence
                     if self.crossfade and (not self.cues[cue].sound):
                         if self.cue.sound_fade_out or self.cue.media_wind_down:
@@ -1726,7 +1726,7 @@ class Scene:
                                 winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                             )
                         else:
-                            stopSound(str(self.id))
+                            stop_sound(str(self.id))
 
                     self.allowMediaUrlRemote = None
 
@@ -1784,10 +1784,11 @@ class Scene:
                                         )
                                         and kaithem.sound.is_playing(str(self.id))
                                     )
+                                    or (self.cues[cue].fade_in > 0)
                                     or (self.cues[cue].sound_fade_in > 0)
                                     or self.cues[cue].media_wind_up
                                     or self.cue.media_wind_down
-                                ):
+                                ) and (self.cues[cue].sound_fade_in >= 0):
                                     spd = self.scriptContext.preprocessArgument(
                                         self.cues[cue].media_speed
                                     )
@@ -1805,7 +1806,7 @@ class Scene:
                                         speed=spd,
                                     )
                                 else:
-                                    fade = self.cues[cue].sound_fade_in or self.crossfade
+                                    fade = self.cues[cue].fade_in or self.cues[cue].sound_fade_in or self.crossfade
                                     fadeSound(
                                         sound,
                                         length=max(fade, 0.1),

@@ -615,7 +615,7 @@ class Kaithem():
 
         @staticmethod
         def stop(handle: str = "PRIMARY"):
-            sound.stopSound(handle)
+            sound.stop_sound(handle)
 
         @staticmethod
         def pause(*args, **kwargs):
@@ -627,7 +627,7 @@ class Kaithem():
 
         @staticmethod
         def stop_all():
-            sound.stop_allSounds()
+            sound.stop_all_sounds()
 
         @staticmethod
         def is_playing(*args, **kwargs):

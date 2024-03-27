@@ -51,7 +51,7 @@ def play_sound(filename: str,
         doSoundAction(doFunction)
 
 
-def stopSound(handle: str = "PRIMARY"):
+def stop_sound(handle: str = "PRIMARY"):
     if core.ratelimit.limit():
 
         def doFunction():

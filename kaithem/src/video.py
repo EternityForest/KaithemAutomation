@@ -116,7 +116,7 @@ class MPlayerWrapper(SoundWrapper):
         self.runningSounds[handle] = self.MPlayerSoundContainer(
             filename, v, start, end, extras, **e)
 
-    def stopSound(self, handle="PRIMARY"):
+    def stop_sound(self, handle="PRIMARY"):
         # Delete the sound player reference object and its destructor will stop the sound
         if handle in self.runningSounds:
             # Instead of using a lock lets just catch the error is someone else got there first.
@@ -132,7 +132,7 @@ class MPlayerWrapper(SoundWrapper):
         except KeyError:
             return False
 
-    def setVolume(self, vol, channel="PRIMARY"):
+    def set_volume(self, vol, channel="PRIMARY"):
         "Return true if a sound is playing on channel"
         try:
             return self.runningSounds[channel].setVol(vol)
