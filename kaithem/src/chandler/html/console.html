@@ -800,12 +800,12 @@ ${lists}
                                     <p>
                                         <label>Windup
                                             <input type="number" v-model="currentcue.mediaWindUp"
-                                                v-on:change="setCueMediaWindUp(currentcueid,currentcue.mediaWindUp)">
+                                                v-on:change="setCueProperty(currentcueid,'mediaWindUp', currentcue.mediaWindUp)">
                                         </label>
 
                                         <label>Winddown
-                                            <input type="number" v-model="currentcue.mediaWinddown"
-                                                v-on:change="setCueMediaWinddown(currentcueid,currentcue.mediaWinddown)">
+                                            <input type="number" v-model="currentcue.mediaWindDown"
+                                            v-on:change="setCueProperty(currentcueid,'mediaWindDown', currentcue.mediaWindDown)">
                                         </label>
                                     </p>
 

@@ -122,8 +122,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         # This light board's scene memory, or the set of scenes 'owned' by this board.
         self.scenememory: Dict[str, Scene] = {}
 
-        # For change etection in scenes
-        self.last_saved_versions: Dict[str, Dict[str, Any]] = {}
+        # For change etection in scenes. Tuple is folder, file indicating where it should go,
+        # as would be passed to saveasfiles
+        self.last_saved_versions: Dict[tuple[str, str], Dict[str, Any]] = {}
 
         self.ext_scenes = {}
 
@@ -206,20 +207,23 @@ class ChandlerConsole(console_abc.Console_ABC):
         # These pre-checks are just for performance reasons, saveasfiles already knows how not
         # to unnecessarily do disk writes
         # as does persist.save
-        if force or not self.fixture_classes == self.last_saved_versions.get("__INTERNAL__:__FIXTURECLASSES__", None):
-            self.last_saved_versions["__INTERNAL__:__FIXTURECLASSES__"] = copy.deepcopy(self.fixture_classes)
+        if force or not self.fixture_classes == self.last_saved_versions.get(
+                ("__INTERNAL__", "__FIXTURECLASSES__"), None):
+            self.last_saved_versions[("__INTERNAL__", "__FIXTURECLASSES__")] = copy.deepcopy(self.fixture_classes)
             self.saveAsFiles(
                 "fixturetypes", self.fixture_classes, "lighting/fixtureclasses"
             )
 
-        if force or not self.configured_universes == self.last_saved_versions.get("__INTERNAL__:__UNIVERSES__", None):
-            self.last_saved_versions["__INTERNAL__:__UNIVERSES__"] = copy.deepcopy(self.configured_universes)
+        if force or not self.configured_universes == self.last_saved_versions.get(
+                ("__INTERNAL__", "__UNIVERSES__"), None):
+            self.last_saved_versions[("__INTERNAL__", "__UNIVERSES__")] = copy.deepcopy(self.configured_universes)
             self.saveAsFiles(
                 "universes", self.configured_universes, "lighting/universes"
             )
 
-        if force or not self.fixture_assignments == self.last_saved_versions.get("__INTERNAL__:__ASSG__", None):
-            self.last_saved_versions["__INTERNAL__:__ASSG__"] = copy.deepcopy(self.fixture_assignments)
+        if force or not self.fixture_assignments == self.last_saved_versions.get(
+                ("__INTERNAL__", "__ASSG__"), None):
+            self.last_saved_versions[("__INTERNAL__", "__ASSG__")] = copy.deepcopy(self.fixture_assignments)
 
             self.saveAsFiles(
                 "fixtures", self.fixture_assignments, "lighting/fixtures"
@@ -587,13 +591,13 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         s = self.getScenes()
         for i in s:
-            if not s[i] == self.last_saved_versions.get(i, None):
+            if not s[i] == self.last_saved_versions.get(('scenes', i), None):
                 changed = True
                 logger.info("Chandler scenes changed. Autosaving.")
 
-        for i in self.last_saved_versions:
-            if not i.startswith("__INTERNAL__:"):
-                if not s.get(i, None) == self.last_saved_versions[i]:
+        for category, i in self.last_saved_versions:
+            if not i.startswith("__INTERNAL__:") and category == scenes:
+                if not s.get(i, None) == self.last_saved_versions[(category, i)]:
                     changed = True
                     logger.info("Chandler scenes changed.")
 
@@ -611,7 +615,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         with core.lock:
             for i in sd:
                 saved[i + ".yaml"] = True
-                self.last_saved_versions[i] = copy.deepcopy(sd[i])
+                self.last_saved_versions[(dirname, i)] = copy.deepcopy(sd[i])
                 kaithem.persist.save(
                     sd[i], os.path.join(saveLocation, i + ".yaml"))
 
@@ -621,7 +625,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             if os.path.isfile(fn) and i.endswith(".yaml"):
                 if i not in saved:
                     try:
-                        self.last_saved_versions.pop(i, None)
+                        self.last_saved_versions.pop((dirname, i), None)
                     except Exception:
                         pass
                     os.remove(fn)
@@ -673,6 +677,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                                 int, float, str, bool)
                         ):
                             v[j] = scene.scriptContext.variables[j]
+                        
                         else:
                             v[j] = "__PYTHONDATA__"
             except Exception:

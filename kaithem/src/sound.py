@@ -25,6 +25,7 @@ import traceback
 from . import util, directories, workers, messagebus, midi
 from .config import config
 from typing import List, Any, Optional
+from python_mpv_jsonipc import MPV
 
 log = logging.getLogger("system.sound")
 
@@ -221,7 +222,7 @@ objectPool = []
 
 
 class PlayerHolder(object):
-    def __init__(self, p) -> None:
+    def __init__(self, p: MPV) -> None:
         self.player = p
         self.usesCounter = 0
         self.conf = [0]
@@ -231,6 +232,7 @@ class PlayerHolder(object):
         self.loop_conf = -1
         self.alreadyMadeReplacement = False
         self.lastjack = "hgfdxcghjkufdszcxghjkuyfgdx"
+
 
 class MPVBackend(SoundWrapper):
     @staticmethod
@@ -256,15 +258,15 @@ class MPVBackend(SoundWrapper):
             finalGain,
             output,
             loop,
-            start=0,
-            speed=1,
+            start=0.0,
+            speed=1.0,
             just_preload=False,
         ):
             self.lock = threading.RLock()
             self.stopped = False
             self.is_playingCache = None
 
-            self.player: PlayerHolder
+            self.player: Optional[PlayerHolder] = None
 
             if output == "__disable__":
                 return
@@ -276,7 +278,6 @@ class MPVBackend(SoundWrapper):
                 if len(objectPool):
                     self.player = objectPool.pop()
                 else:
-                    from python_mpv_jsonipc import MPV
                     self.player = PlayerHolder(MPV())
 
             # Avoid somewhat slow RPC calls if we can
@@ -326,12 +327,22 @@ class MPVBackend(SoundWrapper):
             self.started = time.time()
 
             if filename:
-                self.is_playingCache = None
-                self.player.player.loadfile(filename)
+                if self.player:
+                    self.is_playingCache = None
+                    self.player.player.loadfile(filename)
 
-                self.player.player.pause = False
-                if start:
-                    self.player.player.seek(str(start), "absolute")
+                    self.player.player.pause = False
+                    if start:
+                        for i in range(50):
+                            try:
+                                time.sleep(0.01)
+                                self.player.player.seek(str(start), "absolute")
+                                break
+                            except Exception:
+                                pass
+                            
+                else:
+                    raise RuntimeError("Player object is gone")
 
         def __del__(self):
             self.stop()
@@ -341,7 +352,7 @@ class MPVBackend(SoundWrapper):
                 return
             self.stopped = True
             bad = True
-            if hasattr(self, "player"):
+            if self.player:
                 # Only do the maybe recycle logic when stopping a still good SFX
 
                 try:
@@ -378,7 +389,8 @@ class MPVBackend(SoundWrapper):
                     p = self.player
 
                     def f():
-                        p.player.stop()
+                        if p:
+                            p.player.stop()
 
                     workers.do(f)
 
@@ -394,7 +406,7 @@ class MPVBackend(SoundWrapper):
 
         def is_playing(self, refresh=False):
             with self.lock:
-                if not hasattr(self, "player"):
+                if not self.player:
                     return False
                 try:
                     if not refresh:
@@ -416,7 +428,10 @@ class MPVBackend(SoundWrapper):
 
         def wait(self):
             with self.lock:
-                self.player.player.wait_for_playback()
+                if self.player:
+                    self.player.wait_for_playback()
+                else:
+                    raise RuntimeError("No player object")
 
         def seek(self, position):
             pass
@@ -426,29 +441,36 @@ class MPVBackend(SoundWrapper):
                 self.volume = volume
                 if final:
                     self.finalGain = volume
-                self.player.lastvol = volume
-                self.player.player.volume = volume * 100
+                if self.player:
+                    self.player.lastvol = volume
+                    self.player.player.volume = volume * 100
 
         def set_speed(self, speed):
             with self.lock:
-                if not self.alreadySetCorrection:
-                    self.player.player.audio_pitch_correction = False
-                    self.alreadySetCorrection = True
-                # Mark as needing to be updated
-                self.player.conf_speed = speed
-                self.player.player.speed = speed
+                if self.player:
+                    if not self.alreadySetCorrection:
+                        self.player.player.audio_pitch_correction = False
+                        self.alreadySetCorrection = True
+                    # Mark as needing to be updated
+                    self.player.conf_speed = speed
+                    self.player.player.speed = speed
 
         def getVol(self):
             with self.lock:
-                return self.player.player.volume
+                if self.player:
+                    return self.player.player.volume
+                else:
+                    return 0
 
         def pause(self):
             with self.lock:
-                self.player.player.pause = True
+                if self.player:
+                    self.player.player.pause = True
 
         def resume(self):
             with self.lock:
-                self.player.player.pause = False
+                if self.player:
+                    self.player.player.pause = False
 
     def play_sound(
         self,
@@ -554,7 +576,7 @@ class MPVBackend(SoundWrapper):
 
         if x and not (length or winddown):
             x.stop()
-            
+
         # Allow fading to silence
         if file:
             sspeed = speed
@@ -609,7 +631,7 @@ class MPVBackend(SoundWrapper):
                             wdratio = max(
                                 0, min(1, ((time.monotonic() - t) / winddown))
                             )
-                            x.set_speed(max(0.1, v * (1 - wdratio)))
+                            x.set_speed(max(0.1, speed * (1 - wdratio)))
                     except AttributeError:
                         print(traceback.format_exc())
 
@@ -622,7 +644,7 @@ class MPVBackend(SoundWrapper):
                         wuratio = max(
                             0, min(1, ((time.monotonic() - t) / windup)))
                         self.set_speed(
-                            max(0.1, min(1, wuratio * speed)), handle)
+                            max(0.1, min(speed, wuratio * speed, 8)), handle)
 
                 # Don't overwhelm the backend with commands
                 time.sleep(max(1 / 48.0, time.monotonic() - tr))

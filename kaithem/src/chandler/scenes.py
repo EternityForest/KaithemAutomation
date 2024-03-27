@@ -323,6 +323,7 @@ def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""
     scenes_by_name[scene].set_slideshow_variable(key, value)
     return True
 
+
 rootContext.commands["shortcut"] = codeCommand
 rootContext.commands["goto"] = gotoCommand
 rootContext.commands["setAlpha"] = setAlphaCommand
@@ -486,8 +487,11 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
 
 
 def checkPermissionsForSceneData(data: Dict[str, Any], user: str):
-    """Check if used can upload or edit the scene, ekse raise an error if it uses advanced features that would prevent that action.
-    We disallow delete because we don't want unprivelaged users to delete something important that they can't fix.
+    """Check if used can upload or edit the scene, ekse raise an
+      error if
+        it uses advanced features that would prevent that action.
+    We disallow delete because we don't want unprivelaged users 
+    to delete something important that they can't fix.
 
     """
     if "mqtt_server" in data and data["mqtt_server"].strip():
@@ -518,6 +522,7 @@ for i in slots:
     else:
         s2.append("_"+i)
 slots = s2
+
 
 class Cue:
     "A static set of values with a fade in and out duration"
@@ -696,7 +701,6 @@ class Cue:
                         self._markdown,
                     ]
                 )
-
 
     def setRules(self, r: Optional[List[List[str | float | bool] | str | float | bool]]):
         self.rules = r
@@ -936,7 +940,6 @@ class Scene:
 
         if not name.strip():
             raise ValueError("Invalid Name")
-        
 
         # Variables to send to the slideshow.  They are UI only and
         # we don't have any reactive features
@@ -961,7 +964,8 @@ class Scene:
         self.slide_overlay_url: str = slide_overlay_url
 
         # Kind of long so we do it in the external file
-        self.slideshow_layout: str = slideshow_layout.strip() or scene_schema['properties']['slideshow_layout']['default']
+        self.slideshow_layout: str = slideshow_layout.strip(
+        ) or scene_schema['properties']['slideshow_layout']['default']
 
         # Audio visualizations
         self.music_visualizations = music_visualizations
@@ -999,7 +1003,6 @@ class Scene:
                         self.web_variables
                     ]
                 )
-
 
                 self.mediaLink.send(
                     [
@@ -1235,7 +1238,7 @@ class Scene:
         d = {
             "alpha": self.default_alpha,
             "cues": {j: self.cues[j].serialize() for j in self.cues},
-            "active": self.default_active, 
+            "active": self.default_active,
             "uuid": self.id,
         }
 
@@ -1259,13 +1262,13 @@ class Scene:
 
     def set_slideshow_variable(self, k: str, v: Any):
         self.mediaLink.send(
-                [
-                    "web_var",
-                    k,
-                    v
-                ]
-            )
-        
+            [
+                "web_var",
+                k,
+                v
+            ]
+        )
+
         self.web_variables[k] = v
 
     def close(self):
@@ -1776,6 +1779,13 @@ class Scene:
                                 # Always fade in if the face in time set.
                                 # Also fade in for crossfade,
                                 # but in that case we only do it if there is something to fade in from.
+
+                                spd = self.scriptContext.preprocessArgument(
+                                    self.cues[cue].media_speed
+                                )
+                                spd = spd or 1
+                                spd = float(spd)
+
                                 if not (
                                     (
                                         (
@@ -1788,13 +1798,7 @@ class Scene:
                                     or (self.cues[cue].sound_fade_in > 0)
                                     or self.cues[cue].media_wind_up
                                     or self.cue.media_wind_down
-                                ) and (self.cues[cue].sound_fade_in >= 0):
-                                    spd = self.scriptContext.preprocessArgument(
-                                        self.cues[cue].media_speed
-                                    )
-                                    spd = spd or 1
-
-                                    spd = float(spd)
+                                ):
 
                                     play_sound(
                                         sound,
@@ -1807,6 +1811,10 @@ class Scene:
                                     )
                                 else:
                                     fade = self.cues[cue].fade_in or self.cues[cue].sound_fade_in or self.crossfade
+                                    # Odd cases where there's a wind up but specifically disabled fade
+                                    if self.cues[cue].sound_fade_in < 0:
+                                        fade = 0.1
+
                                     fadeSound(
                                         sound,
                                         length=max(fade, 0.1),
@@ -1817,6 +1825,7 @@ class Scene:
                                         start=self.evalExprFloat(self.cues[cue].sound_start_position or 0),
                                         windup=self.evalExprFloat(self.cues[cue].media_wind_up or 0),
                                         winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
+                                        speed=spd
                                     )
 
                             else:
@@ -2040,8 +2049,36 @@ class Scene:
                         # If we are doing crossfading, we have to stop slightly early for
                         # The crossfade to work
                         # TODO this should not stop early if the next cue overrides
-                        duration = core.get_audio_duration(path)
+                        duration = core.get_audio_duration(path) or 0
                         if duration > 0:
+
+                            start = self.scriptContext.preprocessArgument(
+                                    self.cue.sound_start_position
+                                ) or 0
+                            start = float(start)
+                            
+                            # Account for media speed
+                            spd = self.scriptContext.preprocessArgument(
+                                    self.cue.media_speed
+                                ) or 1
+                            spd = float(spd)
+
+                            windup = self.scriptContext.preprocessArgument(
+                                    self.cue.media_speed
+                                ) or 0
+                            windup = float(spd)
+
+                            avg_speed_during_windup = (0.1 + spd)/2
+                            covered_by_windup = avg_speed_during_windup * windup
+                            
+                            duration = duration - start
+                            
+                            duration = duration - covered_by_windup
+
+                            duration = duration / spd
+
+                            duration += windup
+
                             slen = (duration -
                                     self.crossfade) + cuelen
                             v = max(0, self.randomizeModifier + slen)
@@ -2064,8 +2101,9 @@ class Scene:
                         # If we are doing crossfading, we have to stop slightly early for
                         # The crossfade to work
                         # TODO this should not stop early if the next cue overrides
-                        duration = core.get_audio_duration(path)
+                        duration = core.get_audio_duration(path) or 0
                         if duration > 0:
+
                             slen = (duration -
                                     self.crossfade) + cuelen
                             # Choose the longer of slide and main sound if both present
@@ -2236,16 +2274,15 @@ class Scene:
 
                 loopPrevent = {(rulesFrom or self.cue.name): True}
 
-
                 x = (rulesFrom or self.cue).inherit_rules
                 while x and x.strip():
                     # Avoid infinite loop should the user define a cycle of cue inheritance
                     if x.strip() in loopPrevent:
                         break
 
-                    if x =='__rules__':
+                    if x == '__rules__':
                         break
-                    
+
                     loopPrevent[x.strip()] = True
 
                     self.scriptContext.addBindings(self.cues[x].rules)
@@ -2429,13 +2466,11 @@ class Scene:
             self.command_tagSubscriptions = []
 
     def command_tag_subscriber(self):
-        sn = self.name
-
         def f(v, t, a):
             v = v[0]
 
             if v.startswith("launch:"):
-                shortcutCode(str(v[len("launch:"):]), sn)
+                shortcutCode(str(v[len("launch:"):]), self)
 
             elif v == "Rev":
                 self.prev_cue(cause="ECP")
@@ -3017,7 +3052,7 @@ class Scene:
                             self.cue.values[i][j] = float(v)
             self.valueschanged = {}
 
-    def new_cue_from_sound(self, snd):
+    def new_cue_from_sound(self, snd, name=None):
         bn = os.path.basename(snd)
         bn = fnToCueName(bn)
         try:
@@ -3067,7 +3102,7 @@ class Scene:
                         # This is a fuzzy match that could in theory make mistakes.
                         i2 = core.resolve_sound_fuzzy(i)
                         if os.path.exists(i2):
-                            self.new_cue_from_sound(i2, mame=i.info)
+                            self.new_cue_from_sound(i2, name=info)
                         else:
                             event("board.error", "Error locating "+str(i))
                 except Exception:
