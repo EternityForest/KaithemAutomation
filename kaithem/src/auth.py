@@ -547,7 +547,7 @@ def dumpDatabase():
         try:
             f = open(os.path.join(p, "users.json~"), "w")
             util.chmod_private_try(os.path.join(
-                p, "users.json"), execute=False)
+                p, "users.json~"), execute=False)
             # pretty print
             json.dump(temp, f, sort_keys=True,
                       indent=4, separators=(',', ': '))
