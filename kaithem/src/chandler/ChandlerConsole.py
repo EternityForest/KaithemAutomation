@@ -596,7 +596,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 logger.info("Chandler scenes changed. Autosaving.")
 
         for category, i in self.last_saved_versions:
-            if not i.startswith("__INTERNAL__:") and category == scenes:
+            if not i.startswith("__INTERNAL__:") and category == 'scenes':
                 if not s.get(i, None) == self.last_saved_versions[(category, i)]:
                     changed = True
                     logger.info("Chandler scenes changed.")
