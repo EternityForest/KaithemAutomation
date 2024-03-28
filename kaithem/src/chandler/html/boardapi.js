@@ -1303,7 +1303,7 @@ function f(v) {
     }
 
     else if (c == 'alerts') {
-        if (vueapp.$data.sys_alerts != v[1])
+        if (JSON.stringify(vueapp.$data.sys_alerts) != JSON.stringify(v[1]))
         {
             if (v[1]) {
                 errorTone()
