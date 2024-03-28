@@ -24,7 +24,7 @@ This release is all about manual testing of rarely used features
 - :sparkles: If sound_fade_in is 0, then use the cue lighting fade for the sound as well if it exists
 - :coffin: nosecurity command line flag removed
 - :sparkles: Permissions have been consolidated.
-
+- :sparkles: Chandler has consoleNotification command to send a message to the dashboard
 
 
 ### 0.76.1

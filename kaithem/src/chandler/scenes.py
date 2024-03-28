@@ -324,12 +324,20 @@ def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""
     return True
 
 
+def uiNotificationCommand(text: str):
+    "Send a notification to the operator, on the web editor and console pages"
+    for board in core.iter_boards():
+        if len(board.newDataFunctions) < 100:
+            board.newDataFunctions.append(
+                lambda s: s.linkSend(["ui_alert", text]))
+
 rootContext.commands["shortcut"] = codeCommand
 rootContext.commands["goto"] = gotoCommand
 rootContext.commands["setAlpha"] = setAlphaCommand
 rootContext.commands["ifCue"] = ifCueCommand
 rootContext.commands["sendEvent"] = eventCommand
 rootContext.commands["setSlideshowVariable"] = setWebVarCommand
+rootContext.commands["consoleNotification"] = uiNotificationCommand
 
 rootContext.commands["setTag"].completionTags = {
     "tagName": "tagPointsCompleter"}
@@ -474,7 +482,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
             try:
                 for board in core.iter_boards():
                     board.linkSend(
-                        ["scenetimers", self.sceneName, scene.runningTimers]
+                        ["scenetimers", scene.id, scene.runningTimers]
                     )
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")

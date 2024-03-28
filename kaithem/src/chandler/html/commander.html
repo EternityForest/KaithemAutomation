@@ -112,6 +112,8 @@
                 <button v-on:click="showPages=!showPages">Toggle Compact</button>
                 <button onclick="document.documentElement.requestFullscreen()"><i
                     class="icofont-expand"></i>Fullscreen</button>
+                </label>
+                <input type="checkbox" class="toggle" v-model="uiAlertSounds">Alert Sounds</label>
             </div>
         </header>
 
@@ -162,21 +164,23 @@
                                 ><i
                                     class="icofont-law-document"></i></span>
                         </button></h3>
+                        <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+
                 </header>
                 <div class="flex-col nogaps" style="text-align: center;">
 
                     <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
-                    <div class="flex-row nogaps nogrow w-full">
+                    <div class="flex-row nogaps nogrow w-full h-min-content" style="align-items: stretch;">
                         
                         
-                        <div :class="{'success':i[1].active, 'grow': 1, 'h-min-content': 1}" v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small>
+                        <div :class="{'success':i[1].active, 'grow': 1}" v-if="i[1].active && cuemeta[i[1].cue]">
+                            {{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small>
                         
-                            <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                         </div>
                         
-                        <img style="border:none; height: fit-content;" class="h-8rem w-8rem"
+                        <img style="border:none; height: fit-content;" class="w-4rem"
                             onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound"
                             :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
 

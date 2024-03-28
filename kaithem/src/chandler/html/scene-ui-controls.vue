@@ -2,6 +2,20 @@
 input {
     width: 100%;
 }
+.preview-frame{
+    width: 400%;
+    height: 32em;
+    margin: 0px;
+    padding: 0px;
+    transform: scale(0.25);
+    transform-origin: 0 0;
+}
+
+.preview-frame-wrapper{
+    overflow: hidden;
+    width: 100%;
+    height: 8em;
+}
 </style>
 
 
@@ -14,8 +28,10 @@ input {
                 <a 
                     :href="'webmediadisplay?scene=' + sceneData.name">(slideshow)</a>
             </summary>
-            <iframe v-if="sceneData.doSlideshowEmbed" style="width: 100%;"
+            <div class="preview-frame-wrapper">
+            <iframe v-if="sceneData.doSlideshowEmbed" class="preview-frame"
                     :src="'webmediadisplay?scene=' + sceneData.name"></iframe>
+            </div>
         </details>
         <table border="1" v-if="sceneData.displayTags.length > 0">
             <tbody>

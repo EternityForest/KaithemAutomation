@@ -38,36 +38,26 @@ Copyright (c) 2015 Yusuke Kawasaki
 
 		// add the text node to the newly created div
 		//newDiv.appendChild(newContent);
-
-		newDiv.innerHTML = m
+		newDiv.classList = "card paper"
+		newDiv.innerHTML = "<header>Alert (x)</header><p>"+m+"</p>"
 
 		// add the newly created element and its content into the DOM
 		const currentDiv = document.getElementById("div1");
 		newDiv.onclick = function () {
-			if (confirm("Dismiss Message?")) {
-				newDiv.remove()
-			}
-
+			newDiv.remove()
 		}
 
 		var sb = {
 			minWidth: "250px",
 			maxWidth: "70%",
 			margin: "auto",
-			backgroundColor: "#333",
-			color: "#fff",
 			textAlign: "center",
-			borderRadius: "2px",
-			padding: "16px",
 			position: "fixed",
 			zIndex: 10000,
 			top: "30px",
 			fontSize: "32px",
 			WebkitAnimation: "fadein 0.5s, fadeout 0.5s 2.5s",
 			animation: "fadein 0.5s, fadeout 0.5s 2.5s",
-			borderRadius: '5px',
-			borderStyle: 'outset',
-			borderColor: "#fff"
 
 		}
 		for (i in sb) {

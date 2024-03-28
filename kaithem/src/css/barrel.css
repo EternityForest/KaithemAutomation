@@ -60,14 +60,15 @@ dd {
     --grey-2: #f1f1f1;
     --grey-3: #F8F9FA;
 
-    --red: #b92020;
-    --yellow: #cea916;
+    --red: #e03131;
+    --yellow: #ffd43b;
     --green: rgb(0, 158, 0);
-    --teal: rgb(116 174 174);
-    --blue: rgb(95 111 161);
-    --purple: rgb(161, 95, 141);
-
+    --teal: rgb(102, 190, 179);
+    --blue: rgb(81, 104, 173);
+    --purple: rgb(182, 80, 151);
     --dark-blue: rgb(40 55 102);
+
+
 
     --scrollbar-width: 14px;
 
@@ -413,11 +414,11 @@ form {
 label {
     color: var(--control-fg);
     min-width: max-content;
-    padding-inline-start: var(--padding);
+    padding-inline-start: calc(var(--padding)/2);
 
     &>input[type=checkbox]:first-child,
     &>input[type=radio]:first-child {
-        margin-inline-end: var(--padding);
+        margin-inline-end: calc(var(--padding) / 2);
     }
 }
 
@@ -464,6 +465,9 @@ details {
     border: var(--border);
     padding-left: 0.4em;
     border-radius: var(--border-radius);
+    &>summary{
+        padding-left: calc(var(--border-radius) / 2);
+    }
 }
 
 details.help {
@@ -1608,6 +1612,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     &>.h-60rem {
         flex-basis: 60rem;
     }
+
+    &>.h-min-content {
+        flex-basis: min-content;
+    }
 }
 
 
@@ -1650,6 +1658,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
     &>.w-24rem {
         flex-basis: 24rem;
+    }
+
+    &>.w-min-content {
+        flex-basis: min-content;
     }
 }
 
@@ -2211,7 +2223,7 @@ footer.padding {
     }
 
     &> :is(a, .button,li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
-    & :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i) {
+    & :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i):not(.toggle) {
         border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
         margin-inline-end: 0px;
     }

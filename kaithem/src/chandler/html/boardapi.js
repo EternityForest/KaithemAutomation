@@ -17,6 +17,24 @@ ${ vars }
 
 */
 
+
+
+function playAlert(m) {
+    if (vueapp.$data.uiAlertSounds) {
+        var mp3_url = '/static/freeboardsounds/Information_Bell.opus';
+        (new Audio(mp3_url)).play()
+    }
+    if (m) {
+        KaithemWidgetApiSnackbar(m,60)
+    }
+}
+
+function errorTone() {
+    if (vueapp.$data.uiAlertSounds) {
+        var mp3_url = '/static/freeboardsounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
+        (new Audio(mp3_url)).play()
+    }
+}
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
 function old_vue_set(o, k, v) {
     o[k] = v
@@ -1090,6 +1108,7 @@ appData = {
     'availableCommands': {},
     'selectedCues': {},
     'showPages': false,
+    'uiAlertSounds': true,
     //go from cue name to cue id
     //scenecues[sceneuuid][cuename]=cueid
     'scenecues': {},
@@ -1173,11 +1192,15 @@ appData = {
 function f(v) {
     c = v[0]
 
+
     if (c == 'soundfolders') {
         vueapp.$data.soundfolders = v[1]
     }
+    else if (c == 'ui_alert') {
+        playAlert(v[1])
+    }
 
-    if (c == 'scenetimers') {
+    else if (c == 'scenetimers') {
         vueapp.$data.scenemeta[v[1]].timers = v[2]
     }
     else if (c == 'cuehistory') {
@@ -1240,6 +1263,7 @@ function f(v) {
 
         if (v[1][0].includes("error")) {
             vueapp.$data.showevents = true;
+            errorTone('');
         }
     }
     else if (c == "serports") {
@@ -1248,6 +1272,12 @@ function f(v) {
 
     else if (c == 'alerts') {
         vueapp.$data.sys_alerts = v[1]
+        if (vueapp.$data.sys_alerts != v[1])
+        {
+            if (v[1]) {
+                errorTone()
+            }
+        }
     }
     else if (c == 'confuniverses') {
         vueapp.$data.configuredUniverses = v[1]
