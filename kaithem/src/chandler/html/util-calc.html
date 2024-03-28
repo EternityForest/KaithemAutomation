@@ -1,0 +1,51 @@
+
+
+<link rel="stylesheet" type="text/css" href="/static/css/barrel.css">
+
+<script src="/static/js/thirdparty/vue3.js"></script>
+<script src="/static/js/thirdparty/math.js"></script>
+
+<style>
+    body, html{
+        background: none;
+    }
+
+</style>
+<div id="app">
+    <table>
+        <tr>
+            <td><input v-model="ibox"></td>
+        </tr>
+        <tr>
+            <td>
+                ={{result}}
+            </td>
+        </tr>
+    </table>
+</div>
+
+
+<script>
+    var vueapp = Vue.createApp(
+        {
+            data: function(){
+                return {
+                    ibox: ''
+                };
+            },
+            computed: {
+                result: function(){
+                    try{
+                    return math.evaluate(this.ibox)
+                    }
+                    catch(e){
+                        return 'err'
+                    }
+                }
+            },
+            methods: {},
+            components: {
+                
+            }
+        }).mount("#app")
+</script>

@@ -101,7 +101,9 @@
     <div class="window paper w-full margin" style="overflow: auto; max-width:98vw; flex-grow:1">
         <header>
             <div class="tool-bar">
-                <p>{{clock}}</p>
+                <button>{{clock}}</button>
+
+                <button type="button" @click="showUtils = !showUtils"><i class="icofont-ui-calculator"></i></button>
                 <input size=8
                     title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
                     aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"
@@ -115,8 +117,28 @@
 
 
 
+
+
         <div class="flex-row gaps padding scroll max-h-48rem">
+            <article v-if="showUtils"
+            class="card w-sm-full nogrow"
+            >
+                <header><h3>Calculator</h3></header>
+                    <p>This calculator supports units! Try "5lb+6oz to kg"</p>
+                    <iframe class="undecorated w-full" src="util-calc"></iframe>
+            </article>
+
+            <article v-if="showUtils"
+            class="card w-sm-full nogrow max-h-24rem"
+            >
+                <header><h3>Scratchpad</h3></header>
+                    <textarea class="w-full h-60rem" v-model="scratchpad"></textarea>
+            </article>
+
+
             <template v-for="i in formatScenes" >
+
+
             <article v-if="i"
                 style="position:relative"
                 v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'nogrow':1, 'flex-col': 1, 'min-h-18rem':1, 'max-h-24rem':1}"
@@ -280,6 +302,9 @@ ${module.board.link.render('api_link')}
 
 
 <script>
+
+    appData.showUtils = false
+    appData.scratchpad = "Text here is NOT yet saved when page reloads."
     appData.formatTime = function (t) {
         var date = new Date(t * 1000);
         return date.strftime("%I:%M:%S%p")
@@ -315,7 +340,7 @@ ${module.board.link.render('api_link')}
 
     var vueapp = Vue.createApp(
         {
-            data: function(){
+            data: function () {
                 return appData;
             },
             computed: appComputed,
@@ -323,11 +348,11 @@ ${module.board.link.render('api_link')}
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 'cue-countdown': httpVueLoader('static/cue-countdown.vue'),
-                 // Currently contains the timers and the display tags for the scenes overview
+                // Currently contains the timers and the display tags for the scenes overview
                 'scene-ui': httpVueLoader('static/scene-ui-controls.vue')
             }
         }).mount("#app")
-        init_api_link()
+    init_api_link()
 
 </script>
 
