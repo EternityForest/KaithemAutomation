@@ -212,23 +212,31 @@ Copyright (c) 2015 Yusuke Kawasaki
 			usual_delay: 0,
 			reconnect_timeout: 1500,
 
+			reconnector: null,
+
 			connect: function () {
 				var apiobj = this
-
 
 				this.connection = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/widgets/ws');
 
 				this.connection.onclose = function (e) {
 					console.log(e);
-					setTimeout(apiobj.connect, apiobj.reconnect_timeout);
+					if (apiobj.reconnector) {
+						clearTimeout(apiobj.reconnector)
+						apiobj.reconnector = null;
+					}
+					apiobj.reconnector = setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
 				};
 
 				this.connection.onerror = function (e) {
 					console.log(e);
-
+					if (apiobj.reconnector) {
+						clearTimeout(apiobj.reconnector)
+						apiobj.reconnector = null;
+					}
 					if (apiobj.connection.readyState != 1) {
 						apiobj.reconnect_timeout = Math.min(apiobj.reconnect_timeout * 2, 20000);
-						setTimeout(apiobj.connect, apiobj.reconnect_timeout);
+						apiobj.reconnector =setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
 					}
 				};
 
@@ -310,7 +318,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 
 					}
 
-					if (this.toSend.length > 0) {
+					if (this.toSend && (this.toSend.length > 0)) {
 						window.setTimeout(this.poll_ratelimited, 120);
 					}
 

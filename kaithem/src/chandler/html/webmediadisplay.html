@@ -271,4 +271,24 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
 
     setInterval(timers, 1000)
 
+
+    // The wake lock sentinel.
+    let wakeLock = null;
+
+    // Function that attempts to request a screen wake lock.
+    const requestWakeLock = async () => {
+    try {
+        wakeLock = await navigator.wakeLock.request();
+        wakeLock.addEventListener('release', () => {
+        console.log('Screen Wake Lock released:', wakeLock.released);
+        });
+        console.log('Screen Wake Lock released:', wakeLock.released);
+    } catch (err) {
+        console.error(err.message);
+    }
+    };
+
+    // Request a screen wake lock…
+    requestWakeLock();
+ 
 </script>

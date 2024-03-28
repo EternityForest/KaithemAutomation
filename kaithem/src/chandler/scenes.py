@@ -331,6 +331,7 @@ def uiNotificationCommand(text: str):
             board.newDataFunctions.append(
                 lambda s: s.linkSend(["ui_alert", text]))
 
+
 rootContext.commands["shortcut"] = codeCommand
 rootContext.commands["goto"] = gotoCommand
 rootContext.commands["setAlpha"] = setAlphaCommand
@@ -967,8 +968,16 @@ class Scene:
         self.info_display = info_display
         self.utility: bool = bool(utility)
 
+        self.id: str = id or uuid.uuid4().hex
+
+        class APIWidget(kaithem.widget.APIWidget):
+            def onNewSubscriber(s, user, cid, **kw):
+                self.send_all_media_link_info()
+
         # This is used for the remote media triggers feature.
-        self.mediaLink = kaithem.widget.APIWidget()
+        # We must explicitly give it an ID so that it stays consistent
+        # between runs and we can auto-reconnect
+        self.mediaLink = APIWidget(id=self.id+"_media_link")
         self.mediaLink.echo = False
 
         self.slide_overlay_url: str = slide_overlay_url
@@ -990,47 +999,7 @@ class Scene:
                 self.sendVisualizations()
 
             if v[0] == "ask":
-                self.mediaLink.send(["volume", self.alpha])
-
-                self.mediaLink.send(
-                    [
-                        "text",
-                        self.cue.markdown
-                    ]
-                )
-
-                self.mediaLink.send(
-                    [
-                        "cue_ends",
-                        self.cuelen + self.enteredCue,
-                        self.cuelen
-                    ]
-                )
-
-                self.mediaLink.send(
-                    [
-                        "all_variables",
-                        self.web_variables
-                    ]
-                )
-
-                self.mediaLink.send(
-                    [
-                        "mediaURL",
-                        self.allowMediaUrlRemote,
-                        self.enteredCue,
-                        max(0, self.cue.fade_in or self.cue.sound_fade_in or self.crossfade),
-                    ]
-                )
-                self.mediaLink.send(
-                    [
-                        "slide",
-                        self.cue.slide,
-                        self.enteredCue,
-                        max(0, self.cue.fade_in or self.crossfade),
-                    ]
-                )
-                self.mediaLink.send(["overlay", self.slide_overlay_url])
+                self.send_all_media_link_info()
 
             if v[0] == "error":
                 self.event(
@@ -1048,8 +1017,6 @@ class Scene:
         self.notes = notes
         self._midi_source: str = ""
         self.default_next = str(default_next).strip()
-
-        self.id: str = id or uuid.uuid4().hex
 
         # TagPoint for managing the current cue
         self.cueTag = kaithem.tags.StringTag(
@@ -1240,6 +1207,49 @@ class Scene:
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
 
         self.subscribe_command_tags()
+
+    def send_all_media_link_info(self):
+        self.mediaLink.send(["volume", self.alpha])
+
+        self.mediaLink.send(
+            [
+                "text",
+                self.cue.markdown
+            ]
+        )
+
+        self.mediaLink.send(
+            [
+                "cue_ends",
+                self.cuelen + self.enteredCue,
+                self.cuelen
+            ]
+        )
+
+        self.mediaLink.send(
+            [
+                "all_variables",
+                self.web_variables
+            ]
+        )
+
+        self.mediaLink.send(
+            [
+                "mediaURL",
+                self.allowMediaUrlRemote,
+                self.enteredCue,
+                max(0, self.cue.fade_in or self.cue.sound_fade_in or self.crossfade),
+            ]
+        )
+        self.mediaLink.send(
+            [
+                "slide",
+                self.cue.slide,
+                self.enteredCue,
+                max(0, self.cue.fade_in or self.crossfade),
+            ]
+        )
+        self.mediaLink.send(["overlay", self.slide_overlay_url])
 
     def toDict(self) -> Dict[str, Any]:
 
@@ -2063,26 +2073,26 @@ class Scene:
                         if duration > 0:
 
                             start = self.scriptContext.preprocessArgument(
-                                    self.cue.sound_start_position
-                                ) or 0
+                                self.cue.sound_start_position
+                            ) or 0
                             start = float(start)
-                            
+
                             # Account for media speed
                             spd = self.scriptContext.preprocessArgument(
-                                    self.cue.media_speed
-                                ) or 1
+                                self.cue.media_speed
+                            ) or 1
                             spd = float(spd)
 
                             windup = self.scriptContext.preprocessArgument(
-                                    self.cue.media_speed
-                                ) or 0
+                                self.cue.media_speed
+                            ) or 0
                             windup = float(spd)
 
                             avg_speed_during_windup = (0.1 + spd)/2
                             covered_by_windup = avg_speed_during_windup * windup
-                            
+
                             duration = duration - start
-                            
+
                             duration = duration - covered_by_windup
 
                             duration = duration / spd
@@ -2854,6 +2864,30 @@ class Scene:
             self.cue = self.cues.get('default', list(self.cues.values())[0])
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
             self.doMqttSubscriptions(keepUnused=0)
+
+            self.mediaLink.send(
+                [
+                    "text",
+                    ""
+                ]
+            )
+
+            self.mediaLink.send(
+                [
+                    "mediaURL",
+                    '',
+                    0,
+                    0
+                ]
+            )
+            self.mediaLink.send(
+                [
+                    "slide",
+                    '',
+                    0,
+                    0
+                ]
+            )
 
     def noteOn(self, ch: int, note: int, vel: float):
         self.event("midi.note:" + str(ch) + "." + number_to_note(note), vel)

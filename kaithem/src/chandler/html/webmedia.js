@@ -267,7 +267,7 @@
                     if (this.deffered_play) {
                         try {
                             await this.deffered_play.play()
-                            st = this.intended_start_pos - ((Date.now() / 1000) - this.intended_start_ts)
+                            st = this.intended_start_pos - ((link.now() / 1000) - this.intended_start_ts)
                             st = Math.max(st, 0)
                             this.deffered_play.currentTime = st;
                         }
@@ -311,7 +311,7 @@
 
             this.playMedia = async function (t, f, st, sessionTag) {
 
-                var ts = Date.now() / 1000
+                var ts = link.now() / 1000
 
                 this.shouldbestopped = false
 
@@ -380,10 +380,11 @@
                 if (!(this.isStillImage(f) || this.isHTML(f))) {
                     t.children[0].volume = 0;
 
+
                     this.intended_start_pos = st
                     this.intended_start_ts = ts
 
-                    st = st - ((Date.now() / 1000) - ts)
+                    st = st - ((link.now() / 1000) - ts)
                     st = Math.max(st, 0)
                     t.children[0].currentTime = st;
                     t.children[0].controls = true;
@@ -407,13 +408,13 @@
 
             //The session tag lets you switch to something that is the same file, restarting
             this.switchMedia = async function (v, t, startAt, sessionTag) {
-
+                
                 if (this.lastMedia == v + sessionTag) {
                     return null;
                 }
                 this.lastMedia = v + sessionTag;
 
-                this.fadeStart = Date.now();
+                this.fadeStart = link.now();
 
                 // ye switcharoo
                 var x = this.currentLayer;
