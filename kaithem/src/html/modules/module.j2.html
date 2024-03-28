@@ -25,7 +25,7 @@
                 <textarea name="description" class="description" rows=5>{{ getDesc(module)| escape }}</textarea>
                 <h4>Save Location(blank=default):</h4>
                 <input name="location" title="Enter a directory name on the server's local filesystem"
-                    value="{{ external_module_locations.get(name,"") | escape }}">
+                    value="{{ external_module_locations.get(name,'') | escape }}">
                 </input>
                 <hr>
                 {% if pages.canUserDoThis("system_admin") %}
@@ -168,7 +168,7 @@
             <dt>
                 <div class="tool-bar w-full inline">
                     <h3>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="icofont-key"></i>\
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="icofont-key"></i>
                             {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i

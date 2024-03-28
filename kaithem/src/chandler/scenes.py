@@ -721,7 +721,9 @@ class Cue:
         with core.lock:
             if self.shortcut in shortcut_codes:
                 try:
-                    shortcut_codes[code].remove(self)
+                    shortcut_codes[self.shortcut].remove(self)
+                except ValueError:
+                    pass
                 except Exception:
                     print(traceback.format_exc())
 

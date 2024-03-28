@@ -1,4 +1,7 @@
 <%inherit file="/pagetemplate.html" />
+<%!
+from kaithem.src.kaithemobj import kaithem
+%>
 <%block name="title">Chandler Editor</%block>
 
 ${lists}
@@ -277,7 +280,7 @@ ${lists}
 
             <footer class="padding">
                 <div class="tool-bar">
-                    <input v-model="newscenename" placeholder="New scene name" size="4">
+                    <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
                     <button v-on:click="addScene()"><i class="icofont-ui-add"></i>Add</button>
                     <button v-on:click="addMonitorScene()"><i class="icofont-binoculars"></i>Add Monitor</button>
                 </div>
@@ -305,10 +308,10 @@ ${lists}
             </div>
 
             <label>Send Global Event:
-                <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
+                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
             </label>
 
-            <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+            <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
 
             <select v-model="evtypetosend">
                 <option value="int">Integer</option>
@@ -382,7 +385,7 @@ ${lists}
                     </dt>
                     <dd style="display: flex; flex-wrap: wrap;">
                         <label v-for="val, field of ps[1]">
-                            {{field}}<input v-model="ps[1][field]"
+                            {{field}}<input :disabled="no_edit" v-model="ps[1][field]"
                                 v-on:change="ps[1][field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
                         </label>
                     </dd>
@@ -483,7 +486,7 @@ ${lists}
 
                                 <td class="desktop-only" data-label="Shortcut:">
                                     <div class="tool-bar" style="width: 8em;">
-                                        <input title="Shortcut code" style="max-width: 4.5em;"
+                                        <input :disabled="no_edit" title="Shortcut code" style="max-width: 4.5em;"
                                             v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
                                             step=0.1 v-model="i[1].shortcut">
                                         <button style="opacity:0.3"
@@ -493,12 +496,12 @@ ${lists}
                                 </td>
 
                                 <td class="desktop-only" data-label="Fade In:">
-                                    <input type="number" v-on:change="setfadein(i[1].id,$event.target.value)"
+                                    <input :disabled="no_edit" type="number" v-on:change="setfadein(i[1].id,$event.target.value)"
                                         style="width:3em" min=0 v-model="i[1].fadeIn">
                                 </td>
 
                                 <td class="desktop-only" data-label="Length:">
-                                    <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em"
+                                    <input :disabled="no_edit" v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em"
                                         list="lenoptions" v-model="i[1].length">
                                 </td>
 
@@ -517,7 +520,7 @@ ${lists}
 
                                     </select>
 
-                                    <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off
+                                    <input :disabled="no_edit" v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off
                                         list="cues_in_scene" title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
                                         v-bind:placeholder="i[1].defaultnext">
@@ -526,7 +529,7 @@ ${lists}
 
 
                                 <td class="desktop-only" data-label="Track vals from prev: ">
-                                    <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)"
+                                    <input :disabled="no_edit" type="checkbox" v-on:change="settrack(i[1].id,i[1].track)"
                                         v-model="i[1].track"
                                         title="Track values from previous cue? If false, values not present are always transparent">
                                 </td>
@@ -541,7 +544,7 @@ ${lists}
                 </div>
 
                 <div class="tool-bar">
-                    <input v-model="newcuename" placeholder="New cue name" list="specialcues">
+                    <input :disabled="no_edit" v-model="newcuename" placeholder="New cue name" list="specialcues">
                     <button v-on:click="add_cue(scenename,newcuename)">
                         <i class="icofont-ui-add"></i>Add Cue</button>
                     <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
@@ -774,17 +777,17 @@ ${lists}
                                 </header>
                                 <div class="stacked-form">
                                     <label>Sound
-                                        <input placeholder="No sound file" v-model="currentcue.sound"
+                                        <input :disabled="no_edit" placeholder="No sound file" v-model="currentcue.sound"
                                             v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                                     </label>
                                     <label>Web player slide
-                                        <input placeholder="No picture file" v-model="currentcue.slide"
+                                        <input :disabled="no_edit" placeholder="No picture file" v-model="currentcue.slide"
                                             v-on:change="setCueSlide(currentcueid,currentcue.slide)">
                                     </label>
 
                                     <p>
                                         <label>Sound start
-                                            <input v-model="currentcue.soundStartPosition"
+                                            <input :disabled="no_edit" v-model="currentcue.soundStartPosition"
                                                 v-on:change="setCueSoundStart(currentcueid,currentcue.soundStartPosition)">s
                                             into
                                             file.
@@ -792,19 +795,19 @@ ${lists}
 
 
                                         <label>Media Speed
-                                            <input type="number" v-model="currentcue.mediaSpeed"
+                                            <input :disabled="no_edit" type="number" v-model="currentcue.mediaSpeed"
                                                 v-on:change="setCueMediaSpeed(currentcueid,currentcue.mediaSpeed)">
                                         </label>
                                     </p>
 
                                     <p>
                                         <label>Windup
-                                            <input type="number" v-model="currentcue.mediaWindUp"
+                                            <input :disabled="no_edit" type="number" v-model="currentcue.mediaWindUp"
                                                 v-on:change="setCueProperty(currentcueid,'mediaWindUp', currentcue.mediaWindUp)">
                                         </label>
 
                                         <label>Winddown
-                                            <input type="number" v-model="currentcue.mediaWindDown"
+                                            <input :disabled="no_edit" type="number" v-model="currentcue.mediaWindDown"
                                             v-on:change="setCueProperty(currentcueid,'mediaWindDown', currentcue.mediaWindDown)">
                                         </label>
                                     </p>
@@ -830,7 +833,7 @@ ${lists}
 
                                     <p>
                                         <label>Relative length
-                                            <input type="checkbox" title="Cause length to be an offset after sound ends"
+                                            <input :disabled="no_edit" type="checkbox" title="Cause length to be an offset after sound ends"
                                                 v-on:change="setrellen(currentcueid,currentcue.relLength)"
                                                 v-model="currentcue.relLength"
                                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
@@ -839,7 +842,7 @@ ${lists}
 
 
                                         <label>Fade sound after end
-                                            <input type="number"
+                                            <input :disabled="no_edit" type="number"
                                                 v-on:change="setSoundFadeOut(currentcueid,$event.target.value)" min=0
                                                 v-model="currentcue.soundFadeOut"
                                                 title="Sound should fade out starting when the cue ends, taking this long.">
@@ -849,7 +852,7 @@ ${lists}
 
                                     <p>
                                         <label>Sound fadein:
-                                            <input type="number"
+                                            <input :disabled="no_edit" type="number"
                                                 v-on:change="setSoundFadeIn(currentcueid,$event.target.value)" min=-1
                                                 v-model="currentcue.soundFadeIn"
                                                 title="Sound should fade in if starting from, taking this long. Use -1 to override and disable a global scene crossfade.">
@@ -857,12 +860,12 @@ ${lists}
                                         </label>
 
                                         <label>Cue Volume
-                                            <input v-on:change="setCueVolume(currentcueid,$event.target.value)" min=0
+                                            <input :disabled="no_edit" v-on:change="setCueVolume(currentcueid,$event.target.value)" min=0
                                                 v-model="currentcue.soundVolume">
                                         </label>
 
                                         <label>Loops
-                                            <input title="-1 means forever"
+                                            <input :disabled="no_edit" title="-1 means forever"
                                                 v-on:change="setCueLoops(currentcueid,$event.target.value)" min=-1
                                                 v-model="currentcue.soundLoops">
                                         </label>
@@ -878,7 +881,7 @@ ${lists}
                                         <h3>Media browser</h3>
                                     </header>
                                     <div class="tool-bar">
-                                        <input v-model="soundsearch" v-on:change="soundsearchresults=[]"
+                                        <input :disabled="no_edit" v-model="soundsearch" v-on:change="soundsearchresults=[]"
                                             v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
                                             style="width:60%;">
                                         <button v-on:click="doSoundSearch(soundsearch)">Search</button>
@@ -1037,19 +1040,19 @@ ${lists}
                                     </div>
 
                                     <label>Number
-                                        <input type="number" title="Cue number"
+                                        <input :disabled="no_edit" type="number" title="Cue number"
                                             v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
                                             v-model="currentcue.number">
                                     </label>
                                     <p>
                                         <label>
-                                            <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
+                                            <input :disabled="no_edit" type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
                                                 v-model="currentcue.track"
                                                 title="Track values from previous cue? If false, values not present are always transparent">
                                             Track
                                         </label>
 
-                                        <label><input title="If false, dissallow entering cue if it's already running"
+                                        <label><input :disabled="no_edit" title="If false, dissallow entering cue if it's already running"
                                                 type="checkbox"
                                                 v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
                                                 v-model="currentcue.reentrant">Reentrant</label>
@@ -1059,13 +1062,13 @@ ${lists}
                                     <p>
 
                                         <label>Shortcut
-                                            <input title="Shortcut code used to quickly activate a cue" size="8"
+                                            <input :disabled="no_edit" title="Shortcut code used to quickly activate a cue" size="8"
                                                 v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)"
                                                 v-model="currentcue.shortcut">
                                         </label>
 
                                         <label>Trigger Shortcut
-                                            <input title="When entering this cue, trigger the shortcut in other scenes"
+                                            <input :disabled="no_edit" title="When entering this cue, trigger the shortcut in other scenes"
                                                 size="8"
                                                 v-on:change="settriggershortcut(currentcueid,$event.target.value)"
                                                 v-model="currentcue.triggerShortcut">
@@ -1073,19 +1076,19 @@ ${lists}
                                     </p>
                                     <p>
                                         <label>Fadein
-                                            <input type="number"
+                                            <input :disabled="no_edit" type="number"
                                                 v-on:change="setfadein(currentcueid,$event.target.value)" min=0
                                                 v-model="currentcue.fadeIn">
                                         </label>
                                         <label>Length
-                                            <input v-on:change="setlength(currentcueid,$event.target.value)"
+                                            <input :disabled="no_edit" v-on:change="setlength(currentcueid,$event.target.value)"
                                                 v-model="cuemeta[currentcueid].length" min=0></input>
                                         </label>
                                     </p>
 
                                     <p>
                                         <label>Randomize Length
-                                            <input type="number"
+                                            <input :disabled="no_edit" type="number"
                                                 v-on:change="setrandomize(currentcueid,$event.target.value)"
                                                 title="Randomize the cue length +- this amount"
                                                 v-model="cuemeta[currentcueid].lengthRandomize" min=0 step=0.25></input>
@@ -1099,7 +1102,7 @@ ${lists}
 
                                     </p>
                                     <label>Notes
-                                        <input v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
+                                        <input :disabled="no_edit" v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
                                             v-model="cuemeta[currentcueid].notes" min=0></input>
                                     </label>
 
@@ -1173,7 +1176,7 @@ ${lists}
                                 </label>
 
                                 <label>Default Alpha
-                                    <input type="number" max=1 step=0.01 min=0
+                                    <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
                                         v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
                                         v-model="editingScene.defaultAlpha"></input>
                                 </label>
@@ -1199,12 +1202,12 @@ ${lists}
                             <p>
 
                                 <label>Priority
-                                    <input type='number' min=0 max=100
+                                    <input :disabled="no_edit" type='number' min=0 max=100
                                         v-on:change="setSceneProperty(scenename,'priority', parseFloat($event.target.value))"
                                         v-model="editingScene.priority">
                                 </label>
                                 <label>BPM
-                                    <input type='number' min=0 max=100
+                                    <input :disabled="no_edit" type='number' min=0 max=100
                                         v-on:change="setbpm(scenename,parseFloat($event.target.value))"
                                         v-model="editingScene.bpm">
                                 </label>
@@ -1216,14 +1219,14 @@ ${lists}
                             <p>
                                 <label title="Check this box to make the scene active at startup">Active By
                                     Default
-                                    <input type="checkbox"
+                                    <input :disabled="no_edit" type="checkbox"
                                         v-on:change="setSceneProperty(scenename,'defaultActive',$event.target.checked)"
                                         v-model="editingScene.defaultActive"></input>
                                 </label>
 
                                 <label
                                     title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack
-                                    <input type="checkbox"
+                                    <input :disabled="no_edit" type="checkbox"
                                         v-on:change="setSceneProperty(scenename,'backtrack', $event.target.checked)"
                                         v-model="editingScene.backtrack"></input>
                                 </label>
@@ -1231,7 +1234,7 @@ ${lists}
 
 
                             <label>Slideshow Overlay:
-                                <input v-on:change="setSceneProperty(scenename,'slideOverlayUrl',$event.target.value)"
+                                <input :disabled="no_edit" v-on:change="setSceneProperty(scenename,'slideOverlayUrl',$event.target.value)"
                                     v-model="editingScene.slideOverlayUrl"></input>
                             </label>
 
@@ -1239,20 +1242,20 @@ ${lists}
 
                             <label title="Recieve note events from a MIDI input device">MIDI
                                 Source:
-                                <input list="midiinputs"
+                                <input :disabled="no_edit" list="midiinputs"
                                     v-on:change="setSceneProperty(scenename,'midiSource', $event.target.value)"
                                     v-model="editingScene.midiSource"></input>
                             </label>
 
                             <label title="Recieve shortcut codes from a command-type tag">
-                                Command Tag:<input placeholder="Tagpoint"
+                                Command Tag:<input :disabled="no_edit" placeholder="Tagpoint"
                                     v-on:change="setcommandtag(scenename,$event.target.value)"
                                     v-model="editingScene.commandTag" list="commandtagslisting">
                             </label>
 
                             <label title="You can use this with __random__ to create a shuffle effect.">Default
                                 cue advance:
-                                <input list="nextcueoptions" v-on:change="setdefaultnext(scenename,$event.target.value)"
+                                <input :disabled="no_edit" list="nextcueoptions" v-on:change="setdefaultnext(scenename,$event.target.value)"
                                     v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
                             </label>
                         </div>
@@ -1272,7 +1275,7 @@ ${lists}
 
                             <label>
                                 Crossfade for non-silent Sounds
-                                <input type="number" max=1 step=0.01 min=0
+                                <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
                                     v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
                                     v-model="editingScene.crossfade"></input>
                             </label>
@@ -1310,14 +1313,14 @@ ${lists}
                         </header>
                         <div class="stacked-form">
                             <label>MQTT Server:
-                                <input v-on:change="setmqtt(scenename,$event.target.value)"
+                                <input :disabled="no_edit" v-on:change="setmqtt(scenename,$event.target.value)"
                                     v-model="editingScene.mqttServer"></input>
                             </label>
 
                             <label
                                 title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync
                                 Group Name
-                                <input v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
+                                <input :disabled="no_edit" v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
                                     v-model="editingScene.mqttSyncFeatures.syncGroup"></input>
                             </label>
                         </div>
@@ -1368,13 +1371,13 @@ ${lists}
                         </header>
                         <div class="stacked-form">
                             <label>Event name:
-                                <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
+                                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
                                     title="Event Name">
 
                             </label>
 
                             <label>Value
-                                <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value"
+                                <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev" title="Event Value"
                                     placeholder="value">
                             </label>
                             <label>Type
@@ -1399,7 +1402,7 @@ ${lists}
                             <p>{{editingScene.blendDesc}}</p>
                             <p>
                                 <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
-                                    <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
+                                    <input :disabled="no_edit" type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
                                         v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
                                         v-model="editingScene.blendArgs[k]"></input>
 
@@ -1420,20 +1423,20 @@ ${lists}
                         <div class="stacked-form">
                             <p>
                                 <label>Utility Scene(No controls)
-                                    <input type="checkbox" v-on:change="setutility(scenename,editingScene.utility)"
+                                    <input :disabled="no_edit" type="checkbox" v-on:change="setutility(scenename,editingScene.utility)"
                                         v-model="editingScene.utility"
                                         title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                 </label>
 
                                 <label>Hide in Runtime Mode
-                                    <input type="checkbox" v-on:change="setHide(scenename,editingScene.hide)"
+                                    <input :disabled="no_edit" type="checkbox" v-on:change="setHide(scenename,editingScene.hide)"
                                         v-model="editingScene.hide"
                                         title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                 </label>
                             </p>
 
                             <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
-                                <input v-on:change="setinfodisplay(scenename,$event.target.value)"
+                                <input :disabled="no_edit" v-on:change="setinfodisplay(scenename,$event.target.value)"
                                     v-model="editingScene.infoDisplay"></input>
                             </label>
                         </div>
@@ -1445,10 +1448,10 @@ ${lists}
                                 <th>Acton</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.eventButtons">
-                                <td><input v-model="v[0]" class="w-6rem"
+                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem"
                                         v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
                                 </td>
-                                <td><input v-model="v[1]" class="w-6rem"
+                                <td><input :disabled="no_edit" v-model="v[1]" class="w-6rem"
                                         v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
                                 </td>
                                 <td><button
@@ -1495,10 +1498,10 @@ ${lists}
                                 <th>Action</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.displayTags">
-                                <td><input v-model="v[0]"
+                                <td><input :disabled="no_edit" v-model="v[0]"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
-                                <td><input list="tagslisting" v-model="v[1]"
+                                <td><input :disabled="no_edit" list="tagslisting" v-model="v[1]"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
 
@@ -1624,6 +1627,8 @@ ${core.boards[0]().link.render('api_link')}
     }
 
     appData.keyboardJS = keyboardJS
+
+    appData.no_edit = ${'false' if kaithem.web.has_permission('system_admin') else 'true'}
 
     const options = {
         moduleCache: {
