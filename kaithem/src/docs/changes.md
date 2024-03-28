@@ -25,6 +25,7 @@ This release is all about manual testing of rarely used features
 - :coffin: nosecurity command line flag removed
 - :sparkles: Permissions have been consolidated.
 - :sparkles: Chandler has consoleNotification command to send a message to the dashboard
+- :bug: Fix bug where scene timers would mess up and repeatedly fire
 
 
 ### 0.76.1

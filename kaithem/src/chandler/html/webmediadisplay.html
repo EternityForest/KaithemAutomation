@@ -247,6 +247,26 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
 
     link.send(['ask'])
     link.send(['initial'])
+    link.send(['telemetry', telemetryStatus])
+
+
+    document.onvisibilitychange = () => {
+        if (document.visibilityState === "hidden") {
+            link.send(['telemetry', "PAGE HIDDEN"])
+        }
+        else{
+            link.send(['telemetry', "PAGE SHOWN"])
+        }
+      };
+
+
+      const beforeUnloadListener = (event) => {
+        link.send(['telemetry', "disconnect"])
+
+    };
+    
+    window.addEventListener("beforeunload", beforeUnloadListener);
+
 
     function f2() {
         link.send(['ask'])

@@ -994,20 +994,58 @@ class Scene:
 
         self.hide = hide
 
-        def handleMediaLink(u, v):
-            if v[0] == "initial":
+        self.slideshow_telemetry = collections.OrderedDict()
+
+        self.slideshow_telemetry_ratelimit = (time.monotonic(), 200)
+
+        def handleMediaLink(u, v, id):
+            if v[0] == "telemetry":
+                ts, remain = self.slideshow_telemetry_ratelimit
+                remain = max(0, min(200, (time.monotonic()-ts)*3 + remain-1))
+
+                if remain:
+                    
+                    ip = kaithem.widget.ws_connections[id].peer_address
+                    n = ip + "@" + self.name
+
+                    if v[1] == "disconnect":
+                        self.slideshow_telemetry.pop(n, None)
+                        for board in core.iter_boards():
+                            board.linkSend(["slideshow_telemetry", n, None])
+                        return
+                            
+                    self.slideshow_telemetry[n] = {
+                        "status": str(v[1])[:128],
+                        "ip": ip,
+                        "ts": time.time(),
+                        "battery": kaithem.widget.ws_connections[id].batteryStatus
+                    }
+                    self.slideshow_telemetry.move_to_end(n)
+
+                    if len(self.slideshow_telemetry) > 256:
+                        k, x = self.slideshow_telemetry.popitem(False)
+                        for board in core.iter_boards():
+                            board.linkSend(["slideshow_telemetry", k, None])
+
+                    try:
+                        for board in core.iter_boards():
+                            board.linkSend(["slideshow_telemetry", n, self.slideshow_telemetry[n]])
+                    except Exception:
+                        pass
+
+            elif v[0] == "initial":
                 self.sendVisualizations()
 
-            if v[0] == "ask":
+            elif v[0] == "ask":
                 self.send_all_media_link_info()
 
-            if v[0] == "error":
+            elif v[0] == "error":
                 self.event(
                     "system.error",
                     "Web media playback error in remote browser: " + v[1],
                 )
 
-        self.mediaLink.attach(handleMediaLink)
+        self.mediaLink.attach2(handleMediaLink)
         self.lock = threading.RLock()
         self.randomizeModifier = 0
 

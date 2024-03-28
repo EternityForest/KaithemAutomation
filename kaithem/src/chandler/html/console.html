@@ -147,7 +147,8 @@ ${lists}
             <button v-on:click="showevents=!showevents"><i class="icofont-flag-alt-1"></i>Events</button>
             <button v-on:click="showimportexport=!showimportexport"><i
                     class="icofont-folder-open"></i>Import/Export</button>
-
+            <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
+                        class="icofont-monitor"></i>Remote Displays</button>
             <button onclick="document.documentElement.requestFullscreen()"><i
                     class="icofont-expand"></i>Fullscreen</button>
             <a class="button" href="docs/index" target="_blank"><i class="icofont-question-circle"></i>Help</a>
@@ -168,7 +169,7 @@ ${lists}
 
     <main style="display:flex; flex-wrap:wrap; justify-content: center;" class="w-full">
 
-        <section class="window w-full h-8rem" v-if="sys_alerts.length">
+        <section class="window w-full h-8rem" v-if="Object.keys(sys_alerts).length">
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
                     <header :class="v['barrel-class']" class="padding">
@@ -253,7 +254,7 @@ ${lists}
                         </div>
 
 
-                        <input v-if="!i[1].utility" type="range" max=1 step=0.01 min=0
+                        <input style="margin-left:0.4rem" v-if="!i[1].utility" type="range" max=1 step=0.01 min=0
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                             v-on:change="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);" :value="alphas[i[0]]">
 
@@ -328,8 +329,34 @@ ${lists}
 
 
 
+        <section v-if="showslideshowtelemetry" class="flex-item window paper h-24rem">
+            <header>
+                <div class="tool-bar">
+                    <h3>Slideshow Players</h3>
+                    <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i class="icofont-close"></i>Close</button>
+                </div>
+            </header>
+                <p>This table shows the slideshow displays that are active or seen recently.</p>
+                <p>Only one display per IP/scene can be shown</p>
 
+                <table>
+                <tr>
+                    <th>
+                        IP Addr
+                    </th>
+                    <th>Status</th>
+                    <th>Last Seen</th>
+                    <th>Battery</th>
+                </tr>
+                <tr v-for="v,i of slideshow_telemetry" :class="{'error': v.ts<(unixtime-70)}">
+                    <td>{{v.ip}}</td>
+                    <td :class="{'error': v.status.includes('FAIL')}">{{v.ts<(unixtime-70)?'LOST CONNECTION':v.status}}</td>
+                    <td>{{formatTime(v.ts)}}</td>
+                    <td :class="{'error': (v.battery||{}).charging == false}">{{v.battery || ''}}</td>
 
+                </tr>
+            </table>
+        </section>
 
         <section v-if="showimportexport" class="flex-item window paper h-24rem">
             <header>

@@ -12,6 +12,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import annotations
 from typing import Any, Callable, Dict, Union, List
 import tornado
 from tornado import httputil
@@ -185,7 +186,7 @@ def raw_subsc_closure(self, i, widget):
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections = weakref.WeakValueDictionary()
+ws_connections: weakref.WeakValueDictionary[str, websocket_impl] = weakref.WeakValueDictionary()
 
 
 def get_connectionRefForID(id, deleteCallback=None):
@@ -262,6 +263,8 @@ class websocket_impl:
         self.user = user
         self.widget_wslock = threading.Lock()
         self.subCount = 0
+        self.peer_address = ''
+        self.batteryStatus = None
         ws_connections[self.uuid] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
 
@@ -469,7 +472,6 @@ class websocket_impl:
                 "system/errors/widgets/websocket", traceback.format_exc(6)
             )
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
-        
 
 
 def makeTornadoSocket(wsimpl=websocket_impl):
@@ -501,7 +503,7 @@ def makeTornadoSocket(wsimpl=websocket_impl):
             clients_info[impl.uuid] = impl.clientinfo
             self.impl = impl
 
-            impl._peer_address = x
+            impl.peer_address = x
 
             if (
                 user == "__guest__"

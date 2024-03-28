@@ -112,7 +112,7 @@ Err in login history${traceback.format_exc()}
     <dl>
     %for i in widgets.ws_connections.values():
     %if i.user == username:
-        <dt>${i._peer_address|h}(<a href="https://tools.keycdn.com/geo?host=${i._peer_address[0]|u}">Geolocation</a>)</dt>
+        <dt>${i.peer_address|h}(<a href="https://tools.keycdn.com/geo?host=${i._peer_address[0]|u}">Geolocation</a>)</dt>
         <dd>
             <table border="1">
                 <tr>

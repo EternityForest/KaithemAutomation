@@ -125,9 +125,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         # Bound method weakref nonsense prevention
         # also wrapping
 
-        def f(x, y):
+        def f(x, y, z):
             try:
-                self._onmsg(x, y)
+                self._onmsg(x, y, z)
             except Exception:
                 core.rl_log_exc("Error handling command")
                 self.pushEv(
@@ -139,7 +139,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 print(y, traceback.format_exc(8))
 
         self.onmsg = f
-        self.link.attach(self.onmsg)
+        self.link.attach2(self.onmsg)
 
         kaithem.message.subscribe('/system/alerts/state', self.push_sys_alerts)
 
@@ -149,8 +149,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def linkSend(self, data: List[Any]):
         if self.link:
             return self.link.send(data)
-
-    def _onmsg(self, user: str, msg: List[Any]):
+        
+    def linkSendTo(self, data: List[Any], target:str):
+        if self.link:
+            return self.link.sendTo(data,target)
+        
+    def _onmsg(self, user: str, msg: List[Any], sessionid: str):
         # Getters
 
         cmd_name: str = str(msg[0])
@@ -226,6 +230,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         print(traceback.format_exc())
 
                     try:
+                        for j in s.slideshow_telemetry:
+                            # TODO send more stuff to just the target
+                            self.linkSendTo(['slideshow_telemetry', j, s.slideshow_telemetry[j]], sessionid)
+                    except Exception:
+                        print(traceback.format_exc())
+
+                    try:
                         for j in self.scenememory[i].cues:
                             self.pushCueMeta(
                                 self.scenememory[i].cues[j].id)
@@ -265,6 +276,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         ],
                     ]
                 )
+
             return
         
         # There's such a possibility for an iteration error if universes changes.

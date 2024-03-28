@@ -22,17 +22,20 @@ ${ vars }
 function playAlert(m) {
     if (vueapp.$data.uiAlertSounds) {
         var mp3_url = '/static/freeboardsounds/Information_Bell.opus';
-        (new Audio(mp3_url)).play()
+        (new Audio(mp3_url)).play().catch(() =>{})
     }
     if (m) {
         KaithemWidgetApiSnackbar(m,60)
     }
 }
 
-function errorTone() {
+function errorTone(m) {
     if (vueapp.$data.uiAlertSounds) {
         var mp3_url = '/static/freeboardsounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
-        (new Audio(mp3_url)).play()
+        (new Audio(mp3_url)).play().catch(() =>{})
+    }
+    if (m) {
+        KaithemWidgetApiSnackbar(m,60)
     }
 }
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -768,6 +771,7 @@ appData = {
     'newcueu': '',
     'newcuevnumber': '',
     'newscenename': '',
+    'nuisianceRateLimit': [10,Date.now()],
     'specialvars': [
         ["_", "Output of the previous action"]
     ],
@@ -901,7 +905,8 @@ appData = {
     //Formatted for display
     'cuevals': {},
     'useBlankDescriptions': useBlankDescriptions,
-
+    "slideshow_telemetry": {},
+    'showslideshowtelemetry': false,
     'formatCueVals': function (c) {
         //Return a simplified version of the data in cuevals
         //Meant for direct display
@@ -942,6 +947,15 @@ appData = {
         }
     },
 
+    'doRateLimit': function () {
+        this.nuisianceRateLimit[0] += (Date.now() - this.nuisianceRateLimit[1]) / 180000
+        this.nuisianceRateLimit[0] = Math.min(12, this.nuisianceRateLimit[0])
+        if (this.nuisianceRateLimit[0] > 0)
+        {
+            this.nuisianceRateLimit[0] -= 1
+            return true;
+        }
+    },
 
     'lookupFixtureType': function (f) {
         for (i in this.fixtureAssignments) {
@@ -1199,7 +1213,25 @@ function f(v) {
     else if (c == 'ui_alert') {
         playAlert(v[1])
     }
+    
+    else if (c == 'slideshow_telemetry') {
+        if (v[2] == null) {
+            delete vueapp.$data.slideshow_telemetry[v[1]]
+        }
+        else {
+            if (v[2].status != (vueapp.$data.slideshow_telemetry[v[1]] || {}).status) {
+                if (v[2].status.includes("FAILED")) {
+                    if (vueapp.$data.doRateLimit()) {
+                        errorTone('A slideshow display may need attention');
+                        showslideshowtelemetry = true;
+                    }
+                }
+            }
 
+            vueapp.$data.slideshow_telemetry[v[1]] =v[2]
+        }
+    }
+        
     else if (c == 'scenetimers') {
         vueapp.$data.scenemeta[v[1]].timers = v[2]
     }
@@ -1271,13 +1303,14 @@ function f(v) {
     }
 
     else if (c == 'alerts') {
-        vueapp.$data.sys_alerts = v[1]
         if (vueapp.$data.sys_alerts != v[1])
         {
             if (v[1]) {
                 errorTone()
             }
         }
+
+        vueapp.$data.sys_alerts = v[1]
     }
     else if (c == 'confuniverses') {
         vueapp.$data.configuredUniverses = v[1]

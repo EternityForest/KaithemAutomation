@@ -328,12 +328,12 @@ class ScheduleTimer():
             raise ValueError("Invalid")
 
         self.selector = recur.getConstraint(selector[1:])
-        nextruntime = self.selector.after(datetime.datetime.now(), True)
+        nextruntime = self.selector.after(datetime.datetime.now(), False)
         self.nextruntime = dt_to_ts(nextruntime, self.selector.tz)
         self.next = scheduler.schedule(self.handler, self.nextruntime, False)
 
     def handler(self, *a, **k):
-        nextruntime = self.selector.after(datetime.datetime.now(), True)
+        nextruntime = self.selector.after(datetime.datetime.now(), False)
         ctx = self.context()
 
         # We don't want to reschedule if the context no longer exists
