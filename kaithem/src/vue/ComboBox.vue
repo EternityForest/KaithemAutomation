@@ -22,25 +22,25 @@
 <template>
 <div style="display:inline-block;position:relative; overflow: visible;">
     <div class="tool-bar">
-        <input 
+        <input  :disabled="disabled" 
          v-bind:value="modelValue" 
          v-on:input="$emit('update:modelValue', $event.target.value); focused = true" 
          v-on:change="focused = false; $emit('update:modelValue', $event.target.value); $emit('change', $event.target.value); "
          v-on:focus="focused = true;">
-        <button title="Show/Hide selector" style="width:3em;" v-on:click="showmenu = !(showmenu | (focused)); focused = false;" v-bind:class="{ 'highlight': showmenu }">...</button>
+        <button  :disabled="disabled" title="Show/Hide selector" style="width:3em;" v-on:click="showmenu = !(showmenu | (focused)); focused = false;" v-bind:class="{ 'highlight': showmenu }">...</button>
     </div>
     <div v-if="showmenu || (focused)" class="comboboxdropdown paper">
         <div style="overflow: scroll; margin: 0.8em; border: 1px solid; height: 18em;">
             <template v-for="i in pinned">
                 <div v-if="(!modelValue) || i[0].toLowerCase().includes(modelValue.toLowerCase()) || i[1].toLowerCase().includes(modelValue.toLowerCase()) || showmenu">
-                    <button type="button" v-on:click="$emit('update:modelValue', i[0]); $emit('change', i[0]); showmenu = false; focused = false;" tabindex="-1">{{ i[0] }}</button><br>
+                    <button type="button" :disabled="disabled" v-on:click="$emit('update:modelValue', i[0]); $emit('change', i[0]); showmenu = false; focused = false;" tabindex="-1">{{ i[0] }}</button><br>
                     <p style="margin-left: 1em;">{{ i[1] }}</p>
                 </div>
             </template>
 
             <template v-for="i in options">
                 <div v-if="(!modelValue) || i[0].toLowerCase().includes(modelValue.toLowerCase()) || i[1].toLowerCase().includes(modelValue.toLowerCase()) || showmenu">
-                    <button type="button" v-on:click="$emit('update:modelValue', i[0]); $emit('change', i[0]); showmenu = false; focused = false;" tabindex="-1">{{ i[0] }}</button><br>
+                    <button type="button" :disabled="disabled" v-on:click="$emit('update:modelValue', i[0]); $emit('change', i[0]); showmenu = false; focused = false;" tabindex="-1">{{ i[0] }}</button><br>
                     <p style="margin-left: 1em;">{{ i[1] }}</p>
                 </div>
             </template>
@@ -71,6 +71,10 @@ module.exports = {
         'modelValue': {
             type: String,
             default: ''
+        },
+        'disabled': {
+            type: Boolean,
+            default: false
         }
     },
     name: 'ComboBox',

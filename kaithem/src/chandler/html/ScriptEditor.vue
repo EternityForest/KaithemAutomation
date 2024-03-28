@@ -66,23 +66,23 @@ p.small {
                     <h4>Parameters</h4>
 
                     <label>Run on
-                        <combo-box @update:modelValue="" v-model="selectedBinding[0]" v-bind:options="example_events"
+                        <combo-box :disabled="disabled" @update:modelValue="" v-model="selectedBinding[0]" v-bind:options="example_events"
                             v-on:change="$emit('update:modelValue', rules);"></combo-box>
                     </label>
                     <h4>Delete</h4>
-                    <button v-on:click="deleteBinding(selectedBinding); $emit('update:modelValue', rules);">Remove binding and all
+                    <button  :disabled="disabled" v-on:click="deleteBinding(selectedBinding); $emit('update:modelValue', rules);">Remove binding and all
                         actions</button>
                 </div>
 
                 <div v-if="selectedCommand" class="card col-3 min-h-24rem">
                     <h3>Block Inspector</h3>
                     Type
-                    <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"
+                    <combo-box :disabled="disabled" v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"
                         v-bind:pinned="getSpecialActions()" @update:modelValue="setCommandDefaults(selectedCommand);"
                         v-on:change="$emit('update:modelValue', rules);"></combo-box>
                     <h4>Config</h4>
                     <div v-if="selectedCommand[0] == 'set'">
-                        Set a variable named <combo-box v-model="selectedCommand[1]" v-bind:pinned="pinnedvars"
+                        Set a variable named <combo-box :disabled="disabled" v-model="selectedCommand[1]" v-bind:pinned="pinnedvars"
                             v-on:change="$emit('update:modelValue', rules)"></combo-box> <br>to<br> <combo-box
                             v-model="selectedCommand[2]" v-on:change="$emit('update:modelValue', rules)"></combo-box><br>
                         and always return True.
@@ -93,7 +93,7 @@ p.small {
                     </div>
 
                     <div v-if="selectedCommand[0] == 'maybe'">
-                        Continue action with :<input v-model="selectedCommand[1]" v-on:change="$emit('update:modelValue', rules)">%
+                        Continue action with :<input :disabled="disabled" v-model="selectedCommand[1]" v-on:change="$emit('update:modelValue', rules)">%
                         chance <br> otherwise
                         return None and stop the action.
                     </div>
@@ -102,7 +102,7 @@ p.small {
                         <table>
                             <tr v-for="i in commands[selectedCommand[0]].args.keys()">
                                 <td>{{ commands[selectedCommand[0]].args[i][0] }}</td>
-                                <td><combo-box v-model="selectedCommand[i + 1]" v-on:change="$emit('update:modelValue', rules)"
+                                <td><combo-box :disabled="disabled" v-model="selectedCommand[i + 1]" v-on:change="$emit('update:modelValue', rules)"
                                         :options="getCompletions(selectedCommand, commands[selectedCommand[0]].args[i][0])"></combo-box>
                                 </td>
                             </tr>
@@ -114,10 +114,10 @@ p.small {
                     </div>
                     <button
                         v-on:click="rules[selectedBindingIndex][1].splice(selectedCommandIndex, 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">Delete</button>
-                    <button v-if="selectedCommandIndex > 0"
+                    <button v-if="selectedCommandIndex > 0" :disabled="disabled"
                         v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex - 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">
                         Move Back</button>
-                    <button v-if="selectedCommandIndex < (rules[selectedBindingIndex][1].length - 1)"
+                    <button :disabled="disabled" v-if="selectedCommandIndex < (rules[selectedBindingIndex][1].length - 1)"
                         v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex + 1); selectedCommandIndex += 1; $emit('update:modelValue', rules);">
                         Move Forward</button>
 
@@ -135,7 +135,7 @@ p.small {
                                     <b>On {{ i[0] }}</b>
                                 </button>
 
-                                <button v-on:click="moveCueRuleDown(idx)">Move down</button>
+                                <button :disabled="disabled" v-on:click="moveCueRuleDown(idx)">Move down</button>
                             </div>
 
                         </header>
@@ -165,13 +165,13 @@ p.small {
                             </div>
                             <div style="align-self:stretch;">
 
-                                <button class="action" style="align-self:stretch;"
+                                <button class="action" style="align-self:stretch;" :disabled="disabled"
                                     v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add Action</b></button>
                             </div>
 
                         </div>
                     </div>
-                    <button style="width: 95%; margin-top: 0.5em;"
+                    <button style="width: 95%; margin-top: 0.5em;" :disabled="disabled"
                         title="Add a rule that the scene should do something when an event fires"
                         v-on:click="rules.push(['cue.enter', [['goto', '=SCENE', '']]]); $emit('update:modelValue', rules);"><b>Add
                         Rule</b></button>
@@ -188,7 +188,7 @@ p.small {
 <script>
 module.exports = {
 
-    props: ['modelValue', 'commands', 'pinnedvars', "inspector", "completers", "example_events"],
+    props: ['modelValue', 'commands', 'disabled', 'pinnedvars', "inspector", "completers", "example_events"],
     components: {
         "combo-box": httpVueLoader("/static/vue/ComboBox.vue"),
     },
@@ -198,7 +198,7 @@ module.exports = {
         },
         completers: function (newVal) {
             this.argcompleters = newVal || {}
-        }
+        },
     },
 
     computed: {

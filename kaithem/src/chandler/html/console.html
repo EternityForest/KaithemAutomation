@@ -136,7 +136,7 @@ ${lists}
 
         <div class="menubar tool-bar">
             <p>{{clock}}</p>
-            <button v-on:click="saveToDisk()"
+            <button v-on:click="saveToDisk()"  :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
                     class="icofont-quill-pen"></i>Save</button>
         </div>
@@ -506,7 +506,7 @@ ${lists}
                                 </td>
 
                                 <td data-label="Next Cue:">
-                                    <select style="width:98%" v-model="i[1].next"
+                                    <select style="width:98%" v-model="i[1].next"  :disabled="no_edit"
                                         v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off
                                         title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)">
@@ -595,7 +595,7 @@ ${lists}
                                 <header>
                                     <div class="tool-bar" v-if="editingScene.blend!='monitor'">
                                         <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
-                                        <select
+                                        <select  :disabled="no_edit"
                                             v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
                                             <option value="__dummy__">Presets</option>
                                             <option
@@ -624,7 +624,7 @@ ${lists}
 
                                 <div class="stacked-form w-24rem">
                                     <label>Universe
-                                        <combo-box v-bind:options="useBlankDescriptions(universes)"
+                                        <combo-box v-bind:options="useBlankDescriptions(universes)" 
                                             v-model="newcueu"></combo-box>
                                     </label>
 
@@ -635,7 +635,7 @@ ${lists}
                                         </combo-box>
                                     </label>
 
-                                    <button v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to
+                                    <button  :disabled="no_edit" v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to
                                         Cue</button>
                                 </div>
 
@@ -695,7 +695,7 @@ ${lists}
                     <div class="card w-sm-full" style="overflow: visible;">
                         <label>Inherit rules from
                             <div style="overflow: visible;">
-                                <combo-box v-model="currentcue.inheritRules" :disabled="editingScene.name =='__rules__'"
+                                <combo-box  :disabled="no_edit" v-model="currentcue.inheritRules" :disabled="editingScene.name =='__rules__'"
                                     v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
                                     :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
                             </div>
@@ -711,7 +711,9 @@ ${lists}
                         v-model="currentcue.rules" @update:model-value="setCueRules(currentcueid, $event);"
                         v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
                         v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"
-                        v-bind:parentscene="editingScene.name">
+                        v-bind:parentscene="editingScene.name"
+                        :disabled="no_edit"
+                        >
                     </script-editor>
 
                     <div style="display:flex;flex-wrap:wrap;">
@@ -1112,7 +1114,7 @@ ${lists}
                                     <legend>Cue Advance</legend>
                                     <label>Next Cue
                                         <div>
-                                            <combo-box v-model="cuemeta[currentcueid].next"
+                                            <combo-box v-model="cuemeta[currentcueid].next"  :disabled="no_edit"
                                                 v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)"
                                                 :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
                                         </div>
@@ -1183,7 +1185,7 @@ ${lists}
                             </p>
 
                             <label>Blend Mode
-                                <select title="This setting controls blending multiple scenes together"
+                                <select  :disabled="no_edit" title="This setting controls blending multiple scenes together"
                                     v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend">
 
                                     <option title="Alpha blend with scenes below">normal</option>
