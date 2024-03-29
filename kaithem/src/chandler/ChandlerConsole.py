@@ -410,12 +410,13 @@ class ChandlerConsole(console_abc.Console_ABC):
             data = {filename[:-5]: data}
 
         with core.lock:
-            for i in self.scenememory:
-                if clear_old or (i in data):
-                    self.scenememory[i].stop()
-                    self.scenememory[i].close()
+            if clear_old:
+                for i in self.scenememory:
+                    if clear_old or (i in data):
+                        self.scenememory[i].stop()
+                        self.scenememory[i].close()
 
-            self.scenememory = {}
+                self.scenememory = {}
             self.loadDict(data, errs)
 
     def loadDict(self, data, errs=False):
@@ -449,11 +450,14 @@ class ChandlerConsole(console_abc.Console_ABC):
 
                 # Delete existing scenes we own
                 if n in scenes.scenes_by_name:
-                    if scenes.scenes_by_name[n].id in self.scenememory:
-                        self.scenememory[scenes.scenes_by_name[n].id].stop()
-                        self.scenememory[scenes.scenes_by_name[n].id].close()
-
-                        del self.scenememory[scenes.scenes_by_name[n].id]
+                    old_id = scenes.scenes_by_name[n].id
+                    if old_id in self.scenememory:
+                        self.scenememory[old_id].stop()
+                        self.scenememory[old_id].close()
+                        try:
+                            del self.scenememory[old_id]
+                        except KeyError:
+                            pass
                     else:
                         raise ValueError(
                             "Scene "

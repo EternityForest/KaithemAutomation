@@ -1507,7 +1507,6 @@ function f(v) {
 
 init_api_link = function () {
     api_link.upd = f
-    api_link.send(['gasd']);
     api_link.send(['getCommands']);
 
     // Exact sync on half seconds

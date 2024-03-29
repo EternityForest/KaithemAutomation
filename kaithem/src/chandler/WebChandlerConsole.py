@@ -118,7 +118,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.setup_link()
 
     def setup_link(self):
-        self.link = kaithem.widget.APIWidget("api_link")
+
+        class WrappedLink(kaithem.widget.APIWidget):
+            def onNewSubscriber(s, user, cid, **kw):
+                self.send_everything(cid)
+            
+        self.link = WrappedLink()
         self.link.require("chandler_operator")
         self.link.echo = False
         # Bound method weakref nonsense prevention
@@ -152,7 +157,79 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def linkSendTo(self, data: List[Any], target: str):
         if self.link:
             return self.link.sendTo(data, target)
+    
+    def send_everything(self, sessionid):
+        with core.lock:
+            self.linkSend(["presets", self.presets])
+            self.pushUniverses()
+            self.pushfixtures()
+            self.linkSend(['alerts', getAlertState()])
+            self.linkSend(['soundfolders', core.config.get('soundFolders')])
 
+            for i in self.scenememory:
+                s = self.scenememory[i]
+                self.pushCueList(s.id)
+                self.pushMeta(i)
+                if self.scenememory[i].cue:
+                    try:
+                        self.pushCueMeta(self.scenememory[i].cue.id)
+                    except Exception:
+                        print(traceback.format_exc())
+                try:
+                    self.pushCueMeta(
+                        self.scenememory[i].cues["default"].id)
+                except Exception:
+                    print(traceback.format_exc())
+
+                try:
+                    for j in s.slideshow_telemetry:
+                        # TODO send more stuff to just the target
+                        self.linkSendTo(['slideshow_telemetry', j, s.slideshow_telemetry[j]], sessionid)
+                except Exception:
+                    print(traceback.format_exc())
+
+                try:
+                    for j in self.scenememory[i].cues:
+                        self.pushCueMeta(
+                            self.scenememory[i].cues[j].id)
+                except Exception:
+                    print(traceback.format_exc())
+
+            for i in scenes.active_scenes:
+                # Tell clients about any changed alpha values and stuff.
+                if i.id not in self.scenememory:
+                    self.pushMeta(i.id)
+            self.pushConfiguredUniverses()
+            self.linkSend(["serports", getSerPorts()])
+
+            shows = os.path.join(kaithem.misc.vardir, "chandler", "shows")
+            if os.path.isdir(shows):
+                self.linkSend(
+                    [
+                        "shows",
+                        [
+                            i
+                            for i in os.listdir(shows)
+                            if os.path.isdir(os.path.join(shows, i))
+                        ],
+                    ]
+                )
+
+            setups = os.path.join(
+                kaithem.misc.vardir, "chandler", "setups")
+            if os.path.isdir(setups):
+                self.linkSend(
+                    [
+                        "setups",
+                        [
+                            i
+                            for i in os.listdir(setups)
+                            if os.path.isdir(os.path.join(setups, i))
+                        ],
+                    ]
+                )
+
+        
     def _onmsg(self, user: str, msg: List[Any], sessionid: str):
         # Getters
 
@@ -205,76 +282,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "gasd":
-            with core.lock:
-                self.linkSend(["presets", self.presets])
-                self.pushUniverses()
-                self.pushfixtures()
-                self.linkSend(['alerts', getAlertState()])
-                self.linkSend(['soundfolders', core.config.get('soundFolders')])
-
-                for i in self.scenememory:
-                    s = self.scenememory[i]
-                    self.pushCueList(s.id)
-                    self.pushMeta(i)
-                    if self.scenememory[i].cue:
-                        try:
-                            self.pushCueMeta(self.scenememory[i].cue.id)
-                        except Exception:
-                            print(traceback.format_exc())
-                    try:
-                        self.pushCueMeta(
-                            self.scenememory[i].cues["default"].id)
-                    except Exception:
-                        print(traceback.format_exc())
-
-                    try:
-                        for j in s.slideshow_telemetry:
-                            # TODO send more stuff to just the target
-                            self.linkSendTo(['slideshow_telemetry', j, s.slideshow_telemetry[j]], sessionid)
-                    except Exception:
-                        print(traceback.format_exc())
-
-                    try:
-                        for j in self.scenememory[i].cues:
-                            self.pushCueMeta(
-                                self.scenememory[i].cues[j].id)
-                    except Exception:
-                        print(traceback.format_exc())
-
-                for i in scenes.active_scenes:
-                    # Tell clients about any changed alpha values and stuff.
-                    if i.id not in self.scenememory:
-                        self.pushMeta(i.id)
-                self.pushConfiguredUniverses()
-            self.linkSend(["serports", getSerPorts()])
-
-            shows = os.path.join(kaithem.misc.vardir, "chandler", "shows")
-            if os.path.isdir(shows):
-                self.linkSend(
-                    [
-                        "shows",
-                        [
-                            i
-                            for i in os.listdir(shows)
-                            if os.path.isdir(os.path.join(shows, i))
-                        ],
-                    ]
-                )
-
-            setups = os.path.join(
-                kaithem.misc.vardir, "chandler", "setups")
-            if os.path.isdir(setups):
-                self.linkSend(
-                    [
-                        "setups",
-                        [
-                            i
-                            for i in os.listdir(setups)
-                            if os.path.isdir(os.path.join(setups, i))
-                        ],
-                    ]
-                )
-
+            #Get All State Data, used to get all scene data
+            self.send_everything(sessionid)
             return
 
         # There's such a possibility for an iteration error if universes changes.
