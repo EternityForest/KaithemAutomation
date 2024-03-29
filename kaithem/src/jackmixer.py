@@ -560,7 +560,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             p = [i.name for i in jackmanager.get_ports()]
             p2 = [i.clientName for i in jackmanager.get_ports()]
             p = p + p2
-            if (self.name + "_out" in p) or (self.name + "_in") in p:
+            if (self.name + "_out" in p) or (self.send_ename + "_in") in p:
                 time.sleep(0.5)
             else:
                 break
@@ -994,7 +994,13 @@ actionLockout = {}
 
 class MixingBoard:
     def __init__(self, *args, **kwargs):
-        self.api = widgets.APIWidget()
+
+
+        class WrappedLink(widgets.APIWidget):
+            def onNewSubscriber(s, user, cid, **kw):
+                self.sendState()
+            
+        self.api = WrappedLink()
         self.api.require("system_admin")
         self.api.attach(self.f)
         self.channels = {}

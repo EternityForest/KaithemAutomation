@@ -433,7 +433,7 @@ class websocket_impl:
                                 i
                             ].subscriptions.copy()
                             # This comes after in case it  sends data
-                            widgets[i].onNewSubscriber(user, {})
+                            widgets[i].onNewSubscriber(user, self.uuid)
                             widgets[i].lastSubscribedTo = time.monotonic()
 
                             self.subscriptions.append(i)
@@ -688,7 +688,7 @@ class Widget:
         if self.subscriptions or (self.lastSubscribedTo > (time.monotonic() - 30)):
             return True
 
-    def onNewSubscriber(self, user, cid, **kw):
+    def onNewSubscriber(self, user, connection_id, **kw):
         pass
 
     def forEach(self, callback):

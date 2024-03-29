@@ -120,8 +120,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def setup_link(self):
 
         class WrappedLink(kaithem.widget.APIWidget):
-            def onNewSubscriber(s, user, cid, **kw):
-                self.send_everything(cid)
+            def onNewSubscriber(s, user, connection_id, **kw):
+                self.send_everything(connection_id)
             
         self.link = WrappedLink()
         self.link.require("chandler_operator")
