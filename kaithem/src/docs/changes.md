@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.77.0
+- :bug: Restore the broken optimization for events that don't need to poll
+- :bug: Fix fixture types window being too small
+- :lipstick: Better combo box feel
+
 
 ### 0.77.0 Beta
 
