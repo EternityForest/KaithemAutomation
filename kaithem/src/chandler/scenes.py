@@ -1004,21 +1004,24 @@ class Scene:
                 remain = max(0, min(200, (time.monotonic()-ts)*3 + remain-1))
 
                 if remain:
-                    
+
                     ip = kaithem.widget.ws_connections[id].peer_address
                     n = ip + "@" + self.name
 
-                    if v[1] == "disconnect":
+                    if v[1]['status'] == "disconnect":
                         self.slideshow_telemetry.pop(n, None)
                         for board in core.iter_boards():
                             board.linkSend(["slideshow_telemetry", n, None])
                         return
-                            
+
                     self.slideshow_telemetry[n] = {
-                        "status": str(v[1])[:128],
+                        "status": str(v[1]['status'])[:128],
+                        "name": str(v[1].get('name', ''))[:128],
                         "ip": ip,
+                        "id": id,
                         "ts": time.time(),
-                        "battery": kaithem.widget.ws_connections[id].batteryStatus
+                        "battery": kaithem.widget.ws_connections[id].batteryStatus,
+                        "scene": self.name
                     }
                     self.slideshow_telemetry.move_to_end(n)
 

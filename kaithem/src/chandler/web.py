@@ -95,7 +95,7 @@ class Web():
     def editor(self):
         """Index page for web interface"""
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        pages.require('view_admin_info')
+        pages.require('system_admin')
         v = limitedTagsListing()
         c = command_tagsListing()
 
@@ -135,7 +135,7 @@ class Web():
     def config(self):
         """Config page for web interface"""
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        pages.require('view_admin_info')
+        pages.require('system_admin')
         v = limitedTagsListing()
         c = command_tagsListing()
 

@@ -338,22 +338,32 @@ ${lists}
                 </div>
             </header>
                 <p>This table shows the slideshow displays that are active or seen recently.</p>
-                <p>Only one display per IP/scene can be shown</p>
+                <p>Only one display per IP/scene can be shown.  Battery status only works in Chrome</p>
+                <p>Ding plays a tone to identify and test the display.  You can assign displays friendly names to help identify them.</p>
 
                 <table>
                 <tr>
                     <th>
-                        IP Addr
+                        Connection
+                    </th>
+                    <th>
+                        Name
                     </th>
                     <th>Status</th>
                     <th>Last Seen</th>
                     <th>Battery</th>
+                    <th>Action</th>
                 </tr>
                 <tr v-for="v,i of slideshow_telemetry" :class="{'error': v.ts<(unixtime-70)}">
-                    <td>{{v.ip}}</td>
+                    <td>{{i}}</td>
+                    <td>{{v.name}}</td>
                     <td :class="{'error': v.status.includes('FAIL')}">{{v.ts<(unixtime-70)?'LOST CONNECTION':v.status}}</td>
                     <td>{{formatTime(v.ts)}}</td>
                     <td :class="{'error': (v.battery||{}).charging == false}">{{v.battery || ''}}</td>
+                    <td>
+                        <button @click="mediaLinkCommand(v.scene, v.id, ['testAudio'])">Ding</button>
+                        <button @click="promptRenameDisplay(v.scene, v.id)">Rename</button>
+                    </td>
 
                 </tr>
             </table>

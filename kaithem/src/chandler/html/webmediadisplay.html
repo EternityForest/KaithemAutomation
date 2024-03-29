@@ -184,6 +184,24 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
             }
         }
 
+        else if(v[0] == 'testAudio'){
+            var mp3_url = '/static/freeboardsounds/Information_Bell.opus';
+            (new Audio(mp3_url)).play().catch(() =>{
+                telemetryStatus = "PLAY FAILED"
+                send_telemetry()
+            }).then(() =>{
+                telemetryStatus = "OK"
+                send_telemetry()
+            }
+            )
+            KaithemWidgetApiSnackbar("Ding!",5)
+        }
+
+        else if(v[0] == 'setFriendlyName'){
+            telemetryName = v[1]
+            localStorage.setItem('friendly_slideshow_device_name', v[1])
+            send_telemetry()
+        }
 
         else if (v[0] == 'mediaURL') {
 
@@ -247,22 +265,25 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
 
     link.send(['ask'])
     link.send(['initial'])
-    link.send(['telemetry', telemetryStatus])
+    send_telemetry()
 
 
     document.onvisibilitychange = () => {
         if (document.visibilityState === "hidden") {
-            link.send(['telemetry', "PAGE HIDDEN"])
+            telemetryStatus = "PAGE HIDDEN"
         }
         else{
-            link.send(['telemetry', "PAGE SHOWN"])
+            telemetryStatus = "PAGE SHOWN"
         }
+        send_telemetry()
+
       };
 
 
       const beforeUnloadListener = (event) => {
-        link.send(['telemetry', "disconnect"])
+        telemetryStatus = "disconnect"
 
+        send_telemetry()
     };
     
     window.addEventListener("beforeunload", beforeUnloadListener);

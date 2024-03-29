@@ -4,9 +4,17 @@ itypes = ['.png', '.jpg', '.bmp', '.tiff', '.webp', '.gif', '.avif']
 
 telemetryStatus = "LOADED"
 
+telemetryName = localStorage.getItem('friendly_slideshow_device_name') || ''
+function send_telemetry() {
+    link.send(['telemetry', {
+        'status': telemetryStatus,
+        'name': telemetryName
+    }])
+}
+
 setInterval(
     function () {
-        link.send(['telemetry', telemetryStatus])
+        send_telemetry()
     }, 60000
 )
 
@@ -274,7 +282,7 @@ class makePlayer {
             if (!this.error_send_timeout) {            
                 this.error_send_timeout = setTimeout(function () {
                     telemetryStatus = "PLAY FAILED"
-                    link.send(['telemetry', 'PLAY FAILED'])
+                    send_telemetry()
                 }, 20000)
             }
 
@@ -287,7 +295,7 @@ class makePlayer {
                             clearTimeout(this.error_send_timeout)
                         }
                         telemetryStatus = 'OK'
-                        link.send(['telemetry', 'OK'])
+                        send_telemetry()
                         st = this.intended_start_pos - ((link.now() / 1000) - this.intended_start_ts)
                         st = Math.max(st, 0)
                         this.deffered_play.currentTime = st;

@@ -121,7 +121,17 @@ cueSetData = {}
 
 appMethods = {
 
+    'mediaLinkCommand': function (sc, linkid, data) {
+        
+        api_link.send(["mediaLinkCommand", sc, linkid, data])
+    },
 
+    'promptRenameDisplay': function (scene, link) {
+        var x = prompt("Name?")
+        if (x) {
+            api_link.send(["mediaLinkCommand", scene, link, ['setFriendlyName', x]])
+        }
+    },
     // Slowly we want to migrate to these two generic setters
     'setSceneProperty': function (scene, property, value) {
         var x = cueSetData[scene + property]
@@ -1041,6 +1051,9 @@ appData = {
         return (o)
     },
 
+    
+
+    
     'cueNamesBySceneName': function () {
         var d = {}
         for (i in this.scenemeta) {
@@ -1526,3 +1539,4 @@ var goto = function (sc, cue) {
 
     }
 }
+

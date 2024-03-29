@@ -18,7 +18,6 @@ from . import universes
 from .core import disallow_special
 
 
-
 def listsoundfolder(path: str):
     "return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
     soundfolders = core.getSoundFolders()
@@ -149,16 +148,15 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def linkSend(self, data: List[Any]):
         if self.link:
             return self.link.send(data)
-        
-    def linkSendTo(self, data: List[Any], target:str):
+
+    def linkSendTo(self, data: List[Any], target: str):
         if self.link:
-            return self.link.sendTo(data,target)
-        
+            return self.link.sendTo(data, target)
+
     def _onmsg(self, user: str, msg: List[Any], sessionid: str):
         # Getters
 
         cmd_name: str = str(msg[0])
-
 
         # read only commands
 
@@ -192,7 +190,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(
                 ["fixtureclass", msg[1], self.fixture_classes[msg[1]]])
             return
-        
+
         elif cmd_name == "getfixtureclasses":
             # Send placeholder lists
             self.linkSend(
@@ -200,7 +198,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                                     for i in self.fixture_classes.keys()}]
             )
             return
-        
+
         elif cmd_name == "getcuemeta":
             s = cues[msg[1]]
             self.pushCueMeta(msg[1])
@@ -278,7 +276,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 )
 
             return
-        
+
         # There's such a possibility for an iteration error if universes changes.
         # I'm not going to worry about it, this is only for the GUI list of universes.
         elif cmd_name == "getuniverses":
@@ -288,7 +286,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "getserports":
             self.linkSend(["serports", getSerPorts()])
             return
-        
+
         elif cmd_name == "getCommands":
             c = scenes.rootContext.commands.scriptcommands
             commandInfo = {}
@@ -301,7 +299,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "getconfuniverses":
             self.pushConfiguredUniverses()
             return
-        
+
         elif cmd_name == "getcuehistory":
             self.linkSend(
                 ["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
@@ -318,7 +316,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if not kaithem.users.check_permission(user, 'chandler_operator'):
                 if not kaithem.users.check_permission(user, 'system_admin'):
                     raise PermissionError(cmd_name + "requires chandler_operator or system_admin")
-            
 
         # User level runtime stuff that can't change config
 
@@ -328,11 +325,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             cues[msg[1]].scene().goto_cue(cues[msg[1]].name, cause="manual")
             return
-        
+
         elif cmd_name == "jumpbyname":
             scenes.scenes_by_name[msg[1]].goto_cue(msg[2], cause="manual")
             return
-        
+
         elif cmd_name == "nextcue":
             scenes.scenes[msg[1]].next_cue(cause="manual")
             return
@@ -358,7 +355,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 except Exception:
                     print(traceback.format_exc())
             return
-        
+
         elif cmd_name == "go":
             scenes.scenes[msg[1]].go()
             self.pushMeta(msg[1])
@@ -387,7 +384,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setalpha":
             scenes.scenes[msg[1]].setAlpha(msg[2])
             return
-        
+
         elif cmd_name == "getcnames":
             self.pushChannelNames(msg[1])
             return
@@ -396,8 +393,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Not in allowed runtime only commands
             if not kaithem.users.check_permission(user, 'system_admin'):
                 raise PermissionError(cmd_name + "requires system_admin")
-            
-
 
         ###
 
@@ -486,8 +481,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             self.refresh_fixtures()
 
-
-
         elif cmd_name == "clonecue":
             cues[msg[1]].clone(msg[2])
 
@@ -536,12 +529,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     kaithem.tags.all_tags_raw[msg[2]]().value = msg[3]
                     return
 
-
         elif cmd_name == "setMqttServer":
             if kaithem.users.check_permission(user, "system_admin"):
                 scenes.scenes[msg[1]].setMqttServer(msg[2])
                 self.pushMeta(msg[1], keys={"mqtt_server"})
-
 
         elif cmd_name == "namechannel":
             if msg[3]:
@@ -654,7 +645,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setbpm":
             scenes.scenes[msg[1]].setBPM(msg[2])
 
-
         elif cmd_name == "setcrossfade":
             scenes.scenes[msg[1]].crossfade = float(msg[2])
 
@@ -669,11 +659,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "rename_cue":
             if not msg[3]:
                 return
-            
+
             n = msg[2].strip()
             n2 = msg[3].strip()
 
-            scenes.scenes[msg[1]].rename_cue(n, n2)    
+            scenes.scenes[msg[1]].rename_cue(n, n2)
 
         elif cmd_name == "searchsounds":
             self.linkSend(
@@ -683,6 +673,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     searchPaths(msg[1], core.getSoundFolders()),
                 ]
             )
+
+        elif cmd_name == "mediaLinkCommand":
+            scenes.scenes_by_name[msg[1]].mediaLink.sendTo(msg[3], msg[2])
+            return
 
         elif cmd_name == "newFromSound":
             bn = os.path.basename(msg[2])
@@ -738,7 +732,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
                 if not scenes.is_static_media(s):
                     scenes.scenes[msg[1]].cues[bn].rel_length = True
-                    scenes.scenes[msg[1]].cues[bn].length=0.01
+                    scenes.scenes[msg[1]].cues[bn].length = 0.01
 
                 self.pushCueMeta(scenes.scenes[msg[1]].cues[bn].id)
 
@@ -962,7 +956,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setsoundfolders":
             # Set the global sound folders list
-            core.config['soundFolders'] = [i.strip().replace("\r",'').replace("\t",' ') for i in msg[1].split('\n') if i]
+            core.config['soundFolders'] = [i.strip().replace("\r", '').replace("\t", ' ')
+                                           for i in msg[1].split('\n') if i]
 
         else:
             raise ValueError("Unrecognized Command " + str(cmd_name))
