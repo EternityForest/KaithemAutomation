@@ -330,6 +330,7 @@ body {
     color: var(--fg);
     /* Disables pull-to-refresh but allows overscroll glow effects. */
     overscroll-behavior-y: contain;
+    overscroll-behavior-x: contain;
 }
 
 /*Classless styles */
