@@ -501,6 +501,10 @@ class BaseEvent:
         # Later we can use this to store performance info
         self.timeTakenToLoad = 0.0
 
+        # Some normally polled event types 
+        # can turn off pollng if config doesn't need it
+        self.polled = False
+
         # Copy in the data from args
         self.evt_persistant_data = PersistentData()
         self._prevstate = False
@@ -717,6 +721,9 @@ class BaseEvent:
     def begin_polling(self):
         # Note that we spread out the intervals by 0.15% to make them not all bunch up at once constantly.
         global insert_phase
+
+        if not self.polled:
+            return
 
         # Ensure we don't have 2 objects going.
         self.end_polling()
@@ -1040,7 +1047,7 @@ class PolledEvalEvent(CompileCodeStringsMixin):
 
         # Sometimes an event is used for its setup action and never runs.
         # If the trigger is False, it will never trigger, so we don't poll it.
-        if when == "False":
+        if str(when).strip() in("False","None","0"):
             self.polled = False
         # Compile the trigger
         x = compile(
