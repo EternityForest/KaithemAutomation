@@ -2,9 +2,7 @@ Change Log
 ----------
 
 
-### 0.77.0
-
-This release is all about manual testing of rarely used features
+### 0.77.0 Beta
 
 - :bug: Autosave did not save deletions, only changes
 - :bug: Fix chandler slide overlay refreshing over and over
@@ -14,6 +12,7 @@ This release is all about manual testing of rarely used features
 - :bug: Fix fade in not displayed after loading
 - :bug: Fix sound fade in for non-web audio
 - :bug: Fix sound "windup"
+- :bug: Chandler and mixer state could get out of sync if the websocket disconnected and reconnected
 - :sparkles: Move universe and fixture setup to a separate chandler setup page
 - :sparkles: Can now rename cues
 - :bug: Fix web player not starting at the right time after needing manual click to start
