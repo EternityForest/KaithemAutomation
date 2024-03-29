@@ -77,13 +77,13 @@
 
 
 
-${scenes.scenes_by_name[kwargs['scene']].mediaLink.render('link')}
+${scenes.scenes[kwargs['scene']].mediaLink.render('link')}
 
 <script src="/static/js/thirdparty/vue3.js"></script>
 <script src="/static/js/thirdparty/handlebars.js"></script>
 
 
-${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
+${scenes.scenes[kwargs['scene']].slideshow_layout}
 
 <script>
     var conv = new showdown.Converter({ metadata: true });
@@ -201,6 +201,9 @@ ${scenes.scenes_by_name[kwargs['scene']].slideshow_layout}
             telemetryName = v[1]
             localStorage.setItem('friendly_slideshow_device_name', v[1])
             send_telemetry()
+        }
+        else if(v[0] =='refresh'){
+            window.location.reload();
         }
 
         else if (v[0] == 'mediaURL') {

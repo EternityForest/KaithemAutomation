@@ -340,6 +340,7 @@ ${lists}
                 <p>This table shows the slideshow displays that are active or seen recently.</p>
                 <p>Only one display per IP/scene can be shown.  Battery status only works in Chrome</p>
                 <p>Ding plays a tone to identify and test the display.  You can assign displays friendly names to help identify them.</p>
+                <p>Be careful with refresh! Some browsers may respond badly if the network is messed up.</p>
 
                 <table>
                 <tr>
@@ -363,6 +364,7 @@ ${lists}
                     <td>
                         <button @click="mediaLinkCommand(v.scene, v.id, ['testAudio'])">Ding</button>
                         <button @click="promptRenameDisplay(v.scene, v.id)">Rename</button>
+                        <button @click="mediaLinkCommand(v.scene, v.id, ['refresh'])">Refresh</button>
                     </td>
 
                 </tr>
@@ -809,7 +811,7 @@ ${lists}
                     <details class="undecorated">
                         <summary>Cue Sound/Media</summary>
 
-                        <p><a :href="'webmediadisplay?scene='+editingScene.name">Web Media Display</a></p>
+                        <p><a :href="'webmediadisplay?scene='+editingScene.id">Web Media Display</a></p>
 
                         <div class="flex-row gaps">
 
