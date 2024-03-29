@@ -214,7 +214,7 @@ def test_lighting_value_set_tag():
         "type": "tagpoints"
     }}
 
-    board._onmsg('__admin__', ['setconfuniverses', universes])
+    board._onmsg('__admin__', ['setconfuniverses', universes],'nonexistantsession')
     board.check_autosave()
 
     # Make sure universe settings saved
@@ -329,7 +329,7 @@ def test_tag_io():
     s.go()
 
     # Simulate user input
-    board._onmsg('__admin__', ['inputtagvalue', s.id, 'ghjgy', 97])
+    board._onmsg('__admin__', ['inputtagvalue', s.id, 'ghjgy', 97], 'nonexistantsession')
 
     # Make sure the input tag thing actually sets the value
     assert tagpoints.Tag("/ghjgy").value == 97
