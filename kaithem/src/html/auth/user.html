@@ -71,7 +71,7 @@ checked="on"
 
 <h3>Groups</h3>
 <div class="window margin">
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
 User ${username} is a member of the following groups:<br>
 (Check or uncheck to set membership)</details>
 <div  class="stacked-form">
@@ -142,9 +142,9 @@ Err in login history${traceback.format_exc()}
 
                 %if hasattr(i, 'batteryStatus'):
                 <tr>
-                    <td><i class="icofont-ui-battery"></i>Battery Status:</td> 
+                    <td><i class="mdi mdi-battery"></i>Battery Status:</td> 
                     <td>${round(i.batteryStatus['level']*100)}%<meter min="0" max="100" low="20" value="${i.batteryStatus['level']*100}"></meter>
-                        ${'<i class="icofont-plugin"></i> Charging' if i.batteryStatus['charging'] else "Not Charging"}
+                        ${'<i class="mdi mdi-plugin"></i> Charging' if i.batteryStatus['charging'] else "Not Charging"}
                     </td>
                 </tr>
                 %endif

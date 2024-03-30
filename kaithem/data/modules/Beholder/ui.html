@@ -39,7 +39,7 @@ __doc__= "#Python Code here runs every page load"
         <script src="/static/js/thirdparty/vue3.js"></script>
         <script src="/static/js/thirdparty/luxon.min.js"></script>
 
-        <h2><i class="icofont-castle"></i>Beholder NVR</h2>
+        <h2><i class="mdi mdi-castle"></i>Beholder NVR</h2>
         <title>Beholder NVR</title>
 
             <div id="app" class="window" style="max-width: 100vw;">
@@ -49,11 +49,11 @@ __doc__= "#Python Code here runs every page load"
 
 
               <div class="tool-bar" style="width:100%">
-                <button v-on:click="tab='playback'" :class="{'highlight': tab=='playback'}"><i class="icofont-files-stack"></i>Recordings</button>
-                <button v-on:click="tab='cameras'" :class="{'highlight': tab=='cameras'}"><i class="icofont-cc-camera"></i>Cameras</button>
-                <button v-on:click="tab='multiview'" :class="{'highlight': tab=='multiview'}"><i class="icofont-table"></i>Wall Builder</button>
+                <button v-on:click="tab='playback'" :class="{'highlight': tab=='playback'}"><i class="mdi mdi-files-stack"></i>Recordings</button>
+                <button v-on:click="tab='cameras'" :class="{'highlight': tab=='cameras'}"><i class="mdi mdi-cctv"></i>Cameras</button>
+                <button v-on:click="tab='multiview'" :class="{'highlight': tab=='multiview'}"><i class="mdi mdi-table"></i>Wall Builder</button>
 
-                <button v-on:click="goFS()"><i class="icofont-expand"></i>Fullscreen</button>
+                <button v-on:click="goFS()"><i class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
 
               </div>
               <div style="display: flex; flex-wrap: wrap;">
@@ -61,7 +61,7 @@ __doc__= "#Python Code here runs every page load"
 
                   <div class="tool-bar" style="width:100%">
                   
-                    <button v-on:click="goFSWall()"><i class="icofont-expand"></i>Fullscreen</button>
+                    <button v-on:click="goFSWall()"><i class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
 
                   </div>
 
@@ -168,7 +168,7 @@ __doc__= "#Python Code here runs every page load"
                   <div class="tool-bar">
                         <p>Starting:</p><input v-model="searchtime" type="date">
                         <input v-model="searchcam" list="cameras" placeholder="All Cameras">
-                        <button v-on:click="getFiles(searchcam, searchtime)"><i class="icofont-binoculars"></i>Search</button>
+                        <button v-on:click="getFiles(searchcam, searchtime)"><i class="mdi mdi-binoculars"></i>Search</button>
                         <button :class="{'highlight': showClipThumbnails}" v-on:click="showClipThumbnails=!showClipThumbnails">Previews</button>
                   </div>
                     <div style="min-width:12vw; max-height: 25em; overflow-y: scroll;">

@@ -11,37 +11,37 @@ import os%>
 
     <div style="position: absolute; top: 0%; right: 0%; height: 6em; width: 10em;" class="decorative-image-corner-ur decorative-image"></div>
 <dl>
-<h3><i class="icofont-gears"></i>Settings</h3>
+<h3><i class="mdi mdi-cog-outline"></i>Settings</h3>
 <dl>
-<dt><a href="/settings/account"><i class="icofont-ui-user"></i>My Account</a></dt>
+<dt><a href="/settings/account"><i class="mdi mdi-account"></i>My Account</a></dt>
 <dd>View and edit your account and security info</dd>
-<dt><a href="/settings/system"><i class="icofont-ui-settings"></i>System Settings</a></dt>
+<dt><a href="/settings/system"><i class="mdi mdi-cog-outline"></i>System Settings</a></dt>
 <dd>View and edit system global settings</dd>
 <p class="warning">WARNING: Yappi has High CPU use, may crash on rasPi or similar.</p>
-<dt><a href="/auth/"><i class="icofont-ui-user-group"></i>Users and Groups</a></dt>
+<dt><a href="/auth/"><i class="mdi mdi-account-group"></i>Users and Groups</a></dt>
 <dd>Manage users, Groups, and Permissions</dd>
-<dt><a href="/settings/theming"><i class="icofont-adjust"></i>Appearance and Theming</a></dt>
-<dd>Manage theming    <a href=""><i class="icofont-game-controller"></i></a></dd>
+<dt><a href="/settings/theming"><i class="mdi mdi-adjust"></i>Appearance and Theming</a></dt>
+<dd>Manage theming    <a href=""><i class="mdi mdi-game-controller"></i></a></dd>
 <dt>Idle Status Reporting</dt>
 <dd>Show idle/screen lock status of this browser in the admin page. Mostly useful for kiosks. <button onclick="IdleDetector.requestPermission()">Enable reporting idle status</button></dd>
-<dt><a href="/settings/fix_alsa_volume"><i class="icofont-speaker"></i>Set ALSA mixer volume to full</a></dt>
+<dt><a href="/settings/fix_alsa_volume"><i class="mdi mdi-speaker"></i>Set ALSA mixer volume to full</a></dt>
 <dd>Quick shortcut to fix too-quiet Linux audio settings</dd>
 
 </dl>
 
-<h3><i class="icofont-quill-pen"></i>Logging</h3>
+<h3><i class="mdi mdi-quill-pen"></i>Logging</h3>
 <dl>
-<dt><a href="/settings/save"><i class="icofont-save"></i>Flush unsaved logs</a></dt>
+<dt><a href="/settings/save"><i class="mdi mdi-save"></i>Flush unsaved logs</a></dt>
 <dd>Commit in-memory data logs to disk.</dd>
-<dt><a href="/syslog"><i class="icofont-listing-box"></i>System Logs</a></dt>
+<dt><a href="/syslog"><i class="mdi mdi-listing-box"></i>System Logs</a></dt>
 <dd>View system and debug logs</dd>
-<dt><a href="/logs"><i class="icofont-bus-alt-2"></i>Message Bus Logs</a></dt>
+<dt><a href="/logs"><i class="mdi mdi-bus-alt-2"></i>Message Bus Logs</a></dt>
 <dd>View recent logs from the message bus, choose what topics are logged to the system log.</dd>
-<dt><a href="/settings/loginfailures"><i class="icofont-error"></i>Failed Login Attempts</a></dt>
+<dt><a href="/settings/loginfailures"><i class="mdi mdi-error"></i>Failed Login Attempts</a></dt>
 <dd>View IPs that have recently attempted to log in with an incorrect password</dd>
 </dl>
 
-<h3><i class="icofont-folder-open"></i>File Management</h3>
+<h3><i class="mdi mdi-folder-open"></i>File Management</h3>
 <dl>
 <dt><a href="/settings/files">File Manager</a></dt>
 <dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
@@ -53,21 +53,21 @@ import os%>
 <dd>Manage files made available to clients at <a href="/user_static">/user_static</a></dd>
 </dl>
 
-<h3><i class="icofont-light-bulb"></i>Status</h3>
+<h3><i class="mdi mdi-light-bulb"></i>Status</h3>
 <dl>
-<dt><a href="/tagpoints"><i class="icofont-chart-flow-2"></i>Tag Points</a></dt>
+<dt><a href="/tagpoints"><i class="mdi mdi-chart-flow-2"></i>Tag Points</a></dt>
 <dd>View Tagpoints</dd>
-<dt><a href="/settings/processes"><i class="icofont-monitor"></i>Processes</a></dt>
+<dt><a href="/settings/processes"><i class="mdi mdi-monitor"></i>Processes</a></dt>
 <dd>View processes running on the server(Depends on the unix utility top)</dd>
-<dt><a href="/settings/dmesg"><i class="icofont-monitor"></i>Kernel Messages</a></dt>
+<dt><a href="/settings/dmesg"><i class="mdi mdi-monitor"></i>Kernel Messages</a></dt>
 <dd>View dmesg output</dd>
-<dt><a href="/settings/threads"><i class="icofont-sub-listing"></i>Threads</a></dt>
+<dt><a href="/settings/threads"><i class="mdi mdi-sub-listing"></i>Threads</a></dt>
 <dd>View Kaithem Threads on the server.</dd>
-<dt><a href="/settings/gpio"><i class="icofont-circuit"></i>GPIO</a></dt>
+<dt><a href="/settings/gpio"><i class="mdi mdi-chip"></i>GPIO</a></dt>
 <dd>View GPIO that kaithem is using and spy on the status.</dd>
-<dt><a href="/settings/profiler"><i class="icofont-pie-chart"></i>Profiler</a></dt>
+<dt><a href="/settings/profiler"><i class="mdi mdi-pie-chart"></i>Profiler</a></dt>
 <dd>Measure and profile the application performance(Depends on the module yappi.)</dd>
-<dt><a href="/settings/screenshot"><i class="icofont-ui-camera"></i>Server Screenshot</a></dt>
+<dt><a href="/settings/screenshot"><i class="mdi mdi-camera"></i>Server Screenshot</a></dt>
 <dd>Get a screenshot of what's on the server</dd>
 
 <dt><a href="/settings/settime">Set Time</a></dt>
@@ -75,7 +75,7 @@ import os%>
 </dd>
 </dl>
 
-<h3><i class="icofont-tools"></i>Utilities</h3>
+<h3><i class="mdi mdi-tools"></i>Utilities</h3>
 <dl>
 
 <dt><a href="/settings/console">BASH Shell</a></dt>

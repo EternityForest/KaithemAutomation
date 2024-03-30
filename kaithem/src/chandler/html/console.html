@@ -138,21 +138,21 @@ ${lists}
             <p>{{clock}}</p>
             <button v-on:click="saveToDisk()"  :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
-                    class="icofont-quill-pen"></i>Save</button>
+                    class="mdi mdi-quill-pen"></i>Save</button>
         </div>
 
 
         <div class="menubar tool-bar">
-            <button v-on:click="showPresets=!showPresets"><i class="icofont-paint"></i>Presets</button>
-            <button v-on:click="showevents=!showevents"><i class="icofont-flag-alt-1"></i>Events</button>
+            <button v-on:click="showPresets=!showPresets"><i class="mdi mdi-paint"></i>Presets</button>
+            <button v-on:click="showevents=!showevents"><i class="mdi mdi-flag-alt-1"></i>Events</button>
             <button v-on:click="showimportexport=!showimportexport"><i
-                    class="icofont-folder-open"></i>Import/Export</button>
+                    class="mdi mdi-folder-open"></i>Import/Export</button>
             <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
-                        class="icofont-monitor"></i>Remote Displays</button>
+                        class="mdi mdi-monitor"></i>Remote Displays</button>
             <button onclick="document.documentElement.requestFullscreen()"><i
-                    class="icofont-expand"></i>Fullscreen</button>
-            <a class="button" href="docs/index" target="_blank"><i class="icofont-question-circle"></i>Help</a>
-            <a class="button" href="config"><i class="icofont-gears"></i>Settings</a><label>
+                    class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
+            <a class="button" href="docs/index" target="_blank"><i class="mdi mdi-question-circle"></i>Help</a>
+            <a class="button" href="config"><i class="mdi mdi-cog-outline"></i>Settings</a><label>
             <input type="checkbox" class="toggle" v-model="uiAlertSounds">Alert Sounds</label>
 
         </div>
@@ -160,9 +160,9 @@ ${lists}
         <div class="menubar tool-bar">
             <p><b>Keys:</b></p>
             <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><i
-                    class="icofont-pencil"></i>Edit Mode</button>
+                    class="mdi mdi-pencil"></i>Edit Mode</button>
             <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><i
-                    class="icofont-tick-mark"></i>Send Events</button>
+                    class="mdi mdi-tick-mark"></i>Send Events</button>
         </div>
 
     </section>
@@ -173,7 +173,7 @@ ${lists}
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
                     <header :class="v['barrel-class']" class="padding">
-                        <i class="icofont-warning"></i>{{i}}
+                        <i class="mdi mdi-warning"></i>{{i}}
                     </header>
                     <p :class="v['barrel-class']">{{v.message|| 'no trip message'}}</p>
                 </div>
@@ -193,7 +193,7 @@ ${lists}
                 </div>
                 <div class="tool-bar">
                     <input v-model="scenefilter" placeholder="Search" list="tracks" /><button
-                        v-on:click="scenefilter=''"><i class="icofont-close-line"></i>
+                        v-on:click="scenefilter=''"><i class="mdi mdi-close-line"></i>
                     </button>
                     <button v-on:click="showPages=!showPages">Compact</button>
 
@@ -215,7 +215,7 @@ ${lists}
                                             class="grey">
                                             (external)</span>
 
-                                        <i class="icofont-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
+                                        <i class="mdi mdi-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
                                     </button>
                                 </h4>
 
@@ -225,27 +225,27 @@ ${lists}
 
                             <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
                                 <small>{{formatTime(i[1].enteredCue)}}</small></span>
-                            <span v-if="cuemeta[i[1].cue].sound"><i class="icofont-ui-music"></i></span>
+                            <span v-if="cuemeta[i[1].cue].sound"><i class="mdi mdi-music"></i></span>
 
 
                             <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"
                                 v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
-                                    class="icofont-law-document"></i></span>
+                                    class="mdi mdi-script-text-outline"></i></span>
                             <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0"
                                 title="This cue has rules attatched"
                                 v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
-                                    class="icofont-law-document"></i></span>
+                                    class="mdi mdi-script-text-outline"></i></span>
                         </p>
                         <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
                         <div class="tool-bar" v-if="!i[1].utility">
                             <button :class="{'success':i[1].active, 'warning':i[1].status}" v-on:click="go(i[0])"><i
-                                    class="icofont-ui-play"></i>Go!</button>
-                            <button v-on:click="prevcue(i[0])"><i class="icofont-ui-previous"></i>Prev</button>
-                            <button v-on:click="nextcue(i[0])">Next<i class="icofont-ui-next"></i></button>
+                                    class="mdi mdi-play"></i>Go!</button>
+                            <button v-on:click="prevcue(i[0])"><i class="mdi mdi-skip-previous"></i>Prev</button>
+                            <button v-on:click="nextcue(i[0])">Next<i class="mdi mdi-skip-next"></i></button>
                             <button class="stopbutton" v-on:click="stop(i[0])"><i
-                                    class="icofont-ui-play-stop"></i>Stop</button>
+                                    class="mdi mdi-stop-circle-outline"></i>Stop</button>
                         </div>
                         <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
@@ -265,7 +265,7 @@ ${lists}
                         <div class="w-full flex">
                             <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                             <small><span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
-                                        class="icofont-wall-clock"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
+                                        class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
                         </div>
 
                         <footer>
@@ -285,8 +285,8 @@ ${lists}
             <footer class="padding">
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
-                    <button v-on:click="addScene()"><i class="icofont-ui-add"></i>Add</button>
-                    <button v-on:click="addMonitorScene()"><i class="icofont-binoculars"></i>Add Monitor</button>
+                    <button v-on:click="addScene()"><i class="mdi mdi-add"></i>Add</button>
+                    <button v-on:click="addMonitorScene()"><i class="mdi mdi-binoculars"></i>Add Monitor</button>
                 </div>
             </footer>
 
@@ -294,7 +294,7 @@ ${lists}
 
         <section class="window margin" v-if="showevents" class="flex-item"
             style="position:fixed; z-index:99; bottom:0px; width:78%;">
-            <h2> <button v-on:click="showevents=0"><i class="icofont-ui-close"></i>Close</button>Event
+            <h2> <button v-on:click="showevents=0"><i class="mdi mdi-close"></i>Close</button>Event
                 Log
             </h2>
             <input v-model="evfilt" placeholder="Filter events"><br>
@@ -334,7 +334,7 @@ ${lists}
             <header>
                 <div class="tool-bar">
                     <h3>Slideshow Players</h3>
-                    <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i class="icofont-close"></i>Close</button>
+                    <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i class="mdi mdi-close"></i>Close</button>
                 </div>
             </header>
                 <p>This table shows the slideshow displays that are active or seen recently.</p>
@@ -375,7 +375,7 @@ ${lists}
             <header>
                 <div class="tool-bar">
                     <h3>Import/Export controls</h3>
-                    <button v-on:click="showimportexport=!showimportexport"><i class="icofont-close"></i>Close</button>
+                    <button v-on:click="showimportexport=!showimportexport"><i class="mdi mdi-close"></i>Close</button>
 
                 </div>
             </header>
@@ -383,21 +383,21 @@ ${lists}
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
                 <p>Download:</p>
                 <a class="button" href="download" title="Download your scenes as a file"><i
-                        class="icofont-diskette"></i>Scenes</a>
+                        class="mdi mdi-content-save"></i>Scenes</a>
                 <a class="button" href="downloadSetup" title="Download your scenes as a file"><i
-                        class="icofont-diskette"></i>Setup</a>
+                        class="mdi mdi-content-save"></i>Setup</a>
                 <a class="button" href="downloadLibrary" title="Download your scenes as a file"><i
-                        class="icofont-diskette"></i>Fixture Lib</a>
+                        class="mdi mdi-content-save"></i>Fixture Lib</a>
             </div>
 
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
                 <p>Upload:</p>
                 <a class="button" href="upload" title="Upload a scenes file"><i
-                        class="icofont-folder-open"></i>Scenes</a>
+                        class="mdi mdi-folder-open"></i>Scenes</a>
                 <a class="button" href="uploadSetup" title="Upload a scenes file"><i
-                        class="icofont-folder-open"></i>Setup</a>
+                        class="mdi mdi-folder-open"></i>Setup</a>
                 <a class="button" href="uploadLibrary" title="Upload a scenes file"><i
-                        class="icofont-folder-open"></i>Fixture Lib</a>
+                        class="mdi mdi-folder-open"></i>Fixture Lib</a>
             </div>
         </section>
 
@@ -407,7 +407,7 @@ ${lists}
 
         <section v-if="showPresets" class="flex-item window paper" style="width: 32em;">
             <h3>Presets<button v-on:click="showPresets=0">
-                    <i class="icofont-ui-close"></i>Close</button>
+                    <i class="mdi mdi-close"></i>Close</button>
             </h3>
             <details class="help">
                 <summary>Help</summary>
@@ -421,8 +421,8 @@ ${lists}
                     <dt>
                         <div class="tool-bar">
                             <h4>{{ps[0]}}</h4>
-                            <button v-on:click="deletePreset(ps[0])"><i class="icofont-trash"></i>Delete</button>
-                            <button v-on:click="renamePreset(ps[0])"><i class="icofont-pencil"></i>Rename</button>
+                            <button v-on:click="deletePreset(ps[0])"><i class="mdi mdi-trash"></i>Delete</button>
+                            <button v-on:click="renamePreset(ps[0])"><i class="mdi mdi-pencil"></i>Rename</button>
                         </div>
                     </dt>
                     <dd style="display: flex; flex-wrap: wrap;">
@@ -470,7 +470,7 @@ ${lists}
                         <button v-on:click="cuefilter=''">x</button>
                     </p>
 
-                    <button v-on:click="delscene(scenename)"><i class="icofont-ui-delete"></i>Delete Scene</button>
+                    <button v-on:click="delscene(scenename)"><i class="mdi mdi-delete"></i>Delete Scene</button>
 
 
                 </div>
@@ -507,22 +507,22 @@ ${lists}
                                     {{i[1].name}}
 
                                     <i v-if="cuemeta[editingScene.cue].name==i[1].name"
-                                        class="icofont-ui-play nomargin"></i>
+                                        class="mdi mdi-play nomargin"></i>
                                     <span v-if="selectedCues[scenename]==i[1].name"><i
-                                            class="icofont-pencil nomargin"></i></span>
+                                            class="mdi mdi-pencil nomargin"></i></span>
 
-                                    <i class="icofont-light-bulb nomargin" v-if="i[1].hasLightingData"
+                                    <i class="mdi mdi-light-bulb nomargin" v-if="i[1].hasLightingData"
                                         title="This cue has lighting commands"></i>
 
-                                    <i class="icofont-audio nomargin" v-if="i[1].sound"></i>
-                                    <i class="icofont-monitor nomargin" v-if="i[1].slide"></i>
+                                    <i class="mdi mdi-audio nomargin" v-if="i[1].sound"></i>
+                                    <i class="mdi mdi-monitor nomargin" v-if="i[1].slide"></i>
 
                                     <span v-if="i[1].inheritRules" title="This cue has rules inherited"><i
-                                            class="icofont-law-document nomargin"></i></span>
+                                            class="mdi mdi-script-text-outline nomargin"></i></span>
 
                                     <span v-if="i[1].rules && i[1].rules.length>0"
                                         title="This cue has rules attatched"><i
-                                            class="icofont-law-document nomargin"></i></span>
+                                            class="mdi mdi-script-text-outline nomargin"></i></span>
                                 </td>
 
 
@@ -588,11 +588,11 @@ ${lists}
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newcuename" placeholder="New cue name" list="specialcues">
                     <button v-on:click="add_cue(scenename,newcuename)">
-                        <i class="icofont-ui-add"></i>Add Cue</button>
+                        <i class="mdi mdi-add"></i>Add Cue</button>
                     <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
-                        <i class="icofont-ui-copy"></i>Clone Cue</button>
+                        <i class="mdi mdi-copy"></i>Clone Cue</button>
                     <button v-on:click="rmcue(currentcueid)">
-                        <i class="icofont-trash"></i>Delete Current</button>
+                        <i class="mdi mdi-trash"></i>Delete Current</button>
                 </div>
             </div>
 
@@ -613,9 +613,9 @@ ${lists}
                     <summary>Cue Channel Values</summary>
                     <div class="tool-bar">
                         <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
-                                class="icofont-settings"></i>Normal View</button>
+                                class="mdi mdi-cog-outline"></i>Normal View</button>
                         <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
-                                class="icofont-listing-box"></i>Channels</button>
+                                class="mdi mdi-listing-box"></i>Channels</button>
                     </div>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox">
                         <template v-for="(h,uname) in cuevals[currentcueid]">
@@ -647,7 +647,7 @@ ${lists}
                                         <button v-on:click="savePreset(h)">Save</button>
                                     </div>
                                     <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
-                                        <i class="icofont-trash"></i>
+                                        <i class="mdi mdi-trash"></i>
                                     </button>
                                 </header>
                                 <div class="scroll nomargin h-24rem padding-bottom">
@@ -677,7 +677,7 @@ ${lists}
                                         </combo-box>
                                     </label>
 
-                                    <button  :disabled="no_edit" v-on:click="addValToCue()"><i class="icofont-ui-add"></i>Add Channel to
+                                    <button  :disabled="no_edit" v-on:click="addValToCue()"><i class="mdi mdi-add"></i>Add Channel to
                                         Cue</button>
                                 </div>
 
@@ -692,10 +692,10 @@ ${lists}
                                         <tr v-for="(v,i) in fixtureAssignments">
                                             <td>{{v.universe}}:{{i}} at {{v.channel}}</td>
                                             <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
-                                                        class="icofont-ui-add"></i>Add</button>
+                                                        class="mdi mdi-add"></i>Add</button>
                                             </td>
                                             <td><button v-on:click="addRangeEffect(i)"><i
-                                                        class="icofont-ui-add"></i>Range
+                                                        class="mdi mdi-add"></i>Range
                                                     Effect</button>
                                             </td>
                                         </tr>
@@ -710,12 +710,12 @@ ${lists}
 
 
                 <details class="undecorated">
-                    <summary><i class="icofont-law-document"></i>Cue Logic</summary>
+                    <summary><i class="mdi mdi-script-text-outline"></i>Cue Logic</summary>
 
                     <div>
                         <h3>Automation Logic</h3>
                         <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>
+                            <summary><i class="mdi mdi-question-circle"></i></summary>
                             <p>
                                 Here you can create rules that
                                 apply whenever the scene is in this cue, to
@@ -969,7 +969,7 @@ ${lists}
                                             <ul class="w-full">
                                                 <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
                                                 <li v-on:click="setSoundfileDir(soundfilesdir)">
-                                                    <a><i class="icofont-refresh"></i>Refresh</a>
+                                                    <a><i class="mdi mdi-refresh"></i>Refresh</a>
                                                 </li>
                                                 <li v-if="soundfilesdir"
                                                     v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
@@ -1013,7 +1013,7 @@ ${lists}
                                         <h4>Sound Outputs</h4>
                                     </header>
                                     <details class="help">
-                                        <summary><i class="icofont-question-circle"></i></summary>To use play videos,
+                                        <summary><i class="mdi mdi-question-circle"></i></summary>To use play videos,
                                         you
                                         must
                                         use the web remote display feature. Cue
@@ -1163,11 +1163,11 @@ ${lists}
                                     </label>
                                     <p>
                                         <button v-on:click="gotonext(currentcueid)">
-                                            <i class="icofont-arrow-right"></i>Edit Next</button>
+                                            <i class="mdi mdi-arrow-right"></i>Edit Next</button>
                                         <button
                                             title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
                                             v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
-                                            <i class="icofont-copy"></i>Clone to Next</button>
+                                            <i class="mdi mdi-copy"></i>Clone to Next</button>
                                     </p>
 
                                     <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
@@ -1256,7 +1256,7 @@ ${lists}
                                         v-model="editingScene.bpm">
                                 </label>
                                 <button v-on:click="tap(scenename)" class="grow">
-                                    <i class="icofont-hand-drag1"></i>Tap
+                                    <i class="mdi mdi-hand-drag1"></i>Tap
                                 </button>
                             </p>
 
@@ -1379,14 +1379,14 @@ ${lists}
                             <label>Download just this scene
                                 <a class="button"
                                     v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
-                                    title="Download your scene as a file"><i class="icofont-download"></i>Download
+                                    title="Download your scene as a file"><i class="mdi mdi-download"></i>Download
                                     Scene</a>
                             </label>
 
                             <label>Download audio playlist as m3u
                                 <a class="button"
                                     v-bind:href="'downloadm3u?id='+scenename+'&rel=&name='+editingScene.name"
-                                    title="Download your scene as a file"><i class="icofont-download"></i>Download
+                                    title="Download your scene as a file"><i class="mdi mdi-download"></i>Download
                                     Playlist</a>
                             </label>
 
@@ -1397,7 +1397,7 @@ ${lists}
 
                             <label>Add new cues from playlist
                                 <a class="button" v-bind:href="'uploadm3u?id='+scenename" title="Upload a playlist"><i
-                                        class="icofont-folder-open"></i>Upload M3U Playlist</a>
+                                        class="mdi mdi-folder-open"></i>Upload M3U Playlist</a>
                             </label>
 
                             <p>Uploads use fuzzy search and should work as long as media files exist somewhere in a
@@ -1515,7 +1515,7 @@ ${lists}
                         <h5>Display and Input Tags</h5>
 
                         <details class="help">
-                            <summary><i class="icofont-question-circle"></i></summary>
+                            <summary><i class="mdi mdi-question-circle"></i></summary>
                             <p>Lets you display some tag
                                 points
                                 in
@@ -1564,7 +1564,7 @@ ${lists}
                                         v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button>
 
                                     <a v-bind:href="'/tagpoints/'+encodeURIComponent(v[1])"><i
-                                            class="icofont-gear"></i></a>
+                                            class="mdi mdi-gear"></i></a>
                                 </td>
 
 

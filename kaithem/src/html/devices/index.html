@@ -33,7 +33,7 @@ import urllib.parse
 <div class="tool-bar">
     <a href="/devices/report">Printable Report</a>
 </div>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
     This section provides an easy way to configure devices supported
     by Kaithem's remote device abstraction layer.
 </details>
@@ -78,19 +78,19 @@ else:
           
 
         %if 'switch' in devObj.tagpoints:
-            <button onclick="req('toggletarget/${url(i)}')"><i class="icofont-light-bulb"></i>Toggle</button>
+            <button onclick="req('toggletarget/${url(i)}')"><i class="mdi mdi-light-bulb"></i>Toggle</button>
         %endif
 
         %if 'start' in devObj.tagpoints and devObj.tagpoints['start'].subtype=='trigger':
-        <button onclick="req('triggertarget/${url(i)}/start')"><i class="icofont-light-bulb"></i>Start</button>
+        <button onclick="req('triggertarget/${url(i)}/start')"><i class="mdi mdi-light-bulb"></i>Start</button>
         %endif
 
         %if 'stop' in devObj.tagpoints and devObj.tagpoints['stop'].subtype=='trigger':
-        <button onclick="req('triggertarget/${url(i)}/stop')"><i class="icofont-light-bulb"></i>Stop</button>
+        <button onclick="req('triggertarget/${url(i)}/stop')"><i class="mdi mdi-light-bulb"></i>Stop</button>
         %endif
 
         %if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
-        <a href="deleteDevice/${url(i)}" class="button" style="flex-grow:0"><i class="icofont-ui-delete"></i></a>
+        <a href="deleteDevice/${url(i)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
         %endif
 
         </div>

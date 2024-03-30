@@ -19,7 +19,7 @@ if __name__=='__setup__':
     __doc__=''
     
     def nbr():
-        return(50, '<a href="/pages/Beholder/ui"><i class="icofont-castle"></i>Beholder</a>')
+        return(50, '<a href="/pages/Beholder/ui"><i class="mdi mdi-castle"></i>Beholder</a>')
     kaithem.web.nav_bar_plugins['Beholder']=nbr
 
 def eventAction():

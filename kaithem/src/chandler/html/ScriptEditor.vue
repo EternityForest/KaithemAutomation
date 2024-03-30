@@ -160,7 +160,7 @@ p.small {
                                         {{ j }}
                                     </template>
                                 </button>
-                                <i class="icofont-arrow-right" style="align-self:center; text-align:center;"></i>
+                                <i class="mdi mdi-arrow-right" style="align-self:center; text-align:center;"></i>
 
                             </div>
                             <div style="align-self:stretch;">

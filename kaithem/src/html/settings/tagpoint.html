@@ -167,7 +167,7 @@ else:
 <script src="/static/js/widget.js"></script>
 <h2><a href="/tagpoints/${extraUrlStuff}">(back)</a><a href="/tagpoints/${normalizednormalizedTagName|u}?show_advanced=y">(Advanced View)</a> Tag Point: <small>${normalizednormalizedTagName}</small></h2>
 <div class="window paper">
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
     This page manages one tagpoint. To save configured defaults you must save the server state
     to disk.  The important thing to know about tag points is that they have two configurations: runtime and configured.
 
@@ -187,7 +187,7 @@ else:
     
 
 <h3>Temporary Override</h3>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
    Only direct literal values are supported here.  These values will not survive a reboot.
    Re-saving and this page will restart the timer, otherwise the claim wil go away at the end of the delay.
 </details>
@@ -222,7 +222,7 @@ else:
 <div style="display: none;">
 %endif
 
-<h3>Permanent Override/Fixed Claim</h3><details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<h3>Permanent Override/Fixed Claim</h3><details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
     You can use an =expression as the value to create a dynamic getter.  The expression polls at the tag's interval if there are any subscribers, just like any other getter.
     if you use tv('tagName') or stv('stringTagName') in your expression, it will also re-evaluate when any of the tags you use change.  As with alarms,
     you have access to kaithem, random, math, and numpy, plus dateutil and dateutil.parser.
@@ -311,7 +311,7 @@ else:
 </table>
 
 <h3>Config</h3>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>If you do not configure a type, the tag will not exist until requested via code.</details>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>If you do not configure a type, the tag will not exist until requested via code.</details>
 <table border="1" class="w-full">
 <tr>
     <th>Type/Create As</th>
@@ -393,7 +393,7 @@ else:
 
 
 <h3>Value(source at page load: ${tag.activeClaim().name})</h3>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
     The default value affects tags immediately when created, when they have never been set by anything else.
     Changes will not take effect immediately if the tag has already been set.
     Default values cannot be =expressions.
@@ -549,12 +549,12 @@ else:
 </table>
 
 <h3>Loggers</h3>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>These loggers control the logging of tag data to history.db</br>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>These loggers control the logging of tag data to history.db</br>
 Interval is the maximum rate to log at. No logs are created if there are no changes. Tags that change more often than the interval will always 'flush' the most recent value after sufficient time.</br>
 Accumulate determines what happens to multiple readings within an interval.  To store the latest, use latest. To store the mean for the whole interval, use average.</br>
 Set the interval to 0 to delete the logger. Set history length to 0 to disable deleting old data.</details>
 
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>Set the target to ram to only log in memory, but beware filling availible space.</details>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>Set the target to ram to only log in memory, but beware filling availible space.</details>
 
 <table border=1 class="w-full">
     <tr>

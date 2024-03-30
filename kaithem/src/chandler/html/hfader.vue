@@ -6,7 +6,7 @@
 
         <div>
             <b v-if="chinfo" v-bind:title="'Actual channel:' + i.u + ':' + i.ch">{{ i.ch }}</b>
-            <button v-if="showdelete" v-on:click="rmValFromCue(i.u, i.ch)"><i class="icofont-trash"></i>Remove</button>
+            <button v-if="showdelete" v-on:click="rmValFromCue(i.u, i.ch)"><i class="mdi mdi-trash"></i>Remove</button>
         </div>
 
         <span v-if="typeof (i.v) == 'string'">

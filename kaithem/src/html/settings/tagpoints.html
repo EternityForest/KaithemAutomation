@@ -31,7 +31,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 
 <h1>Tag Points</h1>
 <div class="window paper">
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
     This page lists all <a href="/docs/mdtemplate?page=tagpoints.md">Tag Points</a> currently managed by Kaithem. 
     Creating a tag with a name beginning with "=" allows you to create expression tags,
     similar to soft tags in many SCADA systems.
@@ -72,7 +72,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a>
     %if tagpoints.allTagsAtomic[i]().configLoggers:
-    <i  title="Logging is enabled for this tag" class="icofont-ui-press"></i>
+    <i  title="Logging is enabled for this tag" class="mdi mdi-press"></i>
     %endif
     </td>
     <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().lastValue}</td>
@@ -130,7 +130,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
     <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
 </div>
 <h3>Configured but not used</h3>
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>Empty configs go away when the server state is saved</details>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>Empty configs go away when the server state is saved</details>
 <ul>
 %for i in tagpoints.configTagData:
 %if not i in tagpoints.allTags:

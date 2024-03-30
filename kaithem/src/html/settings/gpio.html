@@ -61,11 +61,11 @@
   <div id="app" style="min-width: 80%; max-width: 10000%; ">
    
     <h2>Digital Inputs in Use</h2>
-    <details class="help"><summary><i class="icofont-question-circle"></i></summary>
+    <details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
         Only inputs via kaithem.gpio are shown.  You can "Mock" a pin, effectivly switching the pin into a virtual
         mode where it ignores real input and only watches your virtual commands.
     </details>
-    <details class="help"><summary><i class="icofont-question-circle"></i></summary>
+    <details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
         Note that GPIOZero natively supports active-low pins. A pin is active when the voltage matches the configured active state,
         which can be high or low. Active low pins are "active" when the raw input is low.
     </details>
@@ -84,14 +84,14 @@
        <tr v-for="i in dictView(inputs, ['p'])">
            <td data-label="Pin:" class="pin"><b>{{i[0]}}</b></td>
            <td data-label="Active:" title="If the pin is active, NOT the raw voltage input">
-            <i class="icofont-light-bulb" v-if="i[1].v"></i>
+            <i class="mdi mdi-light-bulb" v-if="i[1].v"></i>
             
             {{i[1].v ? 'active':"inactive"}}</td>
            <td data-label="Comment:">{{i[1].c}}</td>
            <td data-label="Mocked:">
-            <i class="icofont-wrench" v-if="i[1].m"></i>
+            <i class="mdi mdi-wrench" v-if="i[1].m"></i>
 
-            <i class="icofont-leaf" v-if="!i[1].m"></i>
+            <i class="mdi mdi-leaf" v-if="!i[1].m"></i>
 
             {{i[1].m ? 'Mocked':"Live"}}
            </td>
@@ -105,10 +105,10 @@
    </table>
 
    <h2>Digital Outputs in Use</h2>
-   <details class="help"><summary><i class="icofont-question-circle"></i></summary>
+   <details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
        Only outputs via kaithem.gpio are shown.
    </details>
-   <details class="help"><summary><i class="icofont-question-circle"></i></summary>
+   <details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
        Note that GPIOZero natively supports active-low pins. An active output is set to the "active state" which may be low or high.
    </details>
    <table border="1">
@@ -126,13 +126,13 @@
       <tr v-for="i in dictView(outputs, ['p'])">
           <td data-label="Pin:" class="pin"><b>{{i[0]}}</b></td>
           <td data-label="Active:" title="If the pin is active, NOT the raw voltage input">
-            <i class="icofont-light-bulb" v-if="i[1].v"></i>
+            <i class="mdi mdi-light-bulb" v-if="i[1].v"></i>
            {{i[1].v ? 'active':"inactive"}}</td>
           <td data-label="Comment:">{{i[1].c}}</td>
           <td data-label="Overridden:">
             
-            <i class="icofont-wrench" v-if="i[1].m"></i>
-            <i class="icofont-leaf" v-if="!i[1].m"></i>
+            <i class="mdi mdi-wrench" v-if="i[1].m"></i>
+            <i class="mdi mdi-leaf" v-if="!i[1].m"></i>
            {{i[1].m ? 'Overridden':"Live"}}
           </td>
           <td data-label="Active high?:" title="Does the active state cause a high output voltage?">{{i[1].a_s}}</td>

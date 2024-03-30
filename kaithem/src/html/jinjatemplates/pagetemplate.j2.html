@@ -101,7 +101,7 @@
       {% if pages.canUserDoThis("view_status") %}
       <button style="flex-grow: 0"
         onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='block';document.getElementById('kaithem-main-dropdown-iframe').src='/dropdownpanel'">
-        <i class="icofont-dotted-down"></i></button>
+        <i class="mdi mdi-dotted-down"></i></button>
 
       <a href="/index"><b>{{socket.gethostname()|escape}}</b>
 
@@ -117,20 +117,20 @@
 
 
 
-      <a href="/modules/"><i class="icofont-briefcase"></i>
+      <a href="/modules/"><i class="mdi mdi-briefcase"></i>
         Modules</a>
 
-      <a href="/devices"><i class="icofont-usb-drive"></i>
+      <a href="/devices"><i class="mdi mdi-chip"></i>
         Devices</a>
 
 
 
-      <a href="/tagpoints"><i class="icofont-molecule"></i>Tags</a>
+      <a href="/tagpoints"><i class="mdi mdi-molecule"></i>Tags</a>
 
-      <a href="/settings/mixer"><i class="icofont-ui-volume"></i>Mixer</a>
+      <a href="/settings/mixer"><i class="mdi mdi-volume-high"></i>Mixer</a>
 
       <a href="/settings">
-        <i class="icofont-gears"></i>
+        <i class="mdi mdi-cog-outline"></i>
 
         {% if auth.authchanged %}
         <span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
@@ -147,24 +147,24 @@
         {% endif %}
         Tools</a>
 
-      <a href="/helpmenu"><i class="icofont-book"></i>Help</a>
+      <a href="/helpmenu"><i class="mdi mdi-book-open-blank-variant-outline"></i>Help</a>
 
       {% if "kaithem_auth" in cherrypy.request.cookie %}
       {% if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens %}
       <form style="flex-grow: 0.05;" method="POST" action="/login/logout">
         <button href="/login/logout"><i
-            class="icofont-key"></i>Logout({{ pages.getAcessingUser()[:10]| escape }})</button>
+            class="mdi mdi-key"></i>Logout({{ pages.getAcessingUser()[:10]| escape }})</button>
       </form>
 
       {% else %}
       <a style="flex-grow: 0.05;" href="/login?go={{ base64.b64encode(cherrypy.url().encode()).decode() }}"><i
-          class="icofont-key"></i>Login</a>
+          class="mdi mdi-key"></i>Login</a>
       {% endif %}
 
 
       {% else %}
       <a style="flex-grow: 0.05;" href="/login?go={{ base64.b64encode(cherrypy.url().encode()).decode() }}"><i
-          class="icofont-key"></i>Login</a>
+          class="mdi mdi-key"></i>Login</a>
       {% endif %}
 
 
@@ -178,7 +178,7 @@
     style="z-index: 5; display:none; position: absolute; left:0.6em; top:3em;width: 35wv;">
     <div class="tool-bar">
       <button onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='none'"><i
-          class="icofont-ui-close"></i>Close</button>
+          class="mdi mdi-close"></i>Close</button>
     </div>
     <iframe id="kaithem-main-dropdown-iframe" style="height: 80vh; width: 100%; max-height: 80vh;"
       height="80%"></iframe>

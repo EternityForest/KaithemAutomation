@@ -125,7 +125,7 @@ ${jackmixer.global_api.render("gapi")}
         <div v-if="activePane=='presets'">
           <h2>Presets</h2>
           <details class="help">
-            <summary><i class="icofont-question-circle"></i></summary>Presets let you load and save the entire state
+            <summary><i class="mdi mdi-question-circle"></i></summary>Presets let you load and save the entire state
             of
             the mixing board. When kaithem boots, the preset
             named "default" will be loaded if it exists. Presets are saved immediately to
@@ -299,8 +299,8 @@ ${jackmixer.global_api.render("gapi")}
                   v-bind:title="channel.fader">
 
                 <button v-on:click="setMute(channelname, !channel.mute)" title="Mute channel" type="checkbox">
-                  <i v-if="channel.mute" class="icofont-ui-mute" style="color: red; background-color:black"></i>
-                  <i v-if="!channel.mute" class="icofont-ui-mute"></i>
+                  <i v-if="channel.mute" class="mdi mdi-volume-mute" style="color: red; background-color:black"></i>
+                  <i v-if="!channel.mute" class="mdi mdi-volume-mute"></i>
 
                 </button>
 
@@ -349,7 +349,7 @@ ${jackmixer.global_api.render("gapi")}
           <h3>Recorder ({{recordStatus}})</h3>
         </header>
           <details class="help">
-            <summary><i class="icofont-question-circle"></i></summary>Jack name: krecorder, channels will
+            <summary><i class="mdi mdi-question-circle"></i></summary>Jack name: krecorder, channels will
             autoconnect.
             <br>Files in <a
               href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a>

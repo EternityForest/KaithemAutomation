@@ -323,14 +323,14 @@ kaithem.chandler = k_interface
 def nbr():
     return (
         50,
-        '<a href="/chandler/commander"><i class="icofont-cheer-leader"></i>Chandler</a>',
+        '<a href="/chandler/commander"><i class="mdi mdi-cheer-leader"></i>Chandler</a>',
     )
 
 
 kaithem.web.nav_bar_plugins["chandler"] = nbr
 
 def nbr2():
-    return (50, '<a href="/chandler/editor"><i class="icofont-pencil"></i>Editor</a>')
+    return (50, '<a href="/chandler/editor"><i class="mdi mdi-pencil"></i>Editor</a>')
 
 kaithem.web.nav_bar_plugins["chandler2"] = nbr2
 

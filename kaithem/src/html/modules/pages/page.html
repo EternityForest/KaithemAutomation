@@ -110,7 +110,7 @@ onsubmit="document.getElementById('box').value = editor.getValue();document.getE
 <input type="submit" name="GoNow" value="Save Changes and go to page" onclick="wasChanged=false">
 </input>
 
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
     <p></p>This page body will be interpreted as jinja2 template code if enabled.</p>
 
     <p>The <a href="/docs#kaithemobject">kaithem object</a> is availible as "kaithem" to python code embedded in markup.
@@ -324,7 +324,7 @@ document.getElementById("codebox").style="display:none;";
 </script>
 %endif
 
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
 <span class="settings-icon">These extra settings let you control the display or permissions of the page
 </details>
 <div class="max-h-12rem scroll border">
@@ -482,7 +482,7 @@ else:
     
 </div>
 
-<details><summary><i class="icofont-key"></i>Permissions</summary>
+<details><summary><i class="mdi mdi-key"></i>Permissions</summary>
     
     <p>Require the following permissions to access this page</p>
     <div class="max-h-12rem scroll border">
@@ -535,7 +535,7 @@ p = usrpages.getPageOutput(module,name)
 <h3>Output(${len(p)} bytes)</h3>
 <pre>${p|h}</pre>
 %endif
-<details class="help"><summary><i class="icofont-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
 Saving this module will cause it to be immediately acessable from the web.
 </details>
 %if pages.canUserDoThis("system_admin"):

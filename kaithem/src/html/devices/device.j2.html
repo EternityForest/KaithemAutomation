@@ -157,7 +157,7 @@
 
             <details>
                 <summary>
-                    <b><i class="icofont-question-circle"></i>Help</b>
+                    <b><i class="mdi mdi-question-circle"></i>Help</b>
                 </summary>
                 {% if hasattr(obj,'description') and obj.description %}
 
@@ -195,11 +195,11 @@
 
                 <summary>
                     <b><i
-                            class="icofont-link"></i>Bindings({{ len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[]))  }})</b>
+                            class="mdi mdi-link"></i>Bindings({{ len(data.get('kaithem.input_bindings',[])) + len(data.get('kaithem.input_bindings',[]))  }})</b>
                 </summary>
 
                 <details class="help">
-                    <summary><i class="icofont-question-circle"></i></summary>
+                    <summary><i class="mdi mdi-question-circle"></i></summary>
 
                     <p>A binding lets you make a data point of a device mirror an external point.
                         Following a publish subscribe model,
@@ -222,10 +222,10 @@
 
 
 
-                <h2><i class="icofont-link"></i>Output Bindings</h2>
+                <h2><i class="mdi mdi-link"></i>Output Bindings</h2>
 
                 <details class="help">
-                    <summary><i class="icofont-question-circle"></i></summary>An output binding is
+                    <summary><i class="mdi mdi-question-circle"></i></summary>An output binding is
                     just a command that the destination tag should change whenever the source tag
                     does.
                     The source tag is one that is owned by this device.
@@ -242,7 +242,7 @@
             <details>
 
                 <summary>
-                    <b><i class="icofont-ui-settings"></i>Settings</b>
+                    <b><i class="mdi mdi-cog-outline"></i>Settings</b>
                 </summary>
 
 
@@ -256,7 +256,7 @@
                         <td style="max-width: 30%;">
                             {% if obj.config_properties.get(i,{}).get("description",'') %}
                             <details>
-                                <summary><i class="icofont-question-circle"></i><b>{{ i[7:]| escape }}</b>
+                                <summary><i class="mdi mdi-question-circle"></i><b>{{ i[7:]| escape }}</b>
                                 </summary>
                                 {{ obj.config_properties.get(i,{}).get("description",'')|escape}}
                             </details>
@@ -293,7 +293,7 @@
                             {% if obj.config_properties.get(i,{}).get("type") =='local_fs_dir' %}
 
                             <a class="button" href="/settings/files/{{ url(os.path.expanduser(obj.config[i])) }}"><i
-                                    class="icofont-ui-folder"></i>Browse
+                                    class="mdi mdi-folder"></i>Browse
                                 {{ os.path.expanduser(obj.config[i])| escape }}</a>
                             {% endif %}
 
@@ -308,7 +308,7 @@
                 <h3>Permissions</h3>
                 <div>
                     <details class="help">
-                        <summary><i class="icofont-question-circle"></i></summary>
+                        <summary><i class="mdi mdi-question-circle"></i></summary>
                         Set a default for all tag points exposed by this device. You can further
                         refine this in the tag points manager.
                         It is preferable to do things at the device-level, as devices can be
@@ -318,7 +318,7 @@
                     </details>
 
                     <details class="help">
-                        <summary><i class="icofont-question-circle"></i></summary>
+                        <summary><i class="mdi mdi-question-circle"></i></summary>
                         Currently this is only supported for the newer cross-framework devices.
                     </details>
 
@@ -339,7 +339,7 @@
 
             <details>
                 <summary>
-                    <b><i class="icofont-ui-text-chat"></i>Alerts</b>
+                    <b><i class="mdi mdi-text-chat"></i>Alerts</b>
                 </summary>
 
 
@@ -373,9 +373,9 @@
                         </td>
                         <td>
                             {% if obj.alerts[i].sm.state=='normal' %}
-                            <i class="icofont-ui-check"></i>
+                            <i class="mdi mdi-check"></i>
                             {% else %}
-                            <i class="icofont-warning"></i>
+                            <i class="mdi mdi-warning"></i>
                             {% endif %}
 
                             {{ obj.alerts[i].sm.state }}
@@ -391,7 +391,7 @@
             {% for i in obj.text_config_files %}
             <details>
                 <summary>
-                    <b><i class="icofont-file-alt"></i>{{ i| escape }}</b>
+                    <b><i class="mdi mdi-file-alt"></i>{{ i| escape }}</b>
                 </summary>
                 <textarea class="h-24rem w-full"
                     name=" filedata.{{ i }}">{{ read(obj.get_config_folder()+"/"+i)| escape }}</textarea>
@@ -402,10 +402,10 @@
             {% if obj.get_config_folder(create=False) %}
             <details>
                 <summary>
-                    <b><i class="icofont-file-alt"></i>Config Folder</b>
+                    <b><i class="mdi mdi-file-alt"></i>Config Folder</b>
                 </summary>
                 <a class="button" href="/settings/files/{{ url(obj.get_config_folder()) }}"><i
-                        class="icofont-ui-folder"></i>Browse</a>
+                        class="mdi mdi-folder"></i>Browse</a>
             </details>
             {% endif %}
 
@@ -413,7 +413,7 @@
             {% if hasattr(obj,'metadata') and obj.metadata %}
             <details>
                 <summary>
-                    <b><i class="icofont-ui-text-chat"></i>Metadata</b>
+                    <b><i class="mdi mdi-text-chat"></i>Metadata</b>
                 </summary>
                 <table border="1" style="width:100%">
                     <tr>
@@ -436,7 +436,7 @@
                 {% endif %}
             </details>
 
-            <b><i class="icofont-chart-flow-2"></i>Tag Points</b>
+            <b><i class="mdi mdi-chart-flow-2"></i>Tag Points</b>
 
             <script>
 
