@@ -130,7 +130,11 @@ ${alertsapi.render("alertapi")}
         %for i in l:
         <div class="${getClass(i)}" style="padding: 4px; ;margin:8px; border-radius: 12px; border: 1px solid; ;block-size:fit-content;word-wrap: break-word;">
             <div>
-                <span style="font-size:120%;">${i.name}</span><span style="font-size:120%">:${i.sm.state}</span><br>
+                <span style="font-size:120%;">
+                    %if i.priority  in ('error', 'critical','warning'):
+                    <span class="mdi mdi-alert"></span>
+                    %endif
+                    ${i.name}</span><span style="font-size:120%">:${i.sm.state}</span><br>
 
                 <span class="grey">
             Priority: ${i.priority}</span> <br><span class="grey">

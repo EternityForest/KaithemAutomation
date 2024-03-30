@@ -138,13 +138,13 @@ ${lists}
             <p>{{clock}}</p>
             <button v-on:click="saveToDisk()"  :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
-                    class="mdi mdi-quill-pen"></i>Save</button>
+                    class="mdi mdi-content-save"></i>Save</button>
         </div>
 
 
         <div class="menubar tool-bar">
             <button v-on:click="showPresets=!showPresets"><i class="mdi mdi-palette"></i>Presets</button>
-            <button v-on:click="showevents=!showevents"><i class="mdi mdi-flag-alt-1"></i>Events</button>
+            <button v-on:click="showevents=!showevents"><i class="mdi mdi-flag"></i>Events</button>
             <button v-on:click="showimportexport=!showimportexport"><i
                     class="mdi mdi-folder-open"></i>Import/Export</button>
             <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
@@ -162,7 +162,7 @@ ${lists}
             <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><i
                     class="mdi mdi-pencil"></i>Edit Mode</button>
             <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><i
-                    class="mdi mdi-tick-mark"></i>Send Events</button>
+                    class="mdi mdi-flag"></i>Send Events</button>
         </div>
 
     </section>
@@ -173,7 +173,7 @@ ${lists}
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
                     <header :class="v['barrel-class']" class="padding">
-                        <i class="mdi mdi-warning"></i>{{i}}
+                        <i class="mdi mdi-alert"></i>{{i}}
                     </header>
                     <p :class="v['barrel-class']">{{v.message|| 'no trip message'}}</p>
                 </div>
@@ -193,7 +193,7 @@ ${lists}
                 </div>
                 <div class="tool-bar">
                     <input v-model="scenefilter" placeholder="Search" list="tracks" /><button
-                        v-on:click="scenefilter=''"><i class="mdi mdi-close-line"></i>
+                        v-on:click="scenefilter=''"><i class="mdi mdi-close"></i>
                     </button>
                     <button v-on:click="showPages=!showPages">Compact</button>
 
@@ -285,7 +285,7 @@ ${lists}
             <footer class="padding">
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
-                    <button v-on:click="addScene()"><i class="mdi mdi-add"></i>Add</button>
+                    <button v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
                     <button v-on:click="addMonitorScene()"><i class="mdi mdi-binoculars"></i>Add Monitor</button>
                 </div>
             </footer>
@@ -421,7 +421,7 @@ ${lists}
                     <dt>
                         <div class="tool-bar">
                             <h4>{{ps[0]}}</h4>
-                            <button v-on:click="deletePreset(ps[0])"><i class="mdi mdi-trash"></i>Delete</button>
+                            <button v-on:click="deletePreset(ps[0])"><i class="mdi mdi-delete"></i>Delete</button>
                             <button v-on:click="renamePreset(ps[0])"><i class="mdi mdi-pencil"></i>Rename</button>
                         </div>
                     </dt>
@@ -588,11 +588,11 @@ ${lists}
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newcuename" placeholder="New cue name" list="specialcues">
                     <button v-on:click="add_cue(scenename,newcuename)">
-                        <i class="mdi mdi-add"></i>Add Cue</button>
+                        <i class="mdi mdi-plus"></i>Add Cue</button>
                     <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
-                        <i class="mdi mdi-copy"></i>Clone Cue</button>
+                        <i class="mdi mdi-content-copy"></i>Clone Cue</button>
                     <button v-on:click="rmcue(currentcueid)">
-                        <i class="mdi mdi-trash"></i>Delete Current</button>
+                        <i class="mdi mdi-delete"></i>Delete Current</button>
                 </div>
             </div>
 
@@ -615,7 +615,7 @@ ${lists}
                         <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
                                 class="mdi mdi-cog-outline"></i>Normal View</button>
                         <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
-                                class="mdi mdi-listing-box"></i>Channels</button>
+                                class="mdi mdi-list-box-outline"></i>Channels</button>
                     </div>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox">
                         <template v-for="(h,uname) in cuevals[currentcueid]">
@@ -647,7 +647,7 @@ ${lists}
                                         <button v-on:click="savePreset(h)">Save</button>
                                     </div>
                                     <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
-                                        <i class="mdi mdi-trash"></i>
+                                        <i class="mdi mdi-delete"></i>
                                     </button>
                                 </header>
                                 <div class="scroll nomargin h-24rem padding-bottom">
@@ -677,7 +677,7 @@ ${lists}
                                         </combo-box>
                                     </label>
 
-                                    <button  :disabled="no_edit" v-on:click="addValToCue()"><i class="mdi mdi-add"></i>Add Channel to
+                                    <button  :disabled="no_edit" v-on:click="addValToCue()"><i class="mdi mdi-plus"></i>Add Channel to
                                         Cue</button>
                                 </div>
 
@@ -692,10 +692,10 @@ ${lists}
                                         <tr v-for="(v,i) in fixtureAssignments">
                                             <td>{{v.universe}}:{{i}} at {{v.channel}}</td>
                                             <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
-                                                        class="mdi mdi-add"></i>Add</button>
+                                                        class="mdi mdi-plus"></i>Add</button>
                                             </td>
                                             <td><button v-on:click="addRangeEffect(i)"><i
-                                                        class="mdi mdi-add"></i>Range
+                                                        class="mdi mdi-plus"></i>Range
                                                     Effect</button>
                                             </td>
                                         </tr>
@@ -1167,7 +1167,7 @@ ${lists}
                                         <button
                                             title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
                                             v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
-                                            <i class="mdi mdi-copy"></i>Clone to Next</button>
+                                            <i class="mdi mdi-content-copy"></i>Clone to Next</button>
                                     </p>
 
                                     <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
@@ -1256,7 +1256,7 @@ ${lists}
                                         v-model="editingScene.bpm">
                                 </label>
                                 <button v-on:click="tap(scenename)" class="grow">
-                                    <i class="mdi mdi-hand-drag1"></i>Tap
+                                    <i class="mdi mdi-gesture-tap"></i>Tap
                                 </button>
                             </p>
 

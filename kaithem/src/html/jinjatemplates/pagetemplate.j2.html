@@ -19,7 +19,7 @@
   <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" type="text/css" href="/static/css/barrel.css">
-  <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css">
+  <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?c=33024">
   <link rel="stylesheet" type="text/css" href="{{_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}}">
   <script src="/static/js/widget.js"></script>
 
@@ -101,7 +101,7 @@
       {% if pages.canUserDoThis("view_status") %}
       <button style="flex-grow: 0"
         onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='block';document.getElementById('kaithem-main-dropdown-iframe').src='/dropdownpanel'">
-        <i class="mdi mdi-dotted-down"></i></button>
+        <i class="mdi mdi-menu-down"></i></button>
 
       <a href="/index"><b>{{socket.gethostname()|escape}}</b>
 

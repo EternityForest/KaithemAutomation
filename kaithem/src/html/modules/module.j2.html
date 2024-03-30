@@ -51,7 +51,7 @@
         </div>
         <div class="tool-bar w-full">
             <p>
-                <i class="mdi mdi-add"></i>Add:
+                <i class="mdi mdi-plus"></i>Add:
             </p>
             <a class="button"
                 href="/modules/module/{{ url(name) }}/addresource/event/{{ url('/'.join(path) ) }}">Event</a>
@@ -95,7 +95,7 @@
             <dt>
                 <div class="tool-bar w-full inline">
                     <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#setupheading">
-                        <i class="mdi mdi-flag-alt-1"></i>
+                        <i class="mdi mdi-flag"></i>
                         <b>
                             {{ util.split_escape(i,'/','\\')[-1] | escape }}
                         </b>
@@ -140,7 +140,7 @@
             <dt>
                 <div class="tool-bar w-full inline">
                     <a aria-role="header" href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#pagebody">
-                        <i class="mdi mdi-page"></i>
+                        <i class="mdi mdi-web"></i>
                         <b>{{ util.split_escape(i,'/','\\')[-1] | escape }}</b>
                     </a>
                     {% if usrpages.getPageErrors(name,i) %}
@@ -218,7 +218,7 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
-                                class="mdi mdi-document-folder"></i><b></b>{{ util.split_escape(i,'/')[-1] | escape }}</b></a>
+                                class="mdi mdi-folder-outline"></i><b></b>{{ util.split_escape(i,'/')[-1] | escape }}</b></a>
                     </h3>
                     <a class="button nogrow"
                         href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">Delete</a>

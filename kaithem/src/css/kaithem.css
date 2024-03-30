@@ -4,6 +4,9 @@
 
 @import "/static/mdicons/css/materialdesignicons.min.css";
 
+.mdi::before{
+    font-size: 24px;
+}
 /*****************Typography****************************/
 
 
@@ -144,8 +147,7 @@ div.widgetcontainer {
     min-height: 1.8rem;
 }
 
-[class*=" icofont-"],
-[class^=icofont-] {
+.mdi {
     color: var(--graphical-fg);
     padding-left: 0.1em;
     padding-right:0.1em;

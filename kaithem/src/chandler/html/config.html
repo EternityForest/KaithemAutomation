@@ -64,7 +64,7 @@ ${lists}
 
             <button v-on:click="saveToDisk()"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
-                    class="mdi mdi-quill-pen"></i>Save</button>
+                    class="mdi mdi-content-save"></i>Save</button>
         </div>
 
 
@@ -334,13 +334,13 @@ ${lists}
 
             <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
                 :options="useBlankDescriptions(fixtureClasses)"></combo-box>
-            <button v-on:click="addfixturetype"><i class="mdi mdi-add"></i>Add fixture type</button>
+            <button v-on:click="addfixturetype"><i class="mdi mdi-plus"></i>Add fixture type</button>
             <a class="button" href="UseOPZDMX">Import from OP-Z format library</a>
 
             <div v-if="selectedFixtureClass">
                 <h4>{{selectedFixtureClass}}</h4>
 
-                <button v-on:click="delfixturetype"><i class="mdi mdi-trash"></i>Delete Fixture Type</button>
+                <button v-on:click="delfixturetype"><i class="mdi mdi-delete"></i>Delete Fixture Type</button>
 
                 <button>Rename</button>
                 <h3>Channels in Fixture Type</h3>
@@ -507,7 +507,7 @@ ${lists}
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
                     <header :class="v['barrel-class']" class="padding">
-                        <i class="mdi mdi-warning"></i>{{i}}
+                        <i class="mdi mdi-alert"></i>{{i}}
                     </header>
                     <p :class="v['barrel-class']">{{v.message|| 'no trip message'}}</p>
                 </div>

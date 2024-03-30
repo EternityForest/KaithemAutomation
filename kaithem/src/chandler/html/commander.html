@@ -91,7 +91,7 @@
         <div class="flex-row scroll gaps padding">
             <div class="card" v-for="v,i of sys_alerts">
                 <header :class="v['barrel-class']" class="padding">
-                    <i class="mdi mdi-warning"></i>{{i}}
+                    <i class="mdi mdi-alert"></i>{{i}}
                 </header>
                 <p :class="v['barrel-class']">{{v.message|| 'no trip message'}}</p>
             </div>
