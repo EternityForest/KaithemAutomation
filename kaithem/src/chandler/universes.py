@@ -210,6 +210,7 @@ class Universe():
                 raise ValueError(
                     "Name cannot contain special characters except _")
         self.name = name
+        self.closed = False
 
         self.hidden = True
 
@@ -344,6 +345,9 @@ class Universe():
             self.preFrame = alreadyClosed
             self.save_prerendered = alreadyClosed
 
+        kaithem.message.post("/chandler/command/refreshScenes", None)
+        self.closed = True
+
     def setStatus(self, s: str, ok: bool):
         "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
         if ok:
@@ -367,8 +371,9 @@ class Universe():
         kaithem.message.post("/chandler/command/refreshScenes", None)
 
     def __del__(self):
-        # Do as little as possible in the undefined __del__ thread
-        kaithem.message.post("/chandler/command/refreshScenes", None)
+        if not self.closed:
+            # Do as little as possible in the undefined __del__ thread
+            kaithem.message.post("/chandler/command/refreshScenes", None)
 
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."
@@ -473,6 +478,14 @@ class EnttecUniverse(Universe):
     def __del__(self):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
+
+    def close(self):
+        try:
+            self.sender.onFrame(None)
+        except Exception:
+            pass
+        return super().close()
+
 
 
 class DMXSender():
@@ -643,6 +656,13 @@ class ArtNetUniverse(Universe):
     def __del__(self):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
+
+    def close(self):
+        try:
+            self.sender.onFrame(None)
+        except Exception:
+            pass
+        return super().close()
 
 
 class TagpointUniverse(Universe):
@@ -820,6 +840,8 @@ class ArtNetSender():
     def __del__(self):
         self.running = 0
 
+
+
     def setStatus(self, s, ok):
         try:
             self.universe().setStatus(s, ok)
@@ -863,6 +885,13 @@ class EnttecOpenUniverse(Universe):
     def __del__(self):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
+
+    def close(self):
+        try:
+            self.sender.onFrame(None)
+        except Exception:
+            pass
+        return super().close()
 
 
 def makeDMXSender(uref, port, fr):

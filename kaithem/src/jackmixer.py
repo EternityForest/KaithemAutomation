@@ -373,7 +373,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.effectParamTags = {}
 
             self.usingJack = True
-
+                        
             # General good practice to use this when creating a tag,
             # If we don't know who else may have assigned alerts.
             self.levelTag.clearDynamicAlarms()
@@ -834,7 +834,13 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def onLevelMessage(self, src, rms, level):
         if self.board:
             rms = max(rms, -90)
-            self.levelTag.value = rms
+
+            # Avoid having to do the whole tag lock thing if
+            # the value hasn't changed, it's not critcal and the
+            # race condition is fine
+            if not self.levelTag.lastValue == rms:
+                self.levelTag.value = rms
+
             self.doSoundFuse(rms)
             if level < -45 or abs(level - self.lastLevel) < 6:
                 if time.monotonic() - self.lastPushedLevel < 0.3:
