@@ -203,9 +203,9 @@ def pre_render(universes: Dict[str,universes.Universe]):
     return changedUniverses
 
 
-def render(t=None):
+def render(t=None, u=None):
     "This is the primary rendering function"
-    universesSnapshot = getUniverses()
+    universesSnapshot = u or getUniverses()
     # Getting list of universes is apparently slow, so we pass it as a param
     changedUniverses = pre_render(universesSnapshot)
 
@@ -342,10 +342,20 @@ varsuniverse = universes.Universe("__variables__")
 
 
 def loop():
+    # This function is apparently slightly slow?
+    u_cache = universes.getUniverses()
+    u = universes.universes
+    u_id = id(u)
+
     while 1:
         try:
+            if not u_id == id(universes.universes):
+                u_cache = universes.getUniverses()
+                u = universes.universes
+                u_id = id(u)
+
             with core.lock:
-                render()
+                render(u=u_cache)
 
             global lastrendered
             if time.time() - lastrendered > 1 / 14.0:
@@ -355,7 +365,7 @@ def loop():
                     for i in core.boards:
                         b = i()
                         if b:
-                            b.guiPush()
+                            b.guiPush(u_cache)
                         del b
                 lastrendered = time.time()
             time.sleep(1 / 60)

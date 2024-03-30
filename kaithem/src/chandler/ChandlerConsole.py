@@ -835,12 +835,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             scenes.scenes_by_name.pop(i.name)
             self.linkSend(["del", i.id])
 
-    def guiPush(self):
+    def guiPush(self, snapshot):
+        "Snapshot is a list of all universes because the getter for that is slow"
         with core.lock:
             for i in self.newDataFunctions:
                 i(self)
             self.newDataFunctions = []
-            snapshot = getUniverses()
             for i in snapshot:
                 if self.id not in snapshot[i].statusChanged:
                     self.linkSend(
