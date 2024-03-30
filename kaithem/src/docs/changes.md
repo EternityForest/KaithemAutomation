@@ -8,6 +8,7 @@ Change Log
 - :bug: Fix enttec open atapter showing as disconnected when it wasn't
 
 - :lipstick: Better combo box feel
+- :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
 
 
 ### 0.77.0 Beta
