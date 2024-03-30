@@ -5,6 +5,8 @@ Change Log
 - :bug: Restore the broken optimization for events that don't need to poll
 - :bug: Fix fixture types window being too small
 - :bug: Fix nuisance error when deleting mixer channel
+- :bug: Fix enttec open atapter showing as disconnected when it wasn't
+
 - :lipstick: Better combo box feel
 
 

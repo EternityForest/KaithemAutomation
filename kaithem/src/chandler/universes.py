@@ -465,9 +465,9 @@ class EnttecUniverse(Universe):
         self.values = numpy.array([0.0] * channels, dtype="f4")
         self.sender = makeSender(
             DMXSender, weakref.ref(self), portname, framerate)
-        self.sender.connect()
 
         Universe.__init__(self, name, channels)
+        self.sender.connect()
 
         self.hidden = False
 
@@ -872,10 +872,10 @@ class EnttecOpenUniverse(Universe):
         # Sender needs the values to be there for setup
         self.values = numpy.array([0.0] * channels, dtype="f4")
         self.sender = makeDMXSender(weakref.ref(self), portname, framerate)
-        self.sender.connect()
 
         Universe.__init__(self, name, channels)
-
+        
+        self.sender.connect()
         self.hidden = False
 
     def onFrame(self):
@@ -923,7 +923,7 @@ class RawDMXSender():
         try:
             self.universe().setStatus(s, ok)
         except Exception:
-            pass
+            logging.exception("???")
 
     def connect(self):
         # Different status message first time

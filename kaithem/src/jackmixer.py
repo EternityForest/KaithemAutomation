@@ -54,8 +54,10 @@ presetsDir = os.path.join(directories.mixerdir, "presets")
 
 recorder = None
 
+
 class DummySource(iceflow.GStreamerPipeline):
     "Nasty hack. When gstreamer is dis_connected it stops.  So we have a special silent thing to always connect to"
+
     def __init__(self):
         iceflow.GStreamerPipeline.__init__(self)
         self.add_element('audiotestsrc', volume=0)
@@ -71,7 +73,7 @@ try:
         time.sleep(0.1)
 except Exception:
     log.exception("Dummy source")
-    
+
 
 def replaceClientNameForDisplay(i):
     x = i.split(":")[0]
@@ -337,7 +339,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                                             do_timestamp=False,
                                             always_copy=True
                                             )
-                    
+
                 self.capsfilter = self.add_element(
                     "capsfilter", caps="audio/x-raw,channels=" + str(channels),
                 )
@@ -380,7 +382,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.levelTag.setAlarm("volume", "value>soundFuseSetting", trip_delay=0.3)
 
             # self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
-            
+
         except Exception:
             print(traceback.format_exc())
             # Ensure fully cleaned up if any failure
@@ -390,7 +392,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 raise
             raise
 
-    
     def check_ports(self):
         "Check that the ports actually exist"
         if not [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_in:")]:
@@ -398,7 +399,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         if not [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_out:")]:
             return False
         return True
-    
 
     def mpv_input_loop(self):
         command = self.input.strip()
@@ -473,7 +473,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 client_name=self.name + "_out",
                 mode=2,
             )
-        
 
             # I think It doesn't like it if you start without jack
             if self.usingJack:
@@ -483,7 +482,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         break
                 if not jackmanager.get_ports():
                     return
-                
+
         self.start(timeout=wait)
         # We unfortunately can't suppress auto connect in this version
         # use this hack.  Wait till ports show up then disconnect.
@@ -507,8 +506,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.faderTag.value = self.initialFader
         # Call directly, the tag might think we are already at the right level, if we are remaking a channel
         # and had set the element volume to zero directly but not the tag.
-        self._faderTagHandler(self.faderTag.value,None,None)
-
+        self._faderTagHandler(self.faderTag.value, None, None)
 
     def connect(self, restore=[]):
         self._outputs = []
@@ -543,7 +541,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.sendAirwires[i].connect()
             except Exception:
                 log.exception("Failed to conneect airwire")
-            
+
     def stop(self):
         self.stopMPVThread = None
         with self.lock:
@@ -756,7 +754,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 if i.get("silenceMainChain", False):
                     self.add_element("volume", volume=0)
 
-
         self.setInput(d["input"])
         self.setOutputs(d["output"].split(","))
 
@@ -954,7 +951,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 else:
                     self.fader.set_property("volume", 0)
 
-        self.board.api.send(["fader", self.name, level])
+        if self.board:
+            self.board.api.send(["fader", self.name, level])
 
     def setFader(self, level):
         # Let the _faderTagHandler handle it.
@@ -963,7 +961,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def setMute(self, m):
         self.mute = m
         self._faderTagHandler(self.faderTag.value, 0, 0)
-        self.board.api.send(["mute", self.name, self.mute])
+        if self.board:
+            self.board.api.send(["mute", self.name, self.mute])
 
 
 class ChannelInterface:
@@ -1007,11 +1006,10 @@ actionLockout = {}
 class MixingBoard:
     def __init__(self, *args, **kwargs):
 
-
         class WrappedLink(widgets.APIWidget):
             def onNewSubscriber(s, user, cid, **kw):
                 self.sendState()
-            
+
         self.api = WrappedLink()
         self.api.require("system_admin")
         self.api.attach(self.f)
@@ -1073,44 +1071,42 @@ class MixingBoard:
                 self.pushStatus(i, "error " + str(e))
 
     def sendState(self):
-            inPorts = jackmanager.get_port_names_with_aliases(is_audio=True, is_input=True)
-            outPorts = jackmanager.get_port_names_with_aliases(
-                is_audio=True, is_output=True
-            )
-            midiOutPorts = jackmanager.get_port_names_with_aliases(
-                is_midi=True, is_output=True
-            )
-            midiInPorts = jackmanager.get_port_names_with_aliases(
-                is_midi=True, is_input=True
-            )
+        inPorts = jackmanager.get_port_names_with_aliases(is_audio=True, is_input=True)
+        outPorts = jackmanager.get_port_names_with_aliases(
+            is_audio=True, is_output=True
+        )
+        midiOutPorts = jackmanager.get_port_names_with_aliases(
+            is_midi=True, is_output=True
+        )
+        midiInPorts = jackmanager.get_port_names_with_aliases(
+            is_midi=True, is_input=True
+        )
 
-            self.api.send(["inports", {i: {} for i in inPorts}])
-            self.api.send(["outports", {i: {} for i in outPorts}])
-            self.api.send(["midiinports", {i: {} for i in midiInPorts}])
-            self.api.send(["midioutports", {i: {} for i in midiOutPorts}])
+        self.api.send(["inports", {i: {} for i in inPorts}])
+        self.api.send(["outports", {i: {} for i in outPorts}])
+        self.api.send(["midiinports", {i: {} for i in midiInPorts}])
+        self.api.send(["midioutports", {i: {} for i in midiOutPorts}])
 
-            self.api.send(["effectTypes", effectTemplates])
+        self.api.send(["effectTypes", effectTemplates])
 
-            if self.lock.acquire(timeout=5):
-                try:
-                    self.api.send(["channels", self.channels])
+        if self.lock.acquire(timeout=5):
+            try:
+                self.api.send(["channels", self.channels])
 
-                    for i in self.channels:
-                        self.pushStatus(i)
+                for i in self.channels:
+                    self.pushStatus(i)
 
+                self.api.send(["loadedPreset", self.loadedPreset])
 
-                    self.api.send(["loadedPreset", self.loadedPreset])
+                self.sendPresets()
 
-                    self.sendPresets()
-
-                    if recorder:
-                        self.api.send(["recordingStatus", "recording"])
-                    else:
-                        self.api.send(["recordingStatus", "off"])
-                    self.api.send(["ui_ready"])
-                finally:
-                    self.lock.release()
-
+                if recorder:
+                    self.api.send(["recordingStatus", "recording"])
+                else:
+                    self.api.send(["recordingStatus", "off"])
+                self.api.send(["ui_ready"])
+            finally:
+                self.lock.release()
 
     def sendPresets(self):
         if os.path.isdir(presetsDir):
@@ -1132,7 +1128,7 @@ class MixingBoard:
     def _createChannel(self, name, data=channelTemplate):
         self.pushStatus(name, "loading")
 
-        if not name in self.channelAlerts:
+        if name not in self.channelAlerts:
             self.channelAlerts[name] = alerts.Alert(
                 "Mixer channel " + name, priority="error", trip_delay=35, auto_ack=True
             )
@@ -1222,7 +1218,7 @@ class MixingBoard:
 
         if name in self.channels:
             del self.channels[name]
-            
+
         if name in self.channelAlerts:
             self.channelAlerts[name].release()
             del self.channelAlerts[name]
@@ -1284,7 +1280,6 @@ class MixingBoard:
 
             self.loadedPreset = presetName
             self.api.send(["loadedPreset", self.loadedPreset])
-
 
     def f(self, user, data):
         def f2():
