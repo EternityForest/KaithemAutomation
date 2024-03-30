@@ -373,7 +373,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.effectParamTags = {}
 
             self.usingJack = True
-                        
+
             # General good practice to use this when creating a tag,
             # If we don't know who else may have assigned alerts.
             self.levelTag.clearDynamicAlarms()
@@ -553,6 +553,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self._input.disconnect()
             for i in self._outputs:
                 i.disconnect()
+
+        name = self.name
+
         gstwrapper.Pipeline.stop(self)
 
         # wait till jack catches up
@@ -560,9 +563,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             p = [i.name for i in jackmanager.get_ports()]
             p2 = [i.clientName for i in jackmanager.get_ports()]
             p = p + p2
-            if (self.name + "_out" in p) or (self.send_ename + "_in") in p:
+            # Todo check the sends as well?
+            if (name + "_out" in p):
                 time.sleep(0.5)
             else:
+                # Give a little extra time just in case
+                time.sleep(0.25)
                 break
 
     def backup(self):
@@ -1207,14 +1213,20 @@ class MixingBoard:
             self._deleteChannel(name)
 
     def _deleteChannel(self, name):
+        if name in self.channelObjects:
+            try:
+                self.channelObjects[name].stop()
+            except Exception:
+                logging.exception("Exception deleting mixer channel")
+            del self.channelObjects[name]
+
         if name in self.channels:
             del self.channels[name]
+            
         if name in self.channelAlerts:
             self.channelAlerts[name].release()
             del self.channelAlerts[name]
-        if name in self.channelObjects:
-            self.channelObjects[name].stop()
-            del self.channelObjects[name]
+
         self.api.send(["channels", self.channels])
         for i in self.channels:
             self.pushStatus(i)
