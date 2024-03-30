@@ -157,7 +157,7 @@
 
             <details>
                 <summary>
-                    <b><i class="mdi mdi-question-circle"></i>Help</b>
+                    <b><i class="mdi mdi-help-circle-outline"></i>Help</b>
                 </summary>
                 {% if hasattr(obj,'description') and obj.description %}
 
@@ -199,7 +199,7 @@
                 </summary>
 
                 <details class="help">
-                    <summary><i class="mdi mdi-question-circle"></i></summary>
+                    <summary><i class="mdi mdi-help-circle-outline"></i></summary>
 
                     <p>A binding lets you make a data point of a device mirror an external point.
                         Following a publish subscribe model,
@@ -225,7 +225,7 @@
                 <h2><i class="mdi mdi-link"></i>Output Bindings</h2>
 
                 <details class="help">
-                    <summary><i class="mdi mdi-question-circle"></i></summary>An output binding is
+                    <summary><i class="mdi mdi-help-circle-outline"></i></summary>An output binding is
                     just a command that the destination tag should change whenever the source tag
                     does.
                     The source tag is one that is owned by this device.
@@ -256,7 +256,7 @@
                         <td style="max-width: 30%;">
                             {% if obj.config_properties.get(i,{}).get("description",'') %}
                             <details>
-                                <summary><i class="mdi mdi-question-circle"></i><b>{{ i[7:]| escape }}</b>
+                                <summary><i class="mdi mdi-help-circle-outline"></i><b>{{ i[7:]| escape }}</b>
                                 </summary>
                                 {{ obj.config_properties.get(i,{}).get("description",'')|escape}}
                             </details>
@@ -308,7 +308,7 @@
                 <h3>Permissions</h3>
                 <div>
                     <details class="help">
-                        <summary><i class="mdi mdi-question-circle"></i></summary>
+                        <summary><i class="mdi mdi-help-circle-outline"></i></summary>
                         Set a default for all tag points exposed by this device. You can further
                         refine this in the tag points manager.
                         It is preferable to do things at the device-level, as devices can be
@@ -318,7 +318,7 @@
                     </details>
 
                     <details class="help">
-                        <summary><i class="mdi mdi-question-circle"></i></summary>
+                        <summary><i class="mdi mdi-help-circle-outline"></i></summary>
                         Currently this is only supported for the newer cross-framework devices.
                     </details>
 

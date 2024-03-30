@@ -38,7 +38,7 @@ def combineLogs(a):
 <title>Tag Logs</title>
 
 <div class="window paper">
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
     This page show logs for one tag.
 </details>
 
@@ -47,7 +47,7 @@ def combineLogs(a):
 
 %if hasattr(tag, 'configLoggers'):
 <h3>Recent Log Data from ${unitsofmeasure.strftime(logtime)}</h3>
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>All times use the time zone and format from your user settings. Very recent data may be shown, but data is buffered to disk for 10 minutes. Saving the server state flushes all data to disk.</details>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>All times use the time zone and format from your user settings. Very recent data may be shown, but data is buffered to disk for 10 minutes. Saving the server state flushes all data to disk.</details>
 
 <h4>Export Data</h4>
 <form method="post" action="/tagpointlog/${tag.name|u}">

@@ -17,7 +17,7 @@ Group Name: <input required="required" name="name" type="text" value="${name}"><
 
 	<h3>Permissions</h3>
 
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
 All members of this group are entitled to all checked permissions.
 </details>
 %for i in sorted(auth.Permissions.keys()):
@@ -39,7 +39,7 @@ class="specialentry"\
 %endfor
 
 <h3>Limits</h3>
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>A user has access to the highest value from any of their groups</details>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>A user has access to the highest value from any of their groups</details>
 <table border="1">
 	<tr>
 		<th>Name</th><th>Value</th>

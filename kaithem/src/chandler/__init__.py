@@ -323,7 +323,7 @@ kaithem.chandler = k_interface
 def nbr():
     return (
         50,
-        '<a href="/chandler/commander"><i class="mdi mdi-cheer-leader"></i>Chandler</a>',
+        '<a href="/chandler/commander"><i class="mdi mdi-dance-ballroom"></i>Chandler</a>',
     )
 
 

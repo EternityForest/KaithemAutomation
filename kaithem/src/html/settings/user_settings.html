@@ -4,7 +4,7 @@ import pytz
 %>
 <%include file="/pageheader.html"/>
 <h1>My Account</h1>
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</details>
 <h2>Security</h2>
 <div class="window paper">
 Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pages.getAcessingUser(), 'restrict-lan')}</br>
@@ -108,7 +108,7 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
 </div>
 <h2>My Permissions</h2>
 <div class="window paper">
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>These are the permissions you have been granted.</details>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>These are the permissions you have been granted.</details>
 %for i in sorted(auth.Users[pages.getAcessingUser()].permissions):
 <h3
 %if i.startswith('__'):

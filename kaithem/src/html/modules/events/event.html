@@ -114,7 +114,7 @@ onsubmit="presubmit()"
          %endif
        ></input>Enable</label>
 <h3 id="setupheading">Setup Code</h3>
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
 You will need to use the global keyword in the event action to overwrite a variable defined here.
 %if not pages.canUserDoThis("system_admin"):
@@ -179,7 +179,7 @@ document.getElementById("setupbox").style="display:none;";
 ${e}
 %endtry
 </h3>
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>Enter the trigger here. The trigger may either be a python expression. Only one copy of each event will poll at a time.
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>Enter the trigger here. The trigger may either be a python expression. Only one copy of each event will poll at a time.
 (by default, event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
 </details>
 
@@ -249,7 +249,7 @@ ${e}
 </div>
 
 <h3>Action</h3>
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
 This code will be executed when the trigger condition is met. Polling will be suspended until the action completes.
 <b>NOTE: The Action is scoped like a function body. If you want to assign to variables and have them stay around next time the function runs,
 you may need to use the global keyword. You may also need to use the global keyword if you get UnboundLocal errors.
@@ -369,7 +369,7 @@ This section the most recent errors that ocurred while executing the event or tr
 
 
 <hr>
-<details class="help"><summary><i class="mdi mdi-question-circle"></i></summary>
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </details>
 %if pages.canUserDoThis("system_admin"):
