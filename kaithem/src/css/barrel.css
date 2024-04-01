@@ -2087,9 +2087,11 @@ footer.padding {
     }
 
     & p {
-        padding-inline-start: var(--padding);
-        padding-inline-end: var(--padding);
-        padding-top: 1px;
+        &:not(:has(input)){
+            padding-inline-start: var(--padding);
+            padding-inline-end: var(--padding);
+            padding-top: 1px;
+        }
         min-width: fit-content;
         display: flex;
         flex-grow: 2;
