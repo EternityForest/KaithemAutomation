@@ -4,14 +4,14 @@
     border-width: 1px;
     border-color: black;
     background-color: white;
-    padding: 1em;
+    padding: 0.4em;
     font-weight: bold;
     align-self: stretch;
     border-radius: 1.5em;
 }
 
 .action {
-    padding: 1em;
+    padding: 0.4em;
     align-self: stretch;
     max-width: 12em;
 }
@@ -143,16 +143,16 @@ p.small {
                         <div class="flex-row gaps w-full padding nogaps">
 
                             <div v-for="j in i[1]" style="align-self:stretch; display:inline-flex;">
-                                <button v-bind:class="{'w-12em':1, action: 1, selected: (selectedBinding == i & selectedCommand == j) }"
+                                <button v-bind:class="{'w-12rem':1, action: 1, 'flex-row':1, selected: (selectedBinding == i & selectedCommand == j) }"
                                     v-on:click="selectedCommandIndex = i[1].indexOf(j); selectedBindingIndex = rules.indexOf(i)">
 
                                     <template style="min-width:6em;max-width:12em;overflow:hidden"
                                         v-if="((commands[j[0]]))">
 
-                                        <b>{{ j[0] }}</b><br>
-                                            <span class="border" v-for="i in commands[j[0]].args.keys()">
+                                        <div class="w-full h-min-content"><b>{{ j[0] }}</b></div>
+                                            <div class="border nogrow h-min-content" style="margin: 2px;" v-for="i in commands[j[0]].args.keys()">
                                                 {{ j[i + 1] }}
-                                            </span><span> </span>
+                                            </div>
                                     </template>
 
 

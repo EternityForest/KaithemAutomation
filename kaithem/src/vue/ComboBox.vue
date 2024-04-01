@@ -47,7 +47,7 @@
         v-on:blur="buttonBlurTimer()"
         :disabled="disabled" title="Show/Hide selector" style="width:3em;" 
         v-on:click="showmenu = !(showmenu); focused = false; $event.target.focus()" 
-        v-bind:class="{ 'highlight': showmenu }">...</button>
+        v-bind:class="{ 'highlight': showmenu }"> <i class="mdi mdi-dots-horizontal"></i></button>
     </div>
     <div v-if="showmenu || (focused)" class="comboboxdropdown_wrapper" >
         <div class="comboboxdropdown_inner paper">
