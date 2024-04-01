@@ -16,7 +16,8 @@ Change Log
 - :coffin: Remove the legacy device type system and all the devices from before iot_devices.  All were unmaintained and some may have been broken by hardware vendors.
 - :coffin: Remove the input and output binding feature of devices.  Chandler can do everything it could, and it was not a clean separation of device and logic.
 - :coffin: Remove the bluetooth admin panel. Try [bluetuith](https://darkhz.github.io/bluetuith/)!
-  
+- :coffin: Remove some old junk files
+- 
 Specific devices removed:
 
 - BareSIP
