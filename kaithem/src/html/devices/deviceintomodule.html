@@ -3,11 +3,8 @@
 from kaithem.src import devices
 %>
 <datalist id="deviceTypes">
-    %for i in devices.builtinDeviceTypes:
-    <option value="${i}" title=${devices.builtinDeviceTypes[i].description} >
-    %endfor
-    %for i in devices.deviceTypes:
-    <option value="${i}" title=${devices.deviceTypes[i].description} >
+    %for i in devices.device_types:
+    <option value="${i}" title=${devices.device_types[i].description} >
     %endfor
 
     %for i in devices.importedDeviceTypes:

@@ -186,7 +186,8 @@ class WSGIHandler(web.RequestHandler):
                 else:
                     break
         except StreamClosedError:
-            _logger.debug("stream closed early")
+            pass
+            #_logger.debug("stream closed early")
         finally:
             # Close the temporary file to make sure that it gets deleted.
             if self.body_tempfile is not None:

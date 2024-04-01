@@ -270,7 +270,7 @@
         Overridden: {{ obj.tagPoints[i].activeClaim().name }}
         {% else %}
         <div class="tool-bar">
-            {% if (not hasattr(obj.tagPoints[i],"_dev_ui_writable")) or obj.tagPoints[i]._dev_ui_writable %}
+            {% if (not hasattr(obj.tagPoints[i],"writable")) or obj.tagPoints[i].writable %}
             {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
             <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
             <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>

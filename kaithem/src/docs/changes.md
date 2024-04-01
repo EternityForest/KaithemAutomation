@@ -6,11 +6,26 @@ Change Log
 - :bug: Fix fixture types window being too small
 - :bug: Fix nuisance error when deleting mixer channel
 - :bug: Fix enttec open atapter showing as disconnected when it wasn't
+- :bug: Fix unsupported device warnings feature
 
 - :lipstick: Better combo box feel
 - :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
 - :lipstick: More compact strftime default
 
+- :coffin: Remove the complicated and never-used system for creatig device types in events
+- :coffin: Remove the legacy device type system and all the devices from before iot_devices.  All were unmaintained and some may have been broken by hardware vendors.
+- :coffin: Remove the input and output binding feature of devices.  Chandler can do everything it could, and it was not a clean separation of device and logic.
+
+Specific devices removed:
+
+- BareSIP
+- Kasa
+- Sainsmart Relay boards
+- RasPi Keypad
+- JACK Fluidsynth
+- Espruinio
+
+Some may return in iot_devices later.
 
 ### 0.77.0 Beta
 

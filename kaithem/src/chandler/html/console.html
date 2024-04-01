@@ -139,23 +139,22 @@ ${lists}
             <button v-on:click="saveToDisk()"  :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
                     class="mdi mdi-content-save"></i>Save</button>
+            <button v-on:click="showimportexport=!showimportexport"><i
+                        class="mdi mdi-folder-open"></i>Import/Export</button>
         </div>
 
 
         <div class="menubar tool-bar">
             <button v-on:click="showPresets=!showPresets"><i class="mdi mdi-palette"></i>Presets</button>
             <button v-on:click="showevents=!showevents"><i class="mdi mdi-flag"></i>Events</button>
-            <button v-on:click="showimportexport=!showimportexport"><i
-                    class="mdi mdi-folder-open"></i>Import/Export</button>
+
             <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
                         class="mdi mdi-monitor"></i>Remote Displays</button>
-            <button onclick="document.documentElement.requestFullscreen()"><i
-                    class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
-            <a class="button" href="docs/index" target="_blank"><i class="mdi mdi-help-circle-outline"></i>Help</a>
             <a class="button" href="config"><i class="mdi mdi-cog-outline"></i>Settings</a><label>
-            <input type="checkbox" class="toggle" v-model="uiAlertSounds">
-            <i class="mdi mdi-volume-medium"></i></label>
-
+            <i class="mdi mdi-volume-medium"></i><input type="checkbox" class="toggle" v-model="uiAlertSounds">
+            </label>
+            <button onclick="document.documentElement.requestFullscreen()"><i
+                class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
         </div>
 
         <div class="menubar tool-bar">
@@ -1085,12 +1084,13 @@ ${lists}
                                     <legend>Basic</legend>
                                     <label>Action</label>
                                     <div class="tool-bar">
-                                        <button v-on:click="promptRenameCue(scenename,currentcue.name)">Rename
+                                        <button v-on:click="promptRenameCue(scenename,currentcue.name)"><i class="mdi mdi-rename-box-outline"></i>Rename
                                             Cue</button>
 
                                     </div>
 
-                                    <label>Number
+                                    <label><span><i class="mdi mdi-pound-box-outline"></i>
+                                    Number</span>
                                         <input :disabled="no_edit" type="number" title="Cue number"
                                             v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
                                             v-model="currentcue.number">
@@ -1100,25 +1100,27 @@ ${lists}
                                             <input :disabled="no_edit" type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
                                                 v-model="currentcue.track"
                                                 title="Track values from previous cue? If false, values not present are always transparent">
-                                            Track
+                                                <span><i class="mdi mdi-arrow-expand-right"></i>Track</span>
                                         </label>
 
                                         <label><input :disabled="no_edit" title="If false, dissallow entering cue if it's already running"
                                                 type="checkbox"
                                                 v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
-                                                v-model="currentcue.reentrant">Reentrant</label>
+                                                v-model="currentcue.reentrant"><span><i class="mdi mdi-replay"></i>Reentrant</span></label>
                                     </p>
 
 
                                     <p>
 
-                                        <label>Shortcut
+                                        <label><span><i class="mdi mdi-arrow-down-circle-outline"></i>Shortcut
+                                            </span>
                                             <input :disabled="no_edit" title="Shortcut code used to quickly activate a cue" size="8"
                                                 v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)"
                                                 v-model="currentcue.shortcut">
                                         </label>
 
-                                        <label>Trigger Shortcut
+                                        <label><span><i class="mdi mdi-arrow-right-circle-outline"></i>
+                                            Trigger Shortcut</span>
                                             <input :disabled="no_edit" title="When entering this cue, trigger the shortcut in other scenes"
                                                 size="8"
                                                 v-on:change="settriggershortcut(currentcueid,$event.target.value)"
@@ -1126,25 +1128,29 @@ ${lists}
                                         </label>
                                     </p>
                                     <p>
-                                        <label>Fadein
+                                        <label>
+                                            <span><i class="mdi mdi-clock-outline"></i>
+                                            Fadein</span>
                                             <input :disabled="no_edit" type="number"
                                                 v-on:change="setfadein(currentcueid,$event.target.value)" min=0
                                                 v-model="currentcue.fadeIn">
                                         </label>
-                                        <label>Length
+                                        <label><span><i class="mdi mdi-clock-outline"></i>
+                                            Length</span>
                                             <input :disabled="no_edit" v-on:change="setlength(currentcueid,$event.target.value)"
                                                 v-model="cuemeta[currentcueid].length" min=0></input>
                                         </label>
                                     </p>
 
                                     <p>
-                                        <label>Randomize Length
+                                        <label><span><i class="mdi mdi-dice-multiple-outline"></i>
+                                         Randomize Length</span>
                                             <input :disabled="no_edit" type="number"
                                                 v-on:change="setrandomize(currentcueid,$event.target.value)"
                                                 title="Randomize the cue length +- this amount"
                                                 v-model="cuemeta[currentcueid].lengthRandomize" min=0 step=0.25></input>
                                         </label>
-                                        <label>Probability
+                                        <label><span><i class="mdi mdi-dice-multiple-outline"></i>Probability</span>
                                             <input
                                                 title="Probability this cue is selected in random selections. =expressions allowed"
                                                 v-on:change="setprobability(currentcueid,$event.target.value)"
@@ -1152,7 +1158,7 @@ ${lists}
                                         </label>
 
                                     </p>
-                                    <label>Notes
+                                    <label><span><i class="mdi mdi-text"></i>Notes</span>
                                         <input :disabled="no_edit" v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
                                             v-model="cuemeta[currentcueid].notes" min=0></input>
                                     </label>

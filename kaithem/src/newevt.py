@@ -57,16 +57,6 @@ ctime = time.time
 do = workers.do
 
 
-def retryDeviceCreation():
-    """When we load up a new event, it might contain a driver, so we
-    retry to create all the devices that may have been stuck as Unsupported because there was no driver
-    """
-    try:
-        devices.fixUnsupported()
-    except Exception:
-        logger.exception("Something bad happened")
-
-
 # Ratelimiter for calling gc.collect automatically when we get OSErrors
 _lastGC = 0
 
@@ -501,7 +491,7 @@ class BaseEvent:
         # Later we can use this to store performance info
         self.timeTakenToLoad = 0.0
 
-        # Some normally polled event types 
+        # Some normally polled event types
         # can turn off pollng if config doesn't need it
         self.polled = False
 
@@ -1047,7 +1037,7 @@ class PolledEvalEvent(CompileCodeStringsMixin):
 
         # Sometimes an event is used for its setup action and never runs.
         # If the trigger is False, it will never trigger, so we don't poll it.
-        if str(when).strip() in("False","None","0"):
+        if str(when).strip() in ("False", "None", "0"):
             self.polled = False
         # Compile the trigger
         x = compile(
@@ -1530,8 +1520,6 @@ def updateOneEvent(resource, module, o=None):
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
 
-        retryDeviceCreation()
-
         from . import codechecks
 
         data = toPyFile(data)
@@ -1634,9 +1622,6 @@ def getEventsFromModules(only=None):
                         slt = time.time()
                         i.f()
 
-                        # Fix any unsupported devices that may now be supported because we just added a driver for them.
-                        retryDeviceCreation()
-
                         messagebus.post_message(
                             "/system/events/loaded", [i.module, i.resource]
                         )
@@ -1709,7 +1694,7 @@ def getEventsFromModules(only=None):
         devices.warnAboutUnsupportedDevices()
     except Exception:
         logging.info("Error checking validity of device instances")
-    logging.info("Created events from modules")
+    logging.exception("Created events from modules")
 
 
 def make_event_from_resource(module, resource, subst=None):

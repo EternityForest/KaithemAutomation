@@ -110,10 +110,11 @@
                     v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
                 <button v-on:click="shortcut()">Go!</button>
                 <button v-on:click="showPages=!showPages">Toggle Compact</button>
-                <button onclick="document.documentElement.requestFullscreen()"><i
-                    class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
+
                 </label><i class="mdi mdi-volume-medium"></i>
                 <input type="checkbox" class="toggle" v-model="uiAlertSounds"></label>
+                <button onclick="document.documentElement.requestFullscreen()"><i
+                    class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
             </div>
         </header>
 

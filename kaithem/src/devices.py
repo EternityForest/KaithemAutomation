@@ -1,5 +1,5 @@
 
-
+from __future__ import annotations
 # Copyright Daniel Dunn 2018
 # This file is part of Kaithem Automation.
 
@@ -17,7 +17,7 @@
 
 import html
 from . import modules_state
-from .modules_state import additionalTypes
+from .modules_state import additionalTypes, ResourceType
 import json
 import colorzero
 import weakref
@@ -45,8 +45,8 @@ import iot_devices.device
 log = logging.getLogger("system.devices")
 
 
-remote_devices: Dict[str, object] = {}
-remote_devices_atomic = {}
+remote_devices:  Dict[str, Device] = {}
+remote_devices_atomic: Dict[str, weakref.ref[Device]] = {}
 
 device_data = {}
 
@@ -91,7 +91,7 @@ def closeAll(*a):
             c.close()
 
 
-class DeviceResourceType():
+class DeviceResourceType(ResourceType):
     def onload(self, module, name, value):
         with modules_state.modulesLock:
             n = module + "/" + name
@@ -168,11 +168,12 @@ def saveDevice(d):
                 os.remove(fn)
 
 
-def getDeviceConfigFolder(d, create=True):
-    if not hasattr(remote_devices[d],'parentModule') or not remote_devices[d].parentModule:
+def getDeviceConfigFolder(d: str, create=True):
+    if not hasattr(remote_devices[d], 'parentModule') or not remote_devices[d].parentModule:
         saveLocation = os.path.join(directories.vardir, "devices", d)
     else:
-        saveLocation = os.path.join(directories.vardir, "modules", 'data', remote_devices[d].parentModule, "__filedata__", d+".config.d")
+        saveLocation = os.path.join(directories.vardir, "modules", 'data',
+                                    remote_devices[d].parentModule, "__filedata__", d+".config.d")
 
     if not os.path.exists(saveLocation):
         if not create:
@@ -183,22 +184,8 @@ def getDeviceConfigFolder(d, create=True):
 
 
 def wrcopy(x):
+    "Copy a dict but replace all vals with weak refs to the value"
     return {i: weakref.ref(x[i]) for i in x}
-
-
-def getByDescriptor(d):
-    x = {}
-
-    for i in remote_devices_atomic:
-        if d in remote_devices_atomic[i].descriptors:
-            z = remote_devices_atomic[i]()
-            if z:
-                x[i] = z
-
-    return x
-
-
-esc = html.escape
 
 
 def makeBackgroundPrintFunction(p, t, title, self):
@@ -313,7 +300,6 @@ class Device():
         with modules_state.modulesLock:
             self.config[key] = val
             if self.parentModule:
-                from . import modules_state
                 modules_state.ActiveModules[self.parentModule][
                     self.parentResource]['device'][key] = val
                 modules_state.saveResource(
@@ -341,6 +327,10 @@ class Device():
                 if self.name in device_data:
                     return device_data[self.name][key]
         return default
+
+    def get_config_folder(self, create=True):
+        "should this feature exist?"
+        return None
 
     @staticmethod
     def makeUIMsgHandler(wr):
@@ -394,8 +384,6 @@ class Device():
 
         onMessage2 = self.makeGenericUIMsgHandler(weakref.ref(self))
 
-        # Maps the local short tag namre to the tag the user bound it to in the UI
-        self._kBindings = {}
 
         # I don't think this is actually needed
         self._uiMsgRef = onMessage
@@ -435,23 +423,9 @@ class Device():
         self.name = data.get('name', None) or name
         self.errors = []
 
-        # self.scriptContext = scriptbindings.ChandlerScriptContext(variables={
-        #     'tags': self.tagPoints,
-        #     "device": self
-        # })
-
-        # self.scriptContext.commands['print'] = self.print
-
         with modules_state.modulesLock:
             remote_devices[name] = self
             remote_devices_atomic = wrcopy(remote_devices)
-
-    # def loadScriptBindings(self):
-    #     try:
-    #         if 'rules' in self.data:
-    #             self.scriptContext.addBindings(json.loads(self.data['rules']))
-    #     except:
-    #         self.handleException()
 
     def handleException(self):
         try:
@@ -495,7 +469,7 @@ class Device():
                                         self))
         if len(self.errors) == 1:
             messagebus.post_message("/system/notifications/errors",
-                                   "First error in device: " + self.name)
+                                    "First error in device: " + self.name)
             syslogger.error("in device: " + self.name + "\n" + s)
 
     def onGenericUIMessage(self, u, v):
@@ -530,39 +504,10 @@ class Device():
                 except KeyError:
                     pass
 
-            if hasattr(self, "_kBindings"):
-                for i in self._kBindings:
-                    try:
-                        self._kBindings[i].unsubscribe(self.tagPoints[i])
-                    except Exception:
-                        log.exception(
-                            "Could not unsub. Maybe was never created.")
+            # if hasattr(self, "tagPoints"):
+            #     for i in self.tagPoints:
+            #         t = self.tagPoints[i]
 
-            if hasattr(self, "tagPoints"):
-                for i in self.tagPoints:
-                    t = self.tagPoints[i]
-
-                    if hasattr(t, "_kOutputBindings"):
-                        for i in t._kOutputBindings:
-                            try:
-                                t.unsubscribe[i]
-                            except Exception:
-                                log.exception(
-                                    "Could not unsub. Maybe was never created.")
-
-                    t._kOutputBindings = []
-
-            # Be defensive about ref cycles.
-            try:
-                del self._kBindings
-            except Exception:
-                pass
-
-            # Be defensive about ref cycles.
-            try:
-                del self._kRevBindings
-            except Exception:
-                pass
 
             try:
                 del self.tagPoints
@@ -644,7 +589,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     _noSetAlarmPriority = True
 
     _isCrossFramework = True
-        
+
     def get_config_folder(self, create=True):
         return getDeviceConfigFolder(self.name, create=create)
 
@@ -753,8 +698,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             self.__setupTagPerms(t, writable)
 
-            t._dev_ui_writable = writable
-
             t.min = min
             t.max = max
             t.hi = hi
@@ -781,17 +724,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             self.tagPoints[name] = t
             self.datapoints[name] = default
-
-            # On demand subscribe to the binding for the tag we just made
-            if name in self._kBindings:
-                self._kBindings[name].subscribe(
-                    t, immediate=(not t.subtype == 'trigger'))
-
-            x = {i[0]: i[1]
-                 for i in self.config.get('kaithem.output_bindings', [])}
-            if name in x:
-                doOutputBinding(t, x[name], 'Set by device: ' + self.name)
-
+                
             messagebus.post_message("/system/tags/configured", t.name)
 
     def string_data_point(self,
@@ -811,8 +744,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 t = tagpoints.StringTag("/devices/" + self.name + "." + name)
 
             self.__setupTagPerms(t, writable)
-            t._dev_ui_writable = writable
-
             t.description = description
             t.default = default or ''
             t.interval = interval
@@ -835,16 +766,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             self.tagPoints[name] = t
             self.datapoints[name] = ''
 
-            # On demand subscribe to the binding for the tag we just made
-            if name in self._kBindings:
-                self._kBindings[name].subscribe(
-                    t, immediate=(not t.subtype == 'trigger'))
-
-            x = {i[0]: i[1]
-                 for i in self.config.get('kaithem.output_bindings', [])}
-            if name in x:
-                doOutputBinding(t, x[name], 'Set by device: ' + self.name)
-
             messagebus.post_message("/system/tags/configured", t.name)
 
     def object_data_point(self,
@@ -865,7 +786,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 t = tagpoints.ObjectTag("/devices/" + self.name + "." + name)
 
             self.__setupTagPerms(t, writable)
-            t._dev_ui_writable = writable
             t.subtype = subtype
 
             t.description = description
@@ -888,16 +808,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             self.tagPoints[name] = t
             self.datapoints[name] = None
 
-            # On demand subscribe to the binding for the tag we just made
-            if name in self._kBindings:
-                self._kBindings[name].subscribe(
-                    t, immediate=(not t.subtype == 'trigger'))
-
-            x = {i[0]: i[1]
-                 for i in self.config.get('kaithem.output_bindings', [])}
-            if name in x:
-                doOutputBinding(t, x[name], 'Set by device: ' + self.name)
-
             messagebus.post_message("/system/tags/configured", t.name)
 
     def bytestream_data_point(self,
@@ -919,7 +829,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
             t.unreliable = True
 
             self.__setupTagPerms(t, writable)
-            t._dev_ui_writable = writable
             t.subtype = subtype
 
             t.description = description
@@ -935,16 +844,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             self.tagPoints[name] = t
             self.datapoints[name] = None
-
-            # On demand subscribe to the binding for the tag we just made
-            if name in self._kBindings:
-                self._kBindings[name].subscribe(
-                    t, immediate=(not t.subtype == 'trigger'))
-
-            x = {i[0]: i[1]
-                 for i in self.config.get('kaithem.output_bindings', [])}
-            if name in x:
-                doOutputBinding(t, x[name], 'Set by device: ' + self.name)
 
             messagebus.post_message("/system/tags/configured", t.name)
 
@@ -1098,25 +997,10 @@ def updateDevice(devname, kwargs, saveChanges=True):
     if name not in kwargs:
         kwargs['name'] = name
 
-    ib = kwargs.pop("temp.kaithem.inputbindings", None)
-    if ib:
-        # Delete empty. We may need empty thanks to very very annoying ui lib bugs
-        kwargs['kaithem.input_bindings'] = [
-            i for i in json.loads(ib) if i[0] or i[2]
-        ]
-
-    ib = kwargs.pop("temp.kaithem.outputbindings", None)
-    if ib:
-        # Delete empty. We may need empty thanks to very very annoying ui lib bugs
-        kwargs['kaithem.output_bindings'] = [
-            i for i in json.loads(ib) if i[0] or i[1]
-        ]
-
     raw_dt = getDeviceType(kwargs['type'])
     if hasattr(raw_dt, "validateData"):
         raw_dt.validateData(kwargs)
 
-    old_bindings = {}
     old_read_perms = {}
     old_write_perms = {}
 
@@ -1135,11 +1019,6 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
             parentModule = remote_devices[devname].parentModule
             parentResource = remote_devices[devname].parentResource
-            old_bindings = remote_devices[devname].config.get(
-                "kaithem.input_bindings", [])
-
-            old_obindings = remote_devices[devname].config.get(
-                "kaithem.output_bindings", [])
 
             old_read_perms = remote_devices[devname].config.get(
                 "kaithem.read_perms", [])
@@ -1173,13 +1052,6 @@ def updateDevice(devname, kwargs, saveChanges=True):
         # Propagate subdevice status even if it is just loaded as a placeholder
         if configuredAsSubdevice or subdevice:
             d['is_subdevice'] = True
-
-        # allow forms that don't have the whole binding widget
-        if 'kaithem.input_bindings' not in d:
-            d['kaithem.input_bindings'] = old_bindings
-
-        if 'kaithem.output_bindings' not in d:
-            d['kaithem.output_bindings'] = old_obindings
 
         if 'kaithem.read_perms' not in d:
             d['kaithem.read_perms'] = old_read_perms or ''
@@ -1232,7 +1104,6 @@ def updateDevice(devname, kwargs, saveChanges=True):
             k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem')}
             remote_devices[name].update_config(k)
 
-            configureInputBindings(remote_devices[name])
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
@@ -1373,16 +1244,15 @@ class WebDevices():
                     o[i] = dev.config[i]
                     continue
             return json.dumps(o)
-        
+
         def has_secrets(dev: Device):
             for i in dev.config:
-                if dev.config_properties.get(i,{}).get("secret",False):
+                if dev.config_properties.get(i, {}).get("secret", False):
                     if dev.config[i]:
                         return True
 
+        return pages.render_jinja_template("devices/device_report.j2.html", devs=remote_devices_atomic, has_secrets=has_secrets, get_report_data=get_report_data, **device_page_env)
 
-        return pages.render_jinja_template("devices/device_report.j2.html",devs=remote_devices_atomic, has_secrets=has_secrets, get_report_data=get_report_data, **device_page_env)
-        
     @cherrypy.expose
     def device(self, name, *args, **kwargs):
         # This is a customizable per-device page
@@ -1408,7 +1278,6 @@ class WebDevices():
                 merged.update(device_data[name])
 
             if obj.parentModule:
-                from . import modules_state
                 merged.update(modules_state.ActiveModules[
                     obj.parentModule][obj.parentResource]['device'])
 
@@ -1696,12 +1565,10 @@ class WebDevices():
         raise cherrypy.HTTPRedirect("/devices")
 
 
-builtinDeviceTypes = {'device': Device}
-deviceTypes = weakref.WeakValueDictionary()
+device_types = {'device': Device}
 
 
 class DeviceNamespace():
-    deviceTypes = deviceTypes
     Device = Device
 
     def __getattr__(self, name):
@@ -1718,15 +1585,6 @@ class DeviceNamespace():
     def __iter__(self):
         x = remote_devices_atomic
         return (i for i in x if not x[i]().device_type_name == 'unsupported')
-
-
-class DeviceTypeLookup():
-    def __getitem__(self, k):
-        if k in builtinDeviceTypes:
-            dt = builtinDeviceTypes[k]
-        elif k in ("", 'device', 'Device'):
-            dt = Device
-        return dt
 
 
 devicesByModuleAndResource = weakref.WeakValueDictionary()
@@ -1789,12 +1647,10 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
         data['name'] = name
         data['type'] = cls.device_type
 
-    if data['type'] in builtinDeviceTypes:
-        dt = builtinDeviceTypes[data['type']]
+    if data['type'] in device_types:
+        dt = device_types[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
         dt = Device
-    elif data['type'] in deviceTypes:
-        dt = deviceTypes[data['type']]
     else:
 
         try:
@@ -1859,135 +1715,13 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
                 })
             modules_state.modulesHaveChanged()
 
-    try:
-        configureInputBindings(d)
-    except Exception:
-        d.handleException()
-
     return d
 
 
-def doOutputBinding(tag, dest, annotation):
-    if not hasattr(tag, '_kOutputBindings'):
-        tag._kOutputBindings = []
-
-    def f(v, t, a):
-        if dest in tagpoints.allTagsAtomic:
-
-            d = tagpoints.allTagsAtomic[dest]
-
-            # For triggers, don't copy the raw value, increase the destination's value by 1.
-            if d.subtype == 'trigger':
-                v = d.value + 1
-
-            d(v, t, annotation)
-
-    tag._kOutputBindings.append[f]
-
-
-def configureInputBindings(d):
-    data = d.config
-    needSet = 0
-    for i in data.get("kaithem.input_bindings", []):
-        if not i[0].strip():
-            continue
-
-        t = d.tagPoints.get(i[0], None)
-        xt = tagpoints.allTagsAtomic.get(i[2], None)
-        t = (t or xt)
-        if not i[1].strip():
-            if t:
-                needSet = 1
-                if isinstance(t, weakref.ref):
-                    t = t()
-                i[1] = t.type
-            else:
-                raise ValueError("Can't guess type for binding to: " +
-                                 i[0])
-
-    if hasattr(d, "_kBindings"):
-        for i in d._kBindings:
-            try:
-                d._kBindings[i].unsubscribe(d.tagPoints[i])
-            except Exception:
-                log.exception(
-                    "Could not unsub. Maybe was never created.")
-
-    for i in d.tagPoints:
-        t = d.tagPoints[i]
-
-        if hasattr(t, "_kOutputBindings"):
-            for i in t._kOutputBindings:
-                try:
-                    t.unsubscribe[i]
-                except Exception:
-                    log.exception(
-                        "Could not unsub. Maybe was never created.")
-
-        t._kOutputBindings = []
-
-    for i in data.get("kaithem.input_bindings", []):
-        if not i[0].strip():
-            continue
-
-        # Can always do this later
-        if i[0] in d.tagPoints:
-           # Do the setter right away if the tag has data
-            doOutputBinding(d.tagPoints[i[0]], i[1],
-                            "Set by device: " + d.name)
-
-        else:
-            if not hasattr(d, "_isCrossFramework"):
-                d.handle_error(
-                    "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
-                )
-
-    for i in data.get("kaithem.output_bindings", []):
-        if not i[0].strip():
-            continue
-
-        if i[0] in d.tagPoints:
-            t = d.tagPoints[i[0]]
-
-        else:
-            if not hasattr(d, "_isCrossFramework"):
-                d.handle_error(
-                    "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
-                )
-
-        if t.type == 'numeric' or t.type == 'number':
-            t = tagpoints.Tag(i[2])
-
-        if t.type == 'string':
-            t = tagpoints.StringTag(i[2])
-
-        if t.type == 'object':
-            t = tagpoints.ObjectTag(i[2])
-
-        d._kBindings[i[0]] = t
-
-        # Can always do this later
-        if i[0] in d.tagPoints:
-            # Do the setter right away if the tag has data
-            t.subscribe(d.tagPoints[i[0]], immediate=(
-                not t.subtype == 'trigger'))
-        else:
-            if not hasattr(d, "_isCrossFramework"):
-                d.handle_error(
-                    "Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices."
-                )
-
-    if needSet:
-        # Set the data if we auto-filled the type
-        d.setObject("kaithem.input_bindings",
-                    data.get("kaithem.input_bindings", []))
-
 
 def getDeviceType(t):
-    if t in builtinDeviceTypes:
-        return builtinDeviceTypes[t]
-    elif t in deviceTypes:
-        return deviceTypes[t]
+    if t in device_types:
+        return device_types[t]
     else:
         try:
             t = iot_devices.host.get_class({'type': t})
@@ -2004,45 +1738,6 @@ class TemplateGetter():
     def __get__(self, instance, owner):
         return lambda: pages.get_vardir_template(self.fn).render(
             data=instance.config, obj=instance, name=instance.name)
-
-
-deviceTypesFromData = {}
-
-
-def loadDeviceType(root, i):
-    name = i[:-3]
-    fn = os.path.join(root, i)
-    with open(fn) as f:
-        d = f.read()
-
-    # Avoid circular imports, kaithemobj basically depends on everything
-    from . import kaithemobj
-    codeEvalScope = {
-        "Device": Device,
-        'kaithem': kaithemobj.kaithem,
-        'deviceTypes': DeviceTypeLookup()
-    }
-    exec(compile(d, "Driver_" + name, 'exec'), codeEvalScope, codeEvalScope)
-
-    # Remove anything in parens
-    realname = re.sub(r'\(.*\)', '', name).strip()
-    dt = codeEvalScope[realname]
-    # Fix missing devicetypename
-    dt.device_type_name = realname
-    deviceTypes[realname] = dt
-    deviceTypesFromData[realname] = dt
-
-    createfn = os.path.join(root, name + ".create.html")
-    if os.path.exists(createfn):
-        dt.getCreateForm = TemplateGetter(createfn)
-
-    editfn = os.path.join(root, name + ".edit.html")
-    if os.path.exists(editfn):
-        dt.getManagementForm = TemplateGetter(editfn)
-
-    mdfn = os.path.join(root, "README.md")
-    if os.path.exists(mdfn):
-        dt.readme = mdfn
 
 
 def createDevicesFromData():
@@ -2078,31 +1773,18 @@ def createDevicesFromData():
 unsupportedDevices = weakref.WeakValueDictionary()
 
 
-def fixUnsupported():
-    "For all placeholder unsupported devices, let's see if we can fix them with a newly set up driver"
-    global remote_devices_atomic
-    with modules_state.modulesLock:
-        # Small optimization here
-        if not unsupportedDevices:
-            return
-        s = 0
-        for i in list(remote_devices.keys()):
-            if remote_devices[i].device_type_name == 'unsupported':
-                d = remote_devices[i]
-                remote_devices[i] = makeDevice(i, d.config, d.parentModule,
-                                               d.parentResource)
-                if not remote_devices[i].device_type_name == 'unsupported':
-                    s += 1
-        if s:
-            remote_devices_atomic = wrcopy(remote_devices)
-
-
 def warnAboutUnsupportedDevices():
     x = remote_devices_atomic
     for i in x:
-        if x[i]().device_type_name() == "unsupported":
+        d = x[i]()
+        if not d:
+            continue
+        if not hasattr(d, "device_type_name"):
+            continue
+
+        if d.device_type_name == "unsupported":
             try:
-                x[i].warn()
+                messagebus.post_message("/system/notifications/errors", "Device "+str(i)+" not supported")
             except Exception:
                 syslogger.exception(
                     "Error warning about missing device support device " +
@@ -2110,37 +1792,6 @@ def warnAboutUnsupportedDevices():
 
 
 def init_devices():
-    global remote_devices_atomic
-    toLoad = []
-    try:
-        if os.path.isdir(driversLocation):
-
-            # Iterate over subfolders, one subfolder per collection
-            # Of device drivers.
-            for root in os.listdir(driversLocation):
-                root = os.path.join(driversLocation, root)
-                for i in os.listdir(root):
-                    if i.endswith('.py'):
-                        toLoad.append((root, i))
-
-            # sort by len, such that foo(bar) comes after bar
-            toLoad = sorted(toLoad, key=lambda x: len(x[1]))
-            for i in toLoad:
-                try:
-                    loadDeviceType(*i)
-                except Exception:
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        "Error with device driver :" + i[1] + "\n" +
-                        traceback.format_exc(chain=True))
-
-        else:
-            os.mkdir(driversLocation)
-    except Exception:
-        messagebus.post_message(
-            "/system/notifications/errors",
-            "Error with device drivers:\n" + traceback.format_exc(chain=True))
-
     createDevicesFromData()
 
 

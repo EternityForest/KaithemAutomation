@@ -192,11 +192,8 @@ del d
 
 
 <datalist id="deviceTypes">
-    %for i in devices.builtinDeviceTypes:
-    <option value="${i}" title=${devices.builtinDeviceTypes[i].description} >
-    %endfor
-    %for i in devices.deviceTypes:
-    <option value="${i}" title=${devices.deviceTypes[i].description} >
+    %for i in devices.device_types:
+    <option value="${i}" title=${devices.device_types[i].description} >
     %endfor
 
     %for i in devices.importedDeviceTypes:
@@ -216,19 +213,11 @@ del d
 <h2>Available Device Types</h2>
 <div class="max-h-12rem scroll border">
 <dl>
-    %for i in devices.builtinDeviceTypes:
+    %for i in devices.device_types:
     <dt><b>${i|h}</b></dt>
-    <dd>${devices.builtinDeviceTypes[i].description|h}</dd>
+    <dd>${devices.device_types[i].description|h}</dd>
 
     %endfor
-
-
-
-    %for i in devices.deviceTypes:
-    <dt><b>${i|h}</b></dt>
-    <dd>${devices.deviceTypes[i].description|h}</dd>
-    %endfor
-
 
     %for i in  devices.importedDeviceTypes:
     <dt><b>${i|h} from ${devices.importedDeviceTypes[i].get('importable','unknown module')|h}</b></dt>
