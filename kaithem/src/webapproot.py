@@ -41,7 +41,6 @@ from . import (
     modules_state,
     usrpages,
     messagelogging,
-    btadmin,
     devices,
     messagebus,
     util,
@@ -151,7 +150,6 @@ class webapproot:
     auth = ManageUsers.ManageAuthorization()
     modules = modules_interface.WebInterface()
     settings = settings.Settings()
-    settings.bt = btadmin.WebUI()
     errors = Errors()
     utils = Utils()
     pages = usrpages.KaithemPage()
