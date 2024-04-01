@@ -278,7 +278,7 @@ ${jackmixer.global_api.render("gapi")}
               <div class="effect" v-if="showAddEffect">
                 <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
                 <div class="tool-bar"><input v-model="fxSearch" placeholder="Search"><button
-                    v-on:click="fxSearch=''">X</button></div>
+                    v-on:click="fxSearch=''"><i class="mdi mdi-backspace"></i></button></div>
                 <div style="height:8em;overflow: scroll;">
                   <div v-for="i in effectTypes"
                     v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">

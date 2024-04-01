@@ -194,7 +194,7 @@ ${lists}
                 </div>
                 <div class="tool-bar">
                     <input v-model="scenefilter" placeholder="Search" list="tracks" /><button
-                        v-on:click="scenefilter=''"><i class="mdi mdi-close"></i>
+                        v-on:click="scenefilter=''"><i class="mdi mdi-backspace"></i>
                     </button>
                     <button v-on:click="showPages=!showPages">Compact</button>
 
@@ -468,7 +468,7 @@ ${lists}
 
                     <p>
                         <input v-model="cuefilter" placeholder="Search Cues" />
-                        <button v-on:click="cuefilter=''">x</button>
+                        <button v-on:click="cuefilter=''"><i class="mdi mdi-backspace"></i></button>
                     </p>
 
                     <button v-on:click="delscene(scenename)"><i class="mdi mdi-delete"></i>Delete Scene</button>
