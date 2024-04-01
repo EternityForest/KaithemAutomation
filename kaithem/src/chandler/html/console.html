@@ -153,7 +153,8 @@ ${lists}
                     class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
             <a class="button" href="docs/index" target="_blank"><i class="mdi mdi-help-circle-outline"></i>Help</a>
             <a class="button" href="config"><i class="mdi mdi-cog-outline"></i>Settings</a><label>
-            <input type="checkbox" class="toggle" v-model="uiAlertSounds">Alert Sounds</label>
+            <input type="checkbox" class="toggle" v-model="uiAlertSounds">
+            <i class="mdi mdi-volume-medium"></i></label>
 
         </div>
 
@@ -500,14 +501,16 @@ ${lists}
                                 <td class="rowname" data-label="Cue: " style=" user-select: none;"
                                     title="Click the cue name to edit that cue"
                                     v-on:click="selectcue(scenename,i[1].name)">
-
-                                    <span title="Cue number, double click to change." style="width:6em"
+                                    
+                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name"
+                                        class="mdi mdi-arrow-right-bold-outline nomargin"></i>
+                                    
+                                    <span title="Cue number, double click to change." style="width:6em; margin: 6px"
                                         v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
 
-                                    {{i[1].name}}
 
-                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name"
-                                        class="mdi mdi-play nomargin"></i>
+                                    <span>{{i[1].name}}</span>
+
                                     <span v-if="selectedCues[scenename]==i[1].name"><i
                                             class="mdi mdi-pencil nomargin"></i></span>
 
@@ -523,6 +526,10 @@ ${lists}
                                     <span v-if="i[1].rules && i[1].rules.length>0"
                                         title="This cue has rules attatched"><i
                                             class="mdi mdi-script-text-outline nomargin"></i></span>
+
+                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name"
+                                            class="mdi mdi-arrow-left-bold-outline nomargin"></i>
+                                        
                                 </td>
 
 

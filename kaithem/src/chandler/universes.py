@@ -505,8 +505,8 @@ class DMXSender():
         self.framerate = float(framerate)
         self.lock = threading.Lock()
         self.port = None
-        self.connect()
-        self.thread.start()
+        self.started = None
+        
 
     def setStatus(self, s, ok):
         try:
@@ -515,6 +515,9 @@ class DMXSender():
             pass
 
     def connect(self):
+        if not self.started:
+            self.started = True
+            self.thread.start()
         # Different status message first time
         try:
             self.reconnect()
@@ -916,16 +919,21 @@ class RawDMXSender():
         self.framerate = float(framerate)
         self.lock = threading.Lock()
         self.port = None
-        self.connect()
-        self.thread.start()
+        self.started = None
 
     def setStatus(self, s, ok):
         try:
-            self.universe().setStatus(s, ok)
+            x = self.universe()
+            if x:
+                x.setStatus(s, ok)
         except Exception:
             logging.exception("???")
 
     def connect(self):
+        if not self.started:
+            self.started = True
+            self.thread.start()
+            
         # Different status message first time
         try:
             self.reconnect()
@@ -977,7 +985,7 @@ class RawDMXSender():
                 pass
 
     def run(self):
-        while 1:
+        while self.universe():
             try:
                 s = time.time()
                 self.port.read(self.port.inWaiting())

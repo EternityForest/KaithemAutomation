@@ -9,6 +9,7 @@ Change Log
 
 - :lipstick: Better combo box feel
 - :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
+- :lipstick: More compact strftime default
 
 
 ### 0.77.0 Beta
