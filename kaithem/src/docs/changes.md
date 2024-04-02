@@ -7,6 +7,7 @@ Change Log
 - :bug: Fix nuisance error when deleting mixer channel
 - :bug: Fix enttec open atapter showing as disconnected when it wasn't
 - :bug: Fix unsupported device warnings feature
+- :bug: Displayed value in UI correctly updates for refresh button
 
 - :lipstick: Better combo box feel
 - :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.

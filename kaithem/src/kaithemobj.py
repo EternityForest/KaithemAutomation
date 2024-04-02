@@ -51,7 +51,6 @@ from . import statemachines
 from . import devices
 from . import alerts
 from . import midi
-from . import gpio
 from . import theming
 from . import assetlib
 from kaithem import __version__
@@ -178,11 +177,6 @@ class Kaithem():
 
     class alerts(object):
         Alert = alerts.Alert
-
-    class gpio():
-        DigitalInput = gpio.DigitalInput
-        DigitalOutput = gpio.DigitalOutput
-        PWMOutput = gpio.PWMOutput
 
     class logging(object):
         @staticmethod

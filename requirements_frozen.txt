@@ -24,7 +24,6 @@ exceptiongroup==1.2.0
 ffmpeg-python==0.2.0
 Flask==3.0.2
 future==1.0.0
-gpiozero==2.0.1
 holidays==0.44
 idna==3.6
 ifaddr==0.1.7

@@ -25,7 +25,7 @@ import logging
 import traceback
 import zipfile
 from cherrypy.lib.static import serve_file
-from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, gpio, directories, persist
+from . import pages, util, messagebus, config, auth, kaithemobj, config, weblogin, systasks, directories, persist
 
 
 notificationsfn = os.path.join(
@@ -633,8 +633,6 @@ class Settings():
     def environment(self):
         pages.require("view_admin_info")
         return pages.get_template("settings/environment.html").render()
-
-    gpio = gpio.WebInterface()
 
     class profiler():
         @cherrypy.expose

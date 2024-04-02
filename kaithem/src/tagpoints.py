@@ -223,7 +223,7 @@ class GenericTagPointClass(Generic[T]):
         self.configOverrides: Dict[str, object] = {}
 
         self._dynConfigValues: Dict[str, object] = {}
-        self.dynamicAlarmData: Dict[str, object] = {}
+        self.dynamicAlarmData: Dict[str, Dict[str, Any]] = {}
         self.configuredAlarmData: Dict[str, persist.SharedStateFile] = {}
         # The merged combo of both of those
         self.effectiveAlarmData: Dict[str, object] = {}
@@ -1382,11 +1382,12 @@ class GenericTagPointClass(Generic[T]):
 
     def fastPush(self, value: T, timestamp: Optional[float] = None, annotation: Any = None) -> None:
         """
-            Push a value to all subscribers. Does not set the tag's value.
+            Push a value to all subscribers. Does not set the tag's value.  Ignores any and all
+            overriding claims.
             Bypasses all claims. Does not guarantee to get any locks, multiples of this call can happen at once.
-            Does not perform any checks on the value.
+            Does not perform any checks on the value.  Might decide to do nothing if the system is too busy at the moment.
 
-            Meant for streaming video analysis.
+            Meant for streaming video and the like.
         """
 
         timestamp = timestamp or time.monotonic()
@@ -1514,7 +1515,6 @@ class GenericTagPointClass(Generic[T]):
         if self.lock.acquire(timeout=5):
             try:
                 self._getValue()
-                self._push()
             finally:
                 self.lock.release()
         else:
@@ -1667,6 +1667,7 @@ class GenericTagPointClass(Generic[T]):
                             # This is just used to calculate the overall age of the tags data
                             self.lastGotValue = time.monotonic()
                             self.lastValue = self.processValue(x)
+                            self._push()
 
                     finally:
                         self.lock.release()

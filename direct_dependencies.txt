@@ -28,7 +28,6 @@ ffmpeg-python
 yappi
 zeroconf>=0.119.0
 colorzero
-gpiozero
 # Still included in repo because it doesn't install correctly due to 
 # suds-passworddigest
 #onvif

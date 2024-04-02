@@ -56,19 +56,19 @@ def get_time(ev):
         if not newevt.EventReferences[ev].nextruntime:
             return 0
         return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz)
-    except Exception as e:
+    except Exception:
         return -1
 
 
 def get_next_run(name, i):
-    xyz= get_time((name,i))
+    xyz = get_time((name, i))
     unitsofmeasure.strftime()
-    if xyz ==0:
-        xyz= "<b>Not Scheduled to Run</b>"
+    if xyz == 0:
+        xyz = "<b>Not Scheduled to Run</b>"
     elif xyz == -1:
-        xyz="Error getting next run time, try refreshing page again."
+        xyz = "Error getting next run time, try refreshing page again."
     else:
-        xyz =unitsofmeasure.strftime(xyz)
+        xyz = unitsofmeasure.strftime(xyz)
 
     return xyz
 
@@ -119,7 +119,7 @@ def sorted_module_path_list(name: str, path: list):
 def breadcrumbs(path):
     temp_p = ''
     for i in util.split_escape(path, "/", "\\"):
-        temp_p += i +"/"
+        temp_p += i + "/"
         yield temp_p[:-1]
 
 
@@ -270,12 +270,6 @@ class WebInterface:
                 tagr=searchTags(kwargs["search"]),
                 devr=searchDevices(kwargs["search"]),
             )
-
-    @cherrypy.expose
-    def nextrun(self, **kwargs):
-        pages.require("view_admin_info")
-
-        return str(scheduling.get_next_run(kwargs["string"]))
 
     # This lets the user download a module as a zip file with yaml encoded resources
     @cherrypy.expose
@@ -816,7 +810,7 @@ def addResourceTarget(module, type, name, kwargs, path):
         if type == "directory":
             insertResource({"resource-type": "directory"})
             raise cherrypy.HTTPRedirect("/modules/module/" + util.url(module))
-        
+
         elif type == "permission":
             insertResource(
                 {"resource-type": "permission",
