@@ -98,8 +98,10 @@ class DeviceResourceType(ResourceType):
             if n in remote_devices:
                 remote_devices[n].close()
 
-            remote_devices[n] = makeDevice(n, value['device'])
-            storeDeviceInModule(remote_devices[name], module, name)
+            d = makeDevice(n, value['device'])
+            remote_devices[n] = d
+            d.parentModule = module
+            d.parentResource = name
 
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
@@ -488,18 +490,6 @@ class Device():
             if self.name in remote_devices:
                 del remote_devices[self.name]
                 remote_devices_atomic = wrcopy(remote_devices)
-
-            if self.parentModule:
-                try:
-                    del devicesByModuleAndResource[self.parentModule,
-                                                   self.parentResource]
-                except KeyError:
-                    pass
-
-            # if hasattr(self, "tagPoints"):
-            #     for i in self.tagPoints:
-            #         t = self.tagPoints[i]
-
 
             try:
                 del self.tagPoints
@@ -994,11 +984,6 @@ def updateDevice(devname, kwargs, saveChanges=True):
     subdevice = False
 
     with modules_state.modulesLock:
-
-        if devname in device_data:
-            # Not the same as currently being a subdevice. We have placeholders to edit subdevices that don't exist.
-            configuredAsSubdevice = device_data[devname].get(
-                'is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1')
         if devname in remote_devices:
 
             subdevice = hasattr(
@@ -1007,6 +992,15 @@ def updateDevice(devname, kwargs, saveChanges=True):
             parentModule = remote_devices[devname].parentModule
             parentResource = remote_devices[devname].parentResource
 
+            if not parentModule:
+                dt = device_data[devname]
+            else:
+                dt = modules_state.ActiveModules[parentModule][
+                    parentResource]['device']
+
+            # Not the same as currently being a subdevice. We have placeholders to edit subdevices that don't exist.
+            configuredAsSubdevice = dt.get( 'is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1')
+        
             old_read_perms = remote_devices[devname].config.get(
                 "kaithem.read_perms", [])
 
@@ -1062,34 +1056,26 @@ def updateDevice(devname, kwargs, saveChanges=True):
                 with open(os.path.join(fl, i2), "w") as f:
                     f.write(kwargs[i])
 
-        if parentModule:
-            modules_state.ActiveModules[parentModule][
-                parentResource] = {
-                    'resource-type': 'device',
-                    "device": d
-            }
 
-            modules_state.saveResource(
-                parentModule, parentResource, {
-                    'resource-type': 'device',
-                    "device": d
-                })
-            modules_state.modulesHaveChanged()
-
-        else:
-            # Allow name changing via data, we save under new, not the old name
-            device_data[name] = d
-            saveDevice(name)
 
         if not subdevice:
-            remote_devices[name] = makeDevice(name, kwargs, parentModule,
-                                              parentResource)
+            remote_devices[name] = makeDevice(name, kwargs)
+            # set the location info to what it previosly was
+            remote_devices[name].parentModule = parentModule
+            remote_devices[name].parentResource = parentResource
         else:
             kwargs['is_subdevice'] = 'true'
 
             # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
             k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem')}
             remote_devices[name].update_config(k)
+
+        if parentModule:
+            storeDeviceInModule(d, parentModule, parentResource)
+        else:
+            # Allow name changing via data, we save under new, not the old name
+            device_data[name] = d
+            saveDevice(name)
 
 
         global remote_devices_atomic
@@ -1382,7 +1368,9 @@ class WebDevices():
             if name in remote_devices:
                 remote_devices[name].close()
             remote_devices[name] = makeDevice(name, kwargs)
-            storeDeviceInModule(remote_devices[name], m, r)
+            storeDeviceInModule(d, m, r)
+            remote_devices[name].parentModule = m
+            remote_devices[name].parentResource = r
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
             messagebus.post_message("/devices/added/", name)
@@ -1569,9 +1557,6 @@ class DeviceNamespace():
         return (i for i in x if not x[i]().device_type_name == 'unsupported')
 
 
-devicesByModuleAndResource = weakref.WeakValueDictionary()
-
-
 def wrapCrossFramework(dt2, desc):
     # We can't use the class as-is, because it uses the default very simple implementations of things.
     # So we customize it using Device.
@@ -1618,7 +1603,7 @@ def wrapCrossFramework(dt2, desc):
     return ImportedDeviceClass
 
 
-def makeDevice(name, data, module=None, resource=None, cls=None):
+def makeDevice(name, data, cls=None):
     err = None
     desc = ''
 
@@ -1679,25 +1664,18 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
     return d
 
 
-def storeDeviceInModule(d, module, resource):
-    d.parentModule = module
-    d.parentResource = resource
-    devicesByModuleAndResource[module, resource] = d
-    # In case something changed during initializatiion before we set it
-    # flush the changes back to the modules object if applicable
+def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
     with modules_state.modulesLock:
-        modules_state.ActiveModules[d.parentModule][
-            d.parentResource] = {
-                'resource-type': 'device',
-                'device': d.config
+        modules_state.ActiveModules[module][resource] = {
+            'resource-type': 'device',
+            'device': d
         }
 
         modules_state.saveResource(
-            d.parentModule, d.parentResource, {
+            module, resource, {
                 'resource-type': 'device',
-                "device": d.config
+                "device": d
             })
-        modules_state.modulesHaveChanged()
 
 def getDeviceType(t):
     if t in device_types:
