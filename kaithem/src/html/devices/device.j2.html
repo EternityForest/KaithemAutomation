@@ -225,10 +225,10 @@
                             {% if obj.config_properties.get(i,{}).get("type") =='bool' %}
 
                             <select name="{{ i| escape }}">
-                                <option>False/Off</option>
+                                <option value="no">False/Off</option>
                                 <option
-                                    {{ 'selected' if obj.config[i].lower().strip() in ('true','yes','on','enable','active','enabled' ) else ''  }}
-                                    value="true">True/On</option>
+                                    {{ 'selected' if obj.config[i].lower().strip() in ('true','yes','on','enable','active','enabled','1') else ''  }}
+                                    value="yes">True/On</option>
                             </select>
                             {% else %}
                             {% if obj.config_properties.get(i,{}).get("secret",False) %}

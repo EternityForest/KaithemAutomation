@@ -8,6 +8,7 @@ Change Log
 - :bug: Fix enttec open atapter showing as disconnected when it wasn't
 - :bug: Fix unsupported device warnings feature
 - :bug: Displayed value in UI correctly updates for refresh button
+- :bug: Fix devices UI setting bad value when you specified 'false'
 
 - :lipstick: Better combo box feel
 - :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
@@ -18,7 +19,9 @@ Change Log
 - :coffin: Remove the input and output binding feature of devices.  Chandler can do everything it could, and it was not a clean separation of device and logic.
 - :coffin: Remove the bluetooth admin panel. Try [bluetuith](https://darkhz.github.io/bluetuith/)!
 - :coffin: Remove some old junk files
-- 
+- :coffin: kaithem.gpio is gone.  That really belongs in an iot_devices device, or in custom code.
+
+
 Specific devices removed:
 
 - BareSIP

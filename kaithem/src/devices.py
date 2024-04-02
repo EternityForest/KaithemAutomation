@@ -98,7 +98,9 @@ class DeviceResourceType(ResourceType):
             if n in remote_devices:
                 remote_devices[n].close()
 
-            remote_devices[n] = makeDevice(n, value['device'], module, name)
+            remote_devices[n] = makeDevice(n, value['device'])
+            storeDeviceInModule(remote_devices[name], module, name)
+
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
 
@@ -1379,7 +1381,8 @@ class WebDevices():
 
             if name in remote_devices:
                 remote_devices[name].close()
-            remote_devices[name] = makeDevice(name, kwargs, m, r)
+            remote_devices[name] = makeDevice(name, kwargs)
+            storeDeviceInModule(remote_devices[name], m, r)
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
             messagebus.post_message("/devices/added/", name)
@@ -1673,30 +1676,28 @@ def makeDevice(name, data, module=None, resource=None, cls=None):
     if err:
         d.handle_error(err)
 
-    if module:
-        d.parentModule = module
-        d.parentResource = resource
-        devicesByModuleAndResource[module, resource] = d
-
-        # In case something changed during initializatiion before we set it
-        # flush the changes back to the modules object if applicable
-        with modules_state.modulesLock:
-            modules_state.ActiveModules[d.parentModule][
-                d.parentResource] = {
-                    'resource-type': 'device',
-                    'device': d.config
-            }
-
-            modules_state.saveResource(
-                d.parentModule, d.parentResource, {
-                    'resource-type': 'device',
-                    "device": d.config
-                })
-            modules_state.modulesHaveChanged()
-
     return d
 
 
+def storeDeviceInModule(d, module, resource):
+    d.parentModule = module
+    d.parentResource = resource
+    devicesByModuleAndResource[module, resource] = d
+    # In case something changed during initializatiion before we set it
+    # flush the changes back to the modules object if applicable
+    with modules_state.modulesLock:
+        modules_state.ActiveModules[d.parentModule][
+            d.parentResource] = {
+                'resource-type': 'device',
+                'device': d.config
+        }
+
+        modules_state.saveResource(
+            d.parentModule, d.parentResource, {
+                'resource-type': 'device',
+                "device": d.config
+            })
+        modules_state.modulesHaveChanged()
 
 def getDeviceType(t):
     if t in device_types:
