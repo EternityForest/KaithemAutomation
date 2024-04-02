@@ -102,9 +102,30 @@
             {% if obj.parentModule %}
             <h2>Module/Resource</h2>
             <p>This device is part of a module, rather than the global devices list.</p>
-            <input name="module" disabled value="{{ obj.parentModule| escape }}"><input name="module" disabled
-                value="{{ obj.parentResource| escape }}">
             {% endif %}
+
+
+            <details>
+                <summary>
+                    <b>Save Location</b>
+                </summary>
+
+                <p>You can store this device in a module.  It's suggested you do so.
+                    Storing outside of a module may be deprecated at some point.
+                </p>
+
+                <table border="1" style="width:100%">
+
+                    <tr>
+                        <td>Store settings in Module(blank=store in main devices list)</td>
+                        <td><input name="_store_in_module" value="{{ obj.parentModule or '' | escape }}"></td>
+                    </tr>
+                    <tr>
+                        <td>Resource Name(blank=use device name)</td>
+                        <td><input name="_store_in_resource" value="{{ obj.parentResource or ''| escape }}"></td>
+                    </tr>
+                </table>
+            </details>
 
             <details>
                 <summary>

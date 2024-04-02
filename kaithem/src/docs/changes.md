@@ -20,7 +20,8 @@ Change Log
 - :coffin: Remove the bluetooth admin panel. Try [bluetuith](https://darkhz.github.io/bluetuith/)!
 - :coffin: Remove some old junk files
 - :coffin: kaithem.gpio is gone.  That really belongs in an iot_devices device, or in custom code.
-
+- :sparkles: BREAKING: The name of a device stored in a module does not include it's module name or folder
+- :sparkles: BREAKING: / now used to separate subdevice names
 
 Specific devices removed:
 

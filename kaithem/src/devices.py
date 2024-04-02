@@ -40,6 +40,8 @@ from . import persist, directories, messagebus, widgets, unitsofmeasure
 import iot_devices.host
 import iot_devices.device
 
+SUBDEVICE_SEPARATOR = "/"
+
 # Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
 # edit the state because self modifying devices exist and can be saved in a module
 log = logging.getLogger("system.devices")
@@ -94,8 +96,15 @@ def closeAll(*a):
 class DeviceResourceType(ResourceType):
     def onload(self, module, name, value):
         with modules_state.modulesLock:
-            n = module + "/" + name
+            n = name.split(SUBDEVICE_SEPARATOR)[-1]
+            # We may want to store a device in a shortened resource name
+            # because of / issues
+            if 'name' in value['device']:
+                n = value['device']['name']
+
             if n in remote_devices:
+                if not value['device']['device_type'] == remote_devices[n].device_type_name:
+                    raise RuntimeError("Name in user, can't overwrite this device name with a different type")
                 remote_devices[n].close()
 
             d = makeDevice(n, value['device'])
@@ -108,7 +117,9 @@ class DeviceResourceType(ResourceType):
 
     def ondelete(self, module, name, value):
         with modules_state.modulesLock:
-            n = module + "/" + name
+            n = name.split(SUBDEVICE_SEPARATOR)[-1]
+            if 'name' in value['device']:
+                n = value['device']['name']
             if n in remote_devices:
                 x = remote_devices[n]
                 x.close()
@@ -136,7 +147,9 @@ class DeviceResourceType(ResourceType):
 
     def editpage(self, module, name, value):
         with modules_state.modulesLock:
-            n = module + "/" + name
+            n = name.split(SUBDEVICE_SEPARATOR)[-1]
+            if 'name' in value['device']:
+                n = value['device']['name']
         return pages.get_template("devices/device.html").render(
             data=remote_devices[n].config, obj=remote_devices[n], name=n)
 
@@ -378,7 +391,6 @@ class Device():
 
         onMessage2 = self.makeGenericUIMsgHandler(weakref.ref(self))
 
-
         # I don't think this is actually needed
         self._uiMsgRef = onMessage
 
@@ -583,11 +595,12 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
         originalName = name
 
-        name = self.name + '.' + name
+        name = self.name + SUBDEVICE_SEPARATOR + name
 
         config = copy.deepcopy(config)
         config['name'] = name
         config['is_subdevice'] = "true"
+        config['parent_device'] = self.name
 
         # Mix in the config for the data
         try:
@@ -706,7 +719,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
             self.tagPoints[name] = t
             self.datapoints[name] = default
-                
+
             messagebus.post_message("/system/tags/configured", t.name)
 
     def string_data_point(self,
@@ -984,6 +997,10 @@ def updateDevice(devname, kwargs, saveChanges=True):
     subdevice = False
 
     with modules_state.modulesLock:
+        if "_store_in_module" in kwargs:
+            if not kwargs["_store_in_module"] in modules_state.ActiveModules:
+                raise ValueError("Can't store in nonexistant module")
+
         if devname in remote_devices:
 
             subdevice = hasattr(
@@ -999,8 +1016,9 @@ def updateDevice(devname, kwargs, saveChanges=True):
                     parentResource]['device']
 
             # Not the same as currently being a subdevice. We have placeholders to edit subdevices that don't exist.
-            configuredAsSubdevice = dt.get( 'is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1')
-        
+            configuredAsSubdevice = dt.get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1')
+            configuredAsSubdevice = configuredAsSubdevice or dt.get('parent_device', '').strip()
+
             old_read_perms = remote_devices[devname].config.get(
                 "kaithem.read_perms", [])
 
@@ -1056,13 +1074,12 @@ def updateDevice(devname, kwargs, saveChanges=True):
                 with open(os.path.join(fl, i2), "w") as f:
                     f.write(kwargs[i])
 
-
+        if "_store_in_module" in kwargs:
+            parentModule = kwargs["_store_in_module"]
+            parentResource = kwargs["_store_in_resource"] or name
 
         if not subdevice:
             remote_devices[name] = makeDevice(name, kwargs)
-            # set the location info to what it previosly was
-            remote_devices[name].parentModule = parentModule
-            remote_devices[name].parentResource = parentResource
         else:
             kwargs['is_subdevice'] = 'true'
 
@@ -1070,13 +1087,16 @@ def updateDevice(devname, kwargs, saveChanges=True):
             k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem')}
             remote_devices[name].update_config(k)
 
+        # set the location info to what it previosly was
+        remote_devices[name].parentModule = parentModule
+        remote_devices[name].parentResource = parentResource
+
         if parentModule:
             storeDeviceInModule(d, parentModule, parentResource)
         else:
             # Allow name changing via data, we save under new, not the old name
             device_data[name] = d
             saveDevice(name)
-
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
@@ -1091,10 +1111,10 @@ def devStatString(d):
     "Misc status info that we can gather from the device typy"
     s = []
 
-    if 'status' in d.tagPoints:
-        s.append(str(d.tagPoints['status']())[:32])
-
     try:
+        if 'status' in d.tagPoints:
+            s.append(str(d.tagPoints['status']())[:32])
+
         if len(d.tagPoints) < 14:
             for i in d.tagPoints:
                 if hasattr(d.tagPoints[i], 'meterWidget'):
@@ -1342,10 +1362,11 @@ class WebDevices():
             if 'module' in kwargs:
                 m = kwargs['module']
                 r = kwargs['resource']
-                name = m + "/" + r
+                name = r
                 del kwargs['module']
                 del kwargs['resource']
                 d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
+                d['name'] = name
 
                 # Set these as the default
                 kwargs['kaithem.read_perms'] = "view_devices"
@@ -1354,6 +1375,7 @@ class WebDevices():
                 modules_state.ActiveModules[m][r] = {
                     'resource-type': 'device',
                     'device': d
+
                 }
                 modules_state.modulesHaveChanged()
             else:
@@ -1381,7 +1403,6 @@ class WebDevices():
 
     @cherrypy.expose
     def createDevicePage(self, name, module='', resource='', **kwargs):
-
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("system_admin")
         pages.postOnly()
@@ -1608,10 +1629,10 @@ def makeDevice(name, data, cls=None):
     desc = ''
 
     data = copy.deepcopy(data)
+    data['name'] = name
 
     # Cls lets us force make a device of a different type for placeholders if we can't support them yet
     if cls:
-        data['name'] = name
         data['type'] = cls.device_type
 
     if data['type'] in device_types:
@@ -1677,6 +1698,7 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                 "device": d
             })
 
+
 def getDeviceType(t):
     if t in device_types:
         return device_types[t]
@@ -1704,26 +1726,30 @@ def createDevicesFromData():
 
         cls = None
 
+        name = i
+
         # Force it to be a placeholder subdevice
         if device_data[i].get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1'):
             cls = UnusedSubdevice
+        if device_data[i].get('parent_device', '').strip():
+            cls = UnusedSubdevice
 
         # We can call this again to reload unsupported devices.
-        if i in remote_devices and not remote_devices[
-                i].device_type_name == "unsupported":
+        if name in remote_devices and not remote_devices[
+                name].device_type_name == "unsupported":
             continue
 
         try:
             # Don't overwrite subdevice with placeholder
-            if i not in remote_devices:
+            if name not in remote_devices:
                 # No module or resource here
-                remote_devices[i] = makeDevice(i, device_data[i], cls=cls)
+                remote_devices[name] = makeDevice(name, device_data[i], cls=cls)
             syslogger.info("Created device from config: " + i)
         except Exception:
             messagebus.post_message(
                 "/system/notifications/errors",
-                "Error creating device: " + i + "\n" + traceback.format_exc())
-            syslogger.exception("Error initializing device " + str(i))
+                "Error creating device: " + name + "\n" + traceback.format_exc())
+            syslogger.exception("Error initializing device " + str(name))
 
     remote_devices_atomic = wrcopy(remote_devices)
 
