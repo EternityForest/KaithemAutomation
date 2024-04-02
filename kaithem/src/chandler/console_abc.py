@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Callable, Optional, Set
+from typing import List, Dict, Any, Callable, Optional, Set, Iterable
 
 
 class Console_ABC():
@@ -18,6 +18,6 @@ class Console_ABC():
         "Push lighting values for cue to clients"
         pass
 
-    def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any]] = None):
+    def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None):
         "Push scene metadata"
         pass

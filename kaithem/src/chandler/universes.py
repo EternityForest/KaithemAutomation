@@ -354,15 +354,13 @@ class Universe():
             self.error_alert.release()
         else:
             self.error_alert.trip(message=str(s))
-        
+
         # avoid pushing unneded statuses
         if (self.status == s) and (self.ok == ok):
             return
         self.status = s
         self.ok = ok
         self.statusChanged = {}
-
-
 
     def refresh_scenes(self):
         """Stop and restart all active scenes, because some caches might need to be updated
@@ -456,7 +454,7 @@ class EnttecUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resouurce
     # For protocol documentation.
-    def __init__(self, name:str, channels:int=128, portname:str="", framerate: float = 44.0, number:int=0):
+    def __init__(self, name: str, channels: int = 128, portname: str = "", framerate: float = 44.0, number: int = 0):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
@@ -487,7 +485,6 @@ class EnttecUniverse(Universe):
         return super().close()
 
 
-
 class DMXSender():
     """This object is used by the universe object to send data to the enttec adapter.
         It runs in it's own thread because the frame rate might have nothing to do with
@@ -506,7 +503,6 @@ class DMXSender():
         self.lock = threading.Lock()
         self.port = None
         self.started = None
-        
 
     def setStatus(self, s, ok):
         try:
@@ -843,8 +839,6 @@ class ArtNetSender():
     def __del__(self):
         self.running = 0
 
-
-
     def setStatus(self, s, ok):
         try:
             self.universe().setStatus(s, ok)
@@ -877,7 +871,7 @@ class EnttecOpenUniverse(Universe):
         self.sender = makeDMXSender(weakref.ref(self), portname, framerate)
 
         Universe.__init__(self, name, channels)
-        
+
         self.sender.connect()
         self.hidden = False
 
@@ -933,7 +927,7 @@ class RawDMXSender():
         if not self.started:
             self.started = True
             self.thread.start()
-            
+
         # Different status message first time
         try:
             self.reconnect()
@@ -1204,7 +1198,7 @@ def rerenderUniverse(i: str):
         universe.full_rerender = True
 
 
-def mapUniverse(u:str):
+def mapUniverse(u: str):
     if not u.startswith("@"):
         return u
 
@@ -1219,7 +1213,7 @@ def mapUniverse(u:str):
     return x.universe
 
 
-def mapChannel(u: str, c: str | int):
+def mapChannel(u: str, c: str | int) -> Optional[tuple[str, int]]:
     index = 1
 
     if isinstance(c, str):

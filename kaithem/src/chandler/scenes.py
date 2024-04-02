@@ -60,7 +60,7 @@ def is_static_media(s: str):
             return True
 
     # Try to detect http stuff
-    if not '.' in s.split("?")[0].split("#")[0].split("/")[-1]:
+    if '.' not in s.split("?")[0].split("#")[0].split("/")[-1]:
         if not os.path.exists(s):
             return True
 
@@ -68,6 +68,11 @@ def is_static_media(s: str):
 
 
 def fnToCueName(fn: str):
+    """
+    Convert the given file name to a cue name that is more human-readable
+     And suitable for use as a cue name
+    Takes a string `fn` as input and returns a processed cue name string.
+    """
     isNum = False
     try:
         int(fn.split(".")[0])
@@ -139,13 +144,19 @@ def makeWrappedConnectionClass(parent: Scene):
 
 
 def makeBlankArray(size: int):
+    """
+    A function that creates a blank NumPy array of a specified size.
+
+    :param size: An integer representing the size of the array to be created.
+    :return: A NumPy array filled with zeros of data type "f4".
+    """
     x = [0] * size
     return numpy.array(x, dtype="f4")
 
 
 class FadeCanvas:
     def __init__(self):
-        """Handles calculating the effect of one scene over a background. 
+        """Handles calculating the effect of one scene over a background.
         This doesn't do blend modes, it just interpolates."""
         self.v: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.a: Dict[str, numpy.typing.NDArray[Any]] = {}
@@ -154,12 +165,12 @@ class FadeCanvas:
 
     def paint(self, fade: float | int, vals: Dict[str, numpy.typing.NDArray[Any]], alphas: Dict[str, numpy.typing.NDArray[Any]]):
         """
-        Makes v2 and a2 equal to the current background overlayed 
+        Makes v2 and a2 equal to the current background overlayed
         with values from scene which is any object that has dicts of dicts of vals and and
         alpha.
 
-        Should you have cached dicts of arrays vals and 
-        alpha channels(one pair of arrays per universe), 
+        Should you have cached dicts of arrays vals and
+        alpha channels(one pair of arrays per universe),
         put them in vals and arrays
         for better performance.
 
@@ -499,7 +510,7 @@ def checkPermissionsForSceneData(data: Dict[str, Any], user: str):
     """Check if used can upload or edit the scene, ekse raise an
       error if
         it uses advanced features that would prevent that action.
-    We disallow delete because we don't want unprivelaged users 
+    We disallow delete because we don't want unprivelaged users
     to delete something important that they can't fix.
 
     """
@@ -526,7 +537,7 @@ slots = list(cue_schema['properties'].keys()) + ["id",     "changed",
                                                  "__weakref__"]
 s2 = []
 for i in slots:
-    if not i in stored_as_property:
+    if i not in stored_as_property:
         s2.append(i)
     else:
         s2.append("_"+i)
@@ -1172,7 +1183,7 @@ class Scene:
         self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
         # Used to avoid an excessive number of repeats in random cues
-        self.cueHistory: List[str] = []
+        self.cueHistory: List[tuple[str, float]] = []
 
         # List of universes we should be affecting right now
         # Based on what values are in the cue and what values are inherited
@@ -1474,15 +1485,12 @@ class Scene:
             if len(board.newDataFunctions) < 100:
                 board.newDataFunctions.append(lambda s: self.pushCueList(i.id))
 
-    def _add_cue(self, cue: Cue, prev: str = None, forceAdd=True):
+    def _add_cue(self, cue: Cue, forceAdd=True):
         name = cue.name
         self.insertSorted(cue)
         if name in self.cues and not forceAdd:
             raise RuntimeError("Cue would overwrite existing.")
         self.cues[name] = cue
-        if prev and prev in self.cues:
-            raise RuntimeError("Not supported this code path")
-            self.cues[prev].next_cue = self.cues[name]
 
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.cues[name].id))
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(cue.id))
@@ -1511,6 +1519,28 @@ class Scene:
             print(traceback.format_exc(6))
 
     def pick_random_cue_from_names(self, cues: List[str] | Set[str] | Dict[str, Any]) -> str:
+        """
+        Picks a random cue from a list of cue names.
+
+        Args:
+            cues (List[str] | Set[str] | Dict[str, Any]): A list, set, or dictionary of cue names.
+
+        Returns:
+            str: The randomly selected cue name.
+
+        Raises:
+            IndexError: If the input list of cues is empty.
+
+        Notes:
+            - Special cues that start with '__' are excluded from the selection.
+            - The probability of each cue is taken into account when selecting.
+            - If a cue does not have a probability specified, it defaults to 1.
+            - The input `cues` can be a list, set, or dictionary.
+
+        Example:
+            >>> pick_random_cue_from_names(['c1', 'c2', 'c3'])
+            'c2'
+        """
         names: List[str] = []
         weights: List[float] = []
 
@@ -1551,7 +1581,7 @@ class Scene:
                         if len(x) < 3:
                             break
                         elif i[0] in x:
-                            x.remove(i)
+                            x.remove(i[0])
                 cue = self.pick_random_cue_from_names(x)
 
             elif "*" in cue:
@@ -1597,7 +1627,15 @@ class Scene:
         return cue
 
     def goto_cue(self, cue: str, t: Optional[float] = None, sendSync=True, generateEvents=True, cause="generic"):
-        "Goto cue by name, number, or string repr of number"
+        """
+        A method to go to a specific cue with optional time, synchronization, event generation, and cause specification.
+
+        :param cue: The name of the cue to go to.  May be a cue number or a special value like __random__
+        :param t: Optional time parameter, defaults to None.
+        :param sendSync: Boolean indicating whether to send synchronization message, defaults to True.
+        :param generateEvents: Boolean indicating whether to generate events, defaults to True.
+        :param cause: The cause of the cue transition, defaults to "generic".
+        """
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
 
@@ -1733,6 +1771,9 @@ class Scene:
                 # TODO backtracking these variables?
                 cuevars = self.cues[cue].values.get("__variables__", {})
                 for i in cuevars:
+                    if isinstance(i, int):
+                        print("Bad cue variable name, it's not a string", i)
+                        continue
                     try:
                         self.scriptContext.setVar(i, self.evalExpr(cuevars[i]))
                     except Exception:
@@ -2141,7 +2182,7 @@ class Scene:
                             duration += windup
 
                             slen = (duration -
-                                    self.crossfade) + cuelen
+                                    self.crossfade) + float(cuelen)
                             v = max(0, self.randomizeModifier + slen)
                         else:
                             raise RuntimeError(
@@ -2166,7 +2207,7 @@ class Scene:
                         if duration > 0:
 
                             slen = (duration -
-                                    self.crossfade) + cuelen
+                                    self.crossfade) + float(cuelen)
                             # Choose the longer of slide and main sound if both present
                             v = max(0, self.randomizeModifier + slen, v)
                         else:
