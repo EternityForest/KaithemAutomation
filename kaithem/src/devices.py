@@ -236,16 +236,6 @@ class Device():
     def validateData(data):
         pass
 
-    @staticmethod
-    def getCreateForm():
-        """Method that should return HTML that may contain input tags.
-         Anything prefixed with data_ will be considered somthing that goes directly into
-         the device data, minus the prefix.
-
-         The contents will be added to the form used for creating new devices of this type.
-         """
-        return ""
-
     def webHandler(self, *path, **kwargs):
         "Handle /kaithem/devices/DEVICE/web/"
         raise cherrypy.NotFound()
@@ -487,7 +477,7 @@ class Device():
                     self.tagPoints[v[1]]._k_ui_fake.release()
 
         elif v[0] == 'refresh':
-            self.tagPoints[v[1]].pull()
+            self.tagPoints[v[1]].poll()
 
     # delete a device, it should not be used after this
     def close(self):
@@ -621,7 +611,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 if n:
                     n = n()
                 if n:
-                    if not n.device_type in ['UnusedSubdevice', 'unsupported']:
+                    if n.device_type_name not in ['UnusedSubdevice', 'unsupported']:
                         raise RuntimeError("Subdevice name is already in use")
                     remote_devices.pop(name)
                     remote_devices_atomic = wrcopy(remote_devices)
@@ -771,7 +761,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     def object_data_point(self,
                           name: str,
                           description: str = "",
-                          handler: Optional[Callable[[str, float, Any],
+                          handler: Optional[Callable[[Dict[str, Any], float, Any],
                                                      Any]] = None,
                           interval: float = 0,
                           writable: bool = True,
@@ -813,7 +803,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     def bytestream_data_point(self,
                               name: str,
                               description: str = "",
-                              handler: Optional[Callable[[str, float, Any],
+                              handler: Optional[Callable[[bytes, float, Any],
                                                          Any]] = None,
                               interval: float = 0,
                               writable: bool = True,
@@ -947,11 +937,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     def getManagementForm(self, **kw):
         return self.get_management_form()
-
-    @classmethod
-    def getCreateForm(cls, **kwargs) -> Optional[str]:
-        """must return a snippet of html used the same way as get_management_form, but for creating brand new devices"""
-        return cls.get_create_form(**kwargs)
 
     def print(self, msg, title="Message"):
         "Print a message to the Device's management page"
@@ -1404,21 +1389,15 @@ class WebDevices():
         raise cherrypy.HTTPRedirect("/devices")
 
     @cherrypy.expose
-    def customCreateDevicePage(self, name, module='', resource='', **kwargs):
+    def createDevicePage(self, name, module='', resource='', **kwargs):
+
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("system_admin")
         pages.postOnly()
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         tp = getDeviceType(kwargs['type'])
-
-        if hasattr(tp, "getCreateForm"):
-            createForm = tp.getCreateForm()
-        else:
-            createForm = ""
-
         return pages.get_template("devices/createpage.html").render(
-            customForm=createForm,
             name=name,
             type=kwargs['type'],
             module=module,
@@ -1757,7 +1736,7 @@ def createDevicesFromData():
 
         try:
             # Don't overwrite subdevice with placeholder
-            if not i in remote_devices:
+            if i not in remote_devices:
                 # No module or resource here
                 remote_devices[i] = makeDevice(i, device_data[i], cls=cls)
             syslogger.info("Created device from config: " + i)
