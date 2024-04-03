@@ -52,6 +52,13 @@ remote_devices_atomic: Dict[str, weakref.ref[Device]] = {}
 
 device_data = {}
 
+# Data awaiting someone to use it for making a subevice
+subdevice_data_cache = {}
+
+# Stores the (module, resource) or subdevices that might not yet exist but have config
+# Since it needs to work
+device_location_cache = {}
+
 saveLocation = os.path.join(directories.vardir, "devices")
 
 driversLocation = os.path.join(directories.vardir, "devicedrivers")
@@ -93,33 +100,61 @@ def closeAll(*a):
             c.close()
 
 
+finished_reading_resources = False
+deferred_loaders = []
+
+
 class DeviceResourceType(ResourceType):
+
+    def onfinishedloading(self):
+        init_devices()
+        global finished_reading_resources
+        finished_reading_resources = True
+
     def onload(self, module, name, value):
-        with modules_state.modulesLock:
-            n = name.split(SUBDEVICE_SEPARATOR)[-1]
-            # We may want to store a device in a shortened resource name
-            # because of / issues
-            if 'name' in value['device']:
-                n = value['device']['name']
+        cls = None
+        # It's a subdevice, we don't actually make the real thing
+        if value['device'].get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1'):
+            cls = UnusedSubdevice
+        if value['device'].get('parent_device', '').strip():
+            cls = UnusedSubdevice
 
-            if n in remote_devices:
-                if not value['device']['device_type'] == remote_devices[n].device_type_name:
-                    raise RuntimeError("Name in user, can't overwrite this device name with a different type")
-                remote_devices[n].close()
+        n = name.split(SUBDEVICE_SEPARATOR)[-1]
+        if cls:
+            subdevice_data_cache[n] = value['device']
 
-            # It's a subdevice, we don't actually make the real thing
-            if value.get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1'):
-                cls = UnusedSubdevice
-            if value.get('parent_device', '').strip():
-                cls = UnusedSubdevice
+        device_location_cache[n] = (module, name)
 
-            d = makeDevice(n, value['device'], cls)
-            remote_devices[n] = d
-            d.parentModule = module
-            d.parentResource = name
+        def load_closure():
+            with modules_state.modulesLock:
+                # We may want to store a device in a shortened resource name
+                # because of / issues
+                if 'name' in value['device']:
+                    n = value['device']['name']
 
-            global remote_devices_atomic
-            remote_devices_atomic = wrcopy(remote_devices)
+                if n in remote_devices:
+                    # This is a subdevice which already exists as the real thing, not the placeholder.
+                    if cls:
+                        return
+                    else:
+                        if not value['device']['type'] == remote_devices[n].device_type_name:
+                            raise RuntimeError("Name in user, can't overwrite this device name with a different type")
+                        remote_devices[n].close()
+
+                d = makeDevice(n, value['device'], cls)
+                remote_devices[n] = d
+                d.parentModule = module
+                d.parentResource = name
+
+                global remote_devices_atomic
+                remote_devices_atomic = wrcopy(remote_devices)
+
+        # We aren't finished loading all the modules at startup
+        # Save it and do everything at once
+        if finished_reading_resources:
+            load_closure()
+        else:
+            deferred_loaders.append(load_closure)
 
     def ondelete(self, module, name, value):
         with modules_state.modulesLock:
@@ -622,6 +657,9 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         """
             Allows a device to create it's own subdevices.
         """
+        if self.config.get('is_subdevice', False):
+            raise RuntimeError("Kaithem does not support more than two layers of subdevice")
+
         global remote_devices_atomic
 
         originalName = name
@@ -631,7 +669,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         config = copy.deepcopy(config)
         config['name'] = name
         config['is_subdevice'] = "true"
-        config['parent_device'] = self.name
 
         with modules_state.modulesLock:
             if name in remote_devices_atomic:
@@ -641,22 +678,23 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 if n:
                     if n.device_type_name not in ['UnusedSubdevice', 'unsupported']:
                         raise RuntimeError("Subdevice name is already in use")
-                    old = remote_devices.pop(name)
-
-                    # Mix in the config from the old device
-                    config.update(old._k_full_data)
+                    remote_devices.pop(name)
 
                     remote_devices_atomic = wrcopy(remote_devices)
 
-        if (name not in remote_devices_atomic):
-            pm = self.parentModule
-        else:
-            pm = None
+            # Mix in user config
+            if name in subdevice_data_cache:
+                config.update(subdevice_data_cache[name])
+
+        if name not in device_location_cache:
+            # TODO what happens with more than two layers?
+            # Get rid of the module name part in the resource
+            device_location_cache[name] = (self.parentModule, '.d/'.join(name.split('/')[1 if self.parentModule else 0:]))
 
         m = makeDevice(name=name, data=config, cls=cls)
 
-        if pm:
-            m.parentModule = pm
+        if name in device_location_cache:
+            m.parentModule, m.parentResource = device_location_cache[name]
 
         m._kaithem_is_subdevice = True
 
@@ -1042,11 +1080,16 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
                 raise ValueError("Can't store in nonexistant module")
 
             m = kwargs["temp.kaithem.store_in_module"]
-            r = kwargs["temp.kaithem.store_in_resource"] or name.split('/')[-1]
+            r = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/')[1:])
 
             if r in modules_state.ActiveModules[m]:
                 if not modules_state.ActiveModules[m][r]['resource-type'] == "device":
                     raise ValueError("A resource in the module with that name exists and is not a device.")
+            
+            # Make sure we don't corrupt state by putting a folder where a file already is
+            ensure_module_path_ok(m, r)
+        else:
+            raise RuntimeError("You can now only save devices into modules.")
 
         if devname in remote_devices:
 
@@ -1059,7 +1102,7 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
 
             if "temp.kaithem.store_in_module" in kwargs:
                 newparentModule = kwargs["temp.kaithem.store_in_module"]
-                newparentResource = kwargs["temp.kaithem.store_in_resource"] or name.split('/')[-1]
+                newparentResource = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/')[1 if newparentModule else 0:])
 
             else:
                 newparentModule = None
@@ -1164,6 +1207,9 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
 
             # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
             k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem.') and not i.startswith('filedata.') and not i.startswith('temp.kaithem.')}
+            subdevice_data_cache[name] = savable_data
+            device_location_cache[name] = newparentModule, newparentResource
+
             remote_devices[name].update_config(k)
 
         # set the location info
@@ -1452,6 +1498,7 @@ class WebDevices():
                 }
                 modules_state.modulesHaveChanged()
             else:
+                raise RuntimeError("Creating devices outside of modules is no longer supported.")
                 if not name:
                     raise RuntimeError("No name?")
                 d = {
@@ -1466,6 +1513,7 @@ class WebDevices():
             if m and r:
                 storeDeviceInModule(d, m, r)
             else:
+                raise RuntimeError("Creating devices outside of modules is no longer supported.")
                 device_data[name] = d
                 saveDevice(name)
 
@@ -1593,6 +1641,14 @@ class WebDevices():
                 except KeyError:
                     pass
 
+                try:
+                    del subdevice_data_cache[i]
+                except KeyError:
+                    pass
+                try:
+                    del device_location_cache[i]
+                except KeyError:
+                    pass
             try:
                 del remote_devices[name]
             except KeyError:
@@ -1790,8 +1846,31 @@ def makeDevice(name, data, cls=None):
     return d
 
 
+def ensure_module_path_ok(module, resource):
+    if resource.count('/'):
+        dir = '/'.join(resource.split('/')[1:])
+        while dir.count('/'):
+            if dir in modules_state.ActiveModules[module]:
+                if not modules_state.ActiveModules[module][dir]['resource-type'] == 'directory':
+                    raise RuntimeError("File exists blocking creation of: "+module)
+            dir = '/'.join(dir.split('/')[1:])
+
+
 def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
     with modules_state.modulesLock:
+
+        if resource.count('/'):
+            dir = '/'.join(resource.split('/')[1:])
+            while dir.count('/'):
+                if dir not in modules_state.ActiveModules[module]:
+                    r = {
+                        'resource-type': 'directory',
+                        "resource-timestamp": int(time.time() * 1000000)
+                    }
+                    modules_state.ActiveModules[module][dir] = r
+                    modules_state.saveResource(module, dir, r)
+                dir = '/'.join(dir.split('/')[1:])
+
 
         # Move it out of main area
         if 'name' in d:
@@ -1834,12 +1913,29 @@ class TemplateGetter():
             data=instance.config, obj=instance, name=instance.name)
 
 
-def createDevicesFromData():
-    global remote_devices_atomic
+def setupSubdeviceData():
+    """Prepare all the data from VARDIR/devices for when something tries to make a subdevice.
+       Only does the data from devices, not the data in modules.
+    """
     for i in list(device_data.keys()):
 
-        cls = None
+        sd = False
 
+        # Force it to be a placeholder subdevice
+        if device_data[i].get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1'):
+            sd = True
+        if device_data[i].get('parent_device', '').strip():
+            sd = True
+        if sd:
+            subdevice_data_cache[i] = device_data[i]
+            device_location_cache[i] = None, None
+
+
+def createDevicesFromData():
+    global remote_devices_atomic
+
+    for i in list(device_data.keys()):
+        cls = None
         name = i
 
         # Force it to be a placeholder subdevice
@@ -1857,6 +1953,7 @@ def createDevicesFromData():
             # Don't overwrite subdevice with placeholder
             if name not in remote_devices:
                 # No module or resource here
+                device_location_cache[name] = (None, None)
                 remote_devices[name] = makeDevice(name, device_data[i], cls=cls)
                 remote_devices[name]._k_full_data = device_data[i]
             syslogger.info("Created device from config: " + i)
@@ -1891,6 +1988,15 @@ def warnAboutUnsupportedDevices():
 
 
 def init_devices():
+    setupSubdeviceData()
+    # Load all the stuff from the modules
+    while deferred_loaders:
+        try:
+            deferred_loaders.pop()()
+        except Exception:
+            logging.exception("Err with device")
+            messagebus.post_message("/system/notifications/errors", "Err with device")
+
     createDevicesFromData()
 
 

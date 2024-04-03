@@ -107,7 +107,9 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     builtintags.create()
     plugin_system.load_plugins()
-    devices.init_devices()
+
+    # Devices is started with the additional resource types system
+    # devices.init_devices()
     rtmidimanager.init()
 
     # Load all modules from the active modules directory

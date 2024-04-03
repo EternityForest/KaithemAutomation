@@ -198,7 +198,7 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a class="deviceslink"
-                            href="/devices/device/{{ url(i).split('/')[-1] }}">{{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}">{{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>

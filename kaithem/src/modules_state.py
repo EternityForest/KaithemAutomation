@@ -289,6 +289,12 @@ class ResourceType:
     def onload(self, module, resource, resourceobj):
         return True
 
+    def onfinishedloading(self):
+        """Called during init, when every resource has finished loading with onload(), and before
+           any events or pages are loaded.
+        """
+        pass
+
     def onmove(self, module, resource, toModule, toResource, resourceobj):
         return True
 

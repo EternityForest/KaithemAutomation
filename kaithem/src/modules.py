@@ -146,7 +146,8 @@ def readStringFromSource(s, var):
 
 def loadAllCustomResourceTypes():
     for i in modules_state.ActiveModules:
-        for j in modules_state.ActiveModules[i]:
+        # Ensure that child elements load before parent elements.
+        for j in sorted(list(modules_state.ActiveModules[i].keys()), key=lambda n: len(n), reverse=True):
             r = modules_state.ActiveModules[i][j]
             if not isinstance(r, weakref.ref):
                 if hasattr(r, "get"):
@@ -160,6 +161,8 @@ def loadAllCustomResourceTypes():
                             )
                             logger.exception(
                                 "Error loading resource: " + str((i, j)))
+    for i in additionalTypes:
+        additionalTypes[i].onfinishedloading()
 
 
 class ResourceObject:

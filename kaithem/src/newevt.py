@@ -1601,6 +1601,7 @@ def getEventsFromModules(only=None):
                             f.module = module
                             f.resource = resource
 
+            # This sorting means root folder stuff loads before child folder stuff.
             toLoad = sorted(toLoad, key=lambda x: (x.module, x.resource))
             nextRound = []
             # for each allowed loading attempt, we loop over
