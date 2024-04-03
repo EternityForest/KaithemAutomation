@@ -2,6 +2,14 @@ Change Log
 ----------
 
 ### 0.77.0
+
+This release was going to be a simple polish and bugfix.... However, I discovered some
+subtle bugs related to a legacy feature.   Previously you could save device config both in
+modules and a global devices list.  That and several other aspects of device config were
+causing lots of user and implementation complexity.
+
+Now you can only save them in modules. Keeping them in modules lets you use the import/export features and is much more powerful. You can still load legacy devices until the next version.  Please make a module and move your devices there, you can set where to save a device on the device page.
+
 - :bug: Restore the broken optimization for events that don't need to poll
 - :bug: Fix fixture types window being too small
 - :bug: Fix nuisance error when deleting mixer channel

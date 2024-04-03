@@ -5,7 +5,21 @@ Kaithem provides an abstraction called a Device that covers several kinds of dev
 
 ## Creating through the GUI
 
-Previously you could create a device in a global devices list.
+Previously you could create a device in a global devices list.  Now devicesmust be stored in modules.
+
+## Device names
+
+Devices have their own namespace separate from anything else.  Devices can be saved to
+any filename in a module, independently of the name that appears in the tag points and devices list.
+
+By default, kaithem will try to put config for any subdevices in DEVICE_RESOURCE.d/
+
+If a device needs a config folder, it will be at DEVICE_RESOURCE.config.d/
+
+### On-disk location
+
+Note that due to the way things are saved, the actual on-disk files are under  \_\_filedata\_\_/ in the module folder.  Kaithem stores arbitrary files in modules separately from it's internal
+resource metadata.
 
 ## API
 
