@@ -30,6 +30,7 @@ import cherrypy
 import cherrypy.lib
 import copy
 import asyncio
+import shutil
 from typing import Dict, Optional, Union, Any, Callable
 import urllib.parse
 
@@ -193,19 +194,32 @@ def saveDevice(d):
                 os.remove(fn)
 
 
-def getDeviceConfigFolder(d: str, create=True):
+def get_config_folder_from_device(d: str, create=True):
     if not hasattr(remote_devices[d], 'parentModule') or not remote_devices[d].parentModule:
-        saveLocation = os.path.join(directories.vardir, "devices", d)
+        module = None
+        resource = None
+    else:
+        module = remote_devices[d].parentModule
+        resource = remote_devices[d].parentModule
+
+    return get_config_folder_from_info(module, resource, d, create=create)
+
+
+def get_config_folder_from_info(module: Optional[str], resource: Optional[str], name: str, create=True, always_return=False):
+    if not module:
+        saveLocation = os.path.join(directories.vardir, "devices", name)
     else:
         # or '' makes linker happy, idk why it doesn't detect the if statement.
         saveLocation = os.path.join(directories.vardir, "modules", 'data',
-                                    remote_devices[d].parentModule or '', "__filedata__",
-                                    (remote_devices[d].parentResource or d) + ".config.d")
+                                    module or '', "__filedata__",
+                                    (resource or name) + ".config.d")
 
     if not os.path.exists(saveLocation):
         if not create:
-            return None
-        os.makedirs(saveLocation, mode=0o700, exist_ok=True)
+            if not always_return:
+                return None
+        else:
+            os.makedirs(saveLocation, mode=0o700, exist_ok=True)
 
     return saveLocation
 
@@ -374,6 +388,9 @@ class Device():
         global remote_devices_atomic
         global remote_devices
 
+        # Code can store the raw unfiltered data including kaithem specific stuff here
+        self._k_full_data = {}
+
         try:
             self.title: str = data.get('title', '').strip() or name
         except Exception:
@@ -411,6 +428,9 @@ class Device():
 
         # If the device is from a module, tells us where
         self.parentModule: Optional[str] = None
+
+        # This can exist even without parent module, not doing
+        # anything but telling us what the name would be.
         self.parentResource: Optional[str] = None
 
         # Time, title, text tuples for any "messages" a device might "print"
@@ -596,7 +616,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     _isCrossFramework = True
 
     def get_config_folder(self, create=True):
-        return getDeviceConfigFolder(self.name, create=create)
+        return get_config_folder_from_device(self.name, create=create)
 
     def create_subdevice(self, cls, name: str, config: Dict, *a, **k):
         """
@@ -613,14 +633,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         config['is_subdevice'] = "true"
         config['parent_device'] = self.name
 
-        # Mix in the config for the data
-        try:
-            if name in device_data:
-                config.update(device_data[name])
-        except KeyError:
-            log.exception(
-                'Probably a race condition. Can probably ignore this one.')
-
         with modules_state.modulesLock:
             if name in remote_devices_atomic:
                 n = remote_devices_atomic.get(name, None)
@@ -629,10 +641,22 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                 if n:
                     if n.device_type_name not in ['UnusedSubdevice', 'unsupported']:
                         raise RuntimeError("Subdevice name is already in use")
-                    remote_devices.pop(name)
+                    old = remote_devices.pop(name)
+
+                    # Mix in the config from the old device
+                    config.update(old._k_full_data)
+
                     remote_devices_atomic = wrcopy(remote_devices)
 
+        if (name not in remote_devices_atomic):
+            pm = self.parentModule
+        else:
+            pm = None
+
         m = makeDevice(name=name, data=config, cls=cls)
+
+        if pm:
+            m.parentModule = pm
 
         m._kaithem_is_subdevice = True
 
@@ -1012,12 +1036,11 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
     subdevice = False
 
     with modules_state.modulesLock:
-        dev_conf_folder = getDeviceConfigFolder(name)
 
         if kwargs.get("temp.kaithem.store_in_module", None):
             if not kwargs["temp.kaithem.store_in_module"] in modules_state.ActiveModules:
                 raise ValueError("Can't store in nonexistant module")
-            
+
             m = kwargs["temp.kaithem.store_in_module"]
             r = kwargs["temp.kaithem.store_in_resource"] or name.split('/')[-1]
 
@@ -1032,6 +1055,20 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
 
             parentModule = remote_devices[devname].parentModule
             parentResource = remote_devices[devname].parentResource
+            old_dev_conf_folder = get_config_folder_from_info(parentModule, parentResource, devname, create=False, always_return=True)
+
+            if "temp.kaithem.store_in_module" in kwargs:
+                newparentModule = kwargs["temp.kaithem.store_in_module"]
+                newparentResource = kwargs["temp.kaithem.store_in_resource"] or name.split('/')[-1]
+
+            else:
+                newparentModule = None
+                newparentResource = None
+
+            new_dev_conf_folder = get_config_folder_from_info(newparentModule,
+                                                              newparentResource,
+                                                              name,
+                                                              create=False, always_return=True)
 
             if not parentModule:
                 dt = device_data[devname]
@@ -1069,25 +1106,40 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
         time.sleep(0.01)
         gc.collect()
 
-        d = {i: kwargs[i] for i in kwargs if (
-            not i.startswith('temp.') and not i.startswith('filedata.'))}
+        savable_data = {i: kwargs[i] for i in kwargs if (
+            (not i.startswith('temp.')) and not i.startswith('filedata.'))}
 
         # Propagate subdevice status even if it is just loaded as a placeholder
         if configuredAsSubdevice or subdevice:
-            d['is_subdevice'] = True
+            savable_data['is_subdevice'] = True
 
-        if 'kaithem.read_perms' not in d:
-            d['kaithem.read_perms'] = old_read_perms or ''
+        if 'kaithem.read_perms' not in savable_data:
+            savable_data['kaithem.read_perms'] = old_read_perms or ''
 
-        if 'kaithem.write_perms' not in d:
-            d['kaithem.write_perms'] = old_write_perms or ''
+        if 'kaithem.write_perms' not in savable_data:
+            savable_data['kaithem.write_perms'] = old_write_perms or ''
+
+        # Save file data
 
         fd = {i: kwargs[i] for i in kwargs if i.startswith('filedata.')}
 
+        # handle moved config folder
+        if not new_dev_conf_folder == old_dev_conf_folder:
+            if new_dev_conf_folder:
+                if old_dev_conf_folder and os.path.exists(old_dev_conf_folder):
+                    os.makedirs(new_dev_conf_folder, exist_ok=True, mode=0o700)
+                    shutil.copytree(old_dev_conf_folder, new_dev_conf_folder, dirs_exist_ok=True)
+                    if not old_dev_conf_folder.count('/') > 3:
+                        # Basically since rmtree is so dangerous we make sure
+                        # it absolutely cannot be any root or nearly root level folder
+                        # in the user's home dir even if some unknown future error happens.
+                        # I have no reason to think this will ever actually be needed.
+                        raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
+                    shutil.rmtree(old_dev_conf_folder)
+
         for i in fd:
             i2 = i[len('filedata.'):]
-
-            fl = dev_conf_folder
+            fl = new_dev_conf_folder
 
             if fl is None:
                 raise RuntimeError(f"{name} has no config dir")
@@ -1101,13 +1153,9 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
                 do = True
 
             if do:
-                os.makedirs(fl, exist_ok=True)
+                os.makedirs(fl, exist_ok=True,  mode=0o700)
                 with open(os.path.join(fl, i2), "w") as f:
                     f.write(kwargs[i])
-
-        if "temp.kaithem.store_in_module" in kwargs:
-            parentModule = kwargs["temp.kaithem.store_in_module"]
-            parentResource = kwargs["temp.kaithem.store_in_resource"] or name.split('/')[-1]
 
         if not subdevice:
             remote_devices[name] = makeDevice(name, kwargs)
@@ -1115,18 +1163,18 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
             kwargs['is_subdevice'] = 'true'
 
             # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
-            k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem.') and not i.startswith('filedata.')}
+            k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem.') and not i.startswith('filedata.') and not i.startswith('temp.kaithem.')}
             remote_devices[name].update_config(k)
 
-        # set the location info to what it previosly was
-        remote_devices[name].parentModule = parentModule
-        remote_devices[name].parentResource = parentResource
+        # set the location info
+        remote_devices[name].parentModule = newparentModule
+        remote_devices[name].parentResource = newparentResource
 
-        if parentModule:
-            storeDeviceInModule(d, parentModule, parentResource or name)
+        if newparentModule:
+            storeDeviceInModule(savable_data, newparentModule, newparentResource or name)
         else:
             # Allow name changing via data, we save under new, not the old name
-            device_data[name] = d
+            device_data[name] = savable_data
 
         saveDevice(name)
 
@@ -1702,7 +1750,9 @@ def makeDevice(name, data, cls=None):
     # within the device integration code
     new_data = {
         i: new_data[i]
-        for i in new_data if not (i.startswith("kaithem.") and not i.startswith("temp.kaithem.") and i not in ('kaithem.read_perms', "kaithem.write_perms"))
+        for i in new_data if ((not i.startswith("kaithem.")) and
+                              (not i.startswith("temp.kaithem.")) and
+                              (not i.startswith('filedata.')))
     }
 
     try:
@@ -1714,6 +1764,7 @@ def makeDevice(name, data, cls=None):
     if err:
         d.handle_error(err)
 
+    d._k_full_data = data
     return d
 
 
@@ -1783,6 +1834,7 @@ def createDevicesFromData():
             if name not in remote_devices:
                 # No module or resource here
                 remote_devices[name] = makeDevice(name, device_data[i], cls=cls)
+                remote_devices[name]._k_full_data = device_data[i]
             syslogger.info("Created device from config: " + i)
         except Exception:
             messagebus.post_message(

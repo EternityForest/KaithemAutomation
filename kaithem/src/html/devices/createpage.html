@@ -15,6 +15,10 @@ from kaithem.src import devices
         <h2>Store in Module(Empty to store in main device list)</h2>
         <Label>Target Module:<input name="module"  value="${module or ''|h}"></Label>
         <Label>Target Resource Name:<input name="resource" value="${resource or ''|h}"></Label>
+        %else:
+        <p class="Highlight">You may want to consider creating the device in a module instead,
+            as modules offer many extra features.
+        </p>
         %endif
 
         <h2>Basic Info</h2>
