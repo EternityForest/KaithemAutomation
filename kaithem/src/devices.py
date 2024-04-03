@@ -383,9 +383,7 @@ class Device():
     def setDataKey(self, key, val):
         "Lets a device set it's own persistent stored data"
 
-        # We allow special config keys
-        if not key.startswith('kaithem.'):
-            v = str(val)
+        v = str(val)
 
         with modules_state.modulesLock:
             self.config[key] = v
@@ -1246,7 +1244,7 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
             kwargs['is_subdevice'] = 'true'
 
             # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
-            k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem.') and not i.startswith('filedata.') and not i.startswith('temp.kaithem.')}
+            k = {i: kwargs[i] for i in kwargs if not i.startswith('filedata.') and not i.startswith('temp.kaithem.')}
             subdevice_data_cache[name] = savable_data
             device_location_cache[name] = newparentModule, newparentResource
 
@@ -1815,7 +1813,7 @@ def makeDevice(name, data, cls=None):
     # within the device integration code
     new_data = {
         i: new_data[i]
-        for i in new_data if ((not i.startswith("kaithem.")) and
+        for i in new_data if (
                               (not i.startswith("temp.kaithem.")) and
                               (not i.startswith('filedata.')))
     }
