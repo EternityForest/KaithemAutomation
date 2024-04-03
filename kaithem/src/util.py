@@ -135,8 +135,9 @@ def open_private_text_write(p):
         return open(p, 'w')
 
 
-def url(string: str, safe: str | Iterable[str] = ''):
-    return quote(string, safe)
+def url(u: str, safe: str | Iterable[str] = ''):
+    safe = ''.join(safe)
+    return quote(u, safe)
 
 
 def SaveAllState():

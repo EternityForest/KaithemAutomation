@@ -70,7 +70,7 @@ bootTime = time.time()
 
 def resolve_path(fn: str, expand: bool = False):
     if not fn.startswith(os.pathsep) or fn.startswith("~") or fn.startswith("$"):
-        fn = os.path.join(directories.moduledatadir, fn)
+        fn = os.path.join(directories.vardir, fn)
 
     return (os.path.expandvars(os.path.expanduser(fn))) if expand else fn
 

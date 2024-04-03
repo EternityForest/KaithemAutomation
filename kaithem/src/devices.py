@@ -188,7 +188,7 @@ class DeviceResourceType(ResourceType):
         global finished_reading_resources
         finished_reading_resources = True
 
-    def onload(self, module, name, value):
+    def onload(self, module, resourcename, value):
         cls = None
         # It's a subdevice, we don't actually make the real thing
         if value['device'].get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1'):
@@ -196,32 +196,33 @@ class DeviceResourceType(ResourceType):
         if value['device'].get('parent_device', '').strip():
             cls = UnusedSubdevice
 
-        n = name.split(SUBDEVICE_SEPARATOR)[-1]
-        if cls:
-            subdevice_data_cache[n] = value['device']
+        # We may want to store a device in a shortened resource name
+        # because of / issues.
+        if 'name' in value['device']:
+            devname = value['device']['name']
+            
+        basename = devname.split(SUBDEVICE_SEPARATOR)[-1]
 
-        device_location_cache[n] = (module, name)
+        if cls:
+            subdevice_data_cache[devname] = value['device']
+
+        device_location_cache[devname] = (module, resourcename)
 
         def load_closure():
             with modules_state.modulesLock:
-                # We may want to store a device in a shortened resource name
-                # because of / issues
-                if 'name' in value['device']:
-                    n = value['device']['name']
-
-                if n in remote_devices:
+                if devname in remote_devices:
                     # This is a subdevice which already exists as the real thing, not the placeholder.
                     if cls:
                         return
                     else:
-                        if not value['device']['type'] == remote_devices[n].device_type_name:
+                        if not value['device']['type'] == remote_devices[devname].device_type_name:
                             raise RuntimeError("Name in user, can't overwrite this device name with a different type")
-                        remote_devices[n].close()
+                        remote_devices[devname].close()
 
-                d = makeDevice(n, value['device'], cls)
-                remote_devices[n] = d
+                d = makeDevice(devname, value['device'], cls)
+                remote_devices[devname] = d
                 d.parentModule = module
-                d.parentResource = name
+                d.parentResource = resourcename
 
                 global remote_devices_atomic
                 remote_devices_atomic = wrcopy(remote_devices)

@@ -30,7 +30,7 @@ import weakref
 import ast
 import cherrypy
 import yaml
-from typing import Optional
+from typing import Optional, Dict, Any
 from . import auth, pages, directories, util, newevt, kaithemobj
 from . import usrpages, messagebus, schemas
 from .modules_state import (
@@ -495,6 +495,7 @@ def initModules():
             loadModules(possibledir)
 
     except Exception:
+        logging.exception("Err loading modules")
         messagebus.post_message(
             "/system/notifications/errors",
             " Error loading modules: " + traceback.format_exc(4),
@@ -604,7 +605,7 @@ def loadOneResource(folder, relpath, module):
     modules_state.ActiveModules[module][resourcename] = r
 
     if "resource-type" not in r:
-        logger.warning("No resource type found for " + resourcename)
+        logger.warning("No resource type found for " + str(resourcename))
         return
 
     validate(r)
@@ -649,8 +650,8 @@ def loadOneResource(folder, relpath, module):
             )
 
             try:
-                del  modules_state.ActiveModules[module][resourcename]
-                
+                del modules_state.ActiveModules[module][resourcename]
+
                 # Remove the no longer relevant internal fileref
                 os.remove(os.path.join(folder, relpath))
             except Exception:
@@ -687,7 +688,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                     # Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                     try:
                         r, resourcename = readResourceFromFile(fn, relfn)
-                        if not r:
+                        if not r or not resourcename:
                             # File managers sprinkle this crap around
                             if not os.path.basename(fn) == ".directory":
                                 logger.exception("Null loading " + fn)
@@ -740,22 +741,9 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                 module[util.unurl(relfn)] = {"resource-type": "directory"}
 
         # Make resource objects for anything missing one
+        # Don't save to disk since there's nothing we can't generate.
         if resource_folder:
-            s = set(fileResourceAbsPaths.values())
-            for root, dirs, files in os.walk(resource_folder):
-                for i in files:
-                    f = os.path.join(root, i)
-                    if not resource_folder.endswith("/"):
-                        resource_folder += "/"
-
-                    data_basename = f[len(resource_folder):]
-
-                    if f not in s:
-                        module[util.unurl(data_basename)] = {
-                            "resource-type": "internal-fileref",
-                            "target": "$MODULERESOURCES/" + data_basename,
-                        }
-                    fileResourceAbsPaths[modulename, data_basename] = f
+            autoGenerateFileRefResources(module, modulename)
 
         scopes[modulename] = ModuleObject(modulename)
         modules_state.ActiveModules[modulename] = module
@@ -770,9 +758,68 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
         # bookkeeponemodule(name)
 
 
+def autoGenerateFileRefResources(module: Dict[str, Any], modulename: str):
+    "Return true if anything generared"
+    rt = False
+    with modulesLock:
+        resource_folder = os.path.join(getModuleDir(modulename), "__filedata__")
+        if not os.path.exists(resource_folder):
+            return
+
+        torm = []
+        for i in fileResourceAbsPaths:
+            if not os.path.exists(fileResourceAbsPaths[i]):
+                m, r = i
+                if m == modulename:
+                    if module[r].get("ephemeral", False):
+                        torm.append(i)
+
+        for i in torm:
+            rt = True
+            fileResourceAbsPaths.pop(i)
+
+        s = set(fileResourceAbsPaths.values())
+        for root, dirs, files in os.walk(resource_folder):
+            for i in files:
+                f = os.path.join(root, i)
+                if not resource_folder.endswith("/"):
+                    resource_folder += "/"
+
+                data_basename = f[len(resource_folder):]
+
+                if f not in s:
+                    rt = True
+                    module[util.unurl(data_basename)] = {
+                        "resource-type": "internal-fileref",
+                        "target": "$MODULERESOURCES/" + data_basename,
+                        "ephemeral": True
+                    }
+                fileResourceAbsPaths[modulename, data_basename] = f
+
+            for i in dirs:
+
+                f = os.path.join(root, i)
+                if not resource_folder.endswith("/"):
+                    resource_folder += "/"
+
+                data_basename = f[len(resource_folder):]
+
+                if data_basename not in module:
+                    rt = True
+                    r = {
+                        'resource-type': 'directory',
+                        "resource-timestamp": int(time.time() * 1000000),
+                        "ephemeral": True
+                    }
+                    module[data_basename] = r
+    return rt
+
+
 def getModuleAsYamlZip(module, noFiles=True):
     incompleteError = False
     with modulesLock:
+        # Ensure any manually put therer files are there
+        autoGenerateFileRefResources(module, modules_state.ActiveModules[module])
         # We use a stringIO so we can avoid using a real file.
         ram_file = StringIO()
         z = zipfile.ZipFile(ram_file, "w")
@@ -991,7 +1038,7 @@ def bookkeeponemodule(module, update=False):
             except Exception:
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Failed to load  resource: "+ i)
+                    "Failed to load  resource: " + i)
 
     newevt.getEventsFromModules([module])
 
@@ -1103,6 +1150,14 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
             "/system/modules/errors/unloading",
             "Error deleting resource: " + str((module, resource)),
         )
+
+
+def getModuleDir(module: str):
+    if module in external_module_locations:
+        return external_module_locations[module]
+
+    else:
+        return os.path.join(directories.moduledir, 'data', module)
 
 
 def newModule(name: str, location: Optional[str] = None):
@@ -1224,7 +1279,7 @@ def handleResourceChange(module, resource, obj=None):
         elif t == "page":
             try:
                 usrpages.updateOnePage(resource, module)
-            except Exception:
+            except Exception as e:
                 usrpages.makeDummyPage(resource, module)
                 logger.exception("failed to load resource")
                 messagebus.post_message(

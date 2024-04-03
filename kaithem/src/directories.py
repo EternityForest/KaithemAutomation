@@ -68,13 +68,9 @@ else:
         if not config['site-data-dir'].startswith("~") or config['site-data-dir'].startswith("/"):
             vardir = os.path.expanduser("~/"+config['site-data-dir'])
 
-
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     logdir = os.path.join(
         vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
-
-
-moduledatadir = os.path.join(vardir, 'moduledata')
 
 usersdir = os.path.join(vardir, 'users')
 
@@ -108,8 +104,6 @@ def recreate():
     moduledir = os.path.join(vardir, 'modules')
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     htmldir = os.path.join(dn, 'html')
-
-    
 
     ssldir = os.path.expanduser(config['ssl-dir'])
     if not ssldir.startswith("/"):

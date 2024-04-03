@@ -70,6 +70,11 @@
                 href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}">{{ modules.additionalTypes[i].createButton| escape }}</a>
             {% endif %}
             {% endfor %}
+
+            <form action="/modules/module/{{url(name)}}/scanfiles" method="POST" name="new">
+                <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
+            </form>
+
             <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}">
                 <input size=8 name="search" placeholder="Search this module" />
                 <button type=submit value="search"> <i class="mdi mdi-search-web">
@@ -198,7 +203,7 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a class="deviceslink"
-                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}">{{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}"> <i class="mdi mdi-chip"></i> {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>

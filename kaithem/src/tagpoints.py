@@ -2159,9 +2159,11 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     def unit(self):
         return self._unit
 
-    @typechecked
     @unit.setter
     def unit(self, value: str):
+        if not isinstance(value, str):
+            raise TypeError("Unit must be str")
+        
         if self._unit:
             if not self._unit == value:
                 if value:
