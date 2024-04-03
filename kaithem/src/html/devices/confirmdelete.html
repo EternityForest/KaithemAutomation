@@ -4,6 +4,7 @@
 <section class="window paper">
 <form action="/devices/deletetarget" method="POST" name="new">
 Name of device to delete:<input required="required" name="name" type="text" value="${name|h}"></input><br>
+Delete Conf Dir: <input type="checkbox" name="delete_conf_dir" checked>
 </section>
 <br><input value="Delete(Cannot be undone)" type="submit">
 </form>

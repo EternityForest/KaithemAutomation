@@ -1682,6 +1682,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     background: var(--box-bg);
 }
 
+.outline-text{
+    text-shadow: 0px 0px 1px var(--control-bg);
+}
+
 /*Don't let people use non-pre elements or they
 will get a nasty surprise later when the auto formatter
 ruins it*/

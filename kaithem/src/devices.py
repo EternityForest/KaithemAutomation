@@ -207,7 +207,7 @@ def get_config_folder_from_device(d: str, create=True):
 
 def get_config_folder_from_info(module: Optional[str], resource: Optional[str], name: str, create=True, always_return=False):
     if not module:
-        saveLocation = os.path.join(directories.vardir, "devices", name)
+        saveLocation = os.path.join(directories.vardir, "devices", name + ".config.d")
     else:
         # or '' makes linker happy, idk why it doesn't detect the if statement.
         saveLocation = os.path.join(directories.vardir, "modules", 'data',
@@ -1603,6 +1603,28 @@ class WebDevices():
             except KeyError:
                 pass
 
+            pm = x.parentModule
+            pr = x.parentResource
+
+            if 'delete_conf_dir' in kwargs:
+                try:
+                    old_dev_conf_folder = get_config_folder_from_info(pm,
+                                                                      pr,
+                                                                      name,
+                                                                      create=False,
+                                                                      always_return=True)
+                    if old_dev_conf_folder and os.path.isdir(old_dev_conf_folder):
+                        if not old_dev_conf_folder.count('/') > 3:
+                            # Basically since rmtree is so dangerous we make sure
+                            # it absolutely cannot be any root or nearly root level folder
+                            # in the user's home dir even if some unknown future error happens.
+                            # I have no reason to think this will ever actually be needed.
+                            raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
+
+                        shutil.rmtree(old_dev_conf_folder)
+                except Exception:
+                    logging.exception("Err deleting conf dir")
+
             if x.parentModule:
                 r = modules_state.ActiveModules[x.parentModule][
                     x.parentResource]
@@ -1787,6 +1809,8 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                 'resource-type': 'device',
                 "device": d
             })
+
+        modules_state.modulesHaveChanged()
 
 
 def getDeviceType(t):

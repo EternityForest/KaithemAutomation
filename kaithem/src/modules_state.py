@@ -471,7 +471,6 @@ def modulesHaveChanged():
     moduleshash = hashModules()
     modulehashes = {}
     modulewordhashes = {}
-    ls_folder.invalidate_cache()
 
 
 def in_folder(r, f):
@@ -489,7 +488,6 @@ def in_folder(r, f):
     return True
 
 
-@util.lrucache(800)
 def ls_folder(m: str, d: str):
     "List a kaithem resource folder's direct children"
     o = []

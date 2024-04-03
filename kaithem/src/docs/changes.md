@@ -9,6 +9,7 @@ Change Log
 - :bug: Fix unsupported device warnings feature
 - :bug: Displayed value in UI correctly updates for refresh button
 - :bug: Fix devices UI setting bad value when you specified 'false'
+- :bug: Remove caching on modules listing that was casuing issues.
 
 - :lipstick: Better combo box feel
 - :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
@@ -22,6 +23,9 @@ Change Log
 - :coffin: kaithem.gpio is gone.  That really belongs in an iot_devices device, or in custom code.
 - :sparkles: BREAKING: The name of a device stored in a module does not include it's module name or folder
 - :sparkles: BREAKING: / now used to separate subdevice names
+- :sparkles: BREAKING: Device config dirs now end with .config.d, automatic migration is impossible, however nothing except the DemoDevice uses conf dirs.
+- :lipstick: Storing devices in modules is now recommended practice.
+
 
 Specific devices removed:
 

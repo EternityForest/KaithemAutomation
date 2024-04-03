@@ -6,7 +6,7 @@
         <meter style="height: calc(var(--control-height) * 1.5);" v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))"
             v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
             v-bind:value="unixtime-scene.enteredCue"></meter>
-        <span style="position: absolute; left:2px; top:calc(var(--control-height) * 0.25)" v-if="scene.active && cue && cue.length">{{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1
+        <span class="outline-text" style="position: absolute; left:2px; top:calc(var(--control-height) * 0.25)" v-if="scene.active && cue && cue.length">{{((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))>-0.1
             ? formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue)) : "NOW"}}
         </span>
     </div>
