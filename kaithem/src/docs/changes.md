@@ -15,16 +15,17 @@ Change Log
 - :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
 - :lipstick: More compact strftime default
 
+
 - :coffin: Remove the complicated and never-used system for creatig device types in events
 - :coffin: Remove the legacy device type system and all the devices from before iot_devices.  All were unmaintained and some may have been broken by hardware vendors.
 - :coffin: Remove the input and output binding feature of devices.  Chandler can do everything it could, and it was not a clean separation of device and logic.
 - :coffin: Remove the bluetooth admin panel. Try [bluetuith](https://darkhz.github.io/bluetuith/)!
 - :coffin: Remove some old junk files
 - :coffin: kaithem.gpio is gone.  That really belongs in an iot_devices device, or in custom code.
-- :sparkles: BREAKING: The name of a device stored in a module does not include it's module name or folder
+- :sparkles: BREAKING: The name of a device stored in a module is independet of module name or folder
 - :sparkles: BREAKING: / now used to separate subdevice names
 - :sparkles: BREAKING: Device config dirs now end with .config.d, automatic migration is impossible, however nothing except the DemoDevice uses conf dirs.
-- :lipstick: Storing devices in modules is now recommended practice.
+- :sparkles: BREAKING: It is no longer possible to save devices outside modules. Please migrate all devices to a module(Legacy devices still load, they just can only be saved into modules.)
 
 
 Specific devices removed:

@@ -215,6 +215,23 @@ def saveResource(m, r, resourceData, name=None):
     # In the upload code itself.
 
 
+def rawDeleteResource(m:str, r:str):
+    """
+    Delete a resource from the module, but don't do
+    any bookkeeping. Will not remove whatever runtime objectes
+    were created from the resource, also will not update hashes.
+    """
+
+    modulename, resource = m, r
+
+    resourceData = ActiveModules[m].pop(r)
+
+    # Open a file at /where/module/resource
+    fn = getResourceFn(modulename, resource, resourceData)
+    if os.path.exists(fn):
+        os.remove(fn)
+
+
 def getResourceFn(m, r, o):
     dir = os.path.join(directories.moduledir, "data")
     return os.path.join(dir, m, urllib.parse.quote(r, safe=" /")) + getExt(o)

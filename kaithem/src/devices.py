@@ -27,7 +27,7 @@ import traceback
 import gc
 import os
 import cherrypy
-import cherrypy.lib
+import cherrypy.lib.static
 import copy
 import asyncio
 import shutil
@@ -68,6 +68,83 @@ recent_scanned_tags = {}
 
 # Used by device tag j2 template
 callable = callable
+
+
+def delete_bookkeep(name, confdir=False):
+    with modules_state.modulesLock:
+        x = remote_devices[name]
+        k = []
+        for i in x.subdevices:
+            k.append(x.subdevices[i].name)
+
+        x.close()
+        gc.collect()
+        x.onDelete()
+        gc.collect()
+
+        for i in k:
+            try:
+                del remote_devices[i]
+            except KeyError:
+                pass
+            try:
+                del device_data[i]
+            except KeyError:
+                pass
+
+            try:
+                del subdevice_data_cache[i]
+            except KeyError:
+                pass
+            try:
+                del device_location_cache[i]
+            except KeyError:
+                pass
+        try:
+            del remote_devices[name]
+        except KeyError:
+            pass
+
+        try:
+            del device_data[name]
+        except KeyError:
+            pass
+
+        pm = x.parentModule
+        pr = x.parentResource
+
+        if confdir:
+            try:
+                old_dev_conf_folder = get_config_folder_from_info(pm,
+                                                                  pr,
+                                                                  name,
+                                                                  create=False,
+                                                                  always_return=True)
+                if old_dev_conf_folder and os.path.isdir(old_dev_conf_folder):
+                    if not old_dev_conf_folder.count('/') > 3:
+                        # Basically since rmtree is so dangerous we make sure
+                        # it absolutely cannot be any root or nearly root level folder
+                        # in the user's home dir even if some unknown future error happens.
+                        # I have no reason to think this will ever actually be needed.
+                        raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
+
+                    shutil.rmtree(old_dev_conf_folder)
+            except Exception:
+                logging.exception("Err deleting conf dir")
+
+        # no zombie reference
+        del x
+
+        global remote_devices_atomic
+        remote_devices_atomic = wrcopy(remote_devices)
+        # Gotta be aggressive about ref cycle breaking!
+        gc.collect()
+        time.sleep(0.1)
+        gc.collect()
+        time.sleep(0.2)
+
+        gc.collect()
+        messagebus.post_message("/devices/removed/", name)
 
 
 def log_scanned_tag(v: str, *args):
@@ -161,22 +238,8 @@ class DeviceResourceType(ResourceType):
             n = name.split(SUBDEVICE_SEPARATOR)[-1]
             if 'name' in value['device']:
                 n = value['device']['name']
-            if n in remote_devices:
-                x = remote_devices[n]
-                x.close()
-                gc.collect
-                x.onDelete()
-                gc.collect()
-                remote_devices.pop(n, None)
 
-            global remote_devices_atomic
-            remote_devices_atomic = wrcopy(remote_devices)
-            # Gotta be aggressive about ref cycle breaking!
-            gc.collect()
-            time.sleep(0.1)
-            gc.collect()
-            time.sleep(0.2)
-            gc.collect()
+            delete_bookkeep(n, True)
 
     def create(self, module, path, name, kwargs):
         raise RuntimeError(
@@ -315,20 +378,6 @@ class Device():
     def webHandler(self, *path, **kwargs):
         "Handle /kaithem/devices/DEVICE/web/"
         raise cherrypy.NotFound()
-
-    def renderTemplate(self, file):
-        return pages.get_template(file).render(data=self.config,
-                                               obj=self,
-                                               name=self.name)
-
-    def setAlertPriorities(self):
-        """Sets alert priorites for all alerts in the alerts dict
-            based on the data key alerts.<alert_key>.priority
-        """
-        for i in self.alerts:
-            if "alerts." + i + ".priority" in self.config:
-                self.alerts[i].priority = self.config["alerts." + i +
-                                                      ".priority"]
 
     def setDataKey(self, key, val):
         "Lets a device set it's own persistent stored data"
@@ -1085,64 +1134,64 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
             if r in modules_state.ActiveModules[m]:
                 if not modules_state.ActiveModules[m][r]['resource-type'] == "device":
                     raise ValueError("A resource in the module with that name exists and is not a device.")
-            
+
             # Make sure we don't corrupt state by putting a folder where a file already is
             ensure_module_path_ok(m, r)
         else:
             raise RuntimeError("You can now only save devices into modules.")
 
-        if devname in remote_devices:
+        if devname not in remote_devices:
+            raise RuntimeError("No such device to update")
 
-            subdevice = hasattr(
-                remote_devices[devname], "_kaithem_is_subdevice")
+        subdevice = hasattr(
+            remote_devices[devname], "_kaithem_is_subdevice")
 
-            parentModule = remote_devices[devname].parentModule
-            parentResource = remote_devices[devname].parentResource
-            old_dev_conf_folder = get_config_folder_from_info(parentModule, parentResource, devname, create=False, always_return=True)
+        parentModule = remote_devices[devname].parentModule
+        parentResource = remote_devices[devname].parentResource
+        old_dev_conf_folder = get_config_folder_from_info(parentModule, parentResource, devname, create=False, always_return=True)
 
-            if "temp.kaithem.store_in_module" in kwargs:
-                newparentModule = kwargs["temp.kaithem.store_in_module"]
-                newparentResource = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/')[1 if newparentModule else 0:])
-
-            else:
-                newparentModule = None
-                newparentResource = None
-
-            new_dev_conf_folder = get_config_folder_from_info(newparentModule,
-                                                              newparentResource,
-                                                              name,
-                                                              create=False, always_return=True)
-
-            if not parentModule:
-                dt = device_data[devname]
-            else:
-                dt = modules_state.ActiveModules[parentModule][
-                    parentResource]['device']
-
-            # Not the same as currently being a subdevice. We have placeholders to edit subdevices that don't exist.
-            configuredAsSubdevice = dt.get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1')
-            configuredAsSubdevice = configuredAsSubdevice or dt.get('parent_device', '').strip()
-
-            old_read_perms = remote_devices[devname].config.get(
-                "kaithem.read_perms", [])
-
-            old_write_perms = remote_devices[devname].config.get(
-                "kaithem.write_perms", [])
-
-            if not subdevice:
-                remote_devices[devname].close()
-                messagebus.post_message("/devices/removed/", devname)
-
-            # Delete and then recreate because we may be renaming to a different name
-
-            if not parentModule:
-                del device_data[devname]
-            else:
-                del modules_state.ActiveModules[parentModule][
-                    parentResource]
+        if "temp.kaithem.store_in_module" in kwargs:
+            newparentModule = kwargs["temp.kaithem.store_in_module"]
+            newparentResource = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/')[1 if newparentModule else 0:])
 
         else:
-            raise RuntimeError("No such device to update")
+            newparentModule = None
+            newparentResource = None
+
+        new_dev_conf_folder = get_config_folder_from_info(newparentModule,
+                                                          newparentResource,
+                                                          name,
+                                                          create=False, always_return=True)
+
+        if not parentModule:
+            dt = device_data[devname]
+        else:
+            dt = modules_state.ActiveModules[parentModule][
+                parentResource]['device']
+
+        # Not the same as currently being a subdevice. We have placeholders to edit subdevices that don't exist.
+        configuredAsSubdevice = dt.get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1')
+        configuredAsSubdevice = configuredAsSubdevice or dt.get('parent_device', '').strip()
+
+        old_read_perms = remote_devices[devname].config.get(
+            "kaithem.read_perms", [])
+
+        old_write_perms = remote_devices[devname].config.get(
+            "kaithem.write_perms", [])
+
+        if not subdevice:
+            remote_devices[devname].close()
+            messagebus.post_message("/devices/removed/", devname)
+
+        # Delete and then recreate because we may be renaming to a different name
+
+        if not parentModule:
+            del device_data[devname]
+            saveDevice(devname)
+        else:
+            if not parentResource:
+                raise RuntimeError("?????????????")
+            modules_state.rawDeleteResource(parentModule, parentResource)
 
         gc.collect()
         time.sleep(0.01)
@@ -1622,79 +1671,12 @@ class WebDevices():
         name = kwargs['name']
         with modules_state.modulesLock:
             x = remote_devices[name]
-            k = []
-            for i in x.subdevices:
-                k.append(x.subdevices[i].name)
-
-            x.close()
-            gc.collect()
-            x.onDelete()
-            gc.collect()
-
-            for i in k:
-                try:
-                    del remote_devices[i]
-                except KeyError:
-                    pass
-                try:
-                    del device_data[i]
-                except KeyError:
-                    pass
-
-                try:
-                    del subdevice_data_cache[i]
-                except KeyError:
-                    pass
-                try:
-                    del device_location_cache[i]
-                except KeyError:
-                    pass
-            try:
-                del remote_devices[name]
-            except KeyError:
-                pass
-
-            try:
-                del device_data[name]
-            except KeyError:
-                pass
-
-            pm = x.parentModule
-            pr = x.parentResource
-
-            if 'delete_conf_dir' in kwargs:
-                try:
-                    old_dev_conf_folder = get_config_folder_from_info(pm,
-                                                                      pr,
-                                                                      name,
-                                                                      create=False,
-                                                                      always_return=True)
-                    if old_dev_conf_folder and os.path.isdir(old_dev_conf_folder):
-                        if not old_dev_conf_folder.count('/') > 3:
-                            # Basically since rmtree is so dangerous we make sure
-                            # it absolutely cannot be any root or nearly root level folder
-                            # in the user's home dir even if some unknown future error happens.
-                            # I have no reason to think this will ever actually be needed.
-                            raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
-
-                        shutil.rmtree(old_dev_conf_folder)
-                except Exception:
-                    logging.exception("Err deleting conf dir")
+            # Delete bookkeep removes it from device data if present
+            delete_bookkeep(name, 'delete_conf_dir' in kwargs)
 
             if x.parentModule:
-                r = modules_state.ActiveModules[x.parentModule][
-                    x.parentResource]
-
-                del modules_state.ActiveModules[x.parentModule][
-                    x.parentResource]
-
+                modules_state.rawDeleteResource(x.parentModule, x.parentResource or name)
                 modules_state.modulesHaveChanged()
-
-                fn = modules_state.getResourceFn(
-                    x.parentModule, x.parentResource, r)
-
-                if os.path.exists(fn):
-                    os.remove(fn)
 
             # no zombie reference
             del x
@@ -1848,20 +1830,22 @@ def makeDevice(name, data, cls=None):
 
 def ensure_module_path_ok(module, resource):
     if resource.count('/'):
-        dir = '/'.join(resource.split('/')[1:])
-        while dir.count('/'):
+        dir = '/'.join(resource.split('/')[:-1])
+        for i in range(256):
             if dir in modules_state.ActiveModules[module]:
                 if not modules_state.ActiveModules[module][dir]['resource-type'] == 'directory':
                     raise RuntimeError("File exists blocking creation of: "+module)
-            dir = '/'.join(dir.split('/')[1:])
+            if not dir.count('/'):
+                break
+            dir = '/'.join(dir.split('/')[-1:])
 
 
 def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
     with modules_state.modulesLock:
 
         if resource.count('/'):
-            dir = '/'.join(resource.split('/')[1:])
-            while dir.count('/'):
+            dir = '/'.join(resource.split('/')[:-1])
+            for i in range(256):
                 if dir not in modules_state.ActiveModules[module]:
                     r = {
                         'resource-type': 'directory',
@@ -1869,7 +1853,9 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                     }
                     modules_state.ActiveModules[module][dir] = r
                     modules_state.saveResource(module, dir, r)
-                dir = '/'.join(dir.split('/')[1:])
+                if not dir.count('/'):
+                    break
+                dir = '/'.join(dir.split('/')[:-1])
 
 
         # Move it out of main area
