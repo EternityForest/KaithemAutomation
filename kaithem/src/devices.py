@@ -15,7 +15,6 @@ from __future__ import annotations
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import html
 from . import modules_state
 from .modules_state import additionalTypes, ResourceType
 import json
@@ -27,8 +26,8 @@ import logging
 import traceback
 import gc
 import os
-import re
 import cherrypy
+import cherrypy.lib
 import copy
 import asyncio
 from typing import Dict, Optional, Union, Any, Callable
@@ -107,7 +106,13 @@ class DeviceResourceType(ResourceType):
                     raise RuntimeError("Name in user, can't overwrite this device name with a different type")
                 remote_devices[n].close()
 
-            d = makeDevice(n, value['device'])
+            # It's a subdevice, we don't actually make the real thing
+            if value.get('is_subdevice', False) in ('true', True, 'True', 'yes', 'Yes', 1, '1'):
+                cls = UnusedSubdevice
+            if value.get('parent_device', '').strip():
+                cls = UnusedSubdevice
+
+            d = makeDevice(n, value['device'], cls)
             remote_devices[n] = d
             d.parentModule = module
             d.parentResource = name
@@ -168,6 +173,9 @@ def getZombies():
 
 
 def saveDevice(d):
+    """Save a device named d, or save the lack thereof, if it doesn't exist.  Only saves
+        from device_data into files, module stuff handled elsewhere.
+    """
     sd = device_data
     saveLocation = os.path.join(directories.vardir, "devices")
     if not os.path.exists(saveLocation):
@@ -189,8 +197,10 @@ def getDeviceConfigFolder(d: str, create=True):
     if not hasattr(remote_devices[d], 'parentModule') or not remote_devices[d].parentModule:
         saveLocation = os.path.join(directories.vardir, "devices", d)
     else:
+        # or '' makes linker happy, idk why it doesn't detect the if statement.
         saveLocation = os.path.join(directories.vardir, "modules", 'data',
-                                    remote_devices[d].parentModule, "__filedata__", d+".config.d")
+                                    remote_devices[d].parentModule or '', "__filedata__",
+                                    (remote_devices[d].parentResource or d) + ".config.d")
 
     if not os.path.exists(saveLocation):
         if not create:
@@ -399,8 +409,9 @@ class Device():
 
         dbgd[name + str(time.time())] = self
 
-        self.parentModule = None
-        self.parentResource = None
+        # If the device is from a module, tells us where
+        self.parentModule: Optional[str] = None
+        self.parentResource: Optional[str] = None
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
@@ -524,10 +535,10 @@ class Device():
         return "norm"
 
     @staticmethod
-    def discoverDevices(config: Dict[str, str] = {},
-                        current_device: Optional[object] = None,
-                        intent="",
-                        **kwargs) -> Dict[str, Dict]:
+    def discover_devices(config: Dict[str, str] = {},
+                         current_device: Optional[object] = None,
+                         intent="",
+                         **kwargs) -> Dict[str, Dict]:
         """create a device object of this type, indexed by
             a string that can be up to a line of description.
 
@@ -589,7 +600,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
     def create_subdevice(self, cls, name: str, config: Dict, *a, **k):
         """
-            Allows a device to create it's own subdevices.             
+            Allows a device to create it's own subdevices.
         """
         global remote_devices_atomic
 
@@ -680,7 +691,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                            lo: Optional[float] = None,
                            description: str = "",
                            unit: str = '',
-                           handler: Optional[Callable[[str, float, Any],
+                           handler: Optional[Callable[[float, float, Any],
                                                       Any]] = None,
                            default: Optional[float] = None,
                            interval: float = 0,
@@ -863,13 +874,17 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                   release_condition: Optional[str] = None,
                   **kw):
 
-        self.alerts[name] = self.tagPoints[datapoint].setAlarm(
+        x = self.tagPoints[datapoint].setAlarm(
             name,
             condition=expression,
             priority=priority,
             trip_delay=trip_delay,
             auto_ack=auto_ack,
             releaseCondition=release_condition)
+        if x:
+            self.alerts[name] = x
+        else:
+            raise RuntimeError("Alarm setter returned nothing")
 
     def request_data_point(self, key):
         return self.tagPoints[key].value
@@ -933,7 +948,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         """must return a snippet of html suitable for insertion into a form tag, but not the form tag itself.
         the host application is responsible for implementing the post target, the authentication, etc.
 
-        when the user posts the form, the config options will be used to first close the device, then build 
+        when the user posts the form, the config options will be used to first close the device, then build
         a completely new device.
 
         the host is responsible for the name and type parts of config, and everything other than the device.* keys.
@@ -955,15 +970,15 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     def handle_exception(self):
         try:
             self.handle_error(traceback.format_exc(chain=True))
-        except:
+        except Exception:
             print(traceback.format_exc())
 
     @classmethod
-    def discoverDevices(cls,
-                        config: Dict[str, str] = {},
-                        current_device: Optional[object] = None,
-                        intent="",
-                        **kwargs) -> Dict[str, Dict]:
+    def discover_devices(cls,
+                         config: Dict[str, str] = {},
+                         current_device: Optional[object] = None,
+                         intent="",
+                         **kwargs) -> Dict[str, Dict]:
         "CamelCase compatibility"
         return cls.discover_devices(config=config,
                                     current_device=current_device,
@@ -979,7 +994,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
 
 # Device data always has 2 constants. 1 is the required type, the other
 # is name, and that's optional but can be used to rename a device
-def updateDevice(devname, kwargs, saveChanges=True):
+def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
 
     # The NEW name, which could just be the old name
     name = kwargs.get('name', None) or devname
@@ -997,9 +1012,18 @@ def updateDevice(devname, kwargs, saveChanges=True):
     subdevice = False
 
     with modules_state.modulesLock:
-        if "_store_in_module" in kwargs:
-            if not kwargs["_store_in_module"] in modules_state.ActiveModules:
+        dev_conf_folder = getDeviceConfigFolder(name)
+
+        if kwargs.get("temp.kaithem.store_in_module", None):
+            if not kwargs["temp.kaithem.store_in_module"] in modules_state.ActiveModules:
                 raise ValueError("Can't store in nonexistant module")
+            
+            m = kwargs["temp.kaithem.store_in_module"]
+            r = kwargs["temp.kaithem.store_in_resource"] or name.split('/')[-1]
+
+            if r in modules_state.ActiveModules[m]:
+                if not modules_state.ActiveModules[m][r]['resource-type'] == "device":
+                    raise ValueError("A resource in the module with that name exists and is not a device.")
 
         if devname in remote_devices:
 
@@ -1063,20 +1087,27 @@ def updateDevice(devname, kwargs, saveChanges=True):
         for i in fd:
             i2 = i[len('filedata.'):]
 
-            fl = getDeviceConfigFolder(name)
+            fl = dev_conf_folder
+
+            if fl is None:
+                raise RuntimeError(f"{name} has no config dir")
 
             do = False
-            with open(os.path.join(fl, i2), "r") as f:
-                if not f.read() == kwargs[i]:
-                    do = True
+            if os.path.exists(os.path.join(fl, i2)):
+                with open(os.path.join(fl, i2), "r") as f:
+                    if not f.read() == kwargs[i]:
+                        do = True
+            else:
+                do = True
 
             if do:
+                os.makedirs(fl, exist_ok=True)
                 with open(os.path.join(fl, i2), "w") as f:
                     f.write(kwargs[i])
 
-        if "_store_in_module" in kwargs:
-            parentModule = kwargs["_store_in_module"]
-            parentResource = kwargs["_store_in_resource"] or name
+        if "temp.kaithem.store_in_module" in kwargs:
+            parentModule = kwargs["temp.kaithem.store_in_module"]
+            parentResource = kwargs["temp.kaithem.store_in_resource"] or name.split('/')[-1]
 
         if not subdevice:
             remote_devices[name] = makeDevice(name, kwargs)
@@ -1084,7 +1115,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
             kwargs['is_subdevice'] = 'true'
 
             # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
-            k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem')}
+            k = {i: kwargs[i] for i in kwargs if not i.startswith('kaithem.') and not i.startswith('filedata.')}
             remote_devices[name].update_config(k)
 
         # set the location info to what it previosly was
@@ -1092,11 +1123,12 @@ def updateDevice(devname, kwargs, saveChanges=True):
         remote_devices[name].parentResource = parentResource
 
         if parentModule:
-            storeDeviceInModule(d, parentModule, parentResource)
+            storeDeviceInModule(d, parentModule, parentResource or name)
         else:
             # Allow name changing via data, we save under new, not the old name
             device_data[name] = d
-            saveDevice(name)
+
+        saveDevice(name)
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
@@ -1173,10 +1205,6 @@ def devStatString(d):
     return ''.join([i for i in s])
 
 
-def url(u):
-    return urllib.parse.quote(u, safe='')
-
-
 def read(f):
     try:
         with open(f) as fd:
@@ -1198,7 +1226,7 @@ specialKeys = {
 
 
 def getshownkeys(obj: Device):
-    return sorted([i for i in obj.config.keys() if i not in specialKeys and not i.startswith("kaithem.")])
+    return sorted([i for i in obj.config.keys() if i not in specialKeys and not i.startswith("kaithem.") and not i.startswith("temp.kaithem")])
 
 
 device_page_env = {
@@ -1233,7 +1261,7 @@ class WebDevices():
         def get_report_data(dev: Device):
             o = {}
             for i in dev.config:
-                if not i in ('notes', 'subclass') or len(str(dev.config[i])) < 256:
+                if i not in ('notes', 'subclass') or len(str(dev.config[i])) < 256:
                     o[i] = dev.config[i]
                     continue
             return json.dumps(o)
@@ -1244,7 +1272,11 @@ class WebDevices():
                     if dev.config[i]:
                         return True
 
-        return pages.render_jinja_template("devices/device_report.j2.html", devs=remote_devices_atomic, has_secrets=has_secrets, get_report_data=get_report_data, **device_page_env)
+        return pages.render_jinja_template("devices/device_report.j2.html",
+                                           devs=remote_devices_atomic,
+                                           has_secrets=has_secrets,
+                                           get_report_data=get_report_data,
+                                           **device_page_env)
 
     @cherrypy.expose
     def device(self, name, *args, **kwargs):
@@ -1334,17 +1366,10 @@ class WebDevices():
             obj = None
             d = getDeviceType(type)
 
-        # We don't have pt adapter layer with raw classes
-        if hasattr(d, "discoverDevices"):
-            d = d.discoverDevices(current,
-                                  current_device=remote_devices.get(
-                                      devname, None),
-                                  intent="step")
-        else:
-            d = d.discover_devices(current,
-                                   current_device=remote_devices.get(
-                                       devname, None),
-                                   intent="step")
+        d = d.discover_devices(current,
+                               current_device=remote_devices.get(
+                                   devname, None),
+                               intent="step")
 
         return pages.get_template("devices/discoverstep.html").render(
             data=d, current=current, name=devname, obj=obj)
@@ -1360,8 +1385,8 @@ class WebDevices():
         m = r = None
         with modules_state.modulesLock:
             if 'module' in kwargs:
-                m = kwargs['module']
-                r = kwargs['resource']
+                m = str(kwargs['module'])
+                r = str(kwargs['resource'])
                 name = r
                 del kwargs['module']
                 del kwargs['resource']
@@ -1385,12 +1410,17 @@ class WebDevices():
                     i: str(kwargs[i])
                     for i in kwargs if not i.startswith('temp.')
                 }
-                device_data[name] = d
 
             if name in remote_devices:
                 remote_devices[name].close()
             remote_devices[name] = makeDevice(name, kwargs)
-            storeDeviceInModule(d, m, r)
+
+            if m and r:
+                storeDeviceInModule(d, m, r)
+            else:
+                device_data[name] = d
+                saveDevice(name)
+
             remote_devices[name].parentModule = m
             remote_devices[name].parentResource = r
             global remote_devices_atomic
@@ -1409,6 +1439,8 @@ class WebDevices():
         cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
 
         tp = getDeviceType(kwargs['type'])
+        assert tp
+
         return pages.get_template("devices/createpage.html").render(
             name=name,
             type=kwargs['type'],
@@ -1496,7 +1528,7 @@ class WebDevices():
             x = remote_devices[name]
             k = []
             for i in x.subdevices:
-                k.append(subdevices[i].name)
+                k.append(x.subdevices[i].name)
 
             x.close()
             gc.collect()
@@ -1670,7 +1702,7 @@ def makeDevice(name, data, cls=None):
     # within the device integration code
     new_data = {
         i: new_data[i]
-        for i in new_data if not (i.startswith("kaithem.") and not i in ('kaithem.read_perms', "kaithem.write_perms"))
+        for i in new_data if not (i.startswith("kaithem.") and not i.startswith("temp.kaithem.") and i not in ('kaithem.read_perms', "kaithem.write_perms"))
     }
 
     try:
@@ -1687,6 +1719,13 @@ def makeDevice(name, data, cls=None):
 
 def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
     with modules_state.modulesLock:
+
+        # Move it out of main area
+        if 'name' in d:
+            if d['name'] in device_data:
+                device_data.pop(d['name'])
+                saveDevice(d['name'])
+
         modules_state.ActiveModules[module][resource] = {
             'resource-type': 'device',
             'device': d

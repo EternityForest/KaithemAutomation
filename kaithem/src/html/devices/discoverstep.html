@@ -60,7 +60,7 @@ background:grey;
 
 <table>
 %for i in sorted([i for i in current.keys() if not i in specialKeys ] ):
-%if not i.startswith("kaithem."):
+%if not i.startswith("kaithem.") and not i.startswith("temp.kaithem."):
 <tr>
         <td>${i|h}</td>
         <td>
@@ -114,7 +114,7 @@ background:grey;
 
 <table>
 %for i in sorted([i for i in data[c].keys() if not i in specialKeys  ] ):
-%if not i.startswith("kaithem."):
+%if not i.startswith("kaithem.") and not i.startswith("temp.kaithem."):
 <tr>
         <td>${i|h}</td>
         <td>

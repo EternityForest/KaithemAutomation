@@ -118,11 +118,11 @@
 
                     <tr>
                         <td>Store settings in Module(blank=store in main devices list)</td>
-                        <td><input name="_store_in_module" value="{{ obj.parentModule or '' | escape }}"></td>
+                        <td><input name="temp.kaithem.store_in_module" value="{{ obj.parentModule or '' | escape }}"></td>
                     </tr>
                     <tr>
                         <td>Resource Name(blank=use device name)</td>
-                        <td><input name="_store_in_resource" value="{{ obj.parentResource or ''| escape }}"></td>
+                        <td><input name="temp.kaithem.store_in_resource" value="{{ obj.parentResource or ''| escape }}"></td>
                     </tr>
                 </table>
             </details>
@@ -367,7 +367,7 @@
                     <b><i class="mdi mdi-file-alt"></i>{{ i| escape }}</b>
                 </summary>
                 <textarea class="h-24rem w-full"
-                    name=" filedata.{{ i }}">{{ read(obj.get_config_folder()+"/"+i)| escape }}</textarea>
+                    name="filedata.{{ i }}">{{ read(obj.get_config_folder()+"/"+i)| escape }}</textarea>
             </details>
             {% endfor %}
             {% endif %}

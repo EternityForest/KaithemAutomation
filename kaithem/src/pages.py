@@ -124,11 +124,11 @@ def require(permission, noautoreturn=False):
     """Get the user that is making the request bound to this thread,
     and then raise an interrupt if he does not have the permission specified.
 
-    Normally this will prompt the user to go to a login page, 
+    Normally this will prompt the user to go to a login page,
     and if they log in it takes them right back where they were
-    trying to go. However if the place they were going has an effect, 
+    trying to go. However if the place they were going has an effect,
     you might want them to confirm first, so set noauto to true
-    to take them to the main page on successful login, 
+    to take them to the main page on successful login,
     or set it to a url to take them there instead.
     """
 
@@ -303,7 +303,11 @@ def getAcessingUser(tornado_mode=None):
 
 
 class ServeFileInsteadOfRenderingPageException(Exception):
-    pass
+    def __init__(self, *args: object) -> None:
+        self.f_filepath: str
+        self.f_MIME: str
+        self.f_name: str
+        super().__init__(*args)
 
 
 def serveFile(path, contenttype="", name=None):
