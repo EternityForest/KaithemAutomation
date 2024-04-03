@@ -1,6 +1,11 @@
 # Kaithem Devices
 
-Kaithem provides an abstraction called a Device that covers several kinds of device.ted.
+Kaithem provides an abstraction called a Device that covers several kinds of device.
+
+
+## Creating through the GUI
+
+Previously you could create a device in a global devices list.
 
 ## API
 

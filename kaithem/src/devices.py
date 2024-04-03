@@ -390,7 +390,7 @@ class Device():
         with modules_state.modulesLock:
             self.config[key] = v
 
-            if not self.config.get("is_ephemeral", False) and not key.startswith('temp.'):
+            if not self.config.get("is_ephemeral", False) and not key.startswith('temp.') and not key.startswith('kaithem.temp.'):
                 if self.parentModule:
                     modules_state.ActiveModules[self.parentModule][
                         self.parentResource]['device'][key] = v
@@ -1184,16 +1184,6 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
             remote_devices[devname].close()
             messagebus.post_message("/devices/removed/", devname)
 
-        # Delete and then recreate because we may be renaming to a different name
-
-        if not parentModule:
-            del device_data[devname]
-            saveDevice(devname)
-        else:
-            if not parentResource:
-                raise RuntimeError("?????????????")
-            modules_state.rawDeleteResource(parentModule, parentResource)
-
         gc.collect()
         time.sleep(0.01)
         time.sleep(0.01)
@@ -1261,6 +1251,20 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
             device_location_cache[name] = newparentModule, newparentResource
 
             remote_devices[name].update_config(k)
+
+
+        # Only actually update data structures 
+        # after updating the device runtime sucessfully
+
+        # Delete and then recreate because we may be renaming to a different name
+        if not parentModule:
+            del device_data[devname]
+            saveDevice(devname)
+        else:
+            if not parentResource:
+                raise RuntimeError("?????????????")
+            modules_state.rawDeleteResource(parentModule, parentResource)
+
 
         # set the location info
         remote_devices[name].parentModule = newparentModule
