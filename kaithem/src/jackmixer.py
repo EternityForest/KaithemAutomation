@@ -41,6 +41,7 @@ from . import (
 from . import jackmanager, gstwrapper, mixerfx
 
 import threading
+
 global_api = widgets.APIWidget()
 global_api.require("system_admin")
 
@@ -60,8 +61,8 @@ class DummySource(iceflow.GStreamerPipeline):
 
     def __init__(self):
         iceflow.GStreamerPipeline.__init__(self)
-        self.add_element('audiotestsrc', volume=0)
-        self.add_element('pipewiresink', client_name="SILENCE")
+        self.add_element("audiotestsrc", volume=0)
+        self.add_element("pipewiresink", client_name="SILENCE")
 
 
 try:
@@ -334,14 +335,16 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.created_time = time.monotonic()
 
             if not input or not input.startswith("rtplisten://"):
-                self.src = self.add_element('pipewiresrc',
-                                            client_name=name + "_in",
-                                            do_timestamp=False,
-                                            always_copy=True
-                                            )
+                self.src = self.add_element(
+                    "pipewiresrc",
+                    client_name=name + "_in",
+                    do_timestamp=False,
+                    always_copy=True,
+                )
 
                 self.capsfilter = self.add_element(
-                    "capsfilter", caps="audio/x-raw,channels=" + str(channels),
+                    "capsfilter",
+                    caps="audio/x-raw,channels=" + str(channels),
                 )
             else:
                 self.src = self.add_element("udpsrc", port=int(input.split("://")[1]))
@@ -394,16 +397,24 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def check_ports(self):
         "Check that the ports actually exist"
-        if not [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_in:")]:
+        if not [
+            i.name
+            for i in jackmanager.get_ports()
+            if i.name.startswith(self.name + "_in:")
+        ]:
             return False
-        if not [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_out:")]:
+        if not [
+            i.name
+            for i in jackmanager.get_ports()
+            if i.name.startswith(self.name + "_out:")
+        ]:
             return False
         return True
 
     def mpv_input_loop(self):
         command = self.input.strip()
         if not (
-            (command.startswith("http://") or command.startswith("https://"))
+            (command.startswith(("http://", "https://")))
             and command.endswith(".m3u")
             or command.endswith(".m3u8")
         ):
@@ -469,7 +480,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 pattern = self.outputs[0]
 
             self.sink = self.add_element(
-                'pipewiresink',
+                "pipewiresink",
                 client_name=self.name + "_out",
                 mode=2,
             )
@@ -487,20 +498,28 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # We unfortunately can't suppress auto connect in this version
         # use this hack.  Wait till ports show up then disconnect.
         for i in range(25):
-            if [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_in:")]:
+            if [
+                i.name
+                for i in jackmanager.get_ports()
+                if i.name.startswith(self.name + "_in:")
+            ]:
                 break
             time.sleep(0.1)
 
         for i in range(25):
-            if [i.name for i in jackmanager.get_ports() if i.name.startswith(self.name+"_out:")]:
+            if [
+                i.name
+                for i in jackmanager.get_ports()
+                if i.name.startswith(self.name + "_out:")
+            ]:
                 break
             time.sleep(0.1)
 
-        self.silencein = jackmanager.Airwire('SILENCE', self.name+"_in")
+        self.silencein = jackmanager.Airwire("SILENCE", self.name + "_in")
         self.silencein.connect()
 
-        jackmanager.disconnect_all_from(self.name+"_in")
-        jackmanager.disconnect_all_from(self.name+"_out")
+        jackmanager.disconnect_all_from(self.name + "_in")
+        jackmanager.disconnect_all_from(self.name + "_out")
 
         # do it here, after things are set up
         self.faderTag.value = self.initialFader
@@ -562,7 +581,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             p2 = [i.clientName for i in jackmanager.get_ports()]
             p = p + p2
             # Todo check the sends as well?
-            if (name + "_out" in p):
+            if name + "_out" in p:
                 time.sleep(0.5)
             else:
                 # Give a little extra time just in case
@@ -647,7 +666,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if i["type"] == "fader":
                 self.fader = self.add_element("volume")
                 # Set to 0 until all is set up
-                self.initialFader = d['fader']
+                self.initialFader = d["fader"]
                 self.fader.set_property("volume", 0.0)
             # Special case this, it's made of multiple gstreamer blocks and also airwires
             elif i["type"] == "send":
@@ -682,7 +701,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                             sidechain=sidechain,
                             connectToOutput=linkTo
                             if (not j.get("noConnectInput", False))
-                            else False
+                            else False,
                         )
                         supports.append(linkTo)
 
@@ -695,7 +714,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         connectToOutput=linkTo
                         if (not i.get("noConnectInput", False))
                         else False,
-                        connectWhenAvailable=i.get("connectWhenAvailable", None)
+                        connectWhenAvailable=i.get("connectWhenAvailable", None),
                     )
                 elif self.channels == 2 and "stereoGstElement" in i:
                     linkTo = self.effectsById[i["id"]] = self.add_element(
@@ -705,7 +724,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         connectToOutput=linkTo
                         if (not i.get("noConnectInput", False))
                         else False,
-                        connectWhenAvailable=i.get("connectWhenAvailable", None)
+                        connectWhenAvailable=i.get("connectWhenAvailable", None),
                     )
                 else:
                     linkTo = self.effectsById[i["id"]] = self.add_element(
@@ -715,7 +734,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         connectToOutput=linkTo
                         if (not i.get("noConnectInput", False))
                         else False,
-                        connectWhenAvailable=i.get("connectWhenAvailable", None)
+                        connectWhenAvailable=i.get("connectWhenAvailable", None),
                     )
 
                 elmt = linkTo
@@ -732,7 +751,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                             sidechain=sidechain,
                             connectToOutput=linkTo
                             if (not j.get("noConnectInput", False))
-                            else False
+                            else False,
                         )
                         supports.append(linkTo)
                 elmt.postSupports = supports
@@ -1005,9 +1024,8 @@ actionLockout = {}
 
 class MixingBoard:
     def __init__(self, *args, **kwargs):
-
         class WrappedLink(widgets.APIWidget):
-            def onNewSubscriber(s, user, cid, **kw):
+            def on_new_subscriber(s, user, cid, **kw):
                 self.sendState()
 
         self.api = WrappedLink()

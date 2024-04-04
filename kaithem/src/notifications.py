@@ -33,30 +33,30 @@ ilogger = logging.getLogger("system.notifications.important")
 notificationslog = []
 
 
-
 notificationsfn = os.path.join(
-    directories.vardir, "core.settings", "pushnotifications.toml")
+    directories.vardir, "core.settings", "pushnotifications.toml"
+)
 
 pushsettings = persist.getStateFile(notificationsfn)
 
 
-
 class API(widgets.APIWidget):
-    def onNewSubscriber(self, user, cid, **kw):
-        self.send(['all', notificationslog])
+    def on_new_subscriber(self, user, cid, **kw):
+        self.send(["all", notificationslog])
 
 
 api = API()
 api.require("view_status")
 
 
-toolbarapi=widgets.APIWidget()
+toolbarapi = widgets.APIWidget()
 toolbarapi.require("view_status")
-toolbarapi.echo=False
+toolbarapi.echo = False
 
-def f(u,v,id):
-    if v[0]=='countsince':
-        toolbarapi.sendTo(json.dumps(countnew(v[1])),id)
+
+def f(u, v, id):
+    if v[0] == "countsince":
+        toolbarapi.sendTo(json.dumps(countnew(v[1])), id)
 
 
 toolbarapi.attach2(f)
@@ -73,9 +73,9 @@ def countnew(since):
         if not i[0] > since:
             break
         else:
-            if 'warning' in i[1]:
+            if "warning" in i[1]:
                 warnings += 1
-            elif 'error' in i[1]:
+            elif "error" in i[1]:
                 errors += 1
             else:
                 normal += 1
@@ -83,28 +83,24 @@ def countnew(since):
     return [total, normal, warnings, errors]
 
 
-
-
-
-
-class WI():
+class WI:
     @cherrypy.expose
     def countnew(self, **kwargs):
-        pages.require('view_status')
-        return json.dumps(countnew(float(kwargs['since'])))
+        pages.require("view_status")
+        return json.dumps(countnew(float(kwargs["since"])))
 
     @cherrypy.expose
     def mostrecent(self, **kwargs):
-        pages.require('view_status')
-        return json.dumps(notificationslog[-int(kwargs['count']):])
+        pages.require("view_status")
+        return json.dumps(notificationslog[-int(kwargs["count"]) :])
 
 
-
-epochAndRemaining = [0,15]
+epochAndRemaining = [0, 15]
 
 pending_notifications = []
 
 apprise_lock = threading.RLock()
+
 
 @scheduling.scheduler.everyHour
 def apprise():
@@ -124,12 +120,11 @@ def apprise():
                 return
 
 
-
 def subscriber(topic, message):
     global notificationslog
     notificationslog.append((time.time(), topic, message))
     # Delete all but the most recent N notifications, where N is from the config file.
-    notificationslog = notificationslog[-config['notifications-to-keep']:]
+    notificationslog = notificationslog[-config["notifications-to-keep"] :]
 
     # TODO:
     # Not threadsafe. But it is still better than the old polling based system.
@@ -138,13 +133,14 @@ def subscriber(topic, message):
     except:
         logging.exception("Error pushing notifications")
 
-    api.send(['notification', [time.time(), topic, message]])
+    api.send(["notification", [time.time(), topic, message]])
 
-
-    if 'error' in topic or 'warning' in topic or 'important' in topic:
+    if "error" in topic or "warning" in topic or "important" in topic:
         # Add allowed notifications at a rate of  under 1 per miniute up to 15 "stored credits"
-        epochAndRemaining[1] = max((time.monotonic()-epochAndRemaining[0])/240 + epochAndRemaining[1], 15)
-        epochAndRemaining[0]=time.monotonic()
+        epochAndRemaining[1] = max(
+            (time.monotonic() - epochAndRemaining[0]) / 240 + epochAndRemaining[1], 15
+        )
+        epochAndRemaining[0] = time.monotonic()
 
         if epochAndRemaining[1] > 1:
             epochAndRemaining[1] -= 1
@@ -152,57 +148,59 @@ def subscriber(topic, message):
             ts = strftime(time.time())
             if len(pending_notifications) > 35:
                 pending_notifications.pop(0)
-    
+
             def f():
-                if pushsettings.get('apprise_target', None):
+                if pushsettings.get("apprise_target", None):
                     import apprise
+
                     # Create an Apprise instance
                     apobj = apprise.Apprise()
 
                     # Add all of the notification services by their server url.
                     # A sample email notification:
-                    apobj.add(pushsettings.get('apprise_target', None))
+                    apobj.add(pushsettings.get("apprise_target", None))
 
                     # Then notify these services any time you desire. The below would
                     # notify all of the services loaded into our Apprise object.
                     apobj.notify(
                         body=str(message),
-                        title=('Notification' if not 'error' in topic else 'Error') + " " + ts)
-                    
+                        title=("Notification" if not "error" in topic else "Error")
+                        + " "
+                        + ts,
+                    )
+
             pending_notifications.append(f)
 
             workers.do(apprise)
 
 
-
-
-messagebus.subscribe('/system/notifications/#', subscriber)
+messagebus.subscribe("/system/notifications/#", subscriber)
 
 
 def printer(t, m):
-    if 'error' in t:
-        logger.error(t+':'+m)
-    elif 'warning' in t:
-        logger.warning(t+':'+m)
-    elif 'important' in t:
-        ilogger.info(t+':'+m)
+    if "error" in t:
+        logger.error(t + ":" + m)
+    elif "warning" in t:
+        logger.warning(t + ":" + m)
+    elif "important" in t:
+        ilogger.info(t + ":" + m)
     else:
-        logger.info(t+':'+m)
+        logger.info(t + ":" + m)
 
 
-messagebus.subscribe('/system/notifications/#', printer)
+messagebus.subscribe("/system/notifications/#", printer)
 
 
 def mprinter(t, m):
-    if 'error' in t:
-        mlogger.error(t+':'+m)
-    elif 'warning' in t:
-        mlogger.warning(t+':'+m)
-    elif 'important' in t:
-        mlogger.info(t+':'+m)
+    if "error" in t:
+        mlogger.error(t + ":" + m)
+    elif "warning" in t:
+        mlogger.warning(t + ":" + m)
+    elif "important" in t:
+        mlogger.info(t + ":" + m)
     else:
-        mlogger.info(t+':'+m)
+        mlogger.info(t + ":" + m)
 
 
-for i in config['print-topics']:
+for i in config["print-topics"]:
     messagebus.subscribe(i, mprinter)

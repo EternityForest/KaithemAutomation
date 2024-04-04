@@ -82,7 +82,7 @@ def searchPaths(s: str, paths: list[str]):
             path = path + "/"
 
         for dir, dirs, files in os.walk(path):
-            relpath = dir[len(path):]
+            relpath = dir[len(path) :]
             for i in files:
                 match = True
                 for j in words:
@@ -111,18 +111,16 @@ def getSerPorts():
 
 
 class WebConsole(ChandlerConsole.ChandlerConsole):
-
     def __init__(self):
         self.link = None
         super().__init__()
         self.setup_link()
 
     def setup_link(self):
-
         class WrappedLink(kaithem.widget.APIWidget):
-            def onNewSubscriber(s, user, connection_id, **kw):
+            def on_new_subscriber(s, user, connection_id, **kw):
                 self.send_everything(connection_id)
-            
+
         self.link = WrappedLink()
         self.link.require("chandler_operator")
         self.link.echo = False
@@ -145,10 +143,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.onmsg = f
         self.link.attach2(self.onmsg)
 
-        kaithem.message.subscribe('/system/alerts/state', self.push_sys_alerts)
+        kaithem.message.subscribe("/system/alerts/state", self.push_sys_alerts)
 
     def push_sys_alerts(self, t: str, m: dict[str, Any]):
-        self.linkSend(['alerts', m])
+        self.linkSend(["alerts", m])
 
     def linkSend(self, data: List[Any]):
         if self.link:
@@ -157,14 +155,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def linkSendTo(self, data: List[Any], target: str):
         if self.link:
             return self.link.sendTo(data, target)
-    
+
     def send_everything(self, sessionid):
         with core.lock:
             self.linkSend(["presets", self.presets])
             self.pushUniverses()
             self.pushfixtures()
-            self.linkSend(['alerts', getAlertState()])
-            self.linkSend(['soundfolders', core.config.get('soundFolders')])
+            self.linkSend(["alerts", getAlertState()])
+            self.linkSend(["soundfolders", core.config.get("soundFolders")])
 
             for i in self.scenememory:
                 s = self.scenememory[i]
@@ -176,22 +174,23 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     except Exception:
                         print(traceback.format_exc())
                 try:
-                    self.pushCueMeta(
-                        self.scenememory[i].cues["default"].id)
+                    self.pushCueMeta(self.scenememory[i].cues["default"].id)
                 except Exception:
                     print(traceback.format_exc())
 
                 try:
                     for j in s.slideshow_telemetry:
                         # TODO send more stuff to just the target
-                        self.linkSendTo(['slideshow_telemetry', j, s.slideshow_telemetry[j]], sessionid)
+                        self.linkSendTo(
+                            ["slideshow_telemetry", j, s.slideshow_telemetry[j]],
+                            sessionid,
+                        )
                 except Exception:
                     print(traceback.format_exc())
 
                 try:
                     for j in self.scenememory[i].cues:
-                        self.pushCueMeta(
-                            self.scenememory[i].cues[j].id)
+                        self.pushCueMeta(self.scenememory[i].cues[j].id)
                 except Exception:
                     print(traceback.format_exc())
 
@@ -215,8 +214,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     ]
                 )
 
-            setups = os.path.join(
-                kaithem.misc.vardir, "chandler", "setups")
+            setups = os.path.join(kaithem.misc.vardir, "chandler", "setups")
             if os.path.isdir(setups):
                 self.linkSend(
                     [
@@ -229,7 +227,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     ]
                 )
 
-        
     def _onmsg(self, user: str, msg: List[Any], sessionid: str):
         # Getters
 
@@ -245,6 +242,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.pushCueList(s.id)
                 self.pushMeta(msg[1])
                 self.pushfixtures()
+
             kaithem.misc.do(f)
             return
 
@@ -264,15 +262,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getfixtureclass":
-            self.linkSend(
-                ["fixtureclass", msg[1], self.fixture_classes[msg[1]]])
+            self.linkSend(["fixtureclass", msg[1], self.fixture_classes[msg[1]]])
             return
 
         elif cmd_name == "getfixtureclasses":
             # Send placeholder lists
             self.linkSend(
-                ["fixtureclasses", {i: []
-                                    for i in self.fixture_classes.keys()}]
+                ["fixtureclasses", {i: [] for i in self.fixture_classes.keys()}]
             )
             return
 
@@ -282,7 +278,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "gasd":
-            #Get All State Data, used to get all scene data
+            # Get All State Data, used to get all scene data
             self.send_everything(sessionid)
             return
 
@@ -310,8 +306,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getcuehistory":
-            self.linkSend(
-                ["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
+            self.linkSend(["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
             return
 
         elif cmd_name == "getfixtureassg":
@@ -322,9 +317,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         else:
             # Not in allowed read only commands, need chandler_operator below this point
             # Right now there's no separate chandler view, just operator
-            if not kaithem.users.check_permission(user, 'chandler_operator'):
-                if not kaithem.users.check_permission(user, 'system_admin'):
-                    raise PermissionError(cmd_name + "requires chandler_operator or system_admin")
+            if not kaithem.users.check_permission(user, "chandler_operator"):
+                if not kaithem.users.check_permission(user, "system_admin"):
+                    raise PermissionError(
+                        cmd_name + "requires chandler_operator or system_admin"
+                    )
 
         # User level runtime stuff that can't change config
 
@@ -400,7 +397,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         else:
             # Not in allowed runtime only commands
-            if not kaithem.users.check_permission(user, 'system_admin'):
+            if not kaithem.users.check_permission(user, "system_admin"):
                 raise PermissionError(cmd_name + "requires system_admin")
 
         ###
@@ -429,8 +426,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushMeta(s.id)
 
         elif cmd_name == "addmonitor":
-            s = Scene(msg[1].strip(), blend="monitor",
-                      priority=100, active=True)
+            s = Scene(msg[1].strip(), blend="monitor", priority=100, active=True)
             self.scenememory[s.id] = s
 
         elif cmd_name == "setconfuniverses":
@@ -469,8 +465,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     commandInfo.append(i[:2])
                 else:
                     commandInfo.append(i)
-            self.fixture_classes[msg[1].replace(
-                "-", " ").replace("/", " ")] = commandInfo
+            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = (
+                commandInfo
+            )
             self.refresh_fixtures()
 
         elif cmd_name == "rmfixtureclass":
@@ -600,8 +597,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         else:
                             val = 0
                         # i[0] is the name of the channel
-                        cue.set_value(
-                            "@" + msg[2], "__dest__." + str(i[0]), val)
+                        cue.set_value("@" + msg[2], "__dest__." + str(i[0]), val)
 
             self.linkSend(["cuedata", msg[1], cue.values])
             self.pushCueMeta(msg[1])
@@ -617,8 +613,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "listsoundfolder":
-            self.linkSend(
-                ["soundfolderlisting", msg[1], listsoundfolder(msg[1])])
+            self.linkSend(["soundfolderlisting", msg[1], listsoundfolder(msg[1])])
 
         elif cmd_name == "scv":
             ch = msg[3]
@@ -711,7 +706,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     if not i.endswith("/"):
                         i = i + "/"
                     if s.startswith(i):
-                        s = s[len(i):]
+                        s = s[len(i) :]
                         break
                 if not s:
                     raise RuntimeError("Unknown, linter said was possible")
@@ -735,7 +730,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     if not i.endswith("/"):
                         i = i + "/"
                     if s.startswith(i):
-                        s = s[len(i):]
+                        s = s[len(i) :]
                         break
                 scenes.scenes[msg[1]].cues[bn].slide = s
 
@@ -784,8 +779,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = int(msg[2])
             except Exception:
                 v = msg[2]
-            cues[msg[1]].sound_loops = v if (
-                not v == -1) else 99999999999999999
+            cues[msg[1]].sound_loops = v if (not v == -1) else 99999999999999999
 
             self.pushCueMeta(msg[1])
             cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
@@ -824,7 +818,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 if not i.endswith("/"):
                     i = i + "/"
                 if s.startswith(i):
-                    s = s[len(i):]
+                    s = s[len(i) :]
                     break
 
             if s.strip() and cues[msg[1]].sound and cues[msg[1]].named_for_sound:
@@ -845,7 +839,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 if not i.endswith("/"):
                     i = i + "/"
                 if s.startswith(i):
-                    s = s[len(i):]
+                    s = s[len(i) :]
                     break
 
             cues[msg[1]].slide = s
@@ -876,7 +870,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         # TODO: Almost everything should go through these two functions!!
-        elif cmd_name == 'setSceneProperty':
+        elif cmd_name == "setSceneProperty":
             prop = snake_compat.camel_to_snake(msg[2])
             # Generic setter for things that are just simple value sets.
 
@@ -888,7 +882,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if not old == msg[3]:
                 self.pushMeta(msg[1], keys={prop})
 
-        elif cmd_name == 'setCueProperty':
+        elif cmd_name == "setCueProperty":
             prop = snake_compat.camel_to_snake(msg[2])
             # Generic setter for things that are just simple value sets.
 
@@ -965,8 +959,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setsoundfolders":
             # Set the global sound folders list
-            core.config['soundFolders'] = [i.strip().replace("\r", '').replace("\t", ' ')
-                                           for i in msg[1].split('\n') if i]
+            core.config["soundFolders"] = [
+                i.strip().replace("\r", "").replace("\t", " ")
+                for i in msg[1].split("\n")
+                if i
+            ]
 
         else:
             raise ValueError("Unrecognized Command " + str(cmd_name))

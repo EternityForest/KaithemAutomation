@@ -82,6 +82,11 @@ class EventInterface:
         self.__ev = ev
 
 
+def run_in_thread(f: typing.Callable, name: str):
+    t = threading.Thread(target=f, name="nostartstoplog " + name)
+    t.start()
+
+
 def makePrintFunction(ev):
     """For some unknown reason, new_print is involved in a
     garbage cycle that was preventing event GC
@@ -152,8 +157,7 @@ def getEventInfo(event):
 def renameEvent(oldModule, oldResource, module, resource):
     "Move an event, similar to unix mv"
     with _event_list_lock:
-        __EventReferences[module,
-                          resource] = __EventReferences[oldModule, oldResource]
+        __EventReferences[module, resource] = __EventReferences[oldModule, oldResource]
         del __EventReferences[oldModule, oldResource]
         __EventReferences[module, resource].resource = resource
         __EventReferences[module, resource].module = module
@@ -166,8 +170,7 @@ def getEventErrors(module, event):
             return __EventReferences[module, event].errors
         except (KeyError, AttributeError) as e:
             return [
-                ["0", "Event does not exist or was not properly initialized:" +
-                    str(e)]
+                ["0", "Event does not exist or was not properly initialized:" + str(e)]
             ]
 
 
@@ -299,6 +302,7 @@ def ptim():
 
 # In a background thread, we use the worker pool to check all threads
 
+
 class EventSchedulerObject(scheduling.UnsynchronizedRepeatingEvent):
     def __init__(
         self,
@@ -380,7 +384,7 @@ def Event(
     setup=None,
     priority=1,
     dummy=0,
-    **kwargs
+    **kwargs,
 ):
     if dummy:
         when = "False"
@@ -439,7 +443,6 @@ def Event(
 
 class PersistentData:
     "Used to persist small amounts of data that remain when an event is re-saved"
-    pass
 
 
 fps = config["max-frame-rate"]
@@ -531,8 +534,7 @@ class BaseEvent:
         self.pymodule = types.ModuleType(
             str("Event_" + self.module + "_" + self.resource)
         )
-        self.pymodule.__file__ = str(
-            "Event_" + self.module + "_" + self.resource)
+        self.pymodule.__file__ = str("Event_" + self.module + "_" + self.resource)
         self.pymoduleName = "Event_" + self.module + "_" + self.resource
 
         eventsByModuleName[self.pymoduleName] = self
@@ -599,8 +601,8 @@ class BaseEvent:
                 try:
                     if hasattr(self, "pymodule"):
                         if "__del__" in self.pymodule.__dict__:
-                            self.pymodule.__dict__['__del__']()
-                            del self.pymodule.__dict__['__del__']
+                            self.pymodule.__dict__["__del__"]()
+                            del self.pymodule.__dict__["__del__"]
                 except Exception:
                     logger.exception("Error in delete function")
                 if hasattr(self, "pymodule"):
@@ -627,8 +629,7 @@ class BaseEvent:
                     # A derived class or inherited from a mixin.
                     self._do_action()
                     self.lastcompleted = time.time()
-                    self.history.append(
-                        (self.lastexecuted, self.lastcompleted))
+                    self.history.append((self.lastexecuted, self.lastcompleted))
                     if len(self.history) > 250:
                         self.history.pop(0)
                     # messagebus.post_message('/system/events/ran',[self.module, self.resource])
@@ -651,19 +652,17 @@ class BaseEvent:
         # Note that we are logging to the compiled event object
         self.errors.append([time.strftime(config["time-format"]), tb])
         # Keep only the most recent errors
-        self.errors = self.errors[-(config["errors-to-keep"]):]
+        self.errors = self.errors[-(config["errors-to-keep"]) :]
 
         workers.do(
             makeBackgroundErrorFunction(
-                textwrap.fill(tb, 120), unitsofmeasure.strftime(
-                    time.time()), self
+                textwrap.fill(tb, 120), unitsofmeasure.strftime(time.time()), self
             )
         )
 
         try:
             messagebus.post_message(
-                "/system/errors/events/" + self.module +
-                "/" + self.resource, str(tb)
+                "/system/errors/events/" + self.module + "/" + self.resource, str(tb)
             )
         except Exception as e:
             print(e)
@@ -732,7 +731,6 @@ class BaseEvent:
         except Exception:
             # I have no idea what this was for
             logging.exception("????????????????")
-            pass
         # Basically we want to spread them out in the
         # phase space from 0 to 1 in a deterministic ish way.
         # There might be a better algorithm of better constant to use,
@@ -843,8 +841,7 @@ class CompileCodeStringsMixin(BaseEvent):
                 # That only weak references the object
                 self.pymodule.__dict__["print"] = makePrintFunction(self)
             except Exception:
-                logging.exception(
-                    "Failed to activate event print output functionality")
+                logging.exception("Failed to activate event print output functionality")
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
@@ -857,8 +854,7 @@ class CompileCodeStringsMixin(BaseEvent):
                 # Just a marker so we know it got called
                 flag.append(0)
                 try:
-                    kaithemobj.kaithem.context.event = (
-                        self.module, self.resource)
+                    kaithemobj.kaithem.context.event = (self.module, self.resource)
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
                     logging.exception(
@@ -870,7 +866,11 @@ class CompileCodeStringsMixin(BaseEvent):
                     kaithemobj.kaithem.context.event = None
 
         modules_state.listenForMlockRequests()
-        workers.do(runInit)
+        # For reasons I don't yet understand, this blocked for a long time
+        # when it used workers.do.
+        # TODO what happened?
+        run_in_thread(runInit, "init " + self.module + ":" + self.resource)
+
         try:
             # Wait for it to get the lock
             while (len(flag)) == 0:
@@ -897,8 +897,7 @@ class CompileCodeStringsMixin(BaseEvent):
         body = "def _event_action():\n"
         for line in action.split("\n"):
             body += "    " + line + "\n"
-        body = compile(body, "Event_" + self.module +
-                       "_" + self.resource, "exec")
+        body = compile(body, "Event_" + self.module + "_" + self.resource, "exec")
         exec(body, self.pymodule.__dict__)
         self.__doc__ = self.pymodule.__doc__
         # This is one of the weirder line of code I've ever writter
@@ -918,12 +917,18 @@ class DirectFunctionsMixin:
 
 class MessageEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
+        self,
+        when,
+        do,
+        continual=False,
+        ratelimit=0,
+        setup: Optional[str] = "pass",
+        *args,
+        **kwargs,
     ):
         # This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
-        BaseEvent.__init__(self, when, do, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.lastran = 0
 
         # Handle whatever stupid whitespace someone puts in
@@ -975,7 +980,14 @@ class MessageEvent(CompileCodeStringsMixin):
 
 class ChangedEvalEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
+        self,
+        when,
+        do,
+        continual=False,
+        ratelimit=0,
+        setup: Optional[str] = "pass",
+        *args,
+        **kwargs,
     ):
         # If the user tries to use the !onchanged trigger expression,
         # what we do is to make a function that does the actual checking and always returns false
@@ -986,8 +998,7 @@ class ChangedEvalEvent(CompileCodeStringsMixin):
         # What this does is to eliminate leading whitespace, split on first space,
         # Then get rid of any extra spaces in between the command and argument.
         f = when.strip().split(" ", 1)[1].strip()
-        BaseEvent.__init__(self, when, do, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self._init_setup_and_action(setup, do)
 
         x = compile(
@@ -1028,11 +1039,16 @@ class ChangedEvalEvent(CompileCodeStringsMixin):
 
 class PolledEvalEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass",
-        *args, **kwargs
+        self,
+        when,
+        do,
+        continual=False,
+        ratelimit=0,
+        setup: Optional[str] = "pass",
+        *args,
+        **kwargs,
     ):
-        BaseEvent.__init__(self, when, do, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.polled = True
 
         # Sometimes an event is used for its setup action and never runs.
@@ -1067,18 +1083,23 @@ class PolledEvalEvent(CompileCodeStringsMixin):
 
 class ThreadPolledEvalEvent(CompileCodeStringsMixin):
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
+        self,
+        when,
+        do,
+        continual=False,
+        ratelimit=0,
+        setup: Optional[str] = "pass",
+        *args,
+        **kwargs,
     ):
-        BaseEvent.__init__(self, when, do, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.runthread = True
         self.lock = threading.RLock()
         self.pauseflag = threading.Event()
         self.pauseflag.set()
 
         def f():
-            d = config["priority-response"].get(
-                self.symbolicpriority, 1 / 60.0)
+            d = config["priority-response"].get(self.symbolicpriority, 1 / 60.0)
             # Run is the global run flag used to shutdown
             while run and self.runthread:
                 # The sleep comes before the check of the condition because
@@ -1103,8 +1124,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
                         )
                         self._handle_exception(e)
                         time.sleep(
-                            config["error-backoff"].get(
-                                self.symbolicpriority, 5)
+                            config["error-backoff"].get(self.symbolicpriority, 5)
                         )
 
         self.loop = f
@@ -1209,10 +1229,9 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
         ratelimit=0,
         setup="pass",
         *args,
-        **kwargs
+        **kwargs,
     ):
-        BaseEvent.__init__(self, when, do, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self.polled = True
         # Compile the trigger
         self.trigger = when
@@ -1245,8 +1264,7 @@ def dt_to_ts(dt, tz=None):
         # Local Time
         ts = time.time()
         offset = (
-            datetime.datetime.fromtimestamp(
-                ts) - datetime.datetime.utcfromtimestamp(ts)
+            datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)
         ).total_seconds()
         return (
             (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
@@ -1257,13 +1275,19 @@ class RecurringEvent(CompileCodeStringsMixin):
     "This represents an event that happens on a schedule"
 
     def __init__(
-        self, when, do, continual=False, ratelimit=0, setup: Optional[str] = "pass", *args, **kwargs
+        self,
+        when,
+        do,
+        continual=False,
+        ratelimit=0,
+        setup: Optional[str] = "pass",
+        *args,
+        **kwargs,
     ):
         self.polled = False
         self.trigger = when
         self.register_lock = threading.Lock()
-        BaseEvent.__init__(self, when, do, continual,
-                           ratelimit, setup, *args, **kwargs)
+        BaseEvent.__init__(self, when, do, continual, ratelimit, setup, *args, **kwargs)
         self._init_setup_and_action(setup, do)
         # Bound methods aren't enough to stop GC
         # TODO, Maybe this method should be asyncified?
@@ -1331,7 +1355,6 @@ class RecurringEvent(CompileCodeStringsMixin):
                 self.lock.release()
             except Exception as e:
                 print(e)
-                pass
             self.nextruntime = self.selector.after(self.nextruntime, False)
 
             if self.nextruntime is None:
@@ -1355,8 +1378,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             time.sleep(0.179)
 
             if self.nextruntime:
-                self.next = scheduler.schedule(
-                    self.handler, self.nextruntime, False)
+                self.next = scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print(
                 """Caught event trying to return None for get next run
@@ -1400,8 +1422,7 @@ class RecurringEvent(CompileCodeStringsMixin):
         with self.register_lock:
             if self.nextruntime:
                 return
-            self.nextruntime = self.selector.after(
-                datetime.datetime.now(), False)
+            self.nextruntime = self.selector.after(datetime.datetime.now(), False)
             if self.nextruntime is None:
                 return
 
@@ -1612,11 +1633,10 @@ def getEventsFromModules(only=None):
             # This is because inter-event dependancies are the most common reason for failure.
 
             attempts = max(1, config["max-load-attempts"])
-            for baz in range(0, attempts):
+            for baz in range(attempts):
                 if not toLoad:
                     break
-                logging.debug(
-                    "Event initialization resolution round " + str(baz))
+                logging.debug("Event initialization resolution round " + str(baz))
                 for i in toLoad:
                     try:
                         logging.debug("Loading " + i.module + ":" + i.resource)
@@ -1668,7 +1688,6 @@ def getEventsFromModules(only=None):
                             + traceback.format_exc(chain=True)
                         )
                         gc.collect()
-                        pass
                 toLoad = nextRound
                 nextRound = []
             # Iterate over the failures after trying the max number of times to fix them
@@ -1764,7 +1783,7 @@ def make_event_from_resource(module, resource, subst=None):
         )
 
     except Exception as e:
-        if not (module, resource) in __EventReferences:
+        if (module, resource) not in __EventReferences:
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
         raise
