@@ -24,7 +24,7 @@ of a valid token"""
 # Users and groups are saved in RAM and synched with the filesystem due to the goal
 # of not using the filesystem much to save any SD cards.
 
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 import copy
 from . import util, directories, modules_state, messagebus
 import json
@@ -64,7 +64,12 @@ defaultData = {
 
 
 class User(dict):
-    permissions: Union[Dict, set] = {}
+    def __init__(self, *a, **k):
+        dict.__init__(self, *a, **k)
+
+        self.permissions: Union[Dict, set] = {}
+        self.limits = {}
+        self.token: Optional[str] = None
 
 
 logger = logging.getLogger("system.auth")
@@ -151,7 +156,10 @@ def resist_timing_attack(data, maxdelay=0.0001):
 
 
 def importPermissionsFromModules():
-    "Import all user defined permissions that are module resources into the global list of modules that can be assigned, and delete any that are no loger defined in modules."
+    """Import all user defined permissions that are module resources into the global
+    list of modules that can be assigned, and delete any that are no loger defined
+    in modules."""
+
     p2 = {i: {"description": BasePermissions[i]} for i in BasePermissions}
     with modules_state.modulesLock:
         for module in modules_state.ActiveModules.copy():  # Iterate over all modules
@@ -230,14 +238,13 @@ def removeUser(user):
         authchanged = True
         x = Users.pop(user)
         # If the user has a token, delete that too
-        if hasattr(x, "token"):
-            if x.token in Tokens:
-                Tokens.pop(x.token)
-                try:
-                    tokenHashes.pop(hashToken(x.token))
-                except Exception:
-                    dumpDatabase()
-                    raise
+        if x.token in Tokens:
+            Tokens.pop(x.token)
+            try:
+                tokenHashes.pop(hashToken(x.token))
+            except Exception:
+                dumpDatabase()
+                raise
         dumpDatabase()
 
 
@@ -343,7 +350,7 @@ def initializeAuthentication():
                 "Error loading auth data, may be able to continue from old state:\n"
                 + str(e),
             )
-            data_bad = True
+
             try:
                 dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
                 tryToLoadFrom(dirname)
@@ -383,9 +390,9 @@ def generateUserPermissions(username=None):
             limits = {}
 
             newp = []
-            for j in Users[i]["groups"]:
+            for j in Users[i].get("groups", []):
                 # Handle nonexistant groups
-                if not j in Groups:
+                if j not in Groups:
                     logger.warning("User " + i + " is member of nonexistant group " + j)
 
                 for k in Groups[j]["permissions"]:
@@ -394,14 +401,17 @@ def generateUserPermissions(username=None):
                 # A user has access to the highest limit of all the groups he's in
                 for k in Groups[j].get("limits", {}):
                     limits[k] = max(Groups[j].get("limits", {})[k], limits.get(k, 0))
-            Users[i].limits = limits
-            # If the user has a token, update the stored copy of user in the tokens dict too
-            if hasattr(Users[i], "token"):
-                Tokens[Users[i].token] = Users[i]
-                tokenHashes[hashToken(Users[i].token)] = Users[i]
 
-            for j in Users[i].permissions:
-                if not j in newp:
+            Users[i].limits = limits
+
+            # If the user has a token, update the stored copy of user in the tokens dict too
+            t = Users[i].token
+            if t:
+                Tokens[t] = Users[i]
+                tokenHashes[hashToken(t)] = Users[i]
+
+            for j in Users[i].get("permissions", []):
+                if j not in newp:
                     messagebus.post_message("/system/permissions/rmfromuser", (i, j))
 
             # Speed up by using a set
@@ -460,23 +470,22 @@ def userLogin(username, password):
 
                     # Two APIs??
                     try:
-                        p = pam.authenticate()
+                        p = pam.authenticate()  # type: ignore
                     except Exception:
                         p = pam
                     if p.authenticate(username, password):
                         with lock:
-                            if not hasattr(Users[username], "token"):
+                            if not Users[username].token:
                                 assignNewToken(username)
                             return Users[username].token
 
             return "failure"
 
     except ImportError:
-        tryLinuxUser = None
         print("PAM IMPORT FAIL")
         raise
     except KeyError:
-        tryLinuxUser = None
+        pass
 
     with lock:
         if username in Users and ("password" in Users[username]):
@@ -489,7 +498,7 @@ def userLogin(username, password):
             ):
                 # We can't just always assign a new token because that would break multiple
                 # Logins as same user
-                if not hasattr(Users[username], "token"):
+                if not Users[username].token:
                     assignNewToken(username)
                 return Users[username].token
         return "failure"
@@ -567,12 +576,12 @@ def setGroupLimit(group, limit, val):
         if val == 0:
             try:
                 Groups[group].get("limits", {}).pop(limit)
-            except:
+            except Exception:
                 pass
         else:
             # TODO unlikely race condition here
             gr = Groups[group]
-            if not "limits" in gr:
+            if "limits" not in gr:
                 gr["limits"] = {}
             gr["limits"][limit] = val
 
@@ -627,14 +636,17 @@ def assignNewToken(user):
         # Generate new token
         x = base64.b64encode(os.urandom(24)).decode()
         # Get the old token, delete it, and assign a new one
-        if hasattr(Users[user], "token"):
-            oldtoken = Users[user].token
+        oldtoken = Users[user].token
+
+        if oldtoken:
             del Tokens[oldtoken]
+
             try:
                 del tokenHashes[hashToken(oldtoken)]
             except KeyError:
                 # Not there?
                 pass
+
         Users[user].token = x
         Tokens[x] = Users[user]
         tokenHashes[hashToken(x)] = Users[user]
@@ -654,7 +666,7 @@ def setUserSetting(user, setting, value):
         user = Users[user]
         # This line is just there to raise an error on bad data.
         json.dumps(value)
-        if not "settings" in user:
+        if "settings" not in user:
             user["settings"] = {}
 
         Users[un]["settings"][setting] = value
@@ -668,7 +680,7 @@ def getUserSetting(user, setting):
     if user == "__no_request__":
         return defaultusersettings[setting]
     user = Users[user]
-    if not "settings" in user:
+    if "settings" not in user:
         return defaultusersettings[setting]
 
     if setting in user["settings"]:
@@ -678,7 +690,8 @@ def getUserSetting(user, setting):
 
 
 def getUserLimit(user, limit, maximum=2**64):
-    """Return the user's limit for any limit category, or 0 if not set. Limit to maximum.
+    """Return the user's limit for any limit category, or 0 if not set.
+    Limit to maximum.
     If user has __all_permissions__, limit _is_ maximum.
     """
     if "__guest__" in Users:
@@ -687,7 +700,7 @@ def getUserLimit(user, limit, maximum=2**64):
         guestlimit = 0
 
     if user in Users:
-        if not "__all_permissions__" in Users[user].permissions:
+        if "__all_permissions__" not in Users[user].permissions:
             val = max(min(Users[user].limits.get(limit, 0), maximum), guestlimit)
         else:
             val = maximum
@@ -710,7 +723,7 @@ def canUserDoThis(user, permission):
 
     if permission == "__guest__":
         return True
-    if not user in Users:
+    if user not in Users:
         if "__guest__" in Users and permission in Users["__guest__"].permissions:
             return True
         else:
