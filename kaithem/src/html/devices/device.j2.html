@@ -71,6 +71,13 @@
     {% endfor %}
 </datalist>
 
+
+<datalist id="k_modules">
+    {% for i in modules_state.ActiveModules %}
+    <option>{{ i| escape }}</option>
+    {% endfor %}
+</datalist>
+
 <datalist id="k_perms">
     <option>write_devices</option>
     <option>view_devices</option>
@@ -118,7 +125,7 @@
 
                     <tr>
                         <td>Store settings in Module(blank=store in main devices list)</td>
-                        <td><input required name="temp.kaithem.store_in_module" value="{{ obj.parentModule or '' | escape }}"></td>
+                        <td><input required list="k_modules" name="temp.kaithem.store_in_module" value="{{ obj.parentModule or '' | escape }}"></td>
                     </tr>
                     <tr>
                         <td>Resource Name(blank=use device name)</td>
