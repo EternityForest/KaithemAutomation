@@ -1128,7 +1128,7 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
                 raise ValueError("Can't store in nonexistant module")
 
             m = kwargs["temp.kaithem.store_in_module"]
-            r = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/')[1:])
+            r = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/'))
 
             if r in modules_state.ActiveModules[m]:
                 if not modules_state.ActiveModules[m][r]['resource-type'] == "device":
@@ -1151,9 +1151,10 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
 
         if "temp.kaithem.store_in_module" in kwargs:
             newparentModule = kwargs["temp.kaithem.store_in_module"]
-            newparentResource = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/')[1 if newparentModule else 0:])
+            newparentResource = kwargs["temp.kaithem.store_in_resource"] or '.d/'.join(name.split('/'))
 
         else:
+            raise ValueError("Can only save in module")
             newparentModule = None
             newparentResource = None
 
