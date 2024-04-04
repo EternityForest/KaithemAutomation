@@ -1,5 +1,5 @@
 # This file is maintained manually. It only has the top-level dependencies so pip
-# Can manage the rest.  You should probably be installing requirements_frozen.txt instead
+# Can manage the rest.  You should probably be installing requirements.txt instead
 
 # core features
 numpy>=1.26.1
@@ -59,7 +59,7 @@ pytz
 ntplib
 holidays
 
-pyHS100
+
 yeelight
 
 pyserial

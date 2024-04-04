@@ -21,7 +21,7 @@ else
     echo "Found venv"
 fi
 
-~/kaithem/.venv/bin/python -m pip install -U --ignore-installed -r requirements_frozen.txt
+~/kaithem/.venv/bin/python -m pip install --upgrade -r requirements.txt
 ! ~/kaithem/.venv/bin/python -m pip uninstall kaithem -y
 ~/kaithem/.venv/bin/python setup.py install --force
 
