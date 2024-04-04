@@ -181,7 +181,9 @@ def raw_subsc_closure(self, i, widget):
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections: weakref.WeakValueDictionary[str, websocket_impl] = weakref.WeakValueDictionary()
+ws_connections: weakref.WeakValueDictionary[str, websocket_impl] = (
+    weakref.WeakValueDictionary()
+)
 
 
 def get_connectionRefForID(id, deleteCallback=None):
@@ -258,7 +260,7 @@ class websocket_impl:
         self.user = user
         self.widget_wslock = threading.Lock()
         self.subCount = 0
-        self.peer_address = ''
+        self.peer_address = ""
         self.batteryStatus = None
         ws_connections[self.uuid] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
@@ -428,7 +430,7 @@ class websocket_impl:
                                 i
                             ].subscriptions.copy()
                             # This comes after in case it  sends data
-                            widgets[i].onNewSubscriber(user, self.uuid)
+                            widgets[i].on_new_subscriber(user, self.uuid)
                             widgets[i].lastSubscribedTo = time.monotonic()
 
                             self.subscriptions.append(i)
@@ -564,12 +566,14 @@ class rawwebsocket_impl:
                 widgets[widgetName].subscriptions_atomic = widgets[
                     widgetName
                 ].subscriptions.copy()
-                # This comes after in case it  sends data
-                widgets[widgetName].onNewSubscriber(self.user, {})
+
                 widgets[widgetName].lastSubscribedTo = time.monotonic()
 
                 self.subscriptions.append(widgetName)
                 self.subCount += 1
+
+                # This comes after in case it  sends data
+                widgets[widgetName].on_new_subscriber(self.user, {})
 
     def onPermissionRemoved(self, t, v):
         "Close the socket if the user no longer has the permission"
@@ -652,7 +656,7 @@ class Widget:
             # Give the widget an ID for the client to refer to it by
             # Note that it's no longer always a  uuid!!
             if "id" not in kwargs:
-                for i in range(0, 250000):
+                for i in range(250000):
                     self.uuid = randID()
                     if self.uuid not in widgets:
                         break
@@ -683,7 +687,7 @@ class Widget:
         if self.subscriptions or (self.lastSubscribedTo > (time.monotonic() - 30)):
             return True
 
-    def onNewSubscriber(self, user, connection_id, **kw):
+    def on_new_subscriber(self, user, connection_id, **kw):
         pass
 
     def forEach(self, callback):
@@ -1156,7 +1160,9 @@ class Meter(Widget):
                         # We're just hardcoding this for now
                         s += str(round(convert(v, unit, i), 2)) + i
 
-                return s.replace("degC", "C").replace("degF", "F") + self.get_extra_info()
+                return (
+                    s.replace("degC", "C").replace("degF", "F") + self.get_extra_info()
+                )
             else:
                 return str(round(v, 3)) + self.get_extra_info()
         except Exception as e:
@@ -1619,7 +1625,7 @@ class TagPoint(Widget):
                 "step": self.step,
                 "max": self.max,
                 "value": self.value,
-                "unit": unit,
+                "unit": self.unit,
             }
 
         return (
@@ -1651,7 +1657,6 @@ class TagPoint(Widget):
                 "htmlid": mkid(),
                 "id": self.uuid,
                 "x": x,
-
             }
         )
 
@@ -1713,7 +1718,7 @@ class ScrollingWindow(Widget):
     def write(self, value):
         with self.lock:
             self.value.append(str(value))
-            self.value = self.value[-self.maxlen:]
+            self.value = self.value[-self.maxlen :]
             self.send(value)
             self._callback("__SERVER__", value)
 
