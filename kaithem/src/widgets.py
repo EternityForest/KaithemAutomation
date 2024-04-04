@@ -14,6 +14,8 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 from typing import Any, Callable, List
+from tornado.httputil import HTTPServerRequest
+from tornado.web import Application
 from typeguard import typechecked
 from .unitsofmeasure import convert, unit_types
 import weakref
@@ -74,6 +76,8 @@ class WSActionRunner:
                             x()
                     finally:
                         self.wsActionSerializer.release()
+                else:
+                    pass
 
         workers.do(f)
 
@@ -429,8 +433,7 @@ class websocket_impl:
                             widgets[i].subscriptions_atomic = widgets[
                                 i
                             ].subscriptions.copy()
-                            # This comes after in case it  sends data
-                            widgets[i].on_new_subscriber(user, self.uuid)
+
                             widgets[i].lastSubscribedTo = time.monotonic()
 
                             self.subscriptions.append(i)
@@ -440,6 +443,8 @@ class websocket_impl:
                                     widgets[i].send(x)
                             self.subCount += 1
 
+                            # This comes after in case it  sends data
+                            widgets[i].on_new_subscriber(user, self.uuid)
             if "unsub" in o:
                 for i in o["unsub"]:
                     if i not in self.subscriptions:
@@ -475,6 +480,12 @@ def makeTornadoSocket(wsimpl=websocket_impl):
     import tornado.websocket
 
     class WS(tornado.websocket.WebSocketHandler):
+        def __init__(
+            self, application: Application, request: HTTPServerRequest, **kwargs: Any
+        ) -> None:
+            self.is_closed = False
+            super().__init__(application, request, **kwargs)
+
         def open(self):
             x = self.request.remote_ip
 
@@ -519,12 +530,13 @@ def makeTornadoSocket(wsimpl=websocket_impl):
 
         def send_data(self, message, binary=False):
             def f():
-                if self.close_code is None:
+                if not self.is_closed:
                     self.write_message(message, binary=binary)
 
             self.io_loop.add_callback(f)
 
         def on_close(self):
+            self.is_closed = True
             self.impl.closed()
 
     return WS
