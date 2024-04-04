@@ -23,8 +23,6 @@ from playhouse.dataset import DataSet
 from playhouse.migrate import migrate
 
 
-
-
 BINARY_TYPES = (bytes, bytearray)
 
 
@@ -94,18 +92,20 @@ CUR_DIR = os.path.realpath(os.path.dirname(__file__))
 DEBUG = False
 MAX_RESULT_SIZE = 1000
 ROWS_PER_PAGE = 50
-SECRET_KEY = "sqlite-database-browser-0.1.0"
+SECRET_KEY = "sqlite-database-browser-0.1.0"  # pragma: allowlist secret
 
 app = Flask(
     __name__,
     static_folder=os.path.join(CUR_DIR, "static"),
     template_folder=os.path.join(CUR_DIR, "templates"),
 )
-app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 # TODO: This won't work standalone because it references the kaithem file
+
+
 @app.context_processor
 def inject():
-    return {'theme_url': "/static/css/barrel.css"}
+    return {"theme_url": "/static/css/barrel.css"}
 
 
 app.config.from_object(__name__)
@@ -279,7 +279,7 @@ class SqliteDataSet(DataSet):
             "SELECT sql FROM sqlite_master WHERE type=? AND tbl_name=?",
             ("trigger", name),
         )
-        triggers = [t for t, in cursor.fetchall()]
+        triggers = [t for (t,) in cursor.fetchall()]
         rgx = re.compile(
             r"CREATE\s+TRIGGER.+?\sINSTEAD\s+OF\s+(INSERT|UPDATE|DELETE)\s", re.I
         )
@@ -1410,7 +1410,6 @@ def _check_csrf():
         if request.headers["Origin"]:
             if not request.headers["Origin"].split("//")[-1] == request.host:
                 raise RuntimeError("CSRF not allowed")
-
 
 
 class PrefixMiddleware(object):
