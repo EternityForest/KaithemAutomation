@@ -3,6 +3,10 @@ Change Log
 
 ### 0.77.0
 
+- :bug: Fix unused subdevice nuisance method resolution error
+
+### 0.77.0
+
 This release was going to be a simple polish and bugfix.... However, I discovered some
 subtle bugs related to a legacy feature, and this turned into a pretty big cleanup effort in some older code, removing several old features.
 

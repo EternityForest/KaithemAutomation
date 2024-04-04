@@ -1019,7 +1019,7 @@ class Device(iot_devices.device.Device):
     #######################################################################################
 
 
-class UnsupportedDevice(Device):
+class UnsupportedDevice(iot_devices.device.Device):
     description = (
         "This device does not have support, or else the support is not loaded."
     )
@@ -1034,7 +1034,7 @@ class UnsupportedDevice(Device):
         unsupportedDevices[name] = self
 
 
-class UnusedSubdevice(Device):
+class UnusedSubdevice(iot_devices.device.Device):
     description = "Someone created configuration for a subdevice that is no longer in use or has not yet loaded"
     device_type_name = "UnusedSubdevice"
     device_type = "UnusedSubdevice"
