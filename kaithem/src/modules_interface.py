@@ -35,7 +35,7 @@ from . import (
     schemas,
     unitsofmeasure,
     modules,
-    modules_state
+    modules_state,
 )
 from .modules import external_module_locations
 
@@ -55,7 +55,9 @@ def get_time(ev):
     try:
         if not newevt.EventReferences[ev].nextruntime:
             return 0
-        return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz)
+        return newevt.dt_to_ts(
+            newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz
+        )
     except Exception:
         return -1
 
@@ -80,9 +82,9 @@ def get_next_run(name, i):
 
 def in_folder(r, f, n):
     # Get the path as a list, including the module name
-    r = [n] + util.split_escape(r, '/', '\\')
+    r = [n] + util.split_escape(r, "/", "\\")
     # Get the path of the folder
-    f = util.split_escape(f, '/', '\\')
+    f = util.split_escape(f, "/", "\\")
     # make sure the resource path is one longer than module
     if not len(r) == len(f) + 1:
         return False
@@ -96,28 +98,43 @@ def in_folder(r, f, n):
 
 def get_f_size(name, i):
     try:
-        return unitsofmeasure.si_format_number(os.path.getsize(modules_state.fileResourceAbsPaths[name, i]))
+        return unitsofmeasure.si_format_number(
+            os.path.getsize(modules_state.fileResourceAbsPaths[name, i])
+        )
     except Exception:
         return "Could not get size"
 
 
 def urlForPath(module, path):
-    return "/modules/module/" + url(module) + "/resource/" + "/".join([url(i.replace("\\", "\\\\").replace("/", "\\/")) for i in util.split_escape(path[0], "/", "\\")[:-1]])
+    return (
+        "/modules/module/"
+        + url(module)
+        + "/resource/"
+        + "/".join(
+            [
+                url(i.replace("\\", "\\\\").replace("/", "\\/"))
+                for i in util.split_escape(path[0], "/", "\\")[:-1]
+            ]
+        )
+    )
 
 
 def getDesc(module):
     try:
-        return module['__description']['text']
+        return module["__description"]["text"]
     except Exception:
         return "No module description found"
 
 
 def sorted_module_path_list(name: str, path: list):
-    return sorted(sorted(modules_state.ls_folder(name, '/'.join(path))), key=lambda x: (modules_state.ActiveModules[name][x]['resource-type'], x))
+    return sorted(
+        sorted(modules_state.ls_folder(name, "/".join(path))),
+        key=lambda x: (modules_state.ActiveModules[name][x]["resource-type"], x),
+    )
 
 
 def breadcrumbs(path):
-    temp_p = ''
+    temp_p = ""
     for i in util.split_escape(path, "/", "\\"):
         temp_p += i + "/"
         yield temp_p[:-1]
@@ -130,15 +147,15 @@ module_page_context = {
     "external_module_locations": modules.external_module_locations,
     "getModuleHash": modules_state.getModuleHash,
     "getModuleWordHash": modules_state.getModuleWordHash,
-    'pages': pages,
-    'newevt': newevt,
-    'usrpages': usrpages,
-    'unitsofmeasure': unitsofmeasure,
-    'util': util,
-    'scheduling': scheduling,
-    'modules_state': modules_state,
-    'modules': modules,
-    'os': os,
+    "pages": pages,
+    "newevt": newevt,
+    "usrpages": usrpages,
+    "unitsofmeasure": unitsofmeasure,
+    "util": util,
+    "scheduling": scheduling,
+    "modules_state": modules_state,
+    "modules": modules,
+    "os": os,
     "weakref": weakref,
     "getDesc": getDesc,
     "in_folder": in_folder,
@@ -148,17 +165,13 @@ module_page_context = {
     "sorted_module_path_list": sorted_module_path_list,
     "get_f_size": get_f_size,
     "hasattr": hasattr,
-    "breadcrumbs": breadcrumbs
+    "breadcrumbs": breadcrumbs,
 }
 
 
 def validate_upload():
     # Allow 4gb uploads for admin users, otherwise only allow 64k
-    return (
-        64 * 1024
-        if not pages.canUserDoThis("system_admin")
-        else 1024 * 1024 * 4096
-    )
+    return 64 * 1024 if not pages.canUserDoThis("system_admin") else 1024 * 1024 * 4096
 
 
 def searchModules(search, max_results=100, start=0, mstart=0):
@@ -249,26 +262,29 @@ class WebInterface:
             return pages.get_template("modules/search.html").render(
                 search=kwargs["search"],
                 name=module,
-                results=searchModuleResources(
-                    module, kwargs["search"], 100, start),
+                results=searchModuleResources(module, kwargs["search"], 100, start),
             )
         else:
             return pages.get_template("modules/search.html").render(
                 search=kwargs["search"],
                 name=module,
                 results=searchModules(kwargs["search"], 100, start, mstart),
-                tagr=searchTags(kwargs["search"]))
+                tagr=searchTags(kwargs["search"]),
+            )
 
     # This lets the user download a module as a zip file with yaml encoded resources
     @cherrypy.expose
     def yamldownload(self, module):
         pages.require("view_admin_info")
         if config["downloads-include-md5-in-filename"]:
-            cherrypy.response.headers[
-                "Content-Disposition"
-            ] = 'attachment; filename="%s"' % util.url(
-                module[:-4] + "_" +
-                modules_state.getModuleHash(module[:-4]) + ".zip"
+            cherrypy.response.headers["Content-Disposition"] = (
+                'attachment; filename="%s"'
+                % util.url(
+                    module[:-4]
+                    + "_"
+                    + modules_state.getModuleHash(module[:-4])
+                    + ".zip"
+                )
             )
         cherrypy.response.headers["Content-Type"] = "application/zip"
         try:
@@ -340,12 +356,10 @@ class WebInterface:
     def deletemoduletarget(self, **kwargs):
         pages.require("system_admin")
         pages.postOnly()
-        modules.rmModule(
-            kwargs["name"], "Module Deleted by " + pages.getAcessingUser())
+        modules.rmModule(kwargs["name"], "Module Deleted by " + pages.getAcessingUser())
         messagebus.post_message(
             "/system/notifications",
-            "User " + pages.getAcessingUser() + " Deleted module " +
-            kwargs["name"],
+            "User " + pages.getAcessingUser() + " Deleted module " + kwargs["name"],
         )
 
         raise cherrypy.HTTPRedirect("/modules")
@@ -363,8 +377,7 @@ class WebInterface:
                     info=" A module already exists by that name,"
                 )
             modules.newModule(kwargs["name"], kwargs.get("location", None))
-            raise cherrypy.HTTPRedirect(
-                "/modules/module/" + util.url(kwargs["name"]))
+            raise cherrypy.HTTPRedirect("/modules/module/" + util.url(kwargs["name"]))
 
     @cherrypy.expose
     def loadlibmodule(self, module, name=""):
@@ -376,8 +389,7 @@ class WebInterface:
         if name in modules_state.ActiveModules:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
-        modules.loadModule(os.path.join(
-            directories.datadir, "modules", module), name)
+        modules.loadModule(os.path.join(directories.datadir, "modules", module), name)
 
         modules_state.modulesHaveChanged()
 
@@ -399,29 +411,29 @@ class WebInterface:
         if not path:
             pages.require("view_admin_info")
 
-            return pages.render_jinja_template("modules/module.j2.html",
-                                               module=modules_state.ActiveModules[root],
-                                               name=root,
-                                               path=modulepath,
-                                               fullpath=fullpath,
-                                               **module_page_context
-                                               )
+            return pages.render_jinja_template(
+                "modules/module.j2.html",
+                module=modules_state.ActiveModules[root],
+                name=root,
+                path=modulepath,
+                fullpath=fullpath,
+                **module_page_context,
+            )
 
         else:
-
             if path[0] == "scanfiles":
                 pages.require("system_admin")
                 pages.postOnly()
-                modules.autoGenerateFileRefResources(modules_state.ActiveModules[root], root)
-                raise cherrypy.HTTPRedirect(
-                    "/modules/module/" + util.url(root))
+                modules.autoGenerateFileRefResources(
+                    modules_state.ActiveModules[root], root
+                )
+                raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
 
             if path[0] == "runevent":
                 pages.require("system_admin")
                 pages.postOnly()
                 newevt.manualRun((module, kwargs["name"]))
-                raise cherrypy.HTTPRedirect(
-                    "/modules/module/" + util.url(root))
+                raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
 
             if path[0] == "runeventdialog":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
@@ -582,8 +594,7 @@ class WebInterface:
                     # BEGIN BLOCK OF CODE COPY PASTED FROM ANOTHER PART OF CODE. I DO NOT REALLY UNDERSTAND IT
                     # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
                     escapedName = (
-                        kwargs["name"].replace(
-                            "\\", "\\\\").replace("/", "\\/")
+                        kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
                     )
                     if len(path) > 1:
                         escapedName = path[1] + "/" + escapedName
@@ -597,8 +608,7 @@ class WebInterface:
 
                     # END BLOCK OF COPY PASTED CODE.
 
-                    modules_state.fileResourceAbsPaths[root,
-                                                       escapedName] = dataname
+                    modules_state.fileResourceAbsPaths[root, escapedName] = dataname
                     d = {
                         "resource-type": "internal-fileref",
                         "serve": "serve" in kwargs,
@@ -623,8 +633,7 @@ class WebInterface:
                         + util.url(path[1])
                     )
                 else:
-                    raise cherrypy.HTTPRedirect(
-                        "/modules/module/" + util.url(root))
+                    raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
 
             # This returns a page to delete any resource by name
             if path[0] == "deleteresource":
@@ -674,8 +683,7 @@ class WebInterface:
                         + util.url(util.module_onelevelup(kwargs["name"]))
                     )
                 else:
-                    raise cherrypy.HTTPRedirect(
-                        "/modules/module/" + util.url(module))
+                    raise cherrypy.HTTPRedirect("/modules/module/" + util.url(module))
 
             # This is the target used to change the name and description(basic info) of a module
             if path[0] == "update":
@@ -684,8 +692,7 @@ class WebInterface:
                 modules_state.modulesHaveChanged()
                 with modules_state.modulesLock:
                     if "location" in kwargs and kwargs["location"]:
-                        external_module_locations[kwargs["name"]
-                                                  ] = kwargs["location"]
+                        external_module_locations[kwargs["name"]] = kwargs["location"]
                         # We can't just do a delete and then set, what if something odd happens between?
                         if (
                             not kwargs["name"] == root
@@ -715,9 +722,9 @@ class WebInterface:
                             external_module_locations.pop(root)
                     # Missing descriptions have caused a lot of bugs
                     if "__description" in modules_state.ActiveModules[root]:
-                        modules_state.ActiveModules[root]["__description"][
-                            "text"
-                        ] = kwargs["description"]
+                        modules_state.ActiveModules[root]["__description"]["text"] = (
+                            kwargs["description"]
+                        )
                     else:
                         modules_state.ActiveModules[root]["__description"] = {
                             "resource-type": "module-description",
@@ -727,9 +734,9 @@ class WebInterface:
                     # Renaming reloads the entire module.
                     # TODO This needs to handle custom resource types if we ever implement them.
                     if not kwargs["name"] == root:
-                        modules_state.ActiveModules[
-                            kwargs["name"]
-                        ] = modules_state.ActiveModules.pop(root)
+                        modules_state.ActiveModules[kwargs["name"]] = (
+                            modules_state.ActiveModules.pop(root)
+                        )
                         # UHHG. So very much code tht just syncs data structures.
                         # This gets rid of the cache under the old name
                         newevt.removeModuleEvents(root)
@@ -809,8 +816,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 
         elif type == "permission":
             insertResource(
-                {"resource-type": "permission",
-                    "description": kwargs["description"]}
+                {"resource-type": "permission", "description": kwargs["description"]}
             )
             # has its own lock
             auth.importPermissionsFromModules()  # sync auth's list of permissions
@@ -819,7 +825,7 @@ def addResourceTarget(module, type, name, kwargs, path):
             insertResource(
                 {
                     "resource-type": "event",
-                    "setup": "#This code runs once when the event loads. It also runs when you save the event during the test compile\n#and may run multiple times when kaithem boots due to dependancy resolution\n__doc__=''",
+                    "setup": "# This code runs once when the event loads.\n__doc__=''",
                     "trigger": "False",
                     "action": "pass",
                     "once": True,
@@ -840,8 +846,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 
         else:
             # If create returns None, assume it doesn't want to insert a module or handles it by itself
-            r = modules_state.additionalTypes[type].create(
-                module, path, name, kwargs)
+            r = modules_state.additionalTypes[type].create(module, path, name, kwargs)
             if r:
                 insertResource(r)
                 f = modules_state.additionalTypes[type].onload
@@ -861,8 +866,7 @@ def addResourceTarget(module, type, name, kwargs, path):
         )
         # Take the user straight to the resource page
         raise cherrypy.HTTPRedirect(
-            "/modules/module/" +
-            util.url(module) + "/resource/" + util.url(escapedName)
+            "/modules/module/" + util.url(module) + "/resource/" + util.url(escapedName)
         )
 
 
@@ -884,7 +888,6 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 version = "__draft__"
             except KeyError:
                 version = "__live__"
-                pass
         else:
             version = "__live__"
 
@@ -929,14 +932,14 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
         if resourceinquestion["resource-type"] == "directory":
             pages.require("view_admin_info")
 
-            return pages.render_jinja_template("modules/module.j2.html",
-                                               module=modules_state.ActiveModules[module],
-                                               name=module,
-                                               path=util.split_escape(
-                                                   resource, "\\"),
-                                               fullpath=module + "/" + resource,
-                                               **module_page_context
-                                               )
+            return pages.render_jinja_template(
+                "modules/module.j2.html",
+                module=modules_state.ActiveModules[module],
+                name=module,
+                path=util.split_escape(resource, "\\"),
+                fullpath=module + "/" + resource,
+                **module_page_context,
+            )
 
         # This is for the custom resource types interface stuff.
         return modules_state.additionalTypes[
@@ -978,7 +981,7 @@ def resourceUpdateTarget(module, resource, kwargs):
 
         elif t == "internal-fileref":
             # If this was autogenerated make sure it actually gets saved now
-            resourceobj.pop('ephemeral', False)
+            resourceobj.pop("ephemeral", False)
 
             resourceobj["serve"] = "serve" in kwargs
             # has its own lock
@@ -1041,8 +1044,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                         r2.pop("versions")
 
                     resourceobj["versions"]["__draft__"] = copy.deepcopy(r2)
-                    modules.saveResource(
-                        module, resource, resourceobj, newname)
+                    modules.saveResource(module, resource, resourceobj, newname)
 
                     messagebus.post_message(
                         "system/errors/misc/failedeventupdate",
@@ -1123,8 +1125,7 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj["allow-origins"] = [
                 i.strip() for i in kwargs["allow-origins"].split(",")
             ]
-            resourceobj["auto-reload-interval"] = float(
-                kwargs["autoreloadinterval"])
+            resourceobj["auto-reload-interval"] = float(kwargs["autoreloadinterval"])
             # Method checkboxes
             resourceobj["require-method"] = []
             if "allow-GET" in kwargs:
@@ -1139,7 +1140,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                     if kwargs[i] == "true":
                         resourceobj["require-permissions"].append(i[10:])
 
-            schemas.get_validator('resources/page').validate(resourceobj)
+            schemas.get_validator("resources/page").validate(resourceobj)
             modules.saveResource(module, resource, resourceobj, newname)
 
         else:

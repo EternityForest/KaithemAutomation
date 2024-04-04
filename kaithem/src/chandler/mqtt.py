@@ -4,7 +4,6 @@ import weakref
 import time
 import threading
 from ..kaithemobj import kaithem
-from .. import tagpoints
 
 
 logger = logging.getLogger("system.chandler")
@@ -22,7 +21,6 @@ def checkIfConnected(c, delay):
             + str(delay)
             + " seconds of waiting"
         )
-
 
 
 def waitConnected(c):
@@ -99,7 +97,6 @@ def getWeakrefHandlers(self):
 class MQTTConnection:
     def __init__(self, host, port) -> None:
         import paho.mqtt.client as mqtt
-        import paho.mqtt
 
         # Ok so the connection is supposed to do this by itself. Some condition can
         # Cause the loop to crash and I do not know what!
@@ -173,18 +170,18 @@ class MQTTConnection:
                 self.connection.subscribe(t, 0)
                 self.sucessful_subscriptions.append(t)
             except Exception:
-                logger.exception("Could not subscribe to MQTT message but can retry later")
+                logger.exception(
+                    "Could not subscribe to MQTT message but can retry later"
+                )
 
     def on_message(self, t, m):
         pass
 
     def on_connect(self):
         self.is_connected = True
-        pass
 
     def on_disconnect(self):
         self.is_connected = False
-        pass
 
     def publish(self, topic, message):
         try:
@@ -202,7 +199,6 @@ class MQTTConnection:
             self.connection.disconnect()
         except Exception:
             logging.exception("Err in MQTT")
-
 
     def unsubscribe(self, topic):
         with self.lock:

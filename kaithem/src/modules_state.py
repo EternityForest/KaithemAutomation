@@ -80,7 +80,7 @@ external_module_locations = {}
 
 def parseTarget(t, module, in_ext=False):
     if t.startswith("$MODULERESOURCES/"):
-        t = t[len("$MODULERESOURCES/"):]
+        t = t[len("$MODULERESOURCES/") :]
     return t
 
 
@@ -215,7 +215,7 @@ def saveResource(m, r, resourceData, name=None):
     # In the upload code itself.
 
 
-def rawDeleteResource(m:str, r:str):
+def rawDeleteResource(m: str, r: str):
     """
     Delete a resource from the module, but don't do
     any bookkeeping. Will not remove whatever runtime objectes
@@ -290,9 +290,7 @@ class ResourceType:
         <input name="name">
         <input type="submit">
         </form>
-        """.format(
-            module=module, path=path
-        )
+        """.format(module=module, path=path)
 
     def create(self, module, path, name, kwargs):
         return {"resource-type": "example"}
@@ -308,9 +306,8 @@ class ResourceType:
 
     def onfinishedloading(self):
         """Called during init, when every resource has finished loading with onload(), and before
-           any events or pages are loaded.
+        any events or pages are loaded.
         """
-        pass
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
         return True
@@ -319,9 +316,9 @@ class ResourceType:
         return True
 
 
-additionalTypes: weakref.WeakValueDictionary[
-    str, ResourceType
-] = weakref.WeakValueDictionary()
+additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = (
+    weakref.WeakValueDictionary()
+)
 
 
 class HierarchyDict:
@@ -537,6 +534,9 @@ mlockFunctionQueue = []
 
 def runWithModulesLock(f):
     return f()
+
+
+# TODO: Whatever this is should probably go away
 
 
 def listenForMlockRequests():

@@ -1,10 +1,10 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-    -   id: check-yaml
-    -   id: check-toml
-    -   id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      - id: trailing-whitespace
         types_or:
           - "python"
           - "yaml"
@@ -12,33 +12,54 @@ repos:
           - "markdown"
           - "html"
           - "javascript"
-    -   id: check-byte-order-marker
-    -   id: check-json
-    -   id: forbid-new-submodules
+      - id: check-byte-order-marker
+      - id: check-json
+      - id: forbid-new-submodules
 
-- repo: https://github.com/dhatim/python-license-check
-  rev: 0.9.2
-  hooks:
-  - id: liccheck
-    language: system
+  - repo: https://github.com/dhatim/python-license-check
+    rev: 0.9.2
+    hooks:
+      - id: liccheck
+        language: system
 
-- repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: v1.5.5
-  hooks:
-    - id: forbid-crlf
-    - id: forbid-tabs
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: forbid-crlf
+      - id: forbid-tabs
 
-- repo: https://github.com/sirosen/texthooks
-  rev: 0.6.6
-  types_or:
-    - "python"
-    - "yaml"
-    - "json"
-    - "markdown"
-    - "html"
-    - "javascript"
-  hooks:
-    - id: alphabetize-codeowners
-    - id: fix-smartquotes
-    - id: fix-ligatures
-    - id: fix-spaces
+  - repo: https://github.com/sirosen/texthooks
+    rev: 0.6.6
+    types_or:
+      - "python"
+      - "yaml"
+      - "json"
+      - "markdown"
+      - "html"
+      - "javascript"
+    hooks:
+      - id: alphabetize-codeowners
+      - id: fix-smartquotes
+      - id: fix-ligatures
+      - id: fix-spaces
+
+  # Set to select only obvious errors
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.3.5
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args:
+        - "--fix"
+        # Errors
+        - "--select=PLE"
+        # Syntax error
+        - "--select=E999"
+        # Mostly have auto fixes available
+        - "--select=PIE"
+        # Autofixable quote rules
+        - "--select=Q"
+
+      # Run the formatter.
+      - id: ruff-format
