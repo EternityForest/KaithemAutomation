@@ -4,11 +4,17 @@ Change Log
 ### 0.77.0
 
 This release was going to be a simple polish and bugfix.... However, I discovered some
-subtle bugs related to a legacy feature.   Previously you could save device config both in
+subtle bugs related to a legacy feature, and this turned into a pretty big cleanup effort in some older code, removing several old features.
+
+While this release should be ready and usable,
+and has been tested, you should use it with caution just due to the scope of changes involved.
+
+Previously you could save device config both in
 modules and a global devices list.  That and several other aspects of device config were
 causing lots of user and implementation complexity.
 
 Now you can only save them in modules. Keeping them in modules lets you use the import/export features and is much more powerful. You can still load legacy devices until the next version.  Please make a module and move your devices there, you can set where to save a device on the device page.
+
 
 - :bug: Restore the broken optimization for events that don't need to poll
 - :bug: Fix fixture types window being too small
@@ -30,11 +36,13 @@ Now you can only save them in modules. Keeping them in modules lets you use the 
 - :coffin: Remove the input and output binding feature of devices.  Chandler can do everything it could, and it was not a clean separation of device and logic.
 - :coffin: Remove the bluetooth admin panel. Try [bluetuith](https://darkhz.github.io/bluetuith/)!
 - :coffin: Remove some old junk files
-- :coffin: kaithem.gpio is gone.  That really belongs in an iot_devices device, or in custom code.
+- :coffin: kaithem.gpio is gone. Use the GPIO devices in the device manager for this purpose.
 - :sparkles: BREAKING: The name of a device stored in a module is independet of module name or folder
 - :sparkles: BREAKING: / now used to separate subdevice names
 - :sparkles: BREAKING: Device config dirs now end with .config.d, automatic migration is impossible, however nothing except the DemoDevice uses conf dirs.
 - :sparkles: BREAKING: It is no longer possible to save devices outside modules. Please migrate all devices to a module(Legacy devices still load, they just can only be saved into modules.)
+
+- :hammer: Use pre-commit
 
 
 Specific devices removed:

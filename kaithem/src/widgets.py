@@ -16,6 +16,8 @@ from __future__ import annotations
 from typing import Any, Callable, List
 from tornado.httputil import HTTPServerRequest
 from tornado.web import Application
+import tornado.websocket
+
 from typeguard import typechecked
 from .unitsofmeasure import convert, unit_types
 import weakref
@@ -55,7 +57,10 @@ class WSActionRunner:
     # but for performance we really need to do them in the background
     def dowsAction(self, g):
         if len(self.wsActionQueue) > 10:
-            time.sleep(1)
+            time.sleep(0.1)
+
+            if len(self.wsActionQueue) > 25:
+                time.sleep(1)
 
         self.wsActionQueue.append(g)
 
@@ -477,8 +482,6 @@ class websocket_impl:
 
 
 def makeTornadoSocket(wsimpl=websocket_impl):
-    import tornado.websocket
-
     class WS(tornado.websocket.WebSocketHandler):
         def __init__(
             self, application: Application, request: HTTPServerRequest, **kwargs: Any

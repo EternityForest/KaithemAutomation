@@ -83,7 +83,7 @@ sudo alsactl store
 ### Sound bad on the Pi?
 
 You might not have pipewire configured correctly.  The pi default config seems
-to set the buffer too low. 
+to set the buffer too low.
 
 Update kaithem and run `make user-set-global-pipewire-conf` as the user that will be doing this stuff, to get some reasonable defaults. `nano ~/.config/pipewire/pipewire.conf` to tweak further.
 
@@ -111,7 +111,7 @@ sudo make root-install-system-dependencies
 sudo make root-use-pipewire-jack
 
 # Note: These root functions assume that everything will run under the
-# default user. If installing as a different user, pass KAITHEM_USER to make. 
+# default user. If installing as a different user, pass KAITHEM_USER to make.
 sudo make root-install-sd-protection
 sudo make root-install-linux-tweaks
 sudo make root-install-kiosk
@@ -158,6 +158,62 @@ Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomat
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ============
+
+
+### 0.77.0
+
+This release was going to be a simple polish and bugfix.... However, I discovered some
+subtle bugs related to a legacy feature, and this turned into a pretty big cleanup effort in some older code, removing several old features.
+
+While this release should be ready and usable,
+and has been tested, you should use it with caution just due to the scope of changes involved.
+
+Previously you could save device config both in
+modules and a global devices list.  That and several other aspects of device config were
+causing lots of user and implementation complexity.
+
+Now you can only save them in modules. Keeping them in modules lets you use the import/export features and is much more powerful. You can still load legacy devices until the next version.  Please make a module and move your devices there, you can set where to save a device on the device page.
+
+
+- :bug: Restore the broken optimization for events that don't need to poll
+- :bug: Fix fixture types window being too small
+- :bug: Fix nuisance error when deleting mixer channel
+- :bug: Fix enttec open atapter showing as disconnected when it wasn't
+- :bug: Fix unsupported device warnings feature
+- :bug: Displayed value in UI correctly updates for refresh button
+- :bug: Fix devices UI setting bad value when you specified 'false'
+- :bug: Remove caching on modules listing that was casuing issues.
+- :bug: Notification handler code was spawning tons of threads bogging everything down.
+
+- :lipstick: Better combo box feel
+- :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
+- :lipstick: More compact strftime default
+
+
+- :coffin: Remove the complicated and never-used system for creatig device types in events
+- :coffin: Remove the legacy device type system and all the devices from before iot_devices.  All were unmaintained and some may have been broken by hardware vendors.
+- :coffin: Remove the input and output binding feature of devices.  Chandler can do everything it could, and it was not a clean separation of device and logic.
+- :coffin: Remove the bluetooth admin panel. Try [bluetuith](https://darkhz.github.io/bluetuith/)!
+- :coffin: Remove some old junk files
+- :coffin: kaithem.gpio is gone. Use the GPIO devices in the device manager for this purpose.
+- :sparkles: BREAKING: The name of a device stored in a module is independet of module name or folder
+- :sparkles: BREAKING: / now used to separate subdevice names
+- :sparkles: BREAKING: Device config dirs now end with .config.d, automatic migration is impossible, however nothing except the DemoDevice uses conf dirs.
+- :sparkles: BREAKING: It is no longer possible to save devices outside modules. Please migrate all devices to a module(Legacy devices still load, they just can only be saved into modules.)
+
+- :hammer: Use pre-commit
+
+
+Specific devices removed:
+
+- BareSIP
+- Kasa
+- Sainsmart Relay boards
+- RasPi Keypad
+- JACK Fluidsynth
+- Espruinio
+
+Some may return in iot_devices later.
 
 ### 0.77.0 Beta
 
@@ -215,7 +271,7 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - :sparkles: Default page title is now the hostname
 - :sparkles: Devices report feature lets you print out all the device settings
 - :bug: Nuisance gstreamer output
-- :bug: esphome api key correctly marked as secret 
+- :bug: esphome api key correctly marked as secret
 - :sparkles: Improve maps quality
 - :sparkles: Chandler shows time at which each scene entered the current cue
 
