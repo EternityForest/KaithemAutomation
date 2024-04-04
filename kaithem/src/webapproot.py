@@ -42,6 +42,7 @@ from . import (
     usrpages,
     messagelogging,
     devices,
+    devices_interface,
     messagebus,
     util,
     systasks,
@@ -156,7 +157,7 @@ class webapproot:
     logs = messagelogging.WebInterface()
     notifications = notifications.WI()
     syslog = logviewer.WebInterface()
-    devices = devices.WebDevices()
+    devices = devices_interface.WebDevices()
     chandler = cweb.Web()
 
     # This lets users mount stuff at arbitrary points, so long

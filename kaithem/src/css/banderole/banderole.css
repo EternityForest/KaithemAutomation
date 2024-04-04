@@ -2,7 +2,7 @@
   --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(banderole/pergament-papier-hintergrund-braun.webp);
   --box-bg: #e7e5ca7a;
   --fg: #522f28;
-  --graphical-fg: rgb(98 69 39 / 81%);
+  --graphical-fg: rgb(75 45 14 / 81%);
   --control-fg: rgb(98 69 39 / 81%);
   --accent-color: var(--graphical-fg);
   --main-font: var(--serif-font);

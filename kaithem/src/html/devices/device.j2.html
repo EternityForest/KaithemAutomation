@@ -225,10 +225,6 @@
                     <b><i class="mdi mdi-cog-outline"></i>Settings</b>
                 </summary>
 
-
-                {% if manageForm.strip() %}
-                {{ manageForm }}
-                {% else %}
                 <table style="width:100%">
                     {% for i in devices.getshownkeys(obj) %}
                     <tr>

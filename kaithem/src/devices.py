@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from . import modules_state
 from .modules_state import additionalTypes, ResourceType
-import json
-import colorzero
 import weakref
 import time
 import textwrap
@@ -32,7 +30,6 @@ import copy
 import asyncio
 import shutil
 from typing import Dict, Optional, Union, Any, Callable
-import urllib.parse
 
 from . import pages, workers, tagpoints, alerts
 from . import persist, directories, messagebus, widgets, unitsofmeasure
@@ -200,7 +197,7 @@ class DeviceResourceType(ResourceType):
         # because of / issues.
         if 'name' in value['device']:
             devname = value['device']['name']
-            
+
         basename = devname.split(SUBDEVICE_SEPARATOR)[-1]
 
         if cls:
@@ -369,9 +366,6 @@ class Device():
     def data(self, v):
         return self.config.update(v)
 
-    def getManagementForm(self):
-        return ''
-
     @staticmethod
     def validateData(data):
         pass
@@ -405,42 +399,6 @@ class Device():
                     if self.name in device_data:
                         device_data[self.name][key] = v
                         saveDevice(self.name)
-
-    def setObject(self, key, val):
-        # Store data
-        json.dumps(val)
-
-        "Lets a device set it's own persistent stored data"
-        with modules_state.modulesLock:
-            self.config[key] = val
-            if self.parentModule:
-                modules_state.ActiveModules[self.parentModule][
-                    self.parentResource]['device'][key] = val
-                modules_state.saveResource(
-                    self.parentModule, self.parentResource,
-                    modules_state.ActiveModules[self.parentModule][
-                        self.parentResource])
-                modules_state.modulesHaveChanged()
-            else:
-                # This might not be stored in the master lists, and yet it might not be connected to
-                # the parentModule, because of legacy API reasons.
-                # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
-                if self.name in device_data:
-                    device_data[self.name][key] = val
-
-    def getObject(self, key, default=None):
-        "Lets a device set it's own persistent stored data"
-        with modules_state.modulesLock:
-            if self.parentModule:
-                return modules_state.ActiveModules[self.parentModule][
-                    self.parentResource]['device'][key]
-            else:
-                # This might not be stored in the master lists, and yet it might not be connected to
-                # the parentModule, because of legacy API reasons.
-                # Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
-                if self.name in device_data:
-                    return device_data[self.name][key]
-        return default
 
     def get_config_folder(self, create=True):
         "should this feature exist?"
@@ -1065,9 +1023,6 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
         """
         return ''
 
-    def getManagementForm(self, **kw):
-        return self.get_management_form()
-
     def print(self, msg, title="Message"):
         "Print a message to the Device's management page"
         t = textwrap.fill(str(msg), 120)
@@ -1251,8 +1206,7 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
 
             remote_devices[name].update_config(k)
 
-
-        # Only actually update data structures 
+        # Only actually update data structures
         # after updating the device runtime sucessfully
 
         # Delete and then recreate because we may be renaming to a different name
@@ -1263,7 +1217,6 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
             if not parentResource:
                 raise RuntimeError("?????????????")
             modules_state.rawDeleteResource(parentModule, parentResource)
-
 
         # set the location info
         remote_devices[name].parentModule = newparentModule
@@ -1282,84 +1235,6 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
         messagebus.post_message("/devices/added/", name)
 
 
-def url(u):
-    return urllib.parse.quote(u, safe='')
-
-
-def devStatString(d):
-    "Misc status info that we can gather from the device typy"
-    s = []
-
-    try:
-        if 'status' in d.tagPoints:
-            s.append(str(d.tagPoints['status']())[:32])
-
-        if len(d.tagPoints) < 14:
-            for i in d.tagPoints:
-                if hasattr(d.tagPoints[i], 'meterWidget'):
-                    if d.tagPoints[i].type == "number":
-                        s.append(d.tagPoints[i].meterWidget.render_oneline(
-                            label=i + ": "))
-
-        else:
-            if 'rssi' in d.tagPoints:
-                s.append(d.tagPoints['rssi'].meterWidget.render_oneline(
-                    label="RSSI: "))
-            if 'battery' in d.tagPoints:
-                s.append(d.tagPoints['battery'].meterWidget.render_oneline(
-                    label="Battery: "))
-            if 'powered' in d.tagPoints:
-                s.append(d.tagPoints['powered'].meterWidget.render_oneline(
-                    label="Powered: "))
-
-            if 'switch' in d.tagPoints:
-                s.append(d.tagPoints['switch'].meterWidget.render_oneline(
-                    label="Switch: "))
-            if 'running' in d.tagPoints:
-                s.append(d.tagPoints['running'].meterWidget.render_oneline(
-                    label="Running: "))
-            if 'record' in d.tagPoints:
-                s.append(d.tagPoints['record'].meterWidget.render_oneline(
-                    label="Recording: "))
-            if 'temperature' in d.tagPoints:
-                s.append(d.tagPoints['temperature'].meterWidget.render_oneline(
-                    label="Temperature: "))
-            if 'humidity' in d.tagPoints:
-                s.append(d.tagPoints['humidity'].meterWidget.render_oneline(
-                    label="Humidity: "))
-            if 'uv_index' in d.tagPoints:
-                s.append(d.tagPoints['uv_index'].meterWidget.render_oneline(
-                    label="UV Index: "))
-            if 'wind' in d.tagPoints:
-                s.append(d.tagPoints['wind'].meterWidget.render_oneline(
-                    label="Wind: "))
-
-            if 'open' in d.tagPoints:
-                s.append(d.tagPoints['open'].meterWidget.render_oneline(
-                    label="Open: "))
-
-            if 'on' in d.tagPoints:
-                s.append(
-                    d.tagPoints['on'].meterWidget.render_oneline(label="On: "))
-
-            if 'leak' in d.tagPoints:
-                s.append(d.tagPoints['leak'].meterWidget.render_oneline(
-                    label="Leak: "))
-
-    except Exception as e:
-        s.append(str(e))
-
-    return ''.join([i for i in s])
-
-
-def read(f):
-    try:
-        with open(f) as fd:
-            return fd.read()
-    except Exception:
-        return ""
-
-
 specialKeys = {
 
     'subclass',
@@ -1370,334 +1245,6 @@ specialKeys = {
     'description',
     'notes'
 }
-
-
-def getshownkeys(obj: Device):
-    return sorted([i for i in obj.config.keys() if i not in specialKeys and not i.startswith("kaithem.") and not i.startswith("temp.kaithem")])
-
-
-device_page_env = {
-    "specialKeys": specialKeys,
-    "read": read,
-    "url": url,
-    "hasattr": hasattr
-}
-
-
-def render_device_tag(obj, tag):
-    try:
-        return pages.render_jinja_template("devices/device_tag_component.j2.html", i=tag, obj=obj)
-    except Exception as e:
-        return f"<article>{e}</article>"
-
-
-class WebDevices():
-    @cherrypy.expose
-    def index(self):
-        """Index page for web interface"""
-        pages.require("system_admin")
-        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-
-        return pages.get_template("devices/index.html").render(
-            deviceData=remote_devices_atomic, devStatString=devStatString, url=url)
-
-    @cherrypy.expose
-    def report(self):
-        pages.require("system_admin")
-
-        def get_report_data(dev: Device):
-            o = {}
-            for i in dev.config:
-                if i not in ('notes', 'subclass') or len(str(dev.config[i])) < 256:
-                    o[i] = dev.config[i]
-                    continue
-            return json.dumps(o)
-
-        def has_secrets(dev: Device):
-            for i in dev.config:
-                if dev.config_properties.get(i, {}).get("secret", False):
-                    if dev.config[i]:
-                        return True
-
-        return pages.render_jinja_template("devices/device_report.j2.html",
-                                           devs=remote_devices_atomic,
-                                           has_secrets=has_secrets,
-                                           get_report_data=get_report_data,
-                                           **device_page_env)
-
-    @cherrypy.expose
-    def device(self, name, *args, **kwargs):
-        # This is a customizable per-device page
-        if args and args[0] == 'web':
-            if kwargs:
-                # Just don't allow gets that way
-                pages.postOnly()
-            try:
-                return remote_devices[name].webHandler(*args[1:], **kwargs)
-            except pages.ServeFileInsteadOfRenderingPageException as e:
-                return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME,
-                                                      e.f_name)
-
-        if args and args[0] == 'manage':
-            pages.require("system_admin")
-
-            # Some framework only keys are not passed to the actual device since we use what amounts
-            # to an extension, so we have to merge them in
-            merged = {}
-
-            obj = remote_devices[name]
-            if name in device_data:
-                merged.update(device_data[name])
-
-            if obj.parentModule:
-                merged.update(modules_state.ActiveModules[
-                    obj.parentModule][obj.parentResource]['device'])
-
-            # I think stored data is enough, this is just defensive
-            merged.update(remote_devices[name].config)
-
-            mf = ''
-            # LEGACY kaithem specific stuff
-            if hasattr(obj, "getManagementForm"):
-                try:
-                    mf = obj.getManagementForm()
-                except Exception:
-                    logging.exception("?")
-
-            return pages.render_jinja_template("devices/device.j2.html",
-                                               data=merged, obj=obj, manageForm=mf,
-                                               name=name, args=args, kwargs=kwargs, title='' if obj.title == obj.name else obj.title, **device_page_env)
-        if not args:
-            raise cherrypy.HTTPRedirect(cherrypy.url() + "/manage")
-
-    @cherrypy.expose
-    def devicedocs(self, name):
-        pages.require("system_admin")
-        x = remote_devices[name].readme
-
-        if x is None:
-            x = "No readme found"
-        if x.startswith("/") or (len(x) < 1024 and os.path.exists(x)):
-            with open(x) as f:
-                x = f.read()
-
-        return pages.get_template("devices/devicedocs.html").render(docs=x)
-
-    @cherrypy.expose
-    def updateDevice(self, devname, **kwargs):
-        pages.require("system_admin")
-        pages.postOnly()
-        updateDevice(devname, kwargs)
-        raise cherrypy.HTTPRedirect("/devices")
-
-    @cherrypy.expose
-    def discoveryStep(self, type, devname, **kwargs):
-        """
-            Do a step of iterative device discovery.  Can start either from just a type or we can take
-            an existing device config and ask it for refinements.
-        """
-        pages.require("system_admin")
-        pages.postOnly()
-        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-
-        current = kwargs
-
-        if devname and devname in remote_devices:
-            # If possible just use the actual object
-            d = remote_devices[devname]
-            c = copy.deepcopy(d.data)
-            c.update(kwargs)
-            current = c
-            obj = d
-        else:
-            obj = None
-            d = getDeviceType(type)
-
-        d = d.discover_devices(current,
-                               current_device=remote_devices.get(
-                                   devname, None),
-                               intent="step")
-
-        return pages.get_template("devices/discoverstep.html").render(
-            data=d, current=current, name=devname, obj=obj)
-
-    @cherrypy.expose
-    def createDevice(self, name=None, **kwargs):
-        "Actually create the new device"
-        pages.require("system_admin")
-        pages.postOnly()
-        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-
-        name = name or kwargs.get('name', None)
-        m = r = None
-        with modules_state.modulesLock:
-            if 'module' in kwargs:
-                m = str(kwargs['module'])
-                r = str(kwargs['resource'])
-                name = r
-                del kwargs['module']
-                del kwargs['resource']
-                d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
-                d['name'] = name
-
-                # Set these as the default
-                kwargs['kaithem.read_perms'] = "view_devices"
-                kwargs['kaithem.write_perms'] = "write_devices"
-
-                modules_state.ActiveModules[m][r] = {
-                    'resource-type': 'device',
-                    'device': d
-
-                }
-                modules_state.modulesHaveChanged()
-            else:
-                raise RuntimeError("Creating devices outside of modules is no longer supported.")
-                if not name:
-                    raise RuntimeError("No name?")
-                d = {
-                    i: str(kwargs[i])
-                    for i in kwargs if not i.startswith('temp.')
-                }
-
-            if name in remote_devices:
-                remote_devices[name].close()
-            remote_devices[name] = makeDevice(name, kwargs)
-
-            if m and r:
-                storeDeviceInModule(d, m, r)
-            else:
-                raise RuntimeError("Creating devices outside of modules is no longer supported.")
-                device_data[name] = d
-                saveDevice(name)
-
-            remote_devices[name].parentModule = m
-            remote_devices[name].parentResource = r
-            global remote_devices_atomic
-            remote_devices_atomic = wrcopy(remote_devices)
-            messagebus.post_message("/devices/added/", name)
-
-        saveDevice(name)
-
-        raise cherrypy.HTTPRedirect("/devices")
-
-    @cherrypy.expose
-    def createDevicePage(self, name, module='', resource='', **kwargs):
-        "Ether create a 'blank' device, or, if supported, show the custom page"
-        pages.require("system_admin")
-        pages.postOnly()
-        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-
-        tp = getDeviceType(kwargs['type'])
-        assert tp
-
-        return pages.get_template("devices/createpage.html").render(
-            name=name,
-            type=kwargs['type'],
-            module=module,
-            resource=resource)
-
-    @cherrypy.expose
-    def deleteDevice(self, name, **kwargs):
-        pages.require("system_admin")
-        cherrypy.response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-
-        name = name or kwargs['name']
-        return pages.get_template("devices/confirmdelete.html").render(
-            name=name)
-
-    @cherrypy.expose
-    def toggletarget(self, name, **kwargs):
-        pages.postOnly()
-        x = remote_devices[name]
-
-        perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "system_admin"
-
-        for i in perms.split(","):
-            pages.require(i)
-
-        if 'switch' in x.tagpoints:
-            x.tagpoints['switch'].value = (
-                1 if not x.tagpoints['switch'].value else 0)
-
-    @cherrypy.expose
-    def settarget(self, name, tag, value='', **kwargs):
-        pages.postOnly()
-        x = remote_devices[name]
-
-        perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "system_admin"
-
-        for i in perms.split(","):
-            pages.require(i)
-
-        if tag in x.tagpoints:
-            x.tagpoints[tag].value = value
-
-    @cherrypy.expose
-    def dimtarget(self, name, tag, value='', **kwargs):
-        "Set a color tagpoint to a dimmed version of it."
-        pages.postOnly()
-        x = remote_devices[name]
-
-        perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "system_admin"
-
-        for i in perms.split(","):
-            pages.require(i)
-
-        if tag in x.tagpoints:
-            try:
-                x.tagpoints[tag].value = (colorzero.Color.from_string(
-                    x.tagpoints[tag].value) * colorzero.Luma(value)).html
-            except Exception:
-                x.tagpoints[tag].value = (colorzero.Color.from_rgb(
-                    1, 1, 1) * colorzero.Luma(value)).html
-
-    @cherrypy.expose
-    def triggertarget(self, name, tag, **kwargs):
-        pages.postOnly()
-        x = remote_devices[name]
-
-        perms = x.config.get(
-            "kaithem.write_perms", '').strip() or "system_admin"
-
-        for i in perms.split(","):
-            pages.require(i)
-
-        if tag in x.tagpoints:
-            x.tagpoints[tag].value = x.tagpoints[tag].value + 1
-
-    @cherrypy.expose
-    def deletetarget(self, **kwargs):
-        pages.require("system_admin")
-        pages.postOnly()
-        name = kwargs['name']
-        with modules_state.modulesLock:
-            x = remote_devices[name]
-            # Delete bookkeep removes it from device data if present
-            delete_bookkeep(name, 'delete_conf_dir' in kwargs)
-
-            if x.parentModule:
-                modules_state.rawDeleteResource(x.parentModule, x.parentResource or name)
-                modules_state.modulesHaveChanged()
-
-            # no zombie reference
-            del x
-
-            global remote_devices_atomic
-            remote_devices_atomic = wrcopy(remote_devices)
-            # Gotta be aggressive about ref cycle breaking!
-            gc.collect()
-            time.sleep(0.1)
-            gc.collect()
-            time.sleep(0.2)
-            gc.collect()
-
-            saveDevice(name)
-            messagebus.post_message("/devices/removed/", name)
-
-        raise cherrypy.HTTPRedirect("/devices")
 
 
 device_types = {'device': Device}
@@ -1815,8 +1362,8 @@ def makeDevice(name, data, cls=None):
     new_data = {
         i: new_data[i]
         for i in new_data if (
-                              (not i.startswith("temp.kaithem.")) and
-                              (not i.startswith('filedata.')))
+            (not i.startswith("temp.kaithem.")) and
+            (not i.startswith('filedata.')))
     }
 
     try:
@@ -1860,7 +1407,6 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                 if not dir.count('/'):
                     break
                 dir = '/'.join(dir.split('/')[:-1])
-
 
         # Move it out of main area
         if 'name' in d:

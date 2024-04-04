@@ -13,7 +13,7 @@ import json
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
-ramdbfile  = "/dev/shm/" + socket.gethostname()+"-"+getpass.getuser()+"-taghistory.ldb"
+ramdbfile = "/dev/shm/" + socket.gethostname()+"-"+getpass.getuser()+"-taghistory.ldb"
 
 
 syslogger = logging.getLogger("system")
@@ -24,19 +24,13 @@ if not os.path.exists(logdir):
     except Exception:
         syslogger.exception("Can't make log dir")
 
-#Build a filename including the hostname and user.   This is because SQLite may not be happy to be involved with SyncThing.
-#For that reason, should someone get the bright idea to sync a kaithem vardir, we must keep the history databases single-writer.
+# Build a filename including the hostname and user.   This is because SQLite may not be happy to be involved with SyncThing.
+# For that reason, should someone get the bright idea to sync a kaithem vardir, we must keep the history databases single-writer.
 
-#Plus, there is nothing in the DB itself to tell us who wrote it, so this is very convenient.
+# Plus, there is nothing in the DB itself to tell us who wrote it, so this is very convenient.
 historyFilemame = socket.gethostname()+"-"+getpass.getuser()+"-taghistory.ldb"
 
-oldHistoryDBFile = os.path.join(oldlogdir, "history.ldb")
-
 newHistoryDBFile = os.path.join(logdir, historyFilemame)
-
-#Compatibility with legacy
-if os.path.exists(oldHistoryDBFile):
-    shutil.move(oldHistoryDBFile, newHistoryDBFile)
 
 
 class TagLogger():
@@ -45,18 +39,18 @@ class TagLogger():
     accumType = 'latest'
     defaultAccum = 0
 
-    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600, target = 'disk'):
+    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600, target='disk'):
 
-        #We can have purely ram file based logging
-        if target=='disk':
+        # We can have purely ram file based logging
+        if target == 'disk':
             self.h = historian
             self.filename = newHistoryDBFile
-        elif target=='ram':
-           self.h = ramHistorian
-           self.filename= ramdbfile
+        elif target == 'ram':
+            self.h = ramHistorian
+            self.filename = ramdbfile
         else:
             raise ValueError("target not supported: "+target)
-        
+
         self.target = target
 
         self.accumVal = self.defaultAccum
@@ -84,8 +78,7 @@ class TagLogger():
             finally:
                 tag.lock.release()
 
-
-    def insertData(self,d):
+    def insertData(self, d):
         self.h.insertData(d)
 
     def clearOldData(self, force=False):
@@ -179,13 +172,13 @@ class TagLogger():
         self.accumVal = value
         self.accumTime = timestamp
         self.accumCount = 1
-        if isinstance(value, (int,float,bytes)):
+        if isinstance(value, (int, float, bytes)):
             pass
 
         elif isinstance(value, str):
             value = value[:1024*128]
 
-        elif isinstance(value, (list,dict,tuple)):
+        elif isinstance(value, (list, dict, tuple)):
             value = json.dumps(value)
 
         self.flush()
@@ -236,7 +229,6 @@ class TagLogger():
             self.chID = c.fetchone()[0]
 
             conn.close()
-
 
 
 class AverageLogger(TagLogger):
@@ -346,14 +338,13 @@ class TagHistorian():
             self.history = sqlite3.Connection(file)
 
         self.history.row_factory = sqlite3.Row
-        self.filename =file
+        self.filename = file
 
         if newfile:
             self.history.execute("PRAGMA application_id = 707898159")
         self.lock = threading.RLock()
         self.children = {}
 
-        
         self.history.execute(
             "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
         self.history.execute(
@@ -421,7 +412,6 @@ class TagHistorian():
             for i in range(30):
                 time.sleep(0.001)
 
-
             self.history = sqlite3.Connection(self.filename)
             with self.history:
                 if needsGC:
@@ -436,10 +426,11 @@ class TagHistorian():
                         'INSERT INTO record VALUES (?,?,?)', i)
             self.history.close()
 
+
 try:
     historian = TagHistorian(newHistoryDBFile)
     ramHistorian = TagHistorian(ramdbfile)
-    os.chmod(ramdbfile,0o750)
+    os.chmod(ramdbfile, 0o750)
 except Exception:
     messagebus.post_message("/system/notifications/errors",
-                           "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc())
+                            "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc())

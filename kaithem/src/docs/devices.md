@@ -66,7 +66,7 @@ handle_error should be used to inform the user of issues.
 
 Print a string to the device's management page. Old messages are automatically cleared.
 
-#### dev.data
+#### dev.config
 
 The dict containing persistant config data. When subclassing, do not assume this contains any particular key.  At minimum, it will contain the name and type field,
 but a newly created device may be almost totally unconfigurable.
@@ -76,7 +76,7 @@ To avoid conflicts with core attributes, you can prefix keys with "device.". Suc
 
 As everything is configured from HTML settting pages or config files, you must assume that any key could be a string, and convert appropriately.
 
-#### dev.setDataKey(key,val)
+#### dev.set_data_key(key,val)
 
 This allows setting a persistant config key. Any value will be converted to a string!
 
