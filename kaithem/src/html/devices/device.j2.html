@@ -9,6 +9,7 @@
 {% set auth = imp0rt('kaithem.src.auth') %}
 {% set pages = imp0rt('kaithem.src.pages') %}
 {% set devices = imp0rt('kaithem.src.devices') %}
+{% set devices_interface = imp0rt('kaithem.src.devices_interface') %}
 
 {% block body %}
 <style>
@@ -117,7 +118,7 @@
                     <b>Save Location</b>
                 </summary>
 
-                <p>You can store this device in a module.  It's suggested you do so.
+                <p>You can store this device in a module. It's suggested you do so.
                     Storing outside of a module may be deprecated at some point.
                 </p>
 
@@ -125,11 +126,13 @@
 
                     <tr>
                         <td>Store settings in Module(blank=store in main devices list)</td>
-                        <td><input required list="k_modules" name="temp.kaithem.store_in_module" value="{{ obj.parentModule or '' | escape }}"></td>
+                        <td><input required list="k_modules" name="temp.kaithem.store_in_module"
+                                value="{{ obj.parentModule or '' | escape }}"></td>
                     </tr>
                     <tr>
                         <td>Resource Name(blank=use device name)</td>
-                        <td><input name="temp.kaithem.store_in_resource" value="{{ obj.parentResource or ''| escape }}"></td>
+                        <td><input name="temp.kaithem.store_in_resource" value="{{ obj.parentResource or ''| escape }}">
+                        </td>
                     </tr>
                 </table>
             </details>
@@ -226,7 +229,7 @@
                 </summary>
 
                 <table style="width:100%">
-                    {% for i in devices.getshownkeys(obj) %}
+                    {% for i in devices_interface.getshownkeys(obj) %}
                     <tr>
                         {% if i.startswith('device.') %}
                         <td style="max-width: 30%;">
@@ -278,7 +281,6 @@
                     </tr>
                     {% endfor %}
                 </table>
-                {% endif %}
 
 
                 <h3>Permissions</h3>
@@ -420,7 +422,7 @@
             </script>
             <div class="flex-row gaps">
                 {% for i in obj.tagPoints %}
-                {{devices.render_device_tag(obj,i) | safe}}
+                {{devices_interface.render_device_tag(obj,i) | safe}}
                 {% endfor %}
             </div>
 
