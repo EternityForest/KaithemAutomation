@@ -3,6 +3,7 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: check-yaml
+    -   id: check-toml
     -   id: trailing-whitespace
         types_or:
           - "python"
@@ -10,6 +11,7 @@ repos:
           - "json"
           - "markdown"
           - "html"
+          - "javascript"
     -   id: check-byte-order-marker
     -   id: check-json
     -   id: forbid-new-submodules
@@ -26,3 +28,17 @@ repos:
     - id: forbid-crlf
     - id: forbid-tabs
 
+- repo: https://github.com/sirosen/texthooks
+  rev: 0.6.6
+  types_or:
+    - "python"
+    - "yaml"
+    - "json"
+    - "markdown"
+    - "html"
+    - "javascript"
+  hooks:
+    - id: alphabetize-codeowners
+    - id: fix-smartquotes
+    - id: fix-ligatures
+    - id: fix-spaces
