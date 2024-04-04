@@ -104,20 +104,23 @@ apprise_lock = threading.RLock()
 
 @scheduling.scheduler.everyHour
 def apprise():
-    with apprise_lock:
-        while pending_notifications:
-            f = pending_notifications.pop(0)
-            try:
-                f()
-                time.sleep(5)
-            except Exception:
-                # There's still room!  We can just keep retrying!
-                if len(pending_notifications) < 35:
-                    pending_notifications.append(f)
+    if apprise_lock.acquire(blocking=False):
+        try:
+            while pending_notifications:
+                f = pending_notifications.pop(0)
+                try:
+                    f()
+                    time.sleep(5)
+                except Exception:
+                    # There's still room!  We can just keep retrying!
+                    if len(pending_notifications) < 35:
+                        pending_notifications.append(f)
 
-                logging.error("Error pushing AppRise notification")
-                # If one fails, retry all of them later.
-                return
+                    logging.error("Error pushing AppRise notification")
+                    # If one fails, retry all of them later.
+                    return
+        finally:
+            apprise_lock.release()
 
 
 def subscriber(topic, message):

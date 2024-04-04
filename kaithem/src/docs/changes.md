@@ -18,6 +18,7 @@ Now you can only save them in modules. Keeping them in modules lets you use the 
 - :bug: Displayed value in UI correctly updates for refresh button
 - :bug: Fix devices UI setting bad value when you specified 'false'
 - :bug: Remove caching on modules listing that was casuing issues.
+- :bug: Notification handler code was spawning tons of threads bogging everything down.
 
 - :lipstick: Better combo box feel
 - :lipstick: Icons switched to [MDI Icons](https://pictogrammers.com/library/mdi/) for harmony with other automation platforms.
@@ -108,7 +109,7 @@ Some may return in iot_devices later.
 - :sparkles: Default page title is now the hostname
 - :sparkles: Devices report feature lets you print out all the device settings
 - :bug: Nuisance gstreamer output
-- :bug: esphome api key correctly marked as secret 
+- :bug: esphome api key correctly marked as secret
 - :sparkles: Improve maps quality
 - :sparkles: Chandler shows time at which each scene entered the current cue
 
@@ -184,7 +185,7 @@ functionality.  Expect a few bugs in the next few versions as we rewrite old cod
 - :coffin: Remove non-MPV audio backends
 - :coffin: Remove codemirror config options
 - :coffin: Remove reap library
-- :coffin: Remove old jackd2 stuff 
+- :coffin: Remove old jackd2 stuff
 - :coffin: Remove embedded python3 docs
 - :sparkles: Simple_light is now the default theme, as Chrome can on some devices be unhappy with complex themes
 - :sparkles: The buttonbar CSS class has been changed to tool-bar
@@ -257,10 +258,10 @@ Moving to Tornado was a rather large change, this release is mostly cleanup.
 - :bug: More robust responsive video
 - :sparkles: Screen rotation setting in web UI
 - :sparkles: Work on a proper theme chooser engine
-- 
+-
 ### 0.68.46
 - :bug: Video signage auto restart fixes
-- 
+-
 ### 0.68.45
 - :sparkles: Digital signage chrome error resillience
 - :bug: New versions of NumPy needed a fix for the NVR labels file loading
@@ -293,7 +294,7 @@ This release is all about making the custom HTML pages more maintainable.
 
 - :lipstick: Chandler always shows all scenes, no separate "This board" and "All active"
 - :sparkles: We now have a separate setup and handler code area for pages.  Inline code will continue to work as before.
-- :sparkles: Special variables \_\_jsvars\_\_ and \_\_datalists\_\_ to directly add stuff to pages. 
+- :sparkles: Special variables \_\_jsvars\_\_ and \_\_datalists\_\_ to directly add stuff to pages.
 - :bug: Fix devices in modules
 - :lipstick: Use accordion sections on device pages
 - :sparkles: Devices now have a configurable description field, to make them more self-documenting.
@@ -331,7 +332,7 @@ This release is all about making the custom HTML pages more maintainable.
 - :coffin: BREAKING: You will need to re-set up UPnP if you were using it
 - :coffin: MAJOR: Remove the RAM-based state.  From now on, changes you make to modules and devices are saved to disk immediately.
 - :bug: Fix zombie devices staying around after deletion
-- :coffin: Deprecate thin wrappers kaithem.time.year() kaithem.time.month() kaithem.time.dayofweek() kaithem.time.\[minute\|second\|hour\]() 
+- :coffin: Deprecate thin wrappers kaithem.time.year() kaithem.time.month() kaithem.time.dayofweek() kaithem.time.\[minute\|second\|hour\]()
 - :coffin: Deprecate thin wrappers kaithem.time.isdst() kaithem.time.day() kaithem.time.accuracy()
 - :memo: Sound documentation
 - :memo: Announce that kaithem.mqtt will no longer use shared connection optimization at some point in the future
@@ -377,7 +378,7 @@ This release is all about making the custom HTML pages more maintainable.
 - :sparkles: Chandler display tags: show tag value meters right in the scene overview.
 - :sparkles: Chandler cue lengths can accept @5PM style time specifiers, no need to use events and rules
 - :sparkles: Chandler no longer displays fractional seconds to reduce visual clutter
-- :sparkles: Chandler Commander view 
+- :sparkles: Chandler Commander view
 - :sparkles: Get notified if a widget no longer exists that a page you are on is using.
 - :sparkles: Chandler default alpha now 1 by default, goto cue buttons activate scene if not already active.
 - :sparkles: Chandler utility scenes don't have buttons or a slider.  Use for embedding camera feeds in the console, and state machine logic.
@@ -416,7 +417,7 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.28
-- :lock: :coffin: Default admin:password credentials have been eliminated. 
+- :lock: :coffin: Default admin:password credentials have been eliminated.
 - :sparkles: If there are no users, one is created using the login credentials of the Linux user actually running the Kaithem service
 - :sparkles: Any user can be set to use the system authentication.  Using Kaithem's weaker internal login is not suggested.
 - :fire: The internal auth mechanism may be deprecated or modified eventually. Suggest to always use the Linux system auth instead.
@@ -457,7 +458,7 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 - :bug: Fix missing platformdirs.version
 - :sparkles: NVRChannel discovery for Amcrest cameras, because that's what I've got lying around.
 - :monocle_face: Please be aware: Many major CCTV manufactures are rebrands of just a few firms that may be supporting things you may find morally abhorrent.
-  
+
 ### 0.68.23
 - :zap: JSON RPC performance boost with select polling
 
@@ -473,7 +474,7 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 - :coffin: Remove a lot of dead code
 - :coffin: :fire: BREAKING: Remove the entire VirtualResource mechanism. I think it was too complicated to use anyway.
 - As a result, getting a Device object will give a Weak Proxy to the device instead of a VirtualResourceInterface.
-- REMINDER: When accessing a Device, tagpoint, etc, don't keep a reference to somthing a user could update and replace! 
+- REMINDER: When accessing a Device, tagpoint, etc, don't keep a reference to somthing a user could update and replace!
    access kaithem.devices['foo'] directly rather than making a local reference.
 - Tag Points and the Message Bus are the official ways to do loose coupling, and are much simpler.
 - :bug: Fix inability to create new device inside a module
@@ -501,7 +502,7 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 - kaithem.web.serveFile streaming response
 - SECURITY: Beholder no longer allows unauthorized access to camera snapshots
 - Correctly finalize M3U8 files with the end playlist tag
-  
+
 ### 0.68.17
 - Clean up a process leak with the IceFlow servers
 
@@ -520,7 +521,7 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 
 ### 0.68.13
 - NVRChannel can now use scipy for way better performance on erosion operations.
-- 
+-
 ### 0.68.12
 - NVRChannel can now auto reconnect after a network problem.
 
@@ -676,7 +677,7 @@ And was causing maintainence nightmares.
 
 - JackMIDIListener has been removed.  Instead, all connected ALSA midi devices automatically generate tag points for last pressed note and all CC values.
 - All connected midi devices now also report to the message bus
-- JackFluidSynth plugin now only accepts MIDI on the internal message bus.  
+- JackFluidSynth plugin now only accepts MIDI on the internal message bus.
 - python-rtmidi is required to use these features.  This is all on account of some unreliable performance and excess complexity with jack midi.
 - Chandler can now respond directly to MIDI, no code needed
 - Chandler bugfix with smart bulb hue and saturation channels not blending the way you might expect.
@@ -843,7 +844,7 @@ cart - Help boxes(paragraph or div class 'help') now show up minimized until you
 
 ### 0.65.40
 - File resources can now be directly served, using the same URL pattern of pages, with full permissions and XSS
-- Unencrypted HTTP access is now allowed for secure pages, from localhost, or from the 200:: and 300:: IP ranges used by the Yggdrasil mesh. 
+- Unencrypted HTTP access is now allowed for secure pages, from localhost, or from the 200:: and 300:: IP ranges used by the Yggdrasil mesh.
 - Chandler now has separate shuffle and random options
 - Chandler has a better combobox for the next cue
 - Chandler now supports changing the probability for any random cue
@@ -1091,7 +1092,7 @@ cart - Help boxes(paragraph or div class 'help') now show up minimized until you
 - Gstreamer based audio playback is now the default
 - =expression based polled ChandlerScript events(Dynamically eveluated when needed)
 - Chandler tagValue(tagName) function
-- Chandler setTag(name,value, priority) command to set tags and stringtags 
+- Chandler setTag(name,value, priority) command to set tags and stringtags
 - Semi-breaking: File resources are stored in __filedata__ and managed immediately, not on system state save. They are no longer atomic.
 - Messagebus timestamp and annotation
 - MQTT support via eclipse paho
