@@ -32,7 +32,6 @@ from . import (
     notifications,
     auth,
     tagpoints,
-    modules,
     alerts,
     logviewer,
     weblogin,
@@ -46,9 +45,7 @@ from . import (
     messagebus,
     util,
     systasks,
-    widgets,
-    tileserver,
-    web_console
+    widgets
 )
 
 
@@ -539,7 +536,6 @@ def startServer():
     cherrypy._cpreqbody.Part.maxrambytes = 64 * 1024
 
     logger.info("Loaded core python code")
-    from . import config as cfgmodule
 
     if not config["host"] == "default":
         bindto = config["host"]
@@ -639,8 +635,6 @@ def startServer():
 
     from . import kaithemobj
 
-
-
     x = []
     for i in kaithemobj.wsgi_apps:
         x += [
@@ -712,7 +706,6 @@ def startServer():
             ),
         )
     )
-
 
     router = RuleRouter(rules)
 

@@ -1030,9 +1030,7 @@ def bookkeeponemodule(module, update=False):
     for i in modules_state.ActiveModules[module]:
 
         # Handle events separately due to dependency resolution logic
-        if not (
-            modules_state.ActiveModules[module][i]["resource-type"] in ('event')
-        ):
+        if modules_state.ActiveModules[module][i]["resource-type"] not in ('event'):
             try:
                 handleResourceChange(module, i)
             except Exception:

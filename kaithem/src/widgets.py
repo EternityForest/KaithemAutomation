@@ -13,17 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
-from typing import Any, Callable, Dict, Union, List
-import tornado
-from tornado import httputil
-from tornado.concurrent import Future
+from typing import Any, Callable, List
 from typeguard import typechecked
 from .unitsofmeasure import convert, unit_types
 import weakref
 import time
 import json
 import base64
-import cherrypy
 import os
 import traceback
 import threading
@@ -32,7 +28,6 @@ import socket
 import copy
 import collections
 from . import auth, pages, unitsofmeasure, util, messagebus, workers
-from .config import config
 
 logger = logging.getLogger("system.widgets")
 
@@ -94,7 +89,7 @@ def eventErrorHandler(f):
 
         if f.__module__ in newevt.eventsByModuleName:
             newevt.eventsByModuleName[f.__module__]._handle_exception()
-    except:
+    except Exception:
         print(traceback.format_exc())
 
 
@@ -138,7 +133,7 @@ def subsc_closure(self, i, widget):
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
             pass
-        except:
+        except Exception:
             if not widget.errored_send:
                 widget.errored_send = True
                 messagebus.post_message(
@@ -168,7 +163,7 @@ def raw_subsc_closure(self, i, widget):
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
             print("wtimeout", traceback.format_exc())
-        except:
+        except Exception:
             if not widget.errored_send:
                 widget.errored_send = True
                 messagebus.post_message(
@@ -201,7 +196,7 @@ try:
     import msgpack
 
     usingmp = True
-except:
+except Exception:
     logging.exception("No msgpack support, using JSON fallback")
 
 
@@ -217,11 +212,11 @@ def sendToAll(d):
     for i in range(50):
         try:
             for j in ws_connections:
-                if not j in x:
+                if j not in x:
                     ws_connections[j].send(d)
                     x[j] = True
             break
-        except:
+        except Exception:
             logging.exception("Error in global broadcast")
 
 
@@ -275,7 +270,7 @@ class websocket_impl:
         if auth.getUserSetting(self.user, "telemetry-alerts"):
             from . import alerts
 
-            if not self.user in userBatteryAlerts:
+            if self.user not in userBatteryAlerts:
                 userBatteryAlerts[self.user] = alerts.Alert(
                     "Low battery on client browser device for: " + self.user,
                     priority="warning",
@@ -345,7 +340,7 @@ class websocket_impl:
                                 userBatteryAlerts[self.user].trip()
                             elif i[1]["level"] > 0.4 and i[1]["charging"]:
                                 userBatteryAlerts[self.user].release()
-                        except:
+                        except Exception:
                             logging.exception("Error in battery status telemetry")
 
                 elif i[0] == "__USERIDLE__":
@@ -439,13 +434,13 @@ class websocket_impl:
                             self.subscriptions.append(i)
                             if not widgets[i].noOnConnectData:
                                 x = widgets[i]._on_request(user, self.uuid)
-                                if not x is None:
+                                if x is not None:
                                     widgets[i].send(x)
                             self.subCount += 1
 
             if "unsub" in o:
                 for i in o["unsub"]:
-                    if not i in self.subscriptions:
+                    if i not in self.subscriptions:
                         continue
 
                     # TODO: DoS by filling memory with subscriptions??
@@ -601,7 +596,7 @@ class rawwebsocket_impl:
 
                     if not widgets[i].subscriptions:
                         widgets[i].lastSubscribedTo = time.monotonic()
-                except:
+                except Exception:
                     pass
 
 
@@ -656,10 +651,10 @@ class Widget:
         with idlock:
             # Give the widget an ID for the client to refer to it by
             # Note that it's no longer always a  uuid!!
-            if not "id" in kwargs:
+            if "id" not in kwargs:
                 for i in range(0, 250000):
                     self.uuid = randID()
-                    if not self.uuid in widgets:
+                    if self.uuid not in widgets:
                         break
                     if i > 240000:
                         raise RuntimeError("No more IDs?")
@@ -678,7 +673,7 @@ class Widget:
         #         try:
         #             self.subscribers.update(oldWidget.subscriptions_atomic)
         #             self.subscriptions_atomic=copy.deepcopy(self.subscriptions)
-        #         except:
+        #         except Exception:
         #             logging.exception
 
         # if subsc_carryover:
@@ -716,7 +711,7 @@ class Widget:
                 return "PERMISSIONDENIED"
         try:
             return self.on_request(user, uuid)
-        except Exception as e:
+        except Exception:
             logger.exception("Error in widget request to " + repr(self))
             if not (self.errored_getter == id(self._callback)):
                 messagebus.post_message(
@@ -1031,24 +1026,24 @@ siUnits = {"m", "Pa", "g", "V", "A"}
 class Meter(Widget):
     def __init__(self, *args, extraInfo=None, **kwargs):
         self.k = kwargs
-        if not "high" in self.k:
+        if "high" not in self.k:
             self.k["high"] = 10000
-        if not "high_warn" in self.k:
+        if "high_warn" not in self.k:
             self.k["high_warn"] = self.k["high"]
-        if not "low" in self.k:
+        if "low" not in self.k:
             self.k["low"] = -10000
-        if not "low_warn" in self.k:
+        if "low_warn" not in self.k:
             self.k["low_warn"] = self.k["low"]
-        if not "min" in self.k:
+        if "min" not in self.k:
             self.k["min"] = 0
-        if not "max" in self.k:
+        if "max" not in self.k:
             self.k["max"] = 100
 
         self.extraInfo = extraInfo
 
         self.displayUnits = None
         self.defaultLabel = ""
-        if not "unit" in kwargs:
+        if "unit" not in kwargs:
             self.unit = None
         else:
             try:
@@ -1056,7 +1051,7 @@ class Meter(Widget):
                 self.unit = kwargs["unit"]
                 # Do a KeyError if we don't support the unit
                 unit_types[self.unit] + "_format"
-            except:
+            except Exception:
                 self.unit = None
                 logging.exception("Bad unit")
 
@@ -1113,7 +1108,7 @@ class Meter(Widget):
 
                 # Do a KeyError if we don't support the unit
                 unit_types[self.unit] + "_format"
-            except:
+            except Exception:
                 logging.exception("Bad unit")
                 self.unit = None
         Widget.write(self, self.value + [d])
@@ -1144,7 +1139,7 @@ class Meter(Widget):
                     units = self.displayUnits
                 else:
                     # Always show the base unit by default
-                    if not unit in units:
+                    if unit not in units:
                         units += "|" + unit
                 # else:
                 #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[unit.dimensionality]+"_format").split("|")
@@ -1299,7 +1294,6 @@ class Meter(Widget):
             max=self.k["max"],
             high=self.k["high_warn"],
             low=self.k["low_warn"],
-            label=label,
             unit=unit,
             valuestr=self.formatForUser(self.value[0], unit),
         )
@@ -1528,7 +1522,6 @@ class Switch(Widget):
             "htmlid": mkid(),
             "id": self.uuid,
             "x": x,
-            "value": self.value,
             "label": label,
         }
 
@@ -1658,8 +1651,7 @@ class TagPoint(Widget):
                 "htmlid": mkid(),
                 "id": self.uuid,
                 "x": x,
-                "value": self.value,
-                "label": label,
+
             }
         )
 
@@ -1702,8 +1694,6 @@ class TextBox(Widget):
             "en": self.isWritable(),
             "htmlid": mkid(),
             "id": self.uuid,
-            "x": x,
-            "value": self.value,
             "label": label,
         }
 
@@ -1863,7 +1853,6 @@ class APIWidget(Widget):
             """ % {
             "htmlid": htmlid,
             "id": self.uuid,
-            "value": json.dumps(self.value),
             "loadtime": time.time() * 1000,
         }
 
