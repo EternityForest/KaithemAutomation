@@ -279,11 +279,11 @@ def saveDevice(d):
     # Lock used to prevent conflict, saving over each other with nonsense data.
     with modules_state.modulesLock:
         if d in sd:
-            persist.save(sd[d], os.path.join(saveLocation, d + ".yaml"))
-            os.chmod(os.path.join(saveLocation, d + ".yaml"), 0o600)
+            persist.save(sd[d], os.path.join(saveLocation, f"{d}.yaml"))
+            os.chmod(os.path.join(saveLocation, f"{d}.yaml"), 0o600)
 
         if d not in sd:
-            fn = os.path.join(saveLocation, d + ".yaml")
+            fn = os.path.join(saveLocation, f"{d}.yaml")
             if os.path.isfile(fn):
                 os.remove(fn)
 
@@ -310,7 +310,7 @@ def get_config_folder_from_info(
     always_return=False,
 ):
     if not module:
-        saveLocation = os.path.join(directories.vardir, "devices", name + ".config.d")
+        saveLocation = os.path.join(directories.vardir, "devices", f"{name}.config.d")
     else:
         # or '' makes linker happy, idk why it doesn't detect the if statement.
         saveLocation = os.path.join(
@@ -319,7 +319,7 @@ def get_config_folder_from_info(
             "data",
             module or "",
             "__filedata__",
-            (resource or name) + ".config.d",
+            f"{resource or name}.config.d",
         )
 
     if not os.path.exists(saveLocation):
@@ -339,7 +339,7 @@ def wrcopy(x):
 
 def makeBackgroundPrintFunction(p, t, title, self):
     def f():
-        self.logWindow.write("<b>" + title + " at " + t + "</b><br>" + p)
+        self.logWindow.write(f"<b>{title} at {t}</b><br>{p}")
 
     return f
 
@@ -348,12 +348,7 @@ def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
         self.logWindow.write(
-            '<div class="danger"><b>Error at '
-            + time
-            + "</b><br>"
-            + "<pre>"
-            + t
-            + "</pre></div>"
+            f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>'
         )
 
     return f
@@ -557,9 +552,9 @@ class Device(iot_devices.device.Device):
 
         if self.errors:
             if time.time() > self.errors[-1][0] + 15:
-                syslogger.error("in device: " + self.name + "\n" + s)
+                syslogger.error(f"in device: {self.name}\n{s}")
             else:
-                log.error("in device: " + self.name + "\n" + s)
+                log.error(f"in device: {self.name}\n{s}")
 
         if len(self.errors) > 50:
             self.errors.pop(0)
@@ -571,9 +566,9 @@ class Device(iot_devices.device.Device):
         )
         if len(self.errors) == 1:
             messagebus.post_message(
-                "/system/notifications/errors", "First error in device: " + self.name
+                "/system/notifications/errors", f"First error in device: {self.name}"
             )
-            syslogger.error("in device: " + self.name + "\n" + s)
+            syslogger.error(f"in device: {self.name}\n{s}")
 
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
@@ -744,7 +739,7 @@ class Device(iot_devices.device.Device):
         **kwargs,
     ):
         with modules_state.modulesLock:
-            t = tagpoints.Tag("/devices/" + self.name + "." + name)
+            t = tagpoints.Tag(f"/devices/{self.name}.{name}")
 
             self.__setupTagPerms(t, writable)
 
@@ -791,9 +786,9 @@ class Device(iot_devices.device.Device):
     ):
         with modules_state.modulesLock:
             if "/" in name:
-                t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
+                t = tagpoints.StringTag(f"/devices/{self.name}/{name}")
             else:
-                t = tagpoints.StringTag("/devices/" + self.name + "." + name)
+                t = tagpoints.StringTag(f"/devices/{self.name}.{name}")
 
             self.__setupTagPerms(t, writable)
             t.description = description
@@ -833,9 +828,9 @@ class Device(iot_devices.device.Device):
     ):
         with modules_state.modulesLock:
             if "/" in name:
-                t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
+                t = tagpoints.ObjectTag(f"/devices/{self.name}/{name}")
             else:
-                t = tagpoints.ObjectTag("/devices/" + self.name + "." + name)
+                t = tagpoints.ObjectTag(f"/devices/{self.name}.{name}")
 
             self.__setupTagPerms(t, writable)
             t.subtype = subtype
@@ -875,9 +870,9 @@ class Device(iot_devices.device.Device):
     ):
         with modules_state.modulesLock:
             if "/" in name:
-                t = tagpoints.BinaryTag("/devices/" + self.name + "/" + name)
+                t = tagpoints.BinaryTag(f"/devices/{self.name}/{name}")
             else:
-                t = tagpoints.BinaryTag("/devices/" + self.name + "." + name)
+                t = tagpoints.BinaryTag(f"/devices/{self.name}.{name}")
             t.unreliable = True
 
             self.__setupTagPerms(t, writable)
@@ -1345,10 +1340,14 @@ def makeDevice(name, data, cls=None):
 
         except KeyError:
             dt = UnsupportedDevice
+            dt = wrapCrossFramework(dt, "Placeholder device")
         except ValueError:
             dt = UnsupportedDevice
+            dt = wrapCrossFramework(dt, "Placeholder device")
+
         except Exception:
             dt = UnsupportedDevice
+            dt = wrapCrossFramework(dt, "Placeholder device")
             log.exception("Err creating device")
             err = traceback.format_exc()
 
@@ -1386,7 +1385,7 @@ def ensure_module_path_ok(module, resource):
                     not modules_state.ActiveModules[module][dir]["resource-type"]
                     == "directory"
                 ):
-                    raise RuntimeError("File exists blocking creation of: " + module)
+                    raise RuntimeError(f"File exists blocking creation of: {module}")
             if not dir.count("/"):
                 break
             dir = "/".join(dir.split("/")[-1:])
@@ -1508,13 +1507,13 @@ def createDevicesFromData():
                 device_location_cache[name] = (None, None)
                 remote_devices[name] = makeDevice(name, device_data[i], cls=cls)
                 remote_devices[name]._k_full_data = device_data[i]
-            syslogger.info("Created device from config: " + i)
+            syslogger.info(f"Created device from config: {i}")
         except Exception:
             messagebus.post_message(
                 "/system/notifications/errors",
-                "Error creating device: " + name + "\n" + traceback.format_exc(),
+                f"Error creating device: {name}\n{traceback.format_exc()}",
             )
-            syslogger.exception("Error initializing device " + str(name))
+            syslogger.exception(f"Error initializing device {str(name)}")
 
     remote_devices_atomic = wrcopy(remote_devices)
 
@@ -1537,11 +1536,11 @@ def warnAboutUnsupportedDevices():
                     d.warn()
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Device " + str(i) + " not supported",
+                    f"Device {str(i)} not supported",
                 )
             except Exception:
                 syslogger.exception(
-                    "Error warning about missing device support device " + str(i)
+                    f"Error warning about missing device support device {str(i)}"
                 )
 
 

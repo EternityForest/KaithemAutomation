@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 
-<%! 
+<%!
 from kaithem.src import devices,modules_state, devices_interface
 import os, gc
 from kaithem.src import directories
@@ -12,7 +12,7 @@ import urllib.parse
 
     width:  calc(min(60em, 100vw, 100%));
     }
-    
+
 </style>
 <script src="/static/js/widget.js"></script>
 
@@ -57,14 +57,14 @@ else:
 <article class="card" style="${greyout} margin: 1em; flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         <header>
         <div class="tool-bar">
-        <h3 title="${devObj.device_type_name}">    
+        <h3 title="${devObj.device_type_name}">
 
             <a href="device/${url(i)}/manage">${devObj.title|h}
-                
-                %if len(devObj.errors):
+
+                %if hasattr(devObj,'errors') and len(devObj.errors):
                 <span style="color: ${'red' if len(devObj.errors) else 'inherit' };">
                     ${(str(len(devObj.errors))+" errors")}
-                </span>  
+                </span>
                 %endif
             </a>
         </h3>
@@ -73,9 +73,9 @@ else:
             (Not found)
             %endif
 
-            
 
-          
+
+
 
         %if 'switch' in devObj.tagpoints:
             <button onclick="req('toggletarget/${url(i)}')"><i class="mdi mdi-light-bulb"></i>Toggle</button>
@@ -109,7 +109,7 @@ else:
                 <button  type="button"  style="background-color: #333333; color: lightblue;"  onclick="req('settarget/${url(i)}/color?value=%23333333')">Sable</button>
                 <button  type="button"  style="background-color: #377cd7;"  onclick="req('settarget/${url(i)}/color?value=%23377cd7')">Azure</button>
                 <button  type="button"   style="background-color: #26c061;" onclick="req('settarget/${url(i)}/color?value=%2326c061')">Vert</button>
-                <button  type="button"   style="background-color: #854296;  color: lightblue;" onclick="req('settarget/${url(i)}/color?value=%23854296')">Purpure</button>               
+                <button  type="button"   style="background-color: #854296;  color: lightblue;" onclick="req('settarget/${url(i)}/color?value=%23854296')">Purpure</button>
         </div>
 
         <div class="tool-bar">
@@ -134,7 +134,7 @@ else:
         ${devObj.config.get('description')|h}
     </p>
     %endif
-    
+
     </article>
 
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:

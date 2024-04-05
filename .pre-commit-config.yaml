@@ -72,6 +72,15 @@ repos:
           - "html"
           - "javascript"
 
+
+  # - repo: https://github.com/ikamensh/flynt/
+  #   rev: '1.0.1'
+  #   hooks:
+  #   -   id: flynt
+  #       args:
+  #       - "--transform-joins"
+  #       - "--transform-concats"
+
   # Set to select only obvious errors
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
