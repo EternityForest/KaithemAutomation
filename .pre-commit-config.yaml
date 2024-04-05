@@ -1,4 +1,14 @@
 repos:
+  - repo: local
+    hooks:
+    - id: no-dash-e
+      name: nodashe
+      description: check no editable modules in requirements
+      entry: '\-e '
+      language: pygrep
+      files: '.*requirements.txt'
+      types: [file]
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -15,12 +25,18 @@ repos:
       - id: check-byte-order-marker
       - id: check-json
       - id: forbid-new-submodules
+      - id: check-added-large-files
+        args: ['--maxkb=2500']
+      - id: check-merge-conflict
 
-  - repo: https://github.com/dhatim/python-license-check
-    rev: 0.9.2
-    hooks:
-      - id: liccheck
-        language: system
+
+  # TODO this seems to be gathering stuff from outside the virtual env.
+  # - repo: https://github.com/dhatim/python-license-check
+  #   rev: 0.9.2
+  #   hooks:
+  #     - id: liccheck
+  #       language: system
+  #       args: ["--no-deps"]
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
@@ -30,18 +46,31 @@ repos:
 
   - repo: https://github.com/sirosen/texthooks
     rev: 0.6.6
-    types_or:
-      - "python"
-      - "yaml"
-      - "json"
-      - "markdown"
-      - "html"
-      - "javascript"
     hooks:
-      - id: alphabetize-codeowners
       - id: fix-smartquotes
+        types_or:
+          - "python"
+          - "yaml"
+          - "json"
+          - "markdown"
+          - "html"
+          - "javascript"
       - id: fix-ligatures
+        types_or:
+          - "python"
+          - "yaml"
+          - "json"
+          - "markdown"
+          - "html"
+          - "javascript"
       - id: fix-spaces
+        types_or:
+          - "python"
+          - "yaml"
+          - "json"
+          - "markdown"
+          - "html"
+          - "javascript"
 
   # Set to select only obvious errors
   - repo: https://github.com/astral-sh/ruff-pre-commit
