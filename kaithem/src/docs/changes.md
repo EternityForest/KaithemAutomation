@@ -4,6 +4,7 @@ Change Log
 ### 0.77.0
 
 - :bug: Fix unused subdevice nuisance method resolution error
+- :coffin: Remove old baresip code
 
 ### 0.77.0
 

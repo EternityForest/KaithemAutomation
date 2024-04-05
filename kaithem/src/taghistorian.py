@@ -13,7 +13,9 @@ import json
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
-ramdbfile = "/dev/shm/" + socket.gethostname()+"-"+getpass.getuser()+"-taghistory.ldb"
+ramdbfile = (
+    "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.ldb"
+)
 
 
 syslogger = logging.getLogger("system")
@@ -28,28 +30,28 @@ if not os.path.exists(logdir):
 # For that reason, should someone get the bright idea to sync a kaithem vardir, we must keep the history databases single-writer.
 
 # Plus, there is nothing in the DB itself to tell us who wrote it, so this is very convenient.
-historyFilemame = socket.gethostname()+"-"+getpass.getuser()+"-taghistory.ldb"
+historyFilemame = socket.gethostname() + "-" + getpass.getuser() + "-taghistory.ldb"
 
 newHistoryDBFile = os.path.join(logdir, historyFilemame)
 
 
-class TagLogger():
+class TagLogger:
     """Base class for the object associated with one tag point for logging
-     a specific type(min,max,avg,etc) of data from that tag"""
-    accumType = 'latest'
+    a specific type(min,max,avg,etc) of data from that tag"""
+
+    accumType = "latest"
     defaultAccum = 0
 
-    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600, target='disk'):
-
+    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600, target="disk"):
         # We can have purely ram file based logging
-        if target == 'disk':
+        if target == "disk":
             self.h = historian
             self.filename = newHistoryDBFile
-        elif target == 'ram':
+        elif target == "ram":
             self.h = ramHistorian
             self.filename = ramdbfile
         else:
-            raise ValueError("target not supported: "+target)
+            raise ValueError("target not supported: " + target)
 
         self.target = target
 
@@ -94,14 +96,18 @@ class TagLogger():
             conn = sqlite3.Connection(self.filename)
 
             c = conn.cursor()
-            c.execute("SELECT count(*) FROM record WHERE channel=? AND timestamp<?",
-                      (self.chID, time.time() - self.historyLength))
+            c.execute(
+                "SELECT count(*) FROM record WHERE channel=? AND timestamp<?",
+                (self.chID, time.time() - self.historyLength),
+            )
             count = c.fetchone()[0]
 
             # Only delete records in large blocks. To do otherwise would create too much disk wear
             if count > 8192 if not force else 1024:
-                c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",
-                          (self.chID, time.time() - self.historyLength))
+                c.execute(
+                    "DELETE FROM record WHERE channel=? AND timestamp<?",
+                    (self.chID, time.time() - self.historyLength),
+                )
             conn.close()
 
     def getDataRange(self, minTime, maxTime, maxRecords=10000):
@@ -110,13 +116,15 @@ class TagLogger():
             conn = sqlite3.Connection(self.filename)
 
             c = conn.cursor()
-            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",
-                      (minTime, maxTime, self.chID, maxRecords))
+            c.execute(
+                "SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",
+                (minTime, maxTime, self.chID, maxRecords),
+            )
             for i in c:
                 d.append(i)
 
             x = []
-            for l in range(10):
+            for safety_counter in range(10):
                 x = []
                 # Best-effort attempt to include recent stuff.
                 # We don't want to use another lock and slow stuff down
@@ -140,13 +148,15 @@ class TagLogger():
             conn = sqlite3.Connection(self.filename)
 
             c = conn.cursor()
-            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",
-                      (minTime, maxTime, self.chID, maxRecords))
+            c.execute(
+                "SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",
+                (minTime, maxTime, self.chID, maxRecords),
+            )
             for i in c:
                 d.append(i)
 
             x = []
-            for l in range(15):
+            for safety_counter in range(15):
                 x = []
                 # Best-effort attempt to include recent stuff.
                 # We don't want to use another lock and slow stuff down
@@ -176,7 +186,7 @@ class TagLogger():
             pass
 
         elif isinstance(value, str):
-            value = value[:1024*128]
+            value = value[: 1024 * 128]
 
         elif isinstance(value, (list, dict, tuple)):
             value = json.dumps(value)
@@ -205,34 +215,44 @@ class TagLogger():
 
             c = conn.cursor()
             c.execute(
-                "SELECT rowid,tagName,unit,accumulate from channel WHERE tagName=?", (tag.name,))
+                "SELECT rowid,tagName,unit,accumulate from channel WHERE tagName=?",
+                (tag.name,),
+            )
             self.chID = None
 
             if not isinstance(tag.unit, str):
-                raise ValueError('bad tag unit ' + str(tag.unit))
+                raise ValueError("bad tag unit " + str(tag.unit))
 
             if not isinstance(self.accumType, str):
-                raise ValueError('bad tag accum ' + str(self.accumType))
+                raise ValueError("bad tag accum " + str(self.accumType))
 
             for i in c:
-                if i['tagName'] == tag.name and i['unit'] == tag.unit and i['accumulate'] == self.accumType:
-                    self.chID = i['rowid']
+                if (
+                    i["tagName"] == tag.name
+                    and i["unit"] == tag.unit
+                    and i["accumulate"] == self.accumType
+                ):
+                    self.chID = i["rowid"]
 
             if not self.chID:
-                conn.execute("INSERT INTO channel VALUES (?,?,?,?)",
-                             (tag.name, tag.unit, self.accumType, '{}'))
+                conn.execute(
+                    "INSERT INTO channel VALUES (?,?,?,?)",
+                    (tag.name, tag.unit, self.accumType, "{}"),
+                )
                 conn.commit()
 
             c = conn.cursor()
-            c.execute("SELECT rowid from channel WHERE tagName=? AND unit=? AND accumulate=?",
-                      (tag.name, tag.unit, self.accumType))
+            c.execute(
+                "SELECT rowid from channel WHERE tagName=? AND unit=? AND accumulate=?",
+                (tag.name, tag.unit, self.accumType),
+            )
             self.chID = c.fetchone()[0]
 
             conn.close()
 
 
 class AverageLogger(TagLogger):
-    accumType = 'mean'
+    accumType = "mean"
 
     def accumulate(self, value, timestamp, annotation):
         "Only ever called by the tag"
@@ -250,7 +270,12 @@ class AverageLogger(TagLogger):
         offset = time.time() - time.monotonic()
 
         self.insertData(
-            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal / self.accumCount))
+            (
+                self.chID,
+                (self.accumTime / self.accumCount) + offset,
+                self.accumVal / self.accumCount,
+            )
+        )
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = 0
@@ -258,7 +283,7 @@ class AverageLogger(TagLogger):
 
 
 class MinLogger(TagLogger):
-    accumType = 'min'
+    accumType = "min"
     defaultAccum = 10**18
 
     def accumulate(self, value, timestamp, annotation):
@@ -278,7 +303,8 @@ class MinLogger(TagLogger):
 
         offset = time.time() - time.monotonic()
         self.insertData(
-            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
+            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal)
+        )
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = 10**18
@@ -286,8 +312,8 @@ class MinLogger(TagLogger):
 
 
 class MaxLogger(MinLogger):
-    accumType = 'max'
-    defaultAccum = -10**18
+    accumType = "max"
+    defaultAccum = -(10**18)
 
     def accumulate(self, value, timestamp, annotation):
         "Only ever called by the tag"
@@ -306,18 +332,24 @@ class MaxLogger(MinLogger):
 
         offset = time.time() - time.monotonic()
         self.insertData(
-            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
+            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal)
+        )
         self.lastLogged = time.monotonic()
         self.accumCount = 0
-        self.accumVal = -10**18
+        self.accumVal = -(10**18)
         self.accumTime = 0
 
 
-accumTypes = {'replace': TagLogger, 'latest': TagLogger,
-              'mean': AverageLogger, 'max': MaxLogger, 'min': MinLogger}
+accumTypes = {
+    "replace": TagLogger,
+    "latest": TagLogger,
+    "mean": AverageLogger,
+    "max": MaxLogger,
+    "min": MinLogger,
+}
 
 
-class TagHistorian():
+class TagHistorian:
     # Generated puely randomly
     appID = 707898159
 
@@ -331,9 +363,10 @@ class TagHistorian():
 
         try:
             self.history.execute(
-                "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
+                "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)"
+            )
         except Exception:
-            shutil.move(file, file+".error_archived")
+            shutil.move(file, file + ".error_archived")
             newfile = True
             self.history = sqlite3.Connection(file)
 
@@ -346,12 +379,18 @@ class TagHistorian():
         self.children = {}
 
         self.history.execute(
-            "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
+            "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)"
+        )
         self.history.execute(
-            "CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)")
+            "CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)"
+        )
 
-        self.history.execute("CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.tagName as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;")
-        self.history.execute("CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.tagName as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;")
+        self.history.execute(
+            "CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.tagName as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"
+        )
+        self.history.execute(
+            "CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.tagName as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"
+        )
 
         self.pending = []
 
@@ -422,8 +461,7 @@ class TagHistorian():
                                 x.clearOldData(force)
 
                 for i in pending:
-                    self.history.execute(
-                        'INSERT INTO record VALUES (?,?,?)', i)
+                    self.history.execute("INSERT INTO record VALUES (?,?,?)", i)
             self.history.close()
 
 
@@ -432,5 +470,9 @@ try:
     ramHistorian = TagHistorian(ramdbfile)
     os.chmod(ramdbfile, 0o750)
 except Exception:
-    messagebus.post_message("/system/notifications/errors",
-                            "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc())
+    messagebus.post_message(
+        "/system/notifications/errors",
+        "Failed to create tag historian, logging will not work."
+        + "\n"
+        + traceback.format_exc(),
+    )

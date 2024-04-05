@@ -131,7 +131,7 @@ def get_dataset(name):
     ro = not rw
 
     with open_datasets_lock:
-        if not name in all_open_datasets:
+        if name not in all_open_datasets:
             if len(all_open_datasets) > 8:
                 j = None
                 for i in all_open_datasets:

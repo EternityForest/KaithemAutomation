@@ -9,7 +9,7 @@ tagPoints = {}
 
 
 def setTag(n, v, a=None):
-    if not n in tagPoints:
+    if n not in tagPoints:
         tagPoints[n] = tagpoints.Tag(n)
         tagPoints[n].min = 0
         tagPoints[n].max = 127
@@ -17,7 +17,7 @@ def setTag(n, v, a=None):
 
 
 def setTag14(n, v, a=None):
-    if not n in tagPoints:
+    if n not in tagPoints:
         tagPoints[n] = tagpoints.Tag(n)
         tagPoints[n].min = 0
         tagPoints[n].max = 16383
@@ -68,12 +68,14 @@ def onMidiMessage(m, d):
             a=0,
         )
 
+
 def normalizetag(t):
-    t = t.replace("-","_")
+    t = t.replace("-", "_")
     for i in tagpoints.ILLEGAL_NAME_CHARS:
-        t = t.replace(i,'')
+        t = t.replace(i, "")
 
     return t
+
 
 def onMidiMessageTuple(m, d):
     sb = m[0][0]
@@ -92,11 +94,15 @@ def onMidiMessageTuple(m, d):
 
     elif code == 224:
         messagebus.post_message("/midi/" + d, ("pitch", ch, a, b))
-        setTag14("/midi/" + normalizetag(d) + "/" + str(ch) + ".pitch", a + b * 128, a=0)
+        setTag14(
+            "/midi/" + normalizetag(d) + "/" + str(ch) + ".pitch", a + b * 128, a=0
+        )
 
     elif code == 176:
         messagebus.post_message("/midi/" + d, ("cc", ch, a, b))
-        setTag("/midi/" + normalizetag(d) + "/" + str(ch) + ".cc[" + str(a) + "]", b, a=0)
+        setTag(
+            "/midi/" + normalizetag(d) + "/" + str(ch) + ".cc[" + str(a) + "]", b, a=0
+        )
 
 
 once = [0]
@@ -104,6 +110,7 @@ once = [0]
 scanning_connection = None
 
 ctr = 0
+
 
 def doScan():
     global scanning_connection, ctr
@@ -122,26 +129,33 @@ def doScan():
     if not scanning_connection:
         # Support versions of rtmidi where it does not work the first time
         try:
-            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name="Kaithem"+str(ctr))
+            scanning_connection = rtmidi.MidiIn(
+                rtmidi.API_UNIX_JACK, name="Kaithem" + str(ctr)
+            )
         except Exception:
-            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name="Kaithem"+str(ctr))
-        ctr+=1
+            scanning_connection = rtmidi.MidiIn(
+                rtmidi.API_UNIX_JACK, name="Kaithem" + str(ctr)
+            )
+        ctr += 1
     torm = []
     try:
-        present = [(i, scanning_connection.get_port_name(i)) for i in range(scanning_connection.get_port_count())]
+        present = [
+            (i, scanning_connection.get_port_name(i))
+            for i in range(scanning_connection.get_port_count())
+        ]
         scanning_connection.close_port()
     except Exception:
         scanning_connection = None
         raise
 
     for i in allInputs:
-        if not i in present:
+        if i not in present:
             torm.append(i)
     for i in torm:
         del allInputs[i]
 
     for i in present:
-        if not i in allInputs:
+        if i not in allInputs:
             try:
                 m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
                 m.open_port(i[0])
@@ -153,7 +167,7 @@ def doScan():
                     .replace(":", "_")
                     .replace("[", "")
                     .replace("]", "")
-                    .replace(" ", "")
+                    .replace(" ", ""),
                 ):
                     if isinstance(x, tuple):
                         try:
