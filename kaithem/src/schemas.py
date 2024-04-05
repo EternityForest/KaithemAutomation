@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 import os
 import yaml
 import json
@@ -22,12 +25,16 @@ def extend_with_default(validator_class):
                 instance.setdefault(property, subschema["default"])
 
         for error in validate_properties(
-            validator, properties, instance, schema,
+            validator,
+            properties,
+            instance,
+            schema,
         ):
             yield error
 
     return validators.extend(
-        validator_class, {"properties": set_defaults},
+        validator_class,
+        {"properties": set_defaults},
     )
 
 
@@ -36,8 +43,9 @@ DefaultValidatingValidator = extend_with_default(Draft202012Validator)
 
 @cache
 def get_schema(schemaName: str):
-    fn = os.path.join(os.path.dirname(os.path.normpath(
-        __file__)), 'schemas', schemaName + ".yaml")
+    fn = os.path.join(
+        os.path.dirname(os.path.normpath(__file__)), "schemas", schemaName + ".yaml"
+    )
     with open(fn) as f:
         return yaml.load(f, Loader=yaml.SafeLoader)
 
@@ -52,7 +60,9 @@ def validate(schemaName: str, data: Any):
     get_validator(schemaName).validate(data)
 
 
-def clean_data_inplace(schemaName: str, data: Dict[str, Any], deprecated_only: bool = False):
+def clean_data_inplace(
+    schemaName: str, data: Dict[str, Any], deprecated_only: bool = False
+):
     "Remove top level keys not in the schema or that are deprecated."
 
     sc = get_schema(schemaName)
@@ -60,15 +70,15 @@ def clean_data_inplace(schemaName: str, data: Dict[str, Any], deprecated_only: b
     to_remove = []
 
     if not deprecated_only:
-        if not sc.get('additionalProperties', True):
+        if not sc.get("additionalProperties", True):
             for i in data:
-                if i not in sc['properties']:
+                if i not in sc["properties"]:
                     # print(f"Removing property not in schema {i}")
                     to_remove.append(i)
 
     # Check for deprecation
     for i in data:
-        if (i in sc['properties']) and sc['properties'][i].get('deprecated', False):
+        if (i in sc["properties"]) and sc["properties"][i].get("deprecated", False):
             # print(f"Removing deprecated property {i}")
             to_remove.append(i)
 
@@ -85,9 +95,8 @@ def supress_defaults(schemaName: str, data: Dict[str, Any]):
 
     # Check for deprecation
     for i in data:
-        if (i in sc['properties']) and 'default' in sc['properties'][i]:
-
-            d = sc['properties'][i]['default']
+        if (i in sc["properties"]) and "default" in sc["properties"][i]:
+            d = sc["properties"][i]["default"]
             if d == data[i]:
                 to_remove.append(i)
 

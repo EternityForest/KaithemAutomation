@@ -1,21 +1,9 @@
 # -*- coding: utf-8 -*-
-# Copyright Daniel Dunn 2013
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 
-"""This file implements ChandlerScript, a DSL for piplines of events triggered by 
+"""This file implements ChandlerScript, a DSL for piplines of events triggered by
 commands, called bindings.
 
 One binding fits on one line:
@@ -32,7 +20,7 @@ ctx.event("event")
 
 You can add an action by simply adding it as a function to the weak dict ctx.commands
 
-Arguments are preprocessed before being supplied as positionals. However, the dict based 
+Arguments are preprocessed before being supplied as positionals. However, the dict based
 variant supplies args as keywords, so be aware.
 
 Anything beginning with $ is considered a variable, it is expanded based on variables
@@ -44,7 +32,7 @@ int, unless it is quoted.
 The return value of the previous function is always available as $chain
 
 This means functions can potentially recieve any python data type.
-All functions should be strongly typed for this reason, and should use 
+All functions should be strongly typed for this reason, and should use
 the typeguard library to ensure this.
 
 
@@ -90,7 +78,7 @@ import simpleeval
 simpleeval.MAX_POWER = 1024
 
 
-class NamespaceGetter():
+class NamespaceGetter:
     "Takes a dict and a prefix. Responds to attr requests with dict[prefix+.+key]"
 
     def __init__(self, d, prefix):
@@ -98,7 +86,7 @@ class NamespaceGetter():
         self.__attr_dict = d
 
     def __getattr__(self, k):
-        return self.__attr_dict[self.__attr_prefix + '.' + k]
+        return self.__attr_dict[self.__attr_prefix + "." + k]
 
 
 def DummyObject():
@@ -146,20 +134,19 @@ def DummyObject():
 
 def paramDefault(p):
     if isinstance(p, int):
-        return '=' + str(p)
+        return "=" + str(p)
 
-    if isinstance(p, (int,float)):
-        return '=' + str(p)
+    if isinstance(p, (int, float)):
+        return "=" + str(p)
 
     if isinstance(p, str):
-
         # Wrap strings that look like numbers in quotes
         if p and not p.strip().startswith("="):
             try:
                 float(p)
-                return ("=" + "'" + repr(p) + "'")
+                return "=" + "'" + repr(p) + "'"
             except Exception:
-                return ("=" + repr(p))
+                return "=" + repr(p)
 
         # Presever things starting with = unchanged
         else:
@@ -169,20 +156,17 @@ def paramDefault(p):
         return 1 if p else 0
 
     if p is None:
-        return ''
-    return ''
+        return ""
+    return ""
 
 
 def get_function_info(f: Callable[..., Any]):
     p = inspect.signature(f).parameters
 
-    d = {
-        'doc': inspect.getdoc(f),
-        'args': [[i, paramDefault(p[i].default)] for i in p]
-    }
+    d = {"doc": inspect.getdoc(f), "args": [[i, paramDefault(p[i].default)] for i in p]}
 
     if hasattr(f, "completionTags"):
-        d['completionTags'] = f.completionTags
+        d["completionTags"] = f.completionTags
 
     return d
 
@@ -190,8 +174,8 @@ def get_function_info(f: Callable[..., Any]):
 def getContextFunctionInfo(f):
     p = inspect.signature(f).parameters
     d = {
-        'doc': inspect.getdoc(f),
-        'args': [[i, paramDefault(p[i].default)] for i in p][1:]
+        "doc": inspect.getdoc(f),
+        "args": [[i, paramDefault(p[i].default)] for i in p][1:],
     }
 
     return d
@@ -216,9 +200,8 @@ def isDay(lat=None, lon=None):
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings")
-    return (sky.isDay(lat, lon))
+            raise RuntimeError("No server location set, fix this in system settings")
+    return sky.isDay(lat, lon)
 
 
 def isNight(lat=None, lon=None):
@@ -227,9 +210,8 @@ def isNight(lat=None, lon=None):
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings")
-    return (sky.isNight(lat, lon))
+            raise RuntimeError("No server location set, fix this in system settings")
+    return sky.isNight(lat, lon)
 
 
 def isLight(lat=None, lon=None):
@@ -238,9 +220,8 @@ def isLight(lat=None, lon=None):
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings")
-    return (sky.isLight(lat, lon))
+            raise RuntimeError("No server location set, fix this in system settings")
+    return sky.isLight(lat, lon)
 
 
 def isDark(lat=None, lon=None):
@@ -250,10 +231,9 @@ def isDark(lat=None, lon=None):
     else:
         raise ValueError("You set lon, but not lst?")
     if lat is None or lon is None:
-        raise RuntimeError(
-            "No server location set, fix this in system settings")
+        raise RuntimeError("No server location set, fix this in system settings")
 
-    return (sky.isDark(lat, lon))
+    return sky.isDark(lat, lon)
 
 
 globalUsrFunctions = {
@@ -268,17 +248,13 @@ globalUsrFunctions = {
     "sin": math.sin,
     "cos": math.cos,
     "sqrt": safesqrt,
-
     "isDark": isDark,
     "isNight": isNight,
     "isLight": isLight,
-    "isDay": isDay
+    "isDay": isDay,
 }
 
-globalConstants = {
-    'e': math.e,
-    'pi': math.pi
-}
+globalConstants = {"e": math.e, "pi": math.pi}
 
 
 def rval(x):
@@ -297,7 +273,7 @@ def maybe(chance=50):
 
 
 def continueIf(v):
-    "Continue if the first parameter is True. Remember that the param can be an expression like '= event.value=50' "
+    "Continue if the first parameter is True. Remember that the param can be an expression like '= event.value=50'"
     return True if v else None
 
 
@@ -305,26 +281,27 @@ def continueIf(v):
 context_info = threading.local()
 
 predefinedcommands = {
-    'return': rval,
-    'pass': passAction,
-    'maybe': maybe,
-    'continueIf': continueIf
+    "return": rval,
+    "pass": passAction,
+    "maybe": maybe,
+    "continueIf": continueIf,
 }
 
 
 lock = threading.RLock()
 
 
-class ScheduleTimer():
+class ScheduleTimer:
     def __init__(self, selector, context):
         import recur
+
         self.eventName = selector
         self.context = weakref.ref(context)
 
         selector = selector.strip()
         if not selector:
             return
-        if not selector[0] == '@':
+        if not selector[0] == "@":
             raise ValueError("Invalid")
 
         self.selector = recur.getConstraint(selector[1:])
@@ -343,8 +320,7 @@ class ScheduleTimer():
             ctx.event(self.eventName)
 
             self.nextruntime = dt_to_ts(nextruntime, self.selector.tz)
-            self.next = scheduler.schedule(
-                self.handler, self.nextruntime, False)
+            self.next = scheduler.schedule(self.handler, self.nextruntime, False)
             ctx.onTimerChange(self.eventName, self.nextruntime)
 
         finally:
@@ -360,18 +336,24 @@ class ScheduleTimer():
 def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
-        utc = pytz.timezone('UTC')
-        return ((tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1))
+        utc = pytz.timezone("UTC")
+        return (
+            tz.localize(dt.replace(tzinfo=None))
+            - datetime.datetime(1970, 1, 1, tzinfo=utc)
+        ) / datetime.timedelta(seconds=1)
 
     else:
         # Local Time
         ts = time.time()
-        offset = (datetime.datetime.fromtimestamp(ts) -
-                  datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
+        offset = (
+            datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)
+        ).total_seconds()
+        return (
+            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
+        ) - offset
 
 
-class ScriptActionKeeper():
+class ScriptActionKeeper:
     "This typecheck wrapper is courtesy of two hours spent debugging at 2am, and my desire to avoid repeating that"
 
     def __init__(self):
@@ -388,9 +370,15 @@ class ScriptActionKeeper():
 
         p = inspect.signature(value).parameters
         for i in p:
-            if (not p[i].default == p[i].empty) and p[i].default and not isinstance(p[i].default, (str, int, bool)):
+            if (
+                (not p[i].default == p[i].empty)
+                and p[i].default
+                and not isinstance(p[i].default, (str, int, bool))
+            ):
                 raise ValueError(
-                    "All default values must be int, string, or bool, not " + str(p[i].default))
+                    "All default values must be int, string, or bool, not "
+                    + str(p[i].default)
+                )
 
         self.scriptcommands[key] = value
 
@@ -404,7 +392,7 @@ class ScriptActionKeeper():
         return self.scriptcommands.get(k, d)
 
 
-class Event():
+class Event:
     def __init__(self, name, val):
         self.name = name
         self.value = val
@@ -412,17 +400,17 @@ class Event():
         self.millis = millis()
 
 
-class BaseChandlerScriptContext():
-
-    def __init__(self, parentContext: BaseChandlerScriptContext = None,
-                  gil: threading.RLock = None, 
-                  functions:Dict[str, Callable[...,Any]]={}, 
-                  variables: Optional[Dict[str, Any]] = None,
-                  constants:Optional[Dict[str,Any]]=None,
-                  contextFunctions:Dict[str, Callable[...,Any]]={},
-                  contextName:str="script"):
-        
-
+class BaseChandlerScriptContext:
+    def __init__(
+        self,
+        parentContext: BaseChandlerScriptContext = None,
+        gil: threading.RLock = None,
+        functions: Dict[str, Callable[..., Any]] = {},
+        variables: Optional[Dict[str, Any]] = None,
+        constants: Optional[Dict[str, Any]] = None,
+        contextFunctions: Dict[str, Callable[..., Any]] = {},
+        contextName: str = "script",
+    ):
         self.pipelines = []
 
         # Used as a backup plan to be able to do things in a background thread
@@ -474,6 +462,7 @@ class BaseChandlerScriptContext():
         self.risingEdgeDetects = {}
 
         if parentContext:
+
             def delf(*a, **K):
                 with lock:
                     del parentContext.children[selfid]
@@ -498,7 +487,7 @@ class BaseChandlerScriptContext():
             self.setVar(Variable, Value)
 
         self.setter = setter
-        self.commands['set'] = setter
+        self.commands["set"] = setter
 
         for i in predefinedcommands:
             self.commands[i] = predefinedcommands[i]
@@ -511,8 +500,8 @@ class BaseChandlerScriptContext():
 
         functions = functions.copy()
         functions.update(globalUsrFunctions)
-        functions['defaultVar'] = defaultVar
-        functions['var'] = defaultVar
+        functions["defaultVar"] = defaultVar
+        functions["var"] = defaultVar
 
         c = {}
         # Wrap them, so the first param becomes this context object.
@@ -520,14 +509,17 @@ class BaseChandlerScriptContext():
         def wrap(self, f):
             def wrapped(*a, **k):
                 f(self, *a, **k)
+
             return wrapped
+
         for i in contextFunctions:
             c[i] = wrap(self, contextFunctions[i])
 
         self.functions = functions
 
         self.evaluator = simpleeval.SimpleEval(
-            functions=functions, names=self._nameLookup)
+            functions=functions, names=self._nameLookup
+        )
 
         if not gil:
             self.gil = threading.RLock()
@@ -540,18 +532,19 @@ class BaseChandlerScriptContext():
 
     def checkPollEvents(self):
         """Check every event that is actually an expression, to see if it should
-            be triggered
+        be triggered
         """
         with self.gil:
             for i in self.eventListeners:
                 try:
-
                     # Edge trigger
                     if i.startswith("=/"):
                         # Change =/ to just =
-                        r = self.preprocessArgument('=' + i[2:])
+                        r = self.preprocessArgument("=" + i[2:])
                         if r:
-                            if (i not in self.risingEdgeDetects) or (not self.risingEdgeDetects[i]):
+                            if (i not in self.risingEdgeDetects) or (
+                                not self.risingEdgeDetects[i]
+                            ):
                                 self.risingEdgeDetects[i] = True
                                 self.event(i, r)
                         else:
@@ -563,8 +556,10 @@ class BaseChandlerScriptContext():
                         if r:
                             self.event(i, r)
                 except Exception:
-                    self.event("script.error", self.contextName +
-                               "\n" + traceback.format_exc(chain=True))
+                    self.event(
+                        "script.error",
+                        self.contextName + "\n" + traceback.format_exc(chain=True),
+                    )
                     raise
 
     def getCommandDataForEditor(self):
@@ -594,19 +589,19 @@ class BaseChandlerScriptContext():
                     self.gil.release()
             else:
                 raise RuntimeError(
-                    "Event queue stalled, cannot execute, timed out waiting for the lock. Queued events are still buffered and may run later")
+                    "Event queue stalled, cannot execute, timed out waiting for the lock. Queued events are still buffered and may run later"
+                )
 
     def onTimerChange(self, timer, nextRunTime):
         pass
 
     def _runCommand(self, c):
-
         # ContextCommands take precendence
         a = self.commands.get(c[0], None)
         a = self.contextCommands.get(c[0], a)
 
         seen = {}
-        
+
         p = self
 
         while not a:
@@ -625,8 +620,7 @@ class BaseChandlerScriptContext():
             try:
                 return a(*[self.preprocessArgument(i) for i in c[1:]])
             except Exception:
-                raise RuntimeError(
-                    "Error running chandler command: " + str(c)[:1024])
+                raise RuntimeError("Error running chandler command: " + str(c)[:1024])
         else:
             raise ValueError("No such command: " + c)
 
@@ -679,7 +673,8 @@ class BaseChandlerScriptContext():
         try:
             if self.eventRecursionDepth.d > 8:
                 raise RecursionError(
-                    "Cannot nest more than 8 events directly causing each other")
+                    "Cannot nest more than 8 events directly causing each other"
+                )
 
             if not isinstance(val, Event):
                 self.eventValueStack.append(Event(evt, val))
@@ -702,8 +697,10 @@ class BaseChandlerScriptContext():
                                 break
                             self.variables["_"] = x
             except Exception:
-                self.event("script.error", self.contextName +
-                           "\n" + traceback.format_exc(chain=True))
+                self.event(
+                    "script.error",
+                    self.contextName + "\n" + traceback.format_exc(chain=True),
+                )
                 raise
 
         finally:
@@ -742,8 +739,8 @@ class BaseChandlerScriptContext():
         return self.evaluator.eval(a)
 
     def addNamespace(self, name):
-        """If name is foo, Makes variables named 'foo.bar' 
-           accessible via an actual foo obj. Kind of a hack to allow a flat list of vars"""
+        """If name is foo, Makes variables named 'foo.bar'
+        accessible via an actual foo obj. Kind of a hack to allow a flat list of vars"""
 
         self.namespaces[name] = NamespaceGetter(self.variables, name)
 
@@ -794,17 +791,18 @@ class BaseChandlerScriptContext():
         def wrap(self, f):
             def wrapped(*a, **k):
                 f(self, *a, **k)
+
         self.commands[name] = wrap(self, callable)
 
     def addBindings(self, b: List[List[str | float | bool] | str | float | bool]):
         """
-            Take a list of bindings and add them to the context.
-            A binding looks like:
-            ['eventname',[['command','arg1'],['command2']]
+        Take a list of bindings and add them to the context.
+        A binding looks like:
+        ['eventname',[['command','arg1'],['command2']]
 
-            When events happen commands run till one returns None.
+        When events happen commands run till one returns None.
 
-            Also immediately runs any now events
+        Also immediately runs any now events
         """
         with self.gil:
             # Cache is invalidated, bindings have changed
@@ -816,43 +814,42 @@ class BaseChandlerScriptContext():
                 self.eventListeners[i[0]].append(i[1])
                 self.onBindingAdded(i)
 
-            if 'now' in self.eventListeners:
-                self.event('now')
-                del self.eventListeners['now']
+            if "now" in self.eventListeners:
+                self.event("now")
+                del self.eventListeners["now"]
 
     def onBindingAdded(self, evt):
         "Called when a binding is added that listens to evt"
-        pass
 
     def startTimers(self):
         needCheck = 0
         with self.gil:
             for i in self.eventListeners:
-                if i and i.strip()[0] == '@':
+                if i and i.strip()[0] == "@":
                     if i not in self.timeEvents:
                         self.timeEvents[i] = ScheduleTimer(i, self)
                         self.onTimerChange(i, self.timeEvents[i].nextruntime)
                 if i == "script.poll":
                     if not self.poller:
-                        self.poller = scheduler.scheduleRepeating(
-                            self.poll, 1 / 24.0)
+                        self.poller = scheduler.scheduleRepeating(self.poll, 1 / 24.0)
                 # Really just a fallback for various insta-check triggers like tag changes
                 if i.strip().startswith("="):
                     if not self.slowpoller:
                         needCheck = True
                         self.slowpoller = scheduler.scheduleRepeating(
-                            self.checkPollEvents, 3)
+                            self.checkPollEvents, 3
+                        )
 
             # Run right away for faster response
             if needCheck:
                 self.checkPollEvents()
 
     def poll(self):
-        self.event('script.poll')
+        self.event("script.poll")
 
     def clearBindings(self):
         """Clear event bindings and associated data like timers.
-           Don't clear any binding for an event listed in preserve.
+        Don't clear any binding for an event listed in preserve.
         """
         with self.gil:
             self.eventListeners = {}
@@ -883,16 +880,16 @@ class BaseChandlerScriptContext():
 
 
 class ChandlerScriptContext(BaseChandlerScriptContext):
-    tagDefaultPrefix = '/sandbox/'
+    tagDefaultPrefix = "/sandbox/"
 
     def onTagChange(self, tagname, val):
-        """ We make a best effort to run this synchronously. If we cannot,
-            We let the background thread handle it.
+        """We make a best effort to run this synchronously. If we cannot,
+        We let the background thread handle it.
         """
+
         def f():
             if isinstance(val, str) and len(val) > 16000:
-                raise RuntimeError(
-                    tagname + " val too long for chandlerscript")
+                raise RuntimeError(tagname + " val too long for chandlerscript")
             self.setVar("$tag:" + tagname, val, True)
             if tagname not in self.needRefreshForTag:
                 self.needRefreshForTag[tagname] = False
@@ -915,6 +912,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         def onchange(v, ts, an):
             self.onTagChange(tag.name, v)
+
         tag.subscribe(onchange)
         self.needRefreshForTag[tag.name] = True
         self.tagHandlers[tag.name] = (tag, onchange)
@@ -928,7 +926,8 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
     def specialVariableHook(self, k, v):
         if k.startswith("$tag:"):
             raise NameError(
-                "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
+                "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)"
+            )
 
     def on_clearBindingsHook(self):
         for i in self.tagHandlers:
@@ -956,7 +955,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             None will silently return and do nothing if the tag does not exist.
             """
 
-            if not tagName[0] == '/':
+            if not tagName[0] == "/":
                 tagName = "/" + tagName
 
             self.needRefreshForTag = {}
@@ -983,17 +982,19 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                 else:
                     self.setupTag(tagType(tagName))
                     tc = tagType(tagName).claim(
-                        value=value, priority=priority, name=self.contextName + "at" + str(id(self)))
+                        value=value,
+                        priority=priority,
+                        name=self.contextName + "at" + str(id(self)),
+                    )
                     self.tagClaims[tagName] = tc
                 tc.set(value)
                 self.setVar("$tag:" + tagName, value, True)
             else:
-                raise RuntimeError(
-                    "This script context cannot access that tag")
+                raise RuntimeError("This script context cannot access that tag")
             return True
 
         self.setTag = setTag
-        self.commands['setTag'] = setTag
+        self.commands["setTag"] = setTag
 
         self.tagpoints = {}
         self.tagHandlers = {}
@@ -1016,13 +1017,14 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             self.setupTag(t)
             self.setVar("$tag:" + t.name, t.value, True)
             return t.value
+
         c = {}
 
-        c['tagValue'] = tagpoint
-        c['tv'] = tagpoint
+        c["tagValue"] = tagpoint
+        c["tv"] = tagpoint
 
-        c['stringTagValue'] = stringtagpoint
-        c['stv'] = stringtagpoint
+        c["stringTagValue"] = stringtagpoint
+        c["stv"] = stringtagpoint
 
         self.functions.update(c)
 
@@ -1048,17 +1050,18 @@ def bat(a):
 
 def no(*a, **k):
     raise RuntimeError(
-        "This shouldn't run, the prev command returning None stops the pipe")
+        "This shouldn't run, the prev command returning None stops the pipe"
+    )
 
 
-c.commands['baseball'] = baseball
-c.commands['bat'] = bat
-c.commands['no'] = no
+c.commands["baseball"] = baseball
+c.commands["bat"] = bat
+c.commands["no"] = no
 c.commands
 
 b = [
-    ['window', [['baseball'], ['bat', "='glove'"], ["no", "this", "shouldn't", "run"]]],
-    ['test', [['set', 'foo', 'bar']]]
+    ["window", [["baseball"], ["bat", "='glove'"], ["no", "this", "shouldn't", "run"]]],
+    ["test", [["set", "foo", "bar"]]],
 ]
 
 c.addBindings(b)
@@ -1073,12 +1076,12 @@ c.addBindings(b)
 # Note that the first arg of bat stats with an equals sign
 # so it gets evaluated, just like a LibreOffice Calc cell.
 
-c.event('window')
-c.event('test')
+c.event("window")
+c.event("test")
 
 c.waitForEvents()
 
 if not x == desired:
     raise RuntimeError("The ChandlerScript module isn't working as planned")
-if not c.variables['foo'] == 'bar':
+if not c.variables["foo"] == "bar":
     raise RuntimeError("The ChandlerScript module isn't working as planned")

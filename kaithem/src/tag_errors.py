@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 from . import tagpoints, messagebus
 from types import MethodType
 import time

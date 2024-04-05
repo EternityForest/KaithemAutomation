@@ -1,4 +1,5 @@
-
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 import time
 
@@ -84,55 +85,61 @@ vueApp = """
 
 
 def default(basename, **kw):
-    return{
+    return {
         "template-engine": "jinja2",
         "resource-type": "page",
         "body": defaulthtml.format(basename=basename),
-        'require-method': ['GET', 'POST'],
-        'require-permissions': [],
-        'resource-timestamp': int(time.time()*1000000),
-        'resource-type': 'page',
-        'no-navheader': True,
-        'no-header': True,
+        "require-method": ["GET", "POST"],
+        "require-permissions": [],
+        "resource-timestamp": int(time.time() * 1000000),
+        "resource-type": "page",
+        "no-navheader": True,
+        "no-header": True,
     }
 
 
 def vue(basename, **kw):
-    return{
+    return {
         "resource-type": "page",
-        "body": vueApp.replace("{basename}",basename),
-        'require-method': ['GET', 'POST'],
-        'require-permissions': [],
-        'resource-timestamp': int(time.time()*1000000),
-        'resource-type': 'page',
-        'no-navheader': True,
-        'no-header': True,
+        "body": vueApp.replace("{basename}", basename),
+        "require-method": ["GET", "POST"],
+        "require-permissions": [],
+        "resource-timestamp": int(time.time() * 1000000),
+        "resource-type": "page",
+        "no-navheader": True,
+        "no-header": True,
     }
 
 
 def freeboard(basename, **kw):
-    return{
+    return {
         "resource-type": "page",
         "body": freeboardhtml.format(basename=basename),
-        'no-navheader': True,
-        'no-header': True,
-        'require-method': ['GET', 'POST'],
-        'require-permissions': [],
-        'resource-timestamp': int(time.time()*1000000),
+        "no-navheader": True,
+        "no-header": True,
+        "require-method": ["GET", "POST"],
+        "require-permissions": [],
+        "resource-timestamp": int(time.time() * 1000000),
     }
 
 
-#For making a web API call
+# For making a web API call
 def service(basename, **kw):
-    return{
+    return {
         "resource-type": "page",
         "body": servicehtml,
-        'no-navheader': True,
-        'no-header': True,
-        'require-method': ['GET', 'POST'],
-        'require-permissions': [],
-        'resource-timestamp': int(time.time()*1000000),
-        'template-engine': "mako"
+        "no-navheader": True,
+        "no-header": True,
+        "require-method": ["GET", "POST"],
+        "require-permissions": [],
+        "resource-timestamp": int(time.time() * 1000000),
+        "template-engine": "mako",
     }
 
-templates = {'default': default, 'freeboard': freeboard, 'service': service, "vue3": vue}
+
+templates = {
+    "default": default,
+    "freeboard": freeboard,
+    "service": service,
+    "vue3": vue,
+}

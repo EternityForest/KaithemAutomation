@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2016
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2016 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 
 import logging
@@ -68,8 +56,12 @@ atexit.register(at_exit)
 
 class KFormatter(logging.Formatter):
     def formatException(self, exc_info):
-        return textwrap.fill(logging.Formatter.formatException(self, exc_info), initial_indent="  ", subsequent_indent="  ", width=240)
-
+        return textwrap.fill(
+            logging.Formatter.formatException(self, exc_info),
+            initial_indent="  ",
+            subsequent_indent="  ",
+            width=240,
+        )
 
 
 lastRaisedLogFailError = [0]
@@ -86,15 +78,27 @@ def rateLimitedRaise(e):
 
 
 class LoggingHandler(logging.Handler):
-    def __init__(self, name, folder, fn, bufferlen=25000,
-                 level=30, contextlevel=10, contextbuffer=0,
-                 entries_per_file=25000, keep=10, compress='none', doprint=True, exclude_print=''):
+    def __init__(
+        self,
+        name,
+        folder,
+        fn,
+        bufferlen=25000,
+        level=30,
+        contextlevel=10,
+        contextbuffer=0,
+        entries_per_file=25000,
+        keep=10,
+        compress="none",
+        doprint=True,
+        exclude_print="",
+    ):
         """Implements a memory-buffered context logger with automatic log rotation.
         Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
         When that happens,logs are dumped to a file named fn_TIMESTAMP.FRACTIONALPART.log,
         fn_TIMESTAMP.FRACTIONALPART.log.gz, or fn_TIMESTAMP.FRACTIONALPART.log.bz2.
 
-        Log records below level are normally ignored, however in they are 
+        Log records below level are normally ignored, however in they are
         above contextlevel the most recent contextbuffer logs are kept in memory,
         and are flushed to the main logging buffer just before writing the next
         log record that is above level. In this way more important log messages
@@ -105,10 +109,11 @@ class LoggingHandler(logging.Handler):
         always cause a new file to be opened.
         """
         logging.Handler.__init__(self)
-        if not compress == 'none':
+        if not compress == "none":
             if not bufferlen == entries_per_file:
                 raise ValueError(
-                    "entries_per_file must == bufferlen when using compression as compressed files cannot be efficiently appended")
+                    "entries_per_file must == bufferlen when using compression as compressed files cannot be efficiently appended"
+                )
         self.name = name
         self.fn = fn
         self.doprint = doprint
@@ -141,7 +146,8 @@ class LoggingHandler(logging.Handler):
         self.callback = lambda x: x
         logging.getLogger().addHandler(self)
         formatter = KFormatter(
-            '%(levelname)s:%(asctime)s %(name)s %(message)s', "%Y%b%d %H:%M:%S %Z")
+            "%(levelname)s:%(asctime)s %(name)s %(message)s", "%Y%b%d %H:%M:%S %Z"
+        )
         self.setFormatter(formatter)
         all_handlers[(time.time(), random.random(), self.name)] = self
 
@@ -158,8 +164,7 @@ class LoggingHandler(logging.Handler):
         return super().filter(record)
 
     def handle(self, record):
-        """Watch out with this. We are overriding the handle method so we can do our own locking.
-        """
+        """Watch out with this. We are overriding the handle method so we can do our own locking."""
 
         rv = self.filter(record)
 
@@ -170,9 +175,17 @@ class LoggingHandler(logging.Handler):
     def emit(self, record):
         # We handle all logs that make it to the root logger, and do the filtering ourselves
         if self.doprint:
-            if not self.exclude_print or (not (record.name == self.exclude_print or record.name.startswith(self.exclude_print + "."))):
+            if not self.exclude_print or (
+                not (
+                    record.name == self.exclude_print
+                    or record.name.startswith(self.exclude_print + ".")
+                )
+            ):
                 print(self.format(record))
-        if not (record.name == self.name or record.name.startswith(self.name + ".")) and not self.name == '':
+        if (
+            not (record.name == self.name or record.name.startswith(self.name + "."))
+            and not self.name == ""
+        ):
             return
         self.callback(record)
         with self.lock:
@@ -183,7 +196,7 @@ class LoggingHandler(logging.Handler):
             # That truncation operation will actulally do nothing if the contextlen is 0
             elif self.contextlen:
                 self.contextbuffer.append(self.format(record))
-                self.contextbuffer = self.contextbuffer[-self.contextlen:]
+                self.contextbuffer = self.contextbuffer[-self.contextlen :]
 
         if len(self.logbuffer) >= self.bufferlen:
             try:
@@ -199,7 +212,7 @@ class LoggingHandler(logging.Handler):
 
                 print(traceback.format_exc())
                 print("Log flush error " + repr(e))
-                #logging.exception("error flushing logs with handler "+repr(self))
+                # logging.exception("error flushing logs with handler "+repr(self))
 
     def flush(self):
         """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
@@ -213,23 +226,24 @@ class LoggingHandler(logging.Handler):
             if not self.logbuffer:
                 return
 
-            if self.compress == 'bz2':
+            if self.compress == "bz2":
                 openlog = bz2.BZ2File
-                ext = '.log.bz2'
+                ext = ".log.bz2"
 
-            elif self.compress == 'gzip' or self.compress == 'gz':
+            elif self.compress == "gzip" or self.compress == "gz":
                 openlog = gzip.GzipFile
-                ext = '.log.gz'
+                ext = ".log.gz"
 
-            elif self.compress == 'none':
+            elif self.compress == "none":
                 openlog = open
-                ext = '.log'
+                ext = ".log"
 
             else:
                 openlog = open
-                ext = '.log'
+                ext = ".log"
                 print(
-                    "Invalid config option for 'log-compress' so defaulting to no compression")
+                    "Invalid config option for 'log-compress' so defaulting to no compression"
+                )
 
             # Swap out the log buffers so we can work with an immutable copy
             # That way we don't block anything that tries to write a log for the entirety of
@@ -253,8 +267,7 @@ class LoggingHandler(logging.Handler):
                 # Actually dump the log.
                 t = time.time()
                 if not self.current_file:
-                    fn = os.path.join(
-                        self.folder, self.fn + "_" + str(t) + ext)
+                    fn = os.path.join(self.folder, self.fn + "_" + str(t) + ext)
                     self.current_file = fn
                 else:
                     fn = self.current_file
@@ -264,7 +277,9 @@ class LoggingHandler(logging.Handler):
                 # TODO: TOo Many Open Files error
                 chmodflag = not os.path.exists(self.current_file)
                 try:
-                    with openlog(self.current_file, 'ba' if self.compress == "none" else "wb") as f:
+                    with openlog(
+                        self.current_file, "ba" if self.compress == "none" else "wb"
+                    ) as f:
                         if chmodflag:
                             util.chmod_private_try(fn)
                         for i in logbuffer:
@@ -273,7 +288,7 @@ class LoggingHandler(logging.Handler):
                             f.write(b)
                     # Keep track of how many we have written to the file
                     self.counter += len(logbuffer)
-                    
+
                 except PermissionError as e:
                     # Swap them back so we can flush later, but don't hoard too many
                     self.logbuffer = logbuffer[-32:]
@@ -300,12 +315,12 @@ class LoggingHandler(logging.Handler):
                     gc.collect()
                     rateLimitedRaise(e)
 
-               
-
                 # If we have filled up one file, we close it, and let the logic
                 # for the next dump decide what to do about it.
                 # Always start a new file after a compressed dump.
-                if (self.counter >= self.entries_per_file) or not self.compress == 'none':
+                if (
+                    self.counter >= self.entries_per_file
+                ) or not self.compress == "none":
                     self.current_file = None
                     self.counter = 0
                     self.bytecounter = 0
@@ -350,22 +365,26 @@ class LoggingHandler(logging.Handler):
 
 
 # Don't print, the root logger does that.
-syslogger = LoggingHandler("system", fn="system" if not config['log-format'] == 'none' else None,
-
-                           folder=os.path.join(directories.logdir, "dumps"), level=20,
-                           entries_per_file=config['log-dump-size'],
-                           bufferlen=config['log-buffer'],
-                           keep=unitsofmeasure.str_to_int_si_multipliers(
-                               config['keep-log-files']),
-                           compress=config['log-compress'], doprint=False)
+syslogger = LoggingHandler(
+    "system",
+    fn="system" if not config["log-format"] == "none" else None,
+    folder=os.path.join(directories.logdir, "dumps"),
+    level=20,
+    entries_per_file=config["log-dump-size"],
+    bufferlen=config["log-buffer"],
+    keep=unitsofmeasure.str_to_int_si_multipliers(config["keep-log-files"]),
+    compress=config["log-compress"],
+    doprint=False,
+)
 
 # Linux only way of recovering backups even if the
 if os.path.exists("/dev/shm/kaithemdbglog_" + getpass.getuser()):
     if not os.path.exists("/dev/shm/shutdowntime_" + getpass.getuser()):
-
         try:
-            shutil.copytree("/dev/shm/kaithemdbglog_" + getpass.getuser(),
-                            "/dev/shm/kaithemdbglogbackup_" + getpass.getuser())
+            shutil.copytree(
+                "/dev/shm/kaithemdbglog_" + getpass.getuser(),
+                "/dev/shm/kaithemdbglogbackup_" + getpass.getuser(),
+            )
         except:
             pass
 
@@ -374,10 +393,12 @@ if os.path.exists("/dev/shm/kaithemdbglog_" + getpass.getuser()):
         except:
             pass
 
-        messagebus.post_message("/system/notifications/errors",
-                               """Kaithem may have shutdown uncleanly due to a segfault, kill-9, or similar.
+        messagebus.post_message(
+            "/system/notifications/errors",
+            """Kaithem may have shutdown uncleanly due to a segfault, kill-9, or similar.
         Recovered logs have been backed up to '/dev/shm/kaithemdbglogbackup'
-        """)
+        """,
+        )
 
 
 # This lets us tell a clean shutdown from something like a segfault.
@@ -400,12 +421,16 @@ if os.path.exists("/dev/shm"):
 
 # We also print everything not printed in the root here
 if os.path.exists("/dev/shm"):
-    shmhandler = LoggingHandler("", fn="kaithemlog",
-                                folder="/dev/shm/kaithemdbglog_" + getpass.getuser() + "/", level=0,
-                                entries_per_file=5000,
-                                bufferlen=0,
-                                keep=10**6,
-                                compress="none",
-                                doprint=True,
-                                exclude_print="system")
+    shmhandler = LoggingHandler(
+        "",
+        fn="kaithemlog",
+        folder="/dev/shm/kaithemdbglog_" + getpass.getuser() + "/",
+        level=0,
+        entries_per_file=5000,
+        bufferlen=0,
+        keep=10**6,
+        compress="none",
+        doprint=True,
+        exclude_print="system",
+    )
     shmhandler.isShmHandler = True

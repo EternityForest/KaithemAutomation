@@ -1,4 +1,5 @@
-
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 import webbrowser
 import urllib.parse
 import time
@@ -13,6 +14,7 @@ from sqlite_web import sqlite_web
 
 def install_auth_handler():
     "Does nothin because auths handled by kaithem at the routing level"
+
     @app.before_request
     def check_password():
         return
@@ -31,9 +33,7 @@ def open_browser_tab(name, host, port):
     thread.start()
 
 
-
 def get_app():
-
     # This resolver runs in the Flask contexts and translates
     # A name into a file plus  flag indicating writable
     def resolve(name):

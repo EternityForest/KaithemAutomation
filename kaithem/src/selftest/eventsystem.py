@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2019
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2019 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 # This file runs a self test when python starts
 
@@ -26,19 +14,21 @@ running_tests = []
 
 def eventSystemTest():
     from .. import newevt
+
     try:
         _eventSystemTest()
     finally:
-        newevt.removeOneEvent('testevt', 'testevt')
-        newevt.removeOneEvent('TEST1', 'TEST1')
-        newevt.removeOneEvent('TEST2', 'TEST2')
+        newevt.removeOneEvent("testevt", "testevt")
+        newevt.removeOneEvent("TEST1", "TEST1")
+        newevt.removeOneEvent("TEST2", "TEST2")
 
 
 def _eventSystemTest():
     from .. import newevt, messagebus, modules_state
+
     logging.info("Beginning self test of event system")
     running_tests.append(1)
-    modules_state.scopes['x'] = {}
+    modules_state.scopes["x"] = {}
     # Create an event that sets y to 0 if it is 1
     with newevt._event_list_lock:
         x = newevt.Event("y==1", "global y\ny=0", setup="y=0")
@@ -136,30 +126,34 @@ def _eventSystemTest():
     # It was an old thing to caths a circular reference bug.
     with newevt._event_list_lock:
         # Now we test the message bus event
-        x = newevt.Event("!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0")
-        x.module = x.resource = 'TEST2'
+        x = newevt.Event(
+            "!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0"
+        )
+        x.module = x.resource = "TEST2"
         # Make sure nobody is iterating the eventlist
         # Add new event
         x.register()
         # Update index
         newevt.EventReferences[x.module, x.resource] = x
 
-    testObj = weakref.ref(x.pymodule.__dict__['testObj'])
+    testObj = weakref.ref(x.pymodule.__dict__["testObj"])
 
     time.sleep(0.25)
     # Give it a value to change from
-    messagebus.post_message("/system/selftest", 'foo')
+    messagebus.post_message("/system/selftest", "foo")
     # Let it notice the old value
 
     time.sleep(0.25)
     x.unregister()
     # y should immediately be set back to 0 at the next polling cycle
-    if not hasattr(x.pymodule, 'y'):
+    if not hasattr(x.pymodule, "y"):
         time.sleep(5)
-        if not hasattr(x.pymodule, 'y'):
+        if not hasattr(x.pymodule, "y"):
             raise RuntimeError("Message Event did nothing or took longer than 5s")
         else:
-            raise RuntimeError("Message Event had slow performance, delivery took more than 0.25s")
+            raise RuntimeError(
+                "Message Event had slow performance, delivery took more than 0.25s"
+            )
 
     try:
         x.pymodule.y = 1
@@ -171,6 +165,7 @@ def _eventSystemTest():
     # Make sure the weakref isn't referencing
     if testObj():
         import gc
+
         gc.collect(0)
         gc.collect(1)
         gc.collect(2)
@@ -178,13 +173,15 @@ def _eventSystemTest():
         gc.collect(1)
         gc.collect(2)
         if testObj():
-            raise RuntimeError("Object in event scope still exists after module deletion and GC")
+            raise RuntimeError(
+                "Object in event scope still exists after module deletion and GC"
+            )
 
-    messagebus.post_message('foo', "/system/selftest")
+    messagebus.post_message("foo", "/system/selftest")
     # If there is no y or pymodule, this test won't work but we can probably assume it unregistered correctly.
     # Maybe we should add a real test that works either way?
-    if hasattr(x, 'pymodule') and hasattr(x.pymodule, 'y'):
-        if x.pymodule.y == 'test':
+    if hasattr(x, "pymodule") and hasattr(x.pymodule, "y"):
+        if x.pymodule.y == "test":
             raise RuntimeError("Message Event did not go away when unregistered")
 
     running_tests.pop()

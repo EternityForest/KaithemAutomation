@@ -1,6 +1,5 @@
-# This code runs once when the event loads. It also runs when you save the event during the test compile
-# and may run multiple times when kaithem boots due to dependancy resolution
-__doc__ = ""
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 import tornado
 import os
@@ -12,24 +11,24 @@ from . import pages, directories, kaithemobj
 http_client = httpclient.AsyncHTTPClient()
 
 
-def get_fn(x, y, z, map='openstreetmap'):
+def get_fn(x, y, z, map="openstreetmap"):
     return os.path.join(directories.vardir, "maptiles", map, z, x, y + ".png")
 
 
-async def get_tile(x, y, z, r, map='openstreetmap'):
+async def get_tile(x, y, z, r, map="openstreetmap"):
     if pages.canUserDoThis("system_admin", pages.getAcessingUser(r)):
         if os.path.isfile(get_fn(x, y, z)):
             return
 
         os.makedirs(os.path.dirname(get_fn(x, y, z)), exist_ok=True)
 
-        if map == 'opentopomap':
+        if map == "opentopomap":
             if random.random() > 0.5:
                 r = http_client.fetch(f"https://b.tile." + map + ".org/{z}/{x}/{y}.png")
             else:
                 r = http_client.fetch(f"https://a.tile." + map + ".org/{z}/{x}/{y}.png")
         else:
-            r = http_client.fetch(f'https://tile.openstreetmap.org/{z}/{x}/{y}.png')
+            r = http_client.fetch(f"https://tile.openstreetmap.org/{z}/{x}/{y}.png")
 
         r = await r
         with open(get_fn(x, y, z), "wb") as f:
@@ -47,11 +46,11 @@ class MainHandler(tornado.web.RequestHandler):
         self.finish()
 
     async def get(self):
-        map = self.request.arguments.get('map')
+        map = self.request.arguments.get("map")
         if map:
             map = map[0].decode()
         else:
-            map = 'openstreetmap'
+            map = "openstreetmap"
 
         components = [x for x in self.request.path.replace(".png", "").split("/") if x]
 
@@ -72,9 +71,7 @@ class MainHandler(tornado.web.RequestHandler):
             ):
                 return self.serve(
                     os.path.join(
-                        os.path.expanduser(
-                            "~/.local/share/marble/maps/earth/" + map
-                        ),
+                        os.path.expanduser("~/.local/share/marble/maps/earth/" + map),
                         z,
                         x,
                         y,
@@ -82,15 +79,11 @@ class MainHandler(tornado.web.RequestHandler):
                 )
 
             if os.path.exists(
-                os.path.join(
-                    "/home/pi/.local/share/marble/maps/earth/" + map, z, x, y
-                )
+                os.path.join("/home/pi/.local/share/marble/maps/earth/" + map, z, x, y)
             ):
                 return self.serve(
                     os.path.exists(
-                        os.path.join(
-                            "/home/pi/share/marble/maps/earth/" + map, z, x, y
-                        )
+                        os.path.join("/home/pi/share/marble/maps/earth/" + map, z, x, y)
                     )
                 )
 
@@ -101,4 +94,6 @@ class MainHandler(tornado.web.RequestHandler):
         raise RuntimeError("No Tile Found")
 
 
-kaithemobj.kaithem.web.add_tornado_app("/maptiles/tile/.*", MainHandler, {}, '__guest__')
+kaithemobj.kaithem.web.add_tornado_app(
+    "/maptiles/tile/.*", MainHandler, {}, "__guest__"
+)

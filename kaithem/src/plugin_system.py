@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 from . import messagebus
 import os
 import importlib
@@ -9,6 +12,7 @@ logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
 
 plugins = {}
+
 
 def load_plugins():
     try:

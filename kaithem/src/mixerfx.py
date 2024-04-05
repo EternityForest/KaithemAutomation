@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 # These are templates for effect data. Note that they contain everything needed to generate and interface for
 # And use a gstreamer element. Except fader, which is special cased.
 effectTemplates_data = {

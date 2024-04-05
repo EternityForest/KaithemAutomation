@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2013, 2015
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 # This is for the ability to move directories.
 # State is for modules ad persistance files
@@ -37,9 +25,10 @@ srcdir = dn
 
 def getRootAndroidDir():
     from jnius import autoclass, cast
-    PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    Environment = autoclass('android.os.Environment')
-    context = cast('android.content.Context', PythonActivity.mActivity)
+
+    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    Environment = autoclass("android.os.Environment")
+    context = cast("android.content.Context", PythonActivity.mActivity)
 
     user_services_dir = context.getExternalFilesDir(
         Environment.getDataDirectory().getAbsolutePath()
@@ -48,40 +37,43 @@ def getRootAndroidDir():
     return os.path.join(user_services_dir, "var")
 
 
-if 'ANDROID_ARGUMENT' in environ:
+if "ANDROID_ARGUMENT" in environ:
     vardir = getRootAndroidDir()
-    datadir = os.path.normpath(os.path.join(dn, '../data'))
+    datadir = os.path.normpath(os.path.join(dn, "../data"))
     logdir = os.path.join(
-        vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
+        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
+    )
 else:
-
-    vardir = os.path.normpath(os.path.join(dn, '..'))
-    vardir = os.path.join(vardir, os.path.expanduser(config['site-data-dir']))
+    vardir = os.path.normpath(os.path.join(dn, ".."))
+    vardir = os.path.join(vardir, os.path.expanduser(config["site-data-dir"]))
 
     # These non writable paths indicate we should do stuff differently because we are installed with setuptools
     # most likely
-    if vardir.startswith('/usr') or vardir.startswith('/nix'):
+    if vardir.startswith(("/usr", "/nix")):
         vardir = os.path.expanduser("~/kaithem")
 
     # Override the default for snaps
-    if vardir.startswith('/snap/'):
-        if not config['site-data-dir'].startswith("~") or config['site-data-dir'].startswith("/"):
-            vardir = os.path.expanduser("~/"+config['site-data-dir'])
+    if vardir.startswith("/snap/"):
+        if not config["site-data-dir"].startswith("~") or config[
+            "site-data-dir"
+        ].startswith("/"):
+            vardir = os.path.expanduser("~/" + config["site-data-dir"])
 
-    datadir = os.path.normpath(os.path.join(dn, '../data'))
+    datadir = os.path.normpath(os.path.join(dn, "../data"))
     logdir = os.path.join(
-        vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
+        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
+    )
 
-usersdir = os.path.join(vardir, 'users')
-
-
-mixerdir = os.path.join(vardir, 'system.mixer')
+usersdir = os.path.join(vardir, "users")
 
 
-moduledir = os.path.join(vardir, 'modules')
-htmldir = os.path.join(dn, 'html')
+mixerdir = os.path.join(vardir, "system.mixer")
 
-ssldir = os.path.expanduser(config['ssl-dir'])
+
+moduledir = os.path.join(vardir, "modules")
+htmldir = os.path.join(dn, "html")
+
+ssldir = os.path.expanduser(config["ssl-dir"])
 if not ssldir.startswith("/"):
     ssldir = os.path.join(vardir, ssldir)
 else:
@@ -92,20 +84,21 @@ def recreate():
     global dn, vardir, usersdir, logdir, regdir, moduledir, datadir, htmldir, ssldir
     dn = os.path.dirname(os.path.realpath(__file__))
 
-    if 'ANDROID_ARGUMENT' in environ:
+    if "ANDROID_ARGUMENT" in environ:
         vardir = getRootAndroidDir()
     else:
-        vd = os.path.normpath(os.path.join(dn, '..'))
-        vardir = os.path.join(vd, os.path.expanduser(config['site-data-dir']))
+        vd = os.path.normpath(os.path.join(dn, ".."))
+        vardir = os.path.join(vd, os.path.expanduser(config["site-data-dir"]))
 
-    usersdir = os.path.join(vardir, 'users')
+    usersdir = os.path.join(vardir, "users")
     logdir = os.path.join(
-        vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
-    moduledir = os.path.join(vardir, 'modules')
-    datadir = os.path.normpath(os.path.join(dn, '../data'))
-    htmldir = os.path.join(dn, 'html')
+        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
+    )
+    moduledir = os.path.join(vardir, "modules")
+    datadir = os.path.normpath(os.path.join(dn, "../data"))
+    htmldir = os.path.join(dn, "html")
 
-    ssldir = os.path.expanduser(config['ssl-dir'])
+    ssldir = os.path.expanduser(config["ssl-dir"])
     if not ssldir.startswith("/"):
         ssldir = os.path.join(vardir, ssldir)
     else:

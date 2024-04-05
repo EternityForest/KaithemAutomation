@@ -1,18 +1,6 @@
 #!/usr/bin/python3
-# Copyright Daniel Dunn 2013-2015
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 import logging
 import os
@@ -31,6 +19,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
     from . import tweaks  # noqa: F401
     from . import logconfig  # noqa: F401
+
     # config needs to be available before init for overrides
     # but it can't be initialized until after pathsetup which may
     config.initialize(cfg)
@@ -38,7 +27,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     from . import geolocation
 
     geolocation.use_api_if_needed()
-    
+
     # must load AFTER config init
     from . import directories
 
@@ -63,7 +52,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     import iot_devices.host
 
     from . import config as cfg
-    from . import gis # noqa: F401
+    from . import gis  # noqa: F401
     from . import tagpoints  # noqa: F401
     from . import builtintags  # noqa: F401
     from . import kaithemobj  # noqa: F401
@@ -102,6 +91,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         auth.dumpDatabase()
         logger.info("Kaithem users set up. Now exiting.")
         import cherrypy
+
         cherrypy.engine.exit()
         sys.exit()
 
@@ -134,4 +124,5 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
 def start_server():
     from . import webapproot
+
     webapproot.startServer()

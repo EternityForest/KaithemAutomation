@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2013
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 
 # This file handles the display of user-created pages
@@ -36,20 +24,24 @@ from .config import config
 from mako.lookup import TemplateLookup
 
 
-_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(
-    directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
-
-env = jinja2.Environment(
-    loader=_jl,
-    autoescape=False
+_jl = jinja2.FileSystemLoader(
+    [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
+    encoding="utf-8",
+    followlinks=False,
 )
+
+env = jinja2.Environment(loader=_jl, autoescape=False)
 
 
 errors = {}
 
 # Used for including builtin components
-component_lookup = TemplateLookup(directories=[
-                                  directories.htmldir, os.path.join(directories.htmldir, "makocomponents")])
+component_lookup = TemplateLookup(
+    directories=[
+        directories.htmldir,
+        os.path.join(directories.htmldir, "makocomponents"),
+    ]
+)
 
 
 def markdownToSelfRenderingHTML(content, title):
@@ -94,7 +86,7 @@ def markdownToSelfRenderingHTML(content, title):
                     return left + hljs.highlight(lang, match).value + right;
                     } else {
                     return left + hljs.highlightAuto(match).value + right;
-                    }            
+                    }
                 };
             return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
         }
@@ -223,8 +215,7 @@ class CompiledPage:
 
                 self.streaming = resource.get("streaming-response", False)
 
-                self.mime = resource.get(
-                    "mimetype", "text/html") or "text/html"
+                self.mime = resource.get("mimetype", "text/html") or "text/html"
                 if "require-method" in resource:
                     self.methods = resource["require-method"]
                 else:
@@ -234,18 +225,23 @@ class CompiledPage:
                 if "no-navheader" in resource:
                     if resource["no-navheader"]:
                         header = util.readfile(
-                            os.path.join(directories.htmldir, 'makocomponents',
-                                         "pageheader_nonav.html")
+                            os.path.join(
+                                directories.htmldir,
+                                "makocomponents",
+                                "pageheader_nonav.html",
+                            )
                         )
                     else:
                         header = util.readfile(
-                            os.path.join(directories.htmldir, 'makocomponents',
-                                         "pageheader.html")
+                            os.path.join(
+                                directories.htmldir, "makocomponents", "pageheader.html"
+                            )
                         )
                 else:
                     header = util.readfile(
-                        os.path.join(directories.htmldir,
-                                     'makocomponents', "pageheader.html")
+                        os.path.join(
+                            directories.htmldir, "makocomponents", "pageheader.html"
+                        )
                     )
 
                 if "no-header" in resource:
@@ -261,8 +257,9 @@ class CompiledPage:
 
                 if not ("no-header" in resource) or not (resource["no-header"]):
                     footer = util.readfile(
-                        os.path.join(directories.htmldir,
-                                     'makocomponents', "pagefooter.html")
+                        os.path.join(
+                            directories.htmldir, "makocomponents", "pagefooter.html"
+                        )
                     )
                 else:
                     footer = ""
@@ -272,7 +269,7 @@ class CompiledPage:
                     "page": self.localAPI,
                     "print": self.new_print,
                     "_k_alt_top_banner": self.alt_top_banner,
-                    "imp0rt": importlib.import_module
+                    "imp0rt": importlib.import_module,
                 }
                 if m in modules_state.scopes:
                     self.scope["module"] = modules_state.scopes[m]
@@ -286,8 +283,7 @@ class CompiledPage:
                     usejson = False
 
                     if "setupcode" in resource and resource["setupcode"].strip():
-                        code_header += "\n<%!\n" + \
-                            resource["setupcode"] + "\n%>\n"
+                        code_header += "\n<%!\n" + resource["setupcode"] + "\n%>\n"
                         usejson = True
 
                     if "code" in resource and resource["code"].strip():
@@ -307,7 +303,7 @@ class CompiledPage:
                         %for i in __jsvars__:
                         ${i} = ${json.dumps(__jsvars__[i])}
                         %endfor
-                        %endif   
+                        %endif
 
                         """
 
@@ -323,20 +319,25 @@ class CompiledPage:
                             %endfor
                             </datalist>
                             %endfor
-                            %endif   
+                            %endif
 
                             """
 
                     templatesource = code_header + header + template + footer
 
                     self.template = mako.template.Template(
-                        templatesource, uri="Template" + m + "_" + r, lookup=component_lookup)
+                        templatesource,
+                        uri="Template" + m + "_" + r,
+                        lookup=component_lookup,
+                    )
 
-                elif resource['template-engine'] == 'jinja2':
+                elif resource["template-engine"] == "jinja2":
                     if "setupcode" in resource and resource["setupcode"].strip():
-                        exec(resource['setupcode'], None, self.scope)
+                        exec(resource["setupcode"], None, self.scope)
                     if "code" in resource and resource["code"].strip():
-                        self.code_obj = compile(resource['code'],"Jinja2Page", mode="exec")
+                        self.code_obj = compile(
+                            resource["code"], "Jinja2Page", mode="exec"
+                        )
                     else:
                         self.code_obj = None
 
@@ -345,9 +346,11 @@ class CompiledPage:
 
                 elif resource["template-engine"] == "markdown":
                     header = mako.template.Template(
-                        header, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.scope)
+                        header, uri="Template" + m + "_" + r, lookup=component_lookup
+                    ).render(**self.scope)
                     footer = mako.template.Template(
-                        footer, uri="Template" + m + "_" + r, lookup=component_lookup).render(**self.scope)
+                        footer, uri="Template" + m + "_" + r, lookup=component_lookup
+                    ).render(**self.scope)
 
                     self.text = (
                         header
@@ -360,13 +363,13 @@ class CompiledPage:
 
             elif resource["resource-type"] == "internal-fileref":
                 self.methods = ["GET"]
-                self.name = os.path.basename(
-                    modules_state.fileResourceAbsPaths[m, r])
+                self.name = os.path.basename(modules_state.fileResourceAbsPaths[m, r])
 
                 self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
-                self.mime = self.mime = resource.get(
-                    "mimetype", ''
-                ).strip() or mimetypes.guess_type(self.name)[0]
+                self.mime = self.mime = (
+                    resource.get("mimetype", "").strip()
+                    or mimetypes.guess_type(self.name)[0]
+                )
 
         self.refreshFromResource = refreshFromResource
         self.refreshFromResource()
@@ -470,7 +473,7 @@ def updateOnePage(resource, module):
 
         # Don't serve file if that's not enabled
         if j["resource-type"] == "internal-fileref":
-            if not j.get('serve', False):
+            if not j.get("serve", False):
                 enable = False
         if enable:
             _Pages[module][resource] = CompiledPage(j, module, resource)
@@ -516,8 +519,7 @@ def getPagesFromModules():
                             )
                             try:
                                 messagebus.post_message(
-                                    "system/errors/pages/" +
-                                    i + "/" + m, str(tb)
+                                    "system/errors/pages/" + i + "/" + m, str(tb)
                                 )
                             except Exception as e:
                                 print(e)
@@ -552,8 +554,7 @@ def getPagesFromModules():
                                 )
                                 try:
                                     messagebus.post_message(
-                                        "system/errors/pages/" +
-                                        i + "/" + m, str(tb)
+                                        "system/errors/pages/" + i + "/" + m, str(tb)
                                     )
                                 except Exception as e:
                                     print(e)
@@ -632,9 +633,9 @@ class KaithemPage:
                     cherrypy.request.headers["Origin"] in page.origins
                     or "*" in page.origins
                 ):
-                    cherrypy.response.headers[
-                        "Access-Control-Allow-Origin"
-                    ] = cherrypy.request.headers["Origin"]
+                    cherrypy.response.headers["Access-Control-Allow-Origin"] = (
+                        cherrypy.request.headers["Origin"]
+                    )
                 cherrypy.response.headers["Access-Control-Allow-Methods"] = x
 
     def _serve(self, module, *args, **kwargs):
@@ -657,9 +658,9 @@ class KaithemPage:
                     + cherrypy.request.headers["Origin"]
                 )
             else:
-                cherrypy.response.headers[
-                    "Access-Control-Allow-Origin"
-                ] = cherrypy.request.headers["Origin"]
+                cherrypy.response.headers["Access-Control-Allow-Origin"] = (
+                    cherrypy.request.headers["Origin"]
+                )
 
         x = ""
         for i in page.methods:
@@ -704,18 +705,14 @@ class KaithemPage:
                     "_k_alt_top_banner": page.alt_top_banner,
                 }
                 if not page.useJinja:
-                    return page.template.render(
-                        **s
-                    ).encode("utf-8")
+                    return page.template.render(**s).encode("utf-8")
                 else:
                     s.update(page.scope)
-                    
+
                     if page.code_obj:
                         exec(page.code_obj, s, s)
 
-                    return page.template.render(
-                        **s
-                    )
+                    return page.template.render(**s)
 
             else:
                 return page.text.encode("utf-8")
@@ -761,12 +758,10 @@ class KaithemPage:
             )
             # When an error happens, log it and save the time
             # Note that we are logging to the compiled event object
-            page.errors.append(
-                [time.strftime(config["time-format"]), tb, data])
+            page.errors.append([time.strftime(config["time-format"]), tb, data])
             try:
                 messagebus.post_message(
-                    "system/errors/pages/" + module +
-                    "/" + "/".join(args), str(tb)
+                    "system/errors/pages/" + module + "/" + "/".join(args), str(tb)
                 )
             except Exception as e:
                 print(e)

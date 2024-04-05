@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2013. 2015,2017
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 import importlib
 from . import config as cfg
@@ -28,27 +16,31 @@ from . import auth, config
 from . import directories, util
 from typing import Dict
 
-_Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(
-    directories.htmldir, "makocomponents")])
+_Lookup = TemplateLookup(
+    directories=[
+        directories.htmldir,
+        os.path.join(directories.htmldir, "makocomponents"),
+    ]
+)
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])
 
 
 #
-_jl = jinja2.FileSystemLoader([directories.htmldir, os.path.join(
-    directories.htmldir, "jinjatemplates")], encoding='utf-8', followlinks=False)
-
-
-env = jinja2.Environment(
-    loader=_jl,
-    autoescape=False
+_jl = jinja2.FileSystemLoader(
+    [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
+    encoding="utf-8",
+    followlinks=False,
 )
 
 
-env.globals['len'] = len
-env.globals['str'] = str
-env.globals['hasattr'] = hasattr
+env = jinja2.Environment(loader=_jl, autoescape=False)
+
+
+env.globals["len"] = len
+env.globals["str"] = str
+env.globals["hasattr"] = hasattr
 
 # These get imported by the page header template, which is also what imp0rt is for
 list = list
@@ -59,8 +51,7 @@ str = str
 
 
 def render_jinja_template(n, **kw):
-    return _jl.load(env, n, env.globals).render(imp0rt=importlib.import_module,
-                                                **kw)
+    return _jl.load(env, n, env.globals).render(imp0rt=importlib.import_module, **kw)
 
 
 def get_vardir_template(fn):
@@ -74,15 +65,10 @@ nav_bar_plugins = weakref.WeakValueDictionary()
 # but the point is just an extra guard against user error.
 def isHTTPAllowed(ip):
     return (
-        ip.startswith("::1")
-        or ip.startswith("127.")
+        ip.startswith(
+            ("::1", "127.", "::ffff:192.", "::ffff:10.", "192.", "10.", "fc", "fd")
+        )
         or ip == "::ffff:127.0.0.1"
-        or ip.startswith("::ffff:192.")
-        or ip.startswith("::ffff:10.")
-        or ip.startswith("192.")
-        or ip.startswith("10.")
-        or ip.startswith("fc")
-        or ip.startswith("fd")
     )
 
 
@@ -151,9 +137,8 @@ def require(permission, noautoreturn=False):
         if user == "__no_request__":
             return
 
-        if (
-            permission in auth.crossSiteRestrictedPermissions
-            or not auth.getUserSetting(user, "allow-cors")
+        if permission in auth.crossSiteRestrictedPermissions or not auth.getUserSetting(
+            user, "allow-cors"
         ):
             noCrossSite()
 
@@ -218,8 +203,7 @@ def canUserDoThis(permissions, user=None):
 def noCrossSite():
     if cherrypy.request.headers.get("Origin", ""):
         if not cherrypy.request.base == cherrypy.request.headers.get("Origin", ""):
-            raise PermissionError(
-                "Cannot make this request from a different origin")
+            raise PermissionError("Cannot make this request from a different origin")
 
 
 def strictNoCrossSite():
@@ -244,7 +228,11 @@ def getAcessingUser(tornado_mode=None):
         base = tornado_mode.host
 
     else:
-        if (not cherrypy.request.request_line) and (not cherrypy.request.app) and (not cherrypy.request.config):
+        if (
+            (not cherrypy.request.request_line)
+            and (not cherrypy.request.app)
+            and (not cherrypy.request.config)
+        ):
             return "__no_request__"
         headers = cherrypy.request.headers
         scheme = cherrypy.request.scheme

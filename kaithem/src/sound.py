@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2013-2015
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 import subprocess
 
@@ -141,16 +129,18 @@ class SoundWrapper(object):
     def set_speed(self, speed: float, channel: str = "PRIMARY", *a, **kw):
         pass
 
-    def play_sound(self,
-                   filename: str,
-                   handle: str = "PRIMARY",
-                   extraPaths: List[str] = [],
-                   volume: float = 1,
-                   finalGain: Optional[float] = None,
-                   output: Optional[str] = "",
-                   loop: float = 1,
-                   start: float = 0,
-                   speed: float = 1):
+    def play_sound(
+        self,
+        filename: str,
+        handle: str = "PRIMARY",
+        extraPaths: List[str] = [],
+        volume: float = 1,
+        finalGain: Optional[float] = None,
+        output: Optional[str] = "",
+        loop: float = 1,
+        start: float = 0,
+        speed: float = 1,
+    ):
         pass
 
     def stop_sound(self, handle: str = "PRIMARY"):
@@ -165,18 +155,20 @@ class SoundWrapper(object):
     def resume(self, handle: str = "PRIMARY"):
         pass
 
-    def fade_to(self,
-                file: str | None,
-                length: float = 1.0,
-                block: bool = False,
-                handle: str = "PRIMARY",
-                output: Optional[str] = "",
-                volume: float = 1,
-                windup: float = 0,
-                winddown: float = 0,
-                loop: int = 1,
-                start: float = 0,
-                speed: float = 1):
+    def fade_to(
+        self,
+        file: str | None,
+        length: float = 1.0,
+        block: bool = False,
+        handle: str = "PRIMARY",
+        output: Optional[str] = "",
+        volume: float = 1,
+        windup: float = 0,
+        winddown: float = 0,
+        loop: int = 1,
+        start: float = 0,
+        speed: float = 1,
+    ):
         if file:
             self.play_sound(file, handle)
         else:
@@ -197,23 +189,40 @@ play_logs = []
 
 
 class TestSoundWrapper(SoundWrapper):
-    def play_sound(self, filename: str, handle: str = "PRIMARY",
-                   extraPaths: List[str] = [], volume: float = 1,
-                   finalGain: float | None = None, output: str | None = "",
-                   loop: float = 1, start: float = 0, speed: float = 1):
-        test_sound_logs.append(['play', handle, filename])
-        play_logs.append(['play', handle, filename])
+    def play_sound(
+        self,
+        filename: str,
+        handle: str = "PRIMARY",
+        extraPaths: List[str] = [],
+        volume: float = 1,
+        finalGain: float | None = None,
+        output: str | None = "",
+        loop: float = 1,
+        start: float = 0,
+        speed: float = 1,
+    ):
+        test_sound_logs.append(["play", handle, filename])
+        play_logs.append(["play", handle, filename])
 
-    def fade_to(self, file: str | None, length: float = 1,
-                block: bool = False, handle: str = "PRIMARY",
-                output: str | None = "", volume: float = 1,
-                windup: float = 0, winddown: float = 0,
-                loop: int = 1, start: float = 0, speed: float = 1):
-        test_sound_logs.append(['fade_to', handle, file])
-        play_logs.append(['fade_to', handle, file])
+    def fade_to(
+        self,
+        file: str | None,
+        length: float = 1,
+        block: bool = False,
+        handle: str = "PRIMARY",
+        output: str | None = "",
+        volume: float = 1,
+        windup: float = 0,
+        winddown: float = 0,
+        loop: int = 1,
+        start: float = 0,
+        speed: float = 1,
+    ):
+        test_sound_logs.append(["fade_to", handle, file])
+        play_logs.append(["fade_to", handle, file])
 
     def stop_sound(self, handle: str = "PRIMARY"):
-        test_sound_logs.append(['stop', handle])
+        test_sound_logs.append(["stop", handle])
 
 
 objectPoolLock = threading.RLock()
@@ -241,6 +250,7 @@ class MPVBackend(SoundWrapper):
             return False
         try:
             import python_mpv_jsonipc
+
             return True
         except Exception:
             pass
@@ -283,8 +293,8 @@ class MPVBackend(SoundWrapper):
             # Avoid somewhat slow RPC calls if we can
             if not self.player.isConfigured:
                 cname = "kplayer" + str(time.monotonic()) + "_out"
-                self.player.player.vid = 'no'
-                self.player.player.keep_open = 'yes'
+                self.player.player.vid = "no"
+                self.player.player.keep_open = "yes"
                 self.player.player.ao = "jack,pulse,alsa"
                 self.player.player.jack_name = cname
                 self.player.player.gapless_audio = "weak"
@@ -301,7 +311,7 @@ class MPVBackend(SoundWrapper):
                 if not (loop == -1 or loop > 900000000):
                     self.player.player.loop_playlist = int(max(loop, 1))
                 else:
-                    self.player.player.loop_playlist = 'inf'
+                    self.player.player.loop_playlist = "inf"
 
             # Due to memory leaks, these have a limited lifespan
             self.player.usesCounter += 1
@@ -340,7 +350,7 @@ class MPVBackend(SoundWrapper):
                                 break
                             except Exception:
                                 pass
-                            
+
                 else:
                     raise RuntimeError("Player object is gone")
 
@@ -376,6 +386,7 @@ class MPVBackend(SoundWrapper):
                             def f():
                                 # Can't make it under lock that is slow
                                 from python_mpv_jsonipc import MPV
+
                                 o = PlayerHolder(MPV())
                                 with objectPoolLock:
                                     if len(objectPool) < 4:
@@ -419,8 +430,7 @@ class MPVBackend(SoundWrapper):
 
                     return c
                 except Exception:
-                    logging.exception(
-                        "Error getting playing status, assuming closed")
+                    logging.exception("Error getting playing status, assuming closed")
                     return False
 
         def position(self):
@@ -482,7 +492,7 @@ class MPVBackend(SoundWrapper):
         output: Optional[str] = "",
         loop: float = 1,
         start: float = 0,
-        speed: float = 1
+        speed: float = 1,
     ):
         # Those old sound handles won't garbage collect themselves
         self.delete_stopped_sounds()
@@ -637,14 +647,11 @@ class MPVBackend(SoundWrapper):
 
                 if file and (handle in self.runningSounds):
                     targetVol = self.runningSounds[handle].finalGain
-                    self.set_volume(min(1, targetVol * firatio),
-                                    handle, final=False)
+                    self.set_volume(min(1, targetVol * firatio), handle, final=False)
 
                     if windup:
-                        wuratio = max(
-                            0, min(1, ((time.monotonic() - t) / windup)))
-                        self.set_speed(
-                            max(0.1, min(speed, wuratio * speed, 8)), handle)
+                        wuratio = max(0, min(1, ((time.monotonic() - t) / windup)))
+                        self.set_speed(max(0.1, min(speed, wuratio * speed, 8)), handle)
 
                 # Don't overwhelm the backend with commands
                 time.sleep(max(1 / 48.0, time.monotonic() - tr))
@@ -669,10 +676,7 @@ class MPVBackend(SoundWrapper):
             workers.do(f)
 
 
-l = {
-    "mpv": MPVBackend,
-    "test": TestSoundWrapper
-}
+l = {"mpv": MPVBackend, "test": TestSoundWrapper}
 
 backend = SoundWrapper()
 if util.which("pulseaudio"):

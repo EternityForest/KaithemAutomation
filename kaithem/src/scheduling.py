@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2015,2016
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2015 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 import threading
 import sys
@@ -212,8 +200,7 @@ class BaseRepeatingEvent(BaseEvent):
                 self.lock.release()
         else:
             logger.warning(
-                "Tried to schedule something that is still running: " +
-                str(self.f())
+                "Tried to schedule something that is still running: " + str(self.f())
             )
 
     def _schedule(self):
@@ -266,8 +253,7 @@ class BaseRepeatingEvent(BaseEvent):
                     from . import newevt
 
                     if f.__module__.startswith("Event_"):
-                        newevt.eventsByModuleName[f.__module__]._handle_exception(
-                        )
+                        newevt.eventsByModuleName[f.__module__]._handle_exception()
                 except Exception:
                     print(traceback.format_exc())
 
@@ -330,8 +316,7 @@ class UnsynchronizedRepeatingEvent(BaseRepeatingEvent):
             return
 
         # Don't alow unlimited amounts of winding up a big queue.
-        t = max((self.lastrun + self.interval),
-                ((time.time() + self.interval) - 5))
+        t = max((self.lastrun + self.interval), ((time.time() + self.interval) - 5))
         self.time = t
         self.scheduled = True
         scheduler.insert(self)

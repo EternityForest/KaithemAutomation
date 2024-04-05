@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 from . import tagpoints
 from scullery import messagebus
 from . import scheduling

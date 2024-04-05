@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 from .config import config
 from . import directories
 from scullery import persist
@@ -13,11 +16,11 @@ if os.path.exists(fn):
 else:
     file = {}
 
-if not 'web' in file:
-    file['web'] = {}
-    css = ''
+if not "web" in file:
+    file["web"] = {}
+    css = ""
 
-    file['web']['csstheme'] = css
+    file["web"]["csstheme"] = css
 
     try:
         persist.save(file, fn, private=True)
@@ -25,20 +28,21 @@ if not 'web' in file:
         logging.exception("Save fail")
 
 
-def saveTheme(*a,**k):
+def saveTheme(*a, **k):
     persist.save(file, fn, private=True)
-    persist.unsavedFiles.pop(fn,"")
-
+    persist.unsavedFiles.pop(fn, "")
 
 
 import weakref
 
 cssthemes = weakref.WeakValueDictionary()
 
-class Theme():
-    def __init__(self,name,css_url:str= '') -> None:
+
+class Theme:
+    def __init__(self, name, css_url: str = "") -> None:
         self.css_url = css_url
-        cssthemes[name]=self
+        cssthemes[name] = self
+
 
 scrapbook = Theme("scrapbook", "/static/css/scrapbook/scrapbook_green.css")
 fugit = Theme("fugit", "/static/css/fugit/fugit.css")
@@ -52,7 +56,7 @@ steam = Theme("steam", "/static/css/steam.css")
 
 
 def getCSSTheme():
-    x = file['web']['csstheme'] or config['theme-url']
+    x = file["web"]["csstheme"] or config["theme-url"]
 
     try:
         if x in cssthemes:
@@ -62,4 +66,3 @@ def getCSSTheme():
             return x
     except:
         return None
-

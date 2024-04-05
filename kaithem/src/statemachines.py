@@ -1,17 +1,5 @@
-# Copyright Daniel Dunn 2016
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2016 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 
 import time
@@ -55,6 +43,7 @@ illegalStateNameChars = "~!@#$%^&*()-=+`<>?,./;':\"\\[]{}\n\r\t "
 def unboundProxy(self, f):
     def f2(*args, **kwargs):
         f(*args, **kwargs)
+
     return f2
 
 
@@ -63,6 +52,7 @@ def makechecker(ref):
         m = ref()
         if m:
             m.checkTimer()
+
     return timer_check
 
 
@@ -71,6 +61,7 @@ def makepollchecker(ref):
         m = ref()
         if m:
             m.check()
+
     return timer_check
 
 
@@ -78,7 +69,7 @@ def runSubscriber(f, state):
     f(state)
 
 
-class UpdateControl():
+class UpdateControl:
     pass
 
 
@@ -93,7 +84,7 @@ def startPollerThread(sm):
             x.poll()
 
 
-class StateMachine():
+class StateMachine:
     def __init__(self, start="start", name="Untitled", description=""):
         self.states = {}
         self.state = start
@@ -120,7 +111,11 @@ class StateMachine():
         return self.state
 
     def __repr__(self):
-        return "<State machine at %d in state %s, entered %d ago>" % (id(self), self.state, time.time()-self.entered_state)
+        return "<State machine at %d in state %s, entered %d ago>" % (
+            id(self),
+            self.state,
+            time.time() - self.entered_state,
+        )
 
     def __html_repr__(self):
         return """<small>State machine object at %s<br></small>
@@ -129,10 +124,9 @@ class StateMachine():
             %s""" % (
             hex(id(self)),
             self.state,
-            unitsofmeasure.format_time_interval(
-                time.time()-self.entered_state, 2),
+            unitsofmeasure.format_time_interval(time.time() - self.entered_state, 2),
             unitsofmeasure.strftime(self.entered_state),
-            ('\n' if self.description else '')+self.description
+            ("\n" if self.description else "") + self.description,
         )
 
     def subscribe(self, f, state="__all__"):
@@ -143,10 +137,10 @@ class StateMachine():
         with self.lock:
             # First clean up old subscribers. This is slow to do thi every time, but it should be infrequent.
             for i in self.subscribers:
-                self.subscribers[i] = [
-                    i for i in self.subscribers[state] if i()]
+                self.subscribers[i] = [i for i in self.subscribers[state] if i()]
             self.subscribers = {
-                i: self.subscribers[i] for i in self.subscribers if self.subscribers[i]}
+                i: self.subscribers[i] for i in self.subscribers if self.subscribers[i]
+            }
 
             if state not in self.subscribers:
                 self.subscribers[state] = []
@@ -154,20 +148,21 @@ class StateMachine():
 
     @property
     def age(self):
-        return time.time()-self.entered_state
+        return time.time() - self.entered_state
 
     @property
     def stateage(self):
         with self.lock:
-            return (self.state, time.time()-self.entered_state)
+            return (self.state, time.time() - self.entered_state)
 
     def checkTimer(self):
         with self.lock:
-            if self.states[self.state].get('timer'):
-                if ((time.time()+self.time_offset)-self.entered_state) > self.states[self.state]['timer'][0]:
-
+            if self.states[self.state].get("timer"):
+                if (
+                    (time.time() + self.time_offset) - self.entered_state
+                ) > self.states[self.state]["timer"][0]:
                     # Get the destination
-                    x = self.states[self.state]['timer'][1]
+                    x = self.states[self.state]["timer"][1]
 
                     # If it's a function, call it to get the actual destination.
                     if isinstance(x, str):
@@ -182,17 +177,18 @@ class StateMachine():
     def _configureTimer(self):
         "Sets up the timer. Needs to be called under lock"
 
-        if hasattr(self, 'schedulerobj'):
+        if hasattr(self, "schedulerobj"):
             self.schedulerobj.unregister()
             del self.schedulerobj
 
         # If for any reason we get here too early, let's just keep rescheduling
-        if self.states[self.state].get('timer'):
+        if self.states[self.state].get("timer"):
             # If we haven't already passed the time of the timer
-            if ((time.time()+self.time_offset)-self.entered_state) < self.states[self.state]['timer'][0]:
+            if ((time.time() + self.time_offset) - self.entered_state) < self.states[
+                self.state
+            ]["timer"][0]:
                 f = makechecker(util.universal_weakref(self))
-                self.schedulerobj = scheduling.scheduler.schedule(
-                    f, time.time()+0.08)
+                self.schedulerobj = scheduling.scheduler.schedule(f, time.time() + 0.08)
                 self.schedulerobj.func_ref = f
             # If we have already passed that time, just do it now.
             # This is here for faster response when skipping ahead.
@@ -201,46 +197,60 @@ class StateMachine():
 
     def seek(self, t, condition=None):
         """
-        Seek ahead to a given position in the curren state's timeline, but only if the """
+        Seek ahead to a given position in the curren state's timeline, but only if the"""
         with self.lock:
             if condition and (not condition == self.state):
                 return
-            pos = (time.time()-self.entered_state)
-            self.time_offset = t-pos
+            pos = time.time() - self.entered_state
+            self.time_offset = t - pos
             self._configureTimer()
 
     @typechecked
-    def add_state(self, name: str, rules=None, enter: Union[str, Callable, None] = None, exit: Union[str, Callable, None] = None):
+    def add_state(
+        self,
+        name: str,
+        rules=None,
+        enter: Union[str, Callable, None] = None,
+        exit: Union[str, Callable, None] = None,
+    ):
         for i in illegalStateNameChars:
             if i in name:
                 raise ValueError("Forbidden special character")
         with self.lock:
-            self.states[name] = {"rules": rules or {},
-                                 'enter': enter, 'exit': exit, 'conditions': []}
+            self.states[name] = {
+                "rules": rules or {},
+                "enter": enter,
+                "exit": exit,
+                "conditions": [],
+            }
 
-    def set_timer(self, state: str, time: Union[float, int], dest: Union[str, Callable]):
+    def set_timer(
+        self, state: str, time: Union[float, int], dest: Union[str, Callable]
+    ):
         with self.lock:
             if dest:
-                self.states[state]['timer'] = [time, dest]
+                self.states[state]["timer"] = [time, dest]
 
     def remove_state(self, name):
         raise RuntimeError("Not supported now")
 
     @typechecked
-    def add_rule(self, start: str, event: Union[str, Callable], to: Union[str, Callable]):
+    def add_rule(
+        self, start: str, event: Union[str, Callable], to: Union[str, Callable]
+    ):
         with self.lock:
             if isinstance(event, str):
-                self.states[start]['rules'][event] = to
+                self.states[start]["rules"][event] = to
             elif callable(event):
-                self.states[start]['conditions'].append((event, to))
+                self.states[start]["conditions"].append((event, to))
                 self._setupPolling()
 
     def del_rule(self, start, event):
         with self.lock:
-            if event in self.states[start]['rules']:
-                del self.states[start]['rules'][event]
-            elif event in self.states[start]['conditions']:
-                del self.states[start]['conditions'][event]
+            if event in self.states[start]["rules"]:
+                del self.states[start]["rules"][event]
+            elif event in self.states[start]["conditions"]:
+                del self.states[start]["conditions"][event]
             else:
                 raise KeyError("No such rule")
 
@@ -253,8 +263,8 @@ class StateMachine():
 
             s = self.states[self.state]
 
-            if event in s['rules']:
-                x = s['rules'][event]
+            if event in s["rules"]:
+                x = s["rules"][event]
                 # If the rule destination is a string, just use it. If it is not a string, then
                 # It must be a function because those are the only two valid destination types.
 
@@ -275,7 +285,7 @@ class StateMachine():
                 # Check all the function rules, poll them all,
                 # and should any happen to be true, we follow that rule
                 # Like any other.
-                for i in s['conditions']:
+                for i in s["conditions"]:
                     if i[0]():
                         self._goto(i[1])
 
@@ -291,13 +301,14 @@ class StateMachine():
 
     def _setupPolling(self):
         "Start polling the function based events, if there are any to poll for"
-        if hasattr(self, 'pollingscheduledfunction'):
+        if hasattr(self, "pollingscheduledfunction"):
             self.pollingscheduledfunction.unregister()
             del self.pollingscheduledfunction
 
-        if self.states[self.state].get('conditions'):
+        if self.states[self.state].get("conditions"):
             self.pollingscheduledfunction = scheduling.scheduler.every(
-                self.check, 1/24)
+                self.check, 1 / 24
+            )
 
     def _goto(self, state):
         "Must be called under the lock"
@@ -306,8 +317,8 @@ class StateMachine():
         s2 = self.states[state]
 
         # Do the old state's exit function
-        if s['exit']:
-            s['exit']()
+        if s["exit"]:
+            s["exit"]()
 
         self.prev_state = self.state
         self.state = state
@@ -317,21 +328,22 @@ class StateMachine():
 
         self.time_offset = 0
 
-        if hasattr(self, 'schedulerobj'):
+        if hasattr(self, "schedulerobj"):
             self.schedulerobj.unregister()
             del self.schedulerobj
 
-        if self.states[self.state].get('timer'):
+        if self.states[self.state].get("timer"):
             f = makechecker(util.universal_weakref(self))
             self.schedulerobj = scheduling.scheduler.schedule(
-                f, time.time()+self.states[self.state].get('timer')[0])
+                f, time.time() + self.states[self.state].get("timer")[0]
+            )
             self.schedulerobj.func_ref = f
 
         self._setupPolling()
 
         # Do the entrance function of the new state
-        if s2['enter']:
-            s2['enter']()
+        if s2["enter"]:
+            s2["enter"]()
 
         # Handle the subscribers
         if state in self.subscribers:
@@ -347,4 +359,4 @@ class StateMachine():
                     runSubscriber(x, self.state)
 
         # Increment the trans count. wrap at 2**64
-        self._transiton_count = (self._transiton_count+1) % 2**64
+        self._transiton_count = (self._transiton_count + 1) % 2**64

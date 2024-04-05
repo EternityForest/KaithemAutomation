@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 import cherrypy
 import mako
 import tornado
@@ -45,7 +48,7 @@ from . import (
     messagebus,
     util,
     systasks,
-    widgets
+    widgets,
 )
 
 
@@ -261,8 +264,7 @@ class webapproot:
                     (i + "/" if os.path.isdir(os.path.join(dir, i)) else i)
                     for i in os.listdir(dir)
                 ]
-                x = "\r\n".join(
-                    ['<a href="' + i + '">' + i + "</a><br>" for i in x])
+                x = "\r\n".join(['<a href="' + i + '">' + i + "</a><br>" for i in x])
                 return x
         except Exception:
             return traceback.format_exc()
@@ -330,9 +332,9 @@ class webapproot:
             pages.postOnly()
 
         if path:
-            tn = '/'.join(path)
-            if (not tn.startswith('=')) and not tn.startswith('/'):
-                tn = '/' + tn
+            tn = "/".join(path)
+            if (not tn.startswith("=")) and not tn.startswith("/"):
+                tn = "/" + tn
             if tn not in tagpoints.allTags:
                 raise ValueError("This tag does not exist")
             return pages.get_template("settings/tagpoint.html").render(
@@ -358,15 +360,13 @@ class webapproot:
             for i in tag.configLoggers:
                 if i.accumType == data["exportType"]:
                     tz = pytz.timezone(
-                        auth.getUserSetting(
-                            pages.getAcessingUser(), "timezone")
+                        auth.getUserSetting(pages.getAcessingUser(), "timezone")
                     )
                     logtime = tz.localize(
                         dateutil.parser.parse(data["logtime"])
                     ).timestamp()
                     raw = i.getDataRange(
-                        logtime, time.time() +
-                        10000000, int(data["exportRows"])
+                        logtime, time.time() + 10000000, int(data["exportRows"])
                     )
 
                     if data["exportFormat"] == "csv.iso":
@@ -413,8 +413,7 @@ class webapproot:
                 )
                 if not p.startswith(os.path.join(directories.srcdir, "docs")):
                     raise RuntimeError("Invalid URL")
-                cherrypy.response.headers["Content-Type"] = mimetypes.guess_type(p)[
-                    0]
+                cherrypy.response.headers["Content-Type"] = mimetypes.guess_type(p)[0]
 
                 with open(p, "rb") as f:
                     return f.read()
@@ -585,8 +584,7 @@ def startServer():
 
     cherrypy.config.update(site_config)
 
-    cherrypy.tools.pageloadnotify = cherrypy.Tool(
-        "on_start_resource", pageloadnotify)
+    cherrypy.tools.pageloadnotify = cherrypy.Tool("on_start_resource", pageloadnotify)
     cherrypy.config["tools.pageloadnotify.on"] = True
 
     cherrypy.tools.addheader = cherrypy.Tool("before_finalize", addheader)
@@ -598,8 +596,7 @@ def startServer():
     wsgiapp = cherrypy.tree.mount(root, config=cnf)
 
     messagebus.post_message("/system/startup", "System Initialized")
-    messagebus.post_message(
-        "/system/notifications/important", "System Initialized")
+    messagebus.post_message("/system/notifications/important", "System Initialized")
 
     cherrypy.server.unsubscribe()
     cherrypy.config.update({"environment": "embedded"})
@@ -646,22 +643,19 @@ def startServer():
             (
                 PathMatches(i[0]),
                 tornado.web.RedirectHandler,
-                {"url": "/login", 'permanent': False},
-            )
+                {"url": "/login", "permanent": False},
+            ),
         ]
 
     xt = []
     for i in kaithemobj.tornado_apps:
         xt += [
-            (
-                KAuthMatcher(i[0], i[3]),
-                i[1], i[2]
-            ),
+            (KAuthMatcher(i[0], i[3]), i[1], i[2]),
             (
                 PathMatches("i[0]"),
                 tornado.web.RedirectHandler,
-                {"url": "/login", 'permanent': False},
-            )
+                {"url": "/login", "permanent": False},
+            ),
         ]
 
     if config["esphome-config-dir"]:
@@ -676,7 +670,7 @@ def startServer():
                 Rule(
                     PathMatches("/esphome.*"),
                     tornado.web.RedirectHandler,
-                    {"url": "/login", 'permanent': False},
+                    {"url": "/login", "permanent": False},
                 ),
             ]
         )
@@ -685,8 +679,9 @@ def startServer():
         Rule(
             AnyMatches(),
             tornado.web.Application(
-                x + xt +
-                [
+                x
+                + xt
+                + [
                     (
                         KAuthMatcher("/database.*", "system_admin"),
                         wsgi_adapter.WSGIHandler,
@@ -695,7 +690,7 @@ def startServer():
                     (
                         PathMatches("/database.*"),
                         tornado.web.RedirectHandler,
-                        {"url": "/login", 'permanent': False},
+                        {"url": "/login", "permanent": False},
                     ),
                     (
                         AnyMatches(),
@@ -711,8 +706,7 @@ def startServer():
 
     http_server = tornado.httpserver.HTTPServer(router)
     # Legacy config comptibility
-    http_server.listen(config["http-port"],
-                       bindto if not bindto == '::' else None)
+    http_server.listen(config["http-port"], bindto if not bindto == "::" else None)
 
     if config["https-port"]:
         if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):

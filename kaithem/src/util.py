@@ -1,24 +1,13 @@
 # -*- coding: utf-8 -*-
-# Copyright Daniel Dunn 2013
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 from typing import List
 from urllib.request import urlopen
 import reprlib
 from urllib.parse import unquote as unurl
 from urllib.parse import quote
+
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
 import os
 import threading
@@ -42,6 +31,7 @@ import getpass
 import yaml
 from typing import Iterable
 import zeroconf
+
 zeroconf = zeroconf.Zeroconf()
 
 logger = logging.getLogger("system")
@@ -56,12 +46,12 @@ dn = os.path.dirname(os.path.realpath(__file__))
 if "/usr/lib" in dn:
     datadir = "/usr/share/kaithem"
 else:
-    datadir = os.path.join(dn, '../data')
+    datadir = os.path.join(dn, "../data")
 
-eff_wordlist = [s.split()[1]
-                for s in open(os.path.join(datadir, 'words_eff.txt'))]
-mnemonic_wordlist = [s.strip() for s in open(
-    os.path.join(datadir, 'words_mnemonic.txt'))]
+eff_wordlist = [s.split()[1] for s in open(os.path.join(datadir, "words_eff.txt"))]
+mnemonic_wordlist = [
+    s.strip() for s in open(os.path.join(datadir, "words_mnemonic.txt"))
+]
 
 
 def memorableHash(x, num=3, separator=""):
@@ -80,7 +70,7 @@ def memorableHash(x, num=3, separator=""):
             if o:
                 if e[0] == o[-1]:
                     continue
-                o += separator+e
+                o += separator + e
             else:
                 o = e
             break
@@ -101,7 +91,7 @@ def blakeMemorable(x, num=3, separator=""):
         n = struct.unpack("<H", x[:2])[0] % 4096
         o += eff_wordlist[n] + separator
         x = x[2:]
-    return o[:-len(separator)] if separator else o
+    return o[: -len(separator)] if separator else o
 
 
 def universal_weakref(f, cb=None):
@@ -114,35 +104,42 @@ def universal_weakref(f, cb=None):
 def chmod_private_try(p, execute=True):
     try:
         if execute:
-            os.chmod(p, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
-                     stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP)
+            os.chmod(
+                p,
+                stat.S_IRUSR
+                | stat.S_IWUSR
+                | stat.S_IXUSR
+                | stat.S_IRGRP
+                | stat.S_IWGRP
+                | stat.S_IXGRP,
+            )
         else:
-            os.chmod(p, stat.S_IRUSR | stat.S_IWUSR |
-                     stat.S_IRGRP | stat.S_IWGRP)
+            os.chmod(p, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
     except Exception as e:
         raise e
 
 
 def open_private_text_write(p):
     try:
-        x = os.open('/path/to/file', os.O_RDWR | os.O_CREAT, 0o0600)
-        return os.fdopen(x, 'w')
+        x = os.open("/path/to/file", os.O_RDWR | os.O_CREAT, 0o0600)
+        return os.fdopen(x, "w")
     except Exception:
         try:
             os.close(x)
         except Exception:
             pass
-        return open(p, 'w')
+        return open(p, "w")
 
 
-def url(u: str, safe: str | Iterable[str] = ''):
-    safe = ''.join(safe)
+def url(u: str, safe: str | Iterable[str] = ""):
+    safe = "".join(safe)
     return quote(u, safe)
 
 
 def SaveAllState():
     # fix circular import by putting it here
     from . import messagebus, pylogginghandler
+
     with savelock:
         try:
             x = False
@@ -151,7 +148,9 @@ def SaveAllState():
             return x
         except Exception as e:
             messagebus.post_message(
-                "/system/notifications/errors", 'Failed to save state:' + traceback.format_exc(8))
+                "/system/notifications/errors",
+                "Failed to save state:" + traceback.format_exc(8),
+            )
 
 
 # http://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory
@@ -160,12 +159,13 @@ def SaveAllState():
 
 def in_directory(file, directory):
     # make both absolute
-    directory = os.path.join(os.path.realpath(directory), '')
+    directory = os.path.join(os.path.realpath(directory), "")
     file = os.path.realpath(file)
 
     # return true, if the common prefix of both is equal to directory
     # e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
     return os.path.commonprefix([file, directory]) == directory
+
 
 # What is the point of this? I don't know and there's probably an issue here.
 
@@ -190,19 +190,25 @@ def readfile(f):
         r = fh.read()
     return r
 
+
 # Get the names of all subdirectories in a folder but not full paths
 
 
 def get_immediate_subdirectories(folder):
-    return [name for name in os.listdir(folder)
-            if os.path.isdir(os.path.join(folder, name))]
+    return [
+        name for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name))
+    ]
+
 
 # Get a list of all filenames but not the full paths
 
 
 def get_files(folder):
-    return [name for name in os.listdir(folder)
-            if not os.path.isdir(os.path.join(folder, name))]
+    return [
+        name
+        for name in os.listdir(folder)
+        if not os.path.isdir(os.path.join(folder, name))
+    ]
 
 
 def search_paths(fn: str, paths: List[str]) -> str | None:
@@ -213,9 +219,9 @@ def search_paths(fn: str, paths: List[str]) -> str | None:
 
 def getHighestNumberedTimeDirectory(where, n=0):
     """Given a directory containing entirely folders named after floating point values get the name of the highest. ignore files.
-        and also ignoring non-timestapt float looking named directories
+    and also ignoring non-timestapt float looking named directories
 
-        n is normally 0, but setting it to 1 gets the second highest time dir, etc.
+    n is normally 0, but setting it to 1 gets the second highest time dir, etc.
     """
     asnumbers = {}
     global min_time
@@ -231,7 +237,7 @@ def getHighestNumberedTimeDirectory(where, n=0):
 
 def deleteAllButHighestNumberedNDirectories(where, N):
     """In a directory full of folders named after time values, we delete all but the highest N directores ignoring files
-       and also ignoring non-timestapt float looking named directories
+    and also ignoring non-timestapt float looking named directories
     """
     asnumbers = {}
     for i in get_immediate_subdirectories(where):
@@ -267,7 +273,7 @@ def deleteOldStuffAndEmptyDirectories(where, age):
 def disallowSpecialChars(s, allow=""):
     for i in r"""~!@#$%^&*()_+`-=[]\{}|;':"',./<>?""":
         if i in s:
-            raise ValueError("String contains "+i)
+            raise ValueError("String contains " + i)
     for i in "\n\r\t":
         if i in s:
             raise ValueError("String contains tab, newline, or return")
@@ -281,7 +287,8 @@ class LowPassFiter(object):
         self.speed = speed
 
     def sample(self, x):
-        self.value = (self.value * (1-self.speed)) + ((x) * self.speed)
+        self.value = (self.value * (1 - self.speed)) + ((x) * self.speed)
+
 
 # Credit to Jay of stack overflow for this function
 
@@ -327,12 +334,12 @@ def updateIP():
     global MyExternalIPAdress
     # Yes, This really is the only way i know of to get your public IP.
     try:
-        if config['get-public-ip']:
+        if config["get-public-ip"]:
             u = urlopen("http://ipecho.net/plain", timeout=60)
         MyExternalIPAdress = u.read()
 
         if sys.version_info > (3, 0):
-            MyExternalIPAdress = MyExternalIPAdress.decode('utf8')
+            MyExternalIPAdress = MyExternalIPAdress.decode("utf8")
     except:
         MyExternalIPAdress = "unknown"
     finally:
@@ -347,30 +354,33 @@ last = time.time()
 
 
 lastNTP = 0
-oldNTPOffset = 30*365*24*60*60
+oldNTPOffset = 30 * 365 * 24 * 60 * 60
 hasInternet = False
 
 
 def timeaccuracy():
     from . import messagebus
+
     global lastNTP, oldNTPOffset
     try:
         if (time.time() - lastNTP) > 600:
             lastNTP = time.time()
             c = ntplib.NTPClient()
             response = c.request("ntp.pool.org", version=3)
-            oldNTPOffset = response.offset + response.root_delay + response.root_dispersion
+            oldNTPOffset = (
+                response.offset + response.root_delay + response.root_dispersion
+            )
             if not hasInternet:
                 messagebus.post_message("/system/internet", True)
             hasInternet = True
             return oldNTPOffset
         else:
-            return oldNTPOffset + (time.time() - lastNTP)/10000.0
+            return oldNTPOffset + (time.time() - lastNTP) / 10000.0
     except:
         if hasInternet:
             messagebus.post_message("/system/internet", False)
         hasInternet = False
-        return oldNTPOffset + (time.time() - lastNTP)/10000.0
+        return oldNTPOffset + (time.time() - lastNTP) / 10000.0
 
 
 def diff(a, b):
@@ -382,7 +392,7 @@ def diff(a, b):
     y2 = []
     for i in y:
         y2.append(i)
-    return ''.join(difflib.unified_diff(x2, y2))
+    return "".join(difflib.unified_diff(x2, y2))
 
 
 # This returns either the current time, or a value that is higher than any
@@ -391,14 +401,14 @@ def time_or_increment():
     if time.time() > min_time:
         return time.time()
     else:
-        return int(min_time)+1.234567
+        return int(min_time) + 1.234567
 
 
 def roundto(n, s):
     if not s:
         return n
-    if ((n % s) > (s/2)):
-        return n+(s-(n % s))
+    if (n % s) > (s / 2):
+        return n + (s - (n % s))
     else:
         return n - n % s
 
@@ -424,7 +434,7 @@ def split_escape(s, separator, escape=None, preserve_escapes=False):
             current_token += i
 
     if current_token:
-        return tokens+[current_token]
+        return tokens + [current_token]
     else:
         return tokens
 
@@ -448,7 +458,12 @@ def resourcename_escape(s):
 
 
 def module_onelevelup(s):
-    return "/".join([i.replace("\\", "\\\\").replace("/", "\\/") for i in split_escape(s, "/", "\\")[:-1]])
+    return "/".join(
+        [
+            i.replace("\\", "\\\\").replace("/", "\\/")
+            for i in split_escape(s, "/", "\\")[:-1]
+        ]
+    )
 
 
 numberlock = threading.Lock()
@@ -464,8 +479,8 @@ def unique_number():
 
 
 def is_private_ip(ip):
-    if '.' in ip:
-        ip = [int(i) for i in ip.split('.')]
+    if "." in ip:
+        ip = [int(i) for i in ip.split(".")]
 
         if ip[0] == 10 or ip[0] == 127:
             return True
@@ -479,10 +494,10 @@ def is_private_ip(ip):
 
         return False
 
-    if ip == '::1':
+    if ip == "::1":
         return True
 
-    elif ip.startswith('fc') or ip.startswith('fd') or ip.startswith('fe80'):
+    elif ip.startswith(("fc", "fd", "fe80")):
         return True
 
     return False
@@ -502,7 +517,7 @@ def saferepr(obj):
     try:
         return srepr.repr(obj)
     except Exception as e:
-        return e+" in repr() call"
+        return e + " in repr() call"
 
 
 currentUser = None
@@ -511,12 +526,14 @@ currentUser = None
 def getUser():
     global currentUser
     return currentUser or getpass.getuser()
+
+
 # Partly based on code by Tamás of stack overflow.
 
 
 def drop_perms(user, group=None):
     global currentUser
-    if os.name == 'nt':
+    if os.name == "nt":
         return
 
     if os.getuid() != 0:
@@ -528,7 +545,7 @@ def drop_perms(user, group=None):
         # Changing to the exact same user can cause problems
         return
 
-    logger.info("Changing user and group to: "+str(user)+" "+str(group))
+    logger.info("Changing user and group to: " + str(user) + " " + str(group))
 
     import grp
     import pwd
@@ -550,7 +567,7 @@ def drop_perms(user, group=None):
 
 
 def lrucache(n=10):
-    class LruCache():
+    class LruCache:
         def __init__(self, f):
             self.f = f
             self.n = n
@@ -580,6 +597,7 @@ def lrucache(n=10):
                 if len(self.cache) > self.n:
                     self.cache.popitem(last=False)
             return self.cache[x]
+
     return LruCache
 
 
@@ -595,7 +613,7 @@ def _yaml_esc(s, depth=0, r=""):
     if isinstance(s, (str, float, int)):
         return
     if isinstance(s, list):
-        x = range(0, len(s))
+        x = range(len(s))
     else:
         x = s
     for i in x:

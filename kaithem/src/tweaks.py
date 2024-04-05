@@ -1,19 +1,5 @@
-#!/usr/bin/python3
-# Copyright Daniel Dunn 2013-2015
-# This file is part of Kaithem Automation.
-
-# Kaithem Automation is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-
-# Kaithem Automation is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-
+# SPDX-FileCopyrightText: Copyright Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
 
 import logging
 import traceback
@@ -148,7 +134,9 @@ def installThreadLogging():
         run_old = self.run
 
         def run_with_except_hook(*args, **kw):
-            if self.name.startswith("nostartstoplog.") or self.name.startswith("Thread-"):
+            if self.name.startswith("nostartstoplog.") or self.name.startswith(
+                "Thread-"
+            ):
                 try:
                     run_old(*args, **kw)
                 except Exception as e:
@@ -165,9 +153,11 @@ def installThreadLogging():
                         "Thread starting: "
                         + self.name
                         + " with ID: "
-                        + str(threading.current_thread().ident) +
-                              " Daemon: "+str(self.daemon) )
-                    
+                        + str(threading.current_thread().ident)
+                        + " Daemon: "
+                        + str(self.daemon)
+                    )
+
                     run_old(*args, **kw)
                     threadlogger.info(
                         "Thread stopping: "
