@@ -16,7 +16,8 @@ import cherrypy.lib.static
 import copy
 import asyncio
 import shutil
-from typing import Dict, Optional, Union, Any, Callable, Iterable
+from typing import Dict, Optional, Union, Any
+from collections.abc import Callable, Iterable
 
 from . import pages, workers, tagpoints, alerts
 from . import persist, directories, messagebus, widgets, unitsofmeasure
@@ -31,8 +32,8 @@ SUBDEVICE_SEPARATOR = "/"
 log = logging.getLogger("system.devices")
 
 
-remote_devices: Dict[str, Device] = {}
-remote_devices_atomic: Dict[str, weakref.ref[Device]] = {}
+remote_devices: dict[str, Device] = {}
+remote_devices_atomic: dict[str, weakref.ref[Device]] = {}
 
 device_data = {}
 
@@ -303,8 +304,8 @@ def get_config_folder_from_device(d: str, create=True):
 
 
 def get_config_folder_from_info(
-    module: Optional[str],
-    resource: Optional[str],
+    module: str | None,
+    resource: str | None,
     name: str,
     create=True,
     always_return=False,
@@ -486,11 +487,11 @@ class Device(iot_devices.device.Device):
         dbgd[name + str(time.time())] = self
 
         # If the device is from a module, tells us where
-        self.parentModule: Optional[str] = None
+        self.parentModule: str | None = None
 
         # This can exist even without parent module, not doing
         # anything but telling us what the name would be.
-        self.parentResource: Optional[str] = None
+        self.parentResource: str | None = None
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
@@ -504,12 +505,12 @@ class Device(iot_devices.device.Device):
         # may not include special chars besides underscores.
 
         # It is a list of all alerts "owned" by the device.
-        self.alerts: Dict[str, alerts.Alert] = {}
+        self.alerts: dict[str, alerts.Alert] = {}
 
         # A list of all the tag points owned by the device
-        self.tagPoints: Dict[str, tagpoints.GenericTagPointClass[Any]] = {}
+        self.tagPoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
         # Where we stash our claims on the tags
-        self.tagClaims: Dict[str, tagpoints.Claim] = {}
+        self.tagClaims: dict[str, tagpoints.Claim] = {}
 
         self._deviceSpecIntegrationHandlers = {}
 
@@ -545,7 +546,7 @@ class Device(iot_devices.device.Device):
         self.tagPoints = v
 
     # def handler(v,t or None, a="Set by device"):
-    #     self.setClaimVal("default", v, t or time.monotonic(), a)
+    #     self.set_claim_val("default", v, t or time.monotonic(), a)
 
     def handle_error(self, s):
         self.errors.append([time.time(), str(s)])
@@ -624,7 +625,7 @@ class Device(iot_devices.device.Device):
     def get_config_folder(self, create=True):
         return get_config_folder_from_device(self.name, create=create)
 
-    def create_subdevice(self, cls, name: str, config: Dict, *a, **k):
+    def create_subdevice(self, cls, name: str, config: dict, *a, **k):
         """
         Allows a device to create it's own subdevices.
         """
@@ -684,7 +685,7 @@ class Device(iot_devices.device.Device):
 
         return m
 
-    def webHandler(self, *path: Iterable[str], **kwargs: Dict[str, str | float | int]):
+    def webHandler(self, *path: Iterable[str], **kwargs: dict[str, str | float | int]):
         """
         A device's web page is also permissioned based on the global rules.
         """
@@ -725,14 +726,14 @@ class Device(iot_devices.device.Device):
     def numeric_data_point(
         self,
         name: str,
-        min: Optional[float] = None,
-        max: Optional[float] = None,
-        hi: Optional[float] = None,
-        lo: Optional[float] = None,
+        min: float | None = None,
+        max: float | None = None,
+        hi: float | None = None,
+        lo: float | None = None,
         description: str = "",
         unit: str = "",
-        handler: Optional[Callable[[float, float, Any], Any]] = None,
-        default: Optional[float] = None,
+        handler: Callable[[float, float, Any], Any] | None = None,
+        default: float | None = None,
         interval: float = 0,
         writable: bool = True,
         subtype: str = "",
@@ -777,8 +778,8 @@ class Device(iot_devices.device.Device):
         self,
         name: str,
         description: str = "",
-        handler: Optional[Callable[[str, float, Any], Any]] = None,
-        default: Optional[str] = None,
+        handler: Callable[[str, float, Any], Any] | None = None,
+        default: str | None = None,
         interval: float = 0,
         writable: bool = True,
         subtype: str = "",
@@ -820,7 +821,7 @@ class Device(iot_devices.device.Device):
         self,
         name: str,
         description: str = "",
-        handler: Optional[Callable[[Dict[str, Any], float, Any], Any]] = None,
+        handler: Callable[[dict[str, Any], float, Any], Any] | None = None,
         interval: float = 0,
         writable: bool = True,
         subtype: str = "",
@@ -862,7 +863,7 @@ class Device(iot_devices.device.Device):
         self,
         name: str,
         description: str = "",
-        handler: Optional[Callable[[bytes, float, Any], Any]] = None,
+        handler: Callable[[bytes, float, Any], Any] | None = None,
         interval: float = 0,
         writable: bool = True,
         subtype: str = "",
@@ -917,7 +918,7 @@ class Device(iot_devices.device.Device):
         priority: str = "info",
         trip_delay: float = 0,
         auto_ack: bool = False,
-        release_condition: Optional[str] = None,
+        release_condition: str | None = None,
         **kw,
     ):
         x = self.tagPoints[datapoint].setAlarm(
@@ -965,7 +966,7 @@ class Device(iot_devices.device.Device):
 
     # UI Integration
 
-    def on_ui_message(self, msg: Union[float, int, str, bool, None, dict, list], **kw):
+    def on_ui_message(self, msg: float | int | str | bool | None | dict | list, **kw):
         """recieve a json message from the ui page.  the host is responsible for providing a send_ui_message(msg)
         function to the manage and create forms, and a set_ui_message_callback(f) function.
 
@@ -976,13 +977,13 @@ class Device(iot_devices.device.Device):
 
         """
 
-    def send_ui_message(self, msg: Union[float, int, str, bool, None, dict, list]):
+    def send_ui_message(self, msg: float | int | str | bool | None | dict | list):
         """
         send a message to everyone including yourself.
         """
         self._admin_ws_channel.send(msg)
 
-    def get_management_form(self) -> Optional[str]:
+    def get_management_form(self) -> str | None:
         """must return a snippet of html suitable for insertion into a form tag, but not the form tag itself.
         the host application is responsible for implementing the post target, the authentication, etc.
 
@@ -1033,7 +1034,7 @@ class UnusedSubdevice(iot_devices.device.Device):
 # is name, and that's optional but can be used to rename a device
 
 
-def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
+def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
     # The NEW name, which could just be the old name
     name = kwargs.get("name", None) or devname
 
@@ -1172,7 +1173,7 @@ def updateDevice(devname, kwargs: Dict[str, Any], saveChanges=True):
 
             do = False
             if os.path.exists(os.path.join(fl, i2)):
-                with open(os.path.join(fl, i2), "r") as f:
+                with open(os.path.join(fl, i2)) as f:
                     if not f.read() == kwargs[i]:
                         do = True
             else:

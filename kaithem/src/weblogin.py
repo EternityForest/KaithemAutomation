@@ -153,7 +153,7 @@ class LoginScreen:
                     raise cherrypy.HTTPRedirect("/")
             try:
                 dest = base64.b64decode(kwargs["go"]).decode()
-            except:
+            except Exception:
                 dest = "/index"
 
             if not "/errors/loginerror" in dest:

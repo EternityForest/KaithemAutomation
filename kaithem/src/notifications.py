@@ -121,7 +121,7 @@ def subscriber(topic, message):
     # Not threadsafe. But it is still better than the old polling based system.
     try:
         toolbarapi.send(["newmsg"])
-    except:
+    except Exception:
         logging.exception("Error pushing notifications")
 
     api.send(["notification", [time.time(), topic, message]])

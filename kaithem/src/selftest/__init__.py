@@ -58,7 +58,7 @@ def netTest():
     s2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s2.bind(("", 18552))
-    except:
+    except Exception:
         # Prob just port not free
         s.close()
         s2.close()
@@ -79,7 +79,7 @@ def netTest():
                 s.close()
                 s2.close()
                 return
-        except:
+        except Exception:
             # Cach timeouts
             x = 0
     s.close()
@@ -111,7 +111,7 @@ def runtest():
         t.daemon = True
         t.start()
         logging.info("Self test was sucessful")
-    except:
+    except Exception:
         messagebus.post_message(
             "/system/notifications/errors",
             "Self Test Error\n" + traceback.format_exc(chain=True),

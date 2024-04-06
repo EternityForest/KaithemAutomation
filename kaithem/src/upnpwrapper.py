@@ -216,29 +216,27 @@ def listMappings(deviceURL=None, cacheTime=1):
                                         NewPortMappingIndex=ind
                                     )
                                     mappings.append(
-                                        (
-                                            {
-                                                "external": (
-                                                    wanIP,
-                                                    x["NewExternalPort"],
-                                                ),
-                                                "internal": (
-                                                    x["NewInternalClient"],
-                                                    x["NewInternalPort"],
-                                                ),
-                                                "protocol": x["NewProtocol"],
-                                                "description": x[
-                                                    "NewPortMappingDescription"
-                                                ],
-                                                "duration": x["NewLeaseDuration"],
-                                                "remotehost": x["NewRemoteHost"],
-                                            }
-                                        )
+                                        {
+                                            "external": (
+                                                wanIP,
+                                                x["NewExternalPort"],
+                                            ),
+                                            "internal": (
+                                                x["NewInternalClient"],
+                                                x["NewInternalPort"],
+                                            ),
+                                            "protocol": x["NewProtocol"],
+                                            "description": x[
+                                                "NewPortMappingDescription"
+                                            ],
+                                            "duration": x["NewLeaseDuration"],
+                                            "remotehost": x["NewRemoteHost"],
+                                        }
                                     )
                                     ind += 1
                                 except upnpclient.soap.SOAPError:
                                     break
-                        except:
+                        except Exception:
                             logger.exception("Err")
     cachedMappings = mappings
     cachedMappingsTime = time.monotonic()
@@ -278,7 +276,7 @@ def renewer():
         try:
             cachedDevices = upnpclient.discover()
             listMappings()
-        except:
+        except Exception:
             logger.exception("err")
         time.sleep(8 * 60)
         try:

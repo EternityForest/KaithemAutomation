@@ -96,9 +96,13 @@ repos:
         - "--select=E999"
         # Mostly have auto fixes available
         - "--select=PIE"
+        - "--select=UP"
+        - "--select=NPY"
         # Autofixable quote rules
         - "--select=Q"
-
+        - "--select=E722"
+        # Fix bad escape sequence
+        - "--select=W605"
       # Run the formatter.
       - id: ruff-format
 

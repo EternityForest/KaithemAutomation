@@ -15,9 +15,9 @@ def combineLogs(a):
     for i in a:
         for j in a[i]:
             op.append((unitsofmeasure.strftime(j[0]),i,j[1]))
-    
+
     return sorted(op)
-    
+
 %>
 <%
 
@@ -28,8 +28,8 @@ def combineLogs(a):
     if data and 'logtime' in data:
         logtime = dateutil.parser.parse(data['logtime']).timestamp()
 
-        
-        
+
+
     pageGCListIgnoreFlag = True
 
 
@@ -56,8 +56,8 @@ def combineLogs(a):
                             raise ValueError("Likely invalid alarm name containing :")
 
                         alarmName, alarmProperty =x.split(":")
-                        
-                        
+
+
                         #There's no row yet for the new alarm that might be happening
                         if alarmName=="NEW":
                             alarmName = data['alarm_NEW:name']
@@ -80,8 +80,8 @@ def combineLogs(a):
                             loggers[loggerNumber]={}
                         loggers[loggerNumber][loggerProperty] = data[i]
 
-              
-                
+
+
                 for i in sorted(list(loggers.keys())):
                     interval = float(loggers[i]['interval'])
                     historyLength = float(loggers[i]['historyLength'])
@@ -97,7 +97,7 @@ def combineLogs(a):
 
                 for i in list(ald.keys()):
                     #Changing name to empty
-                    #Setting an alarm to  none is how  you delete it  
+                    #Setting an alarm to  none is how  you delete it
                     if 'name' in ald[i]:
                         if not ald[i]['name'].strip():
                             ald[i]=None
@@ -111,13 +111,13 @@ def combineLogs(a):
                 data['loggers']=loggersList
 
                 data['permissions']= [data['readPerms'],data['writePerms'],data['apiPriority'] ]
-                
+
                 del data['readPerms']
                 del data['writePerms']
                 del data['apiPriority']
 
                 tagpoints.configTagFromData(tagName,data)
-            
+
             raise cherrypy.HTTPRedirect("/tagpoints/"+ util.url(tagName))
 
         if tagName in tagpoints.allTags:
@@ -131,12 +131,12 @@ def combineLogs(a):
     ald= configData.get('alarms',{})
 
 
-    
-    
-        
 
-    if hasattr(tag, 'kweb_manualOverrideClaim') and tag.kweb_manualOverrideClaim:
-        x  = tag.kweb_manualOverrideClaim
+
+
+
+    if hasattr(tag, 'kweb_manual_override_claim') and tag.kweb_manual_override_claim:
+        x  = tag.kweb_manual_override_claim
         orval = x.value
         orprio=x.priority
         orname =x.name
@@ -151,7 +151,7 @@ def combineLogs(a):
     # Use to show the placeholders for what you'll get if you blank out something
     defaultAlarmData = collections.defaultdict(lambda: {})
     defaultAlarmData.update(tag.dynamicAlarmData)
-    
+
 
 
 %>
@@ -183,8 +183,8 @@ else:
 
     <h3>Description</h3>
     ${tag.description or "No description set"}
-    
-    
+
+
 
 <h3>Temporary Override</h3>
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
@@ -215,7 +215,7 @@ else:
 
 </table>
 
-    
+
 %if show_advanced:
 <div>
 %else:
@@ -437,8 +437,8 @@ else:
 
     <p>This section allows you to directly expose tags via the WebSockets API, for use in places like the integratedFreeBoard Dashboard creator. </p>
 
-    <p>Empty read perms disable exposing the tag, unless it is exposed via code.   
-        Any values set here override those in code, blank values default to the one set in code.  
+    <p>Empty read perms disable exposing the tag, unless it is exposed via code.
+        Any values set here override those in code, blank values default to the one set in code.
         These settings control access to the tag in the FreeBoard dashboard creator</p>
 
 <p>At least one read permisson has to be defined to enable the api, even if there are write permissions, so write-only tags are not possible. Empty fields disable exposure, unless settings
@@ -448,7 +448,7 @@ else:
 <p>Permissions are a comma separated list, The user must have all of them</p>
 
 <p>Tags can be exposed in code with tag.expose(), but config overrides runtime on a per-field basis.</p>
-    
+
 <>To un-expose something wth an exposed runtime config, use the special permission __never__ to disallow all users.</p>
 </div>
 
@@ -456,7 +456,7 @@ else:
 <table border="1" class="w-full">
     <tr>
         <td>Read Permissions</td>
-    
+
     <td>
         <input name="readPerms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
     </td>
@@ -464,14 +464,14 @@ else:
 
     <tr>
         <td>Write Permissions(comma separated, empty for admin-only)</td>
-    
+
     <td>
         <input name="writePerms" value="${configData.get('permissions',['','',''])[1]|h}" placeholder="${tag.getEffectivePermissions()[1]|h}" style="width:24em">
     </td>
 </tr>
     <tr>
         <td>Priority of claims set by the API</td>
-   
+
     <td>
         <input name="apiPriority" value="${configData.get('permissions',['','',''])[2]|h}" placeholder="${tag.getEffectivePermissions()[2]|h}" style="width:24em">
     </td>
@@ -503,7 +503,7 @@ else:
         <th>Trip Delay</th>
         <th>State</th>
     </tr>
-    
+
 
 %for i in eald:
 <tr>
@@ -511,7 +511,7 @@ else:
     <td><input name="alarm_${i}:name" value="${i|h}"></td>
     %else:
     <td><input title="Cannot change name of alarm that was created in code, set condition to None to disable" disabled=1 value="${i|h}"></td>
-    %endif    
+    %endif
     <td><input name="alarm_${i}:condition" value="${ald.get(i,{}).get('condition','')|h}" placeholder="${defaultAlarmData[i].get('condition','')}" style="width:24em"></td>
     <td><input name="alarm_${i}:releaseCondition" value="${ald.get(i,{}).get('releaseCondition','')|h}" placeholder="${defaultAlarmData[i].get('releaseCondition','when tripCondition is False')}" style="width:24em"></td>
     <td>
@@ -576,14 +576,14 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
             <option value="min" ${'selected' if i['accumulate']=='min' else ''}>Minimum</option>
             <option value="max" ${'selected' if i['accumulate']=='max' else ''}>Maximum</option>
             %endif
-        </select> 
+        </select>
     </td>
     <td><input type="number" step="1800" value="${i.get('historyLength',3*30*24*3600)}" name="logger_${n}:historyLength"></td>
     <td>
         <select name="logger_${n}:target">
             <option value="ram" ${'selected' if i.get("target","disk")=='disk' else ''}>RAM</option>
             <option value="disk" ${'selected' if i.get("target","disk")=='disk' else ''}>Disk</option>
-        </select> 
+        </select>
     </td>
     </tr>
     %endfor

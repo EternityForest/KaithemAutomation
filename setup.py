@@ -14,13 +14,13 @@ def read(fname):
 
 # https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
 VERSIONFILE = "kaithem/__version__.py"
-verstrline = open(VERSIONFILE, "rt").read()
+verstrline = open(VERSIONFILE).read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VSRE, verstrline, re.M)
 if mo:
     verstr = mo.group(1)
 else:
-    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+    raise RuntimeError(f"Unable to find version string in {VERSIONFILE}.")
 
 
 def package_files(directory, ext=""):
@@ -88,5 +88,6 @@ setup(
             "kaithem._iceflow_server = icemedia.iceflow_server:main",
         ],
     },
+    python_requires=">=3.10",
     install_requires=frozen_requirements,
 )

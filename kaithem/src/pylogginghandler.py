@@ -37,7 +37,7 @@ def at_exit():
         for i in all_handlers:
             try:
                 all_handlers[i].close()
-            except:
+            except Exception:
                 pass
     except Exception:
         pass
@@ -47,7 +47,7 @@ def at_exit():
         try:
             with open(f"/dev/shm/shutdowntime_{getpass.getuser()}", "w") as f:
                 f.write(str(time.time()))
-        except:
+        except Exception:
             print(traceback.format_exc())
 
 
@@ -157,7 +157,7 @@ class LoggingHandler(logging.Handler):
         logging.Handler.close(self)
         try:
             logging.getLogger().removeHandler(self)
-        except:
+        except Exception:
             pass
 
     def filter(self, record) -> bool:
@@ -283,7 +283,7 @@ class LoggingHandler(logging.Handler):
                         if chmodflag:
                             util.chmod_private_try(fn)
                         for i in logbuffer:
-                            b = f"{i}\r\n".encode("utf8")
+                            b = f"{i}\r\n".encode()
                             self.bytecounter += len(b)
                             f.write(b)
                     # Keep track of how many we have written to the file
@@ -385,12 +385,12 @@ if os.path.exists(f"/dev/shm/kaithemdbglog_{getpass.getuser()}"):
                 f"/dev/shm/kaithemdbglog_{getpass.getuser()}",
                 f"/dev/shm/kaithemdbglogbackup_{getpass.getuser()}",
             )
-        except:
+        except Exception:
             pass
 
         try:
             shutil.rmtree(f"/dev/shm/kaithemdbglog_{getpass.getuser()}")
-        except:
+        except Exception:
             pass
 
         messagebus.post_message(
@@ -407,7 +407,7 @@ if os.path.exists(f"/dev/shm/kaithemdbglog_{getpass.getuser()}"):
 if os.path.exists("/dev/shm"):
     try:
         os.remove(f"/dev/shm/shutdowntime_{getpass.getuser()}")
-    except:
+    except Exception:
         pass
 
 

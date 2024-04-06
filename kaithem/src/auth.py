@@ -55,14 +55,14 @@ class User(dict):
     def __init__(self, *a, **k):
         dict.__init__(self, *a, **k)
 
-        self.permissions: Union[Dict, set] = {}
+        self.permissions: dict | set = {}
         self.limits = {}
-        self.token: Optional[str] = None
+        self.token: str | None = None
 
 
 logger = logging.getLogger("system.auth")
 # This maps raw tokens to users
-Tokens: Dict[str, User] = {}
+Tokens: dict[str, User] = {}
 
 Groups = {}
 Users = {}
@@ -77,33 +77,24 @@ Users = {}
 
 # This post discusses token auth directly:
 # https://stackoverflow.com/questions/18605294/is-devises-token-authenticatable-secure
-tokenHashes: Dict[bytes, User] = {}
+tokenHashes: dict[bytes, User] = {}
 
 with open(os.path.join(directories.datadir, "defaultusersettings.yaml")) as f:
     defaultusersettings = yaml.load(f, Loader=yaml.SafeLoader)
 
 
-if sys.version_info < (3, 0):
-    # In python 2 bytes is an alias for str
-    # So we need to make a version bytes take a dummy arg to match 3.xx interface
-    # It's ok if it doesn't actually do anything because of the fact that hash.update is fine with str in 2.xx
-    def usr_bytes(s, x):
-        "Bytes is an alias for str in py2x, so we make this wrapper so it has the same interface as py3x"
-        return str(s)
-
-else:
-    usr_bytes = bytes
+usr_bytes = bytes
 
 
 # If nobody loadsusers from the file make sure nothing breaks(mostly for tests)
 """A dict of all the users"""
-Users: Dict[str, User] = {}
+Users: dict[str, User] = {}
 """A dict of all the groups"""
-Groups: Dict[str, dict] = {}
+Groups: dict[str, dict] = {}
 
 """These are the "built in" permissions required to control basic functions
 User code can add to these"""
-BasePermissions: Dict[str, str] = {
+BasePermissions: dict[str, str] = {
     "system_admin": "The main admin permission to configure the system. Implies that the user can do anything the base account running the server can.",
     "view_admin_info": "Allows read but not write access to most of the system state",
     "view_status": "View the main page of the application, the active alerts, the about box, and other basic overview info",
@@ -196,15 +187,13 @@ def changePassword(user, newpassword, useSystem=False):
         # Base64 should never return a byte string. The point of base64 is to store binary data
         # as normal strings. So why would I ever want a base64 value stores as bytes()?
         # Anyway, python2 doesn't do that, so we just decode it if its new python.
-        if sys.version_info >= (3, 0):
-            salt64 = salt64.decode("utf8")
+        salt64 = salt64.decode("utf8")
         Users[user]["salt"] = salt64
         m = hashlib.sha256()
         m.update(usr_bytes(newpassword, "utf8"))
         m.update(salt)
         p = base64.b64encode(m.digest())
-        if sys.version_info >= (3, 0):
-            p = p.decode("utf8")
+        p = p.decode("utf8")
         Users[user]["password"] = p
         dumpDatabase()
 
@@ -744,7 +733,7 @@ def canUserDoThis(user, permission):
 #         from shlex import quote as shellquote
 #     else:
 #         from pipes import quote as shellquote
-# except:
+# except Exception:
 #     pass
 # import subprocess
 

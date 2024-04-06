@@ -124,7 +124,7 @@ def doUPnP():
             upnpMapping = upnpwrapper.addMapping(
                 p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp
             )
-        except:
+        except Exception:
             syslogger.exception("Could not create mapping")
     else:
         # Going to let GC handle this
@@ -189,7 +189,7 @@ def checkBitErrors():
 
 try:
     monotonic = time.monotonic()
-except:
+except Exception:
 
     def monotonic():
         return "monotonic time not available"

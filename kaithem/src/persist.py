@@ -121,7 +121,7 @@ class SharedStateFile:
         if os.path.exists(self.filename):
             try:
                 os.remove(self.filename)
-            except:
+            except Exception:
                 logging.exception("wat")
 
 
@@ -178,7 +178,7 @@ def loadRecursiveFrom(f, d, remapToDirForSave=None):
                         data = getStateFile(fn)
                         data.noFileForEmpty = True
                         d[x] = data
-                    except:
+                    except Exception:
                         from . import messagebus
 
                         messagebus.post_message(

@@ -24,7 +24,7 @@ try:
         import cgi
 
         esc = cgi.escape
-except:
+except Exception:
 
     def esc(t):
         return t
@@ -95,7 +95,7 @@ def listlogdumps():
     return logz
 
 
-class WebInterface(object):
+class WebInterface:
     @cherrypy.expose
     def index(self, *args, **kwargs):
         pages.require("view_admin_info")

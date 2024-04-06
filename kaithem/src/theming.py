@@ -64,5 +64,5 @@ def getCSSTheme():
 
         else:
             return x
-    except:
+    except Exception:
         return None

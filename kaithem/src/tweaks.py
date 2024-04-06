@@ -61,7 +61,7 @@ except Exception:
 # Python 3.7 doesn't support the samesite attribute, which we need.
 try:
     http.cookies.Morsel._reserved["samesite"] = "SameSite"
-except:
+except Exception:
     logging.exception(
         "Samesite enable monkeypatch did not work. It is probably no longer needed on newer pythons, ignore this message"
     )
@@ -110,7 +110,7 @@ try:
             return rtMidiFixer(m)
 
         rtmidi.RtMidiOut = moget
-except:
+except Exception:
     logging.exception("RtMidi compatibility error")
 
 
@@ -190,10 +190,10 @@ def installThreadLogging():
             if self._target:
                 run_with_except_hook.__name__ = self._target.__name__
                 run_with_except_hook.__module__ = self._target.__module__
-        except:
+        except Exception:
             try:
                 run_with_except_hook.__name__ = "run"
-            except:
+            except Exception:
                 pass
         self.run = run_with_except_hook
 

@@ -16,7 +16,7 @@ def setTag(n, v, a=None):
         tagPoints[n] = tagpoints.Tag(n)
         tagPoints[n].min = 0
         tagPoints[n].max = 127
-    tagPoints[n].setClaimVal("default", v, timestamp=None, annotation=None)
+    tagPoints[n].set_claim_val("default", v, timestamp=None, annotation=None)
 
 
 def setTag14(n, v, a=None):
@@ -24,7 +24,7 @@ def setTag14(n, v, a=None):
         tagPoints[n] = tagpoints.Tag(n)
         tagPoints[n].min = 0
         tagPoints[n].max = 16383
-    tagPoints[n].setClaimVal("default", v, timestamp=None, annotation=None)
+    tagPoints[n].set_claim_val("default", v, timestamp=None, annotation=None)
 
 
 def onMidiMessage(m, d):
@@ -165,12 +165,12 @@ def doScan():
                     if isinstance(x, tuple):
                         try:
                             onMidiMessageTuple(x, d)
-                        except:
+                        except Exception:
                             print(traceback.format_exc())
                     else:
                         try:
                             onMidiMessage(x, d)
-                        except:
+                        except Exception:
                             print(traceback.format_exc())
 
                 m.set_callback(f)

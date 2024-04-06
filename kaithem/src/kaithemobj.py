@@ -13,15 +13,9 @@ import json
 import yaml
 import os
 import weakref
-import datetime
 from scullery import persist as sculleryPersist
 
 from typing import Any, Callable, Optional, Dict, List
-
-try:
-    import holidays
-except Exception:
-    print("Error importing holidays")
 
 import cherrypy
 from . import unitsofmeasure
@@ -136,6 +130,9 @@ class Kaithem:
 
     assetpacks = assetlib.AssetPacks(os.path.join(directories.vardir, "assets"))
 
+    def __init__(self):
+        self.globals = obj()  # this is just a place to stash stuff
+
     def __getattr__(self, name):
         if name in plugins:
             return plugins[name]
@@ -151,7 +148,7 @@ class Kaithem:
         getType = unitsofmeasure.get_unit_type
         define = unitsofmeasure.define_unit
 
-    class users(object):
+    class users:
         @staticmethod
         def check_permission(user, permission: str):
             try:
@@ -162,24 +159,23 @@ class Kaithem:
             except KeyError:
                 return False
 
-    class alerts(object):
+    class alerts:
         Alert = alerts.Alert
 
-    class logging(object):
+    class logging:
         @staticmethod
         def flushsyslog():
             import pylogginghandler
 
             pylogginghandler.syslogger.flush()
 
-    class misc(object):
+    class misc:
         version = __version__.__version__
         version_info = __version__.__version_info__
 
         @staticmethod
         def lorem() -> str:
             return random.choice(sentences)
-            # return ("""lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae laoreet eros. Integer nunc nisl, ultrices et commodo sit amet, dapibus vitae sem. Nam vel odio metus, ac cursus nulla. Pellentesque scelerisque consequat massa, non mollis dolor commodo ultrices. Vivamus sit amet sapien non metus fringilla pretium ut vitae lorem. Donec eu purus nulla, quis venenatis ipsum. Proin rhoncus laoreet ullamcorper. Etiam fringilla ligula ut erat feugiat et pulvinar velit fringilla.""")
 
         @staticmethod
         def do(f: Callable[..., Any]) -> None:
@@ -216,7 +212,7 @@ class Kaithem:
     # In modules.py, we insert a resource API object.
     # kaithemobj.kaithem.resource = ResourceAPI()
 
-    class time(object):
+    class time:
         # @staticmethod
         # def checkHoliday(name, zones=None):
         #     "Return true if the named holiday is happening in any listed zone.  Defaults to server config zone."
@@ -459,7 +455,7 @@ class Kaithem:
         def accuracy():
             return util.timeaccuracy()
 
-    class sys(object):
+    class sys:
         @staticmethod
         def shellex(cmd):
             env = {}
@@ -484,10 +480,10 @@ class Kaithem:
             except Exception:
                 return "sensors call failed"
 
-    class states(object):
+    class states:
         StateMachine = statemachines.StateMachine
 
-    class web(object):
+    class web:
         controllers = pages.nativeHandlers
 
         nav_bar_plugins = pages.nav_bar_plugins
@@ -547,7 +543,7 @@ class Kaithem:
         def has_permission(permission):
             return pages.canUserDoThis(permission)
 
-    class sound(object):
+    class sound:
         resolve_sound = sound.resolve_sound
 
         test = sound.test
@@ -574,7 +570,7 @@ class Kaithem:
                 op = []
 
                 for i in x:
-                    if not i.split(":")[0] in prefixes:
+                    if i.split(":")[0] not in prefixes:
                         prefixes[i.split(":")[0]] = i
                         op.append(i.split(":")[0])
                     op.append(i)
@@ -605,10 +601,6 @@ class Kaithem:
                 start=start,
                 speed=speed,
             )
-
-        @staticmethod
-        def wait(*args, **kwargs):
-            sound.wait(*args, **kwargs)
 
         @staticmethod
         def stop(handle: str = "PRIMARY"):
@@ -725,14 +717,13 @@ class obj:
     pass
 
 
-Kaithem.globals = obj()  # this is just a place to stash stuff.
-
-
 # This is a global instance but we are moving away from that
 kaithem = Kaithem()
 
 # Moving away from the thin time wrapper stuff to just astro stuff
 kaithem.sky = kaithem.time
+
+sentences: List[str] = []
 
 if config.config["quotes-file"] == "default":
     sentences = kaithem.persist.load(os.path.join(directories.datadir, "quotes.yaml"))

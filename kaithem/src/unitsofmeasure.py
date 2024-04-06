@@ -381,7 +381,7 @@ def iround(number, digits):
 
 try:
     from zoneinfo import ZoneInfo
-except:
+except Exception:
     ZoneInfo = None
 
 import functools
@@ -414,7 +414,7 @@ def lru_cache(timeout: int, maxsize: int = 128, typed: bool = False):
 def getZone(s):
     try:
         tz = ZoneInfo(s)
-    except:
+    except Exception:
         tz = pytz.timezone(s)
     return tz
 

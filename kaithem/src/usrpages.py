@@ -250,10 +250,7 @@ class CompiledPage:
 
                 if "auto-reload" in resource:
                     if resource["auto-reload"]:
-                        header += (
-                            '<meta http-equiv="refresh" content="%d">'
-                            % resource["auto-reload-interval"]
-                        )
+                        header += f'<meta http-equiv="refresh" content="{resource["auto-reload-interval"]}">'
 
                 if not ("no-header" in resource) or not (resource["no-header"]):
                     footer = util.readfile(
@@ -380,7 +377,7 @@ class CompiledPage:
                 self.printoutput += f"{str(d[0])}\n"
             else:
                 self.printoutput += str(d)
-        except:
+        except Exception:
             self.printoutput += repr(d)
         self.printoutput = self.printoutput[-2500:]
 
@@ -415,7 +412,7 @@ def getPageHTMLDoc(m, r):
     try:
         if hasattr(_Pages[m][r].template.module, "__html_doc__"):
             return str(_Pages[m][r].template.module.__html_doc__)
-    except:
+    except Exception:
         pass
 
 
@@ -424,7 +421,7 @@ def getPageInfo(module, resource):
     # in there that i'm Putting this in a try block.
     try:
         return _Pages[module][resource].template.module.__doc__ or ""
-    except:
+    except Exception:
         return ""
 
 
@@ -464,7 +461,7 @@ def updateOnePage(resource, module):
             gc.collect()
             time.sleep(0.125)
             gc.collect()
-        except:
+        except Exception:
             pass
 
         enable = True
@@ -643,8 +640,7 @@ class KaithemPage:
         if None == page:
             messagebus.post_message(
                 "/system/errors/http/nonexistant",
-                "Someone tried to access a page that did not exist in module %s with path %s"
-                % (module, args),
+                f"Someone tried to access a page that did not exist in module {module} with path {args}",
             )
             raise cherrypy.NotFound()
 

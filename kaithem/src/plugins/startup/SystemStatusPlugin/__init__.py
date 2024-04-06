@@ -34,6 +34,7 @@ def getSDHealth():
 
 try:
     import psutil
+
     psutil.sensors_temperatures()
     battery = psutil.sensors_battery()
 
@@ -55,17 +56,20 @@ if battery:
     batteryTag.lo = 25
 
     battery_time = tagpoints.Tag("/system/power/battery_time")
-    battery_time.unit = 's'
+    battery_time.unit = "s"
     battery_time.max = 30 * 60 * 60
     battery_time.lo = 40 * 60
     battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
-    battery_time.setAlarm("lowbattery_timeRemaining", "value < 60*15",  priority='error')
+    battery_time.setAlarm("lowbattery_timeRemaining", "value < 60*15", priority="error")
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged or 0
-    acPowerTag.subtype = 'bool'
+    acPowerTag.subtype = "bool"
     acPowerTag.setAlarm(
-        "runningOnBattery", "(not value) and (tv('/system/power/battery_level')< 80)", priority='warning')
+        "runningOnBattery",
+        "(not value) and (tv('/system/power/battery_level')< 80)",
+        priority="warning",
+    )
 
 
 sdhealth = getSDHealth()
@@ -79,8 +83,8 @@ if not sdhealth is None:
     sdTag.unit = "%"
     sdTag.lo = 50
 
-    sdTag.setAlarm("SDCardWear", 'value < 70', priority='info')
-    sdTag.setAlarm("SDCardCloseToFailure", 'value < 10', priority='error')
+    sdTag.setAlarm("SDCardWear", "value < 70", priority="info")
+    sdTag.setAlarm("SDCardCloseToFailure", "value < 10", priority="error")
     sdTag.value = sdhealth
 
     @scheduling.scheduler.everyHour
@@ -89,27 +93,33 @@ if not sdhealth is None:
         if not s is None:
             sdTag.value = s
 
+
 diskAlerts = {}
 
 spaceCheckLock = threading.RLock()
 
 if psutil:
+
     @scheduling.scheduler.everyHour
     def doDiskSpaceCheck():
         with spaceCheckLock:
             import psutil
+
             partitions = psutil.disk_partitions(all=True)
             found = {}
 
             for p in partitions:
-                if p.device.startswith("/dev") or p.device == 'tmpfs':
-                    if 'rw' in p.opts.split(","):
+                if p.device.startswith("/dev") or p.device == "tmpfs":
+                    if "rw" in p.opts.split(","):
                         id = p.device + " at " + p.mountpoint
                         found[id] = True
 
                         if not id in diskAlerts:
-                            diskAlerts[id] = alerts.Alert("Low remaining space on " + id, priority="warning",
-                                                          description="This alert may take a while to go away once the root cause is fixed.")
+                            diskAlerts[id] = alerts.Alert(
+                                "Low remaining space on " + id,
+                                priority="warning",
+                                description="This alert may take a while to go away once the root cause is fixed.",
+                            )
                         try:
                             full = psutil.disk_usage(p.mountpoint).percent
                             space = psutil.disk_usage(p.mountpoint).free
@@ -148,12 +158,17 @@ if psutil:
             if not i in tempTags:
                 # Fix the name
                 tempTags[i] = tagpoints.Tag(
-                    tagpoints.normalizeTagName("/system/sensors/temp/" + i, "_"))
+                    tagpoints.normalize_tag_name("/system/sensors/temp/" + i, "_")
+                )
                 tempTags[i].setAlarm(
-                    "temperature", "value>78", releaseCondition="value<65", priority='warning')
+                    "temperature",
+                    "value>78",
+                    releaseCondition="value<65",
+                    priority="warning",
+                )
                 tempTags[i].setAlarm("lowtemperature", "value<5")
 
-                tempTags[i].unit = 'degC'
+                tempTags[i].unit = "degC"
                 tempTags[i].max = 150
                 tempTags[i].min = -25
                 tempTags[i].hi = 76
@@ -165,8 +180,8 @@ if psutil:
             acPowerTag.value = battery.power_plugged or 0
             batteryTag.value = battery.percent
             battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
-    doPsutil()
 
+    doPsutil()
 
 
 # Every minute, we check for overtemperature or overvoltage problems
@@ -176,7 +191,7 @@ if util.which("vcgencmd"):
     undervoltageTagClaim = undervoltageTag.claim(0, "HWSensor")
 
     overtemperatureTag = tagpoints.Tag("/system/pi/overtemperature")
-    overtemperatureTag.setAlarm("temp", "value>0.5", priority='error')
+    overtemperatureTag.setAlarm("temp", "value>0.5", priority="error")
     overtemperatureTagClaim = overtemperatureTag.claim(0, "HWSensor")
 
     @scheduling.scheduler.everyMinute
@@ -186,7 +201,7 @@ if util.which("vcgencmd"):
         try:
             # This is a trusted system util! Eval is fine here!
             x = subprocess.check_output(["vcgencmd", "get_throttled"])
-            x = eval(x.decode('utf8').split("=")[1])
+            x = eval(x.decode("utf8").split("=")[1])
 
             # https://github.com/raspberrypi/documentation/blob/JamesH65-patch-vcgencmd-vcdbg-docs/raspbian/applications/vcgencmd.md
             if x & (2**0):
@@ -205,19 +220,23 @@ if util.which("vcgencmd"):
             if x & (2**16):
                 if not undervoltageDuringBootPosted:
                     messagebus.post_message(
-                        "/system/notifications/errors", "A low input voltage condition has occurred at some point on this system")
+                        "/system/notifications/errors",
+                        "A low input voltage condition has occurred at some point on this system",
+                    )
                     undervoltageDuringBootPosted = True
 
             if x & (2**19):
                 if not overTempDuringBootPosted:
                     messagebus.post_message(
-                        "/system/notifications/errors", "An overtemperature condition has occurred at some point on this system")
+                        "/system/notifications/errors",
+                        "An overtemperature condition has occurred at some point on this system",
+                    )
                     overTempDuringBootPosted = True
 
         except Exception:
             logging.exception("err")
-    checkPiFlags()
 
+    checkPiFlags()
 
 
 ledDefaults: dict[str, str] = {}
@@ -231,6 +250,7 @@ def makeLedTagIfNonexistant(f, n):
         return
 
     if os.path.exists(f):
+
         def setLedWithSudo(v, *x):
             if v > 0.5:
                 v = 255
@@ -239,7 +259,8 @@ def makeLedTagIfNonexistant(f, n):
             else:
                 v = 0
 
-            os.system('sudo bash -c  "echo ' + str(v) + ' > ' + f + '"')
+            os.system('sudo bash -c  "echo ' + str(v) + " > " + f + '"')
+
         refs.append(setLedWithSudo)
 
         with open(f) as f2:
@@ -257,27 +278,30 @@ def makeLedTagIfNonexistant(f, n):
         except Exception:
             logging.exception("Error setting up LED state")
 
-makeLedTagIfNonexistant(
-    "/sys/class/leds/led1/brightness", "/system/board/leds/pwr")
-makeLedTagIfNonexistant("/sys/class/leds/PWR/brightness",
-                        "/system/board/leds/pwr")
 
-makeLedTagIfNonexistant(
-    "/sys/class/leds/led0/brightness", "/system/board/leds/act")
-makeLedTagIfNonexistant("/sys/class/leds/ACT/brightness",
-                        "/system/board/leds/act")
+makeLedTagIfNonexistant("/sys/class/leds/led1/brightness", "/system/board/leds/pwr")
+makeLedTagIfNonexistant("/sys/class/leds/PWR/brightness", "/system/board/leds/pwr")
+
+makeLedTagIfNonexistant("/sys/class/leds/led0/brightness", "/system/board/leds/act")
+makeLedTagIfNonexistant("/sys/class/leds/ACT/brightness", "/system/board/leds/act")
 
 
 errtag = tagpoints.Tag("/system/io_error_flag")
-errtag.setAlarm("An IO Error was detected that could indicate a failing disk or bad cable. This could also indicate an issue with an external device.", "value>0", "error")
-errtag.min=0
-errtag.max=1
-errtag.subtype = 'bool'
+errtag.setAlarm(
+    "An IO Error was detected that could indicate a failing disk or bad cable. This could also indicate an issue with an external device.",
+    "value>0",
+    "error",
+)
+errtag.min = 0
+errtag.max = 1
+errtag.subtype = "bool"
+
 
 @scheduling.scheduler.everyHour
 def checkDmesg():
-    t = subprocess.check_output(['journalctl', '-k']).decode()
+    t = subprocess.check_output(["journalctl", "-k"]).decode()
     if "i/o error" in t.lower():
         errtag.value = 1
+
 
 checkDmesg()

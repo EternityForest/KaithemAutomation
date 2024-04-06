@@ -88,8 +88,7 @@ def create():
 
             try:
                 with open("/dev/shm/KaithemCachedPublicIP.json", "w") as f:
-                    json.dump(
-                        {"ip": r.text, "time_monotonic": time.monotonic()}, f)
+                    json.dump({"ip": r.text, "time_monotonic": time.monotonic()}, f)
             except Exception:
                 log.exception("Err saving cache file")
 
@@ -104,7 +103,10 @@ def create():
     refs.append(publicIP)
 
     ipTag.interval = 3600
-    ipTag.description = "The current public IP address, as seen by http://api.ipify.org.  If the server is unreachable, will be the empty string. Default interval is dynamic, 1 hour once succeeded."
+    ipTag.description = """The current public IP address, as seen by http://api.ipify.org.
+        If the server is unreachable, will be the empty string.
+          Default interval is dynamic, 1 hour once succeeded."""
+
     ipTag.value = publicIP
 
 

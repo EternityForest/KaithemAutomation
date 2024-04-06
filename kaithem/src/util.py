@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
@@ -279,7 +278,7 @@ def disallowSpecialChars(s, allow=""):
             raise ValueError("String contains tab, newline, or return")
 
 
-class LowPassFiter(object):
+class LowPassFiter:
     "Speed should be 0 to 1 and express by what percentage to approach the new value per sample"
 
     def __init__(self, speed, startval=0):
@@ -338,9 +337,9 @@ def updateIP():
             u = urlopen("http://ipecho.net/plain", timeout=60)
         MyExternalIPAdress = u.read()
 
-        if sys.version_info > (3, 0):
-            MyExternalIPAdress = MyExternalIPAdress.decode("utf8")
-    except:
+        MyExternalIPAdress = MyExternalIPAdress.decode("utf8")
+
+    except Exception:
         MyExternalIPAdress = "unknown"
     finally:
         try:
@@ -376,7 +375,7 @@ def timeaccuracy():
             return oldNTPOffset
         else:
             return oldNTPOffset + (time.time() - lastNTP) / 10000.0
-    except:
+    except Exception:
         if hasInternet:
             messagebus.post_message("/system/internet", False)
         hasInternet = False
