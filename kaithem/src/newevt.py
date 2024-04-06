@@ -10,7 +10,8 @@ import traceback
 import threading
 import sys
 import typing
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 import time
 import cherrypy
 import os
@@ -291,7 +292,7 @@ def ptim():
 # In a background thread, we use the worker pool to check all threads
 
 
-class EventSchedulerObject(scheduling.UnsynchronizedRepeatingEvent):
+class EventSchedulerObject(scheduling.RepeatingEvent):
     def __init__(
         self,
         function,
@@ -469,7 +470,7 @@ class BaseEvent:
         do: str | Callable,
         continual=False,
         ratelimit=0,
-        setup: Optional[str] = None,
+        setup: str | None = None,
         priority=2,
         m=None,
         r=None,
@@ -534,7 +535,7 @@ class BaseEvent:
         # going and how long it took
         self.lastcompleted = 0
 
-        self.history: typing.List[tuple] = []
+        self.history: list[tuple] = []
         self.backoff_until = 0
 
         # A place to put errors
@@ -897,7 +898,7 @@ class MessageEvent(CompileCodeStringsMixin):
         do,
         continual=False,
         ratelimit=0,
-        setup: Optional[str] = "pass",
+        setup: str | None = "pass",
         *args,
         **kwargs,
     ):
@@ -960,7 +961,7 @@ class ChangedEvalEvent(CompileCodeStringsMixin):
         do,
         continual=False,
         ratelimit=0,
-        setup: Optional[str] = "pass",
+        setup: str | None = "pass",
         *args,
         **kwargs,
     ):
@@ -1019,7 +1020,7 @@ class PolledEvalEvent(CompileCodeStringsMixin):
         do,
         continual=False,
         ratelimit=0,
-        setup: Optional[str] = "pass",
+        setup: str | None = "pass",
         *args,
         **kwargs,
     ):
@@ -1063,7 +1064,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
         do,
         continual=False,
         ratelimit=0,
-        setup: Optional[str] = "pass",
+        setup: str | None = "pass",
         *args,
         **kwargs,
     ):
@@ -1255,7 +1256,7 @@ class RecurringEvent(CompileCodeStringsMixin):
         do,
         continual=False,
         ratelimit=0,
-        setup: Optional[str] = "pass",
+        setup: str | None = "pass",
         *args,
         **kwargs,
     ):
@@ -1637,10 +1638,7 @@ def getEventsFromModules(only=None):
 
                     # If there is an error, add it t the list of things to be retried.
                     except Exception as e:
-                        if sys.version_info > (3, 0):
-                            i.error = traceback.format_exc(chain=True)
-                        else:
-                            i.error = traceback.format_exc()
+                        i.error = traceback.format_exc(chain=True)
                         if baz == attempts - 1:
                             i.loadingTraceback = traceback.format_exc()
                         if hasattr(e, "storedTraceback"):

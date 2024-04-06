@@ -87,7 +87,7 @@ if not sdhealth is None:
     sdTag.setAlarm("SDCardCloseToFailure", "value < 10", priority="error")
     sdTag.value = sdhealth
 
-    @scheduling.scheduler.everyHour
+    @scheduling.scheduler.every_hour
     def doSD():
         s = getSDHealth()
         if not s is None:
@@ -100,7 +100,7 @@ spaceCheckLock = threading.RLock()
 
 if psutil:
 
-    @scheduling.scheduler.everyHour
+    @scheduling.scheduler.every_hour
     def doDiskSpaceCheck():
         with spaceCheckLock:
             import psutil
@@ -139,7 +139,7 @@ if psutil:
 
     tempTags = {}
 
-    @scheduling.scheduler.everyMinute
+    @scheduling.scheduler.every_minute
     def doPsutil():
         temps = {}
         t = psutil.sensors_temperatures()
@@ -194,7 +194,7 @@ if util.which("vcgencmd"):
     overtemperatureTag.setAlarm("temp", "value>0.5", priority="error")
     overtemperatureTagClaim = overtemperatureTag.claim(0, "HWSensor")
 
-    @scheduling.scheduler.everyMinute
+    @scheduling.scheduler.every_minute
     def checkPiFlags():
         global undervoltageDuringBootPosted
         global overTempDuringBootPosted
@@ -297,7 +297,7 @@ errtag.max = 1
 errtag.subtype = "bool"
 
 
-@scheduling.scheduler.everyHour
+@scheduling.scheduler.every_hour
 def checkDmesg():
     t = subprocess.check_output(["journalctl", "-k"]).decode()
     if "i/o error" in t.lower():

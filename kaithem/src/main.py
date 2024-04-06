@@ -78,6 +78,43 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     from . import webapproot  # noqa: F401
     from . import chandler  # noqa: F401
 
+    def handle_error(f):
+        # If we can, try to send the exception back whence it came
+        try:
+            from . import newevt
+            import traceback
+
+            newevt.eventsByModuleName[f.__module__]._handle_exception()
+        except Exception:
+            print(traceback.format_exc())
+
+        try:
+            if hasattr(f, "__name__") and hasattr(f, "__module__"):
+                logger.exception(
+                    "Exception in scheduled function "
+                    + f.__name__
+                    + " of module "
+                    + f.__module__
+                )
+        except Exception:
+            logger.exception(f"Exception in scheduled function {repr(f)}")
+
+    def handle_first_error(f):
+        "Callback to deal with the first error from any given event"
+        m = f.__module__
+        messagebus.post_message(
+            "/system/notifications/errors",
+            "Problem in scheduled event function: "
+            + repr(f)
+            + " in module: "
+            + m
+            + ", check logs for more info.",
+        )
+
+    scheduling.handle_first_error = handle_first_error
+
+    scheduling.function_error_hooks.append(handle_error)
+
     logger = logging.getLogger("system")
     logger.setLevel(logging.INFO)
 

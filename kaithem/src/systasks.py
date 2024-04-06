@@ -1,23 +1,19 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+from . import persist, directories
+import os
 import time
 import atexit
-import sys
 import platform
 import re
-import datetime
 import threading
-import weakref
-import signal
 import logging
 import socket
 import gc
-import subprocess
 import random
 import cherrypy
-from . import newevt, messagebus, unitsofmeasure, util, messagelogging, scheduling
-from .kaithemobj import kaithem
+from . import messagebus, unitsofmeasure, util, scheduling
 from .config import config
 
 from zeroconf import ServiceBrowser, ServiceStateChange
@@ -103,9 +99,6 @@ nminutepagecount = 0
 upnpMapping = None
 syslogger = logging.getLogger("system")
 
-import os
-from . import persist, directories
-
 
 def doUPnP():
     global upnpMapping
@@ -160,7 +153,7 @@ lastRamTestValue = 0
 bitErrorTestLock = threading.Lock()
 
 
-@scheduling.scheduler.everyHour
+@scheduling.scheduler.every_hour
 def checkBitErrors():
     global ramTestData, lastRamTestValue
     with bitErrorTestLock:
@@ -169,7 +162,7 @@ def checkBitErrors():
                 if not i == 0:
                     messagebus.post_message(
                         "/system/notifications/errors",
-                        "RAM Bitflip 0>1 detected: val" + str(i),
+                        f"RAM Bitflip 0>1 detected: val{str(i)}",
                     )
 
             ramTestData = b"\xff" * int(1024 * 2048 * random.random())
@@ -180,26 +173,18 @@ def checkBitErrors():
                 if not i == 255:
                     messagebus.post_message(
                         "/system/notifications/errors",
-                        "RAM Bitflip 1>0 detected: val" + str(i),
+                        f"RAM Bitflip 1>0 detected: val{str(i)}",
                     )
 
             ramTestData = b"\0" * int(1024 * 2048 * random.random())
             lastRamTestValue = 0
 
 
-try:
-    monotonic = time.monotonic()
-except Exception:
-
-    def monotonic():
-        return "monotonic time not available"
-
-
 time_last_minute = 0
 rhistory = []
 
 
-@scheduling.scheduler.everyMinute
+@scheduling.scheduler.every_minute
 def check_scheduler():
     "This is a continual built in self test for the scheduler"
     global rhistory
@@ -216,7 +201,7 @@ def check_scheduler():
     time_last_minute = time.time()
 
 
-@scheduling.scheduler.everyMinute
+@scheduling.scheduler.every_minute
 def logstats():
     global pageviewsthisminute, firstrun, checked
     global pageviewpublishcountdown, lastpageviews
@@ -231,7 +216,7 @@ def logstats():
 
     # Only log page views every ten minutes
     if (time.time() > lastpageviews + (60 * 30)) and nminutepagecount > 0:
-        logger.info("Requests per minute: " + str(round(nminutepagecount / 30, 2)))
+        logger.info(f"Requests per minute: {str(round(nminutepagecount / 30, 2))}")
         lastpageviews = time.time()
         nminutepagecount = 0
 
@@ -247,7 +232,7 @@ def logstats():
             if (time.time() - lastram > (60 * 60)) or (
                 (time.time() - lastram > 600) and usedp > 0.8
             ):
-                logger.info("Total ram usage: " + str(round(usedp * 100, 1)))
+                logger.info(f"Total ram usage: {str(round(usedp * 100, 1))}")
                 lastram = time.time()
 
             if usedp > config["mem-use-warn"]:
@@ -289,5 +274,37 @@ if time.time() < 1420070400:
 if time.time() < util.min_time:
     messagebus.post_message(
         "/system/notifications/errors",
-        "System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.",
+        """System Clock may be wrong, or time has been set backwards at some point.""",
     )
+
+
+# If either of these doesn't run at the right time, raise a message
+selftest = [time.monotonic(), time.monotonic()]
+
+lastpost = [0.0]
+
+
+def a():
+    selftest[0] = time.monotonic()
+    if selftest[1] < time.monotonic() - 40:
+        if lastpost[0] < time.monotonic() - 600:
+            lastpost[0] = time.monotonic()
+            messagebus.post_message(
+                "/system/notifications/errors",
+                "Something caused a scheduler continual selftest function not to run.",
+            )
+
+
+def b():
+    selftest[1] = time.monotonic()
+    if selftest[0] < time.monotonic() - 40:
+        if lastpost[0] < time.monotonic() - 600:
+            lastpost[0] = time.monotonic()
+            messagebus.post_message(
+                "/system/notifications/errors",
+                "Something caused a scheduler continual selftest function not to run.",
+            )
+
+
+scheduling.scheduler.every(a, 20)
+scheduling.scheduler.every(b, 20)

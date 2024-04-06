@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
@@ -67,7 +66,8 @@ import time
 import weakref
 import pytz
 import math
-from typing import Callable, Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List
+from collections.abc import Callable
 from .scheduling import scheduler
 import datetime
 from types import MethodType
@@ -405,10 +405,10 @@ class BaseChandlerScriptContext:
         self,
         parentContext: BaseChandlerScriptContext = None,
         gil: threading.RLock = None,
-        functions: Dict[str, Callable[..., Any]] = {},
-        variables: Optional[Dict[str, Any]] = None,
-        constants: Optional[Dict[str, Any]] = None,
-        contextFunctions: Dict[str, Callable[..., Any]] = {},
+        functions: dict[str, Callable[..., Any]] = {},
+        variables: dict[str, Any] | None = None,
+        constants: dict[str, Any] | None = None,
+        contextFunctions: dict[str, Callable[..., Any]] = {},
         contextName: str = "script",
     ):
         self.pipelines = []
@@ -416,14 +416,14 @@ class BaseChandlerScriptContext:
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
         self.eventQueue = []
-        self.eventListeners: Dict[str, List[List[Any]]] = {}
-        self.variables: Dict[str, Any] = variables if variables is not None else {}
+        self.eventListeners: dict[str, list[list[Any]]] = {}
+        self.variables: dict[str, Any] = variables if variables is not None else {}
         self.commands = ScriptActionKeeper()
         self.contextCommands = ScriptActionKeeper()
 
-        self.children: Dict[str, BaseChandlerScriptContext] = {}
+        self.children: dict[str, BaseChandlerScriptContext] = {}
         self.children_iterable = {}
-        self.constants: Dict[str, Any] = constants if (not (constants is None)) else {}
+        self.constants: dict[str, Any] = constants if (not (constants is None)) else {}
         self.contextName = contextName
 
         # Cache whether or not any binding is watching a variable
@@ -794,7 +794,7 @@ class BaseChandlerScriptContext:
 
         self.commands[name] = wrap(self, callable)
 
-    def addBindings(self, b: List[List[str | float | bool] | str | float | bool]):
+    def addBindings(self, b: list[list[str | float | bool] | str | float | bool]):
         """
         Take a list of bindings and add them to the context.
         A binding looks like:
@@ -831,12 +831,12 @@ class BaseChandlerScriptContext:
                         self.onTimerChange(i, self.timeEvents[i].nextruntime)
                 if i == "script.poll":
                     if not self.poller:
-                        self.poller = scheduler.scheduleRepeating(self.poll, 1 / 24.0)
+                        self.poller = scheduler.schedule_repeating(self.poll, 1 / 24.0)
                 # Really just a fallback for various insta-check triggers like tag changes
                 if i.strip().startswith("="):
                     if not self.slowpoller:
                         needCheck = True
-                        self.slowpoller = scheduler.scheduleRepeating(
+                        self.slowpoller = scheduler.schedule_repeating(
                             self.checkPollEvents, 3
                         )
 
@@ -940,7 +940,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         # Clear all the tagpoints that we may have been watching for changes
         self.tagHandlers = {}
-        self.tagpoints: Dict[str, tagpoints.GenericTagPointClass[Any]] = {}
+        self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
         self.needRefreshForVariable = {}
         self.needRefreshForTag = {}
 

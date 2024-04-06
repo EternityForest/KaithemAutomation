@@ -90,7 +90,7 @@ try:
     if not util.which("nmcli"):
         raise RuntimeError("nmcli binary not founfd")
 
-    @scheduling.scheduler.everyMinute
+    @scheduling.scheduler.every_minute
     def worker():
         try:
             api.send(["status", get_connectionstatus()])

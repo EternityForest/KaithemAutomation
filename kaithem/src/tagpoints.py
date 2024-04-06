@@ -293,7 +293,7 @@ class GenericTagPointClass(Generic[T]):
         # This is only used for fast stream mode
         self.subscribers_atomic: list[weakref.ref[Callable[..., Any]]] = []
 
-        self.poller: scheduling.UnsynchronizedRepeatingEvent | None = None
+        self.poller: scheduling.RepeatingEvent | None = None
 
         # The "Owner" of a tag can use this to say if anyone else should write it
         self.writable = True
@@ -1061,7 +1061,9 @@ class GenericTagPointClass(Generic[T]):
 
         self._alarmGCRefs[name] = (
             alarmRecalcFunction,
-            scheduling.scheduler.scheduleRepeating(alarmRecalcFunction, 60, sync=False),
+            scheduling.scheduler.schedule_repeating(
+                alarmRecalcFunction, 60, sync=False
+            ),
             alarmPollFunction,
             generatedRecalcFuncWeMustKeepARefTo,
         )
@@ -1409,7 +1411,7 @@ class GenericTagPointClass(Generic[T]):
                     self.poller.unregister()
                     self.poller = None
 
-                self.poller = scheduling.scheduler.scheduleRepeating(
+                self.poller = scheduling.scheduler.schedule_repeating(
                     self.poll, interval, sync=False
                 )
         else:
@@ -2651,7 +2653,7 @@ class Claim(Generic[T]):
             if not self.poller or not (interval == self.poller.interval):
                 if self.poller:
                     self.poller.unregister()
-                self.poller = scheduling.scheduler.scheduleRepeating(
+                self.poller = scheduling.scheduler.schedule_repeating(
                     self.expirePoll, interval, sync=False
                 )
         else:

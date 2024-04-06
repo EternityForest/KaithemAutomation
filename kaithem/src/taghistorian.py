@@ -413,7 +413,7 @@ class TagHistorian:
             self.flush()
 
         self.flusher_f = f
-        self.flusher = scheduling.scheduler.everyMinute(f)
+        self.flusher = scheduling.scheduler.every_minute(f)
 
     def insertData(self, d):
         self.pending.append(d)

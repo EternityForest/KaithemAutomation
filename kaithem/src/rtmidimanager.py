@@ -184,5 +184,5 @@ s = None
 
 def init():
     global s
-    s = scheduling.UnsynchronizedRepeatingEvent(doScan, 10)
-    s.schedule()
+    s = scheduling.RepeatingEvent(doScan, 10)
+    s.register()

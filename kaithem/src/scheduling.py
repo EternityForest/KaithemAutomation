@@ -1,33 +1,38 @@
 # SPDX-FileCopyrightText: Copyright 2015 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
+"""
+Wraps the very simple scheduling module in a way that supports
+repeating events, error reporting, and weakref-based cleanup.
+
+Note that weakref cleanup is never a good idea to
+rely on for correctness, it's just a tool to manage resources.
+
+"""
 
 import threading
 import sys
 import time
+import sched
 import traceback
 import logging
 import types
 from . import workers, util
 from typing import Callable, Any
 
-from scullery import messagebus
 
 logger = logging.getLogger("system.scheduling")
 
 localLogger = logging.getLogger("scheduling")
 
 
-def handleFirstError(f):
+# These hooks are called on any exception in a function
+# And passed the function
+function_error_hooks: list[Callable[[Callable[..., Any]], Any]] = []
+
+
+def handle_first_error(f: Callable):
     "Callback to deal with the first error from any given event"
-    m = f.__module__
-    messagebus.post_message(
-        "/system/notifications/errors",
-        "Problem in scheduled event function: "
-        + repr(f)
-        + " in module: "
-        + m
-        + ", check logs for more info.",
-    )
+    logger.exception(f"Error in {f}")
 
 
 enumerate = enumerate
@@ -54,7 +59,13 @@ class BaseEvent:
 class Event(BaseEvent):
     "Does function at time provided there is a strong referemce to f still by then"
 
-    def __init__(self, function, time):
+    def __init__(self, function: Callable[[], Any], time: float):
+        """_summary_
+
+        Args:
+            function (Callable[[],Any]): The function to call
+            time (float): The time.time() at which to schedule.
+        """
         BaseEvent.__init__(self)
         self.f = util.universal_weakref(function)
         self.time = time
@@ -62,7 +73,7 @@ class Event(BaseEvent):
         self.stopped = False
 
     def schedule(self):
-        scheduler.insert(self)
+        scheduler._insert(self)
 
     def run(self):
         workers.do(self._run)
@@ -77,58 +88,23 @@ class Event(BaseEvent):
             else:
                 f()
         except Exception:
-            # If we can, try to send the exception back whence it came
-            try:
-                from . import newevt
-
-                newevt.eventsByModuleName[f.__module__]._handle_exception()
-            except Exception:
-                print(traceback.format_exc())
-
-            try:
-                if hasattr(f, "__name__") and hasattr(f, "__module__"):
-                    logger.exception(
-                        "Exception in scheduled function "
-                        + f.__name__
-                        + " of module "
-                        + f.__module__
-                    )
-            except Exception:
-                logger.exception("Exception in scheduled function " + repr(f))
-
+            if f:
+                for i in function_error_hooks:
+                    i(f)
         finally:
             del f
 
     def _unregister(self):
         scheduler.remove(self)
 
-    # We want to use the worker pool to unregister so that we know which thread the scheduler.unregister call is
-    # going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
-    def unregister(self, dummy=None):
+    # We want to use the worker pool to unregister so
+    # that we know which thread the scheduler.unregister call is
+    # going to be in to prevent deadlocks.
+    # Also, we take a dummy var so we can use this as a weakref callback
+    def unregister(self, dummy: Any = None):
+        "Cancel running the event"
         self.stopped = True
         workers.do(self._unregister)
-
-
-def shouldSkip(priority, interval, lateby, lastran):
-    t = {
-        "realtime": 200,
-        "interactive": 0.8,
-        "high": 0.5,
-        "medium": 0.3,
-        "low": 0.2,
-        "verylow": 0.1,
-    }
-    maxlatency = {
-        "realtime": 0,
-        "interactive": 0.2,
-        "high": 2,
-        "medium": 3,
-        "low": 10,
-        "verylow": 60,
-    }
-    if lateby > t[priority]:
-        if ((time.time() - lastran) + interval) < maxlatency[priority]:
-            return True
 
 
 class BaseRepeatingEvent(BaseEvent):
@@ -137,9 +113,14 @@ class BaseRepeatingEvent(BaseEvent):
 
     def __init__(
         self,
-        function,
-        interval,
+        function: Callable[[], Any],
+        interval: float,
     ):
+        """
+        Args:
+            function (Callable[[],Any]): Function to call
+            interval (float): Interval
+        """
         BaseEvent.__init__(self)
         self.f = util.universal_weakref(function)
         self.fstr = str(function)
@@ -163,7 +144,7 @@ class BaseRepeatingEvent(BaseEvent):
         try:
             f = self.f()
             if not f:
-                f = self.fstr + "(dead)"
+                f = f"{self.fstr}(dead)"
             f = str(f)
             return (
                 "<BaseRepeatingEvent at "
@@ -178,16 +159,23 @@ class BaseRepeatingEvent(BaseEvent):
             return super().__repr__()
 
     def schedule(self):
-        """Insert self into the scheduler.
-        Note for subclassing: The responsibility of this function to check if it is already scheduled, return if so,
-        if not, if must reschedule itself by setting self.time to some time in the future.
-        It must then call scheduler.insert(self)
+        """Insert self into the scheduler. Not normally called
+        by user code on repeating events, use register()
 
-        This must happen in a threadsafe and atomic way because the scheduler
-        thread will call this every once in a while,
-        just to be sure, in case an error occurred in the reschedule process
+        Note for subclassing: The responsibility of this function
+        to check if it is already scheduled, return if so,
+        if not, if must reschedule itself by setting self.time
+        to some time in the future.
+        It must then call scheduler._insert(self)
 
-        We implement this at the moment by having a separate _schedule functinon for when we are already under self.lock
+        This must happen in a threadsafe and atomic way
+        because the scheduler thread will call
+        this every once in a while, just to be sure,
+        in case an error occurred in the reschedule process
+
+        We implement this at the moment by having a
+        separate _schedule functinon for when we are already
+        under self.lock
         """
         if self.lock.acquire(timeout=0.5):
             try:
@@ -200,15 +188,18 @@ class BaseRepeatingEvent(BaseEvent):
                 self.lock.release()
         else:
             logger.warning(
-                "Tried to schedule something that is still running: " + str(self.f())
+                f"Tried to schedule something that is still running: {str(self.f())}"
             )
 
     def _schedule(self):
         raise NotImplementedError()
 
     def register(self):
+        """Register self in the list of
+        repeating events to be automatically scheduled."""
         self.stop = False
         scheduler.register_repeating(self)
+        self.schedule()
 
     def _unregister(self):
         scheduler.unregister(self)
@@ -248,39 +239,15 @@ class BaseRepeatingEvent(BaseEvent):
                     f()
                 # self._schedule()
             except Exception:
-                # If we can, try to send the exception back whence it came
-                try:
-                    from . import newevt
-
-                    if f.__module__.startswith("Event_"):
-                        newevt.eventsByModuleName[f.__module__]._handle_exception()
-                except Exception:
-                    print(traceback.format_exc())
-
-                try:
-                    if hasattr(f, "__name__") and hasattr(f, "__module__"):
-                        localLogger.exception(
-                            "Exception in scheduled function "
-                            + f.__name__
-                            + " of module "
-                            + f.__module__
-                        )
-
-                except Exception:
-                    localLogger.exception("Exception in scheduled function")
+                if f:
+                    for i in function_error_hooks:
+                        i(f)
 
                 if not self.errored:
                     try:
-                        try:
-                            logger.exception(
-                                "Exception in scheduled function "
-                                + f.__name__
-                                + " of module "
-                                + f.__module__
-                            )
-                        except Exception:
-                            logger.exception("Exception in scheduled function")
-                        handleFirstError(f)
+                        global handle_first_error
+                        if f:
+                            handle_first_error(f)
                     except Exception:
                         logging.exception(
                             "Error handling first error in repeating event"
@@ -303,8 +270,9 @@ class BaseRepeatingEvent(BaseEvent):
             print(self.lock)
 
 
-class UnsynchronizedRepeatingEvent(BaseRepeatingEvent):
-    """Represents a repeating event that is not synced to the real time exactly"""
+class RepeatingEvent(BaseRepeatingEvent):
+    """Represents a repeating event that is not synced to
+    multiples of wall clock time"""
 
     def __init__(self, *args, **kwargs):
         BaseRepeatingEvent.__init__(self, *args, **kwargs)
@@ -319,15 +287,15 @@ class UnsynchronizedRepeatingEvent(BaseRepeatingEvent):
         t = max((self.lastrun + self.interval), ((time.time() + self.interval) - 5))
         self.time = t
         self.scheduled = True
-        scheduler.insert(self)
+        scheduler._insert(self)
 
 
-class RepeatWhileEvent(UnsynchronizedRepeatingEvent):
+class RepeatWhileEvent(RepeatingEvent):
     "Does function every interval seconds, and stops if you don't keep a reference to function"
 
     def __init__(self, function, interval):
         self.ended = False
-        UnsynchronizedRepeatingEvent.__init__(self, function, interval)
+        RepeatingEvent.__init__(self, function, interval)
 
     def _run(self):
         if self.ended:
@@ -347,20 +315,6 @@ class RepeatWhileEvent(UnsynchronizedRepeatingEvent):
                 del f
 
 
-# class ComplexRecurringEvent():
-# def schedule(self):
-# if self.scheduled:
-# return
-# else:
-# t = self.schedulefunc(self.last)
-# if t<time.time():
-# if self.makeup:
-# n = self.schedulefunc(t)
-# x = (t+n)/2
-# self.scheduled = t
-# s
-
-
 class NewScheduler:
     """
     represents a thread that constantly runs tasks which are objects having a time property that determins when
@@ -377,8 +331,6 @@ class NewScheduler:
         self.running = False
 
         self.wakeUp = threading.Event()
-        import sched
-
         self.sched = sched.scheduler(timefunc=time.time, delayfunc=self.delay)
 
     def start(self):
@@ -398,29 +350,25 @@ class NewScheduler:
             self.thread.start()
             self.thread2.start()
 
-    def everySecond(self, f):
-        e = UnsynchronizedRepeatingEvent(f, 1)
+    def every_second(self, f: Callable[[], Any]):
+        e = RepeatingEvent(f, 1)
         e.register()
-        e.schedule()
         return f
 
-    def everyMinute(self, f):
-        e = UnsynchronizedRepeatingEvent(f, 60)
+    def every_minute(self, f: Callable[[], Any]):
+        e = RepeatingEvent(f, 60)
         e.register()
-        e.schedule()
         return f
 
-    def everyHour(self, f):
-        e = UnsynchronizedRepeatingEvent(f, 3600)
+    def every_hour(self, f: Callable[[], Any]):
+        e = RepeatingEvent(f, 3600)
         e.register()
-        e.schedule()
         return f
 
-    def every(self, f, interval):
+    def every(self, f: Callable[[], Any], interval: float):
         interval = float(interval)
-        e = UnsynchronizedRepeatingEvent(f, interval)
+        e = RepeatingEvent(f, interval)
         e.register()
-        e.schedule()
         if isinstance(f, types.MethodType):
 
             def f2():
@@ -431,20 +379,18 @@ class NewScheduler:
         f2.unregister = lambda: e.unregister()
         return f2
 
-    def schedule(self, f, t, exact=False):
+    def schedule(self, f: Callable[[], Any], t: float, exact=False):
         t = float(t)
         e = Event(f, t)
         e.schedule()
         return e
 
-    def scheduleRepeating(self, f: Callable[..., Any], t: float, sync: bool = True):
-        e = UnsynchronizedRepeatingEvent(f, float(t))
-
+    def schedule_repeating(self, f: Callable[..., Any], t: float, sync: bool = True):
+        e = RepeatingEvent(f, float(t))
         e.register()
-        e.schedule()
         return e
 
-    def insert(self, event, replaces=None):
+    def _insert(self, event, replaces=None):
         """Insert something that has a time  and a run
         property that wants its run called at time
         """
@@ -502,7 +448,7 @@ class NewScheduler:
         while 1:
             time.sleep(30)
             with self.lock:
-                self._dorErrorRecovery()
+                self._do_error_recovery()
 
     # Custom delay func because we must be able to recieve new events while waiting
     def delay(self, t):
@@ -516,7 +462,7 @@ class NewScheduler:
             except Exception:
                 logging.exception("Error in scheduler thread")
 
-    def _dorErrorRecovery(self):
+    def _do_error_recovery(self):
         for i in self.repeatingtasks:
             try:
                 if not i.scheduled or time.time() - i.lastrun > (i.interval * 2):
@@ -539,35 +485,3 @@ class NewScheduler:
 
 scheduler = NewScheduler()
 scheduler.start()
-
-
-# If either of these doesn't run at the right time, raise a message
-selftest = [time.monotonic(), time.monotonic()]
-
-lastpost = [0.0]
-
-
-def a():
-    selftest[0] = time.monotonic()
-    if selftest[1] < time.monotonic() - 40:
-        if lastpost[0] < time.monotonic() - 600:
-            lastpost[0] = time.monotonic()
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Something caused a scheduler continual selftest function not to run.",
-            )
-
-
-def b():
-    selftest[1] = time.monotonic()
-    if selftest[0] < time.monotonic() - 40:
-        if lastpost[0] < time.monotonic() - 600:
-            lastpost[0] = time.monotonic()
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Something caused a scheduler continual selftest function not to run.",
-            )
-
-
-scheduler.every(a, 20)
-scheduler.every(b, 20)

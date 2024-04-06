@@ -26,7 +26,7 @@ lock = threading.RLock()
 fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
 
 if os.path.exists(fn):
-    file: Dict[str, Any] = persist.load(fn)
+    file: dict[str, Any] = persist.load(fn)
 else:
     file = {
         "all": {"soundcard": "__disable__"},
@@ -36,25 +36,25 @@ else:
     }
 
 
-def saveSettings(*a: tuple[Any], **k: Dict[str, Any]):
+def saveSettings(*a: tuple[Any], **k: dict[str, Any]):
     persist.save(file, fn, private=True)
     persist.unsavedFiles.pop(fn, "")
 
 
 # This is a dict of all alerts that have not yet been acknowledged.
 # It is immutable and only ever atomically replaces
-unacknowledged: Dict[str, weakref.ref[Alert]] = {}
+unacknowledged: dict[str, weakref.ref[Alert]] = {}
 # Same as above except may be mutated under lock
-_unacknowledged: Dict[str, weakref.ref[Alert]] = {}
+_unacknowledged: dict[str, weakref.ref[Alert]] = {}
 
 # see above, but for active alarms not just for unacknowledged
-active: Dict[str, weakref.ref[Alert]] = {}
-_active: Dict[str, weakref.ref[Alert]] = {}
+active: dict[str, weakref.ref[Alert]] = {}
+_active: dict[str, weakref.ref[Alert]] = {}
 
 
 # Added on trip, removed on normal
-tripped: Dict[str, weakref.ref[Alert]] = {}
-_tripped: Dict[str, weakref.ref[Alert]] = {}
+tripped: dict[str, weakref.ref[Alert]] = {}
+_tripped: dict[str, weakref.ref[Alert]] = {}
 
 all = weakref.WeakValueDictionary()
 
@@ -67,10 +67,10 @@ priority_to_class = {
 }
 
 
-def getAlertState() -> Dict[str, Dict[str, Any]]:
+def getAlertState() -> dict[str, dict[str, Any]]:
     try:
         with lock:
-            d: Dict[str, Dict[str, Any]] = {}
+            d: dict[str, dict[str, Any]] = {}
 
             for i in (active, unacknowledged):
                 for j in i:
@@ -170,7 +170,7 @@ def calcNextBeep():
 
 
 # A bit of randomness makes important alerts seem more important
-@scheduling.scheduler.everySecond
+@scheduling.scheduler.every_second
 def alarmBeep():
     if time.time() > nextbeep:
         calcNextBeep()
@@ -236,8 +236,8 @@ class Alert:
         name: str,
         priority: str = "info",
         zone=None,
-        trip_delay: Union[int, float] = 0,
-        auto_ack: Union[bool, float, int] = False,
+        trip_delay: int | float = 0,
+        auto_ack: bool | float | int = False,
         permissions: list = [],
         ackPermissions: list = [],
         id=None,
@@ -296,7 +296,7 @@ class Alert:
 
         # Tracks any a associated tag point
         self.tagpoint_name: str = ""
-        self.tagpoint_config_data: Optional[Dict[str, Any]] = None
+        self.tagpoint_config_data: dict[str, Any] | None = None
 
         # Last trip time
         self.trippedAt = 0
@@ -345,10 +345,10 @@ class Alert:
         self.notificationHTML = notificationHTML
 
     def __html_repr__(self):
-        return """<small>State machine object at %s<br></small>
-            <b>State:</b> %s<br>
-            <b>Entered</b> %s ago at %s<br>
-            %s""" % (
+        return """<small>State machine object at {}<br></small>
+            <b>State:</b> {}<br>
+            <b>Entered</b> {} ago at {}<br>
+            {}""".format(
             hex(id(self)),
             self.sm.state,
             unitsofmeasure.format_time_interval(time.time() - self.sm.entered_state, 2),

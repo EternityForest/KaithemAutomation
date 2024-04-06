@@ -34,7 +34,7 @@ global_api = widgets.APIWidget()
 global_api.require("system_admin")
 
 # Configured list of mixer channel strips
-channels: Dict[str, Dict] = {}
+channels: dict[str, dict] = {}
 
 log = logging.getLogger("system.mixer")
 
@@ -351,7 +351,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.outputs = outputs
             self._outputs = []
             self.sends = []
-            self.sendAirwires: Dict = {}
+            self.sendAirwires: dict = {}
 
             self.faderTag = tagpoints.Tag(f"/jackmixer/channels/{name}.fader")
             self.faderTag.subscribe(self._faderTagHandler)
@@ -1018,7 +1018,7 @@ class MixingBoard:
         self.api.require("system_admin")
         self.api.attach(self.f)
         self.channels = {}
-        self.channelObjects: Dict[str, ChannelStrip] = {}
+        self.channelObjects: dict[str, ChannelStrip] = {}
         self.channelAlerts = {}
         self.lock = threading.RLock()
         self.channelStatus = {}
@@ -1033,7 +1033,7 @@ class MixingBoard:
         messagebus.subscribe("/system/jack/started", f)
         self.reloader = f
         self.loadedPreset = "default"
-        self.checker = scheduling.scheduler.everyMinute(self.poll)
+        self.checker = scheduling.scheduler.every_minute(self.poll)
 
     def loadData(self, d):
         with self.lock:

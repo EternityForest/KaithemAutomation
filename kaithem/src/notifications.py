@@ -90,7 +90,7 @@ pending_notifications = []
 apprise_lock = threading.RLock()
 
 
-@scheduling.scheduler.everyHour
+@scheduling.scheduler.every_hour
 def apprise():
     if apprise_lock.acquire(blocking=False):
         try:
