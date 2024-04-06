@@ -108,7 +108,7 @@ def readToplevelBlock(p, heading):
         elif state == "firstline":
             indent = getInitialWhitespace(i)
             if not indent:
-                raise ValueError("Expected indented block after " + firstline)
+                raise ValueError(f"Expected indented block after {firstline}")
             lines.append(i[len(indent) :])
             state = "inside"
         elif state == "inside":
@@ -149,9 +149,9 @@ def loadAllCustomResourceTypes():
                         except Exception:
                             messagebus.post_message(
                                 "/system/notifications/errors",
-                                "Error loading resource:" + str((i, j)),
+                                f"Error loading resource:{str((i, j))}",
                             )
-                            logger.exception("Error loading resource: " + str((i, j)))
+                            logger.exception(f"Error loading resource: {str((i, j))}")
     for i in additionalTypes:
         additionalTypes[i].onfinishedloading()
 
@@ -265,10 +265,7 @@ class ModuleObject(object):
                 if not isinstance(value, dict):
                     messagebus.post_message(
                         "/system/notifications/errors",
-                        "VirtualResource is removed. Can't add "
-                        + name
-                        + " to "
-                        + module,
+                        f"VirtualResource is removed. Can't add {name} to {module}",
                     )
                     return
 
@@ -392,7 +389,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
             except Exception:
                 isSpecialEncoded = False
                 wasProblem = True
-                logger.exception("err loading as pyencoded: " + fn)
+                logger.exception(f"err loading as pyencoded: {fn}")
 
         # Markdown and most html files files start with --- and are delimited by ---
         # The first section is YAML and the second is the page body.
@@ -406,7 +403,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
             except Exception:
                 isSpecialEncoded = False
                 wasProblem = True
-                logger.exception("err loading as html encoded: " + fn)
+                logger.exception(f"err loading as html encoded: {fn}")
         elif fn.endswith((".yaml", ".json")):
             shouldRemoveExtension = True
 
@@ -425,7 +422,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
         if wasProblem:
             messagebus.post_message(
                 "/system/notifications/warnings",
-                "Potential problem or nonstandard encoding with file: " + fn,
+                f"Potential problem or nonstandard encoding with file: {fn}",
             )
     except Exception:
         # This is a workaround for when dolphin puts .directory files in directories and gitignore files
@@ -490,7 +487,7 @@ def initModules():
         logging.exception("Err loading modules")
         messagebus.post_message(
             "/system/notifications/errors",
-            " Error loading modules: " + traceback.format_exc(4),
+            f" Error loading modules: {traceback.format_exc(4)}",
         )
 
     auth.importPermissionsFromModules()
@@ -503,7 +500,7 @@ def initModules():
 
 def loadModules(modulesdir: str):
     "Load all modules in the given folder to RAM."
-    logger.debug("Loading modules from " + modulesdir)
+    logger.debug(f"Loading modules from {modulesdir}")
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(os.path.join(modulesdir, i), util.unurl(i))
 
@@ -524,7 +521,7 @@ def loadModules(modulesdir: str):
         except Exception:
             messagebus.post_message(
                 "/system/notifications/errors",
-                " Error loading external module: " + traceback.format_exc(4),
+                f" Error loading external module: {traceback.format_exc(4)}",
             )
 
 
@@ -586,10 +583,10 @@ def loadOneResource(folder, relpath, module):
     except Exception:
         messagebus.post_message(
             "/system/notifications/errors",
-            "Error loadingresource from: " + os.path.join(folder, relpath),
+            f"Error loadingresource from: {os.path.join(folder, relpath)}",
         )
         logger.exception(
-            "Error loading resource from file " + os.path.join(folder, relpath)
+            f"Error loading resource from file {os.path.join(folder, relpath)}"
         )
         raise
     if not r:
@@ -598,7 +595,7 @@ def loadOneResource(folder, relpath, module):
     modules_state.ActiveModules[module][resourcename] = r
 
     if "resource-type" not in r:
-        logger.warning("No resource type found for " + str(resourcename))
+        logger.warning(f"No resource type found for {str(resourcename)}")
         return
 
     validate(r)
@@ -629,11 +626,11 @@ def loadOneResource(folder, relpath, module):
             target = os.path.normpath(os.path.join(folder, "__filedata__", t))
 
         if not os.path.exists(target):
-            logger.info("Missing file resource: " + target)
+            logger.info(f"Missing file resource: {target}")
 
             messagebus.post_message(
                 "/system/notifications",
-                "File Resource: " + target + "Was deleted",
+                f"File Resource: {target}Was deleted",
             )
 
             try:
@@ -649,7 +646,7 @@ def loadOneResource(folder, relpath, module):
 
 def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=None):
     "Load a single module but don't bookkeep it . Used by loadModules"
-    logger.debug("Attempting to load module " + modulename)
+    logger.debug(f"Attempting to load module {modulename}")
 
     if not resource_folder:
         resource_folder = os.path.join(folder, "__filedata__")
@@ -678,16 +675,16 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                         if not r or not resourcename:
                             # File managers sprinkle this crap around
                             if not os.path.basename(fn) == ".directory":
-                                logger.exception("Null loading " + fn)
+                                logger.exception(f"Null loading {fn}")
                             continue
 
                     except Exception:
-                        logger.exception("Error loading " + fn)
+                        logger.exception(f"Error loading {fn}")
                         continue
 
                     module[resourcename] = r
                     if "resource-type" not in r:
-                        logger.warning("No resource type found for " + resourcename)
+                        logger.warning(f"No resource type found for {resourcename}")
                         continue
                     if r["resource-type"] == "internal-fileref":
                         fileResourceAbsPaths[modulename, resourcename] = os.path.join(
@@ -710,7 +707,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                 except Exception:
                     messagebus.post_message(
                         "/system/notifications/errors",
-                        "Error loading from: " + fn + "\r\n" + traceback.format_exc(),
+                        f"Error loading from: {fn}\r\n{traceback.format_exc()}",
                     )
                     raise
 
@@ -776,7 +773,7 @@ def autoGenerateFileRefResources(module: Dict[str, Any], modulename: str):
                     rt = True
                     module[util.unurl(data_basename)] = {
                         "resource-type": "internal-fileref",
-                        "target": "$MODULERESOURCES/" + data_basename,
+                        "target": f"$MODULERESOURCES/{data_basename}",
                         "ephemeral": True,
                     }
                 fileResourceAbsPaths[modulename, data_basename] = f
@@ -815,7 +812,7 @@ def getModuleAsYamlZip(module, noFiles=True):
                 continue
             # AFAIK Zip files fake the directories with naming conventions
             s, ext = serializeResource(modules_state.ActiveModules[module][resource])
-            z.writestr(url(module, " ") + "/" + url(resource, safeFnChars) + ext, s)
+            z.writestr(f"{url(module, ' ')}/{url(resource, safeFnChars)}{ext}", s)
             if (
                 modules_state.ActiveModules[module][resource]["resource-type"]
                 == "internal-fileref"
@@ -828,7 +825,7 @@ def getModuleAsYamlZip(module, noFiles=True):
                 target = fileResourceAbsPaths[module, resource]
                 if os.path.exists(target):
                     z.write(
-                        target, module + "/__filedata__/" + url(resource, safeFnChars)
+                        target, f"{module}/__filedata__/{url(resource, safeFnChars)}"
                     )
 
                 else:
@@ -888,7 +885,7 @@ def load_modules_from_zip(f, replace=False):
                             url(n, safeFnChars),
                         )
                 except Exception:
-                    raise ValueError(i + " in zip makes no sense")
+                    raise ValueError(f"{i} in zip makes no sense")
                 finally:
                     f.close()
             else:
@@ -926,7 +923,7 @@ def load_modules_from_zip(f, replace=False):
                     inputfile.close()
                 newfrpaths[p, n] = dataname
         except Exception:
-            raise RuntimeError("Could not correctly process " + str(i))
+            raise RuntimeError(f"Could not correctly process {str(i)}")
 
     with modulesLock:
         backup = {}
@@ -1013,7 +1010,7 @@ def bookkeeponemodule(module, update=False):
                 handleResourceChange(module, i)
             except Exception:
                 messagebus.post_message(
-                    "/system/notifications/errors", "Failed to load  resource: " + i
+                    "/system/notifications/errors", f"Failed to load  resource: {i}"
                 )
 
     newevt.getEventsFromModules([module])
@@ -1095,7 +1092,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
 
         elif r["resource-type"] == "directory":
             # Directories are special, they can have the extra data file
-            fn = getResourceFn(module, resource, r) + ".yaml"
+            fn = f"{getResourceFn(module, resource, r)}.yaml"
 
             if os.path.exists(fn):
                 os.remove(fn)
@@ -1123,7 +1120,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
     except Exception:
         messagebus.post_message(
             "/system/modules/errors/unloading",
-            "Error deleting resource: " + str((module, resource)),
+            f"Error deleting resource: {str((module, resource))}",
         )
 
 
@@ -1166,7 +1163,7 @@ def newModule(name: str, location: Optional[str] = None):
         # Go directly to the newly created module
         messagebus.post_message(
             "/system/notifications",
-            "User " + pages.getAcessingUser() + " Created Module " + name,
+            f"User {pages.getAcessingUser()} Created Module {name}",
         )
         messagebus.post_message(
             "/system/modules/new", {"user": pages.getAcessingUser(), "module": name}
@@ -1190,7 +1187,7 @@ def rmModule(module, message="deleted"):
             except Exception:
                 messagebus.post_message(
                     "/system/modules/errors/unloading",
-                    "Error deleting resource: " + str(module, k),
+                    f"Error deleting resource: {str(module, k)}",
                 )
 
     # Get rid of any lingering cached events
@@ -1238,7 +1235,7 @@ def handleResourceChange(module, resource, obj=None):
             except Exception:
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Failed to load file resource: " + resource + " module: " + module,
+                    f"Failed to load file resource: {resource} module: {module}",
                 )
 
         elif t == "event":

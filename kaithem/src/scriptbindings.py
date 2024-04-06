@@ -86,7 +86,7 @@ class NamespaceGetter:
         self.__attr_dict = d
 
     def __getattr__(self, k):
-        return self.__attr_dict[self.__attr_prefix + "." + k]
+        return self.__attr_dict[f"{self.__attr_prefix}.{k}"]
 
 
 def DummyObject():
@@ -134,19 +134,19 @@ def DummyObject():
 
 def paramDefault(p):
     if isinstance(p, int):
-        return "=" + str(p)
+        return f"={str(p)}"
 
     if isinstance(p, (int, float)):
-        return "=" + str(p)
+        return f"={str(p)}"
 
     if isinstance(p, str):
         # Wrap strings that look like numbers in quotes
         if p and not p.strip().startswith("="):
             try:
                 float(p)
-                return "=" + "'" + repr(p) + "'"
+                return f"='{repr(p)}'"
             except Exception:
-                return "=" + repr(p)
+                return f"={repr(p)}"
 
         # Presever things starting with = unchanged
         else:
@@ -483,7 +483,7 @@ class BaseChandlerScriptContext:
             if not isinstance(Variable, str):
                 raise RuntimeError("Var name must be string")
             if Variable in globalConstants or Variable in self.constants:
-                raise NameError("Key " + Variable + " is a constant")
+                raise NameError(f"Key {Variable} is a constant")
             self.setVar(Variable, Value)
 
         self.setter = setter
@@ -540,7 +540,7 @@ class BaseChandlerScriptContext:
                     # Edge trigger
                     if i.startswith("=/"):
                         # Change =/ to just =
-                        r = self.preprocessArgument("=" + i[2:])
+                        r = self.preprocessArgument(f"={i[2:]}")
                         if r:
                             if (i not in self.risingEdgeDetects) or (
                                 not self.risingEdgeDetects[i]
@@ -558,7 +558,7 @@ class BaseChandlerScriptContext:
                 except Exception:
                     self.event(
                         "script.error",
-                        self.contextName + "\n" + traceback.format_exc(chain=True),
+                        f"{self.contextName}\n{traceback.format_exc(chain=True)}",
                     )
                     raise
 
@@ -620,9 +620,9 @@ class BaseChandlerScriptContext:
             try:
                 return a(*[self.preprocessArgument(i) for i in c[1:]])
             except Exception:
-                raise RuntimeError("Error running chandler command: " + str(c)[:1024])
+                raise RuntimeError(f"Error running chandler command: {str(c)[:1024]}")
         else:
-            raise ValueError("No such command: " + c)
+            raise ValueError(f"No such command: {c}")
 
     def syncEvent(self, evt, val=None, timeout=20):
         "Handle an event synchronously, in the current thread."
@@ -699,7 +699,7 @@ class BaseChandlerScriptContext:
             except Exception:
                 self.event(
                     "script.error",
-                    self.contextName + "\n" + traceback.format_exc(chain=True),
+                    f"{self.contextName}\n{traceback.format_exc(chain=True)}",
                 )
                 raise
 
@@ -761,7 +761,7 @@ class BaseChandlerScriptContext:
         if n in self.namespaces:
             return self.namespaces[n]
 
-        raise NameError("No such name: " + n)
+        raise NameError(f"No such name: {n}")
 
     def setVar(self, k: str, v: Any, force=False):
         if not self.gil.acquire(timeout=10):
@@ -889,8 +889,8 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         def f():
             if isinstance(val, str) and len(val) > 16000:
-                raise RuntimeError(tagname + " val too long for chandlerscript")
-            self.setVar("$tag:" + tagname, val, True)
+                raise RuntimeError(f"{tagname} val too long for chandlerscript")
+            self.setVar(f"$tag:{tagname}", val, True)
             if tagname not in self.needRefreshForTag:
                 self.needRefreshForTag[tagname] = False
                 for i in self.eventListeners:
@@ -934,7 +934,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             self.tagHandlers[i][0].unsubscribe(self.tagHandlers[i][1])
 
             try:
-                self.setVar("$tag:" + i, "Unsubscribed", force=True)
+                self.setVar(f"$tag:{i}", "Unsubscribed", force=True)
             except Exception:
                 pass
 
@@ -947,7 +947,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
     def __init__(self, *a, **k):
         BaseChandlerScriptContext.__init__(self, *a, **k)
 
-        def setTag(tagName=self.tagDefaultPrefix + "foo", value="=0", priority=75):
+        def setTag(tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority=75):
             """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
 
             If the tag does not exist, the type is auto-guessed based on the type of the value.
@@ -956,7 +956,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             """
 
             if not tagName[0] == "/":
-                tagName = "/" + tagName
+                tagName = f"/{tagName}"
 
             self.needRefreshForTag = {}
 
@@ -984,11 +984,11 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                     tc = tagType(tagName).claim(
                         value=value,
                         priority=priority,
-                        name=self.contextName + "at" + str(id(self)),
+                        name=f"{self.contextName}at{str(id(self))}",
                     )
                     self.tagClaims[tagName] = tc
                 tc.set(value)
-                self.setVar("$tag:" + tagName, value, True)
+                self.setVar(f"$tag:{tagName}", value, True)
             else:
                 raise RuntimeError("This script context cannot access that tag")
             return True
@@ -1003,19 +1003,19 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         def tagpoint(t):
             tagName = self.canGetTagpoint(t)
             if not tagName:
-                raise RuntimeError("It seems you do not have access to:" + t)
+                raise RuntimeError(f"It seems you do not have access to:{t}")
             t = tagpoints.Tag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:" + t.name, t.value, True)
+            self.setVar(f"$tag:{t.name}", t.value, True)
             return t.value
 
         def stringtagpoint(t):
             tagName = self.canGetTagpoint(t)
             if not tagName:
-                raise RuntimeError("It seems you do not have access to:" + t)
+                raise RuntimeError(f"It seems you do not have access to:{t}")
             t = tagpoints.StringTag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:" + t.name, t.value, True)
+            self.setVar(f"$tag:{t.name}", t.value, True)
             return t.value
 
         c = {}
@@ -1044,7 +1044,7 @@ def baseball():
 
 
 def bat(a):
-    x.append("A bat goes with a " + a)
+    x.append(f"A bat goes with a {a}")
     return None
 
 

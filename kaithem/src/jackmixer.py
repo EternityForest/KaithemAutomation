@@ -217,7 +217,7 @@ class FluidSynthChannel(BaseChannel):
     def __init__(self, board, name, input, output, mapToChannel=0):
         self.name = name
 
-        self.input = jackmanager.MonoAirwire(input, self.name + "-midi:*")
+        self.input = jackmanager.MonoAirwire(input, f"{self.name}-midi:*")
         self.output = jackmanager.airwire(self.name, output)
 
     def start(self):
@@ -241,7 +241,7 @@ class FluidSynthChannel(BaseChannel):
                     "True",
                     "-o",
                     "midi.jack.id",
-                    self.name + "-midi",
+                    f"{self.name}-midi",
                 ],
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
@@ -264,14 +264,14 @@ class Recorder(gstwrapper.Pipeline):
             slave_method=0,
         )
         self.capsfilter = self.add_element(
-            "capsfilter", caps="audio/x-raw,channels=" + str(channels)
+            "capsfilter", caps=f"audio/x-raw,channels={str(channels)}"
         )
 
         filename = os.path.join(
             directories.vardir,
             "recordings",
             "mixer",
-            pattern + time.strftime("%Y%b%d%a%H%M%S", time.localtime()) + ".ogg",
+            f"{pattern + time.strftime('%Y%b%d%a%H%M%S', time.localtime())}.ogg",
         )
 
         if not os.path.exists(os.path.join(directories.vardir, "recordings", "mixer")):
@@ -293,7 +293,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.name = name
             gstwrapper.Pipeline.__init__(self, name)
             self.board = board
-            self.levelTag = tagpoints.Tag("/jackmixer/channels/" + name + ".level")
+            self.levelTag = tagpoints.Tag(f"/jackmixer/channels/{name}.level")
             self.levelTag.min = -90
             self.levelTag.max = 3
             self.levelTag.hi = -3
@@ -325,14 +325,14 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if not input or not input.startswith("rtplisten://"):
                 self.src = self.add_element(
                     "pipewiresrc",
-                    client_name=name + "_in",
+                    client_name=f"{name}_in",
                     do_timestamp=False,
                     always_copy=True,
                 )
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
-                    caps="audio/x-raw,channels=" + str(channels),
+                    caps=f"audio/x-raw,channels={str(channels)}",
                 )
             else:
                 self.src = self.add_element("udpsrc", port=int(input.split("://")[1]))
@@ -353,7 +353,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.sends = []
             self.sendAirwires: Dict = {}
 
-            self.faderTag = tagpoints.Tag("/jackmixer/channels/" + name + ".fader")
+            self.faderTag = tagpoints.Tag(f"/jackmixer/channels/{name}.fader")
             self.faderTag.subscribe(self._faderTagHandler)
             self.faderTag.max = 20
             self.faderTag.min = -60
@@ -388,13 +388,13 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         if not [
             i.name
             for i in jackmanager.get_ports()
-            if i.name.startswith(self.name + "_in:")
+            if i.name.startswith(f"{self.name}_in:")
         ]:
             return False
         if not [
             i.name
             for i in jackmanager.get_ports()
-            if i.name.startswith(self.name + "_out:")
+            if i.name.startswith(f"{self.name}_out:")
         ]:
             return False
         return True
@@ -409,21 +409,21 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             return
         from subprocess import Popen
 
-        n = self.name + "_src"
+        n = f"{self.name}_src"
         line = [
             "mpv",
             command,
             "--profile=low-latency",
             "--no-cache",
             "--ao=jack",
-            "--jack-port=" + self.name + "_in",
-            "--jack-name=" + n,
+            f"--jack-port={self.name}_in",
+            f"--jack-name={n}",
             "--vo=null",
             "--no-video",
         ]
 
         x = jackmanager.Airwire(
-            n, self.name + "_in", force_combining=(self.channels == 1)
+            n, f"{self.name}_in", force_combining=(self.channels == 1)
         )
         x.connect()
 
@@ -469,7 +469,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             self.sink = self.add_element(
                 "pipewiresink",
-                client_name=self.name + "_out",
+                client_name=f"{self.name}_out",
                 mode=2,
             )
 
@@ -489,7 +489,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if [
                 i.name
                 for i in jackmanager.get_ports()
-                if i.name.startswith(self.name + "_in:")
+                if i.name.startswith(f"{self.name}_in:")
             ]:
                 break
             time.sleep(0.1)
@@ -498,16 +498,16 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if [
                 i.name
                 for i in jackmanager.get_ports()
-                if i.name.startswith(self.name + "_out:")
+                if i.name.startswith(f"{self.name}_out:")
             ]:
                 break
             time.sleep(0.1)
 
-        self.silencein = jackmanager.Airwire("SILENCE", self.name + "_in")
+        self.silencein = jackmanager.Airwire("SILENCE", f"{self.name}_in")
         self.silencein.connect()
 
-        jackmanager.disconnect_all_from(self.name + "_in")
-        jackmanager.disconnect_all_from(self.name + "_out")
+        jackmanager.disconnect_all_from(f"{self.name}_in")
+        jackmanager.disconnect_all_from(f"{self.name}_out")
 
         # do it here, after things are set up
         self.faderTag.value = self.initialFader
@@ -523,14 +523,14 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             p = [i.name for i in jackmanager.get_ports()]
             p2 = [i.clientName for i in jackmanager.get_ports()]
             p = p + p2
-            if (self.name + "_out" in p) and (self.name + "_in") in p:
+            if (f"{self.name}_out" in p) and (f"{self.name}_in") in p:
                 break
             else:
                 time.sleep(0.5)
 
         for i in self.outputs:
             x = jackmanager.Airwire(
-                self.name + "_out", i, force_combining=(self.channels == 1)
+                f"{self.name}_out", i, force_combining=(self.channels == 1)
             )
             x.connect()
             self._outputs.append(x)
@@ -569,7 +569,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             p2 = [i.clientName for i in jackmanager.get_ports()]
             p = p + p2
             # Todo check the sends as well?
-            if name + "_out" in p:
+            if f"{name}_out" in p:
                 time.sleep(0.5)
             else:
                 # Give a little extra time just in case
@@ -579,9 +579,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def backup(self):
         c = []
 
-        for i in jackmanager.get_ports(self.name + "_in:"):
+        for i in jackmanager.get_ports(f"{self.name}_in:"):
             c.append((i, jackmanager.get_connections(i)))
-        for i in jackmanager.get_ports(self.name + "_out:"):
+        for i in jackmanager.get_ports(f"{self.name}_out:"):
             c.append((i, jackmanager.get_connections(i)))
         return c
 
@@ -596,7 +596,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self._input.disconnect()
             if not "://" in self.input:
                 self._input = jackmanager.Airwire(
-                    self.input, self.name + "_in", force_combining=(self.channels == 1)
+                    self.input, f"{self.name}_in", force_combining=(self.channels == 1)
                 )
                 self._input.connect()
             else:
@@ -612,7 +612,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self._outputs = []
             for i in self.outputs:
                 x = jackmanager.Airwire(
-                    self.name + "_out", i, force_combining=(self.channels == 1)
+                    f"{self.name}_out", i, force_combining=(self.channels == 1)
                 )
                 x.connect()
                 self._outputs.append(x)
@@ -627,7 +627,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             l, e2 = self.add_jack_mixer_send_elements(target, id, volume)
 
             self.effectsById[id] = l
-            self.effectsById[id + "*destination"] = e2
+            self.effectsById[f"{id}*destination"] = e2
 
             d = effectTemplates["send"]
             d["params"]["*destination"]["value"] = target
@@ -635,7 +635,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.effectDataById[id] = d
 
             # Sequentially number the sends
-            cname = self.name + "_send" + str(len(self.sends))
+            cname = f"{self.name}_send{str(len(self.sends))}"
             e2.set_property("client-name", cname)
 
             self.sendAirwires[id] = jackmanager.Airwire(
@@ -866,13 +866,11 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def onSTTMessage(self, v):
         messagebus.post_message(
-            "/system/mixer/channels/" + self.name + "/stt/hypothesis", (v,)
+            f"/system/mixer/channels/{self.name}/stt/hypothesis", (v,)
         )
 
     def onSTTMessageFinal(self, v):
-        messagebus.post_message(
-            "/system/mixer/channels/" + self.name + "/stt/final", (v,)
-        )
+        messagebus.post_message(f"/system/mixer/channels/{self.name}/stt/final", (v,))
 
     def doSoundFuse(self, rms):
         # Highly dynamic stuff is less likely to be feedback.
@@ -1065,16 +1063,16 @@ class MixingBoard:
         if not self.running:
             return
         for i in self.channels:
-            log.info("Creating mixer channel " + i)
+            log.info(f"Creating mixer channel {i}")
             try:
                 self._createChannel(i, self.channels[i])
             except Exception as e:
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Failed to create mixer channel " + i + " see logs.",
+                    f"Failed to create mixer channel {i} see logs.",
                 )
-                log.exception("Could not create channel " + i)
-                self.pushStatus(i, "error " + str(e))
+                log.exception(f"Could not create channel {i}")
+                self.pushStatus(i, f"error {str(e)}")
 
     def sendState(self):
         inPorts = jackmanager.get_port_names_with_aliases(is_audio=True, is_input=True)
@@ -1136,7 +1134,7 @@ class MixingBoard:
 
         if name not in self.channelAlerts:
             self.channelAlerts[name] = alerts.Alert(
-                "Mixer channel " + name, priority="error", trip_delay=35, auto_ack=True
+                f"Mixer channel {name}", priority="error", trip_delay=35, auto_ack=True
             )
 
         for i in range(3):
@@ -1148,7 +1146,7 @@ class MixingBoard:
             except Exception as e:
                 self.channelAlerts[name].trip("Failed to load channel")
                 log.exception("Failed to create channel, retrying")
-                self.pushStatus(name, "failed " + str(e))
+                self.pushStatus(name, f"failed {str(e)}")
                 time.sleep(1 + i)
 
     def _createChannelAttempt(self, name, data=channelTemplate, wait=3):
@@ -1262,14 +1260,14 @@ class MixingBoard:
             raise ValueError("Empty preset name")
         with self.lock:
             util.disallowSpecialChars(presetName)
-            persist.save(self.channels, os.path.join(presetsDir, presetName + ".yaml"))
+            persist.save(self.channels, os.path.join(presetsDir, f"{presetName}.yaml"))
 
             self.loadedPreset = presetName
             self.api.send(["loadedPreset", self.loadedPreset])
 
     def deletePreset(self, presetName):
-        if os.path.exists(os.path.join(presetsDir, presetName + ".yaml")):
-            os.remove(os.path.join(presetsDir, presetName + ".yaml"))
+        if os.path.exists(os.path.join(presetsDir, f"{presetName}.yaml")):
+            os.remove(os.path.join(presetsDir, f"{presetName}.yaml"))
 
     def loadPreset(self, presetName: str):
         with self.lock:
@@ -1277,12 +1275,12 @@ class MixingBoard:
             for i in x:
                 self._deleteChannel(i)
 
-            if os.path.isfile(os.path.join(presetsDir, presetName + ".yaml")):
+            if os.path.isfile(os.path.join(presetsDir, f"{presetName}.yaml")):
                 self._loadData(
-                    persist.load(os.path.join(presetsDir, presetName + ".yaml"))
+                    persist.load(os.path.join(presetsDir, f"{presetName}.yaml"))
                 )
             else:
-                log.error("No such preset " + str(presetName))
+                log.error(f"No such preset {str(presetName)}")
 
             self.loadedPreset = presetName
             self.api.send(["loadedPreset", self.loadedPreset])

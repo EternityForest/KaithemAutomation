@@ -12,7 +12,7 @@ http_client = httpclient.AsyncHTTPClient()
 
 
 def get_fn(x, y, z, map="openstreetmap"):
-    return os.path.join(directories.vardir, "maptiles", map, z, x, y + ".png")
+    return os.path.join(directories.vardir, "maptiles", map, z, x, f"{y}.png")
 
 
 async def get_tile(x, y, z, r, map="openstreetmap"):
@@ -24,9 +24,9 @@ async def get_tile(x, y, z, r, map="openstreetmap"):
 
         if map == "opentopomap":
             if random.random() > 0.5:
-                r = http_client.fetch(f"https://b.tile." + map + ".org/{z}/{x}/{y}.png")
+                r = http_client.fetch(f"https://b.tile.{map}.org/{{z}}/{{x}}/{{y}}.png")
             else:
-                r = http_client.fetch(f"https://a.tile." + map + ".org/{z}/{x}/{y}.png")
+                r = http_client.fetch(f"https://a.tile.{map}.org/{{z}}/{{x}}/{{y}}.png")
         else:
             r = http_client.fetch(f"https://tile.openstreetmap.org/{z}/{x}/{y}.png")
 
@@ -63,7 +63,7 @@ class MainHandler(tornado.web.RequestHandler):
 
             if os.path.exists(
                 os.path.join(
-                    os.path.expanduser("~/.local/share/marble/maps/earth/" + map),
+                    os.path.expanduser(f"~/.local/share/marble/maps/earth/{map}"),
                     z,
                     x,
                     y,
@@ -71,7 +71,7 @@ class MainHandler(tornado.web.RequestHandler):
             ):
                 return self.serve(
                     os.path.join(
-                        os.path.expanduser("~/.local/share/marble/maps/earth/" + map),
+                        os.path.expanduser(f"~/.local/share/marble/maps/earth/{map}"),
                         z,
                         x,
                         y,
@@ -79,11 +79,11 @@ class MainHandler(tornado.web.RequestHandler):
                 )
 
             if os.path.exists(
-                os.path.join("/home/pi/.local/share/marble/maps/earth/" + map, z, x, y)
+                os.path.join(f"/home/pi/.local/share/marble/maps/earth/{map}", z, x, y)
             ):
                 return self.serve(
                     os.path.exists(
-                        os.path.join("/home/pi/share/marble/maps/earth/" + map, z, x, y)
+                        os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y)
                     )
                 )
 

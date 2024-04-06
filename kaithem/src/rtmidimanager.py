@@ -30,43 +30,37 @@ def setTag14(n, v, a=None):
 def onMidiMessage(m, d):
     if m.isNoteOn():
         messagebus.post_message(
-            "/midi/" + d, ("noteon", m.getChannel(), m.getNoteNumber(), m.getVelocity())
+            f"/midi/{d}", ("noteon", m.getChannel(), m.getNoteNumber(), m.getVelocity())
         )
         setTag(
-            "/midi/" + d + "/" + str(m.getChannel()) + ".note",
+            f"/midi/{d}/{str(m.getChannel())}.note",
             m.getNoteNumber(),
             a=m.getVelocity(),
         )
 
     elif m.isNoteOff():
         messagebus.post_message(
-            "/midi/" + d, ("noteoff", m.getChannel(), m.getNoteNumber())
+            f"/midi/{d}", ("noteoff", m.getChannel(), m.getNoteNumber())
         )
-        setTag("/midi/" + d + "/" + str(m.getChannel()) + ".note", 0, a=0)
+        setTag(f"/midi/{d}/{str(m.getChannel())}.note", 0, a=0)
 
     elif m.isController():
         messagebus.post_message(
-            "/midi/" + d,
+            f"/midi/{d}",
             ("cc", m.getChannel(), m.getControllerNumber(), m.getControllerValue()),
         )
         setTag(
-            "/midi/"
-            + d
-            + "/"
-            + str(m.getChannel())
-            + ".cc["
-            + str(m.getControllerNumber())
-            + "]",
+            f"/midi/{d}/{str(m.getChannel())}.cc[{str(m.getControllerNumber())}]",
             m.getControllerValue(),
             a=0,
         )
 
     elif m.isPitchWheel():
         messagebus.post_message(
-            "/midi/" + d, ("pitch", m.getChannel(), m.getPitchWheelValue())
+            f"/midi/{d}", ("pitch", m.getChannel(), m.getPitchWheelValue())
         )
         setTag14(
-            "/midi/" + d + "/" + str(m.getChannel()) + ".pitch",
+            f"/midi/{d}/{str(m.getChannel())}.pitch",
             m.getPitchWheelValue(),
             a=0,
         )
@@ -88,24 +82,20 @@ def onMidiMessageTuple(m, d):
     b = m[0][2]
 
     if code == 144:
-        messagebus.post_message("/midi/" + d, ("noteon", ch, a, b))
-        setTag("/midi/" + normalizetag(d) + "/" + str(ch) + ".note", a, a=b)
+        messagebus.post_message(f"/midi/{d}", ("noteon", ch, a, b))
+        setTag(f"/midi/{normalizetag(d)}/{str(ch)}.note", a, a=b)
 
     elif code == 128:
-        messagebus.post_message("/midi/" + d, ("noteoff", ch, a, b))
-        setTag("/midi/" + normalizetag(d) + "/" + str(ch) + ".note", 0, a=0)
+        messagebus.post_message(f"/midi/{d}", ("noteoff", ch, a, b))
+        setTag(f"/midi/{normalizetag(d)}/{str(ch)}.note", 0, a=0)
 
     elif code == 224:
-        messagebus.post_message("/midi/" + d, ("pitch", ch, a, b))
-        setTag14(
-            "/midi/" + normalizetag(d) + "/" + str(ch) + ".pitch", a + b * 128, a=0
-        )
+        messagebus.post_message(f"/midi/{d}", ("pitch", ch, a, b))
+        setTag14(f"/midi/{normalizetag(d)}/{str(ch)}.pitch", a + b * 128, a=0)
 
     elif code == 176:
-        messagebus.post_message("/midi/" + d, ("cc", ch, a, b))
-        setTag(
-            "/midi/" + normalizetag(d) + "/" + str(ch) + ".cc[" + str(a) + "]", b, a=0
-        )
+        messagebus.post_message(f"/midi/{d}", ("cc", ch, a, b))
+        setTag(f"/midi/{normalizetag(d)}/{str(ch)}.cc[{str(a)}]", b, a=0)
 
 
 once = [0]
@@ -133,11 +123,11 @@ def doScan():
         # Support versions of rtmidi where it does not work the first time
         try:
             scanning_connection = rtmidi.MidiIn(
-                rtmidi.API_UNIX_JACK, name="Kaithem" + str(ctr)
+                rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}"
             )
         except Exception:
             scanning_connection = rtmidi.MidiIn(
-                rtmidi.API_UNIX_JACK, name="Kaithem" + str(ctr)
+                rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}"
             )
         ctr += 1
     torm = []
@@ -186,7 +176,7 @@ def doScan():
                 m.set_callback(f)
                 allInputs[i] = (m, f)
             except Exception:
-                print("Can't use MIDI:" + str(i))
+                print(f"Can't use MIDI:{str(i)}")
 
 
 s = None

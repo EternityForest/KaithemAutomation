@@ -54,7 +54,7 @@ def makeTagInfoHelper(t: GenericTagPointClass[Any]):
         if x == "default":
             return ""
         else:
-            return "(" + x + ")"
+            return f"({x})"
 
     return f
 
@@ -115,11 +115,9 @@ def normalizeTagName(name: str, replacementChar: Optional[str] = None) -> str:
                 if replacementChar:
                     name = name.replace(i, replacementChar)
                 else:
-                    raise ValueError(
-                        "Illegal char in tag point name: " + i + " in " + name
-                    )
+                    raise ValueError(f"Illegal char in tag point name: {i} in {name}")
         if not name.startswith("/"):
-            name = "/" + name
+            name = f"/{name}"
     else:
         if name.startswith("/="):
             name = name[1:]
@@ -138,8 +136,8 @@ def getFilenameForTagConfig(i: str):
     else:
         n = i
     if n.startswith("="):
-        n = "=/" + util.url(n[1:])
-    return os.path.join(directories.vardir, "tags", n + ".yaml")
+        n = f"=/{util.url(n[1:])}"
+    return os.path.join(directories.vardir, "tags", f"{n}.yaml")
 
 
 def gcEmptyConfigTags():
@@ -194,9 +192,9 @@ class GenericTagPointClass(Generic[T]):
 
     def __repr__(self):
         try:
-            return "<Tag Point: " + self.name + "=" + str(self._value)[:20] + ">"
+            return f"<Tag Point: {self.name}={str(self._value)[:20]}>"
         except Exception:
-            return "<Tag Point: " + self.name + ">"
+            return f"<Tag Point: {self.name}>"
 
     @typechecked
     def __init__(self, name: str):
@@ -443,7 +441,7 @@ class GenericTagPointClass(Generic[T]):
         for i in read_perms.split(",") + write_perms.split(","):
             try:
                 float(i)
-                raise RuntimeError("Permission: " + str(i) + " looks like a number")
+                raise RuntimeError(f"Permission: {str(i)} looks like a number")
             except ValueError:
                 pass
 
@@ -487,7 +485,7 @@ class GenericTagPointClass(Generic[T]):
                     if self.apiClaim:
                         self.apiClaim.release()
                 else:
-                    w = widgets.DataSource(id="tag:" + self.name)
+                    w = widgets.DataSource(id=f"tag:{self.name}")
 
                     if self.unreliable:
                         w.noOnConnectData = True
@@ -496,7 +494,7 @@ class GenericTagPointClass(Generic[T]):
                     #  so you can have a synced UI widget that
                     # can store the UI setpoint state even when the actual tag is overriden.
                     self.dataSourceAutoControl = widgets.DataSource(
-                        id="tag.control:" + self.name
+                        id=f"tag.control:{self.name}"
                     )
                     self.dataSourceAutoControl.write(None)
                     w.set_permissions(
@@ -702,7 +700,7 @@ class GenericTagPointClass(Generic[T]):
         "Sets the configured attribute by name, and also sets the corresponding dynamic attribute."
 
         if k not in configAttrs:
-            raise ValueError(k + " does not support overriding by configuration")
+            raise ValueError(f"{k} does not support overriding by configuration")
 
         with lock:
             self._recordConfigAttr(k, v)
@@ -969,11 +967,11 @@ class GenericTagPointClass(Generic[T]):
         context = copy.copy(self.evalContext)
 
         tripCondition = compile(
-            tripCondition, self.name + ".alarms." + name + "_trip", "eval"
+            tripCondition, f"{self.name}.alarms.{name}_trip", "eval"
         )
         if releaseCondition:
             releaseCondition = compile(
-                releaseCondition, self.name + ".alarms." + name + "_release", "eval"
+                releaseCondition, f"{self.name}.alarms.{name}_release", "eval"
             )
 
         n = self.name.replace("=", "expr_")
@@ -1007,7 +1005,7 @@ class GenericTagPointClass(Generic[T]):
             logger.exception("cleanup err")
 
         obj = alerts.Alert(
-            n + ".alarms." + name,
+            f"{n}.alarms.{name}",
             priority=priority,
             auto_ack=auto_ack,
             trip_delay=trip_delay,
@@ -1037,7 +1035,7 @@ class GenericTagPointClass(Generic[T]):
 
             try:
                 if eval(tripCondition, context, context):
-                    obj.trip("Tag value:" + str(context["value"])[:128])
+                    obj.trip(f"Tag value:{str(context['value'])[:128]}")
                 elif releaseCondition:
                     if eval(releaseCondition, context, context):
                         obj.release()
@@ -1089,10 +1087,10 @@ class GenericTagPointClass(Generic[T]):
         try:
             alarmPollFunction(self.value, self.timestamp, self.annotation)
         except Exception:
-            logger.exception("Error in test run of alarm function for :" + name)
+            logger.exception(f"Error in test run of alarm function for :{name}")
             messagebus.post_message(
                 "/system/notifications/errors",
-                "Error with tag point alarm\n" + traceback.format_exc(),
+                f"Error with tag point alarm\n{traceback.format_exc()}",
             )
 
         return alarmPollFunction
@@ -1166,7 +1164,7 @@ class GenericTagPointClass(Generic[T]):
                 accum = i["accumulate"]
                 try:
                     if target not in ("disk", "ram"):
-                        raise ValueError("Bad logging target :" + target)
+                        raise ValueError(f"Bad logging target :{target}")
 
                     c = taghistorian.accumTypes[accum](self, interval, length, target)
                     self.configLoggers.append(c)
@@ -1309,7 +1307,7 @@ class GenericTagPointClass(Generic[T]):
             self._interval = 0
 
         messagebus.post_message(
-            "/system/tags/interval" + self.name, self._interval, synchronous=True
+            f"/system/tags/interval{self.name}", self._interval, synchronous=True
         )
         with self.lock:
             self._managePolling()
@@ -1463,7 +1461,7 @@ class GenericTagPointClass(Generic[T]):
         timestamp = time.monotonic()
 
         try:
-            desc = str(f.__name__ + " of " + f.__module__)
+            desc = str(f"{f.__name__} of {f.__module__}")
         except Exception:
             desc = str(f)
 
@@ -1509,7 +1507,7 @@ class GenericTagPointClass(Generic[T]):
                 for i in torm:
                     self.subscribers.remove(i)
                 messagebus.post_message(
-                    "/system/tags/subscribers" + self.name,
+                    f"/system/tags/subscribers{self.name}",
                     len(self.subscribers),
                     synchronous=True,
                 )
@@ -1538,7 +1536,7 @@ class GenericTagPointClass(Generic[T]):
                 if x:
                     self.subscribers.remove(x)
                 messagebus.post_message(
-                    "/system/tags/subscribers" + self.name,
+                    f"/system/tags/subscribers{self.name}",
                     len(self.subscribers),
                     synchronous=True,
                 )
@@ -1611,7 +1609,7 @@ class GenericTagPointClass(Generic[T]):
                     except Exception as e:
                         extraData = str(e)
                     logger.exception(
-                        "Tag subscriber error, val,time,annotation was: " + extraData
+                        f"Tag subscriber error, val,time,annotation was: {extraData}"
                     )
                     # Return the error from whence it came to display in the proper place
                     for i in subscriberErrorHandlers:
@@ -1786,7 +1784,7 @@ class GenericTagPointClass(Generic[T]):
         a function.
         """
 
-        name = name or "claim" + str(time.time())
+        name = name or f"claim{str(time.time())}"
         if timestamp is None:
             timestamp = time.monotonic()
 
@@ -2241,7 +2239,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
                     self._displayUnits = default_display_units[unit_types[value]]
                     # Always show the native unit
                     if not value in self._displayUnits:
-                        self._displayUnits = value + "|" + self._displayUnits
+                        self._displayUnits = f"{value}|{self._displayUnits}"
                 except Exception:
                     self._displayUnits = value
             else:
@@ -2836,7 +2834,7 @@ class LowpassFilter(Filter):
 
         self.tag = Tag(name)
         self.claim = self.tag.claim(
-            self.getter, name=inputTag.name + ".lowpass", priority=priority
+            self.getter, name=f"{inputTag.name}.lowpass", priority=priority
         )
 
         if interval is None:
@@ -2940,7 +2938,7 @@ def createGetterFromExpression(
 
     t.recalcHelper = recalc
 
-    c = compile(e[1:], t.name + "_expr", "eval")
+    c = compile(e[1:], f"{t.name}_expr", "eval")
 
     def f():
         return eval(c, t.evalContext, t.evalContext)
@@ -3004,10 +3002,10 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
             try:
                 configTagFromData(i, configTagData[i].getAllData())
             except Exception:
-                logging.exception("Failure with configured tag: " + i)
+                logging.exception(f"Failure with configured tag: {i}")
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Failed to preconfigure tag " + i + "\n" + traceback.format_exc(),
+                    f"Failed to preconfigure tag {i}\n{traceback.format_exc()}",
                 )
 
 

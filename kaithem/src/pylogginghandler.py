@@ -45,7 +45,7 @@ def at_exit():
     # This lets us tell a clean shutdown from something like a segfault
     if os.path.exists("/dev/shm"):
         try:
-            with open("/dev/shm/shutdowntime_" + getpass.getuser(), "w") as f:
+            with open(f"/dev/shm/shutdowntime_{getpass.getuser()}", "w") as f:
                 f.write(str(time.time()))
         except:
             print(traceback.format_exc())
@@ -178,12 +178,12 @@ class LoggingHandler(logging.Handler):
             if not self.exclude_print or (
                 not (
                     record.name == self.exclude_print
-                    or record.name.startswith(self.exclude_print + ".")
+                    or record.name.startswith(f"{self.exclude_print}.")
                 )
             ):
                 print(self.format(record))
         if (
-            not (record.name == self.name or record.name.startswith(self.name + "."))
+            not (record.name == self.name or record.name.startswith(f"{self.name}."))
             and not self.name == ""
         ):
             return
@@ -207,11 +207,11 @@ class LoggingHandler(logging.Handler):
                     if len(self.logbuffer) >= (self.bufferlen * 8):
                         self.logbuffer = self.logbuffer[-50:]
                         self.contextbuffer = []
-                except Exception as e:
+                except Exception:
                     pass
 
                 print(traceback.format_exc())
-                print("Log flush error " + repr(e))
+                print(f"Log flush error {repr(e)}")
                 # logging.exception("error flushing logs with handler "+repr(self))
 
     def flush(self):
@@ -267,7 +267,7 @@ class LoggingHandler(logging.Handler):
                 # Actually dump the log.
                 t = time.time()
                 if not self.current_file:
-                    fn = os.path.join(self.folder, self.fn + "_" + str(t) + ext)
+                    fn = os.path.join(self.folder, f"{self.fn}_{str(t)}{ext}")
                     self.current_file = fn
                 else:
                     fn = self.current_file
@@ -283,7 +283,7 @@ class LoggingHandler(logging.Handler):
                         if chmodflag:
                             util.chmod_private_try(fn)
                         for i in logbuffer:
-                            b = (i + "\r\n").encode("utf8")
+                            b = f"{i}\r\n".encode("utf8")
                             self.bytecounter += len(b)
                             f.write(b)
                     # Keep track of how many we have written to the file
@@ -335,7 +335,7 @@ class LoggingHandler(logging.Handler):
             # Make a list of our log dump files.
             asnumbers = {}
             for i in util.get_files(self.folder):
-                if not re.match(self.fn + r"_[0-9]+(.[0-9]+)?\.log(\..*)?", i):
+                if not re.match(f"{self.fn}_[0-9]+(.[0-9]+)?\\.log(\\..*)?", i):
                     continue
                 try:
                     # Our filename format dictates that the last _ comes before the number and ext
@@ -378,18 +378,18 @@ syslogger = LoggingHandler(
 )
 
 # Linux only way of recovering backups even if the
-if os.path.exists("/dev/shm/kaithemdbglog_" + getpass.getuser()):
-    if not os.path.exists("/dev/shm/shutdowntime_" + getpass.getuser()):
+if os.path.exists(f"/dev/shm/kaithemdbglog_{getpass.getuser()}"):
+    if not os.path.exists(f"/dev/shm/shutdowntime_{getpass.getuser()}"):
         try:
             shutil.copytree(
-                "/dev/shm/kaithemdbglog_" + getpass.getuser(),
-                "/dev/shm/kaithemdbglogbackup_" + getpass.getuser(),
+                f"/dev/shm/kaithemdbglog_{getpass.getuser()}",
+                f"/dev/shm/kaithemdbglogbackup_{getpass.getuser()}",
             )
         except:
             pass
 
         try:
-            shutil.rmtree("/dev/shm/kaithemdbglog_" + getpass.getuser())
+            shutil.rmtree(f"/dev/shm/kaithemdbglog_{getpass.getuser()}")
         except:
             pass
 
@@ -406,7 +406,7 @@ if os.path.exists("/dev/shm/kaithemdbglog_" + getpass.getuser()):
 # We know that there was a problem, and we can report that.
 if os.path.exists("/dev/shm"):
     try:
-        os.remove("/dev/shm/shutdowntime_" + getpass.getuser())
+        os.remove(f"/dev/shm/shutdowntime_{getpass.getuser()}")
     except:
         pass
 
@@ -424,7 +424,7 @@ if os.path.exists("/dev/shm"):
     shmhandler = LoggingHandler(
         "",
         fn="kaithemlog",
-        folder="/dev/shm/kaithemdbglog_" + getpass.getuser() + "/",
+        folder=f"/dev/shm/kaithemdbglog_{getpass.getuser()}/",
         level=0,
         entries_per_file=5000,
         bufferlen=0,

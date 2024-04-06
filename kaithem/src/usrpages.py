@@ -283,11 +283,11 @@ class CompiledPage:
                     usejson = False
 
                     if "setupcode" in resource and resource["setupcode"].strip():
-                        code_header += "\n<%!\n" + resource["setupcode"] + "\n%>\n"
+                        code_header += f"\n<%!\n{resource['setupcode']}\n%>\n"
                         usejson = True
 
                     if "code" in resource and resource["code"].strip():
-                        code_header += "\n<%\n" + resource["code"] + "\n%>\n"
+                        code_header += f"\n<%\n{resource['code']}\n%>\n"
                         usejson = True
 
                     if usejson:
@@ -327,7 +327,7 @@ class CompiledPage:
 
                     self.template = mako.template.Template(
                         templatesource,
-                        uri="Template" + m + "_" + r,
+                        uri=f"Template{m}_{r}",
                         lookup=component_lookup,
                     )
 
@@ -346,10 +346,10 @@ class CompiledPage:
 
                 elif resource["template-engine"] == "markdown":
                     header = mako.template.Template(
-                        header, uri="Template" + m + "_" + r, lookup=component_lookup
+                        header, uri=f"Template{m}_{r}", lookup=component_lookup
                     ).render(**self.scope)
                     footer = mako.template.Template(
-                        footer, uri="Template" + m + "_" + r, lookup=component_lookup
+                        footer, uri=f"Template{m}_{r}", lookup=component_lookup
                     ).render(**self.scope)
 
                     self.text = (
@@ -377,7 +377,7 @@ class CompiledPage:
     def new_print(self, *d):
         try:
             if len(d) == 1:
-                self.printoutput += str(d[0]) + "\n"
+                self.printoutput += f"{str(d[0])}\n"
             else:
                 self.printoutput += str(d)
         except:
@@ -519,7 +519,7 @@ def getPagesFromModules():
                             )
                             try:
                                 messagebus.post_message(
-                                    "system/errors/pages/" + i + "/" + m, str(tb)
+                                    f"system/errors/pages/{i}/{m}", str(tb)
                                 )
                             except Exception as e:
                                 print(e)
@@ -554,7 +554,7 @@ def getPagesFromModules():
                                 )
                                 try:
                                     messagebus.post_message(
-                                        "system/errors/pages/" + i + "/" + m, str(tb)
+                                        f"system/errors/pages/{i}/{m}", str(tb)
                                     )
                                 except Exception as e:
                                     print(e)
@@ -623,10 +623,10 @@ class KaithemPage:
     def _headers(self, page):
         x = ""
         for i in page.methods:
-            x += i + ", "
+            x += f"{i}, "
         x = x[:-2]
 
-        cherrypy.response.headers["Allow"] = x + ", HEAD, OPTIONS"
+        cherrypy.response.headers["Allow"] = f"{x}, HEAD, OPTIONS"
         if page.xss:
             if "Origin" in cherrypy.request.headers:
                 if (
@@ -664,7 +664,7 @@ class KaithemPage:
 
         x = ""
         for i in page.methods:
-            x += i + ", "
+            x += f"{i}, "
         x = x[:-2]
         cherrypy.response.headers["Access-Control-Allow-Methods"] = x
 
@@ -721,14 +721,14 @@ class KaithemPage:
             if page.streaming and hasattr(e.f_filepath, "read"):
                 cherrypy.response.headers["Content-Type"] = e.f_MIME
                 cherrypy.response.headers["Content-Disposition"] = (
-                    'attachment ; filename = "' + e.f_name + '"'
+                    f'attachment ; filename = "{e.f_name}"'
                 )
                 return streamGen(e.f_filepath)
 
             if hasattr(e.f_filepath, "getvalue"):
                 cherrypy.response.headers["Content-Type"] = e.f_MIME
                 cherrypy.response.headers["Content-Disposition"] = (
-                    'attachment ; filename = "' + e.f_name + '"'
+                    f'attachment ; filename = "{e.f_name}"'
                 )
                 return e.f_filepath.getvalue()
 
@@ -761,7 +761,7 @@ class KaithemPage:
             page.errors.append([time.strftime(config["time-format"]), tb, data])
             try:
                 messagebus.post_message(
-                    "system/errors/pages/" + module + "/" + "/".join(args), str(tb)
+                    f"system/errors/pages/{module}/{'/'.join(args)}", str(tb)
                 )
             except Exception as e:
                 print(e)

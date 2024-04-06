@@ -402,21 +402,21 @@ class Alert:
             workers.do(f)
 
         if self.priority in ("error", "critical", "important"):
-            logger.error("Alarm " + self.name + " ACTIVE")
+            logger.error(f"Alarm {self.name} ACTIVE")
             messagebus.post_message(
-                "/system/notifications/errors", "Alarm " + self.name + " is active"
+                "/system/notifications/errors", f"Alarm {self.name} is active"
             )
         if self.priority in ("warning"):
             messagebus.post_message(
-                "/system/notifications/warnings", "Alarm " + self.name + " is active"
+                "/system/notifications/warnings", f"Alarm {self.name} is active"
             )
-            logger.warning("Alarm " + self.name + " ACTIVE")
+            logger.warning(f"Alarm {self.name} ACTIVE")
         else:
-            logger.info("Alarm " + self.name + " active")
+            logger.info(f"Alarm {self.name} active")
 
         if self.priority in ("info"):
             messagebus.post_message(
-                "/system/notifications", "Alarm " + self.name + " is active"
+                "/system/notifications", f"Alarm {self.name} is active"
             )
         sendMessage()
         pushAlertState()
@@ -441,12 +441,12 @@ class Alert:
                 if self.priority in ("warning", "error", "critical", "important"):
                     messagebus.post_message(
                         "/system/notifications/important",
-                        "Alarm " + self.name + " returned to normal",
+                        f"Alarm {self.name} returned to normal",
                     )
                 else:
                     messagebus.post_message(
                         "/system/notifications",
-                        "Alarm " + self.name + " returned to normal",
+                        f"Alarm {self.name} returned to normal",
                     )
 
         with lock:
@@ -475,11 +475,11 @@ class Alert:
             tripped = _tripped.copy()
 
         if self.priority in ("error", "critical", "important"):
-            logger.error("Alarm " + self.name + " tripped:\n " + self.trip_message)
+            logger.error(f"Alarm {self.name} tripped:\n {self.trip_message}")
         if self.priority in ("warning"):
-            logger.warning("Alarm " + self.name + " tripped:\n" + self.trip_message)
+            logger.warning(f"Alarm {self.name} tripped:\n{self.trip_message}")
         else:
-            logger.info("Alarm " + self.name + " tripped:\n" + self.trip_message)
+            logger.info(f"Alarm {self.name} tripped:\n{self.trip_message}")
         pushAlertState()
 
     def trip(self, message=""):
@@ -504,10 +504,10 @@ class Alert:
             if self.sm.state == "active":
                 messagebus.post_message(
                     "/system/notifications",
-                    "Alarm " + self.name + " condition cleared, waiting for ACK",
+                    f"Alarm {self.name} condition cleared, waiting for ACK",
                 )
 
-        logger.info("Alarm " + self.name + " cleared")
+        logger.info(f"Alarm {self.name} cleared")
         api.send(["shouldRefresh"])
         sendMessage()
         pushAlertState()
@@ -522,18 +522,18 @@ class Alert:
     def acknowledge(self, by="unknown", notes=""):
         notes = notes[:64]
         if notes.strip():
-            notes = ":\n" + notes
+            notes = f":\n{notes}"
         else:
             notes = ""
 
         self.sm.event("acknowledge")
         if not by == "<DELETED>":
-            logger.info("Alarm " + self.name + " acknowledged by" + by + notes)
+            logger.info(f"Alarm {self.name} acknowledged by{by}{notes}")
 
             if self.priority in ("error", "critical", "warning", "important"):
                 messagebus.post_message(
                     "/system/notifications",
-                    "Alarm " + self.name + " acknowledged by " + by + notes,
+                    f"Alarm {self.name} acknowledged by {by}{notes}",
                 )
 
     def error(self, msg=""):

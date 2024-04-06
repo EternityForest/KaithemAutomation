@@ -71,7 +71,7 @@ class EventInterface:
 
 
 def run_in_thread(f: typing.Callable, name: str):
-    t = threading.Thread(target=f, name="nostartstoplog " + name)
+    t = threading.Thread(target=f, name=f"nostartstoplog {name}")
     t.start()
 
 
@@ -95,11 +95,11 @@ def makePrintFunction(ev):
         if len(args) == 1:
             if not local:
                 print(args[0])
-            x = str(args[0]) + "\n"
+            x = f"{str(args[0])}\n"
         else:
             if not local:
                 print(args)
-            x = str(args) + "\n"
+            x = f"{str(args)}\n"
         ev2 = ev()
         if not id(ev2) == printID:
             w = "FROM OLD DELETED EVENT"
@@ -129,7 +129,7 @@ def getPrintOutput(event):
     try:
         return EventReferences[event].printoutput
     except Exception as e:
-        return "Err getting output:" + str(e)
+        return f"Err getting output:{str(e)}"
 
 
 def getEventInfo(event):
@@ -158,7 +158,7 @@ def getEventErrors(module, event):
             return __EventReferences[module, event].errors
         except (KeyError, AttributeError) as e:
             return [
-                ["0", "Event does not exist or was not properly initialized:" + str(e)]
+                ["0", f"Event does not exist or was not properly initialized:{str(e)}"]
             ]
 
 
@@ -168,7 +168,7 @@ def fastGetEventErrors(module, event):
     try:
         return __EventReferences[module, event].errors
     except Exception as e:
-        return [["0", str(e) + "Try refreshing page? "]]
+        return [["0", f"{str(e)}Try refreshing page? "]]
 
 
 # Given two functions, execute the action when the trigger is true.
@@ -406,7 +406,7 @@ def Event(
     else:
         # Defensive programming, raise error on nonsense event type
         raise RuntimeError(
-            "Invalid trigger expression that begins with " + str(trigger[0])
+            f"Invalid trigger expression that begins with {str(trigger[0])}"
         )
 
 
@@ -438,7 +438,7 @@ fps = config["max-frame-rate"]
 
 def makeBackgroundPrintFunction(p, t, title, self):
     def f():
-        self().logWindow.write("<b>" + title + " at " + t + "</b><br>" + p)
+        self().logWindow.write(f"<b>{title} at {t}</b><br>{p}")
 
     return f
 
@@ -447,12 +447,7 @@ def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
         self.logWindow.write(
-            '<div class="danger"><b>Error at '
-            + time
-            + "</b><br>"
-            + "<pre>"
-            + t
-            + "</pre></div>"
+            f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>'
         )
 
     return f
@@ -519,11 +514,9 @@ class BaseEvent:
         self.runTimes = []
         self.module = m if m else "<unknown>"
         self.resource = r if r else str(util.unique_number())
-        self.pymodule = types.ModuleType(
-            str("Event_" + self.module + "_" + self.resource)
-        )
-        self.pymodule.__file__ = str("Event_" + self.module + "_" + self.resource)
-        self.pymoduleName = "Event_" + self.module + "_" + self.resource
+        self.pymodule = types.ModuleType(str(f"Event_{self.module}_{self.resource}"))
+        self.pymodule.__file__ = str(f"Event_{self.module}_{self.resource}")
+        self.pymoduleName = f"Event_{self.module}_{self.resource}"
 
         eventsByModuleName[self.pymoduleName] = self
         # This lock makes sure that only one copy of the event executes at once.
@@ -563,7 +556,7 @@ class BaseEvent:
                 + ">"
             )
         except Exception:
-            return "<error in repr for event object at " + hex(id(self)) + ">"
+            return f"<error in repr for event object at {hex(id(self))}>"
 
     def manualRun(self):
         # J.F. Sebastian of stackoverflow's post was helpful for this
@@ -624,7 +617,7 @@ class BaseEvent:
                 except Exception as e:
                     # This is not a child of system
                     logger.exception(
-                        "Error running event " + self.resource + " of " + self.module
+                        f"Error running event {self.resource} of {self.module}"
                     )
                     self._handle_exception(e)
         finally:
@@ -650,7 +643,7 @@ class BaseEvent:
 
         try:
             messagebus.post_message(
-                "/system/errors/events/" + self.module + "/" + self.resource, str(tb)
+                f"/system/errors/events/{self.module}/{self.resource}", str(tb)
             )
         except Exception as e:
             print(e)
@@ -677,9 +670,7 @@ class BaseEvent:
 
         # If this is the first error since th module was last saved raise a notification
         if len(self.errors) == 1:
-            syslogger.exception(
-                "Error running event " + self.resource + " of " + self.module
-            )
+            syslogger.exception(f"Error running event {self.resource} of {self.module}")
             messagebus.post_message(
                 "/system/notifications/errors",
                 'Event "'
@@ -772,9 +763,7 @@ class BaseEvent:
                 self._check()
             except Exception as e:
                 try:
-                    logger.exception(
-                        "Error in event " + self.resource + " of " + self.module
-                    )
+                    logger.exception(f"Error in event {self.resource} of {self.module}")
                     self._handle_exception(e)
                 except Exception:
                     logging.exception("Error handling exception in event")
@@ -792,7 +781,7 @@ def test_compile(setup, action):
 
     body = "def _event_action():\n"
     for line in action.split("\n"):
-        body += "    " + line + "\n"
+        body += f"    {line}\n"
     body = compile(body, "TestCompile", "exec")
 
 
@@ -813,9 +802,7 @@ class CompileCodeStringsMixin(BaseEvent):
             setup = "pass"
 
         # initialize the module scope with the kaithem object and the module thing.
-        initializer = compile(
-            setup, "Event_" + self.module + "_" + self.resource, "exec"
-        )
+        initializer = compile(setup, f"Event_{self.module}_{self.resource}", "exec")
 
         try:
             self.pymodule.__dict__["kaithem"] = kaithemobj.kaithem
@@ -846,7 +833,7 @@ class CompileCodeStringsMixin(BaseEvent):
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
                     logging.exception(
-                        "Error in event code for " + self.module + ":" + self.resource
+                        f"Error in event code for {self.module}:{self.resource}"
                     )
                     e.storedError = traceback.format_exc(chain=True)
                     err.append(e)
@@ -857,7 +844,7 @@ class CompileCodeStringsMixin(BaseEvent):
         # For reasons I don't yet understand, this blocked for a long time
         # when it used workers.do.
         # TODO what happened?
-        run_in_thread(runInit, "init " + self.module + ":" + self.resource)
+        run_in_thread(runInit, f"init {self.module}:{self.resource}")
 
         try:
             # Wait for it to get the lock
@@ -884,8 +871,8 @@ class CompileCodeStringsMixin(BaseEvent):
 
         body = "def _event_action():\n"
         for line in action.split("\n"):
-            body += "    " + line + "\n"
-        body = compile(body, "Event_" + self.module + "_" + self.resource, "exec")
+            body += f"    {line}\n"
+        body = compile(body, f"Event_{self.module}_{self.resource}", "exec")
         exec(body, self.pymodule.__dict__)
         self.__doc__ = self.pymodule.__doc__
         # This is one of the weirder line of code I've ever writter
@@ -895,7 +882,7 @@ class CompileCodeStringsMixin(BaseEvent):
         if hasattr(self.pymodule, "_event_action"):
             self.pymodule._event_action()
         else:
-            raise RuntimeError(self.resource + " has no _event_action.")
+            raise RuntimeError(f"{self.resource} has no _event_action.")
 
 
 class DirectFunctionsMixin:
@@ -990,8 +977,8 @@ class ChangedEvalEvent(CompileCodeStringsMixin):
         self._init_setup_and_action(setup, do)
 
         x = compile(
-            "def _event_trigger():\n    return " + f,
-            "Event_" + self.module + "_" + self.resource,
+            f"def _event_trigger():\n    return {f}",
+            f"Event_{self.module}_{self.resource}",
             "exec",
         )
         exec(x, self.pymodule.__dict__)
@@ -1045,8 +1032,8 @@ class PolledEvalEvent(CompileCodeStringsMixin):
             self.polled = False
         # Compile the trigger
         x = compile(
-            "def _event_trigger():\n    return " + when,
-            "Event_" + self.module + "_" + self.resource,
+            f"def _event_trigger():\n    return {when}",
+            f"Event_{self.module}_{self.resource}",
             "exec",
         )
         exec(x, self.pymodule.__dict__)
@@ -1108,7 +1095,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
                         if not (run and self.runthread):
                             return
                         logger.exception(
-                            "Error in event " + self.resource + " of " + self.module
+                            f"Error in event {self.resource} of {self.module}"
                         )
                         self._handle_exception(e)
                         time.sleep(
@@ -1125,7 +1112,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
             self.polled = True
         # Compile the trigger
         x = compile(
-            "def _event_trigger():\n    return " + when, self.pymoduleName, "exec"
+            f"def _event_trigger():\n    return {when}", self.pymoduleName, "exec"
         )
         exec(x, self.pymodule.__dict__)
 
@@ -1167,7 +1154,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
         if self.lock.acquire(False):
             try:
                 self.thread = threading.Thread(
-                    target=self.loop, name="Event_" + self.module + "_" + self.resource
+                    target=self.loop, name=f"Event_{self.module}_{self.resource}"
                 )
                 self.thread.start()
             finally:
@@ -1180,7 +1167,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
                 try:
                     self.thread = threading.Thread(
                         target=self.loop,
-                        name="Event_" + self.module + "_" + self.resource,
+                        name=f"Event_{self.module}_{self.resource}",
                     )
 
                     self.thread.start()
@@ -1547,9 +1534,7 @@ def updateOneEvent(resource, module, o=None):
                 except Exception:
                     line = "Context not found"
 
-                x.pymodule.__dict__["print"](
-                    i + "\r\n" + line, title="Pyflakes warning"
-                )
+                x.pymodule.__dict__["print"](f"{i}\r\n{line}", title="Pyflakes warning")
 
 
 # makes a dummy event for when there is an error loading and puts it in the right place
@@ -1624,10 +1609,10 @@ def getEventsFromModules(only=None):
             for baz in range(attempts):
                 if not toLoad:
                     break
-                logging.debug("Event initialization resolution round " + str(baz))
+                logging.debug(f"Event initialization resolution round {str(baz)}")
                 for i in toLoad:
                     try:
-                        logging.debug("Loading " + i.module + ":" + i.resource)
+                        logging.debug(f"Loading {i.module}:{i.resource}")
                         slt = time.time()
                         i.f()
 
@@ -1648,9 +1633,7 @@ def getEventsFromModules(only=None):
                     except (SyntaxError, UnrecoverableEventInitError):
                         i.loadingTraceback = traceback.format_exc(chain=True)
                         i.error = traceback.format_exc(chain=True)
-                        logging.exception(
-                            "Could not load " + i.module + ":" + i.resource
-                        )
+                        logging.exception(f"Could not load {i.module}:{i.resource}")
 
                     # If there is an error, add it t the list of things to be retried.
                     except Exception as e:

@@ -170,13 +170,13 @@ messagebus.subscribe("/system/notifications/#", subscriber)
 
 def printer(t, m):
     if "error" in t:
-        logger.error(t + ":" + m)
+        logger.error(f"{t}:{m}")
     elif "warning" in t:
-        logger.warning(t + ":" + m)
+        logger.warning(f"{t}:{m}")
     elif "important" in t:
-        ilogger.info(t + ":" + m)
+        ilogger.info(f"{t}:{m}")
     else:
-        logger.info(t + ":" + m)
+        logger.info(f"{t}:{m}")
 
 
 messagebus.subscribe("/system/notifications/#", printer)
@@ -184,13 +184,13 @@ messagebus.subscribe("/system/notifications/#", printer)
 
 def mprinter(t, m):
     if "error" in t:
-        mlogger.error(t + ":" + m)
+        mlogger.error(f"{t}:{m}")
     elif "warning" in t:
-        mlogger.warning(t + ":" + m)
+        mlogger.warning(f"{t}:{m}")
     elif "important" in t:
-        mlogger.info(t + ":" + m)
+        mlogger.info(f"{t}:{m}")
     else:
-        mlogger.info(t + ":" + m)
+        mlogger.info(f"{t}:{m}")
 
 
 for i in config["print-topics"]:

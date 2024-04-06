@@ -124,7 +124,7 @@ def sorted_module_path_list(name: str, path: list):
 def breadcrumbs(path):
     temp_p = ""
     for i in util.split_escape(path, "/", "\\"):
-        temp_p += i + "/"
+        temp_p += f"{i}/"
         yield temp_p[:-1]
 
 
@@ -268,10 +268,7 @@ class WebInterface:
             cherrypy.response.headers["Content-Disposition"] = (
                 'attachment; filename="%s"'
                 % util.url(
-                    module[:-4]
-                    + "_"
-                    + modules_state.getModuleHash(module[:-4])
-                    + ".zip"
+                    f"{module[:-4]}_{modules_state.getModuleHash(module[:-4])}.zip"
                 )
             )
         cherrypy.response.headers["Content-Type"] = "application/zip"
@@ -344,10 +341,10 @@ class WebInterface:
     def deletemoduletarget(self, **kwargs):
         pages.require("system_admin")
         pages.postOnly()
-        modules.rmModule(kwargs["name"], "Module Deleted by " + pages.getAcessingUser())
+        modules.rmModule(kwargs["name"], f"Module Deleted by {pages.getAcessingUser()}")
         messagebus.post_message(
             "/system/notifications",
-            "User " + pages.getAcessingUser() + " Deleted module " + kwargs["name"],
+            f"User {pages.getAcessingUser()} Deleted module {kwargs['name']}",
         )
 
         raise cherrypy.HTTPRedirect("/modules")
@@ -365,7 +362,7 @@ class WebInterface:
                     info=" A module already exists by that name,"
                 )
             modules.newModule(kwargs["name"], kwargs.get("location", None))
-            raise cherrypy.HTTPRedirect("/modules/module/" + util.url(kwargs["name"]))
+            raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(kwargs['name'])}")
 
     @cherrypy.expose
     def loadlibmodule(self, module, name=""):
@@ -394,7 +391,7 @@ class WebInterface:
         modulepath = util.split_escape(module, "/")[1:]
         fullpath = module
         if len(path) > 2:
-            fullpath += "/" + path[2]
+            fullpath += f"/{path[2]}"
         # If we are not performing an action on a module just going to its page
         if not path:
             pages.require("view_admin_info")
@@ -415,13 +412,13 @@ class WebInterface:
                 modules.autoGenerateFileRefResources(
                     modules_state.ActiveModules[root], root
                 )
-                raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
+                raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
             if path[0] == "runevent":
                 pages.require("system_admin")
                 pages.postOnly()
                 newevt.manualRun((module, kwargs["name"]))
-                raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
+                raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
             if path[0] == "runeventdialog":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
@@ -438,11 +435,11 @@ class WebInterface:
 
                 if path[1] == "module":
                     obj = scopes[root]
-                    objname = "Module Obj: " + root
+                    objname = f"Module Obj: {root}"
 
                 if path[1] == "event":
                     obj = newevt.EventReferences[root, path[2]].pymodule
-                    objname = "Event: " + path[2]
+                    objname = f"Event: {path[2]}"
 
                 # Inspector should prob be its own module since it does all this.
                 if path[1] == "sys":
@@ -559,7 +556,7 @@ class WebInterface:
 
                 dataname = data_basename
                 if len(path) > 1:
-                    dataname = path[1] + "/" + dataname
+                    dataname = f"{path[1]}/{dataname}"
 
                 if module not in external_module_locations:
                     dataname = os.path.join(folder, dataname)
@@ -570,7 +567,7 @@ class WebInterface:
 
                 util.ensure_dir(dataname)
 
-                syslog.info("User uploaded file resource to " + dataname)
+                syslog.info(f"User uploaded file resource to {dataname}")
                 with open(dataname, "wb") as f:
                     while True:
                         d = inputfile.file.read(8192)
@@ -585,7 +582,7 @@ class WebInterface:
                         kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
                     )
                     if len(path) > 1:
-                        escapedName = path[1] + "/" + escapedName
+                        escapedName = f"{path[1]}/{escapedName}"
                     x = util.split_escape(module, "/", "\\")
                     escapedName = "/".join(x[1:] + [escapedName])
                     root = x[0]
@@ -615,13 +612,10 @@ class WebInterface:
                     modules_state.modulesHaveChanged()
                 if len(path) > 1:
                     raise cherrypy.HTTPRedirect(
-                        "/modules/module/"
-                        + util.url(root)
-                        + "/resource/"
-                        + util.url(path[1])
+                        f"/modules/module/{util.url(root)}/resource/{util.url(path[1])}"
                     )
                 else:
-                    raise cherrypy.HTTPRedirect("/modules/module/" + util.url(root))
+                    raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
             # This returns a page to delete any resource by name
             if path[0] == "deleteresource":
@@ -642,7 +636,7 @@ class WebInterface:
                 modules.rmResource(
                     module,
                     kwargs["name"],
-                    "Resource Deleted by " + pages.getAcessingUser(),
+                    f"Resource Deleted by {pages.getAcessingUser()}",
                 )
 
                 messagebus.post_message(
@@ -671,7 +665,7 @@ class WebInterface:
                         + util.url(util.module_onelevelup(kwargs["name"]))
                     )
                 else:
-                    raise cherrypy.HTTPRedirect("/modules/module/" + util.url(module))
+                    raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
 
             # This is the target used to change the name and description(basic info) of a module
             if path[0] == "update":
@@ -700,7 +694,7 @@ class WebInterface:
                             os.path.join(
                                 directories.moduledir,
                                 "data",
-                                "__" + util.url(root) + ".location",
+                                f"__{util.url(root)}.location",
                             )
                         ):
                             if root in external_module_locations:
@@ -734,7 +728,7 @@ class WebInterface:
                         # Just for fun, we should probably also sync the permissions
                         auth.importPermissionsFromModules()
                 raise cherrypy.HTTPRedirect(
-                    "/modules/module/" + util.url(kwargs["name"])
+                    f"/modules/module/{util.url(kwargs['name'])}"
                 )
 
 
@@ -783,7 +777,7 @@ def addResourceTarget(module, type, name, kwargs, path):
     # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
     if path:
-        escapedName = path + "/" + escapedName
+        escapedName = f"{path}/{escapedName}"
     x = util.split_escape(module, "/", "\\")
     escapedName = "/".join(x[1:] + [escapedName])
     root = x[0]
@@ -800,7 +794,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 
         if type == "directory":
             insertResource({"resource-type": "directory"})
-            raise cherrypy.HTTPRedirect("/modules/module/" + util.url(module))
+            raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
 
         elif type == "permission":
             insertResource(
@@ -854,7 +848,7 @@ def addResourceTarget(module, type, name, kwargs, path):
         )
         # Take the user straight to the resource page
         raise cherrypy.HTTPRedirect(
-            "/modules/module/" + util.url(module) + "/resource/" + util.url(escapedName)
+            f"/modules/module/{util.url(module)}/resource/{util.url(escapedName)}"
         )
 
 
@@ -880,7 +874,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
             version = "__live__"
 
         if "resource-type" not in resourceinquestion:
-            logging.warning("No resource type found for " + resource)
+            logging.warning(f"No resource type found for {resource}")
             return
 
         if resourceinquestion["resource-type"] == "permission":
@@ -925,7 +919,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 module=modules_state.ActiveModules[module],
                 name=module,
                 path=util.split_escape(resource, "\\"),
-                fullpath=module + "/" + resource,
+                fullpath=f"{module}/{resource}",
                 **module_page_context,
             )
 
@@ -1036,12 +1030,7 @@ def resourceUpdateTarget(module, resource, kwargs):
 
                     messagebus.post_message(
                         "system/errors/misc/failedeventupdate",
-                        "In: "
-                        + module
-                        + " "
-                        + resource
-                        + "\n"
-                        + traceback.format_exc(4),
+                        f"In: {module} {resource}\n{traceback.format_exc(4)}",
                     )
                     raise
 
@@ -1172,6 +1161,4 @@ def resourceUpdateTarget(module, resource, kwargs):
         )
     else:
         # +'/resource/'+util.url(resource))
-        raise cherrypy.HTTPRedirect(
-            "/modules/module/" + util.url(module) + "#resources"
-        )
+        raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}#resources")
