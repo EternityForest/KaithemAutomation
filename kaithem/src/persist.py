@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from typing import Optional
-import stat
+import pwd
 import os
 import json
-from pwd import getpwuid, getpwnam
+from scullery.persist import load, save
 from scullery.persist import *
 from scullery.messagebus import subscribe, post_message
 
@@ -13,16 +12,12 @@ import weakref
 import threading
 import logging
 import traceback
-import urllib.parse
 
 dirty = weakref.WeakValueDictionary()
 
 dirty_state_files = dirty
 
 stateFileLock = threading.RLock()
-
-import os
-import pwd
 
 
 selected_user = pwd.getpwuid(os.geteuid()).pw_name

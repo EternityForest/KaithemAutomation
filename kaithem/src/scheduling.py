@@ -17,7 +17,8 @@ import traceback
 import logging
 import types
 from . import workers, util
-from typing import Callable, Any
+from typing import Any
+from collections.abc import Callable
 
 
 logger = logging.getLogger("system.scheduling")
@@ -235,6 +236,7 @@ class BaseRepeatingEvent(BaseEvent):
                 f = self.f()
                 if not f:
                     self.unregister()
+                    logger.warning(f"{self.fstr} was automatically unregistered.")
                 else:
                     f()
                 # self._schedule()
@@ -322,22 +324,22 @@ class NewScheduler:
     """
 
     def __init__(self):
-        self.lock = threading.RLock()
-        self.repeatingtasks = []
+        self._lock = threading.RLock()
+        self._repeatingtasks = []
         self.daemon = True
         self.name = "SchedulerThread"
-        self.lastrecheckedschedules = time.time()
-        self.lf = time.time()
-        self.running = False
+        self._lastrecheckedschedules = time.time()
+        self._lf = time.time()
+        self._running = False
 
-        self.wakeUp = threading.Event()
-        self.sched = sched.scheduler(timefunc=time.time, delayfunc=self.delay)
+        self._wakeUp = threading.Event()
+        self._sched = sched.scheduler(timefunc=time.time, delayfunc=self.delay)
 
     def start(self):
-        with self.lock:
-            if self.running:
+        with self._lock:
+            if self._running:
                 return
-            self.running = True
+            self._running = True
             self.thread = threading.Thread(
                 daemon=self.daemon, target=self.run, name="schedulerthread"
             )
@@ -351,33 +353,52 @@ class NewScheduler:
             self.thread2.start()
 
     def every_second(self, f: Callable[[], Any]):
-        e = RepeatingEvent(f, 1)
-        e.register()
-        return f
+        """Run the callable f at the specified interval.
+        Can be used as a decorator"""
+        return self.every(f, 1)
 
     def every_minute(self, f: Callable[[], Any]):
-        e = RepeatingEvent(f, 60)
-        e.register()
-        return f
+        return self.every(f, 60)
 
     def every_hour(self, f: Callable[[], Any]):
-        e = RepeatingEvent(f, 3600)
-        e.register()
-        return f
+        return self.every(f, 3600)
 
-    def every(self, f: Callable[[], Any], interval: float):
-        interval = float(interval)
-        e = RepeatingEvent(f, interval)
-        e.register()
-        if isinstance(f, types.MethodType):
+    def every(self, f: Callable[[], Any] | float, interval: float = 0):
+        """Overloaded:
+        every(interval) returns a decorator
+        every(function, interval) calls the function.
 
-            def f2():
-                f()
+        The decorated or registered function will have an unregister() added,
+        And it will also go away if you don't keep a reference to it.
+        """
 
-        else:
-            f2 = f
-        f2.unregister = lambda: e.unregister()
-        return f2
+        if isinstance(f, float):
+            if not interval == 0:
+                raise ValueError(
+                    "Must supply function and interval, or just interval for decorator."
+                )
+
+            def decorate(fn):
+                return self.every(fn, f)
+
+            return decorate
+
+        if callable(f):
+            if not interval:
+                raise ValueError("Interval cannot be zero")
+
+            interval = float(interval)
+            e = RepeatingEvent(f, interval)
+            e.register()
+            if isinstance(f, types.MethodType):
+
+                def f2():
+                    f()
+
+            else:
+                f2 = f
+            f2.unregister = lambda: e.unregister()
+            return f2
 
     def schedule(self, f: Callable[[], Any], t: float, exact=False):
         t = float(t)
@@ -397,21 +418,21 @@ class NewScheduler:
 
         if replaces:
             try:
-                self.sched.cancel(replaces)
+                self._sched.cancel(replaces)
             except Exception:
                 pass
 
-        event.schedID = self.sched.enterabs(event.time, 1, event.run)
+        event.schedID = self._sched.enterabs(event.time, 1, event.run)
         # Only very fast events need to use this wake mechanism that burns CPU.
         # We have a min 0.15hz poll rate
         if event.time < (time.time() + 0.15):
-            self.wakeUp.set()
+            self._wakeUp.set()
 
     def remove(self, event):
         "Remove something that has a time and a run property that wants its run to be called at time"
-        with self.lock:
+        with self._lock:
             try:
-                self.sched.cancel(event.schedID)
+                self._sched.cancel(event.schedID)
             except ValueError:
                 pass
             except Exception:
@@ -419,21 +440,21 @@ class NewScheduler:
 
     def register_repeating(self, event):
         "Register a RepeatingEvent class"
-        with self.lock:
-            self.repeatingtasks.append(event)
+        with self._lock:
+            self._repeatingtasks.append(event)
 
     def unregister(self, event):
         "unregister a RepeatingEvent"
-        with self.lock:
+        with self._lock:
             try:
                 try:
-                    if event in self.repeatingtasks:
-                        self.repeatingtasks.remove(event)
+                    if event in self._repeatingtasks:
+                        self._repeatingtasks.remove(event)
                 except KeyError:
                     pass
 
                 try:
-                    self.sched.cancel(event.schedID)
+                    self._sched.cancel(event.schedID)
                 except ValueError:
                     pass
                 except Exception:
@@ -447,23 +468,23 @@ class NewScheduler:
     def manager(self):
         while 1:
             time.sleep(30)
-            with self.lock:
+            with self._lock:
                 self._do_error_recovery()
 
     # Custom delay func because we must be able to recieve new events while waiting
     def delay(self, t):
-        self.wakeUp.clear()
-        self.wakeUp.wait(min(t, 0.15))
+        self._wakeUp.clear()
+        self._wakeUp.wait(min(t, 0.15))
 
     def run(self):
         while 1:
             try:
-                self.sched.run()
+                self._sched.run()
             except Exception:
                 logging.exception("Error in scheduler thread")
 
     def _do_error_recovery(self):
-        for i in self.repeatingtasks:
+        for i in self._repeatingtasks:
             try:
                 if not i.scheduled or time.time() - i.lastrun > (i.interval * 2):
                     # Give them 10 seconds to finish what they are doing and schedule themselves.

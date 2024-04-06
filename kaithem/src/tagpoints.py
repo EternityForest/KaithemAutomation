@@ -34,14 +34,9 @@ import dateutil
 import dateutil.parser
 
 from typing import (
-    Tuple,
-    Union,
-    Dict,
-    List,
     Any,
     Optional,
     TypeVar,
-    Type,
     Generic,
 )
 from collections.abc import Callable
@@ -537,7 +532,7 @@ class GenericTagPointClass(Generic[T]):
             self.apiClaim = self.claim(
                 v,
                 "WebAPIClaim",
-                priority=(self.getEffectivePermissions())[2],
+                priority=float(self.getEffectivePermissions()[2]),
                 annotation=u,
             )
 
@@ -1383,6 +1378,9 @@ class GenericTagPointClass(Generic[T]):
         return v
 
     def __del__(self):
+        # Since tags can't be deleted by the owner we rely on this
+        # TODO some kind of config cleanup method?
+
         global allTagsAtomic
         with lock:
             try:
@@ -1391,6 +1389,24 @@ class GenericTagPointClass(Generic[T]):
             except Exception:
                 logger.exception("Tag may have already been deleted")
             messagebus.post_message("/system/tags/deleted", self.name, synchronous=True)
+
+        for i in list(self._alarmGCRefs.keys()):
+            pollStuff = self._alarmGCRefs.pop(i, None)
+
+            if pollStuff:
+                try:
+                    self.unsubscribe(pollStuff[2])
+                except Exception:
+                    logger.exception("Maybe already unsubbed?")
+
+        if self.poller:
+            try:
+                # Scheduling is fully able to do this for us
+                # But we do it ourselves because we want to add a warning later.
+                self.poller.unregister()
+                self.poller = None
+            except Exception:
+                pass
 
     def __call__(self, *args, **kwargs):
         if not args:
