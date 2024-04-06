@@ -32,7 +32,7 @@ def package_files(directory, ext=""):
     return paths
 
 
-with open('requirements.txt') as f:
+with open("requirements.txt") as f:
     frozen_requirements = f.read().splitlines()
 
 
@@ -85,7 +85,7 @@ setup(
         "console_scripts": [
             "kaithem = kaithem:start",
             "kaithem._jackmanager_server = scullery.jack_client_subprocess:main",
-            "kaithem._iceflow_server = scullery.iceflow_server:main",
+            "kaithem._iceflow_server = icemedia.iceflow_server:main",
         ],
     },
     install_requires=frozen_requirements,

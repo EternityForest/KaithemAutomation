@@ -1,10 +1,13 @@
 Change Log
 ----------
 
-### 0.77.0
+### 0.78.0
 
 - :bug: Fix unused subdevice nuisance method resolution error
 - :coffin: Remove old baresip code
+- :coffin: Remove kaithem.midi API
+- :sparkles: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
+
 
 ### 0.77.0
 

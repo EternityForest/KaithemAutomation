@@ -181,7 +181,7 @@ def alarmBeep():
         if s:
             try:
                 # Ondemand to avoid circular import
-                from . import sound
+                from icemedia import sound_player as sound
 
                 sound.play_sound(s, handle="kaithem_sys_main_alarm", output=beepDevice)
             except Exception:
@@ -393,7 +393,7 @@ class Alert:
             # other tag. I don't quite understand it but this should break the loop
             def f():
                 # Ondemand to avoid circular import
-                from . import sound
+                from icemedia import sound_player as sound
 
                 beepDevice = file["all"]["soundcard"]
                 sound.play_sound(s, handle="kaithem_sys_main_alarm", output=beepDevice)

@@ -844,7 +844,7 @@ class Cue:
 
             x = mapChannel(universe, channel)
 
-            if scene.cue == self and scene.isActive():
+            if scene.cue == self and scene.is_active():
                 scene.rerender = True
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
@@ -2737,7 +2737,7 @@ class Scene:
             self.rerender = True
             # self.render()
 
-    def isActive(self):
+    def is_active(self):
         return self.active
 
     @property
@@ -3044,7 +3044,7 @@ class Scene:
 
         kaithem.sound.setvol(val * self.cueVolume, str(self.id))
 
-        if not self.isActive() and val > 0:
+        if not self.is_active() and val > 0:
             self.go()
         self.manualAlpha = True
         self.alpha = val
@@ -3066,7 +3066,7 @@ class Scene:
         blend = str(blend)[:256]
         self.blend = blend
         if blend in blendmodes.blendmodes:
-            if self.isActive():
+            if self.is_active():
                 self._blend = blendmodes.blendmodes[blend](self)
             self.blendClass = blendmodes.blendmodes[blend]
             self.setup_blend_args()

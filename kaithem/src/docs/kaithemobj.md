@@ -1,5 +1,5 @@
 
-# Help 
+# Help
 
 ## The Kaithem Object:
 
@@ -33,7 +33,7 @@ Convert a value from unit fr to unit to. Both are expressed as strings,
 like "degC" to "degF". Note that there is no protection against all nonsensical conversions.
 
 This uses the pint library for most units, which can be slow, but for some common units uses kaithem's
-optimized fast unit conversions. This only works for abbreviated symbols in the correct case(mmHg, m, g, etc), 
+optimized fast unit conversions. This only works for abbreviated symbols in the correct case(mmHg, m, g, etc),
 and does not work with SI prefixes
 
 #### kaithem.units.define(name, multiplier, type, baseUnit=None)
@@ -130,7 +130,7 @@ Acess tag points, see Tag Points docs.
 This namespace is used to manage devices.  All device objects appear at kaithem.devices['DeviceName'], and kaithem.devices.deviceName, if the name is valid and does
 not conflict.
 
-You can't currently create a device in code. But you can add a new device type. 
+You can't currently create a device in code. But you can add a new device type.
 
 See the main devices docs page for details.  Avoid keeping references to things here long term.  Perfer kaithem.devices['DeviceName'] directly,
 otherwise you may not get the latest version of a device when a user modifies it.
@@ -220,7 +220,7 @@ State machine subscribers, enter, and exit actions occur
 synchronously in the thread that triggers the event,
 so this function will block until they return.
 
-This ensures Events and transitions are atomic. 
+This ensures Events and transitions are atomic.
 
 Any other thread that triggers an event during a transition will block until the original transition is complete, as will any modifications to the states, timers, or rules.
 
@@ -443,61 +443,30 @@ management system.
 Returns True is the specified use has the given permission and False
 otherwise. Also returns False if the user does not exist.
 
-
-### kaithem.midi
-This namespace deals with MIDI.
-
-#### kaithem.midi.FluidSynth(soundfont=DEFAULT, jack_client_name=None)
-Creates a FluidSynth instance using a specified soundfont. It
-is a wrapper around https://github.com/nwhitehead/pyfluidsynth.
-
-If no soundfont is supplied, kaithem includes babyfont.sf3, an excellent 4MB
-soundfont file.
-
-The library is a fork that has been patched to support FluidSynth 2 as well as 1.
-
-#### FluidSynth.setInstrument(channel, instrument, bank=0)
-Uses a MIDI program select message to set the instrument for the channel. You
-can directly use a patch number, or you can use a string. The first instrument
-in the soundfont or in general midi to match all words(case insensitive) is chosen.
-
-
-Example:
-`synth.setInstrument(0, "jazz guitar")`
-Will select:
-`26 : "Electric Guitar (jazz)"`
-
-
-#### FluidSynth.fs
-This is the raw synth in the library we are wrapping.
-
 ### kaithem.sound
 
 The kaithem.sound API is slightly different depending on which backend
 has been configured. By default mplayer will be used if available and is
 the recommended backed.
 
-#### kaithem.ogg_test([output])
-Attempt to play an OGG test chime. May raise an error if it detects that it does not work.
+#### kaithem.test([output])
+Attempt to play an  test chime. May raise an error if it detects that it does not work.
 
 #### kaithem.sound.directories
 The `audio-paths` entry from the config YAML. May contain an entry called "__default__"
 
 #### kaithem.sound.outputs()
 
-Returns a list of available sound card names you could pass to 
+Returns a list of available sound card names you could pass to
 
 #### kaithem.sound.preload(filename,output="@auto")
 Spins up a paused player for that filename and player. Garbage collecting old cache entries is handled for you.
 Will be used when sound.play is called for the same filename and output.
 
-Does nothing on non-gstreamer backends.
 
 
 
 #### kaithem.sound.fade_to(self,file,length=1.0, block=False, detach=True, handle="PRIMARY",**kwargs):
-
-Only guaranteed to work with GStreamer backend.
 
 Fades the current sound on a given channel to the file. **kwargs aare equivalent to those on playSound.
 
@@ -531,21 +500,9 @@ If you want to search paths for relative files other than the default
 abd the ones in the config, add them to extraPaths.
 
 
-Volume is a dimensionless multiplier that only works if using SOX or
-mplayer or Gstreamer. Otherwise it is ignored. Start and end times are in seconds,
-negative means relative to sound end. Start and end times are also
-SOX/mplayer specific and are ignored(full sound will always play) with
-other players.
+utput is a jack client or port if JACK is running.
+The special string @auto(the default) autoselects an appropriate output.
 
-
-On the recommended gstreamer backend, output is a jack client or port if JACK is running, otherwise 
-it is an alsa  device. The special string @auto(the default) autoselects an appropriate output.
-
-
-#### kaithem.sound.builtinSounds
-
-A list of filenames of sounds included with Kaithem. They are found in
-the data dir, and cann be drectly passed to play.
 
 #### kaithem.sound.stop(handle="PRIMARY"")
 
@@ -581,7 +538,7 @@ Resume a paused a sound. Does nothing if not paused. Only works with the
 mplayer backend. If you are using any other sound backend, this does
 nothing.
 
-#### kaithem.sound.resolveSound(fn,extrapaths=[])
+#### kaithem.sound.resolve_sound(fn,extrapaths=[])
 Search every default sound path, and all the extra paths for the sound file.
 Return full absolute path to the sound if found.
 
@@ -592,7 +549,7 @@ Return full absolute path to the sound if found.
 Post a message to the internal system-wide message bus.
 Message topics are hierarchial, delimited by forward
 slashes, and the root directory is /. However /foo is equivalent to
-foo.  
+foo.
 
 Formerly, messages could only be JSON serializable objects. Now that
 we do not use the message system for logging, messages may be any python object at all.
@@ -614,7 +571,7 @@ Wildcards follow MQTT subscription rules.
 
 Should the topic end with a slash and a hash, it will also match all
 subtopics(e.g. "/foo/#" will match "/foo", "/foo/bar" and
-"/foo/anything"). 
+"/foo/anything").
 
 Uncaught errors in the callback are ignored but logged.
 
@@ -790,7 +747,7 @@ You have to bind to an exact subdomain, entries do not match sub-subdomains of t
 
 Note that this does not allow you to bind to different main domains, only subdomains.  Ignoring the main domain simplifies access from multiple IPs.
 
-Also note that you cannot capture ALL requests to a subdomain, only ones that do not map to an existing page so this cannot be a means of sandboxing. 
+Also note that you cannot capture ALL requests to a subdomain, only ones that do not map to an existing page so this cannot be a means of sandboxing.
 However, as different subdomains have different cookies, you can create a certain level of safety if users never log into an "untrusted" subdomain.
 
 Relying on users not to do this, however, seems like a fairly bad idea, so kaithem forbids logging in if the subdomain contains `__nologin__` as a path component.
@@ -871,22 +828,22 @@ to find it.
 
 #### Supported File Types
 
-.json  
+.json
 Values may any JSON serializable object
 
-.toml  
+.toml
 Values may any TOML serializable object
 
 
-.yaml  
+.yaml
 Values may any YAML serializable object
 
-.txt  
+.txt
 Values must be a sting or unicode string. Any other object will be
 converted to a string in some undefined manner Text will be saved as
 UTF-8, but no BOM will be added.
 
-.bin  
+.bin
 Bytes and bytearrays may be directly saved with this.
 
 \*.gz

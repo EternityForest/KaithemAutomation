@@ -1366,7 +1366,11 @@ effectTemplates_data = {
             {"gstElement": "fakesink", "gstSetup": {}},
         ],
         "postSupportElements": [
-            {"gstElement": "opusdec", "gstSetup": {}, "connectWhenAvailable": "audio"},
+            {
+                "gstElement": "opusdec",
+                "gstSetup": {},
+                "connect_when_available": "audio",
+            },
             {"gstElement": "audiorate", "gstSetup": {}},
         ],
     },

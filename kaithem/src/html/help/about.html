@@ -11,13 +11,13 @@
     import re
     import threading
     import random
-    
+
     import kaithem
     from scullery import workers as sworkers
     from kaithem.src import unitsofmeasure
     from kaithem.src import newevt
     from kaithem.src import systasks
-    from kaithem.src import sound
+    from icemedia import sound_player as sound
     from kaithem.src import usrpages
     from kaithem.src import util
     from kaithem.src import kaithemobj
@@ -82,7 +82,7 @@
                 messagebus.post_message("/system/notifications/errors/","python-rtmidi is missing. Most MIDI related features will not work.")
                 once[0]=1
             return []
-    
+
         try:
             m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name="KaithemTemp"+str(random.random()))
             x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
@@ -93,7 +93,7 @@
 
     def list_ips():
         ips={}
-        
+
         if os.name != "nt":
             interfaces = [
                 "eth0",
@@ -133,7 +133,7 @@
                 ips[i]=[v4,v6]
         except ImportError:
             pass
-     
+
         return sorted(ips.items())
 
 
@@ -165,9 +165,9 @@ except Exception:
 <script src="/static/qrcode.min.js"></script>
 
     <%include file="/pageheader.html"/>
-	<title>About Kaithem </title>
+    <title>About Kaithem </title>
     <h1>About</h1>
-	<section style="text-align:center">
+    <section style="text-align:center">
     <img class="round-feathered" src="/static/img/nov23-ai-watercolor-tavern.webp" style="width: 80%;"></img><br>
     </section>
     <section class="window paper margin">
@@ -200,7 +200,7 @@ except Exception:
     </th>
     <th>
         Mounted
-    </th>    
+    </th>
     <th>
         Size
     </th>
@@ -339,7 +339,7 @@ except Exception:
                 %except Exception as e:
                 ${e|h}
                 %endtry
-            
+
             </td>
         </tr>
         <tr>
@@ -356,7 +356,7 @@ except Exception:
 
 
         </tr>
-     
+
         <%
             try:
                 load = os.getloadavg()
@@ -505,7 +505,7 @@ def module_version(m):
                         <td>${i|h}</td>
                         <td>${module_version(sys.modules[i])|h}</td>
                     </tr>
-                    %endif 
+                    %endif
                     %endfor
                 </table>
             </details>

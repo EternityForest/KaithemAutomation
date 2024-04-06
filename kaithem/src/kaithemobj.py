@@ -26,7 +26,7 @@ except Exception:
 import cherrypy
 from . import unitsofmeasure
 from . import workers
-from . import sound
+from icemedia import sound_player as sound
 from . import messagebus
 from . import util
 from . import widgets
@@ -38,7 +38,6 @@ from . import breakpoint
 from . import statemachines
 from . import devices
 from . import alerts
-from . import midi
 from . import theming
 from . import assetlib
 from kaithem import __version__
@@ -548,13 +547,11 @@ class Kaithem:
         def has_permission(permission):
             return pages.canUserDoThis(permission)
 
-    midi = midi.MidiAPI()
-
     class sound(object):
-        builtin_sounds = sound.builtinSounds
         resolve_sound = sound.resolve_sound
 
-        ogg_test = sound.ogg_test
+        test = sound.test
+        ogg_test = sound.test
 
         directories = config.config["audio-paths"]
 

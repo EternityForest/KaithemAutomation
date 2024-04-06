@@ -26,6 +26,7 @@ Flask==3.0.2
 future==1.0.0
 gpiozero==2.0.1
 holidays==0.46
+icemedia==0.1.1
 idna==3.6
 ifaddr==0.1.7
 inflect==7.2.0
@@ -52,7 +53,7 @@ nmcli==1.3.0
 noiseprotocol==0.3.1
 ntplib==0.4.0
 numpy==1.26.4
-NVRChannel==0.1.4
+NVRChannel==0.1.5
 oauthlib==3.2.2
 packaging==24.0
 paho-mqtt==1.6.0
@@ -74,6 +75,7 @@ pyflakes==3.2.0
 pyFluidSynth==1.3.3
 Pygments==2.17.2
 pygrep==0.3
+pyHS100==0.3.5.2
 pynput==1.7.6
 pyserial==3.5
 pytest==8.1.1
@@ -92,7 +94,7 @@ requests-oauthlib==2.0.0
 requests-toolbelt==1.0.0
 rpds-py==0.18.0
 scipy==1.13.0
-scullery==0.1.14
+scullery==0.1.15
 setproctitle==1.3.3
 sf2utils==1.0.0
 simpleeval==0.9.13
@@ -108,7 +110,7 @@ tomli==2.0.1
 tornado==6.4
 typeguard==4.2.1
 types-PyYAML==6.0.12.20240311
-types-requests==2.31.0.20240403
+types-requests==2.31.0.20240406
 typing_extensions==4.10.0
 upnpclient==1.0.3
 urllib3==2.2.1

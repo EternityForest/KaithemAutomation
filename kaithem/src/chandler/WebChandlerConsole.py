@@ -384,7 +384,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "testSoundCard":
-            kaithem.sound.ogg_test(output=msg[1])
+            kaithem.sound.test(output=msg[1])
             return
 
         elif cmd_name == "setalpha":

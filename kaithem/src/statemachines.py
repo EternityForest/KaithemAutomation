@@ -7,7 +7,7 @@ import types
 import threading
 from typeguard import typechecked
 from typing import Union, Callable
-
+from scullery import workers
 
 # Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
 from . import scheduling, unitsofmeasure, workers, util

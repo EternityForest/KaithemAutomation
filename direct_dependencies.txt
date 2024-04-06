@@ -1,7 +1,13 @@
 # This file is maintained manually. It only has the top-level dependencies so pip
 # Can manage the rest.  You should probably be installing requirements.txt instead
 
-# core features
+
+# First party
+scullery
+iot-devices
+icemedia
+NVRChannel
+
 numpy>=1.26.1
 cherrypy 
 cheroot
@@ -15,9 +21,6 @@ pam
 msgpack
 pyyaml
 types-PyYaml
-scullery
-iot-devices
-NVRChannel
 pytest
 nmcli
 peewee

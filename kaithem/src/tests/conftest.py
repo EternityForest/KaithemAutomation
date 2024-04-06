@@ -8,6 +8,7 @@
 import os
 import shutil
 import kaithem.src.config
+import kaithem.src.sound
 import kaithem
 
 if os.path.exists("/dev/shm/kaithem_tests"):
@@ -16,11 +17,11 @@ if os.path.exists("/dev/shm/kaithem_tests"):
 os.makedirs("/dev/shm/kaithem_tests")
 
 cfg = {
-    'ssl-dir': "/dev/shm/kaithem_tests/ssl",
-    'site-data-dir': "/dev/shm/kaithem_tests",
+    "ssl-dir": "/dev/shm/kaithem_tests/ssl",
+    "site-data-dir": "/dev/shm/kaithem_tests",
     # Prevent it from getting IP geolocation every time
-    'location': "0,0",
-    'audio-backends': ['test']
+    "location": "0,0",
 }
 
 kaithem.initialize_app(cfg)
+kaithem.src.sound.select_backend("test")

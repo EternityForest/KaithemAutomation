@@ -87,11 +87,10 @@ dev-run-isolated: # Run the kaithem app.
 dev-update-dependencies: dev-make-venv # Install latest version of dependencies into the venv. New versions might break something!
 	@cd ${ROOT_DIR}
 	@.isolated_venv/bin/python -m pip install --upgrade -r direct_dependencies.txt
-	@.venv/bin/python -m pip install --upgrade -r direct_dependencies.txt
 	@.isolated_venv/bin/python -m pip freeze -l > requirements.txt
 	# If kaithem itself installed here, avoid circular nonsense
 	@sed -i '/.*kaithem.*/d' ./requirements.txt
-	@.venv/bin/python -m pip install --upgrade -r requirements.txt
+	@.venv/bin/python -m pip install --force --upgrade -r requirements.txt
 
 
 

@@ -13,7 +13,7 @@ import subprocess
 import os
 import traceback
 
-from scullery import iceflow
+from icemedia import iceflow
 
 from . import (
     widgets,
@@ -94,7 +94,7 @@ def logReport():
     if not util.which("fluidsynth"):
         log.error("Fluidsynth not found. MIDI playing will not work,")
     try:
-        if not gstwrapper.doesElementExist("tee"):
+        if not gstwrapper.does_element_exist("tee"):
             log.error(
                 "Gstreamer or python bindings not installed properly. Mixing will not work"
             )
@@ -102,27 +102,27 @@ def logReport():
         log.exception(
             "Gstreamer or python bindings not installed properly. Mixing will not work"
         )
-    if not gstwrapper.doesElementExist("jackaudiosrc"):
+    if not gstwrapper.does_element_exist("jackaudiosrc"):
         log.error("Gstreamer JACK plugin not found. Mixing will not work")
 
     for i in effectTemplates:
         e = effectTemplates[i]
         if "gstElement" in e:
-            if not gstwrapper.doesElementExist(e["gstElement"]):
+            if not gstwrapper.does_element_exist(e["gstElement"]):
                 log.warning(
                     "GST element "
                     + e["gstElement"]
                     + " not found. Some effects in the mixer will not work."
                 )
         if "gstMonoElement" in e:
-            if not gstwrapper.doesElementExist(e["gstMonoElement"]):
+            if not gstwrapper.does_element_exist(e["gstMonoElement"]):
                 log.warning(
                     "GST element "
                     + e["gstMonoElement"]
                     + " not found. Some effects in the mixer will not work."
                 )
         if "gstStereoElement" in e:
-            if not gstwrapper.doesElementExist(e["gstStereoElement"]):
+            if not gstwrapper.does_element_exist(e["gstStereoElement"]):
                 log.warning(
                     "GST element "
                     + e["gstStereoElement"]
@@ -671,7 +671,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     linkTo = self.add_element("tee")
                     self.add_element("queue")
                     linkTo = self.add_element(
-                        "queue", sidechain=True, connectToOutput=linkTo
+                        "queue", sidechain=True, connect_to_output=linkTo
                     )
                     sidechain = True
 
@@ -687,7 +687,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                             j["gstElement"],
                             **j["gstSetup"],
                             sidechain=sidechain,
-                            connectToOutput=linkTo
+                            connect_to_output=linkTo
                             if (not j.get("noConnectInput", False))
                             else False,
                         )
@@ -699,30 +699,30 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         i["monoGstElement"],
                         **i["gstSetup"],
                         sidechain=sidechain,
-                        connectToOutput=linkTo
+                        connect_to_output=linkTo
                         if (not i.get("noConnectInput", False))
                         else False,
-                        connectWhenAvailable=i.get("connectWhenAvailable", None),
+                        connect_when_available=i.get("connect_when_available", None),
                     )
                 elif self.channels == 2 and "stereoGstElement" in i:
                     linkTo = self.effectsById[i["id"]] = self.add_element(
                         i["stereoGstElement"],
                         **i["gstSetup"],
                         sidechain=sidechain,
-                        connectToOutput=linkTo
+                        connect_to_output=linkTo
                         if (not i.get("noConnectInput", False))
                         else False,
-                        connectWhenAvailable=i.get("connectWhenAvailable", None),
+                        connect_when_available=i.get("connect_when_available", None),
                     )
                 else:
                     linkTo = self.effectsById[i["id"]] = self.add_element(
                         i["gstElement"],
                         **i["gstSetup"],
                         sidechain=sidechain,
-                        connectToOutput=linkTo
+                        connect_to_output=linkTo
                         if (not i.get("noConnectInput", False))
                         else False,
-                        connectWhenAvailable=i.get("connectWhenAvailable", None),
+                        connect_when_available=i.get("connect_when_available", None),
                     )
 
                 elmt = linkTo
@@ -737,7 +737,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                             j["gstElement"],
                             **j["gstSetup"],
                             sidechain=sidechain,
-                            connectToOutput=linkTo
+                            connect_to_output=linkTo
                             if (not j.get("noConnectInput", False))
                             else False,
                         )
@@ -841,7 +841,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             interval=10**9 / 24,
         )
 
-    def onLevelMessage(self, src, rms, level):
+    def on_level_message(self, src, rms, level):
         if self.board:
             rms = max(rms, -90)
 
@@ -1294,9 +1294,9 @@ class MixingBoard:
                 self.sendState()
 
             if data[0] == "test":
-                from . import sound
+                from icemedia import sound_player as sound
 
-                sound.ogg_test(output=data[1])
+                sound.test(output=data[1])
 
             if data[0] == "addChannel":
                 # No overwrite
