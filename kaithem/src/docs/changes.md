@@ -6,6 +6,8 @@ Change Log
 - :bug: Fix unused subdevice nuisance method resolution error
 - :coffin: Remove old baresip code
 - :coffin: Remove kaithem.midi API
+- :coffin: Remove the image map creator util
+
 - :sparkles: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
 
 - :sparkles: Split off internal scheduling and state machines to [Scullery](https://github.com/EternityForest/scullery) meant for easy standalone use.

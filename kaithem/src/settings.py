@@ -435,11 +435,6 @@ class Settings:
         return pages.get_template("settings/user_settings.html").render()
 
     @cherrypy.expose
-    def imgmap(self):
-        pages.require("view_admin_info")
-        return pages.get_template("settings/util/imgmap.html").render()
-
-    @cherrypy.expose
     def leaflet(self, *a, **k):
         pages.require("view_status")
         return pages.render_jinja_template("settings/util/leaflet.html")
