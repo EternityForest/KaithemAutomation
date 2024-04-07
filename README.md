@@ -1,5 +1,15 @@
 ![AI generated picture of a tavern](kaithem/data/static/img/nov23-ai-watercolor-tavern.webp)
 
+
+![Linux](badges/linux.png)
+![Linux](badges/sbc.png)
+![Linux](badges/dmx.png)
+
+![Linux](badges/offline-first.png)
+![GPLv3 Badge](badges/gpl-v3.png)
+![Pre-commit Badge](badges/pre-commit.png)
+![Makefile](badges/makefile.png)
+
 Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
 You automate things by directly writing python and HTML via a web IDE, or by using the built-in Chandler module, which is a full web-based lighting aud audio control board with a visual programming language adding interactivity.

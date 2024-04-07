@@ -42,8 +42,19 @@ repos:
     rev: v1.5.5
     hooks:
       - id: forbid-crlf
+        types_or:
+        - "python"
+        - "yaml"
+        - "json"
+        - "markdown"
+        - "html"
       - id: forbid-tabs
-
+        types_or:
+          - "python"
+          - "yaml"
+          - "json"
+          - "markdown"
+          - "html"
   - repo: https://github.com/sirosen/texthooks
     rev: 0.6.6
     hooks:
