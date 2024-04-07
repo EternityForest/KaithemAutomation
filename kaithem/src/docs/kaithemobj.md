@@ -313,7 +313,7 @@ It is recommended that you use [IceMedia](https://github.com/EternityForest/icem
 ### kaithem.message
 
 
-It is recommended that you use the message bus in [Scullery](https://github.com/EternityForest/scullery) directly, this was just a thin wrapper.
+It is recommended that you use the message bus in [Scullery](https://github.com/EternityForest/scullery) directly, this was just a thin
 
 
 ### kaithem.widget

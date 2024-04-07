@@ -3,12 +3,14 @@
 
 ![Linux](badges/linux.png)
 ![Linux](badges/sbc.png)
-![Linux](badges/dmx.png)
+![DMX](badges/dmx.png)
+![Python](badges/python.png)
 
 ![Linux](badges/offline-first.png)
 ![GPLv3 Badge](badges/gpl-v3.png)
 ![Pre-commit Badge](badges/pre-commit.png)
 ![Makefile](badges/makefile.png)
+![Ten Year Project](badges/ten-years.png)
 
 Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
@@ -104,62 +106,6 @@ To run as a systemd user service(Runs as soon as you log in, use autologin or li
 ```bash
 make user-install-kaithem
 ```
-
-
-
-## Setup a kiosk the easy way on a headless Pi!
-
-Get a fresh RasPi OS image.  Use the raspi imager tool to set up the network stuff.
-
-SSH in and run these commands.  They reconfigure a whole lot of stuff, including protecting the disk against excessive writes, so only run this on a fresh image dedicated to the cause.
-
-
-As the default user, run:
-
-```bash
-sudo make root-install-system-dependencies
-sudo make root-use-pipewire-jack
-
-# Note: These root functions assume that everything will run under the
-# default user. If installing as a different user, pass KAITHEM_USER to make.
-sudo make root-install-sd-protection
-sudo make root-install-linux-tweaks
-sudo make root-install-kiosk
-
-make user-max-volume-at-boot
-make user-install-kaithem
-sudo reboot now
-```
-
-Now it will boot into a fullscreen kiosk browser pointed at Kaithem's home page.  Log in at
-PIHOSTNAME.local:8002 using your RasPi username and Password, kaithem will run as your default user(uid1000).
-
-To change the page, you can pass KIOSK_HOME=url to make.
-
-If you want to change that default page, go to the Kaithem Settings and set the homepage to redirect to your URL of choice(Use PIHOSTNAME.local:8002 /index to get back to the real homepage).
-
-To update, do a `make update` in /opt/KaithemAutomation,  then rerun `make user-install-kaithem`.
-
-
-### No sound from the browser?
-
-Go to the kaithem GUI and select your output for the kiosk mixer channel.
-
-If there is no mixer channel, make one and set the input to Chromium.  Or wait a minute, mixer channels somethines don't load immediately at boot. Then save it as the default.
-
-
-### Instant digital signage
-
-If you are trying to do digital signage, go to Settings > File Manager(Public webserver files) and upload a .mp4 file.
-It will detect that the file is in the public folder and give you a digital signage link button.
-
-Set your homepage to redirect to that link, you should be done!
-
-#### Signage with audio
-
-Audio is managed through the Kaithem mixer.  It should work out of the box if you're using the headphone jack.
-
-Otherwise if using HDMI, or if you want to remotely adjust volume, go to the mixer and make sure that channel has the output you want selected, and that the input matches Chromium's name. You can also add effects like EQ from this page.  Don't forget to save the setup as the default!
 
 ### Development
 

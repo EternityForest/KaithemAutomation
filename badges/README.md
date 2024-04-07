@@ -1,9 +1,12 @@
 
 # Kaithem Badge Project
 
+![Creative Commons Zero](cc0.png)
+
+
 All of these badges, any templates, and this README are in the public domain.
 
-They were made in GIMP, using the Ubuntu font.
+They were made in GIMP, using the Ubutu fint or Fira Code for most.
 
 The Linux Mascot was downscaled from (here)[https://github.com/garrett/Tux]
 
