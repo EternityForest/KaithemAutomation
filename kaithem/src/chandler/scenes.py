@@ -7,6 +7,7 @@ from . import core
 from . import universes
 from . import blendmodes
 from . import mqtt
+from .fadecanvas import FadeCanvas
 from .. import schemas
 from .mathutils import number_to_note, dt_to_ts, ease
 import numpy
@@ -29,7 +30,8 @@ import traceback
 import urllib.parse
 import uuid
 import gc
-from typing import Any, Dict, Optional, Set, Type, Iterable, List, Callable
+from typing import Any, Dict, Optional, Set, Type, List
+from collections.abc import Iterable, Callable
 import copy
 import recur
 
@@ -47,8 +49,8 @@ scenes_by_name: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDicti
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
-_active_scenes: List[Scene] = []
-active_scenes: List[Scene] = []
+_active_scenes: list[Scene] = []
+active_scenes: list[Scene] = []
 
 
 def is_static_media(s: str):
@@ -141,124 +143,11 @@ def makeWrappedConnectionClass(parent: Scene):
     return Connection
 
 
-def makeBlankArray(size: int):
-    """
-    A function that creates a blank NumPy array of a specified size.
-
-    :param size: An integer representing the size of the array to be created.
-    :return: A NumPy array filled with zeros of data type "f4".
-    """
-    x = [0] * size
-    return numpy.array(x, dtype="f4")
-
-
-class FadeCanvas:
-    def __init__(self):
-        """Handles calculating the effect of one scene over a background.
-        This doesn't do blend modes, it just interpolates."""
-        self.v: Dict[str, numpy.typing.NDArray[Any]] = {}
-        self.a: Dict[str, numpy.typing.NDArray[Any]] = {}
-        self.v2: Dict[str, numpy.typing.NDArray[Any]] = {}
-        self.a2: Dict[str, numpy.typing.NDArray[Any]] = {}
-
-    def paint(
-        self,
-        fade: float | int,
-        vals: Dict[str, numpy.typing.NDArray[Any]],
-        alphas: Dict[str, numpy.typing.NDArray[Any]],
-    ):
-        """
-        Makes v2 and a2 equal to the current background overlayed
-        with values from scene which is any object that has dicts of dicts of vals and and
-        alpha.
-
-        Should you have cached dicts of arrays vals and
-        alpha channels(one pair of arrays per universe),
-        put them in vals and arrays
-        for better performance.
-
-        fade is the fade amount from 0 to 1 (from background to the new)
-
-        defaultValue is the default value for a universe. Usually 0.
-
-        """
-
-        # We assume a lot of these lists have the same set of universes. If it gets out of sync you
-        # probably have to stop and restart the
-        for i in vals:
-            effectiveFade = fade
-            obj = getUniverse(i)
-            # TODO: How to handle nonexistant
-            if not obj:
-                continue
-            # Add existing universes to canvas, skip non existing ones
-            if i not in self.v:
-                size = len(obj.values)
-                self.v[i] = makeBlankArray(size)
-                self.a[i] = makeBlankArray(size)
-                self.v2[i] = makeBlankArray(size)
-                self.a2[i] = makeBlankArray(size)
-
-            # Some universes can disable local fading, like smart bulbs wehere we have remote fading.
-            # And we would rather use that. Of course, the disadvantage is we can't properly handle
-            # Multiple things fading all at once.
-            if not obj.localFading:
-                effectiveFade = 1
-
-            # We don't want to fade any values that have 0 alpha in the scene,
-            # because that's how we mark "not present", and we want to track the old val.
-            # faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
-            faded = self.v[i] * (1 - effectiveFade) + (effectiveFade * vals[i])
-
-            # We always want to jump straight to the value if alpha was previously 0.
-            # That's because a 0 alpha would mean the last scene released that channel, and there's
-            # nothing to fade from, so we want to fade in from transparent not from black
-            is_new = self.a == 0
-            self.v2[i] = numpy.where(is_new, vals[i], faded)
-
-        # Now we calculate the alpha values. Including for
-        # Universes the cue doesn't affect.
-        for i in self.a:
-            effectiveFade = fade
-            obj = getUniverse(i)
-            # TODO ?
-            if not obj:
-                continue
-            if not obj.localFading:
-                effectiveFade = 1
-            if i not in alphas:
-                aset = 0
-            else:
-                aset = alphas[i]
-            self.a2[i] = self.a[i] * (1 - effectiveFade) + effectiveFade * aset
-
-    def save(self):
-        self.v = copy.deepcopy(self.v2)
-        self.a = copy.deepcopy(self.a2)
-
-    def clean(self, affect: Iterable[str]):
-        for i in list(self.a.keys()):
-            if i not in affect:
-                del self.a[i]
-
-        for i in list(self.a2.keys()):
-            if i not in affect:
-                del self.a2[i]
-
-        for i in list(self.v.keys()):
-            if i not in affect:
-                del self.v[i]
-
-        for i in list(self.v2.keys()):
-            if i not in affect:
-                del self.v2[i]
-
-
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
 
 # Index Cues by codes that we use to jump to them. This is a dict of lists of cues with that short code,
-shortcut_codes: Dict[str, List[Cue]] = {}
+shortcut_codes: dict[str, list[Cue]] = {}
 
 
 def codeCommand(code: str = ""):
@@ -407,7 +296,7 @@ def normalize_shortcut(code: str | int | float) -> str:
 
 
 def shortcutCode(
-    code: str, limitScene: Optional[Scene] = None, exclude: Optional[Scene] = None
+    code: str, limitScene: Scene | None = None, exclude: Scene | None = None
 ):
     "API to activate a cue by it's shortcut code"
 
@@ -507,7 +396,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         return t
 
 
-def checkPermissionsForSceneData(data: Dict[str, Any], user: str):
+def checkPermissionsForSceneData(data: dict[str, Any], user: str):
     """Check if used can upload or edit the scene, ekse raise an
       error if
         it uses advanced features that would prevent that action.
@@ -557,12 +446,12 @@ class Cue:
         self,
         parent: Scene,
         name: str,
-        number: Optional[int] = None,
+        number: int | None = None,
         forceAdd: bool = False,
         shortcut: str = "",
-        id: Optional[str] = None,
-        onEnter: Optional[Callable[..., Any]] = None,
-        onExit: Optional[Callable[..., Any]] = None,
+        id: str | None = None,
+        onEnter: Callable[..., Any] | None = None,
+        onExit: Callable[..., Any] | None = None,
         **kw: Any,
     ):
         # declare vars
@@ -593,7 +482,7 @@ class Cue:
         self.media_wind_up: str
         self.media_wind_down: str
         self.probability: float | str
-        self.values: Dict[str, Dict[str | int, str | int | float | None]]
+        self.values: dict[str, dict[str | int, str | int | float | None]]
 
         self._markdown: str = kw.get("markdown", "").strip()
 
@@ -640,7 +529,7 @@ class Cue:
 
         cues[self.id] = self
 
-        self.next_ll: Optional[Cue] = None
+        self.next_ll: Cue | None = None
         parent._add_cue(self, forceAdd=forceAdd)
         self.changed = {}
 
@@ -731,10 +620,8 @@ class Cue:
                     ]
                 )
 
-    def setRules(
-        self, r: Optional[List[List[str | float | bool] | str | float | bool]]
-    ):
-        self.rules = r
+    def setRules(self, r: list[list[str | float | bool] | str | float | bool] | None):
+        self.rules = r or []
         self.getScene().refreshRules()
 
     def setInheritRules(self, r):
@@ -822,7 +709,7 @@ class Cue:
                 scene.scriptContext.setVar(channel, scene.evalExpr(value))
 
             reset = False
-            if not (value is None):
+            if value is not None:
                 if universe not in self.values:
                     self.values[universe] = {}
                     reset = True
@@ -902,18 +789,18 @@ class Scene:
     def __init__(
         self,
         name: str,
-        cues: Optional[Dict[str, Dict[str, Any]]] = None,
+        cues: dict[str, dict[str, Any]] | None = None,
         active: bool = False,
         alpha: float = 1,
         priority: float = 50,
         blend: str = "normal",
-        id: Optional[str] = None,
+        id: str | None = None,
         default_active: bool = True,
-        blend_args: Optional[Dict[str, Any]] = None,
+        blend_args: dict[str, Any] | None = None,
         backtrack: bool = True,
         bpm: float = 60,
         sound_output: str = "",
-        event_buttons: List[Iterable[str]] = [],
+        event_buttons: list[Iterable[str]] = [],
         display_tags=[],
         info_display: str = "",
         utility: bool = False,
@@ -927,7 +814,7 @@ class Scene:
         slide_overlay_url: str = "",
         slideshow_layout: str = "",
         music_visualizations: str = "",
-        mqtt_sync_features: Optional[Dict[str, Any]] = None,
+        mqtt_sync_features: dict[str, Any] | None = None,
         **ignoredParams,
     ):
         """
@@ -974,14 +861,14 @@ class Scene:
 
         # Variables to send to the slideshow.  They are UI only and
         # we don't have any reactive features
-        self.web_variables: Dict[str, Any] = {}
+        self.web_variables: dict[str, Any] = {}
 
         self.mqttConnection = None
-        self.mqttSubscribed: Dict[str, bool]
+        self.mqttSubscribed: dict[str, bool]
 
         disallow_special(name)
 
-        self.mqtt_sync_features: Dict[str, Any] = mqtt_sync_features or {}
+        self.mqtt_sync_features: dict[str, Any] = mqtt_sync_features or {}
         self.mqttNodeSessionID: str = base64.b64encode(os.urandom(8)).decode()
 
         self.event_buttons: list = event_buttons[:]
@@ -991,7 +878,8 @@ class Scene:
         self.id: str = id or uuid.uuid4().hex
 
         class APIWidget(kaithem.widget.APIWidget):
-            def on_new_subscriber(s, user, cid, **kw):
+            # Ignore badly named s param because it need to not conflic with outer self
+            def on_new_subscriber(s, user, cid, **kw):  # type: ignore
                 self.send_all_media_link_info()
 
         # This is used for the remote media triggers feature.
@@ -1128,7 +1016,7 @@ class Scene:
         # Hardcoded indicates that applyLayer reads the blend name and we
         # have hardcoded logic there
         self._blend: blendmodes.BlendMode = blendmodes.HardcodedBlendMode(self)
-        self.blendClass: Type[blendmodes.BlendMode] = blendmodes.HardcodedBlendMode
+        self.blendClass: type[blendmodes.BlendMode] = blendmodes.HardcodedBlendMode
         self.alpha = alpha
         self.crossfade = crossfade
 
@@ -1163,10 +1051,10 @@ class Scene:
         self.bpm = bpm
         self.sound_output = sound_output
 
-        self.cues: Dict[str, Cue] = {}
+        self.cues: dict[str, Cue] = {}
 
         # The list of cues as an actual list that is maintained sorted by number
-        self.cues_ordered: List[Cue] = []
+        self.cues_ordered: list[Cue] = []
 
         if cues:
             for j in cues:
@@ -1194,28 +1082,28 @@ class Scene:
         self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
         # Used to avoid an excessive number of repeats in random cues
-        self.cueHistory: List[tuple[str, float]] = []
+        self.cueHistory: list[tuple[str, float]] = []
 
         # List of universes we should be affecting right now
         # Based on what values are in the cue and what values are inherited
-        self.affect: List[str] = []
+        self.affect: list[str] = []
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
-        self.cue_cached_vals_as_arrays: Dict[str, numpy.typing.NDArray[Any]] = {}
-        self.cue_cached_alphas_as_arrays: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.cue_cached_vals_as_arrays: dict[str, numpy.typing.NDArray[Any]] = {}
+        self.cue_cached_alphas_as_arrays: dict[str, numpy.typing.NDArray[Any]] = {}
 
         self.rerenderOnVarChange = False
 
         self.enteredCue: float = 0
 
         # Map event name to runtime as unix timestamp
-        self.runningTimers: Dict[str, float] = {}
+        self.runningTimers: dict[str, float] = {}
 
         self._priority = priority
 
         # Used by blend modes
-        self.blend_args: Dict[str, float | int | bool | str] = blend_args or {}
+        self.blend_args: dict[str, float | int | bool | str] = blend_args or {}
         self.setBlend(blend)
         self.default_active = default_active
 
@@ -1245,8 +1133,8 @@ class Scene:
         self.displayTagSubscriptions = []
         self.display_tags = []
         self.displayTagValues = {}
-        self.displayTagPointObjects: Dict[str, object] = {}
-        self.displayTagMeta: Dict[str, Dict[str, Any]] = {}
+        self.displayTagPointObjects: dict[str, object] = {}
+        self.displayTagMeta: dict[str, dict[str, Any]] = {}
         self.setDisplayTags(display_tags)
 
         self.refreshRules()
@@ -1296,7 +1184,7 @@ class Scene:
         )
         self.mediaLink.send(["overlay", self.slide_overlay_url])
 
-    def toDict(self) -> Dict[str, Any]:
+    def toDict(self) -> dict[str, Any]:
         # These are the properties that aren't just straight 1 to 1 copies
         # of props, but still get saved
         d = {
@@ -1399,7 +1287,7 @@ class Scene:
         x = self.cues[cue].next_ll
         return x.name if x else None
 
-    def getParent(self, cue: str) -> Optional[str]:
+    def getParent(self, cue: str) -> str | None:
         "Return the cue that this cue name should backtrack values from or None"
         with core.lock:
             if not self.cues[cue].track:
@@ -1511,7 +1399,7 @@ class Scene:
             print(traceback.format_exc(6))
 
     def pick_random_cue_from_names(
-        self, cues: List[str] | Set[str] | Dict[str, Any]
+        self, cues: list[str] | set[str] | dict[str, Any]
     ) -> str:
         """
         Picks a random cue from a list of cue names.
@@ -1535,8 +1423,8 @@ class Scene:
             >>> pick_random_cue_from_names(['c1', 'c2', 'c3'])
             'c2'
         """
-        names: List[str] = []
-        weights: List[float] = []
+        names: list[str] = []
+        weights: list[float] = []
 
         for i in cues:
             i = i.strip()
@@ -1611,7 +1499,7 @@ class Scene:
 
         if cue not in self.cues:
             try:
-                cue = float(cue)
+                cue = float(cue)  # type: ignore
             except Exception:
                 raise ValueError("No such cue " + str(cue))
             for i in self.cues_ordered:
@@ -1623,7 +1511,7 @@ class Scene:
     def goto_cue(
         self,
         cue: str,
-        t: Optional[float] = None,
+        t: float | None = None,
         sendSync=True,
         generateEvents=True,
         cause="generic",
@@ -1661,7 +1549,7 @@ class Scene:
             if len(kwargs[i]) == 1:
                 k2[i] = kwargs[i][0]
 
-        kwargs = collections.defaultdict(lambda: "", k2)
+        kwargs = collections.defaultdict(str, k2)
 
         self.scriptContext.setVar("KWARGS", kwargs)
 
@@ -1912,7 +1800,7 @@ class Scene:
                                         output=out,
                                         loop=self.cues[cue].sound_loops,
                                         start=self.evalExprFloat(
-                                            (self.cues[cue].sound_start_position or 0)
+                                            self.cues[cue].sound_start_position or 0
                                         ),
                                         speed=spd,
                                     )
@@ -2032,7 +1920,7 @@ class Scene:
                     ["cue_ends", self.cuelen + self.enteredCue, self.cuelen]
                 )
 
-    def apply_tracked_values(self, cue) -> Dict[str, Any]:
+    def apply_tracked_values(self, cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
         # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
         # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
@@ -2300,7 +2188,7 @@ class Scene:
             for j in cuex.values[i]:
                 if isinstance(j, str) and j.startswith("__dest__."):
                     dest[j[9:]] = self.evalExpr(
-                        cuex.values[i][j] if not (cuex.values[i][j] is None) else 0
+                        cuex.values[i][j] if cuex.values[i][j] is not None else 0
                     )
 
             for idx in range(repeats):
@@ -2310,7 +2198,7 @@ class Scene:
 
                     cuev = cuex.values[i][j]
 
-                    evaled = self.evalExpr(cuev if not (cuev is None) else 0)
+                    evaled = self.evalExpr(cuev if cuev is not None else 0)
                     # This should always be a float
                     evaled = float(evaled)
 
@@ -2361,7 +2249,7 @@ class Scene:
         scriptContext.commands["sendMQTT"] = sendMQTT
         return scriptContext
 
-    def refreshRules(self, rulesFrom: Optional[Cue] = None):
+    def refreshRules(self, rulesFrom: Cue | None = None):
         with core.lock:
             # We copy over the event recursion depth so that we can detct infinite loops
             if not self.scriptContext:
@@ -2412,7 +2300,10 @@ class Scene:
         try:
             self.event("$mqtt:" + topic, message)
         except Exception:
-            self.event("$mqtt:" + topic, json.loads(message.decode("utf-8")))
+            if isinstance(message, bytes):
+                self.event("$mqtt:" + topic, json.loads(message.decode("utf-8")))
+            else:
+                raise TypeError("Not str or bytes")
 
     def onCueSyncMessage(self, topic: str, message: str):
         gn = self.mqtt_sync_features.get("syncGroup", False)
@@ -2453,7 +2344,7 @@ class Scene:
             for i in self.scriptContext.eventListeners:
                 if i.startswith("$mqtt:"):
                     x = i.split(":", 1)
-                    if not x[1] in self.mqttSubscribed:
+                    if x[1] not in self.mqttSubscribed:
                         self.mqttConnection.subscribe(x[1])
                         self.mqttSubscribed[x[1]] = True
 
@@ -2461,7 +2352,7 @@ class Scene:
             torm = []
 
             for i in self.mqttSubscribed:
-                if not "$mqtt:" + i in self.scriptContext.eventListeners:
+                if "$mqtt:" + i not in self.scriptContext.eventListeners:
                     if i not in self.unusedMqttTopics:
                         self.unusedMqttTopics[i] = time.monotonic()
                         continue
@@ -2783,7 +2674,7 @@ class Scene:
                 return
 
             # Track time.monotonic of when they became unused
-            self.unusedMqttTopics: Dict[str, float] = {}
+            self.unusedMqttTopics: dict[str, float] = {}
 
             if self.mqttConnection:
                 self.mqttConnection.disconnect()
@@ -2857,7 +2748,7 @@ class Scene:
             self.rerender = True
         self.hasNewInfo = {}
 
-    def tap(self, t: Optional[float] = None):
+    def tap(self, t: float | None = None):
         "Do a tap tempo tap. If the tap happened earlier, use t to enter that time"
         t = t or time.time()
 
@@ -2996,7 +2887,7 @@ class Scene:
 
         self._midi_source = s
 
-    def onMidiMessage(self, t: str, v: List[Any]):
+    def onMidiMessage(self, t: str, v: list[Any]):
         if v[0] == "noteon":
             self.noteOn(v[1], v[2], v[3])
         if v[0] == "noteoff":
