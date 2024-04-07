@@ -157,7 +157,7 @@ def testTags():
     t1.value = 0
 
     c1 = t1.claim(5, priority=70)
-    c1.setExpiration(2)
+    c1.set_expiration(2)
     if not t1.value == 5:
         raise RuntimeError("Unexpected tag value")
     time.sleep(3)

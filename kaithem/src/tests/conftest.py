@@ -8,7 +8,6 @@
 import os
 import shutil
 import kaithem.src.config
-import kaithem.src.sound
 import kaithem
 
 if os.path.exists("/dev/shm/kaithem_tests"):
@@ -24,4 +23,8 @@ cfg = {
 }
 
 kaithem.initialize_app(cfg)
+# TODO Sound can't be imported before config init, eventually
+# A refactor should fix that
+import kaithem.src.sound  # noqa
+
 kaithem.src.sound.select_backend("test")

@@ -3,7 +3,7 @@ def test_tags():
     import time
     import gc
 
-    t = tagpoints.Tag("/system/selftest")
+    t = tagpoints.Tag("/system/unit_test_tag")
 
     t.value = 30
 
@@ -38,7 +38,7 @@ def test_tags():
     assert t.value == 5
 
     # Now test the StringTags
-    t = tagpoints.StringTag("/system/selftest2")
+    t = tagpoints.StringTag("/system/unit_test_tag2")
 
     t.value = "str"
 
@@ -78,9 +78,9 @@ def test_tags():
     def f(v, t, a):
         x.append(v)
 
-    t1 = tagpoints.Tag("/system/selftest")
+    t1 = tagpoints.Tag("/system/unit_test_tag")
 
-    t2 = tagpoints.Tag("=tv('/system/selftest') + 7")
+    t2 = tagpoints.Tag("=tv('/system/unit_test_tag') + 7")
     t.subscribe(f)
 
     c3 = t1.claim(1, "testClaim3", 80)
@@ -117,11 +117,11 @@ def test_tags():
     gc.collect()
     gc.collect()
 
-    t1 = tagpoints.Tag("/system/selftest/ExpireTest")
+    t1 = tagpoints.Tag("/system/unit_test_tag/ExpireTest")
     t1.value = 0
 
     c1 = t1.claim(5, priority=70)
-    c1.setExpiration(0.5)
+    c1.set_expiration(0.5)
     assert t1.value == 5
     time.sleep(1)
     assert t1.value == 0
@@ -129,14 +129,14 @@ def test_tags():
     c1.set(30)
     assert t1.value == 30
 
-    t1 = tagpoints.StringTag("/system/selftest/Sync1Str")
-    t2 = tagpoints.StringTag("/system/selftest/Sync2Str")
+    t1 = tagpoints.StringTag("/system/unit_test_tag/Sync1Str")
+    t2 = tagpoints.StringTag("/system/unit_test_tag/Sync2Str")
 
     # Make sure the old tag is gone
     gc.collect()
     gc.collect()
 
-    t1 = tagpoints.Tag("/system/selftest/minmax")
+    t1 = tagpoints.Tag("/system/unit_test_tag/minmax")
 
     t1.value = 40
     t1.min = 50

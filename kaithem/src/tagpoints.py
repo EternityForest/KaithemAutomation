@@ -2647,7 +2647,7 @@ class Claim(Generic[T]):
             else:
                 raise RuntimeError("Cannot get lock to set priority, waited 90s")
 
-    def setExpiration(self, expiration: float, expiredPriority: float = 1):
+    def set_expiration(self, expiration: float, expiredPriority: float = 1):
         """Set the time in seconds before this claim is regarded as stale, and what priority to revert to in the stale state.
         Note that that if you use a getter with this, it will constantly poll in the background
         """
