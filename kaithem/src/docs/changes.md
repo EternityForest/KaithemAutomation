@@ -8,6 +8,8 @@ Change Log
 - :coffin: Remove kaithem.midi API
 - :sparkles: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
 
+- :sparkles: Split off internal scheduling and state machines to [Scullery](https://github.com/EternityForest/scullery) meant for easy standalone use.
+
 
 ### 0.77.0
 
