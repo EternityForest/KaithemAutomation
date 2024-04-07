@@ -117,24 +117,8 @@
     src: url(/static/hack.ttf);
 }
 
-.monaco-editor,
-.monaco-editor-background {
-    background: rgb(250, 255, 244);
-    font-family: hack;
-}
-
 .event-trigger-edit-box {
     background: rgb(250, 255, 244);
-}
-
-/* Line Numbers */
-.monaco-editor .line-numbers {
-    background-color: rgb(210, 220, 200);
-    color: rgb(55, 30, 0) !important;
-}
-
-.monaco-editor .current-line:not(.monaco-nohighlight .monaco-editor) {
-    background: rgba(150, 200, 120, 0.1) !important;
 }
 
 /*This div is the container for most of the built in widgets. */
@@ -167,7 +151,6 @@ div.widgetcontainer {
     opacity: 70%;
 }
 
-.monaco-editor canvas,
 .ac-container img {
     border-image-width: initial;
     border-image-outset: initial;

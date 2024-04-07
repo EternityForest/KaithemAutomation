@@ -7,11 +7,6 @@ import cherrypy,traceback
 %>
 
 <%
-#I really am not a fan of having separate mobile and desktop versions. It's really often garbage
-#Here we don't have much of an option, monaco only supports desktop.
-using_monaco_editor = auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
-
-
 #Detect self self-modifying.
 #I am very usure as to if this detecion is proper or if it should be an option. But self-modifyability is
 #a property of the document itself so it kinda makes sense.
@@ -23,12 +18,7 @@ page['code'] = page.get('code','')
 %>
 
 <%include file="/pageheader.html"/>
-%if using_monaco_editor:
-<script src="/static/js/thirdparty/vs/loader.js"></script>
-<script>
-    	require.config({ paths: { 'vs': '/static/js/thirdparty/vs' }});
-</script>
-%endif
+
 
 <datalist id="themes">
     %for i in theming.cssthemes:
@@ -45,7 +35,7 @@ function setTab(t)
 
     if(t=='all')
     {
-        
+
     document.getElementById('bodytab').style.display='block';
     document.getElementById('setuptab').style.display='block';
     document.getElementById('handlertab').style.display='block';
@@ -89,12 +79,7 @@ function setTab(t)
         <b>${path[-1]|h}</b>
         </p>
         Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
-<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"\
-
-%if using_monaco_editor:
-onsubmit="document.getElementById('box').value = editor.getValue();document.getElementById('setupbox').value = setupeditor.getValue();document.getElementById('codebox').value = codeeditor.getValue()"
-
-%endif
+<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"
 >
 <h3>Path</h3>
 <input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%"
@@ -115,7 +100,7 @@ onsubmit="document.getElementById('box').value = editor.getValue();document.getE
 
     <p>The <a href="/docs#kaithemobject">kaithem object</a> is availible as "kaithem" to python code embedded in markup.
     If any extra path components after the url to the page were added, they are availible as "path".</p>
-    
+
     <p>Any keyword arguments from forms etc are availible as a dict called "kwargs".
     Information about the actual HTTP request is availble by acessing the cherrypy.request object which is aliased to "request" in user page code.
     Please see cherrypy's documentation for more info.</p>
@@ -130,7 +115,7 @@ to the rendered page.  You can also add datalists like __datalists__= {'listid':
 </p>
 </details>
 
-    
+
 %else:
 <p class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</p>
 %endif
@@ -150,12 +135,9 @@ to the rendered page.  You can also add datalists like __datalists__= {'listid':
 <h3>Page Body</h3>
 %endif
 
-%if using_monaco_editor and (not noCodeEdits):
-<div id="monacobox" style="width:100%;height:30em;border:1px solid grey"></div>
-%endif
 
 
-<textarea data-editor="html" id="box" name="body" rows=25 class="htmlcode"
+<textarea data-editor="html" id="box" name="body" rows=25 class="htmlcode w-full"
         %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
@@ -184,7 +166,7 @@ window.onbeforeunload = function(){
 
 <h3>Setup Code</h3>
 
-<textarea data-editor="python" id="setupbox" name="setupcode" rows=25 class="htmlcode"
+<textarea data-editor="python" id="setupbox" name="setupcode" rows=25 class="htmlcode w-full"
         %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
@@ -194,17 +176,13 @@ window.onbeforeunload = function(){
         %endif
 >${page["setupcode"]|h}</textarea>
 
-%if using_monaco_editor and (not noCodeEdits):
-<div id="monacoboxsetup" style="width:100%;height:30em;border:1px solid grey"></div>
-%endif
-
 </div>
 
 <div id="handlertab">
 
 
 <h3>Handler Code</h3>
-<textarea data-editor="python" id="codebox" name="code" rows=25 class="htmlcode"
+<textarea data-editor="python" id="codebox" name="code" rows=25 class="htmlcode w-full"
         %if not pages.canUserDoThis("system_admin"):
                     disabled=1\
         %endif
@@ -215,11 +193,6 @@ window.onbeforeunload = function(){
 
 >${page["code"]|h}</textarea>
 
-%if using_monaco_editor and (not noCodeEdits):
-<div id="monacoboxcode" style="width:100%;height:30em;border:1px solid grey"></div>
-%endif
-
-
 </div>
 
 %if noCodeEdits:
@@ -227,102 +200,10 @@ window.onbeforeunload = function(){
         If you do, visit:
         <a href="/modules/module/${url(module)}/resource/${url(name)}?editanyway=true">Override Edits</a>
 
-        
+
     </p>
 %endif
 
-
-
-
-%if using_monaco_editor and (not noCodeEdits):
-<script src="${config['monaco-theme-url']}"></script>
-<script src="/static/js/thirdparty/monaco-actions.js"></script>
-<script src="/static/js/thirdparty/tidy.js"></script>
-
-
-<script src="/static/js/thirdparty/beautify/beautify.js"></script>
-<script src="/static/js/thirdparty/beautify/beautify-css.js"></script>
-<script src="/static/js/thirdparty/beautify/beautify-html.js"></script>
-
-<script>
-	require(['vs/editor/editor.main'], function() {      
-		editor = monaco.editor.create(document.getElementById('monacobox'), {
-			value: document.getElementById("box").value,
-			language: "${'html' if not name.endswith('js') else 'javascript'}",
-            insertSpaces: true,
-            renderIndentGuides: true,
-	        fontSize: 14,
-            scrollBeyondLastLine: false,
-            theme:'kaithem',
-            automaticLayout: true,
-            "bracketPairColorization.enabled": true,
-%if not pages.canUserDoThis("system_admin"):
-            readOnly:true
-%endif
-		});
-        add_actions(editor);
-        editor.onDidChangeModelContent((event) => {
-        wasChanged=true;
-        });
-    }
-    
-);
-
-
-
-require(['vs/editor/editor.main'], function() {      
-		setupeditor = monaco.editor.create(document.getElementById('monacoboxsetup'), {
-			value: document.getElementById("setupbox").value,
-			language: "python",
-            insertSpaces: true,
-            renderIndentGuides: true,
-	        fontSize: 14,
-            scrollBeyondLastLine: false,
-            theme:'kaithem',
-            automaticLayout: true,
-%if not pages.canUserDoThis("system_admin"):
-            readOnly:true
-%endif
-		});
-        add_actions(editor);
-        editor.onDidChangeModelContent((event) => {
-        wasChanged=true;
-        });
-    }
-    
-);
-
-
-require(['vs/editor/editor.main'], function() {      
-		codeeditor = monaco.editor.create(document.getElementById('monacoboxcode'), {
-			value: document.getElementById("codebox").value,
-			language: "python",
-            insertSpaces: true,
-            renderIndentGuides: true,
-	        fontSize: 14,
-            scrollBeyondLastLine: false,
-            theme:'kaithem',
-            automaticLayout: true,
-%if not pages.canUserDoThis("system_admin"):
-            readOnly:true
-%endif
-		});
-        add_actions(editor);
-        editor.onDidChangeModelContent((event) => {
-        wasChanged=true;
-        });
-    }
-    
-);
-
-
-//Hide the box, it's jut there to subit the data from the actual editor
-document.getElementById("box").style="display:none;";
-document.getElementById("setupbox").style="display:none;";
-document.getElementById("codebox").style="display:none;";
-
-</script>
-%endif
 
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
 <span class="settings-icon">These extra settings let you control the display or permissions of the page
@@ -373,7 +254,7 @@ Preprocess Engine:<select name="template-engine"
     <option value="jinja2" ${'selected' if page.get('template-engine','mako')== 'jinja2' else ''}>Jinja2(Experimental)</option>
     <option value="mako" ${'selected' if page.get('template-engine','mako')== 'mako' else ''}>Mako templating(old default)</option>
     <option value="markdown" ${'selected' if  page.get('template-engine','mako')== 'markdown' else ''}>Display markdown</option>
-    <option value="none" ${'selected' if  page.get('template-engine','mako')== 'none' else ''}>Serve text as-is</option>   
+    <option value="none" ${'selected' if  page.get('template-engine','mako')== 'none' else ''}>Serve text as-is</option>
     </select><br>
 
 <input type="checkbox"  name="allow-GET" value="true"
@@ -467,7 +348,7 @@ else:
                     value= "${page.get('theme-css-url','')|h}"
                     %if not pages.canUserDoThis("system_admin"):
                                 disabled=1\
-                    %endif 
+                    %endif
                     title="default"
                     ></input>
             </label>
@@ -478,12 +359,12 @@ else:
                 disabled=1\
     %endif
     ></input></label><br>
-    
-    
+
+
 </div>
 
 <details><summary><i class="mdi mdi-key"></i>Permissions</summary>
-    
+
     <p>Require the following permissions to access this page</p>
     <div class="max-h-12rem scroll border">
         <ul>
@@ -555,7 +436,6 @@ Saving this module will cause it to be immediately acessable from the web.
 </form>
 </section>
 
-%if not using_monaco_editor:
 <script src="/static/js/thirdparty/src-min-noconflict/ace.js"></script>
 <script src="/static/js/thirdparty/jquery3.js"></script>
 
@@ -595,10 +475,6 @@ Saving this module will cause it to be immediately acessable from the web.
         });
     });
 </script>
-
-
-
-%endif
 
 
 

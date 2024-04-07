@@ -9,7 +9,8 @@ import logging
 import cherrypy
 import os
 import threading
-from . import messagebus, pages, auth, widgets, persist, directories, scheduling
+from scullery import scheduling
+from . import messagebus, pages, auth, widgets, persist, directories
 from .unitsofmeasure import strftime
 from .config import config
 

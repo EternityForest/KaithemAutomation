@@ -26,6 +26,7 @@ import random
 import logging
 import textwrap
 import datetime
+from scullery import scheduling
 from .resource_serialization import toPyFile
 
 
@@ -35,7 +36,6 @@ from . import (
     messagebus,
     util,
     modules_state,
-    scheduling,
     unitsofmeasure,
     devices,
 )

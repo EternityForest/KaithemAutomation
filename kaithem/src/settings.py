@@ -473,8 +473,6 @@ class Settings:
                 # Filter too long values
                 auth.setUserSetting(pages.getAcessingUser(), i[5:], kwargs[i][:200])
 
-        auth.setUserSetting(pages.getAcessingUser(), "usemonaco", "usemonaco" in kwargs)
-
         auth.setUserSetting(
             pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs
         )

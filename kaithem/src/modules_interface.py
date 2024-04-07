@@ -11,6 +11,8 @@ import mimetypes
 import cherrypy
 import weakref
 from .util import url
+from scullery import scheduling
+
 from . import (
     auth,
     pages,
@@ -19,7 +21,6 @@ from . import (
     newevt,
     usrpages,
     messagebus,
-    scheduling,
     schemas,
     unitsofmeasure,
     modules,

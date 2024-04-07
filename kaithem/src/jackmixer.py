@@ -14,6 +14,7 @@ import os
 import traceback
 
 from icemedia import iceflow
+from scullery import scheduling
 
 from . import (
     widgets,
@@ -24,7 +25,6 @@ from . import (
     directories,
     alerts,
     workers,
-    scheduling,
 )
 from . import jackmanager, gstwrapper, mixerfx
 

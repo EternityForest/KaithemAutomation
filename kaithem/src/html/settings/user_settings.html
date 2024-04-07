@@ -48,8 +48,8 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
                                     %if auth.getUserSetting(pages.getAcessingUser(), 'allow-cors'):
                                     checked="on"
                                     %endif
-                                    ></input> 
- 
+                                    ></input>
+
  <input type="submit" value="Save"></input>
 
 </div>
@@ -80,19 +80,6 @@ Allow CORS access as this user: <input type="checkbox" name="allowcors"
 <h2>General Options</h2>
 <div class="window paper">
 <table border=1>
-<tr>
-<td>Enable Monaco Code Editor(Ace is still used as fallback on mobile)</td>
-<td>
-<input type="checkbox" name="usemonaco" value="true"
-
-    %if auth.getUserSetting(pages.getAcessingUser(),'usemonaco'):
-    checked="on"
-    %endif
-
-></input></td>
-
-
-<tr>
 <td>Convert tabs to 4 spaces when saving resource by default(Workaround for editor and copy-paste issues)</td>
 <td>
 <input type="checkbox" name="tabtospace" value="true"

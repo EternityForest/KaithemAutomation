@@ -1,7 +1,9 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from . import directories, messagebus, scheduling
+from . import directories, messagebus
+from scullery import scheduling
+
 import os
 import weakref
 import time

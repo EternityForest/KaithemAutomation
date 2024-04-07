@@ -13,7 +13,8 @@ import socket
 import gc
 import random
 import cherrypy
-from . import messagebus, unitsofmeasure, util, scheduling
+from scullery import scheduling
+from . import messagebus, unitsofmeasure, util
 from .config import config
 
 from zeroconf import ServiceBrowser, ServiceStateChange

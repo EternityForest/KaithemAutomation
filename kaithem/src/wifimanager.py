@@ -4,8 +4,9 @@
 import uuid
 import weakref
 import logging
+from scullery import scheduling
 
-from . import widgets, scheduling, tagpoints, workers
+from . import widgets, tagpoints, workers
 
 by_uuid = weakref.WeakValueDictionary()
 

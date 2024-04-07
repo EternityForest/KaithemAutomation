@@ -41,7 +41,6 @@ canvas {
     box-shadow: 2px 2px 4px 0px #000000;
 }
 
-.monaco-editor canvas,
 .ac-container img {
     border-image-width: initial;
     border-image-outset: initial;

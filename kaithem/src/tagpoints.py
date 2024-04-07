@@ -5,8 +5,9 @@ from __future__ import annotations
 import typing
 from . import widgets
 from .unitsofmeasure import convert, unit_types
+from scullery import scheduling
+
 from . import (
-    scheduling,
     workers,
     messagebus,
     directories,
