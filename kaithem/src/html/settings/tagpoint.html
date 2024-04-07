@@ -116,7 +116,7 @@ def combineLogs(a):
                 del data['writePerms']
                 del data['apiPriority']
 
-                tagpoints.configTagFromData(tagName,data)
+                tagpoints.config_tag_from_data(tagName,data)
 
             raise cherrypy.HTTPRedirect("/tagpoints/"+ util.url(tagName))
 
@@ -146,11 +146,11 @@ def combineLogs(a):
         orname="config"
 
 
-    eald = tag.effectiveAlarmData
+    eald = tag.effective_alarm_data
 
     # Use to show the placeholders for what you'll get if you blank out something
     defaultAlarmData = collections.defaultdict(lambda: {})
-    defaultAlarmData.update(tag.dynamicAlarmData)
+    defaultAlarmData.update(tag.dynamic_alarm_data)
 
 
 
@@ -194,15 +194,15 @@ else:
 <table border="1" class="w-full">
     <tr>
         <td>Claim Value(Blank for no Override)</td>
-        <td><input name="tempOverrideValue" value="${tag._runtimeConfigData.get('tempOverrideValue','')|h}"  style="width:100%;"></td>
+        <td><input name="tempOverrideValue" value="${tag._runtime_config_data.get('tempOverrideValue','')|h}"  style="width:100%;"></td>
     </tr>
     <tr>
         <td>Claim Priority</td>
-        <td><input  name="tempOverridePriority" value="${float(tag._runtimeConfigData.get('overridePriority','50.5'))|h}" placeholder="50"></td>
+        <td><input  name="tempOverridePriority" value="${float(tag._runtime_config_data.get('overridePriority','50.5'))|h}" placeholder="50"></td>
     </tr>
     <tr>
         <td>How Long?</td>
-        <td><input  name="tempOverrideLength" value="${int(tag._runtimeConfigData.get('tempOverrideLength','3600'))|h}">S</td>
+        <td><input  name="tempOverrideLength" value="${int(tag._runtime_config_data.get('tempOverrideLength','3600'))|h}">S</td>
     </tr>
     %if hasattr(tag,'kweb_tempManualOverrideClaim') and tag.kweb_tempManualOverrideClaim and tag.kweb_tempManualOverrideClaim.expiration:
     <tr>
@@ -260,7 +260,7 @@ else:
     </tr>
     <tr>
         <td>Active Claim</td>
-        <td>${tag.activeClaim().name}(P${tag.activeClaim().priority})</td>
+        <td>${tag.active_claim().name}(P${tag.active_claim().priority})</td>
     </tr>
     <tr>
         <td>Value at page load</td>
@@ -392,7 +392,7 @@ else:
 
 
 
-<h3>Value(source at page load: ${tag.activeClaim().name})</h3>
+<h3>Value(source at page load: ${tag.active_claim().name})</h3>
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
     The default value affects tags immediately when created, when they have never been set by anything else.
     Changes will not take effect immediately if the tag has already been set.
@@ -507,7 +507,7 @@ else:
 
 %for i in eald:
 <tr>
-    %if not i in tag.dynamicAlarmData:
+    %if not i in tag.dynamic_alarm_data:
     <td><input name="alarm_${i}:name" value="${i|h}"></td>
     %else:
     <td><input title="Cannot change name of alarm that was created in code, set condition to None to disable" disabled=1 value="${i|h}"></td>

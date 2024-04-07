@@ -1,5 +1,3 @@
-
-
 def test_tags():
     from kaithem.src import tagpoints
     import time
@@ -86,10 +84,10 @@ def test_tags():
     t.subscribe(f)
 
     c3 = t1.claim(1, "testClaim3", 80)
-    assert t2.value == 1+7
+    assert t2.value == 1 + 7
 
     c3.set(2)
-    assert t2.value == 2+7
+    assert t2.value == 2 + 7
 
     # Test tag point values derived from other values
     t = tagpoints.Tag("TestTagPointSelftestA")
@@ -103,18 +101,18 @@ def test_tags():
 
     assert t2.value == 50
 
-    t2.setAlarm("TestTagAlarm", "value>40", priority="debug")
+    t2.set_alarm("TestTagAlarm", "value>40", priority="debug")
 
     time.sleep(0.5)
-    assert t2.alarms['TestTagAlarm'].sm.state == 'active'
+    assert t2.alarms["TestTagAlarm"].sm.state == "active"
 
     t.value = 0
     time.sleep(1)
-    assert t2.alarms['TestTagAlarm'].sm.state == 'cleared'
+    assert t2.alarms["TestTagAlarm"].sm.state == "cleared"
 
-    t2.alarms['TestTagAlarm'].acknowledge()
+    t2.alarms["TestTagAlarm"].acknowledge()
 
-    assert t2.alarms['TestTagAlarm'].sm.state == 'normal'
+    assert t2.alarms["TestTagAlarm"].sm.state == "normal"
 
     gc.collect()
     gc.collect()

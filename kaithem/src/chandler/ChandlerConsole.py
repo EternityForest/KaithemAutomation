@@ -423,7 +423,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def loadDict(self, data, errs=False):
         data = from_legacy(data)
-        data = snake_compat.snakify_dict(data)
+        data = snake_compat.snakify_dict_keys(data)
 
         # Note that validation could include integer keys, but we handle that
         for i in data:
@@ -745,7 +745,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                     raise KeyError(i)
 
         d = {i: data[i] for i in data if (not keys or (i in keys))}
-        d = snake_compat.camel_dict(d)
+        d = snake_compat.camelify_dict_keys(d)
 
         self.linkSend(["scenemeta", sceneid, d])
 
@@ -782,7 +782,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             d.pop("values")
 
             # Web frontend still uses ye olde camel case
-            d = snake_compat.camel_dict(d)
+            d = snake_compat.camelify_dict_keys(d)
 
             self.linkSend(
                 [

@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+"""This file deals with conversions between camelCase, snake_case, and kebab-case.
+It can convert both strings and dict keys.
+"""
+
 # https://stackoverflow.com/a/44969381/2360612
 
 from typing import Dict, Any
@@ -27,13 +31,16 @@ def camel_to_snake(s: str):
     return "".join(["_" + c.lower() if c.isupper() else c for c in s]).lstrip("_")
 
 
-def snakify_dict(d: Dict[str, Any]):
+def snakify_dict_keys(d: Dict[str, Any]):
+    "Return a new dict with all keys converted to snake_case"
     return {camel_to_snake(kebab_to_snake(i)): d[i] for i in d}
 
 
-def kebab_dict(d: Dict[str, Any]):
+def kebabify_dict_keys(d: Dict[str, Any]):
+    "Return a new dict with all keys converted to kebab-case"
     return {snake_to_kebab(camel_to_kebab(i)): d[i] for i in d}
 
 
-def camel_dict(d: Dict[str, Any]):
+def camelify_dict_keys(d: Dict[str, Any]):
+    "Return a new dict with all keys converted to camelCase"
     return {snake_to_camel(kebab_to_snake(i)): d[i] for i in d}

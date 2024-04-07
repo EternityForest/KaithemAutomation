@@ -32,7 +32,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 <h1>Tag Points</h1>
 <div class="window paper">
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-    This page lists all <a href="/docs/mdtemplate?page=tagpoints.md">Tag Points</a> currently managed by Kaithem. 
+    This page lists all <a href="/docs/mdtemplate?page=tagpoints.md">Tag Points</a> currently managed by Kaithem.
     Creating a tag with a name beginning with "=" allows you to create expression tags,
     similar to soft tags in many SCADA systems.
 
@@ -102,7 +102,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td><span style="color: grey">Value is binary data</span></td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
+    <td>${tagpoints.allTagsAtomic[i]().active_claim().name if tagpoints.allTagsAtomic[i]().active_claim() else 'CORRUPT STATE'}</td>
 </tr>
 %endif
 

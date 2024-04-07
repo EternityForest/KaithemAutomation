@@ -900,7 +900,7 @@ class Device(iot_devices.device.Device):
         name,
         value,
     ):
-        self.tagPoints[name].fastPush(value, None, None)
+        self.tagPoints[name].fast_push(value, None, None)
 
     def set_data_point(self, name, value, timestamp=None, annotation=None):
         self.tagPoints[name](value, timestamp, annotation)
@@ -921,7 +921,7 @@ class Device(iot_devices.device.Device):
         release_condition: str | None = None,
         **kw,
     ):
-        x = self.tagPoints[datapoint].setAlarm(
+        x = self.tagPoints[datapoint].set_alarm(
             name,
             condition=expression,
             priority=priority,

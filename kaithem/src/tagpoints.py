@@ -136,7 +136,7 @@ def get_filename_for_tag_config(i: str):
     return os.path.join(directories.vardir, "tags", f"{n}.yaml")
 
 
-def gc_empty_config_tags():
+def _gc_empty_config_tags():
     torm: list[str] = []
     # Empty dicts can be deleted from disk, letting us just revert to defaultsP
     for i in configTagData:
@@ -240,10 +240,10 @@ class GenericTagPointClass(Generic[T]):
         self.configOverrides: dict[str, object] = {}
 
         self._dynConfigValues: dict[str, object] = {}
-        self.dynamicAlarmData: dict[str, dict[str, Any]] = {}
+        self.dynamic_alarm_data: dict[str, dict[str, Any]] = {}
         self.configuredAlarmData: dict[str, persist.SharedStateFile] = {}
         # The merged combo of both of those
-        self.effectiveAlarmData: dict[str, object] = {}
+        self.effective_alarm_data: dict[str, object] = {}
 
         self.alarms: dict[str, alerts.Alert] = {}
 
@@ -281,7 +281,7 @@ class GenericTagPointClass(Generic[T]):
         self.lastValue: T = self.cachedRawClaimVal
         # The real current in use val, after the config override logic
         self._interval: float | int = 0
-        self.activeClaim: None | Claim[T] = None
+        self.active_claim: None | Claim[T] = None
         self.claims: dict[str, Claim[T]] = {}
         self.lock = threading.RLock()
         self.subscribers: list[weakref.ref[Callable[..., Any]]] = []
@@ -324,8 +324,8 @@ class GenericTagPointClass(Generic[T]):
             "random": random,
             # It is perfect;y fine that these reference ourself, because when we pass this to an alarm,
             # We have alarm specific ones.
-            "tv": self.contextGetNumericTagValue,
-            "stv": self.contextGetStringTagValue,
+            "tv": self._context_get_numeric_tag_value,
+            "stv": self._context_get_string_tag_value,
             "dateutil": dateutil,
         }
         try:
@@ -370,7 +370,7 @@ class GenericTagPointClass(Generic[T]):
         self._alarms: dict[str, object] = {}
 
         # Used for storing the full config data set including stuff we shouldn't save
-        self._runtimeConfigData = {}
+        self._runtime_config_data = {}
 
         with lock:
             messagebus.post_message("/system/tags/created", self.name, synchronous=True)
@@ -382,7 +382,7 @@ class GenericTagPointClass(Generic[T]):
             d: Any = configTagData.get(self.name, {})
             if hasattr(d, "data"):
                 d = d.data.copy()
-            self.setConfigData(d)
+            self.set_config_data(d)
 
     @property
     def meterWidget(self):
@@ -670,7 +670,7 @@ class GenericTagPointClass(Generic[T]):
         # It's a getter, ignore the mypy unused thing.
         self.poll()
 
-    def contextGetNumericTagValue(self, n: str) -> float:
+    def _context_get_numeric_tag_value(self, n: str) -> float:
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
         try:
             return self.source_tags[n].value
@@ -681,7 +681,7 @@ class GenericTagPointClass(Generic[T]):
             return self.source_tags[n].value
         return 0
 
-    def contextGetStringTagValue(self, n: str) -> str:
+    def _context_get_string_tag_value(self, n: str) -> str:
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
         try:
             return self.source_tags[n].value
@@ -692,7 +692,7 @@ class GenericTagPointClass(Generic[T]):
             return self.source_tags[n].value
         return 0
 
-    def setConfigAttr(self, k: str, v: Any):
+    def set_config_attr(self, k: str, v: Any):
         "Sets the configured attribute by name, and also sets the corresponding dynamic attribute."
 
         if k not in configAttrs:
@@ -729,7 +729,7 @@ class GenericTagPointClass(Generic[T]):
 
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
     @typechecked
-    def setAlarm(
+    def set_alarm(
         self,
         name: str,
         condition: str | None = "",
@@ -771,7 +771,7 @@ class GenericTagPointClass(Generic[T]):
 
                 storage = self.configuredAlarmData
             else:
-                storage = self.dynamicAlarmData
+                storage = self.dynamic_alarm_data
                 # Dynamics are weak reffed
                 if not _refresh:
                     # This is because we need somewhere to return the strong ref
@@ -810,8 +810,8 @@ class GenericTagPointClass(Generic[T]):
 
     def clearDynamicAlarms(self):
         with lock:
-            if self.dynamicAlarmData:
-                self.dynamicAlarmData.clear()
+            if self.dynamic_alarm_data:
+                self.dynamic_alarm_data.clear()
                 self.createAlarms()
 
     # TODO when there's time, refactor so createAlarms calls createAlarm
@@ -826,8 +826,8 @@ class GenericTagPointClass(Generic[T]):
             # Combine the merged and configured alarms
             # at a granular per-attribute level
 
-            for i in self.dynamicAlarmData:
-                d = self.dynamicAlarmData[i]
+            for i in self.dynamic_alarm_data:
+                d = self.dynamic_alarm_data[i]
                 if d:
                     merged[i] = merged.get(i, {})
                     for j in d:
@@ -838,7 +838,7 @@ class GenericTagPointClass(Generic[T]):
                 for j in self.configuredAlarmData[i]:
                     merged[i][j] = self.configuredAlarmData[i][j]
 
-            self.effectiveAlarmData = merged.copy()
+            self.effective_alarm_data = merged.copy()
 
             # Cancel all existing alarms
             for i in self.alarms:
@@ -873,7 +873,7 @@ class GenericTagPointClass(Generic[T]):
             for i in merged:
                 if not limitTo or i == limitTo:
                     d = merged[i]
-                    self._alarmFromData(i, d)
+                    self._alarm_from_data(i, d)
 
             if limitTo and limitTo in self.alarms:
                 return self.alarms[limitTo]
@@ -909,7 +909,7 @@ class GenericTagPointClass(Generic[T]):
         def recalc2(*a, **k):
             recalc()()
 
-        def contextGetNumericTagValue(n):
+        def _context_get_numeric_tag_value(n):
             """Since an alarm can use values from other tags, we must track those values, and from there
             recalc the alarm whenever they should change.
             """
@@ -924,7 +924,7 @@ class GenericTagPointClass(Generic[T]):
             obj.source_tags[n]().subscribe(obj.recalcFunction)
             return t.value
 
-        def contextGetStringTagValue(n):
+        def context_get_string_tag_value(n):
             """Since an alarm can use values from other tags, we must track those values, and from there
             recalc the alarm whenever they should change.
             """
@@ -939,13 +939,13 @@ class GenericTagPointClass(Generic[T]):
             obj.source_tags[n].subscribe(obj.recalcFunction)
             return t.value
 
-        context["tv"] = contextGetNumericTagValue
-        context["stv"] = contextGetStringTagValue
+        context["tv"] = _context_get_numeric_tag_value
+        context["stv"] = context_get_string_tag_value
 
         return recalc2
 
     @typechecked
-    def _alarmFromData(self, name: str, d: dict):
+    def _alarm_from_data(self, name: str, d: dict):
         if not d.get("condition", ""):
             return
 
@@ -1014,7 +1014,7 @@ class GenericTagPointClass(Generic[T]):
         # We don't need to weakref-ify this directly, as it just goes to the poller and the poller doesn't
         # keep strong references.
 
-        def alarmRecalcFunction(*a):
+        def alarm_recalc_function(*a):
             """Recalc with same val vor this tag, but perhaps
             a new value for
             other tags that may be fetched in the expression eval"""
@@ -1047,18 +1047,18 @@ class GenericTagPointClass(Generic[T]):
             context["timestamp"] = timestamp
             context["annotation"] = annotation
 
-            alarmRecalcFunction()
+            alarm_recalc_function()
 
         obj.notificationHTML = self._makeTagAlarmHTMLFunc(weakref.ref(self))
 
         generatedRecalcFuncWeMustKeepARefTo = self._getAlarmContextGetters(
-            obj, context, weakref.ref(alarmRecalcFunction)
+            obj, context, weakref.ref(alarm_recalc_function)
         )
 
         self._alarmGCRefs[name] = (
-            alarmRecalcFunction,
+            alarm_recalc_function,
             scheduling.scheduler.schedule_repeating(
-                alarmRecalcFunction, 60, sync=False
+                alarm_recalc_function, 60, sync=False
             ),
             alarmPollFunction,
             generatedRecalcFuncWeMustKeepARefTo,
@@ -1093,12 +1093,12 @@ class GenericTagPointClass(Generic[T]):
 
         return alarmPollFunction
 
-    def setConfigData(self, data: dict[str, Any]):
+    def set_config_data(self, data: dict[str, Any]):
         with lock:
             hasUnsavedData[0] = True
             # New config, new chance to see if there's a problem.
             self.alreadyPostedDeadlock = False
-            self._runtimeConfigData.update(data)
+            self._runtime_config_data.update(data)
 
             if data and self.name not in configTagData:
                 configTagData[self.name] = persist.getStateFile(
@@ -1124,9 +1124,9 @@ class GenericTagPointClass(Generic[T]):
             # Configured value and has not beed overwritten by code
             for i in configAttrs:
                 if i in data:
-                    self.setConfigAttr(i, data[i])
+                    self.set_config_attr(i, data[i])
                 else:
-                    self.setConfigAttr(i, None)
+                    self.set_config_attr(i, None)
 
             for i in softConfigAttrs:
                 if i in data:
@@ -1183,9 +1183,9 @@ class GenericTagPointClass(Generic[T]):
                 if alarms[i]:
                     # Avoid duplicate param
                     alarms[i].pop("name", "")
-                    self.setAlarm(i, **alarms[i], isConfigured=True, _refresh=False)
+                    self.set_alarm(i, **alarms[i], isConfigured=True, _refresh=False)
                 else:
-                    self.setAlarm(i, None, isConfigured=True, _refresh=False)
+                    self.set_alarm(i, None, isConfigured=True, _refresh=False)
 
             # This one is a little different. If the timestamp is 0,
             # We know it has never been set.
@@ -1308,7 +1308,7 @@ class GenericTagPointClass(Generic[T]):
             f"/system/tags/interval{self.name}", self._interval, synchronous=True
         )
         with self.lock:
-            self._managePolling()
+            self._manage_polling()
 
     @property
     def subtype(self):
@@ -1369,10 +1369,10 @@ class GenericTagPointClass(Generic[T]):
         # Avoid the lock by using retru in case claim disappears
         for i in range(1000):
             try:
-                return self.activeClaim().name
+                return self.active_claim().name
             except Exception:
                 time.sleep(0.001)
-        return self.activeClaim().name
+        return self.active_claim().name
 
     def filterValue(self, v: T):
         "Pure function that returns a cleaned up or normalized version of the value"
@@ -1415,12 +1415,7 @@ class GenericTagPointClass(Generic[T]):
         else:
             return self.set_claim_val("default", *args, **kwargs)
 
-    def interface(self):
-        "Override the VResource thing"
-        # With no replacement or master objs, we just return self
-        return self
-
-    def _managePolling(self):
+    def _manage_polling(self):
         interval = self._interval or 0
         if (self.subscribers or self.handler) and interval > 0:
             if not self.poller or not (interval == self.poller.interval):
@@ -1436,7 +1431,7 @@ class GenericTagPointClass(Generic[T]):
                 self.poller.unregister()
                 self.poller = None
 
-    def fastPush(
+    def fast_push(
         self, value: T, timestamp: float | None = None, annotation: Any = None
     ) -> None:
         """
@@ -1475,7 +1470,7 @@ class GenericTagPointClass(Generic[T]):
     @typechecked
     def subscribe(self, f: Callable[[T, float, Any], Any], immediate: bool = False):
         if isinstance(f, GenericTagPointClass) and (f.unreliable or self.unreliable):
-            f = f.fastPush
+            f = f.fast_push
 
         timestamp = time.monotonic()
 
@@ -1514,7 +1509,7 @@ class GenericTagPointClass(Generic[T]):
                             + self.name
                             + " more than once.  Only the first takes effect."
                         )
-                        self._managePolling()
+                        self._manage_polling()
                         return
 
                 self.subscribers.append(ref)
@@ -1533,7 +1528,7 @@ class GenericTagPointClass(Generic[T]):
 
                 if immediate and self.timestamp:
                     f(self.value, self.timestamp, self.annotation)
-                self._managePolling()
+                self._manage_polling()
 
                 self.subscribers_atomic = copy.copy(self.subscribers)
             finally:
@@ -1559,7 +1554,7 @@ class GenericTagPointClass(Generic[T]):
                     len(self.subscribers),
                     synchronous=True,
                 )
-                self._managePolling()
+                self._manage_polling()
                 self.subscribers_atomic = copy.copy(self.subscribers)
             finally:
                 self.lock.release()
@@ -1579,7 +1574,7 @@ class GenericTagPointClass(Generic[T]):
     def poll(self):
         if self.lock.acquire(timeout=5):
             try:
-                self._getValue()
+                self._get_value()
             finally:
                 self.lock.release()
         else:
@@ -1655,7 +1650,7 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def value(self) -> T:
-        return self._getValue()
+        return self._get_value()
 
     @value.setter
     def value(self, v: T | Callable[..., T | None]):
@@ -1665,28 +1660,28 @@ class GenericTagPointClass(Generic[T]):
         if not self.lock.acquire(timeout=15):
             raise RuntimeError("Could not get lock")
         try:
-            return self._getValue(True)
+            return self._get_value(True)
         finally:
             self.lock.release()
 
-    def _getValue(self, force=False) -> T:
+    def _get_value(self, force=False) -> T:
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
         if (self.lastGotValue > time.monotonic() - self.interval) and not force:
             return self.lastValue
 
-        activeClaim = self.activeClaim()
-        if activeClaim is None:
-            activeClaim = self.getTopClaim()
+        active_claim = self.active_claim()
+        if active_claim is None:
+            active_claim = self.getTopClaim()
 
-        activeClaimValue = activeClaim.value
+        active_claimValue = active_claim.value
 
-        if not callable(activeClaimValue):
+        if not callable(active_claimValue):
             # We no longer are aiming to support using the processor for impure functions
 
             self.lastGotValue = time.monotonic()
-            self.lastValue = self.processValue(activeClaimValue)
+            self.lastValue = self.processValue(active_claimValue)
 
         else:
             # Rate limited tag getter logic. We ignore the possibility for
@@ -1694,10 +1689,10 @@ class GenericTagPointClass(Generic[T]):
             # It shouldn't affect correctness
 
             # Note that this is on a per-claim basis.  Every claim has it's own cache.
-            if (time.monotonic() - activeClaim.lastGotValue > self._interval) or force:
+            if (time.monotonic() - active_claim.lastGotValue > self._interval) or force:
                 # Set this flag immediately, or else a function with an error could defeat the cacheing
                 # And just flood everything with errors
-                activeClaim.lastGotValue = time.monotonic()
+                active_claim.lastGotValue = time.monotonic()
 
                 try:
                     # However, the actual logic IS ratelimited
@@ -1721,17 +1716,17 @@ class GenericTagPointClass(Generic[T]):
                             return self.lastValue
                     try:
                         # None means no new data
-                        x = activeClaimValue()
+                        x = active_claimValue()
                         t = time.monotonic()
 
                         if x is not None:
                             # Race here. Data might not always match timestamp an annotation, if we weren't under lock
-                            self.vta = (activeClaimValue, t, None)
+                            self.vta = (active_claimValue, t, None)
 
                             # Set the timestamp on the claim, so that it will not become expired
-                            self.activeClaim().vta = self.vta
+                            self.active_claim().vta = self.vta
 
-                            activeClaim.cachedValue = (x, t)
+                            active_claim.cachedValue = (x, t)
 
                             # This is just used to calculate the overall age of the tags data
                             self.lastGotValue = time.monotonic()
@@ -1755,10 +1750,13 @@ class GenericTagPointClass(Generic[T]):
                     try:
                         from . import newevt
 
-                        if hasattr(activeClaimValue, "__module__"):
-                            if activeClaimValue.__module__ in newevt.eventsByModuleName:
+                        if hasattr(active_claimValue, "__module__"):
+                            if (
+                                active_claimValue.__module__
+                                in newevt.eventsByModuleName
+                            ):
                                 newevt.eventsByModuleName[
-                                    activeClaimValue.__module__
+                                    active_claimValue.__module__
                                 ]._handle_exception()
                     except Exception:
                         print(traceback.format_exc())
@@ -1845,8 +1843,8 @@ class GenericTagPointClass(Generic[T]):
 
             self.claims[name] = weakref.ref(claim)
 
-            if self.activeClaim:
-                ac = self.activeClaim()
+            if self.active_claim:
+                ac = self.active_claim()
             else:
                 ac = None
 
@@ -1866,7 +1864,7 @@ class GenericTagPointClass(Generic[T]):
                 or (priority > oldAcPriority)
                 or ((priority == oldAcPriority) and (timestamp > oldAcTimestamp))
             ):
-                self.activeClaim = self.claims[name]
+                self.active_claim = self.claims[name]
                 self.handleSourceChanged(name)
 
                 if callable(self.vta[0]) or callable(value):
@@ -1877,7 +1875,7 @@ class GenericTagPointClass(Generic[T]):
                 self.vta = (value, timestamp, annotation)
 
                 if needsManagePolling:
-                    self._managePolling()
+                    self._manage_polling()
 
             # If priority has been changed on the existing active claim
             # We need to handle it
@@ -1898,14 +1896,14 @@ class GenericTagPointClass(Generic[T]):
                     if x:
                         self.vta = (x.value, x.timestamp, x.annotation)
 
-                        if not i == self.activeClaim():
-                            self.activeClaim = weakref.ref(i)
+                        if not i == self.active_claim():
+                            self.active_claim = weakref.ref(i)
                             self.handleSourceChanged(i.name)
                         else:
-                            self.activeClaim = weakref.ref(i)
+                            self.active_claim = weakref.ref(i)
                         break
 
-            self._getValue(force=True)
+            self._get_value(force=True)
             self._push()
             return claim
         finally:
@@ -1935,11 +1933,11 @@ class GenericTagPointClass(Generic[T]):
             c = self.claims[claim]
 
             # If we're setting the active claim
-            if c == self.activeClaim:
+            if c == self.active_claim:
                 upd = True
             else:
                 co = c()
-                ac = self.activeClaim()
+                ac = self.active_claim()
 
                 upd = False
                 # We can "steal" control if we have the same priority
@@ -1955,7 +1953,7 @@ class GenericTagPointClass(Generic[T]):
             # Grab the claim obj and set it's val
             x = c()
             if self.poller or valCallable:
-                self._managePolling()
+                self._manage_polling()
 
             x.vta = val, timestamp, annotation
 
@@ -2023,16 +2021,16 @@ class GenericTagPointClass(Generic[T]):
             if not o:
                 return
 
-            doChange = self.activeClaim() is not o
+            doChange = self.active_claim() is not o
 
             self.vta = (o.value, o.timestamp, o.annotation)
-            self.activeClaim = weakref.ref(o)
+            self.active_claim = weakref.ref(o)
 
-            self._getValue()
+            self._get_value()
             self._push()
-            self._managePolling()
+            self._manage_polling()
             if doChange:
-                self.handleSourceChanged(self.activeClaim().name)
+                self.handleSourceChanged(self.active_claim().name)
         finally:
             self.lock.release()
 
@@ -2737,7 +2735,7 @@ class Claim(Generic[T]):
             # Stop any weirdness with an old claim double releasing and thus releasing a new claim
             if not self.tag.claims[self.name]() is self:
                 # If the old replaced claim is somehow the active omne we acrtuallty should handle that
-                if not self.tag.activeClaim() is self:
+                if not self.tag.active_claim() is self:
                     return
         except KeyError:
             return
@@ -2972,7 +2970,7 @@ def createGetterFromExpression(
     return c2
 
 
-def configTagFromData(name: str, data: dict):
+def config_tag_from_data(name: str, data: dict):
     name = normalize_tag_name(name)
 
     t = data.get("type", "")
@@ -3008,7 +3006,7 @@ def configTagFromData(name: str, data: dict):
     if tag:
         configTags[name] = tag
     # Now set it's config.
-    tag.setConfigData(data)
+    tag.set_config_data(data)
 
 
 def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
@@ -3017,11 +3015,11 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
 
         configTagData = persist.loadAllStateFiles(f)
 
-        gc_empty_config_tags()
+        _gc_empty_config_tags()
 
         for i in list(configTagData.keys()):
             try:
-                configTagFromData(i, configTagData[i].getAllData())
+                config_tag_from_data(i, configTagData[i].getAllData())
             except Exception:
                 logging.exception(f"Failure with configured tag: {i}")
                 messagebus.post_message(

@@ -232,7 +232,7 @@ Some may return in iot_devices later.
 - :sparkles: Can now customize the HTML for the scene web player
 - :sparkles: Chandler cues can now have Markdown text content to show in the slideshow sidebar
 - :sparkles: User settings are instant, no more manual save step
-- :sparkles: Cues inherit rules from the special \__rules\__ cue if it exists.
+- :sparkles: Cues inherit rules from the special \_\_rules\_\_ cue if it exists.
 - :sparkles: If sound_fade_in is 0, then use the cue lighting fade for the sound as well if it exists
 - :coffin: nosecurity command line flag removed
 - :sparkles: Permissions have been consolidated.

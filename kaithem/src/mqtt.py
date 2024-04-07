@@ -61,7 +61,7 @@ class EnhancedConnection(BaseConnection):
         self.statusTagClaim.set("dis_connected")
 
     def configure_alert(self, alert_priority, alert_ack):
-        self.statusTag.setAlarm(
+        self.statusTag.set_alarm(
             "dis_connected",
             "value != 'connected'",
             priority=alert_priority,

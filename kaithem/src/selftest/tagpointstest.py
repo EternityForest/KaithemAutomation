@@ -1,5 +1,3 @@
-
-
 def testTags():
     from kaithem.src import tagpoints
     import time
@@ -12,7 +10,7 @@ def testTags():
     tester = [0]
 
     if not t.value == 30:
-        raise RuntimeError("Unexpected Tag Value"+str(t.value))
+        raise RuntimeError("Unexpected Tag Value" + str(t.value))
 
     def f(value, timestamp, annotation):
         tester[0] = value
@@ -44,7 +42,9 @@ def testTags():
 
     c.release()
     if not t.value == 5:
-        raise RuntimeError("Lower priority tag not taking over when higher priority released")
+        raise RuntimeError(
+            "Lower priority tag not taking over when higher priority released"
+        )
 
     # Now test the StringTags
     t = tagpoints.StringTag("/system/selftest2")
@@ -87,7 +87,9 @@ def testTags():
 
     c.release()
     if not t.value == "5":
-        raise RuntimeError("Lower priority tag not taking over when higher priority released")
+        raise RuntimeError(
+            "Lower priority tag not taking over when higher priority released"
+        )
 
     x = []
 
@@ -100,12 +102,16 @@ def testTags():
     t.subscribe(f)
 
     c3 = t1.claim(1, "testClaim3", 80)
-    if not t2.value == 1+7:
-        raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
+    if not t2.value == 1 + 7:
+        raise RuntimeError(
+            "Subscriber to expression tag did not trigger when dependancy updated"
+        )
 
     c3.set(2)
-    if not t2.value == 2+7:
-        raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
+    if not t2.value == 2 + 7:
+        raise RuntimeError(
+            "Subscriber to expression tag did not trigger when dependancy updated"
+        )
 
     # Test tag point values derived from other values
     t = tagpoints.Tag("TestTagPointSelftestA")
@@ -119,22 +125,29 @@ def testTags():
     t.value = 40
 
     if not t2.value == 50:
-        raise RuntimeError("Expression tagpoint didn't update, value:"+str(t2.value))
+        raise RuntimeError("Expression tagpoint didn't update, value:" + str(t2.value))
 
-    t2.setAlarm("TestTagAlarm", "value>40", priority="debug")
+    t2.set_alarm("TestTagAlarm", "value>40", priority="debug")
 
     time.sleep(0.5)
-    if not t2.alarms['TestTagAlarm'].sm.state == 'active':
-        raise RuntimeError("Alarm not activated, state:" + t2.alarms['TestTagAlarm'].sm.state)
+    if not t2.alarms["TestTagAlarm"].sm.state == "active":
+        raise RuntimeError(
+            "Alarm not activated, state:" + t2.alarms["TestTagAlarm"].sm.state
+        )
 
     t.value = 0
     time.sleep(3)
-    if not t2.alarms['TestTagAlarm'].sm.state == 'cleared':
-        raise RuntimeError("Alarm not cleared, state:"+t2.alarms['TestTagAlarm'].sm.state+" value:"+str(t2.value))
+    if not t2.alarms["TestTagAlarm"].sm.state == "cleared":
+        raise RuntimeError(
+            "Alarm not cleared, state:"
+            + t2.alarms["TestTagAlarm"].sm.state
+            + " value:"
+            + str(t2.value)
+        )
 
-    t2.alarms['TestTagAlarm'].acknowledge()
+    t2.alarms["TestTagAlarm"].acknowledge()
 
-    if not t2.alarms['TestTagAlarm'].sm.state == 'normal':
+    if not t2.alarms["TestTagAlarm"].sm.state == "normal":
         raise RuntimeError("Alarm not normal after acknowledge")
 
     gc.collect()

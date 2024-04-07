@@ -61,12 +61,14 @@ if battery:
     battery_time.max = 30 * 60 * 60
     battery_time.lo = 40 * 60
     battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
-    battery_time.setAlarm("lowbattery_timeRemaining", "value < 60*15", priority="error")
+    battery_time.set_alarm(
+        "lowbattery_timeRemaining", "value < 60*15", priority="error"
+    )
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged or 0
     acPowerTag.subtype = "bool"
-    acPowerTag.setAlarm(
+    acPowerTag.set_alarm(
         "runningOnBattery",
         "(not value) and (tv('/system/power/battery_level')< 80)",
         priority="warning",
@@ -84,8 +86,8 @@ if not sdhealth is None:
     sdTag.unit = "%"
     sdTag.lo = 50
 
-    sdTag.setAlarm("SDCardWear", "value < 70", priority="info")
-    sdTag.setAlarm("SDCardCloseToFailure", "value < 10", priority="error")
+    sdTag.set_alarm("SDCardWear", "value < 70", priority="info")
+    sdTag.set_alarm("SDCardCloseToFailure", "value < 10", priority="error")
     sdTag.value = sdhealth
 
     @scheduling.scheduler.every_hour
@@ -188,11 +190,11 @@ if psutil:
 # Every minute, we check for overtemperature or overvoltage problems
 if util.which("vcgencmd"):
     undervoltageTag = tagpoints.Tag("/system/pi/undervoltage")
-    undervoltageTag.setAlarm("undervoltage", "value>0.5")
+    undervoltageTag.set_alarm("undervoltage", "value>0.5")
     undervoltageTagClaim = undervoltageTag.claim(0, "HWSensor")
 
     overtemperatureTag = tagpoints.Tag("/system/pi/overtemperature")
-    overtemperatureTag.setAlarm("temp", "value>0.5", priority="error")
+    overtemperatureTag.set_alarm("temp", "value>0.5", priority="error")
     overtemperatureTagClaim = overtemperatureTag.claim(0, "HWSensor")
 
     @scheduling.scheduler.every_minute
@@ -288,7 +290,7 @@ makeLedTagIfNonexistant("/sys/class/leds/ACT/brightness", "/system/board/leds/ac
 
 
 errtag = tagpoints.Tag("/system/io_error_flag")
-errtag.setAlarm(
+errtag.set_alarm(
     "An IO Error was detected that could indicate a failing disk or bad cable. This could also indicate an issue with an external device.",
     "value>0",
     "error",
