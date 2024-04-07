@@ -67,6 +67,10 @@ showdown.extension('codehighlight', function() {
 <script>
 var url = new URL(window.location.href);
 var p = window.location.pathname.replace("/docs/mdtemplate/",'')
+if(p.indexOf(".")<0)
+{
+  p=p+".md"
+}
 var c = url.searchParams.get("page") || p
 
 

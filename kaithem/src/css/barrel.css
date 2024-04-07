@@ -991,6 +991,24 @@ table {
     border-color: var(--border-color);
 }
 
+/*From the old geocities size*/
+.badge-88{
+    width: 88px;
+    height: 31px;
+    border-radius: 6px;
+    font-size: 12pt;
+    overflow: hidden;
+    border-style: solid;
+    border-width: 1px;
+    background-color: var(--control-bg);
+    border-color: var(--graphical-fg);
+    vertical-align: center;
+    & p{
+        margin: 0px;
+        padding: 2px;
+    }
+}
+
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 .window {
     background: var(--box-bg);

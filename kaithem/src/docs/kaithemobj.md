@@ -28,35 +28,14 @@ Trigger a global event.
 
 ### kaithem.units
 
+It is recommended that you use [Scullery](https://github.com/EternityForest/scullery) unit conversions directly.
+
+
 #### kaithem.units.convert(value, fr, to)
 Convert a value from unit fr to unit to. Both are expressed as strings,
 like "degC" to "degF". Note that there is no protection against all nonsensical conversions.
 
-This uses the pint library for most units, which can be slow, but for some common units uses kaithem's
-optimized fast unit conversions. This only works for abbreviated symbols in the correct case(mmHg, m, g, etc),
-and does not work with SI prefixes
 
-#### kaithem.units.define(name, multiplier, type, baseUnit=None)
-
-Define a new unit. Multiplier is what must be multipllied by to convert the base unit to the new unit.
-
-It may also be a tuple of functions, one to go TO the base unit, and another to go FROM the base unit.
-For example: Celcius is defined in terms of Kelvin as: (lambda x: x+273.15, lambda x: x-273.15)
-
-You can base your unit on any unit, otherwise it is assumed you are using the default base, or that you are
-defining the a new base unit. You can only use the default "true" global base for units defined as functions.
-
-Kaithem does not know what the base units are, they are simply units with no offset and a multiplier if 1,it is up to the
-programmer to know what the base unit for any particular type of measurement is. All conversions are done
-by going to the global unit and then to the new unit.
-
-Included Base Units:
-
-mass: g
-length: m
-temperature(Absolute): K
-flow: m3/min
-pressure: Pa
 
 
 #### kaithem.globals
@@ -79,6 +58,9 @@ store things in other places though.
 Executes a function of no arguments in the background using kaithem's
 thread pool. Any errors are posted to the message bus at
 system/errors/workers. There is no protection against infinite loops.
+
+It is recommended that you use workers.do() from [Scullery](https://github.com/EternityForest/scullery) directly.
+
 
 #### Kaithem.misc.errors(f)
 
@@ -135,7 +117,7 @@ You can't currently create a device in code. But you can add a new device type.
 See the main devices docs page for details.  Avoid keeping references to things here long term.  Perfer kaithem.devices['DeviceName'] directly,
 otherwise you may not get the latest version of a device when a user modifies it.
 
-#### kaithem.devices.device_types
+#### kaithem.devices.device\_types
 Device driver classes all go here.
 
 #### kaithem.devices.Device
@@ -150,129 +132,8 @@ A dict-like object allowing you to access resources by module, resource tuple.
 
 ### kaithem.states
 
-This namespace deals with kaithem's state machine library.
+This namespace deals with kaithem's state machine library.  It is recommended that you use [Scullery](https://github.com/EternityForest/scullery) state machines directly.
 
-#### sm=kaithem.states.StateMachine(start="start")
-
-Creates a state machine that starts in the given state. State machines are fully
-threadsafe. Machines start with no states, so they are in a nonexistant
-state to begin with.
-
-#### sm.add_state(name, enter=None, exit=None)
-
-Add a new state. Enter and exit can be functions taking no arguments.
-They will run when that state is entered or exited. states are
-identified by a string name, but values beginning with \_\_ are reserved
-
-#### sm.remove_state(name)
-
-Remove a state.
-
-#### sm.add_rule(start, event, dest)
-
-Add a rule to an existing state that triggers when event(which can be
-any string, or a function but values beginning with \_\_ are reserved) happens.
-
-Dest can be the name of a state, or else it can be a function that takes
-one parameter, the machine itself, and returns either None or a string.
-
-This function will be called anytime the rule is triggered. If it
-returns None, nothing happens. If it returns a string, the machine will
-enter the state named by that string.
-
-The state machine strongly references the function, so it will not be garbage collected.
-This allows you to use lambda expressions.
-
-##### Function Polling(PLC logic)
-If event is a function, it will be continually polled at sm.pollRate, defaulting to 24(24Hz),
-and every time it is true the rule will be followed.
-
-When multiple function triggers are added to the same state, they are polled in the order they
-are added.
-
-They are polled under sm.lock, and it is guaranteed that only one function is
-polled at a time, and that no events, timers, or polling can happen in between an
-event returning True and the state transition.
-
-
-
-#### sm.set_timer(state, length, dest)
-
-Attach a timer to a state. The timer starts when you enter the state. If
-you remain there for more than length seconds, it goes to the dest. You
-can only have one timer per state, the new one replaces the old if one
-already exists.
-
-re-entering a state resets the timer. Timers start immediately upon
-entering a state, after the exit function of the old state but before
-the exit function of the new state.
-
-#### sm(event)
-
-Calling the machine triggers an event. The event can be any string, but
-values beginning with \_\_ are reserved. If there is a maching rule, the
-rule is activated. Otherwise nothing happens. May raise an exception if
-there is an error in the enter or exit function.
-
-This does nothing if the machine is in a nonexistant state.
-
-State machine subscribers, enter, and exit actions occur
-synchronously in the thread that triggers the event,
-so this function will block until they return.
-
-This ensures Events and transitions are atomic.
-
-Any other thread that triggers an event during a transition will block until the original transition is complete, as will any modifications to the states, timers, or rules.
-
-#### sm.subscribe(f, state="\_\_all\_\_"):
-
-Subsribe f to be called when the state changes to state("\_\_all\_\_" indicates any state).
-
-f is called with one argument, the name of the state, and this happens in the thread that
-triggered the transition, so it should not block for too long.
-
-#### sm.jump(state, condition=None)
-
-Jump immediately to the given state, doing the proper exit and enter
-actions. If condition is not None, it will only jump if the condition
-matches the current state.
-
-Jumping to a nonexistant state is an error.
-
-#### sm.seek(t)
-
-Seeks to a given position on the state's timeline. If you seek to any
-point past the timer length for this state, the timer rule will simply
-occur immediatly. Seeking to a negative position is also valid, and will
-have the effect of extending the duration as expected.
-
-#### sm.state
-
-The current state as a string.
-
-#### sm.entered_state
-
-The time.time() value when this state was entered.
-
-#### sm.age
-
-A property that returns the time in seconds since entering the current
-state.
-
-#### sm.stateage
-
-A property that returns a tuple of the (current state, time in seconds
-since entering the current state.)
-
-Both values are guaranteed to match, the state will not change after
-checking one but before checking the other. Use this value any time you
-want to test if something has been in a state for a certain time
-
-#### sm.prev_state
-
-The previous state of the machine. May be the same as the current state
-if re-entry occurs. The initial value is None before any transitions
-have occured.
 
 ### kaithem.alerts
 
@@ -280,7 +141,7 @@ Alerts allow you to create notification when unusual events occur,
 trigger periodic sounds, and allow users to "acknowledge" them to shut
 them up.
 
-#### kaithem.alerts.Alert(name, priority="normal", zone=None, trip_delay=0, auto_ack=False, permissions=\[\], ackPermissions=\[\], \[id\],description='')
+#### kaithem.alerts.Alert(name, priority="normal", zone=None, trip\_delay=0, auto\_ack=False, permissions=\[\], ackPermissions=\[\], \[id\],description='')
 
 Create a new alert. Prority can be one of debug, info, warning, error,
 or critical.
@@ -291,13 +152,13 @@ telling the physical location being monitored. An example might be
 format you like.
 
 Permissions and ackPermissions are additional permissions besides
-view_status and /users/alerts.acknowledge that are needed to see
+view\_status and /users/alerts.acknowledge that are needed to see
 and ack the alert.
 
 ID is a unique string ID. What happens if you reuse these is undefined
 and wil be used to implement features later.
 
-trip_delay is the delay in seconds that the alarm remains tripped before
+trip\_delay is the delay in seconds that the alarm remains tripped before
 becoming active.
 
 Internally, alarms are state machines that may be in any of the listed
@@ -355,7 +216,7 @@ Format a time in seconds since the epoch according to the user's
 preference. When called outside of a page, format according to the
 default
 
-#### kaithem.time.moon_phase()
+#### kaithem.time.moon\_phase()
 
 Returns the current moon phase as a float number:
 
@@ -365,33 +226,33 @@ Returns the current moon phase as a float number:
     21-28 = Last quarter
 
 
-#### kaithem.time.sunrise_time(lat=None,lon=None,date=None)
+#### kaithem.time.sunrise\_time(lat=None,lon=None,date=None)
 Returns the sunrise time on today's date, regardless of whether it is already passed or not.
 Defaults to the server location, right now.  Date can be a date object.
 
-#### kaithem.time.sunset_time()
-#### kaithem.time.civil_dawn_time()
-#### kaithem.time.civil_dusk_time()
+#### kaithem.time.sunset\_time()
+#### kaithem.time.civil\_dawn\_time()
+#### kaithem.time.civil\_dusk\_time()
 See above.
 
 **NOTE: any of these may raise an exception if
 there is no sunrise or sunset in the current day(as in some regions in
 the arctic circle during some seasons).**
 
-#### kaithem.time.is_day(lat=None,lon=None)
+#### kaithem.time.is\_day(lat=None,lon=None)
 
 Return true if it is before sunset in the given lat-lon location. If no
 coordinates are supplied, the server location configured in the settings
 page is used. If no location is configured, an error is raised.
 
-#### kaithem.time.is_night(lat=None,lon=None)
+#### kaithem.time.is\_night(lat=None,lon=None)
 
 Return true if it is after sunset in the given lat-lon location. Kaithem
 handles coordinates as floating point values. If no coordinates are
 supplied, the server location configured in the settings page is used.
 If no location is configured, an error is raised.
 
-#### kaithem.time.is_dark(lat=None,lon=None)
+#### kaithem.time.is\_dark(lat=None,lon=None)
 
 Return true if it is currently past civil twilight in the given lat-lon
 location. Civil twilight is defined when the sun is 6 degrees below the
@@ -401,13 +262,13 @@ artificial light sources. If no coordinates are supplied, the server
 location configured in the settings page is used. If no location is
 configured, an error is raised.
 
-#### kaithem.time.is_light(lat=None,lon=None)
+#### kaithem.time.is\_light(lat=None,lon=None)
 
 Return true if it is not past civil twilight given lat-lon location. If
 no coordinates are supplied, the server location configured in the
 settings page is used. If no location is configured, an error is raised.
 
-#### kaithem.time.is_rahu(llat=None,lon=None)
+#### kaithem.time.is\_rahu(llat=None,lon=None)
 
 Return true if it is currently Rahukalaam (A period during each day that
 is considered inauspicious for new ventures in Indian astrology) in the
@@ -438,146 +299,22 @@ is no such program
 This namespace contains features for working with kaithem's user
 management system.
 
-#### kaithem.users.check_permission(username, permission)
+#### kaithem.users.check\_permission(username, permission)
 
 Returns True is the specified use has the given permission and False
 otherwise. Also returns False if the user does not exist.
 
 ### kaithem.sound
 
-The kaithem.sound API is slightly different depending on which backend
-has been configured. By default mplayer will be used if available and is
-the recommended backed.
-
-#### kaithem.test([output])
-Attempt to play an  test chime. May raise an error if it detects that it does not work.
-
-#### kaithem.sound.directories
-The `audio-paths` entry from the config YAML. May contain an entry called "__default__"
-
-#### kaithem.sound.outputs()
-
-Returns a list of available sound card names you could pass to
-
-#### kaithem.sound.preload(filename,output="@auto")
-Spins up a paused player for that filename and player. Garbage collecting old cache entries is handled for you.
-Will be used when sound.play is called for the same filename and output.
+It is recommended that you use [IceMedia](https://github.com/EternityForest/icemedia) sound APIs directly.  They are almost exactly the same as the old Kaithem APIs.
 
 
-
-
-#### kaithem.sound.fade_to(self,file,length=1.0, block=False, detach=True, handle="PRIMARY",**kwargs):
-
-Fades the current sound on a given channel to the file. **kwargs aare equivalent to those on playSound.
-
-Passing none for the file allows you to fade to silence, and if no sound is playing. it will fade FROM silence.
-
-Block will block till the fade ends. Detach lets you keep the faded copy attached to the handle(Which makes it end when a new sound plays,
-so it only makes sense if fading to silence).
-
-Fading is perceptually linear.
-
-
-#### kaithem.sound.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, output=None,fs=False,extraPaths=\[\])
-
-If you have a backend installed, play the file, otherwise do
-nothing. The handle parameter lets you name the new sound instance to
-stop it later. If you try to play a sound under the same handle as a
-stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
-
-Relative paths are searched in a set of directories.
-
-First in the configured directories and a default
-builtin one(Unless you remove it from the config).
-
-Next in all folders named "media" in modules. For example,
-asking for "Music/foo.wav" will look for a file resource called media/Music/foo.wav in each loaded module.
-
-Searching is not recursive, but relative paths work. If searching for "foo/bar" in
-"/baz", it will look for "/baz/foo/bar".
-
-If you want to search paths for relative files other than the default
-abd the ones in the config, add them to extraPaths.
-
-
-utput is a jack client or port if JACK is running.
-The special string @auto(the default) autoselects an appropriate output.
-
-
-#### kaithem.sound.stop(handle="PRIMARY"")
-
-Stop a sound by handle.
-
-#### kaithem.sound.stop_all()
-
-Stop all currently playing sounds.
-
-#### kaithem.sound.is_playing(handle="PRIMARY")
-
-Return true if a sound with handle handle is playing. Note that the
-sound might finish before you actually get around to doing anything with
-the value. If using the dummy backend because a backend is not
-installed, result is undefined, but will not be an error, and will be a
-boolean value. If a sound is paused, will return True anyway.
-
-#### kaithem.sound.setvol(vol,handle="PRIMARY")
-
-Set the volume of a sound. Volume goes from 0 to 1. Only works with the
-mplayer backend. If you are using any other sound backend, this does
-nothing.
-
-#### kaithem.sound.pause(handle="PRIMARY")
-
-Pause a sound. Does nothing if already paused Only works with the
-mplayer backend. If you are using any other sound backend, this does
-nothing.
-
-#### kaithem.sound.resume(handle="PRIMARY")
-
-Resume a paused a sound. Does nothing if not paused. Only works with the
-mplayer backend. If you are using any other sound backend, this does
-nothing.
-
-#### kaithem.sound.resolve_sound(fn,extrapaths=[])
-Search every default sound path, and all the extra paths for the sound file.
-Return full absolute path to the sound if found.
 
 ### kaithem.message
 
-#### kaithem.message.post(topic,message, timestamp=None, annotation=None)
 
-Post a message to the internal system-wide message bus.
-Message topics are hierarchial, delimited by forward
-slashes, and the root directory is /. However /foo is equivalent to
-foo.
+It is recommended that you use the message bus in [Scullery](https://github.com/EternityForest/scullery) directly, this was just a thin wrapper.
 
-Formerly, messages could only be JSON serializable objects. Now that
-we do not use the message system for logging, messages may be any python object at all.
-
-The most recent messages are still logged in ram and viewable as before, for debugging purposes.
-
-The timestamp will be set to time.monotonic() if it is None.
-
-Annotation is used for sending "extra" or "hidden" metadata, same as it is for Tag Points,
-usually for preventing loops. It defaults to None.
-
-#### kaithem.message.subscribe(topic,callback)
-
-Request that function *callback* which must take four arguments(topic,message, timestamp,annotation), two
-arguments(topic,message), or just one argument(message) be called whenever a message matching the topic
-is posted.
-
-Wildcards follow MQTT subscription rules.
-
-Should the topic end with a slash and a hash, it will also match all
-subtopics(e.g. "/foo/#" will match "/foo", "/foo/bar" and
-"/foo/anything").
-
-Uncaught errors in the callback are ignored but logged.
-
-You must always maintain a reference to the callback, otherwise, the
-callback will be garbage collected and auto-unsubscribed. This is also
-how you unsubscribe.
 
 ### kaithem.widget
 
@@ -724,16 +461,16 @@ echoed back to all clients
 ### kaithem.web
 
 
-#### kaithem.web.nav_bar_plugins
+#### kaithem.web.nav\_bar\_plugins
 This is a WeakValueDictionary that you can use to add items to the top navbar. Entries should have string keys, and
 values must be a function that returns None for no item, or a tuple of (sort order, HTML).
 HTML will typically be an a tag link.  Default sort order should be 50.
 
-#### kaithem.web.add_wsgi_app(pattern: str, app, permission="system_admin"):
+#### kaithem.web.add\_wsgi\_app(pattern: str, app, permission="system\_admin"):
 Mount a WSGI application to handle all URLs matching the pattern regex.  The app will only be accessible
 to users having the specified permission.
 
-#### kaithem.web.add_tornado_app(pattern: str, app, args, permission="system_admin"):
+#### kaithem.web.add\_tornado\_app(pattern: str, app, args, permission="system\_admin"):
 Mount a Tornado application to handle all URLs matching the pattern regex
 
 ##### Subdomains
@@ -750,12 +487,12 @@ Note that this does not allow you to bind to different main domains, only subdom
 Also note that you cannot capture ALL requests to a subdomain, only ones that do not map to an existing page so this cannot be a means of sandboxing.
 However, as different subdomains have different cookies, you can create a certain level of safety if users never log into an "untrusted" subdomain.
 
-Relying on users not to do this, however, seems like a fairly bad idea, so kaithem forbids logging in if the subdomain contains `__nologin__` as a path component.
+Relying on users not to do this, however, seems like a fairly bad idea, so kaithem forbids logging in if the subdomain contains `\_\_nologin\_\_` as a path component.
 
 Note that even with this protection, XSS can still do anything that a guest can do.
 
 
-#### kaithem.web.go_back()
+#### kaithem.web.go\_back()
 
 When called from code embedded in an HTML page, raises an interrupt
 causing an HTTP redirect to the previous page to be sent. Useful for
@@ -771,7 +508,7 @@ causing an HTTP redirect to the previous specified url to be sent.
 When called from within a page, returns the usernae of the accessing
 user or else an empty string if not logged in.
 
-#### <span id="servefile"></span>kaithem.web.serve_file(path,contenttype,name = path)
+#### <span id="servefile"></span>kaithem.web.serve\_file(path,contenttype,name = path)
 
 When called from code embedded in an HTML page,raises an interrupt
 causing the server to skip rendering the current page and instead serve
@@ -782,7 +519,7 @@ Can serve a bytesIO object if mime and filename are provided, or any other objec
 as long as you enable streming response on page config.
 
 
-#### kaithem.web.has_permission(permission)
+#### kaithem.web.has\_permission(permission)
 
 When clled from within a mako template, returns true if the acessing
 user has the given permission.
@@ -896,16 +633,16 @@ When called from within a page, formats the time(in seconds since the
 epoch), according to the user's time settings. If no time is given,
 defaults to right now.
 
-#### kaithem.string.si_format(n,d=2)
+#### kaithem.string.si\_format(n,d=2)
 
 Takes a number and formats it with suffixes. 1000 becomes 1K, 1,000,000
 becomes 1M. d is the number of digits of precision to use.
 
-#### kaithem.string.format_time_interval(n,places=2,clock=False)
+#### kaithem.string.format\_time\_interval(n,places=2,clock=False)
 
 Takes a length of time in secons and formats it. Places is the mx units
-to use. format_time_interval(5,1) becomes ""5 seconds",
-format_time_interval(65,2) returns "1 minute 5 seconds"
+to use. format\_time\_interval(5,1) becomes ""5 seconds",
+format\_time\_interval(65,2) returns "1 minute 5 seconds"
 
 If clock==True, places is ignored and output is in HH:MM format. If
 places is 3 or 4 format will be HH:MM:SS or HH:MM:SS:mmm where mmmm is
@@ -917,7 +654,7 @@ This namespace contains tools for writing plugins for kaithem. A plugin
 can be just a module that provides features, or it can be a python file
 in src/plugins/startup, which will be automatically imported.
 
-#### kaithem.plugin.add_plugin(name,object)
+#### kaithem.plugin.add\_plugin(name,object)
 
 Causes a weak proxy to object to become available at kaithem.name. The
 object will be deleted as soon as there are no references to it. Note
