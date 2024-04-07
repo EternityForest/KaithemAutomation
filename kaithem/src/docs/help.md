@@ -194,7 +194,7 @@ system_admin </span>permission. Keep in mind a user with this
 permission can give himself any other permission and so has full access.
 Do not give this permission to an untrusted user.
 
-Permissions are generally of the form 
+Permissions are generally of the form
 "/&lt;path&gt;/&lt;item&gt;.&lt;action&gt;" without quotes. The path
 describes the general catergory, the item specifies a resource, and the
 action specifies an action that may be performed on the resource.
@@ -243,18 +243,18 @@ supported types, by adding them on the devices page.
 --------------------------------------------------
 
 Beginning in version 0.55, modules may contain arbitrary files as
-resources. 
+resources.
 
 To preserve kaithem's atomic save functionality without making copies of large data, files are
 stored a separate folder, and the modules themselves only contain references to them.
-The exception is in external modules and zip files. 
+The exception is in external modules and zip files.
 
 Saving to an
 external module will populate a special \_\_filedata\_\_ folder in that
-module, likewise with zip files. 
+module, likewise with zip files.
 
 However, due to potential performance and memory constraints, users without the edit permission will not be
-able to download copies of modules that include files. 
+able to download copies of modules that include files.
 
 You can always get the real disk path of a file resource from within the
 same module via the code: module\['name'\].getPath()
@@ -301,11 +301,11 @@ event's page.
 A blank object that you can assign properties to, which will persist
 when the event is modified, but not across reboots.
 
-# [/docs/mdtemplate?page=kaithemobj.md](The Kaithem Object)
+# [/docs/mdtemplate/kaithemobj.md](The Kaithem Object)
 This object provides useful APIs and is available in many contexts.
 
 
-## [/docs/mdtemplate?page=kaithemobj.md] The Widgets API
+## [/docs/mdtemplate/kaithemobj.md] The Widgets API
 
 
 The Internal Message Bus
@@ -352,7 +352,7 @@ Messages here are like normal system/notifications/ messages, but are
 semantically errors, and can show in red in the logs, or trigger sounds,
 or send out text messages, or similar. Again, only fairly important
 things should go here, as they will be listed on the front page. Use for
-things like power failure, network connectivity loss, etc.  
+things like power failure, network connectivity loss, etc.
 Where possible one should wait ten seconds or so before sending a
 message for something that might resolve itself, like a network issue.
 
