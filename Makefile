@@ -38,8 +38,8 @@ export ROOT_DIR
 
 default: help 
 
-.PHONY: help install-dependencies clean-venv .venv run freeze-dependencies
 
+.PHONY: help
 help: # Show help for each of the available commands
 	@cd ${ROOT_DIR}
 	@echo
@@ -65,25 +65,31 @@ ${ROOT_DIR}/.isolated_venv: # Create the virtualenv in the project folder
 	@virtualenv .isolated_venv
 
 
+.PHONY: update
 update: # Fetch new code into this project folder
 	git pull
 
+.PHONY: dev-make-venv
 dev-make-venv: ${ROOT_DIR}/.venv ${ROOT_DIR}/.isolated_venv # Make the virtualenv in this project folder.
 	@echo "Making venv if not present"
 
+.PHONY: dev-install
 dev-install: dev-make-venv # Install Kaithem and all it's dependencies in the Venv.
 	@cd ${ROOT_DIR}
 	@.venv/bin/python -m pip install --upgrade -r requirements.txt
 	@.venv/bin/python -m pip install --editable .
 
+.PHONY: dev-run
 dev-run: # Run the kaithem app.
 	@cd ${ROOT_DIR}
 	@pw-jack .venv/bin/python -m kaithem	
 
+.PHONY: dev-run-isolated
 dev-run-isolated: # Run the kaithem app.
 	@cd ${ROOT_DIR}
 	@pw-jack .isolated_venv/bin/python -m kaithem	
 
+.PHONY: dev-update-dependencies
 dev-update-dependencies: dev-make-venv # Install latest version of dependencies into the venv. New versions might break something!
 	@cd ${ROOT_DIR}
 	@.isolated_venv/bin/python -m pip install --upgrade -r direct_dependencies.txt
@@ -94,15 +100,18 @@ dev-update-dependencies: dev-make-venv # Install latest version of dependencies 
 
 
 
+.PHONY: root-install-zrok
 root-install-zrok: # Install or update Zrok for remote access
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-zrok.sh
 
+.PHONY: user-setup-zrok-sharing
 user-setup-zrok-sharing: # Create an account with zrok
 	@cd ${ROOT_DIR}
 	@bash ./scripts/setup-zrok.sh
 
 
+.PHONY: user-set-global-pipewire-conf
 user-set-global-pipewire-conf:
 	@echo ${USER}
 	@cd ${ROOT_DIR}
@@ -110,50 +119,61 @@ user-set-global-pipewire-conf:
 	@cat ./scripts/pipewire.conf > /home/${USER}/.config/pipewire/pipewire.conf
 	@systemctl --user restart pipewire wireplumber
 
+.PHONY: user-install-kaithem
 user-install-kaithem: # Install kaithem to run as your user. Note that it only runs when you are logged in.
 	@cd ${ROOT_DIR}
 	@echo "Kaithem will be installed to /home/${USER}/kaithem/.venv"
 	@bash ./scripts/install-kaithem.sh
 
+.PHONY: user-max-volume-at-boot
 user-max-volume-at-boot: #Install a service that sets the max volume when you log in.
 	@cd ${ROOT_DIR}
 	@bash ./scripts/max-volume.sh
 
 
+.PHONY: user-kaithem-force-restart
 user-kaithem-force-restart: # Force kill the process and restart it.
 	@killall -9 kaithem
 	@systemctl --user restart kaithem.service
 
+.PHONY: user-restart-pipewire
 user-restart-pipewire:
 	@echo "Tries to restart everything, including some that may fail because they're not installed"
 	@systemctl --user restart pipewire pipewire-pulse wireplumber pipewire-media-session
 
 
+.PHONY: user-kaithem-status
 user-kaithem-status: # Get the status of the running kaithem instance
 	@systemctl --user status kaithem.service
 
 
 
-
+.PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt
 	@sudo apt install python3-virtualenv scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv gstreamer1.0-pipewire
-	
+
+.PHONY: root-use-pipewire-jack
 root-use-pipewire-jack: # Make JACK clients work with pipewire
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-pipewire-jack.sh
 
+
+.PHONY: root-install-sd-protection
 root-install-sd-protection: # Reconfigure a Pi system or similar to not write to the SD so much.  User specific things apply to KAITHEM_USER
 	@cd ${ROOT_DIR}
 	@bash ./scripts/linux-sd-protect.sh
 
+.PHONY: root-install-kiosk
 root-install-kiosk: # Sets up a pi(or similar) as a kiosk machine pointing to KIOSK_HOMEPAGE(default is kaithem at localhost:8002)
 	@cd ${ROOT_DIR}
 	@bash ./scripts/setup-kiosk-mode.sh
 
+.PHONY: root-install-linux-tweaks
 root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
 	@cd ${ROOT_DIR}
 	@bash ./scripts/linux-tweaks.sh
 
+.PHONY: root-enable-anon-mqtt
 root-enable-anon-mqtt: # Set up an MQTT broker for anonymous login acccess
 	@cd ${ROOT_DIR}
 	@bash ./scripts/setup-anon-mosquitto.sh
