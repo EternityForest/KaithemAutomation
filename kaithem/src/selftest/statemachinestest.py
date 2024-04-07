@@ -6,7 +6,7 @@
 
 def stateMachinesTest():
     import time
-    from .. import statemachines
+    from scullery import statemachines
 
     class m(dict):
         pass

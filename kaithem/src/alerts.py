@@ -1,9 +1,8 @@
 from __future__ import annotations
 import os
-from scullery import persist
+from scullery import persist, statemachines
 from . import directories
 from . import (
-    statemachines,
     widgets,
     scheduling,
     workers,

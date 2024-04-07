@@ -68,7 +68,7 @@ import pytz
 import math
 from typing import Any, Dict, Optional, List
 from collections.abc import Callable
-from .scheduling import scheduler
+from scullery.scheduling import scheduler
 import datetime
 from types import MethodType
 from typing import List

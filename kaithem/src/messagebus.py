@@ -51,5 +51,5 @@ def _shouldReRaiseAttrErr():
     return cherrypy.engine.state == cherrypy.engine.states.STARTED
 
 
-messagebus.subscriberErrorHandlers = [handleMsgbusError]
+messagebus.subscriber_error_handlers = [handleMsgbusError]
 messagebus._shouldReRaiseAttrErr = _shouldReRaiseAttrErr

@@ -9,7 +9,7 @@ from .core import logger
 from .universes import getUniverse, getUniverses
 from ..kaithemobj import kaithem
 from .. import schemas
-from .. import scheduling
+from scullery import scheduling
 
 from .scenes import cues, event
 

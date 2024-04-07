@@ -45,4 +45,4 @@ def tagErrorHandler(tag, f, val):
         print(traceback.format_exc(chain=True))
 
 
-tagpoints.subscriberErrorHandlers = [tagErrorHandler]
+tagpoints.subscriber_error_handlers = [tagErrorHandler]

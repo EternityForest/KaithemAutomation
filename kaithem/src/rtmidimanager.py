@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from . import tagpoints
-from scullery import messagebus
-from . import scheduling
+from scullery import messagebus, scheduling
 import traceback
 
 allInputs = {}

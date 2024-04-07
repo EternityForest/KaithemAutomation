@@ -46,7 +46,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     from . import selftest  # noqa: F401
     from . import devices  # noqa: F401
     from scullery import messagebus
-    from . import statemachines  # noqa: F401
+    from scullery import statemachines  # noqa: F401
     from . import auth  # noqa: F401
     from . import pages
     import iot_devices.host
@@ -72,7 +72,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     from . import widgets  # noqa: F401
     from . import alerts  # noqa: F401
     from . import tag_errors  # noqa: F401
-    from . import scheduling  # noqa: F401
+    from scullery import scheduling  # noqa: F401
     from . import plugin_system  # noqa: F401
     from . import signalhandlers  # noqa: F401
     from . import webapproot  # noqa: F401

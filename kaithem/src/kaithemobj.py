@@ -29,7 +29,7 @@ from . import pages
 from . import config
 from . import persist
 from . import breakpoint
-from . import statemachines
+from scullery import statemachines
 from . import devices
 from . import alerts
 from . import theming
@@ -145,7 +145,6 @@ class Kaithem:
     class units:
         convert = unitsofmeasure.convert
         units = unitsofmeasure.units
-        getType = unitsofmeasure.get_unit_type
         define = unitsofmeasure.define_unit
 
     class users:

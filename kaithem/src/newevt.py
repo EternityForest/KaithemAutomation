@@ -40,7 +40,7 @@ from . import (
     devices,
 )
 from .config import config
-from .scheduling import scheduler
+from scullery.scheduling import scheduler
 
 ctime = time.time
 do = workers.do

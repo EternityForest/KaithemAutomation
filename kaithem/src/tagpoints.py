@@ -75,7 +75,7 @@ lock = threading.RLock()
 allTags: dict[str, weakref.ref[GenericTagPointClass[Any]]] = {}
 allTagsAtomic: dict[str, weakref.ref[GenericTagPointClass[Any]]] = {}
 
-subscriberErrorHandlers: list[Callable[..., Any]] = []
+subscriber_error_handlers: list[Callable[..., Any]] = []
 
 hasUnsavedData = [0]
 
@@ -1630,7 +1630,7 @@ class GenericTagPointClass(Generic[T]):
                         f"Tag subscriber error, val,time,annotation was: {extraData}"
                     )
                     # Return the error from whence it came to display in the proper place
-                    for i in subscriberErrorHandlers:
+                    for i in subscriber_error_handlers:
                         try:
                             i(self, f, self.lastValue)
                         except Exception:

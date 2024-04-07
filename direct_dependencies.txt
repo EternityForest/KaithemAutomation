@@ -3,7 +3,7 @@
 
 
 # First party
-scullery
+scullery>=0.16.0
 iot-devices
 icemedia
 NVRChannel
