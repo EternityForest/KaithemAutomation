@@ -201,9 +201,6 @@ acknowledged. Used to indicate an error with the alarm itself.
 
 ### kaithem.time
 
-#### kaithem.time.lantime()
-Same as time.time().  Previously Kaithem had built in NTP sync.
-
 #### kaithem.time.uptime()
 
 Return the number of seconds as a float that kaithem has been running
@@ -277,22 +274,6 @@ article.](http://en.wikipedia.org/wiki/Rahukaalam) If no coordinates are
 supplied, the server location configured in the settings page is used.
 If no location is configured, an error is raised.
 
-### kaithem.sys
-
-#### kaithem.sys.shellex(cmd)
-
-Run a command in the system's native shell and return the output.
-
-#### kaithem.sys.shellexbg(cmd)
-
-Run a command in the system's native shell in the background and ignore
-the output and return codes.
-
-#### kaithem.sys.which(exe)
-
-Similar to the unix which command. Returns the path to the program that
-will be called for a given command in the command line, or None if there
-is no such program
 
 ### kaithem.users
 

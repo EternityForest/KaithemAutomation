@@ -238,53 +238,12 @@ class Kaithem:
         #                 pass
 
         @staticmethod
-        def lantime():
-            return time.time()
-
-        @staticmethod
         def uptime():
             return time.time() - bootTime
 
         @staticmethod
         def strftime(*args):
             return unitsofmeasure.strftime(*args)
-
-        @staticmethod
-        def time():
-            return time.time()
-
-        @staticmethod
-        def month():
-            return unitsofmeasure.Month()
-
-        @staticmethod
-        def day():
-            return time.localtime().tm_mday
-
-        @staticmethod
-        def year():
-            return time.localtime().tm_year
-
-        @staticmethod
-        def hour():
-            return time.localtime().tm_hour
-
-        @staticmethod
-        def minute():
-            return time.localtime().tm_min
-
-        @staticmethod
-        def second():
-            return time.localtime().tm_sec
-
-        @staticmethod
-        def isdst():
-            # It returns 1 or 0, cast to bool because that's just weird.
-            return bool(time.localtime().tm_isdst)
-
-        @staticmethod
-        def dayofweek():
-            return unitsofmeasure.DayOfWeek()
 
         @staticmethod
         def sunset_time(
@@ -451,20 +410,6 @@ class Kaithem:
             return 100 * (x / 14.0)
 
     class sys:
-        @staticmethod
-        def shellex(cmd):
-            env = {}
-            env.update(os.environ)
-            return subprocess.check_output(cmd, shell=True, env=env)
-
-        @staticmethod
-        def shellexbg(cmd):
-            subprocess.Popen(cmd, shell=True)
-
-        @staticmethod
-        def which(exe: str):
-            return util.which(exe)
-
         @staticmethod
         def sensors():
             try:

@@ -1,10 +1,13 @@
 <%include file="/pageheader.html"/>
-<%from kaithem.src import kaithemobj,util%>
+<%
+import subprocess
+from kaithem.src import util
+%>
 <h1>Kernel Messages</h1>
 %if util.which("journalctl"):
 <section class="window paper">
 <pre>
-${kaithemobj.kaithem.sys.shellex("journalctl -ko short-monotonic --no-hostname").decode()}
+${subprocess.check_output("journalctl -ko short-monotonic --no-hostname", shell=True).decode()}
 </pre>
 %else:
 <p class="danger">Program "journalctl" not installed.</p>

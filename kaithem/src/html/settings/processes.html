@@ -1,10 +1,13 @@
 <%include file="/pageheader.html"/>
-<%from kaithem.src import kaithemobj,util%>
+<%
+import subprocess
+from kaithem.src import util
+%>
 <h1>Running Proceses</h1>
 %if util.which("top"):
 <div class="window paper">
 <pre>
-${kaithemobj.kaithem.sys.shellex("top -b -n 1").decode()}
+${subprocess.check_output("top -b -n 1", shell=True).decode()}
 </pre>
 %else:
 <p class="danger">Program "top" not installed.</p>
