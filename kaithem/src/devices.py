@@ -14,7 +14,6 @@ import os
 import cherrypy
 import cherrypy.lib.static
 import copy
-import asyncio
 import shutil
 from typing import Any
 from collections.abc import Callable, Iterable
@@ -448,9 +447,6 @@ class Device(iot_devices.device.Device):
         global remote_devices_atomic
         global remote_devices
 
-        # Code can store the raw unfiltered data including kaithem specific stuff here
-        self._k_full_data = {}
-
         try:
             self.title: str = data.get("title", "").strip() or name
         except Exception:
@@ -698,9 +694,7 @@ class Device(iot_devices.device.Device):
         for i in perms.split(","):
             pages.require(i)
 
-        return asyncio.run(
-            self.handle_web_request(path, kwargs, cherrypy.request.method)
-        )
+        self.handle_web_request(path, kwargs, cherrypy.request.method)
 
     def serve_file(self, fn, mime="", name=None):
         from . import kaithemobj
@@ -1371,7 +1365,6 @@ def makeDevice(name, data, cls=None):
     if err:
         d.handle_error(err)
 
-    d._k_full_data = data
     return d
 
 
@@ -1505,7 +1498,6 @@ def createDevicesFromData():
                 # No module or resource here
                 device_location_cache[name] = (None, None)
                 remote_devices[name] = makeDevice(name, device_data[i], cls=cls)
-                remote_devices[name]._k_full_data = device_data[i]
             syslogger.info(f"Created device from config: {i}")
         except Exception:
             messagebus.post_message(

@@ -1,21 +1,10 @@
 {
     "python.pythonPath": "/usr/bin/python3",
-    "python.linting.pylintArgs": [
-        "--rcfile",
-        "${workspaceFolder}\\.pylintrc"
-    ],
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.mypyEnabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.linting.flake8Args": [
-        "--max-line-length=140",
-        "--ignore=E121,E123,E126,E226,E24,E704,W503,W504,E303"
-    ],
+
     "files.exclude": {
         "helpers/debianpackaging/package/usr/**": true,
         ".mypy_cache": true,
-        "kaithem/src/__pycache__": true,
+        "kaithem/src/__pycache__": true
     },
     "files.watcherExclude": {
         "helpers/debianpackaging/package/usr": true,
@@ -36,26 +25,21 @@
     ],
     "editor.formatOnSave": false,
     "editor.formatOnType": true,
-    "python.linting.banditEnabled": true,
-    "python.formatting.autopep8Args": [
-        "--ignore",
-        "E402"
-    ],
     "html.format.templating": true,
     "pylint.args": [
         " \"--max-line-length=120\""
     ],
 
-    "LineCount.includes": [     
-        "**/kaithem/src/**" 
-        ],    
+    "LineCount.includes": [
+        "**/kaithem/src/**"
+        ],
 
-    "LineCount.excludes": [ 
+    "LineCount.excludes": [
             "**/.vscode/**",
             "**/thrdparty/**",
             "**/.buildozer/**",
             "**/.venv/**",
-            "**/.isolated_venv/**",
-            ],
+            "**/.isolated_venv/**"
+            ]
 
 }
