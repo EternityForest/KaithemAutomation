@@ -11,7 +11,6 @@ import os
 import pwd
 import getpass
 import shutil
-import ssl
 from .config import config
 from os import environ
 

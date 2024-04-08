@@ -384,7 +384,7 @@ class Kaithem:
                     "No server location set, fix this in system settings"
                 )
 
-            return sky.isDark(lat, lon)
+            return sky.is_dark(lat, lon)
 
         @staticmethod
         def is_rahu(lat=None, lon=None):
@@ -411,7 +411,7 @@ class Kaithem:
                     raise RuntimeError(
                         "No server location set, fix this in system settings"
                     )
-            return sky.isDay(lat, lon)
+            return sky.is_day(lat, lon)
 
         @staticmethod
         def is_night(lat=None, lon=None):
@@ -423,7 +423,7 @@ class Kaithem:
                     raise RuntimeError(
                         "No server location set, fix this in system settings"
                     )
-            return sky.isNight(lat, lon)
+            return sky.is_night(lat, lon)
 
         @staticmethod
         def is_light(lat=None, lon=None):
@@ -435,7 +435,7 @@ class Kaithem:
                     raise RuntimeError(
                         "No server location set, fix this in system settings"
                     )
-            return sky.isLight(lat, lon)
+            return sky.is_light(lat, lon)
 
         @staticmethod
         def moon_phase():

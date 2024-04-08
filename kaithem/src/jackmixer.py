@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Dict
 import uuid
 import time
 import json
@@ -141,7 +140,7 @@ def cleanupEffectData(fx):
         if i not in fx:
             fx[i] == x[i]
 
-    if not "help" in fx:
+    if "help" not in fx:
         fx["help"] = ""
     if "displayName" not in fx:
         fx["displayName"] = fx["type"]
@@ -594,7 +593,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.input = input
             if self._input:
                 self._input.disconnect()
-            if not "://" in self.input:
+            if "://" not in self.input:
                 self._input = jackmanager.Airwire(
                     self.input, f"{self.name}_in", force_combining=(self.channels == 1)
                 )
@@ -649,7 +648,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         for i in d["effects"]:
             if d.get("bypass", False):
                 continue
-            if not "id" in i or not i["id"]:
+            if "id" not in i or not i["id"]:
                 i["id"] = str(uuid.uuid4())
             if i["type"] == "fader":
                 self.fader = self.add_element("volume")

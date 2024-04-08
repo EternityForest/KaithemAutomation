@@ -70,7 +70,7 @@ class LoginScreen:
     def login(self, **kwargs):
         # Handle some nuisiance errors.
 
-        if not "username" in kwargs:
+        if "username" not in kwargs:
             raise cherrypy.HTTPRedirect("/index")
 
         if "__nologin__" in pages.getSubdomain():
@@ -138,7 +138,7 @@ class LoginScreen:
             # Now, just never expire, it might break kiosk applications.
             # cherrypy.response.cookie['kaithem_auth']['expires'] = 24 * 60 * 60 * 90
             x = auth.Users[kwargs["username"]]
-            if not "loginhistory" in x:
+            if "loginhistory" not in x:
                 x["loginhistory"] = [(time.time(), cherrypy.request.remote.ip)]
             else:
                 x["loginhistory"].append((time.time(), cherrypy.request.remote.ip))
@@ -156,7 +156,7 @@ class LoginScreen:
             except Exception:
                 dest = "/index"
 
-            if not "/errors/loginerror" in dest:
+            if "/errors/loginerror" not in dest:
                 raise cherrypy.HTTPRedirect(dest)
             else:
                 raise cherrypy.HTTPRedirect("/index")

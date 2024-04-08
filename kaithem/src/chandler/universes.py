@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 import colorzero
 import numpy
@@ -39,7 +38,9 @@ fixtures: Dict[str, weakref.ref[Fixture]] = {}
 
 
 class Fixture:
-    def __init__(self, name: str, data: Optional[List[List[Any]] | Dict[str, Any]] = None):
+    def __init__(
+        self, name: str, data: Optional[List[List[Any]] | Dict[str, Any]] = None
+    ):
         """Represents a contiguous range of channels each with a defined role in one universe.
 
         data is the definition of the type of fixture. It can be a list of channels, or
@@ -59,7 +60,7 @@ class Fixture:
 
         The name must be unique per-fixture.
         If a channel has the type "fine" it will be interpreted as the fine value of
-        the immediately preceding coarse channel, and should automatically 
+        the immediately preceding coarse channel, and should automatically
         get its value from the fractional part.
         If the coarse channel is not the immediate preceding channel,
         use the first argument to specify the number of the coarse channel,
@@ -140,8 +141,7 @@ class Fixture:
                 if oldUniverseObj:
                     # Delete current assignments
                     for i in range(
-                        self.startAddress, self.startAddress +
-                            len(self.channels)
+                        self.startAddress, self.startAddress + len(self.channels)
                     ):
                         if i in oldUniverseObj.channels:
                             if (
@@ -200,15 +200,14 @@ class Fixture:
                     cPointer += 1
 
 
-class Universe():
-    "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX. "
+class Universe:
+    "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX."
 
     def __init__(self, name: str, count: int = 512, number: int = 0):
         global universes
         for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>,":
             if i in name:
-                raise ValueError(
-                    "Name cannot contain special characters except _")
+                raise ValueError("Name cannot contain special characters except _")
         self.name = name
         self.closed = False
 
@@ -274,8 +273,9 @@ class Universe():
         # so far in this frame
         self.all_static = True
 
-        self.error_alert = alerts.Alert(f"{self.name}.errorState",
-                                        priority="error", auto_ack=True)
+        self.error_alert = alerts.Alert(
+            f"{self.name}.errorState", priority="error", auto_ack=True
+        )
         with core.lock:
             with universesLock:
                 if name in _universes and _universes[name]():
@@ -291,8 +291,7 @@ class Universe():
                         except Exception:
                             raise ValueError("Name " + name + " is taken")
                 _universes[name] = weakref.ref(self)
-                universes = {i: _universes[i]
-                             for i in _universes if _universes[i]()}
+                universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
         # flag to apply all scenes, even ones not marked as neding rerender
         self.full_rerender = False
@@ -330,12 +329,12 @@ class Universe():
             if self.name in _universes and (_universes[self.name]() is self):
                 del _universes[self.name]
 
-            universes = {i: _universes[i]
-                         for i in _universes if _universes[i]()}
+            universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
             def alreadyClosed(*a, **k):
                 raise RuntimeError(
-                    "This universe has been stopped, possibly because it was replaced wih a newer one")
+                    "This universe has been stopped, possibly because it was replaced wih a newer one"
+                )
 
             self.onFrame = alreadyClosed
             self.setStatus = alreadyClosed
@@ -364,7 +363,7 @@ class Universe():
 
     def refresh_scenes(self):
         """Stop and restart all active scenes, because some caches might need to be updated
-            when a new universes is added
+        when a new universes is added
         """
         kaithem.message.post("/chandler/command/refreshScenes", None)
 
@@ -392,7 +391,7 @@ class Universe():
                     else:
                         self.fine_channels[i] = fixture.startAddress + data[2]
 
-                if (data[1] == "fixed"):
+                if data[1] == "fixed":
                     if len(data) == 2:
                         self.fixed_channels[i] = 0
                     else:
@@ -409,8 +408,7 @@ class Universe():
     def save_prerendered(self, p, s):
         "Save this layer as the cached layer. Called in the render functions"
         self.prerendered_layer = (p, s)
-        self.prerendered_data = (copy.deepcopy(
-            self.values), copy.deepcopy(self.alphas))
+        self.prerendered_data = (copy.deepcopy(self.values), copy.deepcopy(self.alphas))
 
     def reset(self):
         "Reset all values to 0 including the prerendered data"
@@ -438,7 +436,7 @@ def message(data):
     data = numpy.maximum(numpy.minimum(data, 255), 0)
     data = data.astype(numpy.uint8)
     data = data.tobytes()[1:513]
-    return (b'\x7e\x06' + struct.pack('<H', len(data)) + data + b'\xe7')
+    return b"\x7e\x06" + struct.pack("<H", len(data)) + data + b"\xe7"
 
 
 def rawmessage(data):
@@ -447,22 +445,28 @@ def rawmessage(data):
     data = data.astype(numpy.uint8)
     data = data.tobytes()[1:513]
     # Remove the 0 position as DMX starts at 1
-    return (b'\0' + data)
+    return b"\0" + data
 
 
 class EnttecUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resouurce
     # For protocol documentation.
-    def __init__(self, name: str, channels: int = 128, portname: str = "", framerate: float = 44.0, number: int = 0):
+    def __init__(
+        self,
+        name: str,
+        channels: int = 128,
+        portname: str = "",
+        framerate: float = 44.0,
+        number: int = 0,
+    ):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
         self.statusChanged = {}
         # Sender needs the values to be there for setup
         self.values = numpy.array([0.0] * channels, dtype="f4")
-        self.sender = makeSender(
-            DMXSender, weakref.ref(self), portname, framerate)
+        self.sender = makeSender(DMXSender, weakref.ref(self), portname, framerate)
 
         Universe.__init__(self, name, channels)
         self.sender.connect()
@@ -485,10 +489,10 @@ class EnttecUniverse(Universe):
         return super().close()
 
 
-class DMXSender():
+class DMXSender:
     """This object is used by the universe object to send data to the enttec adapter.
-        It runs in it's own thread because the frame rate might have nothing to do with
-        the rate at which the data actually gets rendered.
+    It runs in it's own thread because the frame rate might have nothing to do with
+    the rate at which the data actually gets rendered.
     """
 
     def __init__(self, universe, port, framerate: float):
@@ -518,13 +522,14 @@ class DMXSender():
         try:
             self.reconnect()
         except Exception as e:
-            self.setStatus('Could not connect, ' + str(e)[:100] + '...', False)
+            self.setStatus("Could not connect, " + str(e)[:100] + "...", False)
 
     def reconnect(self, portlist=None):
         "Try to reconnect to the adapter"
         try:
             import serial
             import serial.tools
+
             if not self.portname:
                 import serial.tools.list_ports
 
@@ -532,13 +537,15 @@ class DMXSender():
                 if p:
                     if len(p) > 1:
                         self.setStatus(
-                            'More than one device found, refusing to guess. Please specify a device.', False)
+                            "More than one device found, refusing to guess. Please specify a device.",
+                            False,
+                        )
                         return
                     else:
                         p = p[0].device
                 else:
                     self.port = None
-                    self.setStatus('No device found', False)
+                    self.setStatus("No device found", False)
                     return
             else:
                 p = self.portname
@@ -552,22 +559,21 @@ class DMXSender():
             # This is a flush to try to re-sync recievers that don't have any kind of time out detection
             # We do this by sending a frame where each value is the packet end code,
             # Hoping that it lines up with the end of whatever unfinished data we don't know about.
-            self.setStatus('Found port, writing sync data', True)
+            self.setStatus("Found port, writing sync data", True)
 
-            for i in range(0, 8):
+            for i in range(8):
                 self.port.write(message(numpy.array([231] * 120)))
                 time.sleep(0.05)
-            self.port.write(
-                message(numpy.zeros(max(128, len(self.universe().values)))))
+            self.port.write(message(numpy.zeros(max(128, len(self.universe().values)))))
             time.sleep(0.1)
             self.port.read(self.port.inWaiting())
             time.sleep(0.05)
             self.port.write(self.data)
-            self.setStatus('connected to ' + p, True)
+            self.setStatus("connected to " + p, True)
         except Exception as e:
             try:
                 self.port = None
-                self.setStatus('dis_connected, ' + str(e)[:100] + '...', False)
+                self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
             except Exception:
                 pass
 
@@ -588,8 +594,7 @@ class DMXSender():
                         return
                     self.port.write(self.data)
                     self.frame.clear()
-                time.sleep(
-                    max(((1.0 / self.framerate) - (time.time() - s)), 0))
+                time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
                     self.port.close()
@@ -599,12 +604,12 @@ class DMXSender():
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus('dis_connected, ' + str(e)
-                                       [:100] + '...', False)
+                        self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
                     self.port = None
                     # I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
                     time.sleep(3)
                     import serial
+
                     portlist = serial.tools.list_ports.comports()
                     # reconnect is designed not to raise Exceptions, so if there's0
                     # an error here it's probably because the whole scope is being cleaned
@@ -622,7 +627,14 @@ class DMXSender():
 
 
 class ArtNetUniverse(Universe):
-    def __init__(self, name, channels=128, address="255.255.255.255:6454", framerate=44.0, number=0):
+    def __init__(
+        self,
+        name,
+        channels=128,
+        address="255.255.255.255:6454",
+        framerate=44.0,
+        number=0,
+    ):
         self.ok = True
         self.status = "OK"
         self.number = number
@@ -632,7 +644,7 @@ class ArtNetUniverse(Universe):
         if len(x) > 1:
             scheme = x[0]
         else:
-            scheme = ''
+            scheme = ""
 
         addr, port = x[-1].split(":")
         port = int(port)
@@ -641,15 +653,16 @@ class ArtNetUniverse(Universe):
 
         # Channel 0 is a dummy to make math easier.
         self.values = numpy.array([0.0] * (channels + 1), dtype="f4")
-        self.sender = makeSender(ArtNetSender, weakref.ref(
-            self), addr, port, framerate, scheme)
+        self.sender = makeSender(
+            ArtNetSender, weakref.ref(self), addr, port, framerate, scheme
+        )
 
         Universe.__init__(self, name, channels)
 
         self.hidden = False
 
     def onFrame(self):
-        data = (self.values)
+        data = self.values
         self.sender.onFrame(data, None, self.number)
 
     def __del__(self):
@@ -686,9 +699,9 @@ class TagpointUniverse(Universe):
                 if not i.strip():
                     continue
 
-                x = i.split(':')
+                x = i.split(":")
 
-                chname = ''
+                chname = ""
                 try:
                     num = int(x[0].strip())
                 except Exception:
@@ -699,13 +712,14 @@ class TagpointUniverse(Universe):
                     chname = x[1].strip()
                 else:
                     if not chname:
-                        chname = 'tp' + str(num)
+                        chname = "tp" + str(num)
 
                 tpn = self.tagpoints[i]
                 if tpn:
                     self.tagObjsByNum[num] = kaithem.tags[tpn]
                     self.claims[num] = kaithem.tags[tpn].claim(
-                        0, "Chandler_" + name, 50 if number < 2 else number)
+                        0, "Chandler_" + name, 50 if number < 2 else number
+                    )
                     self.channelNames[chname] = num
 
             except Exception as e:
@@ -724,14 +738,18 @@ class TagpointUniverse(Universe):
             try:
                 x = float(self.values[i])
                 if x > -1:
-                    if self.tagObjsByNum[i].min is not None and self.tagObjsByNum[i].min >= -10**14:
-
+                    if (
+                        self.tagObjsByNum[i].min is not None
+                        and self.tagObjsByNum[i].min >= -(10**14)
+                    ):
                         # Should the tag point have a range set, and should that range be smaller than some very large possible default
                         # it could be, map the value from our 0-255 scale to whatever the tag point's scale is.
-                        if self.tagObjsByNum[i].max is not None and self.tagObjsByNum[i].max <= 10**14:
+                        if (
+                            self.tagObjsByNum[i].max is not None
+                            and self.tagObjsByNum[i].max <= 10**14
+                        ):
                             x = x / 255
-                            x *= self.tagObjsByNum[i].max - \
-                                self.tagObjsByNum[i].min
+                            x *= self.tagObjsByNum[i].max - self.tagObjsByNum[i].min
                             x += self.tagObjsByNum[i].min
                     self.claims[i].set(x)
             except Exception:
@@ -743,10 +761,10 @@ def makeSender(c, uref, *a):
     return c(uref, *a)
 
 
-class ArtNetSender():
+class ArtNetSender:
     """This object is used by the universe object to send data to the enttec adapter.
-        It runs in it's own thread because the frame rate might have nothing to do with
-        the rate at which the data actually gets rendered.
+    It runs in it's own thread because the frame rate might have nothing to do with
+    the rate at which the data actually gets rendered.
     """
 
     def __init__(self, universe, addr, port, framerate, scheme):
@@ -759,13 +777,14 @@ class ArtNetSender():
         # The last telemetry we didn't ignore
         self.lastTelemetry = 0
         if self.scheme == "pavillion":
+
             def onBatteryStatus(v):
-                self.universe().telemetry['battery'] = v
+                self.universe().telemetry["battery"] = v
                 if self.lastTelemetry < (time.time() - 10):
                     self.universe().statusChanged = {}
 
             def onConnectionStatus(v):
-                self.universe().telemetry['rssi'] = v
+                self.universe().telemetry["rssi"] = v
                 if self.lastTelemetry < (time.time() - 10):
                     self.universe().statusChanged = {}
 
@@ -780,6 +799,7 @@ class ArtNetSender():
         def run():
             import time
             import traceback
+
             interval = 1.1 / self.framerate
 
             while self.running:
@@ -799,7 +819,7 @@ class ArtNetSender():
                         # Here we have the option to use a Pavillion device
                         if self.scheme == "pavillion":
                             try:
-                                addr = kaithem.devices[self.addr].data['address']
+                                addr = kaithem.devices[self.addr].data["address"]
                             except Exception:
                                 time.sleep(3)
                                 continue
@@ -813,11 +833,11 @@ class ArtNetSender():
                         time.sleep(5)
                         raise
 
-                    time.sleep(
-                        max(((1.0 / self.framerate) - (time.time() - s)), 0))
-                except Exception as e:
+                    time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
+                except Exception:
                     core.rl_log_exc("Error in artnet universe")
                     print(traceback.format_exc())
+
         self.thread = threading.Thread(target=run)
         self.thread.name = "ArtnetSenderThread_" + self.thread.name
 
@@ -829,7 +849,7 @@ class ArtNetSender():
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         # Bind to the server address
-        self.sock.bind(('', 0))
+        self.sock.bind(("", 0))
         self.sock.settimeout(1)
 
         self.addr = addr
@@ -847,10 +867,16 @@ class ArtNetSender():
 
     def onFrame(self, data, physical=None, universe=0):
         with self.lock:
-            if not (data is None):
+            if data is not None:
                 # DMX starts at 1, don't send element 0 even though it exists.
-                p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) + struct.pack(
-                    ">H", len(data)) + (data.astype(numpy.uint8).tobytes()[1:])
+                p = (
+                    b"Art-Net\x00\x00\x50\x00\x0e\0"
+                    + struct.pack(
+                        "<BH", physical if physical is not None else universe, universe
+                    )
+                    + struct.pack(">H", len(data))
+                    + (data.astype(numpy.uint8).tobytes()[1:])
+                )
                 self.data = p
             else:
                 self.data = data
@@ -895,10 +921,10 @@ def makeDMXSender(uref, port, fr):
     return RawDMXSender(uref, port, fr)
 
 
-class RawDMXSender():
+class RawDMXSender:
     """This object is used by the universe object to send data to the enttec adapter.
-        It runs in it's own thread because the frame rate might have nothing to do with
-        the rate at which the data actually gets rendered.
+    It runs in it's own thread because the frame rate might have nothing to do with
+    the rate at which the data actually gets rendered.
     """
 
     def __init__(self, universe, port, framerate):
@@ -932,12 +958,13 @@ class RawDMXSender():
         try:
             self.reconnect()
         except Exception as e:
-            self.setStatus('Could not connect, ' + str(e)[:100] + '...', False)
+            self.setStatus("Could not connect, " + str(e)[:100] + "...", False)
 
     def reconnect(self):
         "Try to reconnect to the adapter"
         try:
             import serial
+
             if not self.portname:
                 import serial.tools.list_ports
 
@@ -945,12 +972,14 @@ class RawDMXSender():
                 if p:
                     if len(p) > 1:
                         self.setStatus(
-                            'More than one device found, refusing to guess. Please specify a device.', False)
+                            "More than one device found, refusing to guess. Please specify a device.",
+                            False,
+                        )
                         return
                     else:
                         p = p[0].device
                 else:
-                    self.setStatus('No device found', False)
+                    self.setStatus("No device found", False)
                     return
             else:
                 p = self.portname
@@ -960,7 +989,8 @@ class RawDMXSender():
             except Exception:
                 pass
             self.port = serial.Serial(
-                p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2)
+                p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2
+            )
 
             self.port.read(self.port.inWaiting())
             time.sleep(0.05)
@@ -970,11 +1000,11 @@ class RawDMXSender():
             time.sleep(0.0003)
             self.port.write(self.data)
             self.port.flush()
-            self.setStatus('connected to ' + p, True)
+            self.setStatus("connected to " + p, True)
 
         except Exception as e:
             try:
-                self.setStatus('dis_connected, ' + str(e)[:100] + '...', False)
+                self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
             except Exception:
                 pass
 
@@ -1000,8 +1030,7 @@ class RawDMXSender():
                     self.port.write(self.data)
                     if x:
                         self.frame.clear()
-                time.sleep(
-                    max(((1.0 / self.framerate) - (time.time() - s)), 0))
+                time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
                     self.port.close()
@@ -1011,8 +1040,7 @@ class RawDMXSender():
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus('dis_connected, ' + str(e)
-                                       [:100] + '...', False)
+                        self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
                     self.port = None
                     # reconnect is designed not to raise Exceptions, so if there's0
                     # an error here it's probably because the whole scope is being cleaned
@@ -1045,7 +1073,13 @@ kaithem.message.subscribe("/system/tags/deleted", onDelTag)
 
 
 def onAddTag(t, m):
-    if 'color' not in m and 'fade' not in m and 'light' not in m and 'bulb' not in m and 'colour' not in m:
+    if (
+        "color" not in m
+        and "fade" not in m
+        and "light" not in m
+        and "bulb" not in m
+        and "colour" not in m
+    ):
         return
     discoverColorTagDevices()
 
@@ -1087,7 +1121,7 @@ def discoverColorTagDevices():
         for j in sorted(d.tagPoints.keys()):
             jn = d.tagPoints[j].name
             # everything between the last slash and the dot, because the dot marks "property of"
-            subdevice = jn.split('/')[-1].split('.')[0]
+            subdevice = jn.split("/")[-1].split(".")[0]
 
             if last_sd and c and not subdevice == last_sd:
                 handleSubdevice(i, subdevice, c, ft)
@@ -1098,7 +1132,7 @@ def discoverColorTagDevices():
 
             t = d.tagPoints[j]
 
-            if t.subtype == 'color':
+            if t.subtype == "color":
                 c = t
 
             elif t.subtype == "light_fade_duration":
@@ -1113,7 +1147,7 @@ def discoverColorTagDevices():
 
 class ColorTagUniverse(Universe):
     """
-        Detects devices with a "color" property having the subtype color.
+    Detects devices with a "color" property having the subtype color.
     """
 
     def __init__(self, name, tag, fadeTag=None):
@@ -1123,8 +1157,9 @@ class ColorTagUniverse(Universe):
         Universe.__init__(self, name, 4)
         self.hidden = False
         self.tag = tag
-        self.f = Fixture(self.name + ".rgb",
-                         [['R', 'red'], ['G', 'green'], ['B', 'blue']])
+        self.f = Fixture(
+            self.name + ".rgb", [["R", "red"], ["G", "green"], ["B", "blue"]]
+        )
         self.f.assign(self.name, 1)
         self.lock = threading.RLock()
 
@@ -1144,11 +1179,13 @@ class ColorTagUniverse(Universe):
                     self._onFrame()
                 finally:
                     self.lock.release()
+
         kaithem.misc.do(f)
 
     def _onFrame(self):
         c = colorzero.Color.from_rgb(
-            self.values[1] / 255, self.values[2] / 255, self.values[3] / 255).html
+            self.values[1] / 255, self.values[2] / 255, self.values[3] / 255
+        ).html
 
         tm = time.monotonic()
 
@@ -1157,8 +1194,7 @@ class ColorTagUniverse(Universe):
         if not c == self.lastColor or not c == self.tag.value:
             self.lastColor = c
             if self.fadeTag:
-                t = max(self.fadeEndTime - time.time(),
-                        self.interpolationTime, 0)
+                t = max(self.fadeEndTime - time.time(), self.interpolationTime, 0)
                 # Round to the nearest 20th of a second so we don't accidentally set the values more often than needed if it doesn't change
                 t = int(t * 20) / 20
                 self.fadeTag(t, tm, annotation="Chandler")

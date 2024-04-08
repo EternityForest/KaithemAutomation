@@ -1,9 +1,11 @@
 import logging
-from kaithem.src import kaithemobj, tagpoints, alerts, messagebus
+from kaithem.src import tagpoints, alerts, messagebus, geolocation
 import traceback
 import time
 import json
 import os
+
+from . import astrallibwrapper as sky
 
 
 refs = []
@@ -11,10 +13,27 @@ refs = []
 log = logging.getLogger("system")
 
 
+def is_dark():
+    lat, lon = geolocation.getCoords()
+
+    if lat is None or lon is None:
+        raise RuntimeError("No server location set, fix this in system settings")
+
+    return sky.is_dark(lat, lon)
+
+
+def is_night():
+    lat, lon = geolocation.getCoords()
+
+    if lat is None or lon is None:
+        raise RuntimeError("No server location set, fix this in system settings")
+    return sky.is_night(lat, lon)
+
+
 def create():
     def civil_twilight():
         try:
-            if kaithemobj.kaithem.time.is_dark():
+            if is_dark():
                 return 1
             else:
                 return 0
@@ -50,7 +69,7 @@ def create():
 
     def night():
         try:
-            if kaithemobj.kaithem.time.is_night():
+            if is_night():
                 return 1
             else:
                 return 0

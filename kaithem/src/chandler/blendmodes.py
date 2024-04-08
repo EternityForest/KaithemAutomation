@@ -4,8 +4,6 @@ import random
 import math
 import weakref
 from typing import Any, Dict, Tuple
-from ..kaithemobj import kaithem
-from . import core
 from . import universes
 
 
@@ -47,7 +45,6 @@ class BlendMode:
 
 class HardcodedBlendMode(BlendMode):
     "Indicates that the blend mode is hardcoded in applyLayer"
-    pass
 
 
 blendmodes: weakref.WeakValueDictionary[str, Any] = weakref.WeakValueDictionary()
@@ -60,6 +57,7 @@ def makeBlankArray(l, v=0):
 
 class flicker_blendmode(BlendMode):
     "Blend mode based on physical model flickering"
+
     parameters = {
         "gustiness": ("Gustiness", "number", "", 0.2),
         "lowpass": ("Lowpass", "number", "", 0.06),
@@ -171,6 +169,7 @@ blendmodes["flicker"] = flicker_blendmode
 
 class vary_blendmode_np(BlendMode):
     "Ads random variation, basically a random time varying gel"
+
     parameters = {
         "interval": (
             "Change Interval",
@@ -248,6 +247,7 @@ blendmodes["vary"] = vary_blendmode_np
 
 class exp_blendmode_np(BlendMode):
     "Ads random variation, basically a random time varying gel"
+
     default_channel_value = 165
 
     def __init__(self, scene):
@@ -267,6 +267,7 @@ blendmodes["gamma"] = exp_blendmode_np
 
 class sparks_blendmode(BlendMode):
     "Randomly jump to some of the values in this scene then fade back to what they were. Works in groups of 3 channels"
+
     parameters = {
         "fadetime": ("Fade Time", "number", "How fast to fade out again.", 1),
         "interval": ("Interval", "number", "How often to do a spark", 3),

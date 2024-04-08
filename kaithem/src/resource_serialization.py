@@ -26,7 +26,7 @@ def toPyFile(r):
     d += yaml.dump(r).replace("\\", "\\\\").replace('"""', r'\"""') + '\n"""\n\n'
 
     # Autoselect what quote to use
-    if not "'" in t:
+    if "'" not in t:
         d += "__trigger__='" + t.replace("\\", "\\\\").replace("'", r"\'") + "'\n\n"
     else:
         d += '__trigger__="' + t.replace("\\", "\\\\").replace('"', r"\"") + '"\n\n'

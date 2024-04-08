@@ -4,7 +4,6 @@
 from .config import config
 from . import directories
 from scullery import persist
-from scullery import messagebus
 
 import os
 import logging
@@ -16,7 +15,7 @@ if os.path.exists(fn):
 else:
     file = {}
 
-if not "web" in file:
+if "web" not in file:
     file["web"] = {}
     css = ""
 

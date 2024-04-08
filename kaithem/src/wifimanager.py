@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import uuid
 import weakref
 import logging
 from scullery import scheduling
@@ -84,8 +83,6 @@ def handleMessage(u, v):
 
 
 try:
-    import nmcli
-
     from . import util
 
     if not util.which("nmcli"):

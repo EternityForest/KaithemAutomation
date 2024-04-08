@@ -1278,7 +1278,7 @@ class GenericTagPointClass(Generic[T]):
 
             # We already replaced it because we use the same name, don't release the one we just made.
             # Only need to release if going to no override.
-            if toRelease and not self.kweb_tempManualOverrideClaim is toRelease:
+            if toRelease and self.kweb_tempManualOverrideClaim is not toRelease:
                 toRelease.release()
                 toRelease = None
 
@@ -2218,10 +2218,10 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         if not self._meterWidget:
             return
         self._meterWidget.setup(
-            self._min if (not (self._min is None)) else -100,
-            self._max if (not (self._max is None)) else 100,
-            self._hi if not (self._hi is None) else 10**16,
-            self._lo if not (self._lo is None) else -(10**16),
+            self._min if (self._min is not None) else -100,
+            self._max if (self._max is not None) else 100,
+            self._hi if self._hi is not None else 10**16,
+            self._lo if self._lo is not None else -(10**16),
             unit=self.unit,
             displayUnits=self.displayUnits,
         )
@@ -2257,7 +2257,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
                 try:
                     self._displayUnits = default_display_units[unit_types[value]]
                     # Always show the native unit
-                    if not value in self._displayUnits:
+                    if value not in self._displayUnits:
                         self._displayUnits = f"{value}|{self._displayUnits}"
                 except Exception:
                     self._displayUnits = value
@@ -2733,9 +2733,9 @@ class Claim(Generic[T]):
     def release(self):
         try:
             # Stop any weirdness with an old claim double releasing and thus releasing a new claim
-            if not self.tag.claims[self.name]() is self:
+            if self.tag.claims[self.name]() is not self:
                 # If the old replaced claim is somehow the active omne we acrtuallty should handle that
-                if not self.tag.active_claim() is self:
+                if self.tag.active_claim() is not self:
                     return
         except KeyError:
             return

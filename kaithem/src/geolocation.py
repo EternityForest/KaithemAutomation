@@ -6,7 +6,6 @@ import os
 from . import directories, messagebus, config
 from scullery import persist
 from urllib.request import urlopen
-import time
 import json
 
 import iot_devices.host
@@ -29,7 +28,7 @@ else:
     file = {}
 
 if config.config["location"]:
-    if not "default" in file:
+    if "default" not in file:
         file["default"] = {}
     latlon = config.config["location"].split(",")
     file["default"]["lat"] = float(latlon[0].strip())
@@ -37,7 +36,7 @@ if config.config["location"]:
 
 
 def use_api_if_needed():
-    if not "default" in file:
+    if "default" not in file:
         file["default"] = {}
 
     if not file["default"].get("lat", None) and not file["default"].get("lon", None):

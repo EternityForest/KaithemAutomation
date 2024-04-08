@@ -136,7 +136,7 @@ class ManageAuthorization:
 
         # Remove the user from all groups that the checkbox was not checked for
         for i in auth.Users[user]["groups"]:
-            if not ("Group" + i) in kwargs:
+            if ("Group" + i) not in kwargs:
                 auth.removeUserFromGroup(user, i)
 
         # Add the user to all checked groups

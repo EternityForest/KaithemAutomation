@@ -5,7 +5,6 @@ import threading
 import json
 from . import directories
 from typing import List
-from urllib.parse import quote
 
 fetchlock = threading.RLock()
 
@@ -16,7 +15,7 @@ defaultAssetPacks = [
     "https://github.com/Calinou/kenney-ui-audio",
     "https://github.com/EternityForest/Free-SFX",
     "https://github.com/EternityForest/Free-Music",
-    "https://github.com/Loppansson/kenney-rpg-audio-for-godot"
+    "https://github.com/Loppansson/kenney-rpg-audio-for-godot",
 ]
 
 
@@ -59,7 +58,7 @@ class AssetPacks:
         if os.path.normpath(f) == self.assetlib:
             for i in self.assetPackFolders.keys():
                 n = os.path.basename(i)
-                if not n + "/" in x:
+                if n + "/" not in x:
                     x.append(n + "/")
         if ap:
             l = fetch_list(
@@ -71,7 +70,7 @@ class AssetPacks:
                 if current == ".":
                     current = ""
                 if i["path"].startswith(current) and len(i["path"]) > len(current):
-                    if not "/" in i["path"][len(os.path.relpath(f, ap)) + 1:]:
+                    if "/" not in i["path"][len(os.path.relpath(f, ap)) + 1 :]:
                         p = os.path.basename(i["path"])
                         if i["type"] == "tree":
                             p = p + "/"

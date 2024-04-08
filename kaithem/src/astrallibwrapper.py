@@ -4,7 +4,6 @@
 """This file is an wrapper around some of the astral library, a pure python
 library providing all of kaithem's astronomical functions"""
 
-import pytz
 import datetime
 import time
 import calendar
@@ -68,19 +67,19 @@ def rahu(lat, lon, date=None, elevation=0):
     )
 
 
-def isNight(lat, lon):
+def is_night(lat, lon):
     return not (sunrise(lat, lon) <= time.time() <= sunset(lat, lon))
 
 
-def isDay(lat, lon):
+def is_day(lat, lon):
     return sunrise(lat, lon) <= time.time() <= sunset(lat, lon)
 
 
-def isDark(lat, lon):
+def is_dark(lat, lon):
     return not (dawn(lat, lon) <= time.time() <= dusk(lat, lon))
 
 
-def isLight(lat, lon):
+def is_light(lat, lon):
     return dawn(lat, lon) <= time.time() <= dusk(lat, lon)
 
 

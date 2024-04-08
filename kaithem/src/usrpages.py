@@ -10,12 +10,10 @@ import traceback
 import gc
 import mimetypes
 
-from attr import has
-from . import util, pages, directories, messagebus, systasks, modules_state, theming
+from . import util, pages, directories, messagebus, modules_state, theming
 import mako
 import cherrypy
 import tornado
-import sys
 import importlib
 import jinja2
 
@@ -252,7 +250,7 @@ class CompiledPage:
                     if resource["auto-reload"]:
                         header += f'<meta http-equiv="refresh" content="{resource["auto-reload-interval"]}">'
 
-                if not ("no-header" in resource) or not (resource["no-header"]):
+                if "no-header" not in resource or not (resource["no-header"]):
                     footer = util.readfile(
                         os.path.join(
                             directories.htmldir, "makocomponents", "pagefooter.html"
@@ -272,7 +270,7 @@ class CompiledPage:
                     self.scope["module"] = modules_state.scopes[m]
 
                 if (
-                    not "template-engine" in resource
+                    "template-engine" not in resource
                     or resource["template-engine"] == "mako"
                 ):
                     # Add in the separate code
@@ -502,7 +500,7 @@ def getPagesFromModules():
                     if j["resource-type"] == "page":
                         try:
                             _Pages[i][m] = CompiledPage(j, i, m)
-                        except Exception as e:
+                        except Exception:
                             makeDummyPage(m, i)
                             tb = traceback.format_exc(chain=True)
                             # When an error happens, log it and save the time
@@ -537,7 +535,7 @@ def getPagesFromModules():
                         if j.get("serve", False):
                             try:
                                 _Pages[i][m] = CompiledPage(j, i, m)
-                            except Exception as e:
+                            except Exception:
                                 makeDummyPage(m, i)
                                 tb = traceback.format_exc(chain=True)
                                 # When an error happens, log it and save the time

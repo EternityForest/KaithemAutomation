@@ -167,7 +167,7 @@ class Month(str):
             elif isinstance(month, int):
                 self.value = month
             self.value = self.namestonumbers[self.value]
-        except KeyError as e:
+        except KeyError:
             raise ValueError("Does not appear to be any valid Month")
 
     def __str__(self):

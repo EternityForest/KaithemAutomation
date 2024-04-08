@@ -1,12 +1,10 @@
 from kaithem.src.chandler import scenes, core
-from kaithem.src.sound import test_sound_logs
 from kaithem.src.sound import play_logs
 from kaithem.src import directories, tagpoints
 import time
 import logging
 import os
 import yaml
-import gc
 
 board = core.boards[0]()
 

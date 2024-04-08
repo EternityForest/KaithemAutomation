@@ -4,9 +4,7 @@
 # This file runs a self test when python starts
 
 import time
-import traceback
 import logging
-import threading
 import weakref
 
 running_tests = []

@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import atexit, threading, socket, time
+import atexit
+import threading
+import socket
+import time
 from urllib.parse import urlparse
 import logging
 

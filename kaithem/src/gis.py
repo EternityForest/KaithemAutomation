@@ -5,7 +5,7 @@ import uuid
 import random
 import os
 
-from typing import Optional, Union
+from typing import Optional
 
 from . import widgets
 
@@ -15,7 +15,7 @@ api.require_to_write("/users/map.edit")
 
 
 def on_message(user, m):
-    if m[0] == 'get_all_points':
+    if m[0] == "get_all_points":
         con = get_con()
         cur = con.cursor()
         cur.execute("SELECT * FROM obj")
@@ -23,31 +23,34 @@ def on_message(user, m):
         rv = {}
 
         for i in cur:
-            rv[i['id']] = {
-                'lat': i['lat'],
-                'lon': i['lon'],
-                'id':  i['id'],
-                'name': i['name'],
-                'layer': i['layer']
+            rv[i["id"]] = {
+                "lat": i["lat"],
+                "lon": i["lon"],
+                "id": i["id"],
+                "name": i["name"],
+                "layer": i["layer"],
             }
 
-        api.send(['all_points', rv])
+        api.send(["all_points", rv])
 
 
 api.attach(on_message)
 
 
-class MapAPI():
+class MapAPI:
     def __init__(self) -> None:
         pass
 
-fn = "/dev/shm/"+os.getlogin()+"_kgis"
+
+fn = "/dev/shm/" + os.getlogin() + "_kgis"
 
 con = sqlite3.connect(fn)
 
 cur = con.cursor()
 
-cur.execute("CREATE TABLE IF NOT EXISTS obj(id, layer, lat, lon, timestamp, expire, name, description, data)")
+cur.execute(
+    "CREATE TABLE IF NOT EXISTS obj(id, layer, lat, lon, timestamp, expire, name, description, data)"
+)
 con.commit()
 
 connections = threading.local()
@@ -67,31 +70,36 @@ def clean_old():
     con.commit()
 
 
-class Waypoint():
-    def __init__(self, lat=0, lon=0, id: Optional[str] = None, name='', layer='default') -> None:
+class Waypoint:
+    def __init__(
+        self, lat=0, lon=0, id: Optional[str] = None, name="", layer="default"
+    ) -> None:
         self.lat = lat
         self.lon = lon
         self.id = id or uuid
 
 
-def set_waypoint(id: str, location: Optional[tuple], name='', description='', layer='default'):
+def set_waypoint(
+    id: str, location: Optional[tuple], name="", description="", layer="default"
+):
     con = get_con()
     if not location:
         con.cursor().execute("DELETE FROM obj WHERE id=?", (id))
     else:
-        con.cursor().execute("INSERT INTO obj VALUES (?,?,?,?,?,?,?,?,?)",
-                             (
-                                 id,
-                                 layer,
-                                 location[0],
-                                 location[1],
-                                 time.time(),
-                                 0,
-                                 name,
-                                 description,
-                                 '{}'
-                             )
-                             )
+        con.cursor().execute(
+            "INSERT INTO obj VALUES (?,?,?,?,?,?,?,?,?)",
+            (
+                id,
+                layer,
+                location[0],
+                location[1],
+                time.time(),
+                0,
+                name,
+                description,
+                "{}",
+            ),
+        )
     con.commit()
     if random.random() > 100:
         clean_old()

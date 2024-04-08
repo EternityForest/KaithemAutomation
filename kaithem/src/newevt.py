@@ -8,9 +8,7 @@
 
 import traceback
 import threading
-import sys
 import typing
-from typing import Optional
 from collections.abc import Callable
 import time
 import cherrypy

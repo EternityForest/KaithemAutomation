@@ -48,8 +48,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     from scullery import messagebus
     from scullery import statemachines  # noqa: F401
     from . import auth  # noqa: F401
-    from . import pages
-    import iot_devices.host
 
     from . import config as cfg
     from . import gis  # noqa: F401

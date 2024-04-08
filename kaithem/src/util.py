@@ -4,8 +4,8 @@
 from typing import List
 from urllib.request import urlopen
 import reprlib
-from urllib.parse import unquote as unurl
 from urllib.parse import quote
+from urllib.parse import unquote as unurl  # noqa
 
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
 import os
@@ -15,11 +15,8 @@ import sys
 import shutil
 import difflib
 import time
-import json
 import traceback
 import stat
-import subprocess
-import copy
 import collections
 import types
 import weakref
@@ -145,7 +142,7 @@ def SaveAllState():
             messagebus.post_message("/system/save", None, synchronous=True)
             pylogginghandler.syslogger.flush()
             return x
-        except Exception as e:
+        except Exception:
             messagebus.post_message(
                 "/system/notifications/errors",
                 "Failed to save state:" + traceback.format_exc(8),

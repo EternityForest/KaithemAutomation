@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import traceback
 import os
-from scullery import messagebus
-from scullery import jacktools
+from scullery import messagebus  # noqa
+from scullery import jacktools  # noqa
 
 # Used by other stuff, yes this really is supposed to be there
 # as defensive fallback
-from icemedia.jack_tools import *
+from icemedia.jack_tools import *  # noqa
 
-from icemedia.jack_tools import Airwire, get_ports
+from icemedia.jack_tools import Airwire, get_ports  # noqa
 
 from scullery import messagebus
 

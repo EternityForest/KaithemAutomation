@@ -51,7 +51,7 @@ class SharedStateFile:
 
     def setupDefaults(self, defaults={}):
         for i in defaults:
-            if not i in self.data:
+            if i not in self.data:
                 self.set(i, defaults[i])
 
     def get(self, key, default=None):
@@ -134,7 +134,7 @@ def getStateFile(fn, defaults={}, deleteEmptyFiles=None) -> SharedStateFile:
             s = SharedStateFile(fn)
 
         s.setupDefaults(defaults)
-        if not (deleteEmptyFiles is None):
+        if deleteEmptyFiles is not None:
             s.noFileForEmpty = deleteEmptyFiles
     return s
 

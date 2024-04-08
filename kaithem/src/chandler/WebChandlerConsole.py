@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 import traceback
 import time
-from typing import List, Any, Dict
+from typing import List, Any
 from tinytag import TinyTag
 
 from . import ChandlerConsole
@@ -576,7 +576,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Are stored as if they are their own universe, starting with an @ sign.
             # Channels are stored by name and not by number.
             for i in x.channels:
-                if not i[1] in ("unused", "fixed"):
+                if i[1] not in ("unused", "fixed"):
                     if hasattr(cue.scene().blendClass, "default_channel_value"):
                         val = cue.scene().blendClass.default_channel_value
                     else:
@@ -591,7 +591,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
                 # The __dest__ channels represet the color at the end of the channel
                 for i in x.channels:
-                    if not i[1] in ("unused", "fixed"):
+                    if i[1] not in ("unused", "fixed"):
                         if hasattr(cue.scene().blendClass, "default_channel_value"):
                             val = cue.scene().blendClass.default_channel_value
                         else:
@@ -657,7 +657,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "add_cue":
             n = msg[2].strip()
-            if not msg[2] in scenes.scenes[msg[1]].cues:
+            if msg[2] not in scenes.scenes[msg[1]].cues:
                 scenes.scenes[msg[1]].add_cue(n)
 
         elif cmd_name == "rename_cue":

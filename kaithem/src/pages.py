@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import importlib
-from . import config as cfg
 from mako.lookup import TemplateLookup
 import cherrypy
 import base64
@@ -12,9 +11,8 @@ import logging
 import os
 import mimetypes
 import jinja2
-from . import auth, config
-from . import directories, util
-from typing import Dict
+from . import auth
+from . import directories
 
 _Lookup = TemplateLookup(
     directories=[

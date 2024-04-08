@@ -10,7 +10,7 @@ from . import (
     unitsofmeasure,
 )
 from typeguard import typechecked
-from typing import Union, Dict, Optional, Any
+from typing import Any
 import logging
 import threading
 import time

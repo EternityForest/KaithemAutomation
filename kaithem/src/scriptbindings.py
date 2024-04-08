@@ -54,7 +54,6 @@ If there is an unrecognized type, it is treated as a string.
 
 from __future__ import annotations
 
-import uuid
 from . import geolocation
 from . import astrallibwrapper as sky
 import logging
@@ -66,13 +65,13 @@ import time
 import weakref
 import pytz
 import math
-from typing import Any, Dict, Optional, List
+from typing import Any
 from collections.abc import Callable
 from scullery.scheduling import scheduler
+from scullery import workers
 import datetime
 from types import MethodType
-from typing import List
-from . import tagpoints, workers
+from . import tagpoints
 import simpleeval
 
 simpleeval.MAX_POWER = 1024
@@ -194,37 +193,37 @@ def millis():
 # TODO separate the standard library stuff from this file?
 
 
-def isDay(lat=None, lon=None):
+def is_day(lat=None, lon=None):
     if lat is None:
         if lon is None:
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
             raise RuntimeError("No server location set, fix this in system settings")
-    return sky.isDay(lat, lon)
+    return sky.is_day(lat, lon)
 
 
-def isNight(lat=None, lon=None):
+def is_night(lat=None, lon=None):
     if lat is None:
         if lon is None:
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
             raise RuntimeError("No server location set, fix this in system settings")
-    return sky.isNight(lat, lon)
+    return sky.is_night(lat, lon)
 
 
-def isLight(lat=None, lon=None):
+def is_light(lat=None, lon=None):
     if lat is None:
         if lon is None:
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
             raise RuntimeError("No server location set, fix this in system settings")
-    return sky.isLight(lat, lon)
+    return sky.is_light(lat, lon)
 
 
-def isDark(lat=None, lon=None):
+def is_dark(lat=None, lon=None):
     if lon is None:
         lat, lon = geolocation.getCoords()
 
@@ -233,7 +232,7 @@ def isDark(lat=None, lon=None):
     if lat is None or lon is None:
         raise RuntimeError("No server location set, fix this in system settings")
 
-    return sky.isDark(lat, lon)
+    return sky.is_dark(lat, lon)
 
 
 globalUsrFunctions = {
@@ -248,10 +247,10 @@ globalUsrFunctions = {
     "sin": math.sin,
     "cos": math.cos,
     "sqrt": safesqrt,
-    "isDark": isDark,
-    "isNight": isNight,
-    "isLight": isLight,
-    "isDay": isDay,
+    "is_dark": is_dark,
+    "is_night": is_night,
+    "is_light": is_light,
+    "is_day": is_day,
 }
 
 globalConstants = {"e": math.e, "pi": math.pi}
@@ -272,7 +271,7 @@ def maybe(chance=50):
     return True if random.random() * 100 > chance else None
 
 
-def continueIf(v):
+def continue_if(v):
     "Continue if the first parameter is True. Remember that the param can be an expression like '= event.value=50'"
     return True if v else None
 
@@ -284,7 +283,7 @@ predefinedcommands = {
     "return": rval,
     "pass": passAction,
     "maybe": maybe,
-    "continueIf": continueIf,
+    "continue_if": continue_if,
 }
 
 
@@ -423,7 +422,7 @@ class BaseChandlerScriptContext:
 
         self.children: dict[str, BaseChandlerScriptContext] = {}
         self.children_iterable = {}
-        self.constants: dict[str, Any] = constants if (not (constants is None)) else {}
+        self.constants: dict[str, Any] = constants if (constants is not None) else {}
         self.contextName = contextName
 
         # Cache whether or not any binding is watching a variable
@@ -809,7 +808,7 @@ class BaseChandlerScriptContext:
             self.needRefreshForVariable = {}
             self.needRefreshForTag = {}
             for i in b:
-                if not i[0] in self.eventListeners:
+                if i[0] not in self.eventListeners:
                     self.eventListeners[i[0]] = []
                 self.eventListeners[i[0]].append(i[1])
                 self.onBindingAdded(i)

@@ -79,7 +79,7 @@ sdhealth = getSDHealth()
 
 
 # EmberOS has the service needed to make this work
-if not sdhealth is None:
+if sdhealth is not None:
     sdTag = tagpoints.Tag("/system/sdcard.health")
     sdTag.min = 0
     sdTag.max = 100
@@ -93,7 +93,7 @@ if not sdhealth is None:
     @scheduling.scheduler.every_hour
     def doSD():
         s = getSDHealth()
-        if not s is None:
+        if s is not None:
             sdTag.value = s
 
 
@@ -117,7 +117,7 @@ if psutil:
                         id = p.device + " at " + p.mountpoint
                         found[id] = True
 
-                        if not id in diskAlerts:
+                        if id not in diskAlerts:
                             diskAlerts[id] = alerts.Alert(
                                 "Low remaining space on " + id,
                                 priority="warning",
@@ -134,7 +134,7 @@ if psutil:
                             diskAlerts[id].release()
 
             for i in list(diskAlerts.keys()):
-                if not i in found:
+                if i not in found:
                     diskAlerts[i].release()
                     del diskAlerts[i]
 
@@ -158,7 +158,7 @@ if psutil:
             if negpeak < 0 and negpeak > -50:
                 peak = negpeak
 
-            if not i in tempTags:
+            if i not in tempTags:
                 # Fix the name
                 tempTags[i] = tagpoints.Tag(
                     tagpoints.normalize_tag_name("/system/sensors/temp/" + i, "_")

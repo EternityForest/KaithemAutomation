@@ -1,10 +1,7 @@
 import cherrypy
 from .. import pages
-from .. import usrpages
 import os
-from mako.template import Template
 from mako.lookup import TemplateLookup
-from mako import exceptions
 
 from ..kaithemobj import kaithem
 from . import core
@@ -83,7 +80,7 @@ def command_tagsListing():
     return v
 
 
-from .. import util, directories
+from .. import directories
 
 
 class Web:

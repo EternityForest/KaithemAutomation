@@ -3,8 +3,9 @@
 
 from scullery.mqtt import Connection as BaseConnection
 from scullery import mqtt
-from . import tagpoints, messagebus, alerts, util, workers
-import threading, weakref
+from . import tagpoints
+import threading
+import weakref
 
 allConnections = {}
 allConnectionsLock = threading.Lock()

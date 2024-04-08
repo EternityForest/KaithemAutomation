@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import weakref
 from . import workers
 import time
 import json
@@ -10,7 +9,7 @@ import cherrypy
 import os
 import threading
 from scullery import scheduling
-from . import messagebus, pages, auth, widgets, persist, directories
+from . import messagebus, pages, widgets, persist, directories
 from .unitsofmeasure import strftime
 from .config import config
 
@@ -156,7 +155,7 @@ def subscriber(topic, message):
                     # notify all of the services loaded into our Apprise object.
                     apobj.notify(
                         body=str(message),
-                        title=("Notification" if not "error" in topic else "Error")
+                        title=("Notification" if "error" not in topic else "Error")
                         + " "
                         + ts,
                     )
