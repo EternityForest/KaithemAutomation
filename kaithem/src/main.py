@@ -84,7 +84,11 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
             from . import newevt
             import traceback
 
-            newevt.eventsByModuleName[f.__module__]._handle_exception()
+            if f.__module__ in newevt.eventsByModuleName:
+                newevt.eventsByModuleName[f.__module__]._handle_exception()
+            else:
+                print(traceback.format_exc())
+
         except Exception:
             print(traceback.format_exc())
 
