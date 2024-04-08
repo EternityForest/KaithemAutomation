@@ -450,10 +450,6 @@ class Kaithem:
 
             return 100 * (x / 14.0)
 
-        @staticmethod
-        def accuracy():
-            return util.timeaccuracy()
-
     class sys:
         @staticmethod
         def shellex(cmd):

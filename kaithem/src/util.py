@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from typing import List
-from urllib.request import urlopen
+from urllib.request import urlopen  # noqa
 import reprlib
 from urllib.parse import quote
 from urllib.parse import unquote as unurl  # noqa
 
-"This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
 import os
 import threading
 import copy
@@ -246,26 +245,6 @@ def deleteAllButHighestNumberedNDirectories(where, N):
         shutil.rmtree(os.path.join(where, asnumbers[i]))
 
 
-def deleteOldStuffAndEmptyDirectories(where, age):
-    torm = []
-
-    for b, d, f in os.walk(where, topdown=False):
-        for i in f:
-            if os.stat(f).st_mtime < time.time() - age:
-                torm.append(os.path.join(b, i))
-
-    for i in torm:
-        os.remove(i)
-
-    for b, d, f in os.walk(where, topdown=False):
-        for i in d:
-            if not os.listdir(i):
-                torm.append(os.path.join(b, i))
-
-    for i in torm:
-        os.remove(i)
-
-
 def disallowSpecialChars(s, allow=""):
     for i in r"""~!@#$%^&*()_+`-=[]\{}|;':"',./<>?""":
         if i in s:
@@ -318,65 +297,12 @@ def which(program):
     return None
 
 
-def restart():
-    cherrypy.engine.restart()
-
-
-def exit():
-    cherrypy.engine.exit()
-
-
-def updateIP():
-    global MyExternalIPAdress
-    # Yes, This really is the only way i know of to get your public IP.
-    try:
-        if config["get-public-ip"]:
-            u = urlopen("http://ipecho.net/plain", timeout=60)
-        MyExternalIPAdress = u.read()
-
-        MyExternalIPAdress = MyExternalIPAdress.decode("utf8")
-
-    except Exception:
-        MyExternalIPAdress = "unknown"
-    finally:
-        try:
-            u.close()
-        except Exception:
-            pass
-    return MyExternalIPAdress
-
-
 last = time.time()
 
 
 lastNTP = 0
 oldNTPOffset = 30 * 365 * 24 * 60 * 60
 hasInternet = False
-
-
-def timeaccuracy():
-    from . import messagebus
-
-    global lastNTP, oldNTPOffset
-    try:
-        if (time.time() - lastNTP) > 600:
-            lastNTP = time.time()
-            c = ntplib.NTPClient()
-            response = c.request("ntp.pool.org", version=3)
-            oldNTPOffset = (
-                response.offset + response.root_delay + response.root_dispersion
-            )
-            if not hasInternet:
-                messagebus.post_message("/system/internet", True)
-            hasInternet = True
-            return oldNTPOffset
-        else:
-            return oldNTPOffset + (time.time() - lastNTP) / 10000.0
-    except Exception:
-        if hasInternet:
-            messagebus.post_message("/system/internet", False)
-        hasInternet = False
-        return oldNTPOffset + (time.time() - lastNTP) / 10000.0
 
 
 def diff(a, b):
@@ -513,7 +439,7 @@ def saferepr(obj):
     try:
         return srepr.repr(obj)
     except Exception as e:
-        return e + " in repr() call"
+        return str(e) + " in repr() call"
 
 
 currentUser = None
@@ -522,44 +448,6 @@ currentUser = None
 def getUser():
     global currentUser
     return currentUser or getpass.getuser()
-
-
-# Partly based on code by Tamás of stack overflow.
-
-
-def drop_perms(user, group=None):
-    global currentUser
-    if os.name == "nt":
-        return
-
-    if os.getuid() != 0:
-        # No perms to drop!!
-        return
-
-    if user.strip() == "root":
-        # Don't mess with stuff uneccesarily,
-        # Changing to the exact same user can cause problems
-        return
-
-    logger.info("Changing user and group to: " + str(user) + " " + str(group))
-
-    import grp
-    import pwd
-
-    # Thanks to Gareth A. Lloyd of Stack Exchange!
-    groups = [g.gr_gid for g in grp.getgrall() if user in g.gr_mem]
-    gid = pwd.getpwnam(user).pw_gid
-    groups.append(grp.getgrgid(gid).gr_gid)
-
-    if group == "__default__":
-        group = user
-
-    running_uid = pwd.getpwnam(user).pw_uid
-    running_gid = grp.getgrnam(group).gr_gid
-    os.setgroups(groups)
-    os.setgid(running_gid)
-    os.setuid(running_uid)
-    currentUser = user
 
 
 def lrucache(n=10):

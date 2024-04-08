@@ -7,6 +7,7 @@ Change Log
 - :coffin: Remove old baresip code
 - :coffin: Remove kaithem.midi API
 - :coffin: Remove the image map creator util
+- :coffin: Remove kaithem.time.accuracy
 
 - :sparkles: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
 
