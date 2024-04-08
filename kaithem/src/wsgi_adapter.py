@@ -33,6 +33,7 @@ slashmarker = "51e0db35-6279-4d10-91ef-eae1938ac9fa"
 @web.stream_request_body
 class WSGIHandler(web.RequestHandler):
     thread_pool_size = 20
+    _executor: futures.ThreadPoolExecutor
 
     def initialize(self, wsgi_application):
         self.wsgi_application = wsgi_application
@@ -64,8 +65,9 @@ class WSGIHandler(web.RequestHandler):
             "REQUEST_METHOD": request.method,
             "SCRIPT_NAME": "",
             "PATH_INFO": to_wsgi_str(
-                escape.url_unescape(request.path.replace(
-                    "%2F", slashmarker), encoding=None, plus=False).replace(slashmarkerb, b'%2F')
+                escape.url_unescape(
+                    request.path.replace("%2F", slashmarker), encoding=None, plus=False
+                ).replace(slashmarkerb, b"%2F")
             ),
             "QUERY_STRING": request.query,
             "REMOTE_ADDR": request.remote_ip,
@@ -90,13 +92,17 @@ class WSGIHandler(web.RequestHandler):
 
     def write_error(self, status_code, **kwargs):
         if status_code == 500:
-            excp = kwargs['exc_info'][1]
-            tb = kwargs['exc_info'][2]
+            excp = kwargs["exc_info"][1]
+            tb = kwargs["exc_info"][2]
             stack = traceback.extract_tb(tb)
-            clean_stack = [i for i in stack if i[0][-6:] !=
-                           'gen.py' and i[0][-13:] != 'concurrent.py']
-            error_msg = '{}\n  Exception: {}'.format(
-                ''.join(traceback.format_list(clean_stack)), excp)
+            clean_stack = [
+                i
+                for i in stack
+                if i[0][-6:] != "gen.py" and i[0][-13:] != "concurrent.py"
+            ]
+            error_msg = "{}\n  Exception: {}".format(
+                "".join(traceback.format_list(clean_stack)), excp
+            )
 
             self.write(error_msg)
 
@@ -105,13 +111,13 @@ class WSGIHandler(web.RequestHandler):
             logging.error(error_msg)  # do something with your error...
 
     def prepare(self):
-        # Accept up to 2GB upload data.
-        self.request.connection.set_max_body_size(2 << 30)
+        pass
 
     @gen.coroutine
     def data_received(self, chunk):
         if self.body_tempfile is not None:
-            yield self.executor.submit(lambda: self.body_tempfile.write(chunk))
+            t = self.body_tempfile
+            yield self.executor.submit(lambda: t.write(chunk))
         else:
             self.body_chunks.append(chunk)
 
@@ -123,17 +129,18 @@ class WSGIHandler(web.RequestHandler):
             limit = max(10**6, limit)
 
             if sum(len(c) for c in self.body_chunks) > limit:
-                raise RuntimeError("Reques body too big for user limit")
+                raise RuntimeError("Request body too big for user limit")
 
             # When the request body grows larger than 5 MB we dump all receiver chunks into
             # a temporary file to prevent high memory use. All subsequent body chunks will
             # be directly written into the tempfile.
             if sum(len(c) for c in self.body_chunks) > (10**6 * 5):
-                self.body_tempfile = tempfile.NamedTemporaryFile("w+b")
+                t = tempfile.NamedTemporaryFile("w+b")
+                self.body_tempfile = t
 
                 def copy_to_file():
                     for c in self.body_chunks:
-                        self.body_tempfile.write(c)
+                        t.write(c)
                     # Remove the chunks to clear the memory.
                     self.body_chunks[:] = []
 
@@ -187,7 +194,7 @@ class WSGIHandler(web.RequestHandler):
                     break
         except StreamClosedError:
             pass
-            #_logger.debug("stream closed early")
+            # _logger.debug("stream closed early")
         finally:
             # Close the temporary file to make sure that it gets deleted.
             if self.body_tempfile is not None:
@@ -206,5 +213,6 @@ class WSGIHandler(web.RequestHandler):
         cls = type(self)
         if not hasattr(cls, "_executor"):
             cls._executor = futures.ThreadPoolExecutor(
-                cls.thread_pool_size, thread_name_prefix="nostartstoplog.http.")
+                cls.thread_pool_size, thread_name_prefix="nostartstoplog.http."
+            )
         return cls._executor
