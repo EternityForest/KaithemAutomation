@@ -1,0 +1,20 @@
+{% extends "pagetemplate.j2.html" %}
+{% block body %}
+<main>
+    <section class="window paper w-sm-double margin">
+        <header>{{title}}</header>
+
+        <form class="stacked-form" action="{{target}}" method="POST">
+        {% for i in items %}
+            {% if i[0] %}
+                <label>{{i[0]}}
+                    {{i[1]}}
+                </label>
+            {% else %}
+                {{i[1]}}
+            {% endif %}
+        {% endfor %}
+        </form>
+    </section>
+</main>
+{% endblock %}

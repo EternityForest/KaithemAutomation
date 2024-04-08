@@ -25,6 +25,7 @@ from . import (
     unitsofmeasure,
     modules,
     modules_state,
+    dialogs,
 )
 from .modules import external_module_locations
 
@@ -736,8 +737,12 @@ def addResourceDispatcher(module, type, path):
 
     # Return a crud to add a new permission
     if type == "permission":
-        return pages.get_template("modules/permissions/new.html").render(
-            module=module, path=path
+        d = dialogs.Dialog("New Permission in {module}")
+        d.text_input("name")
+        d.text_input("description")
+        d.submit_button("Submit")
+        return d.render(
+            f"/modules/module/{url(module)}/addresourcetarget/permission/{url(path)}"
         )
 
     # return a crud to add a new event
