@@ -8,13 +8,15 @@ Change Log
 - :coffin: Remove kaithem.midi API
 - :coffin: Remove the image map creator util
 - :coffin: Remove kaithem.time.accuracy, lantime, hour, month, day, second, minute, dayofweek
-  - :coffin: Remove kaithem.sys.shellex, shellexbg, which
+- :coffin: Remove kaithem.sys.shellex, shellexbg, which
 
 - :coffin: Remove kaithem.events.when and kaithem.events.after
 
 - :sparkles: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
 
 - :sparkles: Split off internal scheduling and state machines to [Scullery](https://github.com/EternityForest/scullery) meant for easy standalone use.
+
+- :sparkles: Add badges(CC0 licensed)
 
 
 ### 0.77.0

@@ -5,7 +5,7 @@ import pwd
 import os
 import json
 from scullery.persist import load, save
-from scullery.persist import *
+from scullery.persist import *  # noqa
 from scullery.messagebus import subscribe, post_message
 
 import weakref

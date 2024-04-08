@@ -22,13 +22,6 @@ def setupPath(linuxpackage=None, force_local=False):
     # This is ow we detect if we are running in "unzip+run mode" or installed on linux.
     # If we are installed, then src is found in /usr/lib/kaithem
 
-    if x.startswith("/usr/bin") and not force_local:
-        x = "/usr/lib/kaithem"
-        sys.path = [x] + sys.path
-    else:
-        logger.info("Running in unzip-and-run mode")
-
-    whatHasTheSrcFolder = x
     x = os.path.join(x, "src")
 
     sys.path = [os.path.join(x, "plugins", "ondemand")] + sys.path
@@ -61,4 +54,4 @@ def setupPath(linuxpackage=None, force_local=False):
                 return sys.modules[i]
 
 
-setupPath(linuxpackage=os.path.abspath(__file__).startswith("/usr/bin"))
+setupPath()

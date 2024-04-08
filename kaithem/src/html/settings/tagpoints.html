@@ -102,7 +102,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td><span style="color: grey">Value is binary data</span></td>
-    <td>${tagpoints.allTagsAtomic[i]().active_claim().name if tagpoints.allTagsAtomic[i]().active_claim() else 'CORRUPT STATE'}</td>
+    <td>${tagpoints.allTagsAtomic[i]().active_claim.name if tagpoints.allTagsAtomic[i]().active_claim else 'CORRUPT STATE'}</td>
 </tr>
 %endif
 

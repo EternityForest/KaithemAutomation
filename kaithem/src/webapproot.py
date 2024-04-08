@@ -456,16 +456,8 @@ class webapproot:
 
 root = webapproot()
 
-if not os.path.abspath(__file__).startswith("/usr/bin"):
-    sdn = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src"
-    )
-    ddn = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data"
-    )
-else:
-    sdn = "/usr/lib/kaithem/src"
-    ddn = "/usr/share/kaithem"
+sdn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src")
+ddn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
 
 conf = {
     "/static": {

@@ -469,7 +469,7 @@ class websocket_impl:
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
-def makeTornadoSocket(wsimpl=websocket_impl):
+def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandler:
     class WS(tornado.websocket.WebSocketHandler):
         def __init__(
             self, application: Application, request: HTTPServerRequest, **kwargs: Any

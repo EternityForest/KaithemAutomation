@@ -4,6 +4,7 @@ import time
 import urllib.parse
 import gc
 import copy
+import traceback
 
 import colorzero
 import cherrypy
@@ -143,8 +144,8 @@ def render_device_tag(obj, tag):
         return pages.render_jinja_template(
             "devices/device_tag_component.j2.html", i=tag, obj=obj
         )
-    except Exception as e:
-        return f"<article>{e}</article>"
+    except Exception:
+        return f"<article>{traceback.format_exc()}</article>"
 
 
 class WebDevices:

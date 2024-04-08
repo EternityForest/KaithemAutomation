@@ -266,8 +266,8 @@
         {% endif %}
 
         {% if not obj.tagPoints[i].subtype == 'mpegts' %}
-        {% if obj.tagPoints[i].active_claim().priority > 50.5 %}
-        Overridden: {{ obj.tagPoints[i].active_claim().name }}
+        {% if obj.tagPoints[i].active_claim.priority > 50.5 %}
+        Overridden: {{ obj.tagPoints[i].active_claim.name }}
         {% else %}
         <div class="tool-bar">
             {% if (not hasattr(obj.tagPoints[i],"writable")) or obj.tagPoints[i].writable %}
@@ -336,7 +336,7 @@
             {% endif %}
             {% endif %}
 
-            {% if devices.callable(obj.tagPoints[i].active_claim().value) %}
+            {% if devices.callable(obj.tagPoints[i].active_claim.value) %}
             <button type="button" onclick="_generic_ws_channel.send(['refresh', '{{ i| escape }}'])">Refresh</button>
             {% else %}
             {% endif %}

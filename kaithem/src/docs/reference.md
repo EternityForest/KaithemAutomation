@@ -7,7 +7,7 @@ phi=1.6180339887
 
 
 ### Highly Composite Numbers
-1, 2, 4, 6, 12, 24, 36, 48, 60, 120, 180, 240, 360, 720, 840, 1260, 1680, 2520, 5040, 7560, 10080, 15120, 20160, 25200, 27720, 45360, 50400, 55440, 83160, 110880, 166320, 221760, 277200, 332640, 498960, 554400, 665280, 720720, 1081080, 1441440, 2162160 
+1, 2, 4, 6, 12, 24, 36, 48, 60, 120, 180, 240, 360, 720, 840, 1260, 1680, 2520, 5040, 7560, 10080, 15120, 20160, 25200, 27720, 45360, 50400, 55440, 83160, 110880, 166320, 221760, 277200, 332640, 498960, 554400, 665280, 720720, 1081080, 1441440, 2162160
 
 ### Practical Numbers
 Barrel.css uses these numbers for sizing.
@@ -253,6 +253,117 @@ Barrel.css uses these numbers for sizing.
 | 126 | 7E  | 01111110 | ~        |
 | 127 |     | 7F       | 01111111 | DEL |
 
+## Notes and Frequencies(440hz tuning)
+| Name             | Frequency | MIDI note number         |
+| ---------------- | --------- | ------------------------ |
+| G9               | 12543.85  | 127                      |
+| F#9/Gb9          | 11839.82  | 126                      |
+| F9               | 11175.3   | 125                      |
+| E9               | 10548.08  | 124                      |
+| D#9/Eb9          | 9956.06   | 123                      |
+| D9               | 9397.27   | 122                      |
+| C#9/Db9          | 8869.84   | 121                      |
+| C9               | 8372.02   | 120                      |
+| B8               | 7902.13   | 119                      |
+| A#8/Bb8          | 7458.62   | 118                      |
+| A8               | 7040      | 117                      |
+| G#8/Ab8          | 6644.88   | 116                      |
+| G8               | 6271.93   | 115                      |
+| F#8/Gb8          | 5919.91   | 114                      |
+| F8               | 5587.65   | 113                      |
+| E8               | 5274.04   | 112                      |
+| D#8/Eb8          | 4978.03   | 111                      |
+| D8               | 4698.64   | 110                      |
+| C#8/Db8          | 4434.92   | 109                      |
+| C8               | 4186.01   | 108                      |
+| B7               | 3951.07   | 107                      |
+| A#7/Bb7          | 3729.31   | 106                      |
+| A7               | 3520      | 105                      |
+| G#7/Ab7          | 3322.44   | 104                      |
+| G7               | 3135.96   | 103                      |
+| F#7/Gb7          | 2959.96   | 102                      |
+| F7               | 2793.83   | 101                      |
+| E7               | 2637.02   | 100                      |
+| D#7/Eb7          | 2489.02   | 99                       |
+| D7               | 2349.32   | 98                       |
+| C#7/Db7          | 2217.46   | 97                       |
+| C7               | 2093      | 96                       |
+| B6               | 1975.53   | 95                       |
+| A#6/Bb6          | 1864.66   | 94                       |
+| A6               | 1760      | 93                       |
+| G#6/Ab6          | 1661.22   | 92                       |
+| G6               | 1567.98   | 91                       |
+| F#6/Gb6          | 1479.98   | 90                       |
+| F6               | 1396.91   | 89                       |
+| E6               | 1318.51   | 88                       |
+| D#6/Eb6          | 1244.51   | 87                       |
+| D6               | 1174.66   | 86                       |
+| C#6/Db6          | 1108.73   | 85                       |
+| C6               | 1046.5    | 84                       |
+| B5               | 987.77    | 83                       |
+| A#5/Bb5          | 932.33    | 82                       |
+| A5               | 880       | 81                       |
+| G#5/Ab5          | 830.61    | 80                       |
+| G5               | 783.99    | 79                       |
+| F#5/Gb5          | 739.99    | 78                       |
+| F5               | 698.46    | 77                       |
+| E5               | 659.26    | 76                       |
+| D#5/Eb5          | 622.25    | 75                       |
+| D5               | 587.33    | 74                       |
+| C#5/Db5          | 554.37    | 73                       |
+| C5               | 523.25    | 72                       |
+| B4               | 493.88    | 71                       |
+| A#4/Bb4          | 466.16    | 70                       |
+| A4 concert pitch | 440       | 69                       |
+| G#4/Ab4          | 415.3     | 68                       |
+| G4               | 392       | 67                       |
+| F#4/Gb4          | 369.99    | 66                       |
+| F4               | 349.23    | 65                       |
+| E4               | 329.63    | 64                       |
+| D#4/Eb4          | 311.13    | 63                       |
+| D4               | 293.66    | 62                       |
+| C#4/Db4          | 277.18    | 61                       |
+| C4 (middle C)    | 261.63    | 60                       |
+| B3               | 246.94    | 59                       |
+| A#3/Bb3          | 233.08    | 58                       |
+| A3               | 220       | 57                       |
+| G#3/Ab3          | 207.65    | 56                       |
+| G3               | 196       | 55                       |
+| F#3/Gb3          | 185       | 54                       |
+| F3               | 174.61    | 53                       |
+| E3               | 164.81    | 52                       |
+| D#3/Eb3          | 155.56    | 51                       |
+| D3               | 146.83    | 50                       |
+| C#3/Db3          | 138.59    | 49                       |
+| C3               | 130.81    | 48                       |
+| B2               | 123.47    | 47                       |
+| A#2/Bb2          | 116.54    | 46                       |
+| A2               | 110       | 45                       |
+| G#2/Ab2          | 103.83    | 44                       |
+| G2               | 98        | 43                       |
+| F#2/Gb2          | 92.5      | 42                       |
+| F2               | 87.31     | 41                       |
+| E2               | 82.41     | 40                       |
+| D#2/Eb2          | 77.78     | 39                       |
+| D2               | 73.42     | 38                       |
+| C#2/Db2          | 69.3      | 37                       |
+| C2               | 65.41     | 36                       |
+| B1               | 61.74     | 35                       |
+| A#1/Bb1          | 58.27     | 34                       |
+| A1               | 55        | 33                       |
+| G#1/Ab1          | 51.91     | 32                       |
+| G1               | 49        | 31                       |
+| F#1/Gb1          | 46.25     | 30                       |
+| F1               | 43.65     | 29                       |
+| E1               | 41.2      | 28                       |
+| D#1/Eb1          | 38.89     | 27                       |
+| D1               | 36.71     | 26                       |
+| C#1/Db1          | 34.65     | 25                       |
+| C1               | 32.7      | 24                       |
+| B0               | 30.87     | 23                       |
+| A#0/Bb0          | 29.14     | 22                       |
+| A0               | 27.5      | 21                       |
+
 ## Regular Expressions
 
 ```
@@ -264,7 +375,7 @@ a-z, a-Z, 0-9, etc:  Matches literal character
 ()                :  Capturing group, whatever is in the parens is separated in output
 $1, $2, etc       :  Refererence a capturing group
 ^                 :  Line start or string start
-$                 :  Line end or string end  
+$                 :  Line end or string end
 ```
 
 ### Regex examples
@@ -371,7 +482,7 @@ Match an email:
 | QSL  | I am acknowledging receipt. Can you acknowledge receipt (of a message or transmission)?                                                                         |
 | QSO  | I can communicate with _________ direct (or relay through ______). Can you communicate with ______ direct or by relay?                                          |
 | QSP  | I will relay to ______. Will you relay to ______?                                                                                                               |
-| QST  | General call preceding a message addressed to all amateurs and ARRL members. This is in effect “CQ ARRL.”                                                       |
+| QST  | General call preceding a message addressed to all amateurs and ARRL members. This is in effect "CQ ARRL."                                                       |
 | QSX  | I am listening to ______ on ______kHz. Will you listen to ______on ______kHz?                                                                                   |
 | QSY  | Change to transmission on another frequency (or on ______kHz). Shall I change to transmission on another frequency (or on ______kHz)?                           |
 | QTC  | I have ______messages for you (or for ______). How many messages have you to send?                                                                              |
@@ -528,11 +639,11 @@ Commonly used in choosing sizes of things.
 ```
 ACHTUNG!
 ALLES TURISTEN UND NONTEKNISCHEN LOOKENSPEEPERS!
-DAS KOMPUTERMASCHINE IST NICHT FÜR DER GEFINGERPOKEN UND MITTENGRABEN! 
-ODERWISE IST EASY TO SCHNAPPEN DER SPRINGENWERK, BLOWENFUSEN UND 
+DAS KOMPUTERMASCHINE IST NICHT FÜR DER GEFINGERPOKEN UND MITTENGRABEN!
+ODERWISE IST EASY TO SCHNAPPEN DER SPRINGENWERK, BLOWENFUSEN UND
 POPPENCORKEN MIT SPITZENSPARKEN.
 
-IST NICHT FÜR GEWERKEN BEI DUMMKOPFEN. DER RUBBERNECKEN SIGHTSEEREN KEEPEN DAS 
+IST NICHT FÜR GEWERKEN BEI DUMMKOPFEN. DER RUBBERNECKEN SIGHTSEEREN KEEPEN DAS
 COTTONPICKEN HÄNDER IN DAS POCKETS MUSS.
 ZO RELAXEN UND WATSCHEN DER BLINKENLICHTEN.
 ```
