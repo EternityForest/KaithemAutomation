@@ -104,12 +104,12 @@ def addMapping(
     cleanups = []
 
     for i in devices:
-        l = urlparse(i.location).netloc
-        if ":" in l:
-            l = l.split(":")[0]
+        location = urlparse(i.location).netloc
+        if ":" in location:
+            location = location.split(":")[0]
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        s.connect((l, 12345))
+        s.connect((location, 12345))
 
         # Get the IP that we use to talk to that particular router
         ownAddr = s.getsockname()[0]
@@ -185,15 +185,13 @@ def listMappings(deviceURL=None, cacheTime=1):
     mappings = []
 
     for i in devices:
-        l = urlparse(i.location).netloc
-        if ":" in l:
-            l = l.split(":")[0]
+        location = urlparse(i.location).netloc
+        if ":" in location:
+            location = location.split(":")[0]
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        s.connect((l, 12345))
+        s.connect((location, 12345))
 
-        # Get the IP that we use to talk to that particular router
-        ownAddr = s.getsockname()[0]
         s.close()
         del s
 

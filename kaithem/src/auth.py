@@ -528,7 +528,7 @@ def dumpDatabase():
 
         p = os.path.join(directories.usersdir, "data")
 
-        util.ensure_dir2(p)
+        os.makedirs(p, exist_ok=True)
         util.chmod_private_try(p)
         try:
             f = open(os.path.join(p, "users.json~"), "w")

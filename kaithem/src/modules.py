@@ -54,7 +54,7 @@ def lockFile(f):
     while time.time() - t > 5:
         try:
             fcntl.lockf(f, fcntl.LOCK_SH)
-        except IOError:
+        except OSError:
             time.sleep(0.01)
         except Exception:
             return
@@ -220,7 +220,7 @@ class InternalFileRef(ResourceObject):
         return fileResourceAbsPaths[self.module, self.resource]
 
 
-class ModuleObject(object):
+class ModuleObject:
     """
     These are the objects acessible as 'module' within pages, events, etc.
     Normally you use them to share variables, but they have incomplete and undocumented support
@@ -311,7 +311,7 @@ class ModuleObject(object):
 # This is used for the kaithem object.
 
 
-class ResourceAPI(object):
+class ResourceAPI:
     def __getitem__(self, name):
         if isinstance(name, tuple):
             x = modules_state.ActiveModules[name[0]][name[1]]
@@ -894,7 +894,7 @@ def load_modules_from_zip(f, replace=False):
                     folder = os.path.join(
                         directories.vardir, "modules", "data", p, "__filedata__"
                     )
-                    util.ensure_dir2(folder)
+                    os.makedirs(folder, exist_ok=True)
 
                     # Assumimg format is MODULE/__filedata__/file.png, we get just
                     # file.png
@@ -903,7 +903,7 @@ def load_modules_from_zip(f, replace=False):
                     # We are saving it in vardir/module/__filedata__/file.png
                     dataname = os.path.join(folder, data_basename)
 
-                    util.ensure_dir2(os.path.dirname(dataname))
+                    os.makedirs(os.path.dirname(dataname), exist_ok=True)
 
                     total = 0
                     with open(dataname, "wb") as f:

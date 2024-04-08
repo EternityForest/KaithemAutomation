@@ -95,6 +95,7 @@ repos:
         - "--fix"
         # Errors
         - "--select=PLE"
+        - "--select=F"
         # Syntax error
         - "--select=E999"
         # Mostly have auto fixes available

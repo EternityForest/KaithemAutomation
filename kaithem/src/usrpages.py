@@ -9,10 +9,13 @@ import threading
 import traceback
 import gc
 import mimetypes
+import types
 
 from . import util, pages, directories, messagebus, modules_state, theming
 import mako
+import mako.template
 import cherrypy
+import cherrypy.lib.static
 import tornado
 import importlib
 import jinja2
@@ -171,8 +174,23 @@ class CompiledPage:
 
         self.resource = resource
         self.module = m
+        self.name: str
         self.resourceName = r
         self.useJinja = False
+        self.alt_top_banner: str | None
+        self.code_obj: types.CodeType | None
+        self.template: str | None | object
+        self.scope: dict
+        self.text: str
+        self.mime: str
+        self.xss: bool
+        self.streaming: bool
+
+        self.directServeFile: str | None
+        self.permissions: list[str]
+        self.origins: list[str]
+        self.methods: list[str]
+        self.theme: str
 
         # This API is available as 'page' from within
         # Mako template code.   It's main use is for self modifying pages, mostly just for implementing
@@ -348,7 +366,7 @@ class CompiledPage:
                     ).render(**self.scope)
 
                     self.text = (
-                        header
+                        str(header)
                         + "\r\n"
                         + markdownToSelfRenderingHTML(template, r)
                         + footer
@@ -361,7 +379,7 @@ class CompiledPage:
                 self.name = os.path.basename(modules_state.fileResourceAbsPaths[m, r])
 
                 self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
-                self.mime = self.mime = (
+                self.mime = self.mime = str(
                     resource.get("mimetype", "").strip()
                     or mimetypes.guess_type(self.name)[0]
                 )
@@ -635,7 +653,7 @@ class KaithemPage:
 
     def _serve(self, module, *args, **kwargs):
         page = lookup(module, args)
-        if None == page:
+        if page is None:
             messagebus.post_message(
                 "/system/errors/http/nonexistant",
                 f"Someone tried to access a page that did not exist in module {module} with path {args}",

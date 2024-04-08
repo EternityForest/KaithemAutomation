@@ -147,7 +147,7 @@ def writeResource(obj: dict, fn: str):
         except Exception:
             logger.exception("err, continuing")
 
-    util.ensure_dir(fn)
+    os.makedirs(os.path.dirname(fn), exist_ok=True)
     data = d.encode("utf-8")
 
     # Check if anything is actually new
@@ -255,7 +255,7 @@ def saveModule(module, modulename: str):
 
     try:
         # Make sure there is a directory at where/module/
-        util.ensure_dir2(os.path.join(dir))
+        os.makedirs(os.path.join(dir), exist_ok=True)
         util.chmod_private_try(dir)
         for resource in module:
             r = module[resource]
@@ -272,13 +272,13 @@ class ResourceType:
         self.createButton = None
 
     def createpage(self, module, path):
-        return """
+        return f"""
 
         <form method=POST action="/modules/module/{module}/addresourcetarget/example/{path}">
         <input name="name">
         <input type="submit">
         </form>
-        """.format(module=module, path=path)
+        """
 
     def create(self, module, path, name, kwargs):
         return {"resource-type": "example"}

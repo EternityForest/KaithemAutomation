@@ -597,20 +597,6 @@ class Settings:
         raise cherrypy.HTTPRedirect("/settings/system")
 
     @cherrypy.expose
-    def changestartupscript(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-
-        t = kwargs["data"]
-        util.ensure_dir(os.path.join(directories.vardir, "core.settings", "startup.sh"))
-        with open(
-            os.path.join(directories.vardir, "core.settings", "startup.sh"), "w"
-        ) as f:
-            f.write(t)
-
-        raise cherrypy.HTTPRedirect("/settings/system")
-
-    @cherrypy.expose
     def changeupnptarget(self, **kwargs):
         pages.require("system_admin", noautoreturn=True)
         pages.postOnly()

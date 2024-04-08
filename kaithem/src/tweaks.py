@@ -3,8 +3,7 @@
 
 import logging
 import threading
-import http.cookies
-
+import faulthandler
 import sys
 import re
 import os
@@ -26,44 +25,9 @@ sys.path = [i for i in sys.path if test_access(i)]
 # Whatever it used to be was way too high and causingh seg faults if you mess up
 sys.setrecursionlimit(256)
 
-# Compatibility with older libraries.
-try:
-    import collections.abc
 
-    collections.Hashable = collections.abc.Hashable
-    collections.Callable = collections.abc.Callable
-    collections.MutableMapping = collections.abc.MutableMapping
-    collections.Mapping = collections.abc.Mapping
-    collections.Iterable = collections.abc.Iterable
-except Exception:
-    pass
+faulthandler.enable()
 
-# Library that makes threading and lock operations, which we use a lot of, use native code on linux
-try:
-    import pthreading
-
-    pthreading.monkey_patch()
-except Exception:
-    pass
-
-# Dump stuff to stderr when we get a segfault
-try:
-    import faulthandler
-
-    faulthandler.enable()
-except Exception:
-    logger.exception(
-        "Faulthandler not found. Segfault error messages disabled. use pip3 install faulthandler to fix"
-    )
-
-
-# Python 3.7 doesn't support the samesite attribute, which we need.
-try:
-    http.cookies.Morsel._reserved["samesite"] = "SameSite"
-except Exception:
-    logging.exception(
-        "Samesite enable monkeypatch did not work. It is probably no longer needed on newer pythons, ignore this message"
-    )
 
 threadlogger = logging.getLogger("system.threading")
 

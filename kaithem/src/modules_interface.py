@@ -547,7 +547,7 @@ class WebInterface:
                         external_module_locations[module], "__filedata__"
                     )
 
-                util.ensure_dir2(folder)
+                os.makedirs(folder, exist_ok=True)
                 data_basename = kwargs["name"]
 
                 dataname = data_basename
@@ -561,7 +561,7 @@ class WebInterface:
 
                 inputfile = kwargs["file"]
 
-                util.ensure_dir(dataname)
+                os.makedirs(os.path.dirname(dataname), exist_ok=True)
 
                 syslog.info(f"User uploaded file resource to {dataname}")
                 with open(dataname, "wb") as f:
