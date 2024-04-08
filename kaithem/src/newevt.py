@@ -236,10 +236,6 @@ def after(delay, action, priority="interactive"):
     return
 
 
-kaithemobj.kaithem.events.when = when
-kaithemobj.kaithem.events.after = after
-
-
 def getEventLastRan(module, event):
     with _event_list_lock:
         try:
@@ -834,7 +830,6 @@ class CompileCodeStringsMixin(BaseEvent):
                     logging.exception(
                         f"Error in event code for {self.module}:{self.resource}"
                     )
-                    e.storedError = traceback.format_exc(chain=True)
                     err.append(e)
                 finally:
                     kaithemobj.kaithem.context.event = None
@@ -1007,7 +1002,7 @@ class ChangedEvalEvent(CompileCodeStringsMixin):
             # Update the value of the last reading for next time
             self.old = self.latest
             # Set it up so user code will have access to the value
-            self.pymodule.__value = self.latest
+            self.pymodule.__value = self.latest  # type: ignore
             self._on_trigger()
 
 
@@ -1278,8 +1273,9 @@ class RecurringEvent(CompileCodeStringsMixin):
         r = re.match(r"exact( ([0-9]*\.?[0-9]))?", self.trigger)
         if not r:
             return False
-        if r.groups():
-            return float(r.groups[1])
+        gr = r.groups()
+        if gr:
+            return float(gr[1])
         else:
             return 3
 
@@ -1635,12 +1631,10 @@ def getEventsFromModules(only=None):
                         logging.exception(f"Could not load {i.module}:{i.resource}")
 
                     # If there is an error, add it t the list of things to be retried.
-                    except Exception as e:
+                    except Exception:
                         i.error = traceback.format_exc(chain=True)
                         if baz == attempts - 1:
                             i.loadingTraceback = traceback.format_exc()
-                        if hasattr(e, "storedTraceback"):
-                            i.error = e.storedTraceback
 
                         nextRound.append(i)
                         logging.debug(

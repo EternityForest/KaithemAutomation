@@ -524,30 +524,6 @@ as long as you enable streming response on page config.
 When clled from within a mako template, returns true if the acessing
 user has the given permission.
 
-### kaithem.events
-
-The kaithem.events namespace provides facilities for programmatically
-creating events. Temporary events created in this manner are handled by
-the same code as other events.
-
-#### kaithem.events.when(trigger,action,priority="interactive")
-
-This lets you create an event that will fire exactly once and then
-dissapear. Trigger must be a function that returns true when you want it
-to fire, and action must be a function
-
-#### kaithem.events.after(delay,action,priority)
-
-Same as when(), but creates an event that will fire after *delay*
-seconds. Usful for things like turning lights on for set lengths of
-time. This will only be accurate to within a tenth of a second normally,
-or within one frame if you set priority to 'realtime'
-
-Note that as both these functions create real(through temporary) events,
-they have the capability to outlast the creating code. If one set up a
-event that creates temporary events, then deletes the event, the
-temporary events will remain until triggered or until the server is
-restarted.
 
 ### kaithem.persist
 
