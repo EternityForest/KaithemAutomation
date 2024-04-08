@@ -109,6 +109,10 @@ repos:
         - "--select=PIE"
         - "--select=UP"
         - "--select=NPY"
+        - "--select=E714"
+        - "--select=E711"
+        - "--select=E713"
+
         # Autofixable quote rules
         - "--select=Q"
         - "--select=E722"

@@ -101,7 +101,8 @@ NULL = 0
 def ctype_async_raise(thread_obj, exception):
     found = False
     target_tid = 0
-    for tid, tobj in threading._active.items():
+    # TODO we use an undocumented api here....
+    for tid, tobj in threading._active.items():  # type: ignore
         if tobj is thread_obj:
             found = True
             target_tid = tid
@@ -122,13 +123,6 @@ def ctype_async_raise(thread_obj, exception):
         # So it is better to clean up the mess.
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), NULL)
         raise SystemError("PyThreadState_SetAsyncExc failed")
-
-
-def validate_upload():
-    # Allow large uploads for admin users, otherwise only allow 64k
-    return (
-        64 * 1024 if not pages.canUserDoThis("system_admin") else 1024 * 1024 * 8192 * 4
-    )
 
 
 syslogger = logging.getLogger("system")
@@ -190,14 +184,6 @@ class Settings:
         )
         subprocess.check_call(fix_alsa, shell=True)
         raise cherrypy.HTTPRedirect("/settings")
-
-    @cherrypy.expose
-    def wifi(self, *a, **k):
-        """Return a page showing the wifi config"""
-        pages.require(
-            "system_admin",
-        )
-        return pages.get_template("settings/wifi.html").render()
 
     @cherrypy.expose
     def mdns(self, *a, **k):

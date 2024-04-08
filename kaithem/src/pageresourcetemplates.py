@@ -54,7 +54,7 @@ servicehtml = """
 ${result}
 """
 
-vueApp = """
+vueApp = r"""
 <%inherit file="/pagetemplate.html" />
 <%block name="title">{basename}</%block>
 
@@ -92,7 +92,6 @@ def default(basename, **kw):
         "require-method": ["GET", "POST"],
         "require-permissions": [],
         "resource-timestamp": int(time.time() * 1000000),
-        "resource-type": "page",
         "no-navheader": True,
         "no-header": True,
     }
@@ -105,7 +104,6 @@ def vue(basename, **kw):
         "require-method": ["GET", "POST"],
         "require-permissions": [],
         "resource-timestamp": int(time.time() * 1000000),
-        "resource-type": "page",
         "no-navheader": True,
         "no-header": True,
     }

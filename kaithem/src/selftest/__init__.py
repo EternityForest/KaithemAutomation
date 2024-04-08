@@ -4,7 +4,11 @@
 # This file runs a self test when python starts. Obviously we do
 # Not want to clutter up the rraw
 
-import threading, traceback, logging, os, time
+import threading
+import traceback
+import logging
+import os
+import time
 
 
 def memtest():

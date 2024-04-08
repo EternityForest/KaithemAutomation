@@ -158,11 +158,6 @@ module_page_context = {
 }
 
 
-def validate_upload():
-    # Allow 4gb uploads for admin users, otherwise only allow 64k
-    return 64 * 1024 if not pages.canUserDoThis("system_admin") else 1024 * 1024 * 4096
-
-
 def searchModules(search, max_results=100, start=0, mstart=0):
     pointer = mstart
     results = []

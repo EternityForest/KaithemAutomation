@@ -2,15 +2,16 @@
 
 
 ![Linux](badges/linux.png)
-![Linux](badges/sbc.png)
+![Single Board Computer badge](badges/sbc.png)
 ![DMX](badges/dmx.png)
 ![Python](badges/python.png)
 
-![Linux](badges/offline-first.png)
+![Offline First](badges/offline-first.png)
 ![GPLv3 Badge](badges/gpl-v3.png)
 ![Pre-commit Badge](badges/pre-commit.png)
-![Makefile](badges/makefile.png)
+![Makefile Badge](badges/makefile.png)
 ![Ten Year Project](badges/ten-years.png)
+![Pytest](badges/pytest.png)
 
 Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 

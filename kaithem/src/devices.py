@@ -16,7 +16,7 @@ import cherrypy.lib.static
 import copy
 import asyncio
 import shutil
-from typing import Dict, Optional, Union, Any
+from typing import Any
 from collections.abc import Callable, Iterable
 
 from . import pages, workers, tagpoints, alerts
@@ -1087,8 +1087,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         else:
             raise ValueError("Can only save in module")
-            newparentModule = None
-            newparentResource = None
 
         new_dev_conf_folder = get_config_folder_from_info(
             newparentModule, newparentResource, name, create=False, always_return=True
@@ -1368,7 +1366,7 @@ def makeDevice(name, data, cls=None):
         d = dt(name, new_data)
     except Exception:
         d = UnsupportedDevice(name, new_data)
-        d.handleException()
+        d.handle_exception()
 
     if err:
         d.handle_error(err)

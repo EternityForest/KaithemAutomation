@@ -12,7 +12,6 @@ of a valid token"""
 # Users and groups are saved in RAM and synched with the filesystem due to the goal
 # of not using the filesystem much to save any SD cards.
 
-from typing import Dict, Union, Optional
 import copy
 from . import util, directories, modules_state, messagebus
 import json
@@ -21,7 +20,6 @@ import os
 import time
 import shutil
 import hashlib
-import sys
 import yaml
 import hmac
 import struct
@@ -725,18 +723,3 @@ def canUserDoThis(user, permission):
         return True
 
     return False
-
-
-# untested stuff that only works sometimes maybe for supporting logins by unix users
-# try:
-#     if sys.version_info < (3, 3):
-#         from shlex import quote as shellquote
-#     else:
-#         from pipes import quote as shellquote
-# except Exception:
-#     pass
-# import subprocess
-
-
-# def sys_login(username, password):
-#     return subprocess.check_output('echo "' + shellquote(password[:40]) + '" | sudo  -S -u ' + shellquote(username[:25]) + ' groups', shell=True)[:-1]

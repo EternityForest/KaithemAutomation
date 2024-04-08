@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from __future__ import annotations
-from typing import Any, Callable, List
+from typing import Any
+from collections.abc import Callable
 from tornado.httputil import HTTPServerRequest
 from tornado.web import Application
 import tornado.websocket
@@ -17,7 +18,6 @@ import os
 import traceback
 import threading
 import logging
-import socket
 import copy
 import collections
 from . import auth, pages, unitsofmeasure, util, messagebus, workers
@@ -39,7 +39,7 @@ class WSActionRunner:
 
     def __init__(self) -> None:
         self.wsActionSerializer = threading.Lock()
-        self.wsActionQueue: List[Callable] = []
+        self.wsActionQueue: list[Callable] = []
         wsrunners[id(self)] = self
 
     # We must serialize  actions to avoid out of order,
@@ -127,7 +127,7 @@ def subsc_closure(self, i, widget):
     def f(msg, raw):
         try:
             self.send(msg)
-        except socket.error:
+        except OSError:
             # These happen sometimes when things are disconnecting it seems,
             # And there's no need to waste log space or send a notification.
             pass
@@ -155,7 +155,7 @@ def raw_subsc_closure(self, i, widget):
             else:
                 self.send(json.dumps(raw))
 
-        except socket.error as e:
+        except OSError as e:
             if e.errno == 32:
                 self.closeUnderLock()
             # These happen sometimes when things are disconnecting it seems,
@@ -265,7 +265,7 @@ class websocket_impl:
 
         self.pageURL = "UNKNOWN"
 
-        self.usedPermissions = collections.defaultdict(lambda: 0)
+        self.usedPermissions = collections.defaultdict(int)
 
         if auth.getUserSetting(self.user, "telemetry-alerts"):
             from . import alerts
@@ -319,7 +319,6 @@ class websocket_impl:
             else:
                 o = json.loads(d)
 
-            resp = []
             user = self.user
 
             upd = o["upd"]
@@ -553,7 +552,7 @@ class rawwebsocket_impl:
         self.user = user
         self.parent = parent
 
-        self.usedPermissions = collections.defaultdict(lambda: 0)
+        self.usedPermissions = collections.defaultdict(int)
 
         widgetName = kwargs["widgetid"]
 
@@ -626,14 +625,11 @@ def randID():
 idlock = threading.RLock()
 
 
-widgets_by_subsc_carryover = weakref.WeakValueDictionary()
-
-
 class Widget:
-    def __init__(self, *args, subsc_carryover=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.value = None
-        self._read_perms: List[str] = []
-        self._write_perms: List[str] = []
+        self._read_perms: list[str] = []
+        self._write_perms: list[str] = []
         self.errored_function = None
         self.errored_getter = None
         self.errored_send = None
@@ -669,23 +665,8 @@ class Widget:
             else:
                 self.uuid = kwargs["id"]
 
-            # oldWidget = widgets_by_subsc_carryover.get(self.uuid, None)
-
             # Insert self into the widgets list
             widgets[self.uuid] = self
-
-        # Unused for now
-        # # Lets you make
-        # with subscriptionLock:
-        #     if oldWidget:
-        #         try:
-        #             self.subscribers.update(oldWidget.subscriptions_atomic)
-        #             self.subscriptions_atomic=copy.deepcopy(self.subscriptions)
-        #         except Exception:
-        #             logging.exception
-
-        # if subsc_carryover:
-        #     widgets_by_subsc_carryover[subsc_carryover]= self
 
     def stillActive(self):
         if self.subscriptions or (self.lastSubscribedTo > (time.monotonic() - 30)):
@@ -724,8 +705,7 @@ class Widget:
             if not (self.errored_getter == id(self._callback)):
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
-                    % (self._callback.__name__, self._callback.__module__),
+                    f"Error in widget getter function {self._callback.__name__} defined in module { self._callback.__module__}, see logs for traceback.",
                 )
                 self.errored_getter = id(self._callback)
 
@@ -762,8 +742,7 @@ class Widget:
             if not (self.errored_function == id(self._callback)):
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
-                    % (self._callback.__name__, self._callback.__module__),
+                    f"Error in widget callback function {self._callback.__name__} defined in module { self._callback.__module__}, see logs for traceback.",
                 )
                 self.errored_function = id(self._callback)
             raise e
@@ -776,8 +755,7 @@ class Widget:
             if not (self.errored_function == id(self._callback)):
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
-                    % (self._callback.__name__, self._callback.__module__),
+                    f"Error in widget callback function {self._callback.__name__} defined in module { self._callback.__module__}, see logs for traceback.",
                 )
                 self.errored_function = id(self._callback)
             raise e
@@ -870,7 +848,7 @@ class Widget:
     def require_to_write(self, permission: str):
         self._write_perms.append(permission)
 
-    def set_permissions(self, read: List[str], write: List[str]):
+    def set_permissions(self, read: list[str], write: list[str]):
         self._read_perms = copy.copy(read)
         self._write_perms = copy.copy(write)
 
@@ -890,19 +868,19 @@ class TimeWidget(Widget):
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
         if type == "widget":
-            return """<div id="%s" class="widgetcontainer">
+            return """<div id="{}" class="widgetcontainer">
             <script type="text/javascript" src="/static/js/thirdparty/strftime-min.js">
             </script>
             <script type="text/javascript">
             var f = function(val)
-            {
+            {{
                var d = new Date();
 
-                document.getElementById("%s").innerHTML=d.strftime("%s");
-            }
+                document.getElementById("{}").innerHTML=d.strftime("{}");
+            }}
             setInterval(f,70);
             </script>
-            </div>""" % (
+            </div>""".format(
                 self.uuid,
                 self.uuid,
                 auth.getUserSetting(pages.getAcessingUser(), "strftime").replace(
@@ -911,19 +889,19 @@ class TimeWidget(Widget):
             )
 
         elif type == "inline":
-            return """<span id="%s">
+            return """<span id="{}">
             <script type="text/javascript" src="/static/js/thirdparty/strftime-min.js">
             </script>
             <script type="text/javascript">
             var f = function(val)
-            {
+            {{
                var d = new Date();
 
-                document.getElementById("%s").innerHTML=d.strftime("%s");
-            }
+                document.getElementById("{}").innerHTML=d.strftime("{}");
+            }}
             setInterval(f,70);
             </script>
-            </span>""" % (
+            </span>""".format(
                 self.uuid,
                 self.uuid,
                 auth.getUserSetting(pages.getAcessingUser(), "strftime").replace(
@@ -960,21 +938,15 @@ class DynamicSpan(Widget):
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
 
-        return """<span id="%s" %s>
+        return f"""<span id="{self.uuid}" {self.attrs}>
         <script type="text/javascript">
         var upd = function(val)
-        {
-            document.getElementById("%s").innerHTML=val;
-        }
-        kaithemapi.subscribe('%s',upd);
-        </script>%s
-        </span>""" % (
-            self.uuid,
-            self.attrs,
-            self.uuid,
-            self.uuid,
-            self.value,
-        )
+        {{
+            document.getElementById("{self.uuid}").innerHTML=val;
+        }}
+        kaithemapi.subscribe('{self.uuid}',upd);
+        </script>{self.value}
+        </span>"""
 
     def render_as_span(self, label=""):
         return label + self.render()
@@ -996,34 +968,24 @@ class TextDisplay(Widget):
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
         # We only want to update the div when it has changed, otherwise some browsers might not let you click the links
-        return """<div style="height:%s; width:%s; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="%s">
+        return f"""<div style="height:{height}; width:{width}; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="{self.uuid}">
         <script type="text/javascript">
-        KWidget_%s_prev = "PlaceHolder1234";
+        KWidget_{self.uuid}_prev = "PlaceHolder1234";
         var upd = function(val)
-        {
-            if(val == KWidget_%s_prev || val==null)
-            {
+        {{
+            if(val == KWidget_{self.uuid}_prev || val==null)
+            {{
 
-            }
+            }}
             else
-            {
-                document.getElementById("%s").innerHTML=val;
-                KWidget_%s_prev = val;
-            }
-        }
-        kaithemapi.subscribe('%s',upd);
-        </script>%s
-        </div>""" % (
-            height,
-            width,
-            self.uuid,
-            self.uuid,
-            self.uuid,
-            self.uuid,
-            self.uuid,
-            self.uuid,
-            self.value,
-        )
+            {{
+                document.getElementById("{self.uuid}").innerHTML=val;
+                KWidget_{self.uuid}_prev = val;
+            }}
+        }}
+        kaithemapi.subscribe('{self.uuid}',upd);
+        </script>{self.value}
+        </div>"""
 
 
 # Gram is the base unit even though Si has kg as the base
@@ -1178,21 +1140,15 @@ class Meter(Widget):
         Returns:
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
-        return """%s<span id="%s">
+        return f"""{label}<span id="{self.uuid}">
         <script type="text/javascript">
         var upd = function(val)
-        {
-            document.getElementById("%s").innerHTML=val[2];
-        }
-        kaithemapi.subscribe('%s',upd);
-        </script>%s
-        </span>""" % (
-            label,
-            self.uuid,
-            self.uuid,
-            self.uuid,
-            self.value[2],
-        )
+        {{
+            document.getElementById("{self.uuid}").innerHTML=val[2];
+        }}
+        kaithemapi.subscribe('{self.uuid}',upd);
+        </script>{self.value[2]}
+        </span>"""
 
     def render(self, unit="", label=None):
         label = label or self.defaultLabel
@@ -1312,67 +1268,41 @@ class Meter(Widget):
 class Button(Widget):
     def render(self, content, type="default"):
         if type == "default":
-            return """
-            <button %s type="button" id="%s" onmousedown="kaithemapi.sendValue('%s','pushed')" onmouseleave="kaithemapi.sendValue('%s','released')" onmouseup="kaithemapi.sendValue('%s','released')">%s</button>
-             """ % (
-                self.isWritable(),
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                content,
-            )
+            return f"""
+            <button {self.isWritable()} type="button" id="{self.uuid}" onmousedown="kaithemapi.sendValue('{self.uuid}','pushed')" onmouseleave="kaithemapi.sendValue('{self.uuid}','released')" onmouseup="kaithemapi.sendValue('{self.uuid}','released')">{content}</button>
+             """
 
         if type == "trigger":
-            return """
+            return f"""
             <div class="widgetcontainer">
             <script type="text/javascript">
-            function %s_toggle()
-            {
-                if(!document.getElementById("%s_2").disabled)
-                {
-                    isarmed_%s = false;
-                    document.getElementById("%s_1").innerHTML="ARM";
-                    document.getElementById("%s_2").disabled=true;
-                    document.getElementById("%s_3").style='';
+            function {self.uuid}_toggle()
+            {{
+                if(!document.getElementById("{self.uuid}_2").disabled)
+                {{
+                    isarmed_{self.uuid} = false;
+                    document.getElementById("{self.uuid}_1").innerHTML="ARM";
+                    document.getElementById("{self.uuid}_2").disabled=true;
+                    document.getElementById("{self.uuid}_3").style='';
 
-                }
+                }}
                 else
-                {
-                    document.getElementById("%s_1").innerHTML="DISARM";
-                    document.getElementById("%s_2").disabled=false;
-                    document.getElementById("%s_3").style='background-color:red;';
-                }
-            }
+                {{
+                    document.getElementById("{self.uuid}_1").innerHTML="DISARM";
+                    document.getElementById("{self.uuid}_2").disabled=false;
+                    document.getElementById("{self.uuid}_3").style='background-color:red;';
+                }}
+            }}
 
 
 
             </script>
-            <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
-            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="kaithemapi.setValue('%s','pushed')" onmouseleave="kaithemapi.setValue('%s','released')" onmouseup="kaithemapi.setValue('%s','released')" %s>
-            <span id="%s_3">%s</span>
+            <button type="button" id="{self.uuid}_1" onmousedown="{self.uuid}_toggle()">ARM</button><br/>
+            <button type="button" class="triggerbuttonwidget" disabled=true id="{self.uuid}_2" onmousedown="kaithemapi.setValue('{self.uuid}','pushed')" onmouseleave="kaithemapi.setValue('{self.uuid}','released')" onmouseup="kaithemapi.setValue('{self.uuid}','released')" {self.isWritable()}>
+            <span id="{self.uuid}_3">{content}</span>
             </button>
             </div>
-             """ % (
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.uuid,
-                self.isWritable(),
-                self.uuid,
-                content,
-            )
+             """
 
         raise RuntimeError("Invalid Button Type")
 
@@ -1406,90 +1336,90 @@ class Slider(Widget):
                 "unit": unit,
             }
         elif type == "realtime":
-            return """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
-            <b><p>%(label)s</p></b>
-            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            %(orient)s
-            onchange="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));"
+            return r"""<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {{e.preventDefault()}};>
+            <b><p>{label}</p></b>
+            <input {en} type="range" value="{value:f}" id="{htmlid}" min="{min:f}" max="{max:f}" step="{step:f}"
+            {orient}
+            onchange="kaithemapi.setValue('{id}',parseFloat(document.getElementById('{htmlid}').value));"
             oninput="
-            %(htmlid)s_clean=%(htmlid)s_cleannext=false;
-            kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
-            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
-            setTimeout(function(){%(htmlid)s_cleannext=true},150);"
+            {htmlid}_clean={htmlid}_cleannext=false;
+            kaithemapi.setValue('{id}',parseFloat(document.getElementById('{htmlid}').value));
+            document.getElementById('{htmlid}_l').innerHTML= document.getElementById('{htmlid}').value+'{unit}';
+            setTimeout(function(){{{htmlid}_cleannext=true}},150);"
             ><br>
             <span
             class="numericpv"
-            id="%(htmlid)s_l">%(value)g%(unit)s</span>
+            id="{htmlid}_l">{value:g}{unit}</span>
             <script type="text/javascript">
-            %(htmlid)s_clean =%(htmlid)s_cleannext= true;
-            var upd=function(val){
-            if(%(htmlid)s_clean)
-            {
-            document.getElementById('%(htmlid)s').value= val;
-            document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000).toPrecision(5).replace(/\.?0*$$/, "")+"%(unit)s";
-            }
-            %(htmlid)s_clean =%(htmlid)s_cleannext;
-            }
+            {htmlid}_clean ={htmlid}_cleannext= true;
+            var upd=function(val){{
+            if({htmlid}_clean)
+            {{
+            document.getElementById('{htmlid}').value= val;
+            document.getElementById('{htmlid}_l').innerHTML= (Math.round(val*1000)/1000).toPrecision(5).replace(/\.?0*$$/, "")+"{unit}";
+            }}
+            {htmlid}_clean ={htmlid}_cleannext;
+            }}
 
-            kaithemapi.subscribe("%(id)s",upd);
+            kaithemapi.subscribe("{id}",upd);
             </script>
 
-            </div>""" % {
-                "label": label,
-                "orient": orient,
-                "en": self.isWritable(),
-                "htmlid": mkid(),
-                "id": self.uuid,
-                "min": self.min,
-                "step": self.step,
-                "max": self.max,
-                "value": self.value,
-                "unit": unit,
-            }
+            </div>""".format(
+                label=label,
+                orient=orient,
+                en=self.isWritable(),
+                htmlid=mkid(),
+                id=self.uuid,
+                min=self.min,
+                step=self.step,
+                max=self.max,
+                value=self.value,
+                unit=unit,
+            )
 
         elif type == "onrelease":
             return """<div class="widgetcontainer sliderwidget">
-            <b><p">%(label)s</p></b>
-            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            %(orient)s
-            oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
-            onmouseup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            onkeyup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            ontouchend="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            ontouchstart="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            ontouchleave="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            <b><p">{label}</p></b>
+            <input {en} type="range" value="{value:f}" id="{htmlid}" min="{min:f}" max="{max:f}" step="{step:f}"
+            {orient}
+            oninput="document.getElementById('{htmlid}_l').innerHTML= document.getElementById('{htmlid}').value+'{unit}'; document.getElementById('{htmlid}').lastmoved=(new Date).getTime();"
+            onmouseup="kaithemapi.setValue('{id}',parseFloat(document.getElementById('{htmlid}').value));document.getElementById('{htmlid}').jsmodifiable = true;"
+            onmousedown="document.getElementById('{htmlid}').jsmodifiable = false;"
+            onkeyup="kaithemapi.setValue('{id}',parseFloat(document.getElementById('{htmlid}').value));document.getElementById('{htmlid}').jsmodifiable = true;"
+            ontouchend="kaithemapi.setValue('{id}',parseFloat(document.getElementById('{htmlid}').value));document.getElementById('{htmlid}').jsmodifiable = true;"
+            ontouchstart="document.getElementById('{htmlid}').jsmodifiable = false;"
+            ontouchleave="kaithemapi.setValue('{id}',parseFloat(document.getElementById('{htmlid}').value));document.getElementById('{htmlid}').jsmodifiable = true;"
 
 
             ><br>
-            <span class="numericpv" id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <span class="numericpv" id="{htmlid}_l">{value:f}{unit}</span>
             <script type="text/javascript">
-            var upd=function(val){
+            var upd=function(val){{
 
-                if(document.getElementById('%(htmlid)s').jsmodifiable & ((new Date).getTime()-document.getElementById('%(htmlid)s').lastmoved > 300))
-                {
-                document.getElementById('%(htmlid)s').value= val;
-                document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
-                }
+                if(document.getElementById('{htmlid}').jsmodifiable & ((new Date).getTime()-document.getElementById('{htmlid}').lastmoved > 300))
+                {{
+                document.getElementById('{htmlid}').value= val;
+                document.getElementById('{htmlid}_l').innerHTML= val+"{unit}";
+                }}
 
 
-            }
-            document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
-            document.getElementById('%(htmlid)s').jsmodifiable = true;
-            kaithemapi.subscribe("%(id)s",upd);
+            }}
+            document.getElementById('{htmlid}').lastmoved=(new Date).getTime();
+            document.getElementById('{htmlid}').jsmodifiable = true;
+            kaithemapi.subscribe("{id}",upd);
             </script>
-            </div>""" % {
-                "label": label,
-                "orient": orient,
-                "en": self.isWritable(),
-                "htmlid": mkid(),
-                "id": self.uuid,
-                "min": self.min,
-                "step": self.step,
-                "max": self.max,
-                "value": self.value,
-                "unit": unit,
-            }
+            </div>""".format(
+                label=label,
+                orient=orient,
+                en=self.isWritable(),
+                htmlid=mkid(),
+                id=self.uuid,
+                min=self.min,
+                step=self.step,
+                max=self.max,
+                value=self.value,
+                unit=unit,
+            )
         raise ValueError("Invalid slider type:" % str(type))
 
 
@@ -1510,158 +1440,29 @@ class Switch(Widget):
             x = ""
 
         return """<div class="widgetcontainer">
-        <label><input %(en)s id="%(htmlid)s" type="checkbox"
+        <label><input {en} id="{htmlid}" type="checkbox"
         onchange="
-        %(htmlid)s_clean = %(htmlid)s_cleannext= false;
-        setTimeout(function(){%(htmlid)s_cleannext = true},350);
-        kaithemapi.setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
+        {htmlid}_clean = {htmlid}_cleannext= false;
+        setTimeout(function(){{{htmlid}_cleannext = true}},350);
+        kaithemapi.setValue('{id}',document.getElementById('{htmlid}').checked)" {x}>{label}</label>
         <script type="text/javascript">
-        %(htmlid)s_clean=%(htmlid)s_cleannext = true;
-        var upd=function(val){
-            if(%(htmlid)s_clean)
-            {
-            document.getElementById('%(htmlid)s').checked= val;
-            }
-            %(htmlid)s_clean=%(htmlid)s_cleannext;
+        {htmlid}_clean={htmlid}_cleannext = true;
+        var upd=function(val){{
+            if({htmlid}_clean)
+            {{
+            document.getElementById('{htmlid}').checked= val;
+            }}
+            {htmlid}_clean={htmlid}_cleannext;
 
-        }
-        kaithemapi.subscribe("%(id)s",upd);
+        }}
+        kaithemapi.subscribe("{id}",upd);
         </script>
-        </div>""" % {
-            "en": self.isWritable(),
-            "htmlid": mkid(),
-            "id": self.uuid,
-            "x": x,
-            "label": label,
-        }
-
-
-class TagPoint(Widget):
-    def __init__(self, tag):
-        Widget.__init__(self)
-        self.tag = tag
-
-    def write(self, value):
-        self.value = bool(value)
-        # Is this the right behavior?
-        self._callback("__SERVER__", value)
-
-    def render(self, label):
-        if self.value:
-            x = "checked=1"
-        else:
-            x = ""
-        if type == "realtime":
-            sl = """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
-            <b><p>%(label)s</p></b>
-            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            oninput="
-            %(htmlid)s_clean=%(htmlid)s_cleannext=false;
-            kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
-            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
-            setTimeout(function(){%(htmlid)s_cleannext=true},150);"
-            ><br>
-            <span
-            class="numericpv"
-            id="%(htmlid)s_l">%(value)f%(unit)s</span>
-            <script type="text/javascript">
-            %(htmlid)s_clean =%(htmlid)s_cleannext= true;
-            var upd=function(val){
-            if(%(htmlid)s_clean)
-            {
-            document.getElementById('%(htmlid)s').value= val;
-            document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000)+"%(unit)s";
-            }
-            %(htmlid)s_clean =%(htmlid)s_cleannext;
-           }
-
-           kaithemapi.subscribe("%(id)s",upd);
-           </script>
-
-            </div>""" % {
-                "label": label,
-                "en": self.isWritable(),
-                "htmlid": mkid(),
-                "id": self.uuid,
-                "min": self.tag.min,
-                "step": self.step,
-                "max": self.tag.max,
-                "value": self.value,
-                "unit": self.unit,
-            }
-
-        if type == "onrelease":
-            sl = """<div class="widgetcontainer sliderwidget">
-            <b><p">%(label)s</p></b>
-            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
-            onmouseup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            onkeyup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            ontouchend="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            ontouchstart="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            ontouchleave="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-
-
-            ><br>
-            <span class="numericpv" id="%(htmlid)s_l">%(value)f%(unit)s</span>
-            <script type="text/javascript">
-            var upd=function(val){
-
-                if(document.getElementById('%(htmlid)s').jsmodifiable & ((new Date).getTime()-document.getElementById('%(htmlid)s').lastmoved > 300))
-                {
-                document.getElementById('%(htmlid)s').value= val;
-                document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
-                }
-
-
-            }
-            document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
-            document.getElementById('%(htmlid)s').jsmodifiable = true;
-            kaithemapi.subscribe("%(id)s",upd);
-            </script>
-            </div>""" % {
-                "label": label,
-                "en": self.isWritable(),
-                "htmlid": mkid(),
-                "id": self.uuid,
-                "min": self.min,
-                "step": self.step,
-                "max": self.max,
-                "value": self.value,
-                "unit": self.unit,
-            }
-
-        return (
-            """<div class="widgetcontainer">"""
-            + sl
-            + """
-
-
-        <label><input %(en)s id="%(htmlid)sman" type="checkbox"
-        onchange="
-        %(htmlid)s_clean = %(htmlid)s_cleannext= false;
-        setTimeout(function(){%(htmlid)s_cleannext = true},350);
-        kaithemapi.setValue('%(id)s',(document.getElementById('%(htmlid)sman').checked))" %(x)s>Manual</label>
-        <script type="text/javascript">
-        %(htmlid)s_clean=%(htmlid)s_cleannext = true;
-        var upd=function(val){
-            if(%(htmlid)s_clean)
-            {
-            document.getElementById('%(htmlid)sman').checked= val;
-            }
-            %(htmlid)s_clean=%(htmlid)s_cleannext;
-
-        }
-        kaithemapi.subscribe("%(id)s",upd);
-        </script>
-        </div>"""
-            % {
-                "en": self.isWritable(),
-                "htmlid": mkid(),
-                "id": self.uuid,
-                "x": x,
-            }
+        </div>""".format(
+            en=self.isWritable(),
+            htmlid=mkid(),
+            id=self.uuid,
+            x=x,
+            label=label,
         )
 
 
@@ -1677,34 +1478,34 @@ class TextBox(Widget):
 
     def render(self, label):
         if self.value:
-            x = "checked=1"
+            pass
         else:
-            x = ""
+            pass
 
         return """<div class="widgetcontainer">
-        <label>%(label)s<input %(en)s id="%(htmlid)s" type="text"
-        onblur="%(htmlid)s_clean= true;"
-        onfocus=" %(htmlid)s_clean = false;"
+        <label>{label}<input {en} id="{htmlid}" type="text"
+        onblur="{htmlid}_clean= true;"
+        onfocus=" {htmlid}_clean = false;"
         oninput="
-        kaithemapi.setValue('%(id)s',document.getElementById('%(htmlid)s').value)
+        kaithemapi.setValue('{id}',document.getElementById('{htmlid}').value)
         "
                 ></label>
         <script type="text/javascript">
- %(htmlid)s_clean = true;
-        var upd=function(val){
-            if(%(htmlid)s_clean)
-            {
-            document.getElementById('%(htmlid)s').value= val;
-            }
-        }
-        kaithemapi.subscribe("%(id)s",upd);
+ {htmlid}_clean = true;
+        var upd=function(val){{
+            if({htmlid}_clean)
+            {{
+            document.getElementById('{htmlid}').value= val;
+            }}
+        }}
+        kaithemapi.subscribe("{id}",upd);
         </script>
-        </div>""" % {
-            "en": self.isWritable(),
-            "htmlid": mkid(),
-            "id": self.uuid,
-            "label": label,
-        }
+        </div>""".format(
+            en=self.isWritable(),
+            htmlid=mkid(),
+            id=self.uuid,
+            label=label,
+        )
 
 
 class ScrollingWindow(Widget):
@@ -1781,89 +1582,85 @@ class APIWidget(Widget):
             self.send(value)
 
     def render(self, htmlid):
-        return """
+        return f"""
             <script>
-                %(htmlid)s = {};
-                %(htmlid)s.value = "Waiting..."
-                %(htmlid)s.clean = 0;
-                %(htmlid)s._maxsyncdelay = 250
-                %(htmlid)s.timeSyncInterval = 120*1000;
+                {htmlid} = {{}};
+                {htmlid}.value = "Waiting..."
+                {htmlid}.clean = 0;
+                {htmlid}._maxsyncdelay = 250
+                {htmlid}.timeSyncInterval = 120*1000;
 
-                %(htmlid)s._timeref = [performance.now()-1000000,%(loadtime)f-1000000]
+                {htmlid}._timeref = [performance.now()-1000000,{time.time() * 1000:f}-1000000]
                 var onTimeResponse = function (val)
-                {
-                    if(Math.abs(val[0]-%(htmlid)s._txtime)<0.1)
-                        {
+                {{
+                    if(Math.abs(val[0]-{htmlid}._txtime)<0.1)
+                        {{
                             var t = performance.now();
-                            if(t-%(htmlid)s._txtime<%(htmlid)s._maxsyncdelay)
-                                {
-                            %(htmlid)s._timeref = [(t+%(htmlid)s._txtime)/2, val[1]]
+                            if(t-{htmlid}._txtime<{htmlid}._maxsyncdelay)
+                                {{
+                            {htmlid}._timeref = [(t+{htmlid}._txtime)/2, val[1]]
 
-                            %(htmlid)s._maxsyncdelay = (t-%(htmlid)s._txtime)*1.2;
-                            }
+                            {htmlid}._maxsyncdelay = (t-{htmlid}._txtime)*1.2;
+                            }}
                             else
-                                {
+                                {{
 
-                                    %(htmlid)s._maxsyncdelay= %(htmlid)s._maxsyncdelay*2;
-                                }
-                        }
-                }
+                                    {htmlid}._maxsyncdelay= {htmlid}._maxsyncdelay*2;
+                                }}
+                        }}
+                }}
 
                 var _upd = function(val)
-                    {
-                        if (%(htmlid)s.clean==0)
-                            {
-                                 %(htmlid)s.value = val;
-                            }
+                    {{
+                        if ({htmlid}.clean==0)
+                            {{
+                                 {htmlid}.value = val;
+                            }}
                         else
-                            {
-                                %(htmlid)s.clean -=1;
-                            }
-                        %(htmlid)s.upd(val)
-                    }
+                            {{
+                                {htmlid}.clean -=1;
+                            }}
+                        {htmlid}.upd(val)
+                    }}
 
-                %(htmlid)s.upd = function(val)
-                        {
-                        }
-                %(htmlid)s.getTime = function()
-                    {
+                {htmlid}.upd = function(val)
+                        {{
+                        }}
+                {htmlid}.getTime = function()
+                    {{
                         var x = performance.now()
-                        %(htmlid)s._txtime =x;
+                        {htmlid}._txtime =x;
                         kaithemapi.sendValue("_ws_timesync_channel",x)
-                    }
+                    }}
 
 
-                %(htmlid)s.now = function(val)
-                        {
+                {htmlid}.now = function(val)
+                        {{
                             var t=performance.now()
-                            if(t-%(htmlid)s._txtime>%(htmlid)s.timeSyncInterval)
-                                {
-                                    %(htmlid)s.getTime();
-                                }
-                            return((t-%(htmlid)s._timeref[0])+%(htmlid)s._timeref[1])
-                        }
+                            if(t-{htmlid}._txtime>{htmlid}.timeSyncInterval)
+                                {{
+                                    {htmlid}.getTime();
+                                }}
+                            return((t-{htmlid}._timeref[0])+{htmlid}._timeref[1])
+                        }}
 
-                %(htmlid)s.set = function(val)
-                    {
-                         kaithemapi.setValue("%(id)s", val);
-                         %(htmlid)s.clean = 2;
-                    }
+                {htmlid}.set = function(val)
+                    {{
+                         kaithemapi.setValue("{self.uuid}", val);
+                         {htmlid}.clean = 2;
+                    }}
 
-                %(htmlid)s.send = function(val)
-                    {
-                         kaithemapi.sendValue("%(id)s", val);
-                         %(htmlid)s.clean = 2;
-                    }
+                {htmlid}.send = function(val)
+                    {{
+                         kaithemapi.sendValue("{self.uuid}", val);
+                         {htmlid}.clean = 2;
+                    }}
 
                     kaithemapi.subscribe("_ws_timesync_channel",onTimeResponse)
-                    kaithemapi.subscribe("%(id)s",_upd);
-                    setTimeout(%(htmlid)s.getTime,500)
+                    kaithemapi.subscribe("{self.uuid}",_upd);
+                    setTimeout({htmlid}.getTime,500)
             </script>
-            """ % {
-            "htmlid": htmlid,
-            "id": self.uuid,
-            "loadtime": time.time() * 1000,
-        }
+            """
 
 
 t = APIWidget(echo=False, id="_ws_timesync_channel")
