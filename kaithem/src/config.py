@@ -73,12 +73,12 @@ def load(cfg: Dict[str, Any]):
     # Attempt to open any manually specified config file
     if argcmd.c:
         with open(argcmd.c) as f:
-            _usr_config = yaml.load(f, yaml.SafeLoader)
+            _usr_config = yaml.load(f, yaml.SafeLoader) or {}
             logger.info("Loaded configuration from " + argcmd.c)
 
     elif os.path.exists(default_conf_location):
         with open(default_conf_location) as f:
-            _usr_config = yaml.load(f, yaml.SafeLoader)
+            _usr_config = yaml.load(f, yaml.SafeLoader) or {}
             logger.info("Loaded configuration from " + default_conf_location)
 
     else:
