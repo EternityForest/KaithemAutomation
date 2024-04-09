@@ -29,7 +29,7 @@ After=time-sync.target sysinit.service mosquitto.service zigbee2mqtt.service pip
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/usr/bin/pw-jack kaithem
+ExecStart=/usr/bin/pw-jack /home/%u/.local/bin/kaithem
 Restart=on-failure
 RestartSec=15
 Type=simple
