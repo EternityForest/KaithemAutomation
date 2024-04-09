@@ -1,82 +1,82 @@
-# This file is maintained manually. It only has the top-level dependencies so pip
-# Can manage the rest.  You should probably be installing requirements.txt instead
 
 
 # First party
-scullery>=0.16.0
-iot-devices
-icemedia
-NVRChannel
+scullery = "^0.1.16"
+iot-devices= "*"
+icemedia= "*"
+NVRChannel= "*"
 
-numpy>=1.26.1
-cherrypy 
-cheroot
-flask
-tornado
-mako
-jinja2
-astral
-tatsu
-pam
-msgpack
-pyyaml
-types-PyYaml
-pytest
-nmcli
-peewee
-terminado
-apprise
+# NVRChannel didn't bring this in 0.15.0
+opencv-python= "*"
 
-ffmpeg-python
-yappi
-zeroconf>=0.119.0
-colorzero
+numpy="^1.26.1"
+cherrypy = "*"
+cheroot= "*"
+flask= "*"
+tornado= "*"
+mako= "*"
+jinja2= "*"
+astral= "*"
+tatsu= "*"
+pam= "*"
+msgpack= "*"
+pyyaml= "*"
+types-PyYaml= "*"
+pytest= "*"
+nmcli= "*"
+peewee= "*"
+terminado= "*"
+apprise= "*"
+
+ffmpeg-python= "*"
+yappi= "*"
+zeroconf="^0.119.0"
+colorzero= "*"
 # Still included in repo because it doesn't install correctly due to 
 # suds-passworddigest
 #onvif
-typeguard
-tinytag
-jsonschema
-pint
-pyflakes
-python_mpv_jsonipc
-textdistance
-toml
-vignette
-simpleeval
-websockets
-zeep
-passlib
-jinja2
-Pillow
-tflite-runtime
-evdev
-attr
-markupsafe
-upnpclient
-requests
-types-requests
-python-dateutil
-pygments
-pytz
-ntplib
-holidays
+typeguard= "*"
+tinytag= "*"
+jsonschema= "*"
+pint= "*"
+pyflakes= "*"
+python_mpv_jsonipc= "*"
+textdistance= "*"
+toml= "*"
+vignette= "*"
+simpleeval= "*"
+websockets= "*"
+zeep= "*"
+passlib= "*"
+jinja2= "*"
+Pillow= "*"
+tflite-runtime= "*"
+evdev= "*"
+attr= "*"
+markupsafe= "*"
+upnpclient= "*"
+requests= "*"
+types-requests= "*"
+python-dateutil= "*"
+pygments= "*"
+pytz= "*"
+ntplib= "*"
+holidays= "*"
 
+yeelight= "*"
 
-yeelight
-
-pyserial
-pygrep
-python-rtmidi==1.5.0
-paho-mqtt<=1.6.0
-setproctitle
-psutil
-toml
-netifaces
-JACK-Client
-aioesphomeapi
-sf2utils
-pynput
+pyserial= "*"
+pygrep= "*"
+python-rtmidi= "1.5.0"
+paho-mqtt = "<=1.6.0"
+setproctitle= "*"
+psutil= "*"
+toml= "*"
+netifaces= "*"
+JACK-Client= "*"
+aioesphomeapi= "*"
+sf2utils= "*"
+pynput= "*"
 
 # Older is not compatible with new numpy
-scipy>=1.11.0
+scipy = ">=1.11.0"

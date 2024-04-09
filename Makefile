@@ -69,36 +69,6 @@ ${ROOT_DIR}/.isolated_venv: # Create the virtualenv in the project folder
 update: # Fetch new code into this project folder
 	git pull
 
-.PHONY: dev-make-venv
-dev-make-venv: ${ROOT_DIR}/.venv ${ROOT_DIR}/.isolated_venv # Make the virtualenv in this project folder.
-	@echo "Making venv if not present"
-
-.PHONY: dev-install
-dev-install: dev-make-venv # Install Kaithem and all it's dependencies in the Venv.
-	@cd ${ROOT_DIR}
-	@.venv/bin/python -m pip install --upgrade -r requirements.txt
-	@.venv/bin/python -m pip install --editable .
-
-.PHONY: dev-run
-dev-run: # Run the kaithem app.
-	@cd ${ROOT_DIR}
-	@pw-jack .venv/bin/python -m kaithem	
-
-.PHONY: dev-run-isolated
-dev-run-isolated: # Run the kaithem app.
-	@cd ${ROOT_DIR}
-	@pw-jack .isolated_venv/bin/python -m kaithem	
-
-.PHONY: dev-update-dependencies
-dev-update-dependencies: dev-make-venv # Install latest version of dependencies into the venv. New versions might break something!
-	@cd ${ROOT_DIR}
-	@.isolated_venv/bin/python -m pip install --upgrade -r direct_dependencies.txt
-	@.isolated_venv/bin/python -m pip freeze -l > requirements.txt
-	# If kaithem itself installed here, avoid circular nonsense
-	@sed -i '/.*kaithem.*/d' ./requirements.txt
-	@.venv/bin/python -m pip install --force --upgrade -r requirements.txt
-
-
 
 .PHONY: root-install-zrok
 root-install-zrok: # Install or update Zrok for remote access
@@ -120,10 +90,10 @@ user-set-global-pipewire-conf:
 	@systemctl --user restart pipewire wireplumber
 
 .PHONY: user-install-kaithem
-user-install-kaithem: # Install kaithem to run as your user. Note that it only runs when you are logged in.
+user-start-kaithem-at-boot: # Install kaithem to run as your user. Note that it only runs when you are logged in.
 	@cd ${ROOT_DIR}
-	@echo "Kaithem will be installed to /home/${USER}/kaithem/.venv"
-	@bash ./scripts/install-kaithem.sh
+	@echo "Kaithem will be installed with a systemd user service."
+	@bash ./scripts/install-kaithem-service.sh
 
 .PHONY: user-max-volume-at-boot
 user-max-volume-at-boot: #Install a service that sets the max volume when you log in.
@@ -150,7 +120,7 @@ user-kaithem-status: # Get the status of the running kaithem instance
 
 .PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt
-	@sudo apt install python3-virtualenv scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv gstreamer1.0-pipewire
+	@sudo apt install python3-virtualenv pipx scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv gstreamer1.0-pipewire
 
 .PHONY: root-use-pipewire-jack
 root-use-pipewire-jack: # Make JACK clients work with pipewire

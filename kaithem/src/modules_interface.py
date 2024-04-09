@@ -2,37 +2,36 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import time
-import os
-import json
-import traceback
 import copy
+import json
+import logging
 import mimetypes
-import cherrypy
+import os
+import time
+import traceback
 import weakref
-from .util import url
+
+import cherrypy
+from cherrypy.lib.static import serve_file
 from scullery import scheduling
 
 from . import (
     auth,
-    pages,
+    dialogs,
     directories,
-    util,
-    newevt,
-    usrpages,
     messagebus,
-    schemas,
-    unitsofmeasure,
     modules,
     modules_state,
-    dialogs,
+    newevt,
+    pages,
+    schemas,
+    unitsofmeasure,
+    usrpages,
+    util,
 )
-from .modules import external_module_locations
-
 from .config import config
-from cherrypy.lib.static import serve_file
-
-import logging
+from .modules import external_module_locations
+from .util import url
 
 syslog = logging.getLogger("system")
 searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
@@ -45,9 +44,7 @@ def get_time(ev):
     try:
         if not newevt.EventReferences[ev].nextruntime:
             return 0
-        return newevt.dt_to_ts(
-            newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz
-        )
+        return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz)
     except Exception:
         return -1
 
@@ -88,9 +85,7 @@ def in_folder(r, f, n):
 
 def get_f_size(name, i):
     try:
-        return unitsofmeasure.si_format_number(
-            os.path.getsize(modules_state.fileResourceAbsPaths[name, i])
-        )
+        return unitsofmeasure.si_format_number(os.path.getsize(modules_state.fileResourceAbsPaths[name, i]))
     except Exception:
         return "Could not get size"
 
@@ -100,12 +95,7 @@ def urlForPath(module, path):
         "/modules/module/"
         + url(module)
         + "/resource/"
-        + "/".join(
-            [
-                url(i.replace("\\", "\\\\").replace("/", "\\/"))
-                for i in util.split_escape(path[0], "/", "\\")[:-1]
-            ]
-        )
+        + "/".join([url(i.replace("\\", "\\\\").replace("/", "\\/")) for i in util.split_escape(path[0], "/", "\\")[:-1]])
     )
 
 
@@ -262,11 +252,8 @@ class WebInterface:
     def yamldownload(self, module):
         pages.require("view_admin_info")
         if config["downloads-include-md5-in-filename"]:
-            cherrypy.response.headers["Content-Disposition"] = (
-                'attachment; filename="%s"'
-                % util.url(
-                    f"{module[:-4]}_{modules_state.getModuleHash(module[:-4])}.zip"
-                )
+            cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % util.url(
+                f"{module[:-4]}_{modules_state.getModuleHash(module[:-4])}.zip"
             )
         cherrypy.response.headers["Content-Type"] = "application/zip"
         try:
@@ -290,23 +277,17 @@ class WebInterface:
         pages.require("system_admin")
         pages.postOnly()
         modules_state.modulesHaveChanged()
-        for i in modules.load_modules_from_zip(
-            modulesfile.file, replace="replace" in kwargs
-        ):
+        for i in modules.load_modules_from_zip(modulesfile.file, replace="replace" in kwargs):
             pass
 
-        messagebus.post_message(
-            "/system/modules/uploaded", {"user": pages.getAcessingUser()}
-        )
+        messagebus.post_message("/system/modules/uploaded", {"user": pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/")
 
     @cherrypy.expose
     def index(self):
         # Require permissions and render page. A lotta that in this file.
         pages.require("view_admin_info")
-        return pages.get_template("modules/index.html").render(
-            ActiveModules=modules_state.ActiveModules
-        )
+        return pages.get_template("modules/index.html").render(ActiveModules=modules_state.ActiveModules)
 
     @cherrypy.expose
     def library(self):
@@ -364,9 +345,7 @@ class WebInterface:
         # If there is no module by that name, create a blank template and the scope obj
         with modules_state.modulesLock:
             if kwargs["name"] in modules_state.ActiveModules:
-                return pages.get_template("error.html").render(
-                    info=" A module already exists by that name,"
-                )
+                return pages.get_template("error.html").render(info=" A module already exists by that name,")
             modules.newModule(kwargs["name"], kwargs.get("location", None))
             raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(kwargs['name'])}")
 
@@ -415,9 +394,7 @@ class WebInterface:
             if path[0] == "scanfiles":
                 pages.require("system_admin")
                 pages.postOnly()
-                modules.autoGenerateFileRefResources(
-                    modules_state.ActiveModules[root], root
-                )
+                modules.autoGenerateFileRefResources(modules_state.ActiveModules[root], root)
                 raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
             if path[0] == "runevent":
@@ -430,9 +407,11 @@ class WebInterface:
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("system_admin")
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-                return pages.get_template("modules/events/run.html").render(
-                    module=root, event=path[1]
-                )
+
+                d = dialogs.Dialog("Run event manually")
+                d.text_input("name", default=path[1])
+                d.submit_button("Run")
+                return d.render(f"/modules/module/{url(module)}/runevent")
 
             if path[0] == "obj":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
@@ -464,9 +443,7 @@ class WebInterface:
                     objname = kwargs["objname"]
 
                 if "objpath" not in kwargs:
-                    return pages.get_template("modules/modulescope.html").render(
-                        kwargs=kwargs, name=root, obj=obj, objname=objname
-                    )
+                    return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name=root, obj=obj, objname=objname)
                 else:
                     return pages.get_template("obj_insp.html").render(
                         objpath=kwargs["objpath"],
@@ -523,8 +500,7 @@ class WebInterface:
                 if os.path.isfile(dataname):
                     return serve_file(
                         dataname,
-                        content_type=mimetypes.guess_type(path[1], False)[0]
-                        or "application/x-unknown",
+                        content_type=mimetypes.guess_type(path[1], False)[0] or "application/x-unknown",
                         disposition="inline;",
                         name=path[1],
                     )
@@ -538,9 +514,7 @@ class WebInterface:
                 else:
                     x = ""
                 # path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
-                return pages.get_template("modules/uploadfileresource.html").render(
-                    module=module, path=x
-                )
+                return pages.get_template("modules/uploadfileresource.html").render(module=module, path=x)
 
             # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == "uploadfileresourcetarget":
@@ -573,9 +547,7 @@ class WebInterface:
                 with modules_state.modulesLock:
                     # BEGIN BLOCK OF CODE COPY PASTED FROM ANOTHER PART OF CODE. I DO NOT REALLY UNDERSTAND IT
                     # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
-                    escapedName = (
-                        kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
-                    )
+                    escapedName = kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
                     if len(path) > 1:
                         escapedName = f"{path[1]}/{escapedName}"
                     x = util.split_escape(module, "/", "\\")
@@ -592,8 +564,7 @@ class WebInterface:
                     d = {
                         "resource-type": "internal-fileref",
                         "serve": "serve" in kwargs,
-                        "target": "$MODULERESOURCES/"
-                        + util.url(escapedName, modules.safeFnChars),
+                        "target": "$MODULERESOURCES/" + util.url(escapedName, modules.safeFnChars),
                     }
 
                     # Preserve existing metadata
@@ -606,9 +577,7 @@ class WebInterface:
                     modules.handleResourceChange(root, escapedName)
                     modules_state.modulesHaveChanged()
                 if len(path) > 1:
-                    raise cherrypy.HTTPRedirect(
-                        f"/modules/module/{util.url(root)}/resource/{util.url(path[1])}"
-                    )
+                    raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}/resource/{util.url(path[1])}")
                 else:
                     raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
@@ -634,12 +603,7 @@ class WebInterface:
 
                 messagebus.post_message(
                     "/system/notifications",
-                    "User "
-                    + pages.getAcessingUser()
-                    + " deleted resource "
-                    + kwargs["name"]
-                    + " from module "
-                    + module,
+                    "User " + pages.getAcessingUser() + " deleted resource " + kwargs["name"] + " from module " + module,
                 )
                 messagebus.post_message(
                     "/system/modules/deletedresource",
@@ -652,10 +616,7 @@ class WebInterface:
                 )
                 if len(util.split_escape(kwargs["name"], "/", "\\")) > 1:
                     raise cherrypy.HTTPRedirect(
-                        "/modules/module/"
-                        + util.url(module)
-                        + "/resource/"
-                        + util.url(util.module_onelevelup(kwargs["name"]))
+                        "/modules/module/" + util.url(module) + "/resource/" + util.url(util.module_onelevelup(kwargs["name"]))
                     )
                 else:
                     raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
@@ -669,10 +630,7 @@ class WebInterface:
                     if "location" in kwargs and kwargs["location"]:
                         external_module_locations[kwargs["name"]] = kwargs["location"]
                         # We can't just do a delete and then set, what if something odd happens between?
-                        if (
-                            not kwargs["name"] == root
-                            and root in external_module_locations
-                        ):
+                        if not kwargs["name"] == root and root in external_module_locations:
                             del external_module_locations[root]
                     else:
                         # We must delete this before deleting the actual external_module_locations entry
@@ -697,9 +655,7 @@ class WebInterface:
                             external_module_locations.pop(root)
                     # Missing descriptions have caused a lot of bugs
                     if "__description" in modules_state.ActiveModules[root]:
-                        modules_state.ActiveModules[root]["__description"]["text"] = (
-                            kwargs["description"]
-                        )
+                        modules_state.ActiveModules[root]["__description"]["text"] = kwargs["description"]
                     else:
                         modules_state.ActiveModules[root]["__description"] = {
                             "resource-type": "module-description",
@@ -709,9 +665,7 @@ class WebInterface:
                     # Renaming reloads the entire module.
                     # TODO This needs to handle custom resource types if we ever implement them.
                     if not kwargs["name"] == root:
-                        modules_state.ActiveModules[kwargs["name"]] = (
-                            modules_state.ActiveModules.pop(root)
-                        )
+                        modules_state.ActiveModules[kwargs["name"]] = modules_state.ActiveModules.pop(root)
                         # UHHG. So very much code tht just syncs data structures.
                         # This gets rid of the cache under the old name
                         newevt.removeModuleEvents(root)
@@ -720,9 +674,7 @@ class WebInterface:
                         modules.bookkeeponemodule(kwargs["name"], update=True)
                         # Just for fun, we should probably also sync the permissions
                         auth.importPermissionsFromModules()
-                raise cherrypy.HTTPRedirect(
-                    f"/modules/module/{util.url(kwargs['name'])}"
-                )
+                raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(kwargs['name'])}")
 
 
 # Return a CRUD screen to create a new resource taking into the type of resource the user wants to create
@@ -732,32 +684,18 @@ def addResourceDispatcher(module, type, path):
     pages.require("system_admin")
 
     # Return a crud to add a new permission
-    if type == "permission":
-        d = dialogs.Dialog("New Permission in {module}")
+    if type in ("permission", "event", "page", "directory"):
+        d = dialogs.Dialog(f"New {type.capitalize()} in {module}")
         d.text_input("name")
-        d.text_input("description")
-        d.submit_button("Submit")
-        return d.render(
-            f"/modules/module/{url(module)}/addresourcetarget/permission/{url(path)}"
-        )
 
-    # return a crud to add a new event
-    elif type == "event":
-        return pages.get_template("modules/events/new.html").render(
-            module=module, path=path
-        )
+        if type in ("permission",):
+            d.text_input("description")
 
-    # return a crud to add a new event
-    elif type == "page":
-        return pages.get_template("modules/pages/new.html").render(
-            module=module, path=path
-        )
+        if type == "page":
+            d.selection("template", options=["default", "freeboard"])
 
-    # return a crud to add a new event
-    elif type == "directory":
-        return pages.get_template("modules/directories/new.html").render(
-            module=module, path=path
-        )
+        d.submit_button("Create")
+        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{type}/{url(path)}")
     else:
         return modules_state.additionalTypes[type].createpage(module, path)
 
@@ -794,9 +732,7 @@ def addResourceTarget(module, type, name, kwargs, path):
             raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
 
         elif type == "permission":
-            insertResource(
-                {"resource-type": "permission", "description": kwargs["description"]}
-            )
+            insertResource({"resource-type": "permission", "description": kwargs["description"]})
             # has its own lock
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
@@ -834,19 +770,10 @@ def addResourceTarget(module, type, name, kwargs, path):
 
         messagebus.post_message(
             "/system/notifications",
-            "User "
-            + pages.getAcessingUser()
-            + " added resource "
-            + escapedName
-            + " of type "
-            + type
-            + " to module "
-            + root,
+            "User " + pages.getAcessingUser() + " added resource " + escapedName + " of type " + type + " to module " + root,
         )
         # Take the user straight to the resource page
-        raise cherrypy.HTTPRedirect(
-            f"/modules/module/{util.url(module)}/resource/{util.url(escapedName)}"
-        )
+        raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}/resource/{util.url(escapedName)}")
 
 
 # show a edit page for a resource. No side effect here so it only requires the view permission
@@ -861,9 +788,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 
         elif version == "__default__":
             try:
-                resourceinquestion = modules_state.ActiveModules[module][resource][
-                    "versions"
-                ]["__draft__"]
+                resourceinquestion = modules_state.ActiveModules[module][resource]["versions"]["__draft__"]
                 version = "__draft__"
             except KeyError:
                 version = "__live__"
@@ -921,9 +846,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
             )
 
         # This is for the custom resource types interface stuff.
-        return modules_state.additionalTypes[
-            resourceinquestion["resource-type"]
-        ].editpage(module, resource, resourceinquestion)
+        return modules_state.additionalTypes[resourceinquestion["resource-type"]].editpage(module, resource, resourceinquestion)
 
 
 def permissionEditPage(module, resource):
@@ -968,15 +891,14 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj["serve"] = "serve" in kwargs
             # has its own lock
             resourceobj["allow-xss"] = "allow-xss" in kwargs
-            resourceobj["allow-origins"] = [
-                i.strip() for i in kwargs["allow-origins"].split(",")
-            ]
+            resourceobj["allow-origins"] = [i.strip() for i in kwargs["allow-origins"].split(",")]
             resourceobj["mimetype"] = kwargs["mimetype"]
 
             # Just like pages, file resources are permissioned
             resourceobj["require-permissions"] = []
             for i in kwargs:
-                # Since HTTP args don't have namespaces we prefix all the permission checkboxes with permission
+                # Since HTTP args don't have namespaces we prefix all the
+                # permission checkboxes with permission
                 if i[:10] == "Permission":
                     if kwargs[i] == "true":
                         resourceobj["require-permissions"].append(i[10:])
@@ -1009,15 +931,14 @@ def resourceUpdateTarget(module, resource, kwargs):
                     # Test for syntax errors at least, before we do anything more
                     newevt.test_compile(setupcode, actioncode)
 
-                    # Remove the old event even before we even do a test run of setup. If we can't do the new version just put the old one back.
+                    # Remove the old event even before we even do a test run of setup.
+                    # If we can't do the new version just put the old one back.
                     # Todo actually put old one back
                     newevt.removeOneEvent(module, resource)
                     # Leave a delay so that effects of cleanup can fully propagate.
                     time.sleep(0.08)
                     # Make event from resource, but use our substitute modified dict
-                    compiled_object = newevt.make_event_from_resource(
-                        module, resource, r2
-                    )
+                    compiled_object = newevt.make_event_from_resource(module, resource, r2)
 
                 except Exception:
                     if "versions" not in resourceobj:
@@ -1049,7 +970,8 @@ def resourceUpdateTarget(module, resource, kwargs):
                 r2["rate-limit"] = float(kwargs["ratelimit"])
                 r2["enable"] = False
 
-                # Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
+                # Remove the old event even before we do a test compile.
+                # If we can't do the new version just put the old one back.
                 newevt.removeOneEvent(module, resource)
                 # Leave a delay so that effects of cleanup can fully propagate.
                 time.sleep(0.08)
@@ -1058,7 +980,8 @@ def resourceUpdateTarget(module, resource, kwargs):
                 modules_state.ActiveModules[module][resource] = r2
 
             # I really need to do something about this possibly brittle bookkeeping system
-            # But anyway, when the active modules thing changes we must update the newevt cache thing.
+            # But anyway, when the active modules thing changes we must update
+            # the newevt cache thing.
 
             # Delete the draft if any
             try:
@@ -1099,9 +1022,7 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj["no-header"] = "no-header" in kwargs
             resourceobj["auto-reload"] = "autoreload" in kwargs
             resourceobj["allow-xss"] = "allow-xss" in kwargs
-            resourceobj["allow-origins"] = [
-                i.strip() for i in kwargs["allow-origins"].split(",")
-            ]
+            resourceobj["allow-origins"] = [i.strip() for i in kwargs["allow-origins"].split(",")]
             resourceobj["auto-reload-interval"] = float(kwargs["autoreloadinterval"])
             # Method checkboxes
             resourceobj["require-method"] = []
@@ -1112,7 +1033,8 @@ def resourceUpdateTarget(module, resource, kwargs):
             # permission checkboxes
             resourceobj["require-permissions"] = []
             for i in kwargs:
-                # Since HTTP args don't have namespaces we prefix all the permission checkboxes with permission
+                # Since HTTP args don't have namespaces we prefix all the permission
+                # checkboxes with permission
                 if i[:10] == "Permission":
                     if kwargs[i] == "true":
                         resourceobj["require-permissions"].append(i[10:])
@@ -1128,36 +1050,27 @@ def resourceUpdateTarget(module, resource, kwargs):
                 # Just handles the internal stuff
                 modules.mvResource(module, resource, module, kwargs["name"])
 
-        # We can pass a compiled object for things like events that would otherwise have to have a test compile then the real compile
-        modules.handleResourceChange(
-            module, kwargs.get("name", resource), compiled_object
-        )
+        # We can pass a compiled object for things like events that would otherwise
+        # have to have a test compile then the real compile
+        modules.handleResourceChange(module, kwargs.get("name", resource), compiled_object)
 
         prev_versions[(module, resource)] = old_resource
 
     messagebus.post_message(
         "/system/notifications",
-        "User "
-        + pages.getAcessingUser()
-        + " modified resource "
-        + resource
-        + " of module "
-        + module,
+        "User " + pages.getAcessingUser() + " modified resource " + resource + " of module " + module,
     )
     r = resource
     if "name" in kwargs:
         r = kwargs["name"]
     if "GoNow" in kwargs:
         raise cherrypy.HTTPRedirect(usrpages.url_for_resource(module, r))
-    # Return user to the module page. If name has a folder, return the user to it;s containing folder.
+    # Return user to the module page. If name has a folder, return the
+    # user to it;s containing folder.
     x = util.split_escape(r, "/", "\\")
     if len(x) > 1:
         raise cherrypy.HTTPRedirect(
-            "/modules/module/"
-            + util.url(module)
-            + "/resource/"
-            + "/".join([util.url(i) for i in x[:-1]])
-            + "#resources"
+            "/modules/module/" + util.url(module) + "/resource/" + "/".join([util.url(i) for i in x[:-1]]) + "#resources"
         )
     else:
         # +'/resource/'+util.url(resource))

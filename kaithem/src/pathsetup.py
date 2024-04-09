@@ -4,9 +4,9 @@
 
 # This file deals with configuring the way python's import mechanism works.
 
-import sys
-import os
 import logging
+import os
+import sys
 
 logger = logging.getLogger("system")
 
@@ -45,6 +45,9 @@ def setupPath(linuxpackage=None, force_local=False):
         # Low priority modules will default to using the version installed on the user's computer.
         sys.path = sys.path + [os.path.join(x, "thirdparty", "lowpriority")]
 
+    # Truly an awefullehaccken
+    # Break out of venv to get to gstreamer
+
     # Consider using importlib.util.module_for_loader() to handle
     # most of these details for you.
 
@@ -52,6 +55,28 @@ def setupPath(linuxpackage=None, force_local=False):
         for i in sys.modules:
             if fullname.endswith(i):
                 return sys.modules[i]
+
+    # Truly an awefullehaccken
+    # Break out of venv to get to gstreamer
+    # It's just that one package.  Literally everything else
+    # Is perfectly fine. GStreamer doesn't do pip so we do this.
+
+    try:
+        if os.environ.get("VIRTUAL_ENV"):
+            en = os.environ["VIRTUAL_ENV"]
+            p = os.path.join(
+                en,
+                "lib",
+                "python" + ".".join(sys.version.split(".")[:2]),
+                "site-packages",
+                "gi",
+            )
+            s = "/usr/lib/python3/dist-packages/gi"
+
+            if os.path.exists(s) and (not os.path.exists(p)):
+                os.symlink(s, p)
+    except Exception:
+        logger.exception("Failed to do the gstreamer hack")
 
 
 setupPath()

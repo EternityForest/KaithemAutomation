@@ -1,18 +1,19 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import importlib
-from mako.lookup import TemplateLookup
-import cherrypy
 import base64
-import weakref
-import time
+import importlib
 import logging
-import os
 import mimetypes
+import os
+import time
+import weakref
+
+import cherrypy
 import jinja2
-from . import auth
-from . import directories
+from mako.lookup import TemplateLookup
+
+from . import auth, directories
 
 _Lookup = TemplateLookup(
     directories=[
@@ -27,7 +28,7 @@ _varLookup = TemplateLookup(directories=[directories.vardir])
 
 #
 _jl = jinja2.FileSystemLoader(
-    [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
+    [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates"), "/"],
     encoding="utf-8",
     followlinks=False,
 )
@@ -62,12 +63,7 @@ nav_bar_plugins = weakref.WeakValueDictionary()
 # There are cases where this may not exactly be perfect,
 # but the point is just an extra guard against user error.
 def isHTTPAllowed(ip):
-    return (
-        ip.startswith(
-            ("::1", "127.", "::ffff:192.", "::ffff:10.", "192.", "10.", "fc", "fd")
-        )
-        or ip == "::ffff:127.0.0.1"
-    )
+    return ip.startswith(("::1", "127.", "::ffff:192.", "::ffff:10.", "192.", "10.", "fc", "fd")) or ip == "::ffff:127.0.0.1"
 
 
 nativeHandlers = weakref.WeakValueDictionary()
@@ -117,9 +113,7 @@ def require(permission, noautoreturn=False):
     """
 
     if permission == "__never__":
-        raise RuntimeError(
-            "Nobody has the __never__ permission, ever, except in nosecurity mode."
-        )
+        raise RuntimeError("Nobody has the __never__ permission, ever, except in nosecurity mode.")
 
     if not isinstance(permission, str):
         p = permission
@@ -135,9 +129,7 @@ def require(permission, noautoreturn=False):
         if user == "__no_request__":
             return
 
-        if permission in auth.crossSiteRestrictedPermissions or not auth.getUserSetting(
-            user, "allow-cors"
-        ):
+        if permission in auth.crossSiteRestrictedPermissions or not auth.getUserSetting(user, "allow-cors"):
             noCrossSite()
 
         # If the special __guest__ user can do it, anybody can.
@@ -170,12 +162,7 @@ def require(permission, noautoreturn=False):
             # than that and it takes him back to the main page.
             # This is so it can't auto redirect
             # To something you forgot about and no longer want.
-            raise cherrypy.HTTPRedirect(
-                "/login?go="
-                + base64.b64encode(url.encode()).decode()
-                + "&maxgotime-"
-                + str(time.time() + 300)
-            )
+            raise cherrypy.HTTPRedirect("/login?go=" + base64.b64encode(url.encode()).decode() + "&maxgotime-" + str(time.time() + 300))
 
         if not auth.canUserDoThis(user, permission):
             raise cherrypy.HTTPRedirect("/errors/permissionerror?")
@@ -206,9 +193,7 @@ def noCrossSite():
 
 def strictNoCrossSite():
     if not cherrypy.request.base == cherrypy.request.headers.get("Origin", ""):
-        raise PermissionError(
-            "Cannot make this request from a different origin, or from a requester that does not provide an origin"
-        )
+        raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
 
 
 def getAcessingUser(tornado_mode=None):
@@ -226,11 +211,7 @@ def getAcessingUser(tornado_mode=None):
         base = tornado_mode.host
 
     else:
-        if (
-            (not cherrypy.request.request_line)
-            and (not cherrypy.request.app)
-            and (not cherrypy.request.config)
-        ):
+        if (not cherrypy.request.request_line) and (not cherrypy.request.app) and (not cherrypy.request.config):
             return "__no_request__"
         headers = cherrypy.request.headers
         scheme = cherrypy.request.scheme
@@ -268,13 +249,7 @@ def getAcessingUser(tornado_mode=None):
         user = auth.whoHasToken(cookie["kaithem_auth"].value)
         if not auth.getUserSetting(user, "allow-cors"):
             if headers.get("Origin", ""):
-                x = (
-                    headers.get("Origin", "")
-                    .replace("http://", "")
-                    .replace("https://", "")
-                    .replace("ws://", "")
-                    .replace("wss://", "")
-                )
+                x = headers.get("Origin", "").replace("http://", "").replace("https://", "").replace("ws://", "").replace("wss://", "")
                 x2 = headers.get("Origin", "")
                 # Cherrypy and tornado compatibility
                 if base not in (x, x2):

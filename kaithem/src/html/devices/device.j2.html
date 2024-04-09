@@ -333,7 +333,7 @@
                     <tr>
                         <td>{{ i| escape }}</td>
                         <td>
-                            {% if hasattr(obj,'_noSetAlarmPriority') %}
+                            {% if hasattr(obj,'_noset_alarmPriority') %}
                             {{ obj.alerts[i].priority }}
                             {% else %}
                             <select name="alerts.{{ i }}.priority">

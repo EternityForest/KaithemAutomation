@@ -18,9 +18,7 @@ host: "default"
 ssl-dir : ssl
 
 #The directory in which to store persistant state such as users,groups,modules,settings,etc
-#Relative to kaithem/ or use an absolute path.
-# gets auto-overridden to ~/kaithem if we detect that it is in a path under /usr or /nix
-site-data-dir: var
+site-data-dir: ~/kaithem
 
 #Max how many threads to allocate for the worker thread pool
 worker-threads: 12
@@ -169,10 +167,6 @@ about-box-banner: "This space can be customized with site specific data in the c
 #theme-url: /static/css/kaithem_scrapbook.css
 theme-url: /static/css/kaithem_minimal.css
 
-#URL of a monaco theme to use
-monaco-theme-url: /static/js/monaco-theme.js
-
-        
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 

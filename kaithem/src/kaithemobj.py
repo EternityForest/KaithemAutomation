@@ -3,48 +3,67 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import traceback
-from . import tagpoints, geolocation
-import time
+import importlib
+import json
+import os
 import random
 import subprocess
 import threading
-import json
-import yaml
-import os
+import time
+import traceback
 import weakref
-from scullery import persist as sculleryPersist
-
-from typing import Any, Callable, Optional, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import cherrypy
-from . import unitsofmeasure
-from . import workers
+import jinja2
+import yaml
 from icemedia import sound_player as sound
-from . import messagebus
-from . import util
-from . import widgets
-from . import directories
-from . import pages
-from . import config
-from . import persist
-from . import breakpoint
+from scullery import persist as sculleryPersist
 from scullery import statemachines
-from . import devices
-from . import alerts
-from . import theming
-from . import assetlib
+
 from kaithem import __version__
 
+from . import (
+    alerts,
+    assetlib,
+    breakpoint,
+    config,
+    devices,
+    directories,
+    geolocation,
+    messagebus,
+    pages,
+    persist,
+    scriptbindings,
+    tagpoints,
+    theming,
+    unitsofmeasure,
+    util,
+    widgets,
+    workers,
+)
 from . import astrallibwrapper as sky
-from . import scriptbindings
-
 
 wsgi_apps = []
 tornado_apps = []
 
 
 bootTime = time.time()
+
+
+# This is for plugins to use and extend pageheader.
+_jl = jinja2.FileSystemLoader(
+    [os.path.join(directories.htmldir, "jinjatemplates"), "/"],
+    encoding="utf-8",
+    followlinks=False,
+)
+
+env = jinja2.Environment(loader=_jl, autoescape=False)
+
+
+def render_jinja_template(template_filename: str, **kw):
+    return _jl.load(env, template_filename, env.globals).render(imp0rt=importlib.import_module, **kw)
+
 
 # Persist is one of the ones that we want to be usable outside of kaithem, so we add our path resolution stuff here.
 
@@ -61,9 +80,7 @@ persist.resolve_path = resolve_path
 # This exception is what we raise from within the page handler to serve a static file
 
 
-ServeFileInsteadOfRenderingPageException = (
-    pages.ServeFileInsteadOfRenderingPageException
-)
+ServeFileInsteadOfRenderingPageException = pages.ServeFileInsteadOfRenderingPageException
 
 plugins = weakref.WeakValueDictionary()
 
@@ -246,18 +263,14 @@ class Kaithem:
             return unitsofmeasure.strftime(*args)
 
         @staticmethod
-        def sunset_time(
-            lat: Optional[float] = None, lon: Optional[float] = None, date=None
-        ):
+        def sunset_time(lat: Optional[float] = None, lon: Optional[float] = None, date=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError(
-                    "No server location set, fix this in system settings"
-                )
+                raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.sunset(lat, lon, date)
 
@@ -269,9 +282,7 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError(
-                    "No server location set, fix this in system settings"
-                )
+                raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.sunrise(lat, lon, date)
 
@@ -283,9 +294,7 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError(
-                    "No server location set, fix this in system settings"
-                )
+                raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.dusk(lat, lon, date)
 
@@ -297,9 +306,7 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError(
-                    "No server location set, fix this in system settings"
-                )
+                raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.dawn(lat, lon, date)
 
@@ -311,9 +318,7 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError(
-                    "No server location set, fix this in system settings"
-                )
+                raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.rahu(lat, lon, date)[0]
 
@@ -325,9 +330,7 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError(
-                    "No server location set, fix this in system settings"
-                )
+                raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.rahu(lat, lon, date)[1]
 
@@ -339,9 +342,7 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError(
-                    "No server location set, fix this in system settings"
-                )
+                raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.is_dark(lat, lon)
 
@@ -354,9 +355,7 @@ class Kaithem:
                 else:
                     raise ValueError("You set lon, but not lst?")
                 if lat is None or lon is None:
-                    raise RuntimeError(
-                        "No server location set, fix this in system settings"
-                    )
+                    raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.isRahu(lat, lon)
 
@@ -367,9 +366,7 @@ class Kaithem:
                     lat, lon = geolocation.getCoords()
 
                 if lat is None or lon is None:
-                    raise RuntimeError(
-                        "No server location set, fix this in system settings"
-                    )
+                    raise RuntimeError("No server location set, fix this in system settings")
             return sky.is_day(lat, lon)
 
         @staticmethod
@@ -379,9 +376,7 @@ class Kaithem:
                     lat, lon = geolocation.getCoords()
 
                 if lat is None or lon is None:
-                    raise RuntimeError(
-                        "No server location set, fix this in system settings"
-                    )
+                    raise RuntimeError("No server location set, fix this in system settings")
             return sky.is_night(lat, lon)
 
         @staticmethod
@@ -391,9 +386,7 @@ class Kaithem:
                     lat, lon = geolocation.getCoords()
 
                 if lat is None or lon is None:
-                    raise RuntimeError(
-                        "No server location set, fix this in system settings"
-                    )
+                    raise RuntimeError("No server location set, fix this in system settings")
             return sky.is_light(lat, lon)
 
         @staticmethod
@@ -444,15 +437,13 @@ class Kaithem:
         def freeboard(page, kwargs, plugins=[]):
             "Returns the ready-to-embed code for freeboard.  Used to unclutter user created pages that use it."
             if cherrypy.request.method == "POST":
-                import re
                 import html
+                import re
 
                 pages.require("system_admin")
                 c = re.sub(
                     r"<\s*freeboard-data\s*>[\s\S]*<\s*\/freeboard-data\s*>",
-                    "<freeboard-data>\n"
-                    + html.escape(yaml.dump(json.loads(kwargs["bd"])))
-                    + "\n</freeboard-data>",
+                    "<freeboard-data>\n" + html.escape(yaml.dump(json.loads(kwargs["bd"]))) + "\n</freeboard-data>",
                     page.getContent(),
                 )
                 page.setContent(c)
@@ -498,10 +489,7 @@ class Kaithem:
 
                 # Always
                 try:
-                    x = [
-                        i.name
-                        for i in jackmanager.get_ports(is_audio=True, is_input=True)
-                    ]
+                    x = [i.name for i in jackmanager.get_ports(is_audio=True, is_input=True)]
                 except Exception:
                     print(traceback.format_exc())
                     x = []
@@ -621,9 +609,7 @@ class Kaithem:
         unsaved = sculleryPersist.unsavedFiles
 
         @staticmethod
-        def load(
-            fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]
-        ) -> bytes | str | Dict[Any, Any] | List[Any]:
+        def load(fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]) -> bytes | str | Dict[Any, Any] | List[Any]:
             return persist.load(fn, *args, **kwargs)
 
         @staticmethod

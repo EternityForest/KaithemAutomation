@@ -1,12 +1,12 @@
-import logging
-from kaithem.src import tagpoints, alerts, messagebus, geolocation
-import traceback
-import time
 import json
+import logging
 import os
+import time
+import traceback
+
+from kaithem.src import alerts, geolocation, messagebus, tagpoints
 
 from . import astrallibwrapper as sky
-
 
 refs = []
 
@@ -44,16 +44,12 @@ def create():
     twilightTag.min = -1
     twilightTag.max = 1
     twilightTag.interval = 60
-    twilightTag.description = (
-        "Unless overridden, 1 if dark, else 0, -1 if no location is set"
-    )
+    twilightTag.description = "Unless overridden, 1 if dark, else 0, -1 if no location is set"
     twilightTag.value = civil_twilight
     refs.append(twilightTag)
 
     alertTag = tagpoints.Tag("/system/alerts.level")
-    alertTag.description = (
-        "The level of the highest priority alert that is currently not acknowledged"
-    )
+    alertTag.description = "The level of the highest priority alert that is currently not acknowledged"
     alertTag.writable = False
     alertTag.min = 0
     alertTag.max = alerts.priorities["critical"]
@@ -130,4 +126,4 @@ def create():
 
 
 # Probably best not to automatically do anything that could cause IP traffic?
-# ipTag.setAlarm("NoInternetAccess", condition="not value")
+# ipTag.set_alarm("NoInternetAccess", condition="not value")

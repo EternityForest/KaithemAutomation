@@ -23,9 +23,9 @@ resource metadata.
 
 ## API
 
-All devices appear in the kaithem.devices[] space. 
+All devices appear in the kaithem.devices[] space.
 
-All Tagpoints the device exposes appear in the tags list under  /devices/<DEVNAME>/<TAGNAME>. 
+All Tagpoints the device exposes appear in the tags list under  /devices/<DEVNAME>/<TAGNAME>.
 
 
 ## Dependency Resolution
@@ -41,7 +41,7 @@ kaithem.devices is iterable, but does not include anything currently unsupported
 
 ### Device Objects
 
-#### dev.alerts(DEPRECATED, USE TAGPOINTS and setAlarm)
+#### dev.alerts(DEPRECATED, USE TAGPOINTS and set_alarm)
 
 Dict of Alert objects the device defines
 

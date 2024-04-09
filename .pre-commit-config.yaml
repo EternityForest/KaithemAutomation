@@ -96,6 +96,7 @@ repos:
         # Errors
         - "--select=PLE"
         - "--select=F"
+        - "--select=E"
         # Syntax error
         - "--select=E999"
         # Mostly have auto fixes available
@@ -105,12 +106,18 @@ repos:
         - "--select=E714"
         - "--select=E711"
         - "--select=E713"
+        - "--select=FURB"
 
         # Autofixable quote rules
         - "--select=Q"
         - "--select=E722"
         # Fix bad escape sequence
         - "--select=W605"
+        # Import
+        - "--select=I"
+        # Bandit
+        #- "--select=S"
+
       # Run the formatter.
       - id: ruff-format
 

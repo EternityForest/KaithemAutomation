@@ -3,13 +3,14 @@
 
 """This file handles the big configuration file, provides access to it, and handles default settings"""
 
-import yaml
 import argparse
-import sys
-import os
-import jsonschema
 import logging
-from typing import Optional, Dict, Any
+import os
+import sys
+from typing import Any, Dict, Optional
+
+import jsonschema
+import yaml
 
 logger = logging.getLogger("system")
 config = {}
@@ -66,11 +67,20 @@ def load(cfg: Dict[str, Any]):
 
     config.update(cfg or {})
 
+    vardir = os.path.expanduser(config["site-data-dir"])
+    default_conf_location = os.path.join(vardir, "config.yaml")
+
     # Attempt to open any manually specified config file
     if argcmd.c:
         with open(argcmd.c) as f:
             _usr_config = yaml.load(f, yaml.SafeLoader)
             logger.info("Loaded configuration from " + argcmd.c)
+
+    elif os.path.exists(default_conf_location):
+        with open(default_conf_location) as f:
+            _usr_config = yaml.load(f, yaml.SafeLoader)
+            logger.info("Loaded configuration from " + default_conf_location)
+
     else:
         _usr_config = {}
         logger.info("No CFG File Specified. Using Defaults.")

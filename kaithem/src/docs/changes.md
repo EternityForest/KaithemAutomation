@@ -3,20 +3,37 @@ Change Log
 
 ### 0.78.0
 
+I was not going to release this so early. There may be bugs. YMMV.
+However I discovered that the old installer was unreliably due to
+some kind of virtualenv behavior where it decides to randomly use
+/venv/local/bin instead of /venv/bin.
+
+To fix this, we are moving to pipx and Poetry. To do so I had to get rid of --system-site-packages
+completely.   This change broke gstreamer, but there is a fix!
+
+Thanks :heart: to [happyleavesaoc](https://github.com/happyleavesaoc/gstreamer-player/) for discovering
+a way to make gstreamer work in a virtualenv. All you need to do is symlink the gi package
+into your site-packages!  Kaithem now does this automatically on Debian and probably most everything
+else.
+
 - :bug: Fix unused subdevice nuisance method resolution error
-- :coffin: Remove old baresip code
-- :coffin: Remove kaithem.midi API
-- :coffin: Remove the image map creator util
-- :coffin: Remove kaithem.time.accuracy, lantime, hour, month, day, second, minute, dayofweek
-- :coffin: Remove kaithem.sys.shellex, shellexbg, which
+- :coffin::boom: Remove old baresip code
+- :coffin::boom: Remove kaithem.midi API
+- :coffin::boom: Remove the image map creator util
+- :coffin::boom: Remove kaithem.time.accuracy, lantime, hour, month, day, second, minute, dayofweek
+- :coffin::boom: Remove kaithem.sys.shellex, shellexbg, which
+- :coffin::boom: Remove kaithem.events.when and kaithem.events.after
+- :coffin: Remove nixos config that was probably outdated. It's in the log if ya need it!
 
-- :coffin: Remove kaithem.events.when and kaithem.events.after
+- :hammer: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
 
-- :sparkles: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
-
-- :sparkles: Split off internal scheduling and state machines to [Scullery](https://github.com/EternityForest/scullery) meant for easy standalone use.
-
-- :sparkles: Add badges(CC0 licensed)
+- :hammer: Split off internal scheduling and state machines to [Scullery](https://github.com/EternityForest/scullery) meant for easy standalone use.
+- :hammer: Move to pyproject.toml
+- :hammer: Move to a pipx based install process
+- :recycle: A very large amount of old code is gone
+- :recycle: Start moving to a proper dialog generation class instead of ad-hoc templates.s
+- :lipstick: Add badges(CC0 licensed)
+- :lipstick: Slim down the readme
 
 
 ### 0.77.0

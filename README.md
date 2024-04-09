@@ -12,6 +12,8 @@
 ![Makefile Badge](badges/makefile.png)
 ![Ten Year Project](badges/ten-years.png)
 ![Pytest](badges/pytest.png)
+![Ruff](badges/ruff.png)
+![Poetry](badges/poetry.png)
 
 Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
@@ -30,6 +32,8 @@ cd KaithemAutomation
 Now you have the repo cloned, all the relevant commands are in the Makefile.
 This is an interpreted package, but we use Make anyway to keep commands in one handy place.
 
+NOTE: Formerly, the makefile would use a script to create a virtual environment, now we let pipx
+handle it all.
 
 ### Install system packages
 
@@ -42,15 +46,27 @@ make root-install-system-dependencies
 
 
 ### Install kaithem in the project folder virtualenv
+
+Now that you have the system dependencies, you should have pipx from your package manager.
+
 ```bash
-# Show the menu of Kaithem commands
-make help
 
-# Grab Pip dependencies and install into this cloned project folder
-make dev-install
+# Kaithem now uses Poetry as a Python builder
+pipx install poetry
 
-# Run the file(Launches dev_run in a virtualenv)
-make dev-run
+# This line tells Poetry that Kaithem should use your
+# globally installed system packages.  This is important
+# Because GStreamer is normally installed that way
+
+poetry config virtualenvs.options.system-site-packages true --local
+
+# If you already have a .venv in your folder, it
+# May be best to start over.
+poetry install -v
+
+# Poetry will run it in the virtualenv
+poetry run python dev_run.py
+
 ```
 
 Then visit http://localhost:8002 and log in with your normal Linux username and password.

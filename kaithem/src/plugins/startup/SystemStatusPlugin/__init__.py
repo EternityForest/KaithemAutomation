@@ -1,9 +1,11 @@
-import threading
-from scullery import scheduling
-from kaithem.src import util, alerts, tagpoints, messagebus
-import subprocess
 import logging
 import os
+import subprocess
+import threading
+
+from scullery import scheduling
+
+from kaithem.src import alerts, messagebus, tagpoints, util
 
 undervoltageDuringBootPosted = False
 overTempDuringBootPosted = False
@@ -11,8 +13,8 @@ battery = None
 
 
 def getSDHealth():
-    import os
     import json
+    import os
 
     p = None
     if os.path.exists("/dev/shm/sdmon_cache_mmcblk0"):
@@ -40,13 +42,8 @@ try:
     battery = psutil.sensors_battery()
 
 except ImportError:
-    logging.exception("Cant load psutil, trying plyer instead")
+    logging.exception("Cant load psutil")
     psutil = None
-
-    try:
-        import plyer
-    except ImportError:
-        print("Plyer not available either")
 
 if battery:
     batteryTag = tagpoints.Tag("/system/power/battery_level")
@@ -61,9 +58,7 @@ if battery:
     battery_time.max = 30 * 60 * 60
     battery_time.lo = 40 * 60
     battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
-    battery_time.set_alarm(
-        "lowbattery_timeRemaining", "value < 60*15", priority="error"
-    )
+    battery_time.set_alarm("lowbattery_timeRemaining", "value < 60*15", priority="error")
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged or 0
@@ -144,7 +139,6 @@ if psutil:
 
     @scheduling.scheduler.every_minute
     def doPsutil():
-        temps = {}
         t = psutil.sensors_temperatures()
         for i in t:
             peak = 0
@@ -160,16 +154,14 @@ if psutil:
 
             if i not in tempTags:
                 # Fix the name
-                tempTags[i] = tagpoints.Tag(
-                    tagpoints.normalize_tag_name("/system/sensors/temp/" + i, "_")
-                )
-                tempTags[i].setAlarm(
+                tempTags[i] = tagpoints.Tag(tagpoints.normalize_tag_name("/system/sensors/temp/" + i, "_"))
+                tempTags[i].set_alarm(
                     "temperature",
                     "value>78",
                     releaseCondition="value<65",
                     priority="warning",
                 )
-                tempTags[i].setAlarm("lowtemperature", "value<5")
+                tempTags[i].set_alarm("lowtemperature", "value<5")
 
                 tempTags[i].unit = "degC"
                 tempTags[i].max = 150

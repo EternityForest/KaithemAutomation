@@ -20,12 +20,12 @@ properties:
         type: string
         default: "default"
         description: "IP to bind to. Default all interfaces unless local-access-only set"
-    
+
     location:
         type: string
         default: ""
         description: "Comma delimited server location default value, can be changed by user"
-    
+
     ssl-dir:
         type: string
 
@@ -141,11 +141,11 @@ properties:
     log-dump-size:
         type: integer
         minimum: 1
-        
+
     log-buffer:
         type: integer
         minimum: 1
-        
+
     keep-log-files:
         type: string
         pattern: "[0-9]*(k|m|g|K|M|G)"
@@ -209,9 +209,6 @@ properties:
         type: string
 
     theme-url:
-        type: string
-
-    monaco-theme-url:
         type: string
 
     quotes-file:

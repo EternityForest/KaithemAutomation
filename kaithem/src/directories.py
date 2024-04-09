@@ -7,14 +7,14 @@
 # Log is the log files
 
 # []Put these in approprite places when running on linux
+import getpass
 import os
 import pwd
-import getpass
 import shutil
-from .config import config
+import socket
 from os import environ
 
-import socket
+from .config import config
 
 # Normally we run from one folder. If it's been installed, we change the paths a bit.
 dn = os.path.dirname(os.path.realpath(__file__))
@@ -29,9 +29,7 @@ def getRootAndroidDir():
     Environment = autoclass("android.os.Environment")
     context = cast("android.content.Context", PythonActivity.mActivity)
 
-    user_services_dir = context.getExternalFilesDir(
-        Environment.getDataDirectory().getAbsolutePath()
-    ).getAbsolutePath()
+    user_services_dir = context.getExternalFilesDir(Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath()
 
     return os.path.join(user_services_dir, "var")
 
@@ -39,29 +37,13 @@ def getRootAndroidDir():
 if "ANDROID_ARGUMENT" in environ:
     vardir = getRootAndroidDir()
     datadir = os.path.normpath(os.path.join(dn, "../data"))
-    logdir = os.path.join(
-        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
-    )
+    logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
 else:
     vardir = os.path.normpath(os.path.join(dn, ".."))
     vardir = os.path.join(vardir, os.path.expanduser(config["site-data-dir"]))
 
-    # These non writable paths indicate we should do stuff differently because we are installed with setuptools
-    # most likely
-    if vardir.startswith(("/usr", "/nix")):
-        vardir = os.path.expanduser("~/kaithem")
-
-    # Override the default for snaps
-    if vardir.startswith("/snap/"):
-        if not config["site-data-dir"].startswith("~") or config[
-            "site-data-dir"
-        ].startswith("/"):
-            vardir = os.path.expanduser("~/" + config["site-data-dir"])
-
     datadir = os.path.normpath(os.path.join(dn, "../data"))
-    logdir = os.path.join(
-        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
-    )
+    logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
 
 usersdir = os.path.join(vardir, "users")
 
@@ -90,9 +72,7 @@ def recreate():
         vardir = os.path.join(vd, os.path.expanduser(config["site-data-dir"]))
 
     usersdir = os.path.join(vardir, "users")
-    logdir = os.path.join(
-        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
-    )
+    logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
     moduledir = os.path.join(vardir, "modules")
     datadir = os.path.normpath(os.path.join(dn, "../data"))
     htmldir = os.path.join(dn, "html")
