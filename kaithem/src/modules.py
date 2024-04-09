@@ -513,9 +513,9 @@ def loadModules(modulesdir: str):
             # Read ythe location we are supposed to load from
             with open(os.path.join(modulesdir, i)) as f:
                 s = f.read(4096)
-            # Get rid of the __ and .location, then set the location in the dict
+            # Get rid of the .location, then set the location in the dict
             with modulesLock:
-                external_module_locations[util.unurl(i[2:-9])] = s
+                external_module_locations[util.unurl(i[0:-9])] = s
             # We use the ignore func when loading ext modules
             loadModule(s, util.unurl(i[2:-9]), detect_ignorable)
         except Exception:
@@ -556,7 +556,7 @@ def _detect_ignorable(path: str):
 def reloadOneResource(module, resource):
     r = modules_state.ActiveModules[module][resource]
     if "resource-loadedfrom" in r:
-        mfolder = os.path.join(directories.moduledir, "data", module)
+        mfolder = getModuleDir(module)
         loadOneResource(
             mfolder, os.path.relpath(r["resource-loadedfrom"], mfolder), module
         )
@@ -616,11 +616,8 @@ def loadOneResource(folder, relpath, module):
             os.path.join(folder, relpath), directories.vardir
         ) or util.in_directory(os.path.join(folder, relpath), directories.datadir):
             t = parseTarget(r["target"], module)
-            target = os.path.normpath(
-                os.path.join(
-                    directories.vardir, "modules", "data", module, "__filedata__", t
-                )
-            )
+            d = getModuleDir(module)
+            target = os.path.normpath(os.path.join(d, "__filedata__", t))
         else:
             t = parseTarget(r["target"], module, True)
             target = os.path.normpath(os.path.join(folder, "__filedata__", t))
@@ -830,17 +827,7 @@ def getModuleAsYamlZip(module, noFiles=True):
 
                 else:
                     if not incompleteError:
-                        logger.error(
-                            "Missing file(s) in module including: "
-                            + os.path.join(
-                                directories.vardir,
-                                "modules",
-                                "data",
-                                module,
-                                "__filedata__",
-                                target,
-                            )
-                        )
+                        logger.error(f"Missing file(s) in module including: {target}")
                         incompleteError = True
         z.close()
         s = ram_file.getvalue()
@@ -1202,8 +1189,9 @@ def rmModule(module, message="deleted"):
 
     fn = getModuleFn(module)
 
-    if os.path.exists(fn):
-        shutil.rmtree(fn)
+    if module not in external_module_locations:
+        if os.path.exists(fn):
+            shutil.rmtree(fn)
 
     modules_state.modulesHaveChanged()
     # Get rid of any garbage cycles associated with the event.

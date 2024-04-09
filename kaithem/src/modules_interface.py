@@ -317,7 +317,12 @@ class WebInterface:
     @cherrypy.expose
     def newmodule(self):
         pages.require("system_admin")
-        return pages.get_template("modules/new.html").render()
+        d = dialogs.Dialog("Add New Module")
+        d.text_input("name", title="Name of New Module")
+        d.text("Choose an existing dir to load that module.")
+        d.text_input("location", title="Save location(Blank: auto in kaithem dir)")
+        d.submit_button("Submit")
+        return d.render("/modules/newmoduletarget")
 
     # @cherrypy.expose
     # def manual_run(self,module, resource):
@@ -331,6 +336,10 @@ class WebInterface:
     @cherrypy.expose
     def deletemodule(self):
         pages.require("system_admin")
+        d = dialogs.Dialog("Delete Module")
+        d.text_input("name")
+        d.submit_button("Submit")
+        return d.render("/modules/deletemoduletarget")
         return pages.get_template("modules/delete.html").render()
 
     # POST target for CRUD screen for deleting module
@@ -507,9 +516,8 @@ class WebInterface:
 
             if path[0] == "getfileresource":
                 pages.require("system_admin")
-                folder = os.path.join(
-                    directories.vardir, "modules", "data", module, "__filedata__"
-                )
+                d = modules.getModuleDir(module)
+                folder = os.path.join(d, "__filedata__")
                 data_basename = modules_state.fileResourceAbsPaths[module, path[1]]
                 dataname = os.path.join(folder, data_basename)
                 if os.path.isfile(dataname):
@@ -538,15 +546,8 @@ class WebInterface:
             if path[0] == "uploadfileresourcetarget":
                 pages.require("system_admin", noautoreturn=True)
                 pages.postOnly()
-
-                if module not in external_module_locations:
-                    folder = os.path.join(
-                        directories.vardir, "modules", "data", module, "__filedata__"
-                    )
-                else:
-                    folder = os.path.join(
-                        external_module_locations[module], "__filedata__"
-                    )
+                d = modules.getModuleDir(module)
+                folder = os.path.join(d, "__filedata__")
 
                 os.makedirs(folder, exist_ok=True)
                 data_basename = kwargs["name"]
@@ -555,10 +556,7 @@ class WebInterface:
                 if len(path) > 1:
                     dataname = f"{path[1]}/{dataname}"
 
-                if module not in external_module_locations:
-                    dataname = os.path.join(folder, dataname)
-                else:
-                    dataname = os.path.join(folder, dataname)
+                dataname = os.path.join(folder, dataname)
 
                 inputfile = kwargs["file"]
 
@@ -618,13 +616,11 @@ class WebInterface:
             if path[0] == "deleteresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
                 pages.require("system_admin", noautoreturn=True)
-                if len(path) > 1:
-                    x = path[1]
-                else:
-                    x = ""
-                return pages.get_template("modules/deleteresource.html").render(
-                    module=module, r=x
-                )
+
+                d = dialogs.Dialog(f"Delete resource in {root}")
+                d.text_input("name", default=path[1])
+                d.submit_button("Submit")
+                return d.render(f"/modules/module/{url(root)}/deleteresourcetarget")
 
             # This handles the POST request to actually do the deletion
             if path[0] == "deleteresourcetarget":
@@ -932,11 +928,14 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 
 def permissionEditPage(module, resource):
     pages.require("view_admin_info")
-    return pages.get_template("modules/permissions/permission.html").render(
-        module=module,
-        permission=resource,
-        description=modules_state.ActiveModules[module][resource]["description"],
+
+    d = dialogs.Dialog(f"Permission: {resource} in {module}")
+    d.text_input(
+        "description",
+        default=modules_state.ActiveModules[module][resource]["description"],
     )
+    d.submit_button("Submit")
+    return d.render(f"/modules/module/{url(module)}/updateresource/{url(resource)}/")
 
 
 # The actual POST target to modify a resource. Context dependant based on resource type.

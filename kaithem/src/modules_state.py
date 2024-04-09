@@ -220,14 +220,18 @@ def rawDeleteResource(m: str, r: str):
         os.remove(fn)
 
 
+def getModuleFn(modulename: str):
+    if modulename not in external_module_locations:
+        dir = os.path.join(directories.moduledir, "data", modulename)
+    else:
+        dir = external_module_locations[modulename]
+
+    return dir
+
+
 def getResourceFn(m, r, o):
-    dir = os.path.join(directories.moduledir, "data")
-    return os.path.join(dir, m, urllib.parse.quote(r, safe=" /")) + getExt(o)
-
-
-def getModuleFn(m):
-    dir = os.path.join(directories.moduledir, "data")
-    return os.path.join(dir, m)
+    dir = getModuleFn(m)
+    return os.path.join(dir, urllib.parse.quote(r, safe=" /")) + getExt(o)
 
 
 def saveModule(module, modulename: str):
@@ -239,23 +243,25 @@ def saveModule(module, modulename: str):
     if "__do__not__save__to__disk__:" in modulename:
         return
 
+    if modulename in external_module_locations:
+        fn = os.path.join(directories.moduledir, "data", modulename + ".location")
+        with open(fn, "w") as f:
+            f.write(external_module_locations[modulename])
+
     # Iterate over all of the resources in a module and save them as json files
     # under the URL url module name for the filename.
     logger.debug("Saving module " + str(modulename))
     saved = []
 
     # do the saving
-    if modulename not in external_module_locations:
-        dir = os.path.join(directories.moduledir, "data", modulename)
-    else:
-        dir = external_module_locations[modulename]
+    dir = getModuleFn(modulename)
 
     if not modulename:
         raise RuntimeError("Something wrong")
 
     try:
         # Make sure there is a directory at where/module/
-        os.makedirs(os.path.join(dir), exist_ok=True)
+        os.makedirs(dir, exist_ok=True)
         util.chmod_private_try(dir)
         for resource in module:
             r = module[resource]

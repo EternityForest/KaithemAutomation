@@ -4,33 +4,52 @@ from . import pages
 
 
 class Dialog:
+    "By default all inputs are disabled unless user has system_admin"
+
     def __init__(self, title) -> None:
         # List of title, inputhtml pairs
         self.items: list[tuple[str, str]] = []
         self.title = title
 
+    def name_to_title(self, s: str):
+        if "." not in s and "-" not in s:
+            return s.capitalize()
+        else:
+            return s
+
+    def is_disabled_by_default(self):
+        return not pages.canUserDoThis("system_admin")
+
     def text(self, s: str):
-        self.items.append(("", f"<p>{s}</s>"))
+        self.items.append(("", f"<p>{s}</p>"))
 
     def text_input(
-        self, name: str, *, title: str | None = None, default: str = "", disabled=False
+        self, name: str, *, title: str | None = None, default: str = "", disabled=None
     ):
-        title = title or name
+        title = title or self.name_to_title(name)
+
+        if disabled is None:
+            disabled = self.is_disabled_by_default()
+
         disabled = " disabled" if disabled else ""
         self.items.append(
-            (title, f'<input name="{name}" value="{html.escape(default)}" {disabled}"')
+            (title, f'<input name="{name}" value="{html.escape(default)}" {disabled}>')
         )
 
     def submit_button(
-        self, name: str, *, title: str | None = None, value: str = "", disabled=False
+        self, name: str, *, title: str | None = None, value: str = "", disabled=None
     ):
-        title = title or "submit"
+        if disabled is None:
+            disabled = self.is_disabled_by_default()
+
+        title = title or "Submit"
         disabled = " disabled" if disabled else ""
         self.items.append(
-            (title, f'<button  name="{name}" type="submit" {disabled}>{title}</button>')
+            ("", f'<button  name="{name}" type="submit" {disabled}>{title}</button>')
         )
 
     def render(self, target: str, hidden_inputs: dict | None = None):
+        "The form will target the given URL and have all the keys and values in hidden inputs"
         return pages.render_jinja_template(
             "dialogs/generic.j2.html",
             items=self.items,
