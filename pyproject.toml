@@ -1,102 +1,151 @@
 [tool.poetry]
-    name = "kaithem"
-    version = "0.78.0"
-    description = "Home/commercial automation server"
-    license = "GPL-3.0-only"
-    packages = [{include = "kaithem"}]
-    authors = ["Daniel Dunn"]
-    readme = "README.md"
+name = "kaithem"
+version = "0.78.0"
+description = "Home/commercial automation server"
+license = "GPL-3.0-only"
+packages = [{ include = "kaithem" }]
+authors = ["Daniel Dunn"]
+readme = "README.md"
 
 [tool.ruff]
-    line-length = 140
+line-length = 140
 
 [tool.poetry.dependencies]
-    python = "^3.10"
-    # First party
-    scullery = "^0.1.16"
-    iot-devices= "*"
-    icemedia= "*"
-    NVRChannel= "*"
+python = "^3.10.0"
+# First party
+scullery = "^0.1.16"
+iot-devices = "*"
+icemedia = "*"
+NVRChannel = "*"
 
-    # NVRChannel didn't bring this in 0.15.0
-    opencv-python= "*"
+# NVRChannel didn't bring this in 0.15.0
+opencv-python = "*"
 
-    numpy="^1.26.1"
-    cherrypy = "*"
-    cheroot= "*"
-    flask= "*"
-    tornado= "*"
-    mako= "*"
-    jinja2= "*"
-    astral= "*"
-    tatsu= "*"
-    pam= "*"
-    msgpack= "*"
-    pyyaml= "*"
-    types-PyYaml= "*"
-    pytest= "*"
-    nmcli= "*"
-    peewee= "*"
-    terminado= "*"
-    apprise= "*"
+numpy = "^1.26.1"
+cherrypy = "*"
+cheroot = "*"
+flask = "*"
+tornado = "*"
+mako = "*"
+jinja2 = "*"
+astral = "*"
+tatsu = "*"
+pam = "*"
+msgpack = "*"
+pyyaml = "*"
+types-PyYaml = "*"
+pytest = "*"
+nmcli = "*"
+peewee = "*"
+terminado = "*"
+apprise = "*"
 
-    ffmpeg-python= "*"
-    yappi= "*"
-    zeroconf="^0.119.0"
-    colorzero= "*"
-    # Still included in repo because it doesn't install correctly due to 
-    # suds-passworddigest
-    #onvif
-    typeguard= "*"
-    tinytag= "*"
-    jsonschema= "*"
-    pint= "*"
-    pyflakes= "*"
-    python_mpv_jsonipc= "*"
-    textdistance= "*"
-    toml= "*"
-    vignette= "*"
-    simpleeval= "*"
-    websockets= "*"
-    zeep= "*"
-    passlib= "*"
-    Pillow= "*"
-    tflite-runtime= "*"
-    evdev= "*"
-    attr= "*"
-    markupsafe= "*"
-    upnpclient= "*"
-    requests= "*"
-    types-requests= "*"
-    python-dateutil= "*"
-    pygments= "*"
-    pytz= "*"
-    ntplib= "*"
-    holidays= "*"
+ffmpeg-python = "*"
+yappi = "*"
+zeroconf = "^0.119.0"
+colorzero = "*"
+# Still included in repo because it doesn't install correctly due to 
+# suds-passworddigest
+#onvif
+typeguard = "4.2.0"
+tinytag = "*"
+jsonschema = "*"
+pint = "*"
+pyflakes = "*"
+python_mpv_jsonipc = "*"
+textdistance = "*"
+toml = "*"
+vignette = "*"
+simpleeval = "*"
+websockets = "*"
+zeep = "*"
+passlib = "*"
+Pillow = "*"
+tflite-runtime = "*"
+evdev = "*"
+attr = "*"
+markupsafe = "*"
+upnpclient = "*"
+requests = "*"
+types-requests = "*"
+python-dateutil = "*"
+pygments = "*"
+pytz = "*"
+ntplib = "*"
+holidays = "*"
 
-    yeelight= "*"
+yeelight = "*"
 
-    pyserial= "*"
-    pygrep= "*"
-    python-rtmidi= "1.5.0"
-    paho-mqtt = "<=1.6.0"
-    setproctitle= "*"
-    psutil= "*"
-    netifaces= "*"
-    JACK-Client= "*"
-    aioesphomeapi= "*"
-    sf2utils= "*"
-    pynput= "*"
+pyserial = "*"
+pygrep = "*"
+python-rtmidi = "1.5.0"
+paho-mqtt = "<=1.6.0"
+setproctitle = "*"
+psutil = "*"
+netifaces = "*"
+JACK-Client = "*"
+aioesphomeapi = "*"
+sf2utils = "*"
+pynput = "*"
 
-    # Older is not compatible with new numpy
-    scipy = ">=1.11.0"
+# Older is not compatible with new numpy
+scipy = ">=1.11.0"
 
 [tool.poetry.scripts]
-    "kaithem" = "kaithem:__main__"
-    "kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
-    "kaithem._iceflow_server" = "icemedia.iceflow_server:main"
+"kaithem" = "kaithem:__main__"
+"kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
+"kaithem._iceflow_server" = "icemedia.iceflow_server:main"
 
 
 [build-system]
-    requires = ["poetry-core"]
-    build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.liccheck]
+authorized_licenses = [
+    "BSD",
+    "new BSD",
+    "BSD license",
+    "simplified BSD",
+    "Apache",
+    "Apache 2.0",
+    "Apache software license",
+    "Apache Software",
+    "gnu LGPL",
+    "LGPL with exceptions or zpl",
+    "# https://opensource.stackexchange.com/questions/10996/is-the-edl-v1-0-gpl-compatible",
+    "Eclipse Public License v2.0 / Eclipse Distribution License v1.0",
+    "Historical Permission Notice and Disclaimer (HPND)",
+    "GNU Lesser General Public License v3 (LGPLv3)",
+    "GNU Lesser General Public License v2 or later (LGPLv2+)",
+    "GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "ISC license (ISCL)",
+    "MIT",
+    "MIT license",
+    "python software foundation license",
+    "GNU General Public License v2 or later (GPLv2+)",
+    "Public Domain",
+    "Zope Public",
+    "GNU General Public License v3 (GPLv3)",
+    "GNU Lesser General Public License v2 (LGPLv2)",
+    "GNU Library or Lesser General Public License (LGPL)",
+    "3-Clause BSD",
+    "Mozilla Public License 2.0 (MPL 2.0)",
+    "Python Software Foundation",
+]
+
+[tool.liccheck.authorized_packages]
+# LGPL-2.1 license
+pyFluidSynth = ">0.0.1"
+
+# Appears to be trivial and sub-kb
+pam = ">0.0.1"
+
+# Apache 2.0
+chacha20poly1305-reuseable = ">0.0.1"
+
+# PSF-2.0
+aiohappyeyeballs = ">0.0.1"
+
+# Apache Software License 2.0
+async-interrupt = ">0.0.1"

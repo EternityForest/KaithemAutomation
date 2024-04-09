@@ -24,6 +24,7 @@ else.
 - :coffin::boom: Remove kaithem.sys.shellex, shellexbg, which
 - :coffin::boom: Remove kaithem.events.when and kaithem.events.after
 - :coffin: Remove nixos config that was probably outdated. It's in the log if ya need it!
+- :boom:  Default storage dir is now ~/kaithem no matter how you install it
 
 - :hammer: Split off the sound stuff in a separate libary [IceMedia](https://github.com/EternityForest/icemedia) meant for easy standalone use.
 

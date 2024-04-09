@@ -11,3 +11,5 @@ out/**
 result/**
 
 .venv/**
+
+poetry.toml

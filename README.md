@@ -30,10 +30,9 @@ cd KaithemAutomation
 ```
 
 Now you have the repo cloned, all the relevant commands are in the Makefile.
-This is an interpreted package, but we use Make anyway to keep commands in one handy place.
+This is an interpreted package, and we use Poetry and pipx,
+but we also use Make just to keep commands in one handy place.
 
-NOTE: Formerly, the makefile would use a script to create a virtual environment, now we let pipx
-handle it all.
 
 ### Install system packages
 
@@ -44,24 +43,38 @@ installed. This also installs virtualenv support.
 make root-install-system-dependencies
 ```
 
+### Get pipx and Poetry
+
+Skip this if you already have them!
+
+```bash
+# pipx is a wonderful tool that installs
+# Applications in virtual environments
+# and makes them available on the command line.
+
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Poetry manages project
+# specific virtual environments
+pipx install poetry
+```
 
 ### Install kaithem in the project folder virtualenv
 
 Now that you have the system dependencies, you should have pipx from your package manager.
 
 ```bash
-
-# Kaithem now uses Poetry as a Python builder
-pipx install poetry
-
-# This line tells Poetry that Kaithem should use your
-# globally installed system packages.  This is important
-# Because GStreamer is normally installed that way
-
-poetry config virtualenvs.options.system-site-packages true --local
+# Not exactly necessary,
+# This line tells Poetry to put
+# it's virtualenv right in the project folder
+# Where apps like VS Code will know how to work with it
+# If you intend to do any development.
 
 # If you already have a .venv in your folder, it
-# May be best to start over.
+# May be best to delete it and start over.
+poetry config virtualenvs.in-project true
+
 poetry install -v
 
 # Poetry will run it in the virtualenv
@@ -121,7 +134,7 @@ Update kaithem and run `make user-set-global-pipewire-conf` as the user that wil
 To run as a systemd user service(Runs as soon as you log in, use autologin or lingering to run at boot)
 
 ```bash
-make user-install-kaithem
+make user-start-kaithem-at-boot
 ```
 
 ### Development

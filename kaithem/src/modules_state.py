@@ -2,21 +2,22 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 # This file is just for keeping track of state info that would otherwise cause circular issues.
-from typing import Dict, Any
-import weakref
-import urllib
-import os
+import copy
 import hashlib
 import json
-import time
-import shutil
-import yaml
 import logging
-import copy
+import os
+import shutil
+import time
+import urllib
+import urllib.parse
+import weakref
 from threading import RLock
-from . import util, directories
-from . import resource_serialization
+from typing import Any, Dict
 
+import yaml
+
+from . import directories, resource_serialization, util
 
 # / is there because we just forbid use of that char for anything but dirs,
 # So there is no confusion
@@ -310,9 +311,7 @@ class ResourceType:
         return True
 
 
-additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = (
-    weakref.WeakValueDictionary()
-)
+additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()
 
 
 class HierarchyDict:
@@ -415,11 +414,7 @@ def hashModules():
                     if isinstance(ActiveModules[i][j], weakref.ref):
                         continue
                     m.update(j.encode("utf-8"))
-                    m.update(
-                        json.dumps(
-                            ActiveModules[i][j], sort_keys=True, separators=(",", ":")
-                        ).encode("utf-8")
-                    )
+                    m.update(json.dumps(ActiveModules[i][j], sort_keys=True, separators=(",", ":")).encode("utf-8"))
         return m.hexdigest().upper()
     except Exception:
         logger.exception("Could not hash modules")
@@ -432,11 +427,7 @@ def hashModule(module: str):
         with modulesLock:
             m.update(
                 json.dumps(
-                    {
-                        i: ActiveModules[module][i]
-                        for i in ActiveModules[module]
-                        if not isinstance(ActiveModules[module][i], weakref.ref)
-                    },
+                    {i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i], weakref.ref)},
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode("utf-8")
@@ -452,11 +443,7 @@ def wordHashModule(module: str):
         with modulesLock:
             return util.blakeMemorable(
                 json.dumps(
-                    {
-                        i: ActiveModules[module][i]
-                        for i in ActiveModules[module]
-                        if not isinstance(ActiveModules[module][i], weakref.ref)
-                    },
+                    {i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i], weakref.ref)},
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode("utf-8"),
@@ -526,8 +513,8 @@ mlockFunctionQueue = []
 # As the user init code is a different thread, they have to pass requests to us
 
 
-def runWithModulesLock(f):
-    return f()
+def runWithModulesLock(g):
+    return g()
 
 
 # TODO: Whatever this is should probably go away

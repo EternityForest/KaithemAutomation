@@ -1,12 +1,29 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import logging
-import threading
 import faulthandler
-import sys
-import re
+
+# fix https://github.com/python/cpython/issues/91216
+# TODO this is a yucky hack
+import importlib.metadata
+import logging
 import os
+import re
+import sys
+import threading
+
+try:
+    import typeguard  # noqa
+except Exception:
+    v = importlib.metadata.version
+
+    def version(p):
+        x = v(p)
+        if not x:
+            raise importlib.metadata.PackageNotFoundError()
+        return p
+
+    importlib.metadata.version = version
 
 
 def test_access(i):
@@ -97,17 +114,12 @@ def installThreadLogging():
         run_old = self.run
 
         def run_with_except_hook(*args, **kw):
-            if self.name.startswith("nostartstoplog.") or self.name.startswith(
-                "Thread-"
-            ):
+            if self.name.startswith("nostartstoplog.") or self.name.startswith("Thread-"):
                 try:
                     run_old(*args, **kw)
                 except Exception as e:
                     threadlogger.exception(
-                        "Thread stopping due to exception: "
-                        + self.name
-                        + " with ID: "
-                        + str(threading.current_thread().ident)
+                        "Thread stopping due to exception: " + self.name + " with ID: " + str(threading.current_thread().ident)
                     )
                     raise e
             else:
@@ -122,29 +134,17 @@ def installThreadLogging():
                     )
 
                     run_old(*args, **kw)
-                    threadlogger.info(
-                        "Thread stopping: "
-                        + self.name
-                        + " with ID: "
-                        + str(threading.current_thread().ident)
-                    )
+                    threadlogger.info("Thread stopping: " + self.name + " with ID: " + str(threading.current_thread().ident))
 
                 except Exception as e:
                     threadlogger.exception(
-                        "Thread stopping due to exception: "
-                        + self.name
-                        + " with ID: "
-                        + str(threading.current_thread().ident)
+                        "Thread stopping due to exception: " + self.name + " with ID: " + str(threading.current_thread().ident)
                     )
                     from . import messagebus
 
                     messagebus.post_message(
                         "/system/notifications/errors",
-                        "Thread: "
-                        + self.name
-                        + " with ID: "
-                        + str(threading.current_thread().ident)
-                        + " stopped due to exception ",
+                        "Thread: " + self.name + " with ID: " + str(threading.current_thread().ident) + " stopped due to exception ",
                     )
                     raise e
 

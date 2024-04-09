@@ -54,17 +54,6 @@ help: # Show help for each of the available commands
 
 
 
-
-
-${ROOT_DIR}/.venv: # Create the virtualenv in the project folder
-	@cd ${ROOT_DIR}
-	@virtualenv --system-site-packages .venv
-
-${ROOT_DIR}/.isolated_venv: # Create the virtualenv in the project folder
-	@cd ${ROOT_DIR}
-	@virtualenv .isolated_venv
-
-
 .PHONY: update
 update: # Fetch new code into this project folder
 	git pull
@@ -120,7 +109,7 @@ user-kaithem-status: # Get the status of the running kaithem instance
 
 .PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt
-	@sudo apt install python3-virtualenv pipx scrot mpv lm-sensors  python3-netifaces python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi python3-opencv gstreamer1.0-pipewire
+	@sudo apt install scrot mpv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly fluidsynth libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
 
 .PHONY: root-use-pipewire-jack
 root-use-pipewire-jack: # Make JACK clients work with pipewire
