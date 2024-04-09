@@ -3,18 +3,31 @@ Change Log
 
 ### 0.78.0
 
+This is another pretty heavy breaking change release.  Nearly every file has been touched.
+
+
 I was not going to release this so early. There may be bugs. YMMV.
+Consider it early alpha.  However, it does seem to work just fine.
+
 However I discovered that the old installer was unreliably due to
 some kind of virtualenv behavior where it decides to randomly use
 /venv/local/bin instead of /venv/bin.
 
-To fix this, we are moving to pipx and Poetry. To do so I had to get rid of --system-site-packages
+To fix this, we are moving to pipx and Poetry, eliminating almost all the custom
+installation related code.
+
+To do so I had to get rid of --system-site-packages
 completely.   This change broke gstreamer, but there is a fix!
 
 Thanks :heart: to [happyleavesaoc](https://github.com/happyleavesaoc/gstreamer-player/) for discovering
 a way to make gstreamer work in a virtualenv. All you need to do is symlink the gi package
 into your site-packages!  Kaithem now does this automatically on Debian and probably most everything
 else.
+
+In an unrelated bit of news, I discovered that a huge number of things were not loading due to
+https://github.com/python/cpython/issues/91216.  Kaithem now contains a workaround for it in tweaks.py.
+and can load things affected by the bug.
+
 
 - :bug: Fix unused subdevice nuisance method resolution error
 - :coffin::boom: Remove old baresip code
