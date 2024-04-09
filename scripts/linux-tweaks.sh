@@ -118,10 +118,6 @@ git lfs pull
 ! rm -r /home/$(id -nu $KAITHEM_UID)/MagPi/*.pdf
 ! rm -r /home/$(id -nu $KAITHEM_UID)/Bookshelf/Beginners*.pdf
 
-# No more swap to wear the disk!!!
-! sudo apt-get purge -y dphys-swapfile
-
-
 
 apt autoremove -y --purge
 

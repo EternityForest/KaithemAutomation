@@ -23,6 +23,9 @@ fi
 # X11 still exists even though Wayland is defayult
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+# No more swap to wear the disk!!!
+! sudo apt-get purge -y dphys-swapfile
+
 systemctl mask systemd-update-utmp.service
 systemctl mask systemd-random-seed.service
 systemctl disable systemd-update-utmp.service

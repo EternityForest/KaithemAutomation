@@ -1,25 +1,10 @@
 from __future__ import annotations
-from .core import disallow_special
-from .universes import getUniverse, rerenderUniverse, mapUniverse, mapChannel
-from ..kaithemobj import kaithem
-from .soundmanager import fadeSound, play_sound, stop_sound
-from . import core
-from . import universes
-from . import blendmodes
-from . import mqtt
-from .fadecanvas import FadeCanvas
-from .. import schemas
-from .mathutils import number_to_note, dt_to_ts, ease
-import numpy
-import numpy.typing
-from tinytag import TinyTag
-from typeguard import typechecked
 
-from decimal import Decimal
-import weakref
 import base64
 import collections
+import copy
 import datetime
+import gc
 import json
 import logging
 import os
@@ -29,11 +14,25 @@ import time
 import traceback
 import urllib.parse
 import uuid
-import gc
+import weakref
+from collections.abc import Callable, Iterable
+from decimal import Decimal
 from typing import Any
-from collections.abc import Iterable, Callable
-import copy
+
+import numpy
+import numpy.typing
 import recur
+from tinytag import TinyTag
+from typeguard import typechecked
+
+from .. import schemas
+from ..kaithemobj import kaithem
+from . import blendmodes, core, mqtt, universes
+from .core import disallow_special
+from .fadecanvas import FadeCanvas
+from .mathutils import dt_to_ts, ease, number_to_note
+from .soundmanager import fadeSound, play_sound, stop_sound
+from .universes import getUniverse, mapChannel, mapUniverse, rerenderUniverse
 
 # Locals for performance... Is this still a thing??
 float = float
@@ -175,9 +174,7 @@ def gotoCommand(scene: str = "=SCENE", cue: str = ""):
             newcause = "script.2"
 
         elif cause == "script.2":
-            raise RuntimeError(
-                "More than 3 layers of redirects in cue.enter or cue.exit"
-            )
+            raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
 
     # We don't want to handle other bindings after a goto, leaving a scene stops execution.
     scenes_by_name[scene].scriptContext.stopAfterThisHandler()
@@ -199,11 +196,7 @@ def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
 
 def ifCueCommand(scene: str, cue: str):
     "True if the scene is running that cue"
-    return (
-        True
-        if scenes_by_name[scene].active and scenes_by_name[scene].cue.name == cue
-        else None
-    )
+    return True if scenes_by_name[scene].active and scenes_by_name[scene].cue.name == cue else None
 
 
 ifCueCommand.summaryTemplate = "True if cue is running"
@@ -221,9 +214,7 @@ def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = "")
 def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
     "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
     if not key.startswith("var"):
-        raise ValueError(
-            "Custom slideshow variable names for slideshow must start with 'var' "
-        )
+        raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
     scenes_by_name[scene].set_slideshow_variable(key, value)
     return True
 
@@ -267,9 +258,7 @@ def doTransitionRateLimit():
 
     # Limit to less than 2 per 100ms
     if cueTransitionsLimitCount > 6:
-        raise RuntimeError(
-            "Too many cue transitions extremely fast.  You may have a problem somewhere."
-        )
+        raise RuntimeError("Too many cue transitions extremely fast.  You may have a problem somewhere.")
     cueTransitionsLimitCount += 2
 
 
@@ -295,9 +284,7 @@ def normalize_shortcut(code: str | int | float) -> str:
     return str(code)
 
 
-def shortcutCode(
-    code: str, limitScene: Scene | None = None, exclude: Scene | None = None
-):
+def shortcutCode(code: str, limitScene: Scene | None = None, exclude: Scene | None = None):
     "API to activate a cue by it's shortcut code"
 
     code = normalize_shortcut(code)
@@ -510,17 +497,11 @@ class Cue:
                 if i in kw:
                     setattr(self, i, kw[i])
                 else:
-                    setattr(
-                        self, i, copy.deepcopy(cue_schema["properties"][i]["default"])
-                    )
+                    setattr(self, i, copy.deepcopy(cue_schema["properties"][i]["default"]))
 
         for i in kw:
             if i not in cue_schema["properties"]:
-                logging.error(
-                    "Unknown cue data key "
-                    + str(i)
-                    + " loading anyway but data may be lost"
-                )
+                logging.error("Unknown cue data key " + str(i) + " loading anyway but data may be lost")
 
         # Now unused
         # self.script = script
@@ -561,9 +542,7 @@ class Cue:
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
     def pushoneval(self, u: str, ch: str | int, v: str | float | None):
-        core.add_data_pusher_to_all_boards(
-            lambda s: s.linkSend(["scv", self.id, u, ch, v])
-        )
+        core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v]))
 
     def clone(self, name: str):
         if name in self.getScene().cues:
@@ -591,9 +570,7 @@ class Cue:
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
         if self.shortcut == number_to_shortcut(self.number):
-            self.setShortcut(
-                number_to_shortcut(int((Decimal(n) * Decimal(1000)).quantize(1)))
-            )
+            self.setShortcut(number_to_shortcut(int((Decimal(n) * Decimal(1000)).quantize(1))))
         self.number = int((Decimal(n) * Decimal(1000)).quantize(1))
 
         # re-sort the cuelist
@@ -735,10 +712,7 @@ class Cue:
                 scene.rerender = True
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
-                if (
-                    unmappeduniverse in self.values
-                    and "__length__" in self.values[unmappeduniverse]
-                ):
+                if unmappeduniverse in self.values and "__length__" in self.values[unmappeduniverse]:
                     scene.cue_vals_to_numpy_cache(self, False)
 
                     # The FadeCanvas needs to know about this change
@@ -748,24 +722,14 @@ class Cue:
                 elif x:
                     universe, channel = x[0], x[1]
 
-                    if (
-                        universe not in scene.cue_cached_alphas_as_arrays
-                    ) and value is not None:
+                    if (universe not in scene.cue_cached_alphas_as_arrays) and value is not None:
                         uobj = getUniverse(universe)
                         if uobj:
-                            scene.cue_cached_vals_as_arrays[universe] = numpy.array(
-                                [0.0] * len(uobj.values), dtype="f4"
-                            )
-                            scene.cue_cached_alphas_as_arrays[universe] = numpy.array(
-                                [0.0] * len(uobj.values), dtype="f4"
-                            )
+                            scene.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                            scene.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
                     if universe in scene.cue_cached_alphas_as_arrays:
-                        scene.cue_cached_alphas_as_arrays[universe][channel] = (
-                            1 if value is not None else 0
-                        )
-                        scene.cue_cached_vals_as_arrays[universe][channel] = (
-                            scene.evalExpr(value if value is not None else 0)
-                        )
+                        scene.cue_cached_alphas_as_arrays[universe][channel] = 1 if value is not None else 0
+                        scene.cue_cached_vals_as_arrays[universe][channel] = scene.evalExpr(value if value is not None else 0)
                     if universe not in scene.affect:
                         scene.affect.append(universe)
 
@@ -891,10 +855,7 @@ class Scene:
         self.slide_overlay_url: str = slide_overlay_url
 
         # Kind of long so we do it in the external file
-        self.slideshow_layout: str = (
-            slideshow_layout.strip()
-            or scene_schema["properties"]["slideshow_layout"]["default"]
-        )
+        self.slideshow_layout: str = slideshow_layout.strip() or scene_schema["properties"]["slideshow_layout"]["default"]
 
         # Audio visualizations
         self.music_visualizations = music_visualizations
@@ -904,7 +865,7 @@ class Scene:
 
         self.hide = hide
 
-        self.slideshow_telemetry = collections.OrderedDict()
+        self.slideshow_telemetry: collections.OrderedDict[str, dict[str, Any]] = collections.OrderedDict()
 
         self.slideshow_telemetry_ratelimit = (time.monotonic(), 200)
 
@@ -941,9 +902,7 @@ class Scene:
 
                     try:
                         for board in core.iter_boards():
-                            board.linkSend(
-                                ["slideshow_telemetry", n, self.slideshow_telemetry[n]]
-                            )
+                            board.linkSend(["slideshow_telemetry", n, self.slideshow_telemetry[n]])
                     except Exception:
                         pass
 
@@ -974,9 +933,7 @@ class Scene:
         self.cueTag = kaithem.tags.StringTag("/chandler/scenes/" + name + ".cue")
         self.cueTag.expose("view_status", "chandler_operator")
 
-        self.cueTagClaim = self.cueTag.claim(
-            "__stopped__", "Scene", 50, annotation="SceneObject"
-        )
+        self.cueTagClaim = self.cueTag.claim("__stopped__", "Scene", 50, annotation="SceneObject")
 
         self.cueVolume = 1
 
@@ -997,15 +954,11 @@ class Scene:
         self.cueTag.subscribe(cueTagHandler)
 
         # This is used to expose the state of the music cue mostly.
-        self.cueInfoTag = kaithem.tags.ObjectTag(
-            "/chandler/scenes/" + name + ".cueInfo"
-        )
+        self.cueInfoTag = kaithem.tags.ObjectTag("/chandler/scenes/" + name + ".cueInfo")
         self.cueInfoTag.value = {"audio.meta": {}}
         self.cueInfoTag.expose("view_status", "chandler_operator")
 
-        self.albumArtTag = kaithem.tags.StringTag(
-            "/chandler/scenes/" + name + ".albumArt"
-        )
+        self.albumArtTag = kaithem.tags.StringTag("/chandler/scenes/" + name + ".albumArt")
         self.albumArtTag.expose("view_status")
 
         # Used to determine the numbering of added cues
@@ -1028,9 +981,7 @@ class Scene:
         self.alphaTag.max = 1
         self.alphaTag.expose("view_status", "chandler_operator")
 
-        self.alphaTagClaim = self.alphaTag.claim(
-            self.alpha, "Scene", 50, annotation="SceneObject"
-        )
+        self.alphaTagClaim = self.alphaTag.claim(self.alpha, "Scene", 50, annotation="SceneObject")
 
         # Allow setting the alpha
         def alphaTagHandler(val, timestamp, annotation):
@@ -1236,7 +1187,6 @@ class Scene:
         assert isinstance(f, (int, float))
         return f
 
-    # -> Any | bool | float | int | str | Callable[[], float] | Callable[..., int] | type[int] | type[float] | type[str] | slice | tuple[Any, Any] | None:
     def evalExpr(self, s: str | float | bool | None):
         """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
         return the input.
@@ -1378,13 +1328,9 @@ class Scene:
         if cue and self.cue:
             core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.cue.id))
 
-        core.add_data_pusher_to_all_boards(
-            lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys)
-        )
+        core.add_data_pusher_to_all_boards(lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys))
 
-    def event(
-        self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True
-    ):
+    def event(self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True):
         # No error loops allowed!
         if (not s == "script.error") and exclude_errors:
             self._event(s, value, info)
@@ -1398,9 +1344,7 @@ class Scene:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
 
-    def pick_random_cue_from_names(
-        self, cues: list[str] | set[str] | dict[str, Any]
-    ) -> str:
+    def pick_random_cue_from_names(self, cues: list[str] | set[str] | dict[str, Any]) -> str:
         """
         Picks a random cue from a list of cue names.
 
@@ -1432,9 +1376,7 @@ class Scene:
             if i.startswith("__"):
                 continue
             if i in self.cues:
-                weights.append(
-                    self.evalExprFloat(str(self.cues[i].probability).strip() or 1)
-                )
+                weights.append(self.evalExprFloat(str(self.cues[i].probability).strip() or 1))
                 names.append(i)
 
         return random.choices(names, weights=weights)[0]
@@ -1688,10 +1630,7 @@ class Scene:
 
                 # optimization, try to se if we can just increment if we are going to the next cue, else
                 # we have to actually find the index of the new cue
-                if (
-                    self.cuePointer < (len(self.cues_ordered) - 1)
-                    and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]
-                ):
+                if self.cuePointer < (len(self.cues_ordered) - 1) and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]:
                     self.cuePointer += 1
                 else:
                     self.cuePointer = self.cues_ordered.index(self.cues[cue])
@@ -1704,9 +1643,7 @@ class Scene:
                                 None,
                                 length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.evalExprFloat(
-                                    self.cue.media_wind_down or 0
-                                ),
+                                winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                             )
                         else:
                             stop_sound(str(self.id))
@@ -1717,9 +1654,7 @@ class Scene:
                                 None,
                                 length=self.cue.sound_fade_out,
                                 handle=str(self.id),
-                                winddown=self.evalExprFloat(
-                                    self.cue.media_wind_down or 0
-                                ),
+                                winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                             )
                         else:
                             stop_sound(str(self.id))
@@ -1750,17 +1685,13 @@ class Scene:
                                 5,
                                 max(
                                     0,
-                                    self.evalExprFloat(
-                                        self.cues[cue].sound_volume or 1
-                                    ),
+                                    self.evalExprFloat(self.cues[cue].sound_volume or 1),
                                 ),
                             )
                         except Exception:
                             self.event(
                                 "script.error",
-                                self.name
-                                + " in cueVolume eval:\n"
-                                + traceback.format_exc(),
+                                self.name + " in cueVolume eval:\n" + traceback.format_exc(),
                             )
                             self.cueVolume = 1
                         try:
@@ -1774,18 +1705,13 @@ class Scene:
                                 # Also fade in for crossfade,
                                 # but in that case we only do it if there is something to fade in from.
 
-                                spd = self.scriptContext.preprocessArgument(
-                                    self.cues[cue].media_speed
-                                )
+                                spd = self.scriptContext.preprocessArgument(self.cues[cue].media_speed)
                                 spd = spd or 1
                                 spd = float(spd)
 
                                 if not (
                                     (
-                                        (
-                                            (self.crossfade > 0)
-                                            and not (self.cues[cue].sound_fade_in < 0)
-                                        )
+                                        ((self.crossfade > 0) and not (self.cues[cue].sound_fade_in < 0))
                                         and kaithem.sound.is_playing(str(self.id))
                                     )
                                     or (self.cues[cue].fade_in > 0)
@@ -1799,17 +1725,11 @@ class Scene:
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
                                         loop=self.cues[cue].sound_loops,
-                                        start=self.evalExprFloat(
-                                            self.cues[cue].sound_start_position or 0
-                                        ),
+                                        start=self.evalExprFloat(self.cues[cue].sound_start_position or 0),
                                         speed=spd,
                                     )
                                 else:
-                                    fade = (
-                                        self.cues[cue].fade_in
-                                        or self.cues[cue].sound_fade_in
-                                        or self.crossfade
-                                    )
+                                    fade = self.cues[cue].fade_in or self.cues[cue].sound_fade_in or self.crossfade
                                     # Odd cases where there's a wind up but specifically disabled fade
                                     if self.cues[cue].sound_fade_in < 0:
                                         fade = 0.1
@@ -1821,15 +1741,9 @@ class Scene:
                                         volume=self.alpha * self.cueVolume,
                                         output=out,
                                         loop=self.cues[cue].sound_loops,
-                                        start=self.evalExprFloat(
-                                            self.cues[cue].sound_start_position or 0
-                                        ),
-                                        windup=self.evalExprFloat(
-                                            self.cues[cue].media_wind_up or 0
-                                        ),
-                                        winddown=self.evalExprFloat(
-                                            self.cue.media_wind_down or 0
-                                        ),
+                                        start=self.evalExprFloat(self.cues[cue].sound_start_position or 0),
+                                        windup=self.evalExprFloat(self.cues[cue].media_wind_up or 0),
+                                        winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
                                         speed=spd,
                                     )
 
@@ -1841,9 +1755,7 @@ class Scene:
                                         "mediaURL",
                                         sound,
                                         self.enteredCue,
-                                        max(
-                                            0, self.cues[cue].fade_in or self.crossfade
-                                        ),
+                                        max(0, self.cues[cue].fade_in or self.crossfade),
                                     ]
                                 )
 
@@ -1863,9 +1775,7 @@ class Scene:
                                 if sound.endswith(".mp3"):
                                     self.event(
                                         "error",
-                                        "Reading metadata for: "
-                                        + sound
-                                        + traceback.format_exc(),
+                                        "Reading metadata for: " + sound + traceback.format_exc(),
                                     )
                                 t = None
                                 currentAudioMetadata = {
@@ -1878,10 +1788,7 @@ class Scene:
                             self.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
 
                             if t and len(t) < 3 * 10**6:
-                                self.albumArtTag.value = (
-                                    "data:image/jpeg;base64,"
-                                    + base64.b64encode(t).decode()
-                                )
+                                self.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(t).decode()
                             else:
                                 self.albumArtTag.value = ""
 
@@ -1916,9 +1823,7 @@ class Scene:
 
                 self.preload_next_cue_sound()
 
-                self.mediaLink.send(
-                    ["cue_ends", self.cuelen + self.enteredCue, self.cuelen]
-                )
+                self.mediaLink.send(["cue_ends", self.cuelen + self.enteredCue, self.cuelen])
 
     def apply_tracked_values(self, cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -2007,9 +1912,7 @@ class Scene:
     def recalc_randomize_modifier(self):
         "Recalculate the random variance to apply to the length"
         if self.cue:
-            self.randomizeModifier = random.triangular(
-                -float(self.cue.length_randomize), +float(self.cue.length_randomize)
-            )
+            self.randomizeModifier = random.triangular(-float(self.cue.length_randomize), +float(self.cue.length_randomize))
 
     def recalc_cue_len(self):
         "Calculate the actual cue len, without changing the randomizeModifier"
@@ -2017,9 +1920,8 @@ class Scene:
             return
         cuelen = self.scriptContext.preprocessArgument(self.cue.length)
         v = cuelen or 0
-        v = float(v)
-
         cuelen_str = str(cuelen)
+
         if cuelen_str.startswith("@"):
             selector = recur.getConstraint(cuelen_str[1:])
             ref = datetime.datetime.now()
@@ -2038,6 +1940,7 @@ class Scene:
             v = nextruntime - time.time()
 
         else:
+            v = float(v)
             if len(self.cue.sound) and self.cue.rel_length:
                 path = self.resolve_sound(self.cue.sound or self.cue.slide)
                 if core.is_img_file(path):
@@ -2049,29 +1952,14 @@ class Scene:
                         # TODO this should not stop early if the next cue overrides
                         duration = core.get_audio_duration(path) or 0
                         if duration > 0:
-                            start = (
-                                self.scriptContext.preprocessArgument(
-                                    self.cue.sound_start_position
-                                )
-                                or 0
-                            )
+                            start = self.scriptContext.preprocessArgument(self.cue.sound_start_position) or 0
                             start = float(start)
 
                             # Account for media speed
-                            spd = (
-                                self.scriptContext.preprocessArgument(
-                                    self.cue.media_speed
-                                )
-                                or 1
-                            )
+                            spd = self.scriptContext.preprocessArgument(self.cue.media_speed) or 1
                             spd = float(spd)
 
-                            windup = (
-                                self.scriptContext.preprocessArgument(
-                                    self.cue.media_speed
-                                )
-                                or 0
-                            )
+                            windup = self.scriptContext.preprocessArgument(self.cue.media_speed) or 0
                             windup = float(spd)
 
                             avg_speed_during_windup = (0.1 + spd) / 2
@@ -2171,12 +2059,8 @@ class Scene:
 
             if universe not in self.cue_cached_vals_as_arrays:
                 size = len(uobj.values)
-                self.cue_cached_vals_as_arrays[universe] = numpy.array(
-                    [0.0] * size, dtype="f4"
-                )
-                self.cue_cached_alphas_as_arrays[universe] = numpy.array(
-                    [0.0] * size, dtype="f4"
-                )
+                self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * size, dtype="f4")
+                self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * size, dtype="f4")
 
             if universe not in self.affect:
                 self.affect.append(universe)
@@ -2187,9 +2071,7 @@ class Scene:
 
             for j in cuex.values[i]:
                 if isinstance(j, str) and j.startswith("__dest__."):
-                    dest[j[9:]] = self.evalExpr(
-                        cuex.values[i][j] if cuex.values[i][j] is not None else 0
-                    )
+                    dest[j[9:]] = self.evalExpr(cuex.values[i][j] if cuex.values[i][j] is not None else 0)
 
             for idx in range(repeats):
                 for j in cuex.values[i]:
@@ -2212,32 +2094,20 @@ class Scene:
                     if x:
                         universe, channel = x[0], x[1]
                         try:
-                            self.cue_cached_alphas_as_arrays[universe][
-                                channel + (idx * chCount)
-                            ] = 1.0 if cuev is not None else 0
-                            self.cue_cached_vals_as_arrays[universe][
-                                channel + (idx * chCount)
-                            ] = evaled
+                            self.cue_cached_alphas_as_arrays[universe][channel + (idx * chCount)] = 1.0 if cuev is not None else 0
+                            self.cue_cached_vals_as_arrays[universe][channel + (idx * chCount)] = evaled
                         except Exception:
                             print("err", traceback.format_exc())
                             self.event(
                                 "script.error",
-                                self.name
-                                + " cue "
-                                + cuex.name
-                                + " Val "
-                                + str((universe, channel))
-                                + "\n"
-                                + traceback.format_exc(),
+                                self.name + " cue " + cuex.name + " Val " + str((universe, channel)) + "\n" + traceback.format_exc(),
                             )
 
                     if isinstance(cuev, str) and cuev.startswith("="):
                         self.rerenderOnVarChange = True
 
     def make_script_context(self):
-        scriptContext = DebugScriptContext(
-            self, rootContext, variables=self.chandlerVars, gil=core.lock
-        )
+        scriptContext = DebugScriptContext(self, rootContext, variables=self.chandlerVars, gil=core.lock)
 
         scriptContext.addNamespace("pagevars")
 
@@ -2332,12 +2202,8 @@ class Scene:
         if self.mqttConnection:
             if self.mqtt_sync_features.get("syncGroup", False):
                 # In the future we will not use a leading slash
-                self.mqttConnection.subscribe(
-                    f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
-                )
-                self.mqttConnection.subscribe(
-                    f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
-                )
+                self.mqttConnection.subscribe(f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}")
+                self.mqttConnection.subscribe(f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}")
 
         if self.mqttConnection and self.scriptContext:
             # Subscribe to everything we aren't subscribed to
@@ -2617,9 +2483,7 @@ class Scene:
 
             if self not in _active_scenes:
                 _active_scenes.append(self)
-            _active_scenes = sorted(
-                _active_scenes, key=lambda k: (k.priority, k.started)
-            )
+            _active_scenes = sorted(_active_scenes, key=lambda k: (k.priority, k.started))
             active_scenes = _active_scenes[:]
 
             self.setMqttServer(self.mqtt_server)
@@ -2641,9 +2505,7 @@ class Scene:
         self.hasNewInfo = {}
         self._priority = p
         with core.lock:
-            _active_scenes = sorted(
-                _active_scenes, key=lambda k: (k.priority, k.started)
-            )
+            _active_scenes = sorted(_active_scenes, key=lambda k: (k.priority, k.started))
             active_scenes = _active_scenes[:]
             try:
                 for i in self.affect:
@@ -2868,20 +2730,12 @@ class Scene:
 
         if not s:
             kaithem.message.unsubscribe(
-                "/midi/"
-                + s.replace(":", "_")
-                .replace("[", "")
-                .replace("]", "")
-                .replace(" ", ""),
+                "/midi/" + s.replace(":", "_").replace("[", "").replace("]", "").replace(" ", ""),
                 self.onMidiMessage,
             )
         else:
             kaithem.message.subscribe(
-                "/midi/"
-                + s.replace(":", "_")
-                .replace("[", "")
-                .replace("]", "")
-                .replace(" ", ""),
+                "/midi/" + s.replace(":", "_").replace("[", "").replace("]", "").replace(" ", ""),
                 self.onMidiMessage,
             )
 
@@ -2914,11 +2768,7 @@ class Scene:
         self.mediaLink.send(
             [
                 "butterchurnfiles",
-                [
-                    i.split("milkdrop:")[-1]
-                    for i in self.music_visualizations.split("\n")
-                    if i
-                ],
+                [i.split("milkdrop:")[-1] for i in self.music_visualizations.split("\n") if i],
             ]
         )
 
@@ -2972,10 +2822,7 @@ class Scene:
         disallow_special(key, "_")
         # serializableness check
         json.dumps(val)
-        if (
-            not hasattr(self.blendClass, "parameters")
-            or key not in self.blendClass.parameters
-        ):
+        if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
             raise KeyError("No such param")
 
         if val is None:
@@ -2991,8 +2838,7 @@ class Scene:
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fade_in:
             fadePosition: float = min(
-                (time.time() - self.enteredCue)
-                / (self.cue.fade_in * (60.0 / self.bpm)),
+                (time.time() - self.enteredCue) / (self.cue.fade_in * (60.0 / self.bpm)),
                 1.0,
             )
             fadePosition = ease(fadePosition)
@@ -3029,15 +2875,11 @@ class Scene:
                 self.fade_in_completed = True
                 self.rerender = True
 
-        if self.cuelen and (time.time() - self.enteredCue) > self.cuelen * (
-            60 / self.bpm
-        ):
+        if self.cuelen and (time.time() - self.enteredCue) > self.cuelen * (60 / self.bpm):
             # rel_length cues end after the sound in a totally different part of code
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-            self.next_cue(
-                round(self.enteredCue + self.cuelen * (60 / self.bpm), 3), cause="time"
-            )
+            self.next_cue(round(self.enteredCue + self.cuelen * (60 / self.bpm), 3), cause="time")
 
     def updateMonitorValues(self):
         if self.blend == "monitor":
