@@ -64,12 +64,18 @@ python3 -m pipx ensurepath
 pipx install poetry
 ```
 
+After doing this, log out and log back into the py.
+The program doesn't appear in your usable packages until you do that, because Debian strangely enough doesn't have the directory
+on PATH by default
+
 ### Install kaithem in the project folder virtualenv
 
 Now that you have the system dependencies, you should have pipx from your package manager.
 
+cd into the folder you cloned, probably with
+`cd ~/KaithemAutomation`
+
 ```bash
-# Not exactly necessary,
 # This line tells Poetry to put
 # it's virtualenv right in the project folder
 # Where apps like VS Code will know how to work with it
@@ -77,16 +83,36 @@ Now that you have the system dependencies, you should have pipx from your packag
 
 # If you already have a .venv in your folder, it
 # May be best to delete it and start over.
-poetry config virtualenvs.in-project true
+poetry config --local virtualenvs.in-project true
+
+# This config setting is needed on many platforms,
+# the keyring is not used with Kaithem and on
+# some systems enabling it crashes everything.
+poetry config --local keyring.enabled false
 
 poetry install -v
 
 # Poetry will run it in the virtualenv
 poetry run python dev_run.py
 
+# Hit Ctrl-C to stop. may need to try a few times if there are mamy active threads.
+
+# On some systems, to use audio mixing
+# You may need to run 'sudo make root-use-pipewire-jack'
+# And prefix everything that uses JACK with pw-jack
+
+# pw-jack poetry run python dev_run.py
+
+
 ```
 
-Then visit http://localhost:8002 and log in with your normal Linux username and password.
+Expect this to take a few minutes.  If it gets stuck at Preparing...
+it is probably not actually stuck and just needs a few.  It should only be 15mins max though, at least on a Pi4.
+
+Then visit http://YOUR_PI_ADDRESS:8002/index and log in with your normal Linux username and password.
+
+Most likely it will be http://raspberrypi.local:8002/index  if you
+kept the defaults when installing.
 
 
 ### Access from Anywhere
@@ -108,8 +134,14 @@ And then rebooting. In theory you can just restart the services, but it seems to
 This will make ALL jack apps go through pipewire, you won't ever need to launch jackd.
 I'm not sure why you would ever want to use the original JACK server, so this shouldn't cause any issues.
 
+#### Still broken?
+
 Unfortunately, it doesn't work on pi, you'll need to prefix stuff that should use jack with pw-jack.
-Kaithem's installer does this automatically.
+
+```bash
+pw-jack poetry run python dev_run.py
+```
+Kaithem's installer does this automatically when you use
 
 ### Sound Too Quiet?
 
@@ -135,7 +167,7 @@ Update kaithem and run `make user-set-global-pipewire-conf` as the user that wil
 
 ### Install globally and run at boot
 
-To run as a systemd user service(Runs as soon as you log in, use autologin or lingering to run at boot)
+To run as a systemd user service(Runs as soon as you log in or the desktop/kiosk starts)
 
 ```bash
 make user-start-kaithem-at-boot

@@ -187,8 +187,6 @@ class makePlayer {
         this.altLayer = document.createElement('div');
         this.setStyles(this.altLayer, this.cstyle);
 
-        this.shouldbestopped = true
-
 
         c.appendChild(this.currentLayer);
         c.appendChild(this.altLayer);
@@ -205,15 +203,6 @@ class makePlayer {
 
         this.task = function () {
 
-            if (parent.currentMedia) {
-                if (parent.currentMedia.duration > 0.1) {
-                    if (parent.currentMedia.currentTime > parent.currentMedia.duration - 0.5) {
-                        this.shouldbestopped = true
-                    }
-                }
-
-            }
-
             if (parent.fadeLength == -1) {
                 return;
             }
@@ -221,7 +210,11 @@ class makePlayer {
                 if (parent.currentMedia) {
                     parent.currentMedia.volume = parent.targetVolume;
                     if (parent.currentMedia.paused) {
-                        parent.playLater(parent.currentMedia)
+
+                        // If not completed
+                        if (parent.currentMedia.position < parent.currentMedia.duration - 0.5) {
+                            parent.playLater(parent.currentMedia)
+                        }
                     }
                 }
 
@@ -231,7 +224,9 @@ class makePlayer {
                 if (parent.altMedia) {
                     parent.altMedia.volume = 0;
                     if (parent.altMedia.paused) {
-                        parent.playLater(parent.altMedia)
+                        if (parent.altMedia.position < parent.altMedia.duration - 0.5) {
+                            parent.playLater(parent.altMedia)
+                        }
                     }
                 }
 
@@ -279,7 +274,7 @@ class makePlayer {
             if (this.pli) {
                 return;
             }
-            if (!this.error_send_timeout) {            
+            if (!this.error_send_timeout) {
                 this.error_send_timeout = setTimeout(function () {
                     telemetryStatus = "PLAY FAILED"
                     send_telemetry()
@@ -289,16 +284,19 @@ class makePlayer {
             this.deffered_play = el
             this.pli = setInterval(async () => {
                 if (this.deffered_play) {
+                    var p = this.deffered_play
+
                     try {
-                        await this.deffered_play.play()
+                        await p.play()
                         if (this.error_send_timeout) {
                             clearTimeout(this.error_send_timeout)
                         }
                         telemetryStatus = 'OK'
                         send_telemetry()
-                        st = this.intended_start_pos - ((link.now() / 1000) - this.intended_start_ts)
+
+                        var st = this.intended_start_pos - ((link.now() / 1000) - this.intended_start_ts)
                         st = Math.max(st, 0)
-                        this.deffered_play.currentTime = st;
+                        p.currentTime = st;
                     }
                     catch {
                         this.alertTimeout("Must click page to play, unless you enable autoplay in browser settings.", 1000)
@@ -341,8 +339,6 @@ class makePlayer {
         this.playMedia = async function (t, f, st, sessionTag) {
 
             var ts = link.now() / 1000
-
-            this.shouldbestopped = false
 
             if (t.children.length > 0) {
                 t.removeChild(t.children[0]);

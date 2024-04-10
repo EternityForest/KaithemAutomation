@@ -14,7 +14,6 @@ fi
 
 apt -y install pipewire-audio-client-libraries
 
-echo "Setting up Pipewire for $(id -un $KAITHEM_UID)/$KAITHEM_UID"
 cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
 ldconfig
 

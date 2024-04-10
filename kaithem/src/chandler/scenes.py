@@ -1793,7 +1793,7 @@ class Scene:
                             self.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
 
                             if album_art and len(album_art) < 3 * 10**6:
-                                self.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(cue_entered_time).decode()
+                                self.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(album_art).decode()
                             else:
                                 self.albumArtTag.value = ""
 

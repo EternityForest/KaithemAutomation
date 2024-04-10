@@ -4,6 +4,7 @@ Change Log
 
 ### 0.78.1
  - :bug: Fix broken @time lengths in chandler
+ - :bug: Fix short web media files endless looping
  - :hammer: unit testing
  - :sparkles: Don't run integrated selftest when running unit tests
  - :coffin: Remove the sdmon cache service from linux-tweaks.sh,   integrate that feature instead.
