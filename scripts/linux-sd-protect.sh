@@ -362,5 +362,4 @@ dd bs=1 count=32K if=/dev/urandom of=/var/lib/systemd/random-seed > /dev/null
 touch /run/cprng-seeded
 EOF
 
-chmod 755 /usr/bin/ember-update.sh
 systemctl enable ember-random-seed
