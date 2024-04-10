@@ -23,6 +23,7 @@ and easier to maintain.
  - :bug: Fix external modules being loaded with wrong name
  - :bug: Icemedia 0.1.12, works correctly in venv on pi
  - :bug: The tmpfs on /tmp was too small to run pipx reliably.
+ - :bug: Fix some kind of dependency conflict with attr
 
 #### Tested on
 OS: Debian GNU/Linux 12 (bookworm) aarch64
