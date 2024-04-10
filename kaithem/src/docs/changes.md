@@ -9,6 +9,7 @@ Change Log
  - :sparkles: Don't run integrated selftest when running unit tests
  - :coffin: Remove the sdmon cache service from linux-tweaks.sh,   integrate that feature instead.
  - :coffin: Don't intercept sound for the chrome kiosk
+ - :sparkles: Move linux package cleanup util to new uninstall-bloatware.sh script
 
 ### 0.78.0
 

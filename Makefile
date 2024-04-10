@@ -132,6 +132,13 @@ root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # I
 	@cd ${ROOT_DIR}
 	@bash ./scripts/linux-tweaks.sh
 
+
+.PHONY: root-uninstall-bloatware
+oot-uninstall-bloatware: # Uninstall random junk you probably don't want on an embedded system.
+	@cd ${ROOT_DIR}
+	@bash ./scripts/uninstall-bloatware.sh
+
+
 .PHONY: root-enable-anon-mqtt
 root-enable-anon-mqtt: # Set up an MQTT broker for anonymous login acccess
 	@cd ${ROOT_DIR}

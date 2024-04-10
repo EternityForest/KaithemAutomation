@@ -95,7 +95,7 @@ poetry install -v
 # Poetry will run it in the virtualenv
 poetry run python dev_run.py
 
-# Hit Ctrl-C to stop. may need to try a few times if there are mamy active threads.
+# Hit Ctrl-C to stop. may need to try a few times if there are mamy active threads, or just wait a few.
 
 # On some systems, to use audio mixing
 # You may need to run 'sudo make root-use-pipewire-jack'
