@@ -1433,9 +1433,8 @@ class Scene:
                     # Do the "Shuffle logic" that avoids  recently used cues.
                     # Eliminate until only two remain, the min to not get stuck in
                     # A fixed pattern.
-                    optionsNeeded = 2
-                    for history_item in reversed(self.cueHistory[-50:]):
-                        if len(x) <= optionsNeeded:
+                    for history_item in list(reversed(self.cueHistory[-15:])):
+                        if len(x) < 3:
                             break
                         elif history_item[0] in x:
                             x.remove(history_item[0])
