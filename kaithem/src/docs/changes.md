@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+### 0.78.2
+
+Development is advanced enough on the new overhaul that it makes sense
+to start using the [GitFlow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) methodology.
+
+- :bug: fix broken shuffle:* special cue
+
 ### 0.78.1
 
 This is mostly just about the install scripts and a few leftover bugs.  A lot has changed on Pi OS with Wayland!

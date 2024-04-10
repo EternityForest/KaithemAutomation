@@ -1433,12 +1433,11 @@ class Scene:
                     # Do the "Shuffle logic" that avoids  recently used cues.
                     # Eliminate until only two remain, the min to not get stuck in
                     # A fixed pattern.
-                    optionsNeeded = 2
-                    for i in reversed(self.cueHistory[-50:]):
-                        if len(x) <= optionsNeeded:
+                    for history_item in list(reversed(self.cueHistory[-15:])):
+                        if len(x) < 3:
                             break
-                        elif i[0] in x:
-                            x.remove(i)
+                        elif history_item[0] in x:
+                            x.remove(history_item[0])
                 cue_name = cue_name = self.pick_random_cue_from_names(x)
 
         cue_name = cue_name.split("?")[0]
