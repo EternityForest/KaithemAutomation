@@ -1396,6 +1396,83 @@ class Scene:
 
             cue_name = self.pick_random_cue_from_names(x)
 
+        elif cue_name == "__fast_forward__":
+            # Fast forward through scheduled @time endings.
+
+            def processlen(raw_length) -> str:
+                # Return length but always a string and empty if it was 0
+                try:
+                    raw_length = float(raw_length)
+                    if raw_length:
+                        return str(raw_length)
+                    else:
+                        return ""
+                except Exception:
+                    return raw_length
+
+            consider: list[Cue] = []
+
+            found = {}
+            pointer = self.cue
+            for safety_counter in range(1000):
+                # The logical next cue, except that __fast_forward also points to the next in sequence
+                nxt = (pointer.next_cue if not pointer.next_cue == "__fast_forward__" else self.getDefaultNext) or self.getDefaultNext()
+
+                if pointer is not self.cue:
+                    if str(pointer.next_cue).startswith("__"):
+                        raise RuntimeError("Found special __ cue, fast forward not possible")
+
+                    if str(pointer.length).startswith("="):
+                        raise RuntimeError("Found special =expression length cue, fast forward not possible")
+
+                if nxt and processlen(pointer.length):
+                    consider.append(pointer)
+                    found[pointer] = True
+                else:
+                    break
+
+                if (nxt not in self.cues) or (nxt in found):
+                    break
+
+                pointer = self.cues[nxt]
+
+            times: dict[str, float] = {}
+
+            last = None
+
+            scheduled_count = 0
+
+            for cue in consider:
+                if processlen(cue.length).startswith("@"):
+                    scheduled_count += 1
+                    selector = recur.getConstraint(processlen(cue.length)[1:])
+                    ref = datetime.datetime.now()
+
+                    a = selector.before(ref, True)
+
+                    # Hasn't happened yet, can't fast forward past it
+                    if not a:
+                        break
+
+                    a2 = dt_to_ts(a[0], selector.tz)
+
+                    times[cue.name] = a2
+                    last = a2
+
+                else:
+                    if last:
+                        times[cue.name] = last + float(cue.length)
+
+            # Can't fast forward without a scheduled cue
+            if scheduled_count:
+                most_recent = (0, None)
+                for entry in times:
+                    if times[entry] > most_recent[0]:
+                        if times[entry] < time.time():
+                            most_recent = times[entry], entry
+                if most_recent[1]:
+                    return most_recent[1]
+
         elif cue_name == "__random__":
             x = [i.name for i in self.cues_ordered if not i.name == self.cue.name]
             cue_name = self.pick_random_cue_from_names(x)
@@ -1534,6 +1611,9 @@ class Scene:
                     return
 
                 cue = self._parseCueName(cue)
+
+                if not cue:
+                    return
 
                 cobj = self.cues[cue]
 
