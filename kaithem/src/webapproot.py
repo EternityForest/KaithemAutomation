@@ -1,63 +1,56 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import cherrypy
-import mako
-import tornado
-
-from typing import Dict, Any
-
-import os
-import traceback
-import time
-import mimetypes
-import mako.exceptions
-import sys
-import logging
-
-import pytz
-import datetime
-import dateutil.parser
-
-import cherrypy._cpreqbody
 import atexit
+import datetime
+import logging
+import mimetypes
+import os
+import sys
+import time
+import traceback
+from typing import Any, Dict
+
+import cherrypy
+import cherrypy._cpreqbody
+import dateutil.parser
 import iot_devices
-
-from tornado.routing import RuleRouter, Rule, PathMatches, AnyMatches, Matcher
-
-from . import wsgi_adapter
-
+import mako
+import mako.exceptions
+import pytz
+import tornado
+from cherrypy import _cperror
+from cherrypy.lib.static import serve_file
+from tornado.routing import AnyMatches, Matcher, PathMatches, Rule, RuleRouter
 
 from . import (
-    pages,
-    directories,
-    settings,
-    notifications,
-    auth,
-    tagpoints,
-    alerts,
-    logviewer,
-    weblogin,
     ManageUsers,
-    modules_interface,
-    modules_state,
-    usrpages,
-    messagelogging,
+    alerts,
+    auth,
     devices,
     devices_interface,
+    directories,
+    logviewer,
     messagebus,
-    util,
+    messagelogging,
+    modules_interface,
+    modules_state,
+    notifications,
+    pages,
+    settings,
     systasks,
+    tagpoints,
+    # TODO we gotta stop depending on import side effects
+    tileserver,  # noqa
+    usrpages,
+    util,
+    web_console,  # noqa
+    weblogin,
     widgets,
+    wsgi_adapter,
 )
-
-
 from .chandler import web as cweb
 from .config import config
-
-from cherrypy.lib.static import serve_file
-from cherrypy import _cperror
-
 
 logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
@@ -121,9 +114,7 @@ class Errors:
 class Utils:
     @cherrypy.expose
     def video_signage(self, *a, **k):
-        return pages.get_template("utils/video_signage.html").render(
-            vid=k["src"], mute=int(k.get("mute", 1))
-        )
+        return pages.get_template("utils/video_signage.html").render(vid=k["src"], mute=int(k.get("mute", 1)))
 
 
 def cpexception():
@@ -138,9 +129,7 @@ def cpexception():
         )
     except Exception:
         cherrypy.response.body = bytes(
-            pages.get_template("errors/cperror.html").render(
-                e=_cperror.format_exc(), mk=""
-            ),
+            pages.get_template("errors/cperror.html").render(e=_cperror.format_exc(), mk=""),
             "utf8",
         )
 
@@ -236,9 +225,7 @@ class webapproot:
 
         if not args:
             if os.path.exists(os.path.join(directories.vardir, "static", "index.html")):
-                return serve_file(
-                    os.path.join(directories.vardir, "static", "index.html")
-                )
+                return serve_file(os.path.join(directories.vardir, "static", "index.html"))
 
         try:
             dir = "/".join(args)
@@ -252,18 +239,13 @@ class webapproot:
 
             dir = os.path.join(directories.vardir, "static", dir)
 
-            if not os.path.normpath(dir).startswith(
-                os.path.join(directories.vardir, "static")
-            ):
+            if not os.path.normpath(dir).startswith(os.path.join(directories.vardir, "static")):
                 raise RuntimeError("Security violation")
 
             if os.path.isfile(dir):
                 return serve_file(dir)
             else:
-                x = [
-                    (i + "/" if os.path.isdir(os.path.join(dir, i)) else i)
-                    for i in os.listdir(dir)
-                ]
+                x = [(i + "/" if os.path.isdir(os.path.join(dir, i)) else i) for i in os.listdir(dir)]
                 x = "\r\n".join(['<a href="' + i + '">' + i + "</a><br>" for i in x])
                 return x
         except Exception:
@@ -283,26 +265,17 @@ class webapproot:
     @cherrypy.expose
     def index(self, *path, **data):
         r = settings.redirects.get("/", {}).get("url", "")
-        if (
-            r
-            and not path
-            and not cherrypy.url().endswith("/index")
-            or cherrypy.url().endswith("/index/")
-        ):
+        if r and not path and not cherrypy.url().endswith("/index") or cherrypy.url().endswith("/index/"):
             raise cherrypy.HTTPRedirect(r)
 
         pages.require("view_status")
         cherrypy.response.cookie["LastSawMainPage"] = time.time()
-        return pages.get_template("index.html").render(
-            api=notifications.api, alertsapi=alerts.api
-        )
+        return pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
 
     @cherrypy.expose
     def dropdownpanel(self, *path, **data):
         pages.require("view_status")
-        return pages.get_template("dropdownpanel.html").render(
-            api=notifications.api, alertsapi=alerts.api
-        )
+        return pages.get_template("dropdownpanel.html").render(api=notifications.api, alertsapi=alerts.api)
 
     # @cherrypy.expose
     # def alerts(self, *path, **data):
@@ -337,9 +310,7 @@ class webapproot:
                 tn = "/" + tn
             if tn not in tagpoints.allTags:
                 raise ValueError("This tag does not exist")
-            return pages.get_template("settings/tagpoint.html").render(
-                tagName=tn, data=data, show_advanced=show_advanced
-            )
+            return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=data, show_advanced=show_advanced)
         else:
             return pages.get_template("settings/tagpoints.html").render(data=data)
 
@@ -349,9 +320,7 @@ class webapproot:
         pages.require("system_admin")
         pages.postOnly()
         if "exportRows" not in data:
-            return pages.get_template("settings/tagpointlog.html").render(
-                tagName=path[0], data=data
-            )
+            return pages.get_template("settings/tagpointlog.html").render(tagName=path[0], data=data)
         else:
             tag = tagpoints.allTags[path[0]]()
             if tag is None:
@@ -359,38 +328,20 @@ class webapproot:
 
             for i in tag.configLoggers:
                 if i.accumType == data["exportType"]:
-                    tz = pytz.timezone(
-                        auth.getUserSetting(pages.getAcessingUser(), "timezone")
-                    )
-                    logtime = tz.localize(
-                        dateutil.parser.parse(data["logtime"])
-                    ).timestamp()
-                    raw = i.getDataRange(
-                        logtime, time.time() + 10000000, int(data["exportRows"])
-                    )
+                    tz = pytz.timezone(auth.getUserSetting(pages.getAcessingUser(), "timezone"))
+                    logtime = tz.localize(dateutil.parser.parse(data["logtime"])).timestamp()
+                    raw = i.getDataRange(logtime, time.time() + 10000000, int(data["exportRows"]))
 
                     if data["exportFormat"] == "csv.iso":
                         cherrypy.response.headers["Content-Disposition"] = (
-                            'attachment; filename="%s"'
-                            % path[0]
-                            .replace("/", "_")
-                            .replace(".", "_")
-                            .replace(":", "_")[1:]
+                            'attachment; filename="%s"' % path[0].replace("/", "_").replace(".", "_").replace(":", "_")[1:]
                             + "_"
                             + data["exportType"]
-                            + tz.localize(
-                                dateutil.parser.parse(data["logtime"])
-                            ).isoformat()
+                            + tz.localize(dateutil.parser.parse(data["logtime"])).isoformat()
                             + ".csv"
                         )
                         cherrypy.response.headers["Content-Type"] = "text/csv"
-                        d = [
-                            "Time(ISO), "
-                            + path[0].replace(",", "")
-                            + " <accum "
-                            + data["exportType"]
-                            + ">"
-                        ]
+                        d = ["Time(ISO), " + path[0].replace(",", "") + " <accum " + data["exportType"] + ">"]
                         for i in raw:
                             dt = datetime.datetime.fromtimestamp(i[0])
                             d.append(dt.isoformat() + "," + str(i[1])[:128])
@@ -399,27 +350,21 @@ class webapproot:
     @cherrypy.expose
     def pagelisting(self, *path, **data):
         # Pagelisting knows to only show pages if you have permissions
-        return pages.get_template("pagelisting.html").render_unicode(
-            modules=modules_state.ActiveModules
-        )
+        return pages.get_template("pagelisting.html").render_unicode(modules=modules_state.ActiveModules)
 
     # docs, helpmenu, and license are just static pages.
     @cherrypy.expose
     def docs(self, *path, **data):
         if path:
             if path[0] == "thirdparty":
-                p = os.path.normpath(
-                    os.path.join(directories.srcdir, "docs", "/".join(path))
-                )
+                p = os.path.normpath(os.path.join(directories.srcdir, "docs", "/".join(path)))
                 if not p.startswith(os.path.join(directories.srcdir, "docs")):
                     raise RuntimeError("Invalid URL")
                 cherrypy.response.headers["Content-Type"] = mimetypes.guess_type(p)[0]
 
                 with open(p, "rb") as f:
                     return f.read()
-            return pages.get_template("help/" + path[0] + ".html").render(
-                path=path, data=data
-            )
+            return pages.get_template("help/" + path[0] + ".html").render(path=path, data=data)
         return pages.get_template("help/help.html").render()
 
     @cherrypy.expose
@@ -504,9 +449,7 @@ conf = {
 if not config["favicon-png"] == "default":
     conf["/favicon.png"] = {
         "tools.staticfile.on": True,
-        "tools.staticfile.filename": os.path.join(
-            directories.datadir, "static", config["favicon-png"]
-        ),
+        "tools.staticfile.filename": os.path.join(directories.datadir, "static", config["favicon-png"]),
         "tools.expires.on": True,
         "tools.expires.secs": 3600,  # expire in an hour
     }
@@ -514,9 +457,7 @@ if not config["favicon-png"] == "default":
 if not config["favicon-ico"] == "default":
     conf["/favicon.ico"] = {
         "tools.staticfile.on": True,
-        "tools.staticfile.filename": os.path.join(
-            directories.datadir, "static", config["favicon-ico"]
-        ),
+        "tools.staticfile.filename": os.path.join(directories.datadir, "static", config["favicon-ico"]),
         "tools.expires.on": True,
         "tools.expires.secs": 3600,  # expire in an hour
     }
@@ -542,9 +483,7 @@ def startServer():
 
     def save():
         if config["save-before-shutdown"]:
-            messagebus.post_message(
-                "/system/notifications/important/", "System saving before shutting down"
-            )
+            messagebus.post_message("/system/notifications/important/", "System saving before shutting down")
             util.SaveAllState()
 
     # let the user choose to have the server save everything before a shutdown
@@ -620,9 +559,7 @@ def startServer():
         Rule(PathMatches("/widgets/ws.*"), wsapp),
     ]
 
-    from . import tableview
-
-    from . import kaithemobj
+    from . import kaithemobj, tableview
 
     x = []
     for i in kaithemobj.wsgi_apps:
@@ -719,9 +656,7 @@ def startServer():
 
     # Publish to the CherryPy engine as if
     # we were using its mainloop
-    tornado.ioloop.PeriodicCallback(
-        lambda: cherrypy.engine.publish("main"), 100
-    ).start()
+    tornado.ioloop.PeriodicCallback(lambda: cherrypy.engine.publish("main"), 100).start()
     tornado.ioloop.IOLoop.instance().start()
 
     logger.info("Cherrypy engine stopped")

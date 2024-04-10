@@ -3,8 +3,12 @@ Change Log
 
 ### 0.78.1
 
-This is mostly just about the install scripts and a few leftover bugs
-A lot has changed on Pi OS with Wayland!
+This is mostly just about the install scripts and a few leftover bugs.  A lot has changed on Pi OS with Wayland!
+
+Now that so much of the custom and unusual code is gone,
+I expect future versions to be much more reliable, compatible,
+and easier to maintain.
+
 
  - :bug: Fix broken @time lengths in chandler
  - :bug: Fix short web media files endless looping
@@ -16,6 +20,7 @@ A lot has changed on Pi OS with Wayland!
  - :sparkles: Move installing utilities to new install-utilities.sh script
 
  - :bug: Fix various helper script compatibility issues.
+ - :bug: Restore world maps and web console that the new linter accidentally broke...
 
 #### Tested on
 OS: Debian GNU/Linux 12 (bookworm) aarch64
