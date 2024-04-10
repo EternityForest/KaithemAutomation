@@ -39,6 +39,9 @@ but we also use Make just to keep commands in one handy place.
 Many of these have to do with audio features, not all are needed. See Makefile for what is actually
 installed. This also installs virtualenv support.
 
+It installs the full suite of GStreamer plugins, and OpenCV
+for NVR object detection, so it's a bit heavy.
+
 ```bash
 make root-install-system-dependencies
 ```
@@ -52,7 +55,8 @@ Skip this if you already have them!
 # Applications in virtual environments
 # and makes them available on the command line.
 
-python3 -m pip install --user pipx
+sudo apt install pipx
+
 python3 -m pipx ensurepath
 
 # Poetry manages project

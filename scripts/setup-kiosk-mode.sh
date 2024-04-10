@@ -62,16 +62,6 @@ export DISPLAY=:0
 export XDG_CONFIG_HOME=/dev/shm/kiosk-temp-config
 export XDG_CACHE_HOME=/dev/shm/kiosk-temp-cache
 
-# We don't do sound here, we intercept in kaithem so we have remote control of the effects
-STATUS="$(systemctl is-active kaithem.service)"
-if [ "${STATUS}" = "active" ]; then
-    export PIPEWIRE_NODE=dummy_name
-    echo "Running sound through Kaithem"
-else 
-    echo "Kaithem not enabled, running sound directly"  
-    exit 1  
-fi
-
 while true
 do
     if chromium-browser  --kiosk --window-size=1920,1080 --start-fullscreen --noerrdialogs --disable-translate --disable-extensions --auto-accept-camera-and-microphone-capture --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --autoplay-policy=no-user-gesture-required --no-default-browser-check --disk-cache-size=48000000 --no-first-run --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' $1; then
@@ -93,30 +83,3 @@ autologin-guest=false
 autologin-user=$(id -un $KAITHEM_UID)
 autologin-user-timeout=0
 EOF
-
-
-# Make the audio work out of the box.  This is where we intercept the Chromium kiosk audio
-# But we do not want to overwrite an existig preset!
-if [ ! -f /home/$(id -un $KAITHEM_UID)/kaithem/system.mixer/presets/ ]; then
-
-mkdir -p /home/$(id -un $KAITHEM_UID)/kaithem/system.mixer/presets/
-
-cat << EOF > /home/$(id -un $KAITHEM_UID)/kaithem/system.mixer/presets/default.yaml
-PiKiosk:
-  channels: 2
-  effects:
-  - displayType: Fader
-    help: The main fader for the channel
-    id: f26c3ef7-61bf-4154-87b4-98eb874252ee
-    params: {}
-    type: fader
-  fader: -1.5
-  input: PipeWire ALSA [chromium-browser]
-  level: -17.6
-  mute: false
-  output: bcm2835 Headphones
-  soundFuse: 3
-  type: audio
-EOF
-
-fi

@@ -6,6 +6,8 @@ Change Log
  - :bug: Fix broken @time lengths in chandler
  - :hammer: unit testing
  - :sparkles: Don't run integrated selftest when running unit tests
+ - :coffin: Remove the sdmon cache service from linux-tweaks.sh,   integrate that feature instead.
+ - :coffin: Don't intercept sound for the chrome kiosk
 
 ### 0.78.0
 
