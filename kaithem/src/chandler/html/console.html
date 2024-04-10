@@ -12,6 +12,7 @@ ${lists}
     <option></option>
     <option>__random__</option>
     <option>__shuffle__</option>
+    <option>__schedule__</option>
 </datalist>
 
 
@@ -496,10 +497,10 @@ ${lists}
                                 <td class="rowname" data-label="Cue: " style=" user-select: none;"
                                     title="Click the cue name to edit that cue"
                                     v-on:click="selectcue(scenename,i[1].name)">
-                                    
+
                                     <i v-if="cuemeta[editingScene.cue].name==i[1].name"
                                         class="mdi mdi-arrow-right-bold-outline nomargin"></i>
-                                    
+
                                     <span title="Cue number, double click to change." style="width:6em; margin: 6px"
                                         v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
 
@@ -524,7 +525,7 @@ ${lists}
 
                                     <i v-if="cuemeta[editingScene.cue].name==i[1].name"
                                             class="mdi mdi-arrow-left-bold-outline nomargin"></i>
-                                        
+
                                 </td>
 
 
@@ -561,6 +562,7 @@ ${lists}
 
                                         <option value="__random__">RANDOM</option>
                                         <option value="__shuffle__">SHUFFLE</option>
+                                        <option value="__schedule__">Skip to Schedule</option>
 
                                     </select>
 
@@ -603,7 +605,7 @@ ${lists}
 
             <div v-if="currentcue">
                 <h3>Editing Cue: {{currentcue.name}}</h3>
-                <p v-if="currentcue.name.startsWith('__')" class="highlight">Cues starting with __ are special cues. 
+                <p v-if="currentcue.name.startsWith('__')" class="highlight">Cues starting with __ are special cues.
                     They are never chosen in random selections or as the default next cue and may have predefined system functions attatched.</p>
 
 
@@ -668,7 +670,7 @@ ${lists}
 
                                 <div class="stacked-form w-24rem">
                                     <label>Universe
-                                        <combo-box v-bind:options="useBlankDescriptions(universes)" 
+                                        <combo-box v-bind:options="useBlankDescriptions(universes)"
                                             v-model="newcueu"></combo-box>
                                     </label>
 

@@ -1396,7 +1396,7 @@ class Scene:
 
             cue_name = self.pick_random_cue_from_names(x)
 
-        elif cue_name == "__fast_forward__":
+        elif cue_name == "__schedule__":
             # Fast forward through scheduled @time endings.
 
             def processlen(raw_length) -> str:
@@ -1416,7 +1416,7 @@ class Scene:
             pointer = self.cue
             for safety_counter in range(1000):
                 # The logical next cue, except that __fast_forward also points to the next in sequence
-                nxt = (pointer.next_cue if not pointer.next_cue == "__fast_forward__" else self.getDefaultNext) or self.getDefaultNext()
+                nxt = (pointer.next_cue if not pointer.next_cue == "__schedule__" else self.getDefaultNext()) or self.getDefaultNext()
 
                 if pointer is not self.cue:
                     if str(pointer.next_cue).startswith("__"):
