@@ -3,7 +3,8 @@ Change Log
 
 ### 0.78.1
 
-This is mostly just about the install scripts.
+This is mostly just about the install scripts and a few leftover bugs
+A lot has changed on Pi OS with Wayland!
 
  - :bug: Fix broken @time lengths in chandler
  - :bug: Fix short web media files endless looping

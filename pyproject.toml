@@ -63,7 +63,6 @@ passlib = "*"
 Pillow = "*"
 tflite-runtime = "*"
 evdev = "*"
-attr = "*"
 markupsafe = "*"
 upnpclient = "*"
 requests = "*"
@@ -90,6 +89,10 @@ pynput = "*"
 
 # Older is not compatible with new numpy
 scipy = ">=1.11.0"
+
+# TODO is this line really needed? We don't use it directly,
+# Maybe just removing addr was enough?
+attrs = ">=23.2.0"
 
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
