@@ -25,9 +25,9 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 
 # Bye bye to the screen savier.
-sudo -u $(id -un $KAITHEM_UID) gsettings set org.gnome.desktop.screensaver lock-delay 3600
-sudo -u $(id -un $KAITHEM_UID) gsettings set org.gnome.desktop.screensaver lock-enabled false
-sudo -u $(id -un $KAITHEM_UID) gsettings set org.gnome.desktop.screensaver idle-activation-enabled false
+sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.screensaver lock-delay 3600
+sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.screensaver lock-enabled false
+sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.screensaver idle-activation-enabled false
 
 
 mkdir -p /home/$(id -un $KAITHEM_UID)/.config/autostart/
