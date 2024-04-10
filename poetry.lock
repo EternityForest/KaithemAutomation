@@ -621,13 +621,13 @@ python-dateutil = "*"
 
 [[package]]
 name = "icemedia"
-version = "0.1.1"
+version = "0.1.2"
 description = "A GStreamer wrapper with JACK connection management"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "icemedia-0.1.1-py3-none-any.whl", hash = "sha256:146aa87ca06780e517506ccb701a528c2914f9af8ce964958668a55f11acc562"},
-    {file = "icemedia-0.1.1.tar.gz", hash = "sha256:1219be664e4ee2031a7566db37ec1e8982529cd777325c405dd5a54dff611120"},
+    {file = "icemedia-0.1.2-py3-none-any.whl", hash = "sha256:5a309adead7d4fb6056d61b61ebd47f6c2297fd181207b1eaf2288817288679d"},
+    {file = "icemedia-0.1.2.tar.gz", hash = "sha256:386e4e581ac8ece0e4b385de3667687df4ad4791cd8a81710a3c0fff68699851"},
 ]
 
 [package.dependencies]
@@ -3083,4 +3083,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "ca09ee13823ae9080076b495c90b97a0146451e34869681ae620d63b297d9dbd"
+content-hash = "70f5654f5852b13fde15d82f3f3bad1c50c8eefc4d1af6b0377a1e599feb0c71"

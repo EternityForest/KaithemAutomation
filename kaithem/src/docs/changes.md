@@ -21,6 +21,7 @@ and easier to maintain.
  - :bug: Fix various helper script compatibility issues.
  - :bug: Restore world maps and web console that the new linter accidentally broke...
  - :bug: Fix external modules being loaded with wrong name
+ - :bug: Icemedia 0.1.12, works correctly in venv on pi
 
 #### Tested on
 OS: Debian GNU/Linux 12 (bookworm) aarch64
