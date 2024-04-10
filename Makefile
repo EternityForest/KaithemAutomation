@@ -139,6 +139,12 @@ oot-uninstall-bloatware: # Uninstall random junk you probably don't want on an e
 	@bash ./scripts/uninstall-bloatware.sh
 
 
+.PHONY: root-install-utilities
+oot-install-utilities: # Install random junk you might want, like drivers for obscure devices and troubleshooting utils
+	@cd ${ROOT_DIR}
+	@bash ./scripts/install-utilities.sh
+
+
 .PHONY: root-enable-anon-mqtt
 root-enable-anon-mqtt: # Set up an MQTT broker for anonymous login acccess
 	@cd ${ROOT_DIR}

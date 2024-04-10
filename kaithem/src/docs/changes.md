@@ -1,8 +1,10 @@
 Change Log
 ----------
 
-
 ### 0.78.1
+
+This is mostly just about the install scripts.
+
  - :bug: Fix broken @time lengths in chandler
  - :bug: Fix short web media files endless looping
  - :hammer: unit testing
@@ -10,6 +12,16 @@ Change Log
  - :coffin: Remove the sdmon cache service from linux-tweaks.sh,   integrate that feature instead.
  - :coffin: Don't intercept sound for the chrome kiosk
  - :sparkles: Move linux package cleanup util to new uninstall-bloatware.sh script
+ - :sparkles: Move installing utilities to new install-utilities.sh script
+
+ - :bug: Fix various helper script compatibility issues.
+
+#### Tested on
+OS: Debian GNU/Linux 12 (bookworm) aarch64
+Host: Raspberry Pi 4 Model B Rev 1.2
+
+OS: Ubuntu 22.04.3 LTS x86_6
+
 
 ### 0.78.0
 

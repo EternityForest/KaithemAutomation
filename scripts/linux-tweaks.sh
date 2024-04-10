@@ -1,23 +1,12 @@
 #!/bin/bash
 
 
-#   _  __     _ _   _                      _  ___           _    _  __        
-#  | |/ /    (_) | | |                    | |/ (_)         | |  (_)/ _|       
-#  | ' / __ _ _| |_| |__   ___ _ __ ___   | ' / _  ___  ___| | ___| |_ _   _  
-#  |  < / _` | | __| '_ \ / _ \ '_ ` _ \  |  < | |/ _ \/ __| |/ / |  _| | | | 
-#  | . \ (_| | | |_| | | |  __/ | | | | | | . \| | (_) \__ \   <| | | | |_| | 
-#  |_|\_\__,_|_|\__|_| |_|\___|_| |_| |_| |_|\_\_|\___/|___/_|\_\_|_|  \__, | 
-#                                                                       __/ | 
-#                                                                      |___/  
-
-# 
-
-# This script turns a fresh Pi OS or similar image into a Kaithem embedded controller.
-
-# This reconfigures a lot of things to optimally run a Chrome/Kaithem kiosk. Probably don't run this on a desktop
+# This reconfigures a lot of things to optimally run a Chrome/Kaithem kiosk or some other embedded thing.
+# Probably don't run this on a desktop
 # unless you want it to mess with your settings.
-# * Eliminate unneeded proprietary packages on Pi
-# * Install troubleshooting utilities
+
+# The SD card protection stuff lives in another file.
+
 # * Disable Wifi sleep and privacy MAC
 # * Give lots of permissions to KAITHEM_UID
 # * Remove rsyslog if present
@@ -158,56 +147,6 @@ cat << EOF > /usr/lib/systemd/system.conf.d/20-emberos-watchdog.conf
 [Manager]
 RuntimeWatchdogSec=15
 EOF
-
-
-
-
-
-#        _   _ _ _ _   _           
-#  /\ /\| |_(_) (_) |_(_) ___  ___ 
-# / / \ \ __| | | | __| |/ _ \/ __|
-# \ \_/ / |_| | | | |_| |  __/\__ \
-#  \___/ \__|_|_|_|\__|_|\___||___/
-                                 
-
-## Utils you can probably expect to want
-#########################################################################
-
-
-apt-get -y install waypipe
-
-apt-get -y install onboard nmap robotfindskitten ncdu mc curl fatrace gstreamer1.0-tools evince  unzip xdotool neofetch sqlite3
-apt-get -y install vim-tiny jq units git wget htop lsof  git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs dstat sysstat
-
-# For accessing CDs
-apt-get -y install  python3-cdio
-apt-get -y install abcde --no-install-recommends
-apt-get -y install glyrc imagemagick libdigest-sha-perl vorbis-tools atomicparsley eject eyed3 id3 id3v2 normalize-audio vorbisgain
-
-# This lits us capture frames from DSLRs and the like
-sudo apt-get -y install gphoto2 python3-gphoto2cffi
-sudo apt-get -y  install libexif12 libgphoto2-6 libgphoto2-port12 libltdl7 gtkam entangle
-#Need for cheap USB wifis
-apt-get install -y ppp usb-modeswitch wvdial
-# Control smart USB hubs per-port power, usb HID relays
-apt-get -y install uhubctl usbrelay
-apt-get -y install python3-pip libhidapi-libusb0 libxcb-xinerama0
-# Gotta have this one
-apt-get -y install kdeconnect nuntius
-
-# IPod stuff
-sudo apt-get -y install ifuse
-sudo apt-get -y install libimobiledevice-utils
-# Printerie
-apt-get -y install cups cups-ipp-utils cups-core-drivers system-config-printer printer-driver-brlaser
-#HPs scanner drivers
-sudo apt-get -y install hplip hplip-gui sane sane-utils xsane
-
-
-## GUI Apps
-apt-get -y install  kmag qjackctl k3b git-cola
-apt-get -y install gnome-screenshot gnome-system-monitor gnome-logs
-
 
 
 #      __     _                      _                                             
