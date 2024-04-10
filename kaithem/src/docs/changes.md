@@ -22,6 +22,7 @@ and easier to maintain.
  - :bug: Restore world maps and web console that the new linter accidentally broke...
  - :bug: Fix external modules being loaded with wrong name
  - :bug: Icemedia 0.1.12, works correctly in venv on pi
+ - :bug: The tmpfs on /tmp was too small to run pipx reliably.
 
 #### Tested on
 OS: Debian GNU/Linux 12 (bookworm) aarch64

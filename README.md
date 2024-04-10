@@ -168,9 +168,25 @@ Update kaithem and run `make user-set-global-pipewire-conf` as the user that wil
 ### Install globally and run at boot
 
 To run as a systemd user service(Runs as soon as you log in or the desktop/kiosk starts)
+Expect the command to take about 15 minutes.
+
 
 ```bash
+sudo make root-use-pipewire-jack
 make user-start-kaithem-at-boot
+```
+
+
+### Make sure the SD card stays fresh
+
+On a dedicated system, you probably want to disable a buch of
+stuff the Pi comes with that normally writes to the SD card all the time,
+disable auto update for most system packages(Assuming you're on a private network),
+and a few other tweaks.
+
+```bash
+sudo make root-install-linux-tweaks
+sudo make root-install-sd-protection
 ```
 
 ### Development

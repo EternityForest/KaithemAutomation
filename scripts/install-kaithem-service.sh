@@ -11,7 +11,7 @@ set -e
 
 mkdir -p ~/kaithem
 pipx install poetry
-pipx install --system-site-packages --force .
+pipx install --force .
 
 
 cat << EOF > ~/kaithem/config.yaml
