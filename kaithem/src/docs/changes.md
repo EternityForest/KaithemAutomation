@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.78.1
+ - :bug: Fix broken @time lengths in chandler
+ - :hammer: unit testing
+ - :sparkles: Don't run integrated selftest when running unit tests
+
 ### 0.78.0
 
 This is another pretty heavy breaking change release.  Nearly every file has been touched.

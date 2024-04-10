@@ -4,11 +4,14 @@
 # This file runs a self test when python starts. Obviously we do
 # Not want to clutter up the rraw
 
-import threading
-import traceback
 import logging
 import os
+import sys
+import threading
 import time
+import traceback
+
+from scullery import messagebus
 
 
 def memtest():
@@ -21,9 +24,7 @@ def memtest():
         # Wait a bit, in case it's a time retention thing
         time.sleep(1)
         if not x1 == x2:
-            messagebus.post_message(
-                "/system/notifications/errors", "Memory may be corrupt"
-            )
+            messagebus.post_message("/system/notifications/errors", "Memory may be corrupt")
 
 
 def mathtest():
@@ -97,8 +98,8 @@ def runtest():
     try:
         from . import (
             eventsystem,
-            statemachinestest,
             messagebustest,
+            statemachinestest,
             tagpointstest,
             testpersist,
         )
@@ -124,5 +125,7 @@ def runtest():
         pass
 
 
-t = threading.Thread(daemon=True, name="KaithemBootSelfTest", target=runtest)
-t.start()
+# Don't add confusion with the real unit tests
+if "pytest" not in sys.modules:
+    t = threading.Thread(daemon=True, name="KaithemBootSelfTest", target=runtest)
+    t.start()

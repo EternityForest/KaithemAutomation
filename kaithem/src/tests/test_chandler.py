@@ -1,10 +1,12 @@
-from kaithem.src.chandler import scenes, core
-from kaithem.src.sound import play_logs
-from kaithem.src import directories, tagpoints
-import time
 import logging
 import os
+import time
+
 import yaml
+
+from kaithem.src import directories, tagpoints
+from kaithem.src.chandler import core, scenes
+from kaithem.src.sound import play_logs
 
 board = core.boards[0]()
 
@@ -28,18 +30,45 @@ def test_make_scene():
 
     # Make sure a save file was created
     board.check_autosave()
-    assert os.path.exists(
-        os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml")
-    )
+    assert os.path.exists(os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml"))
 
     s.close()
     board.rmScene(s)
     assert "TestingScene1" not in scenes.scenes_by_name
 
     board.check_autosave()
-    assert not os.path.exists(
-        os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml")
-    )
+    assert not os.path.exists(os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml"))
+
+
+def test_timer_scene():
+    s = scenes.Scene("TestingScene1", id="TEST")
+    # Must add scenes to the board so we can save them and test the saving
+    board.addScene(s)
+
+    assert "TEST" in scenes.scenes
+
+    s.go()
+
+    assert s.active
+    assert s in scenes.active_scenes
+    assert s.cue.name == "default"
+
+    s.add_cue("cue2", length="@8pm")
+    s.goto_cue("cue2")
+    assert s.cue.name == "cue2"
+    assert isinstance(s.cuelen, float)
+    assert s.cuelen
+
+    # Make sure a save file was created
+    board.check_autosave()
+    assert os.path.exists(os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml"))
+
+    s.close()
+    board.rmScene(s)
+    assert "TestingScene1" not in scenes.scenes_by_name
+
+    board.check_autosave()
+    assert not os.path.exists(os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml"))
 
 
 def test_play_sound():
@@ -312,9 +341,7 @@ def test_tag_io():
     s.go()
 
     # Simulate user input
-    board._onmsg(
-        "__admin__", ["inputtagvalue", s.id, "ghjgy", 97], "nonexistantsession"
-    )
+    board._onmsg("__admin__", ["inputtagvalue", s.id, "ghjgy", 97], "nonexistantsession")
 
     # Make sure the input tag thing actually sets the value
     assert tagpoints.Tag("/ghjgy").value == 97
