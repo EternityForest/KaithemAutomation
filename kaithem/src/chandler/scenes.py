@@ -25,7 +25,7 @@ import recur
 from tinytag import TinyTag
 from typeguard import typechecked
 
-from .. import schemas
+from .. import schemas, tagpoints, widgets
 from ..kaithemobj import kaithem
 from . import blendmodes, core, mqtt, universes
 from .core import disallow_special
@@ -512,7 +512,6 @@ class Cue:
 
         self.next_ll: Cue | None = None
         parent._add_cue(self, forceAdd=forceAdd)
-        self.changed = {}
 
         self.scene: weakref.ref[Scene] = weakref.ref(parent)
         self.setShortcut(shortcut, False)
@@ -706,7 +705,7 @@ class Cue:
 
             unmappeduniverse = universe
 
-            x = mapChannel(universe, channel)
+            mapped_channel = mapChannel(universe, channel)
 
             if scene.cue == self and scene.is_active():
                 scene.rerender = True
@@ -719,8 +718,8 @@ class Cue:
                     scene.render(force_repaint=True)
 
                 # Otherwise if we are changing a simple mapped channel we optimize
-                elif x:
-                    universe, channel = x[0], x[1]
+                elif mapped_channel:
+                    universe, channel = mapped_channel[0], mapped_channel[1]
 
                     if (universe not in scene.cue_cached_alphas_as_arrays) and value is not None:
                         uobj = getUniverse(universe)
@@ -841,7 +840,7 @@ class Scene:
 
         self.id: str = id or uuid.uuid4().hex
 
-        class APIWidget(kaithem.widget.APIWidget):
+        class APIWidget(widgets.APIWidget):
             # Ignore badly named s param because it need to not conflic with outer self
             def on_new_subscriber(s, user, cid, **kw):  # type: ignore
                 self.send_all_media_link_info()
@@ -922,7 +921,7 @@ class Scene:
         self.lock = threading.RLock()
         self.randomizeModifier = 0
 
-        self.command_tagSubscriptions = []
+        self.command_tagSubscriptions: list[tuple[tagpoints.ObjectTagPointClass, Callable]] = []
         self.command_tag = command_tag
 
         self.notes = notes
