@@ -931,7 +931,7 @@ class Scene:
 
         self.cueTagClaim = self.cueTag.claim("__stopped__", "Scene", 50, annotation="SceneObject")
 
-        self.cueVolume = 1
+        self.cueVolume = 1.0
 
         # Allow goto_cue
         def cueTagHandler(val, timestamp, annotation):
@@ -1423,9 +1423,9 @@ class Scene:
                 else:
                     shuffle = False
 
-                for i in self.cues_ordered:
-                    if fnmatch.fnmatch(i.name, cue_name):
-                        x.append(i.name)
+                for c in self.cues_ordered:
+                    if fnmatch.fnmatch(c.name, cue_name):
+                        x.append(c.name)
                 if not x:
                     raise ValueError("No matching cue for pattern: " + cue_name)
 
@@ -1434,11 +1434,11 @@ class Scene:
                     # Eliminate until only two remain, the min to not get stuck in
                     # A fixed pattern.
                     optionsNeeded = 2
-                    for i in reversed(self.cueHistory[-50:]):
+                    for history_item in reversed(self.cueHistory[-50:]):
                         if len(x) <= optionsNeeded:
                             break
-                        elif i[0] in x:
-                            x.remove(i)
+                        elif history_item[0] in x:
+                            x.remove(history_item[0])
                 cue_name = cue_name = self.pick_random_cue_from_names(x)
 
         cue_name = cue_name.split("?")[0]
@@ -1448,9 +1448,9 @@ class Scene:
                 cue_name = float(cue_name)  # type: ignore
             except Exception:
                 raise ValueError("No such cue " + str(cue_name))
-            for i in self.cues_ordered:
-                if i.number - (float(cue_name) * 1000) < 0.001:
-                    cue_name = i.name
+            for cue_i in self.cues_ordered:
+                if cue_i.number - (float(cue_name) * 1000) < 0.001:
+                    cue_name = cue_i.name
                     break
         return cue_name
 
@@ -1495,7 +1495,7 @@ class Scene:
             if len(kwargs[i]) == 1:
                 k2[i] = kwargs[i][0]
 
-        kwargs_var = collections.defaultdict(lambda: "")
+        kwargs_var: collections.defaultdict[str, str] = collections.defaultdict(lambda: "")
         kwargs_var.update(k2)
 
         self.scriptContext.setVar("KWARGS", kwargs_var)
@@ -1666,7 +1666,8 @@ class Scene:
 
                     self.allowMediaUrlRemote = None
 
-                    out = self.cues[cue].sound_output
+                    out: str | None = self.cues[cue].sound_output
+
                     if not out:
                         out = self.sound_output
                     if not out:
@@ -2839,7 +2840,7 @@ class Scene:
         self.rerender = True
         self.metadata_already_pushed_by = {}
 
-    def render(self, force_repaint=False):
+    def render(self, force_repaint: bool = False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fade_in:
             fadePosition: float = min(
