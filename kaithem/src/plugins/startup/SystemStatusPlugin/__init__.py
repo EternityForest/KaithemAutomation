@@ -17,18 +17,26 @@ def getSDHealth():
     import os
 
     p = None
-    if os.path.exists("/dev/shm/sdmon_cache_mmcblk0"):
-        p = "/dev/shm/sdmon_cache_mmcblk0"
-
-    if os.path.exists("/run/sdmon-cache/mmcblk0"):
-        p = "/run/sdmon-cache/mmcblk0"
-
-    if p:
-        with open(p) as f:
+    if util.which("sdmon"):
+        if os.path.exists("/dev/mmcblk0"):
             try:
-                d = json.load(f)
+                # Requires passwordless sudo.
+                # Eventually we need a better solution.
+                # TODO fix passwordless sudo requirement
+                p = subprocess.check_output("sudo sdmon /dev/mmcblk0 -a", shell=True)
             except Exception:
+                logging.exception("Failed to get SD health status")
+                messagebus.post_message(
+                    "/system/notifications/warnings",
+                    "Sdmon is installed, but failed to get SD card health status. Probably missing passwordless sudo",
+                )
                 return None
+    if p:
+        try:
+            d = json.load(p)
+        except Exception:
+            return None
+
         if "enduranceRemainLifePercent" in d:
             return d["enduranceRemainLifePercent"]
         elif "healthStatusPercentUsed" in d:

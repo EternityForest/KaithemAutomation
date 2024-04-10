@@ -182,7 +182,7 @@ def gotoCommand(scene: str = "=SCENE", cue: str = ""):
     return True
 
 
-gotoCommand.completionTags = {
+gotoCommand.completionTags = {  # type: ignore
     "scene": "gotoSceneNamesCompleter",
     "cue": "gotoSceneCuesCompleter",
 }
@@ -197,9 +197,6 @@ def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
 def ifCueCommand(scene: str, cue: str):
     "True if the scene is running that cue"
     return True if scenes_by_name[scene].active and scenes_by_name[scene].cue.name == cue else None
-
-
-ifCueCommand.summaryTemplate = "True if cue is running"
 
 
 def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
@@ -963,7 +960,10 @@ class Scene:
         # Used to determine the numbering of added cues
         self.topCueNumber = 0
         # Only used for monitor scenes
-        self.valueschanged = {}
+
+        # If an entry here it means the monitor scene with that ID
+        # already sent data to web
+        self.monitor_values_already_pushed_by: dict[str, bool] = {}
         # Place to stash a blend object for new blending mode
         # Hardcoded indicates that applyLayer reads the blend name and we
         # have hardcoded logic there
@@ -1045,7 +1045,7 @@ class Scene:
 
         self.rerenderOnVarChange = False
 
-        self.enteredCue: float = 0
+        self.entered_cue: float = 0
 
         # Map event name to runtime as unix timestamp
         self.runningTimers: dict[str, float] = {}
@@ -1059,14 +1059,17 @@ class Scene:
 
         # Used to indicate that the most recent frame has changed something about the scene
         # Metadata that GUI clients need to know about.
-        self.hasNewInfo = {}
+
+        # An entry here means the board with that ID is all good
+        # Clear this to indicate everything needs to be sent to web.
+        self.metadata_already_pushed_by: dict[str, bool] = {}
 
         # Set to true every time the alpha value changes or a scene value changes
         # set to false at end of rendering
         self.rerender = False
 
         # Last time the scene was started. Not reset when stopped
-        self.started = 0
+        self.started = 0.0
 
         self.chandlerVars = {}
 
@@ -1112,7 +1115,7 @@ class Scene:
 
         self.mediaLink.send(["text", self.cue.markdown])
 
-        self.mediaLink.send(["cue_ends", self.cuelen + self.enteredCue, self.cuelen])
+        self.mediaLink.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
 
         self.mediaLink.send(["all_variables", self.web_variables])
 
@@ -1120,7 +1123,7 @@ class Scene:
             [
                 "mediaURL",
                 self.allowMediaUrlRemote,
-                self.enteredCue,
+                self.entered_cue,
                 max(0, self.cue.fade_in or self.cue.sound_fade_in or self.crossfade),
             ]
         )
@@ -1128,7 +1131,7 @@ class Scene:
             [
                 "slide",
                 self.cue.slide,
-                self.enteredCue,
+                self.entered_cue,
                 max(0, self.cue.fade_in or self.crossfade),
             ]
         )
@@ -1380,49 +1383,51 @@ class Scene:
 
         return random.choices(names, weights=weights)[0]
 
-    def _parseCueName(self, cue: str) -> str:
+    def _parseCueName(self, cue_name: str) -> str:
         "Take a raw cue name and find an actual matching cue. Handles things like shuffle"
-        if cue == "__shuffle__":
+        if cue_name == "__shuffle__":
             x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
-            for i in list(reversed(self.cueHistory[-15:])):
+
+            for history_item in list(reversed(self.cueHistory[-15:])):
                 if len(x) < 3:
                     break
-                elif i[0] in x:
-                    x.remove(i[0])
-            cue = self.pick_random_cue_from_names(x)
+                elif history_item[0] in x:
+                    x.remove(history_item[0])
 
-        elif cue == "__random__":
+            cue_name = self.pick_random_cue_from_names(x)
+
+        elif cue_name == "__random__":
             x = [i.name for i in self.cues_ordered if not i.name == self.cue.name]
-            cue = self.pick_random_cue_from_names(x)
+            cue_name = self.pick_random_cue_from_names(x)
 
         else:
             # Handle random selection option cues
-            if "|" in cue:
-                x = cue.split("|")
+            if "|" in cue_name:
+                x = cue_name.split("|")
                 if random.random() > 0.3:
                     for i in reversed(self.cueHistory[-15:]):
                         if len(x) < 3:
                             break
                         elif i[0] in x:
                             x.remove(i[0])
-                cue = self.pick_random_cue_from_names(x)
+                cue_name = self.pick_random_cue_from_names(x)
 
-            elif "*" in cue:
+            elif "*" in cue_name:
                 import fnmatch
 
                 x = []
 
-                if cue.startswith("shuffle:"):
-                    cue = cue[len("shuffle:") :]
+                if cue_name.startswith("shuffle:"):
+                    cue_name = cue_name[len("shuffle:") :]
                     shuffle = True
                 else:
                     shuffle = False
 
                 for i in self.cues_ordered:
-                    if fnmatch.fnmatch(i.name, cue):
+                    if fnmatch.fnmatch(i.name, cue_name):
                         x.append(i.name)
                 if not x:
-                    raise ValueError("No matching cue for pattern: " + cue)
+                    raise ValueError("No matching cue for pattern: " + cue_name)
 
                 if shuffle:
                     # Do the "Shuffle logic" that avoids  recently used cues.
@@ -1434,25 +1439,25 @@ class Scene:
                             break
                         elif i[0] in x:
                             x.remove(i)
-                cue = cue = self.pick_random_cue_from_names(x)
+                cue_name = cue_name = self.pick_random_cue_from_names(x)
 
-        cue = cue.split("?")[0]
+        cue_name = cue_name.split("?")[0]
 
-        if cue not in self.cues:
+        if cue_name not in self.cues:
             try:
-                cue = float(cue)  # type: ignore
+                cue_name = float(cue_name)  # type: ignore
             except Exception:
-                raise ValueError("No such cue " + str(cue))
+                raise ValueError("No such cue " + str(cue_name))
             for i in self.cues_ordered:
-                if i.number - (float(cue) * 1000) < 0.001:
-                    cue = i.name
+                if i.number - (float(cue_name) * 1000) < 0.001:
+                    cue_name = i.name
                     break
-        return cue
+        return cue_name
 
     def goto_cue(
         self,
         cue: str,
-        t: float | None = None,
+        cue_entered_time: float | None = None,
         sendSync=True,
         generateEvents=True,
         cause="generic",
@@ -1484,17 +1489,18 @@ class Scene:
         else:
             kwargs = {}
 
-        k2 = {}
+        k2: dict[str, str] = {}
 
         for i in kwargs:
             if len(kwargs[i]) == 1:
                 k2[i] = kwargs[i][0]
 
-        kwargs = collections.defaultdict(str, k2)
+        kwargs_var = collections.defaultdict(lambda: "")
+        kwargs_var.update(k2)
 
-        self.scriptContext.setVar("KWARGS", kwargs)
+        self.scriptContext.setVar("KWARGS", kwargs_var)
 
-        t = t or time.time()
+        cue_entered_time = cue_entered_time or time.time()
 
         if cue in self.cues:
             if sendSync:
@@ -1502,7 +1508,7 @@ class Scene:
                 if gn:
                     topic = f"/kaithem/chandler/syncgroup/{gn}"
                     m = {
-                        "time": t,
+                        "time": cue_entered_time,
                         "cue": cue,
                         "senderSessionID": self.mqttNodeSessionID,
                     }
@@ -1541,7 +1547,7 @@ class Scene:
                     self.cue = self.cues["default"]
                     self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
 
-                self.enteredCue = t
+                self.entered_cue = cue_entered_time
 
                 # Allow specifying an "Exact" time to enter for zero-drift stuff, so things stay in sync
                 # I don't know if it's fully correct to set the timestamp before exit...
@@ -1549,9 +1555,9 @@ class Scene:
                 # If we can't keep up, so we limit that to 3s
                 # if t and t>time.time()-3:
                 # Also, limit to 500ms in the future, seems like there could be bugs otherwise
-                #   self.enteredCue = min(t,self.enteredCue+0.5)
+                #   self.entered_cue = min(t,self.entered_cue+0.5)
 
-                entered = self.enteredCue
+                entered = self.entered_cue
 
                 if not (cue == self.cue.name):
                     if generateEvents:
@@ -1560,7 +1566,7 @@ class Scene:
 
                 # We return if some the enter transition already
                 # Changed to a new cue
-                if not self.enteredCue == entered:
+                if not self.entered_cue == entered:
                     return
 
                 self.cueHistory.append((cue, time.time()))
@@ -1578,17 +1584,17 @@ class Scene:
 
                 if self.active:
                     if self.cue.onExit:
-                        self.cue.onExit(t)
+                        self.cue.onExit(cue_entered_time)
 
                     if cobj.onEnter:
-                        cobj.onEnter(t)
+                        cobj.onEnter(cue_entered_time)
 
                     if generateEvents:
                         self.event("cue.enter", [cobj.name, cause])
 
                 # We return if some the enter transition already
                 # Changed to a new cue
-                if not self.enteredCue == entered:
+                if not self.entered_cue == entered:
                     return
 
                 # We don't fully reset until after we are done fading in and have rendered.
@@ -1598,15 +1604,15 @@ class Scene:
 
                 # TODO backtracking these variables?
                 cuevars = self.cues[cue].values.get("__variables__", {})
-                for i in cuevars:
-                    if isinstance(i, int):
-                        print("Bad cue variable name, it's not a string", i)
+                for var_name in cuevars:
+                    if isinstance(var_name, int):
+                        print("Bad cue variable name, it's not a string", var_name)
                         continue
                     try:
-                        self.scriptContext.setVar(i, self.evalExpr(cuevars[i]))
+                        self.scriptContext.setVar(var_name, self.evalExpr(cuevars[var_name]))
                     except Exception:
                         print(traceback.format_exc())
-                        core.rl_log_exc("Error with cue variable " + str(i))
+                        core.rl_log_exc("Error with cue variable " + str(var_name))
 
                 if self.cues[cue].track:
                     self.apply_tracked_values(cue)
@@ -1615,7 +1621,7 @@ class Scene:
                     [
                         "slide",
                         self.cues[cue].slide,
-                        self.enteredCue,
+                        self.entered_cue,
                         max(0, self.cues[cue].fade_in or self.crossfade),
                     ]
                 )
@@ -1672,7 +1678,7 @@ class Scene:
                             [
                                 "mediaURL",
                                 None,
-                                self.enteredCue,
+                                self.entered_cue,
                                 max(0, self.cues[cue].fade_in or self.crossfade),
                             ]
                         )
@@ -1753,7 +1759,7 @@ class Scene:
                                     [
                                         "mediaURL",
                                         sound,
-                                        self.enteredCue,
+                                        self.entered_cue,
                                         max(0, self.cues[cue].fade_in or self.crossfade),
                                     ]
                                 )
@@ -1767,7 +1773,7 @@ class Scene:
                                     "album": soundMeta.album or "Unknown",
                                     "year": soundMeta.year or "Unknown",
                                 }
-                                t = soundMeta.get_image()
+                                album_art = soundMeta.get_image()
                             except Exception:
                                 # Not support, but it might just be an unsupported type.
                                 # if mp3, its a real error, we should alert
@@ -1776,7 +1782,7 @@ class Scene:
                                         "error",
                                         "Reading metadata for: " + sound + traceback.format_exc(),
                                     )
-                                t = None
+                                album_art = None
                                 currentAudioMetadata = {
                                     "title": "",
                                     "artist": "",
@@ -1786,8 +1792,8 @@ class Scene:
 
                             self.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
 
-                            if t and len(t) < 3 * 10**6:
-                                self.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(t).decode()
+                            if album_art and len(album_art) < 3 * 10**6:
+                                self.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(cue_entered_time).decode()
                             else:
                                 self.albumArtTag.value = ""
 
@@ -1822,7 +1828,7 @@ class Scene:
 
                 self.preload_next_cue_sound()
 
-                self.mediaLink.send(["cue_ends", self.cuelen + self.enteredCue, self.cuelen])
+                self.mediaLink.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
 
     def apply_tracked_values(self, cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -2192,7 +2198,7 @@ class Scene:
                     # Don't adjust out start time too much. It only exists to fix network latency.
                     self.goto_cue(
                         m["cue"],
-                        t=max(min(time.time() + 0.5, m["time"]), time.time() - 0.5),
+                        cue_entered_time=max(min(time.time() + 0.5, m["time"]), time.time() - 0.5),
                         sendSync=False,
                         cause="MQTT Sync",
                     )
@@ -2470,14 +2476,14 @@ class Scene:
                 alphas=self.cue_cached_alphas_as_arrays,
             )
 
-            self.enteredCue = time.time()
+            self.entered_cue = time.time()
 
             if self.blend in blendmodes.blendmodes:
                 self._blend = blendmodes.blendmodes[self.blend](self)
 
             self.effectiveValues = None
 
-            self.hasNewInfo = {}
+            self.metadata_already_pushed_by = {}
             self.started = time.time()
 
             if self not in _active_scenes:
@@ -2501,7 +2507,7 @@ class Scene:
     @priority.setter
     def priority(self, p: float):
         global active_scenes, _active_scenes
-        self.hasNewInfo = {}
+        self.metadata_already_pushed_by = {}
         self._priority = p
         with core.lock:
             _active_scenes = sorted(_active_scenes, key=lambda k: (k.priority, k.started))
@@ -2572,7 +2578,7 @@ class Scene:
                 del scenes_by_name[self.name]
             self.name = name
             scenes_by_name[name] = self
-            self.hasNewInfo = {}
+            self.metadata_already_pushed_by = {}
             self.scriptContext.setVar("SCENE", self.name)
 
     def setMQTTFeature(self, feature: str, state):
@@ -2580,7 +2586,7 @@ class Scene:
             self.mqtt_sync_features[feature] = state
         else:
             self.mqtt_sync_features.pop(feature, None)
-        self.hasNewInfo = {}
+        self.metadata_already_pushed_by = {}
         self.doMqttSubscriptions()
 
     @property
@@ -2594,11 +2600,11 @@ class Scene:
             return
         else:
             self._backtrack = b
-            x = self.enteredCue
+            x = self.entered_cue
             self.goto_cue(self.cue.name)
-            self.enteredCue = x
+            self.entered_cue = x
             self.rerender = True
-        self.hasNewInfo = {}
+        self.metadata_already_pushed_by = {}
 
     def setBPM(self, b):
         b = float(b)
@@ -2607,7 +2613,7 @@ class Scene:
         else:
             self.bpm = b
             self.rerender = True
-        self.hasNewInfo = {}
+        self.metadata_already_pushed_by = {}
 
     def tap(self, t: float | None = None):
         "Do a tap tempo tap. If the tap happened earlier, use t to enter that time"
@@ -2634,7 +2640,7 @@ class Scene:
             self.bpm = self.bpm * (1 - f) + (60 / (x)) * f
         self.tapSequence += 1
 
-        ts = t - self.enteredCue
+        ts = t - self.entered_cue
         beats = ts / time_per_beat
 
         fbeat = beats % 1
@@ -2648,10 +2654,10 @@ class Scene:
             # Filter between that backprojected time and the real time
             # Yes I know we already incremented tapSequence
             f = 1 / self.tapSequence**1.2
-            self.enteredCue = self.enteredCue * (1 - f) + x * f
+            self.entered_cue = self.entered_cue * (1 - f) + x * f
         elif self.tapSequence:
-            # Just change enteredCue to match the phase.
-            self.enteredCue = x
+            # Just change entered_cue to match the phase.
+            self.entered_cue = x
         self.pushMeta(keys={"bpm"})
 
     def stop(self):
@@ -2670,7 +2676,7 @@ class Scene:
 
             # Just using this to get rid of prev value
             self._blend = blendmodes.HardcodedBlendMode(self)
-            self.hasNewInfo = {}
+            self.metadata_already_pushed_by = {}
 
             try:
                 for i in self.affect:
@@ -2815,7 +2821,7 @@ class Scene:
             self._blend = blendmodes.HardcodedBlendMode(self)
             self.blendClass = blendmodes.HardcodedBlendMode
         self.rerender = True
-        self.hasNewInfo = {}
+        self.metadata_already_pushed_by = {}
 
     def setBlendArg(self, key: str, val: float | bool | str):
         disallow_special(key, "_")
@@ -2831,13 +2837,13 @@ class Scene:
                 val = float(val)
             self.blend_args[key] = val
         self.rerender = True
-        self.hasNewInfo = {}
+        self.metadata_already_pushed_by = {}
 
     def render(self, force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fade_in:
             fadePosition: float = min(
-                (time.time() - self.enteredCue) / (self.cue.fade_in * (60.0 / self.bpm)),
+                (time.time() - self.entered_cue) / (self.cue.fade_in * (60.0 / self.bpm)),
                 1.0,
             )
             fadePosition = ease(fadePosition)
@@ -2874,11 +2880,11 @@ class Scene:
                 self.fade_in_completed = True
                 self.rerender = True
 
-        if self.cuelen and (time.time() - self.enteredCue) > self.cuelen * (60 / self.bpm):
+        if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
             # rel_length cues end after the sound in a totally different part of code
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-            self.next_cue(round(self.enteredCue + self.cuelen * (60 / self.bpm), 3), cause="time")
+            self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
 
     def updateMonitorValues(self):
         if self.blend == "monitor":
@@ -2891,7 +2897,7 @@ class Scene:
                         if u:
                             v = u.values[x[1]]
                             self.cue.values[i][j] = float(v)
-            self.valueschanged = {}
+            self.monitor_values_already_pushed_by = {}
 
     def new_cue_from_sound(self, snd, name=None):
         bn = os.path.basename(snd)

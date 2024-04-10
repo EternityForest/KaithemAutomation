@@ -1,21 +1,16 @@
-import time
-import weakref
 import threading
+import time
 import traceback
+import weakref
+from typing import Dict
+
 import numpy
 
-from .WebChandlerConsole import WebConsole
-from .scenes import Scene, event, shortcutCode
-
 from ..kaithemobj import kaithem
-from . import core
-from . import universes
-from . import blendmodes
-from . import scenes
+from . import blendmodes, core, scenes, universes
+from .scenes import Scene, event, rootContext, shortcutCode
 from .universes import getUniverses
-from .scenes import rootContext
-
-from typing import Dict
+from .WebChandlerConsole import WebConsole
 
 logger = core.logger
 soundLock = threading.Lock()
@@ -40,12 +35,12 @@ def refresh_scenes(t, v):
             # A lot of things are written assuming the list stays constant,
             # this is needed for refreshing.
             x = i.started
-            y = i.enteredCue
+            y = i.entered_cue
             i.stop()
             i.go()
             i.render()
             i.started = x
-            i.enteredCue = y
+            i.entered_cue = y
 
 
 kaithem.message.subscribe("/chandler/command/refreshScenes", refresh_scenes)
@@ -53,7 +48,7 @@ kaithem.message.subscribe("/chandler/command/refreshScenes", refresh_scenes)
 
 def refreshFixtures(topic, val):
     # Deal with fixtures in this universe that aren't actually attached to this object yet.
-    for i in range(0, 5):
+    for i in range(5):
         try:
             with core.lock:
                 for i in universes.fixtures:
@@ -71,26 +66,19 @@ def refreshFixtures(topic, val):
 kaithem.message.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
 
 
-
-
-
-
 def pollsounds():
     for i in scenes.active_scenes:
         # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
         # We keep this in case we get a sound format we can'r read the length of in advance
         if i.cuelen == 0:
             # Forbid any crazy error loopy business with too short sounds
-            if (time.time() - i.enteredCue) > 1 / 5:
+            if (time.time() - i.entered_cue) > 1 / 5:
                 if i.cue.sound and i.cue.rel_length:
                     if not i.media_ended_at:
                         if not kaithem.sound.is_playing(str(i.id)):
                             i.media_ended_at = time.time()
-                    if i.media_ended_at and (
-                        time.time() - i.media_ended_at > (i.cue.length * i.bpm)
-                    ):
+                    if i.media_ended_at and (time.time() - i.media_ended_at > (i.cue.length * i.bpm)):
                         i.next_cue(cause="sound")
-
 
 
 def composite(background, values, alphas, alpha):
@@ -112,8 +100,7 @@ def applyLayer(universe, uvalues, scene, uobj):
     # if it handles fading in a different way.
     # This will look really bad for complex things, to try and reduce them to a series of fades,
     # but we just do the best we can, and assume there's mostly only 1 scene at a time affecting things
-    uobj.fadeEndTime = max(
-        uobj.fadeEndTime, scene.cue.fade_in + scene.enteredCue)
+    uobj.fadeEndTime = max(uobj.fadeEndTime, scene.cue.fade_in + scene.entered_cue)
 
     ualphas = uobj.alphas
 
@@ -138,8 +125,7 @@ def applyLayer(universe, uvalues, scene, uobj):
         if scene.alpha:
             # precompute constants
             c = 255 / scene.alpha
-            uvalues = (uvalues * (1 - alphas * scene.alpha)) + \
-                (uvalues * vals) / c
+            uvalues = (uvalues * (1 - alphas * scene.alpha)) + (uvalues * vals) / c
 
             # COMPLETELY incorrect, but we don't use alpha for that much, and the real math
             # Is compliccated. #TODO
@@ -147,8 +133,7 @@ def applyLayer(universe, uvalues, scene, uobj):
 
     elif scene._blend:
         try:
-            uvalues = scene._blend.frame(
-                universe, uvalues, vals, alphas, scene.alpha)
+            uvalues = scene._blend.frame(universe, uvalues, vals, alphas, scene.alpha)
             # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
             ualphas = (alphas * scene.alpha) > 0
         except Exception:
@@ -158,12 +143,11 @@ def applyLayer(universe, uvalues, scene, uobj):
     return uvalues
 
 
-def pre_render(universes: Dict[str,universes.Universe]):
+def pre_render(universes: Dict[str, universes.Universe]):
     "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
     # Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
     changedUniverses = {}
     to_reset = {}
-
 
     # Important to reverse, that way scenes that need a full reset come after and don't get overwritten
     for i in reversed(scenes.active_scenes):
@@ -211,15 +195,11 @@ def render(t=None, u=None):
 
     t = t or time.time()
 
-
     # Remember that scenes get rendered in ascending priority order here
     for i in scenes.active_scenes:
         # We don't need to call render() if the frame is a static scene and the opacity
         # and all that is the same, we can just re-layer it on top of the values
-        if i.rerender or (
-            i.cue.length and ((time.time() - i.enteredCue)
-                              > i.cuelen * (60 / i.bpm))
-        ):
+        if i.rerender or (i.cue.length and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))):
             i.rerender = False
             i.render()
 
@@ -243,17 +223,11 @@ def render(t=None, u=None):
             if (i.priority, i.started) > universeObject.top_layer:
                 # If this layer we are about to render was found to be the highest layer that likely won't need rerendering,
                 # Save the state just befor we apply that layer.
-                if (
-                    universeObject.save_before_layer == (i.priority, i.started)
-                ) and not ((i.priority, i.started) == (0, 0)):
-                    universeObject.save_prerendered(
-                        universeObject.top_layer[0], universeObject.top_layer[1]
-                    )
+                if (universeObject.save_before_layer == (i.priority, i.started)) and not ((i.priority, i.started) == (0, 0)):
+                    universeObject.save_prerendered(universeObject.top_layer[0], universeObject.top_layer[1])
 
                 changedUniverses[u] = (i.priority, i.started)
-                universeObject.values = applyLayer(
-                    u, universeObject.values, i, universeObject
-                )
+                universeObject.values = applyLayer(u, universeObject.values, i, universeObject)
                 universeObject.top_layer = (i.priority, i.started)
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
@@ -278,8 +252,6 @@ def render(t=None, u=None):
     changedUniverses = {}
 
 
-
-
 def getAllDeviceTagPoints():
     o = {}
     for i in kaithem.devices:
@@ -289,11 +261,6 @@ def getAllDeviceTagPoints():
                 kaithem.devices[i].tagpoints[j].name,
                 kaithem.devices[i].tagpoints[j].subtype,
             ]
-
-
-
-
-
 
 
 lastrendered = 0
@@ -320,6 +287,7 @@ class ObjPlugin:
 k_interface = ObjPlugin()
 kaithem.chandler = k_interface
 
+
 def nbr():
     return (
         50,
@@ -329,12 +297,12 @@ def nbr():
 
 kaithem.web.nav_bar_plugins["chandler"] = nbr
 
+
 def nbr2():
     return (50, '<a href="/chandler/editor"><i class="mdi mdi-pencil"></i>Editor</a>')
 
+
 kaithem.web.nav_bar_plugins["chandler2"] = nbr2
-
-
 
 
 controluniverse = universes.Universe("control")

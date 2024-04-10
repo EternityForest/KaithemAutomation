@@ -350,7 +350,7 @@ if [ `uname -m` == "aarch64" ]; then
 
 # This is the program that lets us get the SanDisk industrial health data.
 
-wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.4.2/sdmon-arm64.tar.gz
+wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.8.1/sdmon-arm64.tar.gz
 tar zxf sdmon-arm64.tar.gz
 mv sdmon /usr/bin
 chmod 755 /usr/bin/sdmon 
@@ -362,79 +362,10 @@ if [ `uname -m` == "armv7l" ]; then
 
 # This is the program that lets us get the SanDisk industrial health data.
 
-wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.4.2/sdmon-armv7.tar.gz
+wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.8.1/sdmon-armv7.tar.gz
 tar zxf sdmon-armv7.tar.gz
 mv sdmon /usr/bin
 chmod 755 /usr/bin/sdmon 
 
-fi
-
-
-
-cat << EOF > /etc/systemd/system/ember-sdmon-cache.timer
-[Unit]
-Description=Check SD wear status on supported industrial cards
-RefuseManualStart=no
-RefuseManualStop=no
-
-[Timer]
-Persistent=no
-OnCalendar=daily
-Unit=ember-sdmon-cache.service
-
-[Install]
-WantedBy=timers.target
-EOF
-
-cat << EOF > /etc/systemd/system/ember-sdmon-cache.service
-[Unit]
-Description=Check SD wear status on supported industrial cards
-
-[Service] 
-Type=simple
-ExecStart=/bin/bash /usr/bin/ember-sdmon-cache.sh
-Type=oneshot
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-cat << EOF > /usr/bin/ember-sdmon-cache.sh
-#!/bin/bash
-mkdir -p /run/sdmon-cache
-sdmon /dev/mmcblk0 > /dev/shm/sdmon_cache_mmcblk0~
-chmod 755 /dev/shm/sdmon_cache_mmcblk0~
-mv /dev/shm/sdmon_cache_mmcblk0~ /run/sdmon-cache/mmcblk0
-EOF
-
-cat << EOF > /usr/bin/get-sdmon-remaining.py
-#!/usr/bin/python3
-import os
-import json
-if os.path.exists("/dev/shm/sdmon_cache_mmcblk0"):
-  with open("/dev/shm/sdmon_cache_mmcblk0") as f:
-    d = json.load(f)
-  if "enduranceRemainLifePercent" in d:
-    print(str(d["enduranceRemainLifePercent"])+'%')
-  elif "healthStatusPercentUsed" in d:
-    print(str(100 - d["healthStatusPercentUsed"])+'%')
-  else:
-    print("unknown %")
-
-EOF
-
-
-chmod 755 /usr/bin/ember-sdmon-cache.sh
-systemctl enable ember-sdmon-cache.timer
-
-
-
-if [ `uname -m` == "aarch64" ]; then
-systemctl enable ember-sdmon-cache.timer
-fi
-
-
-if [ `uname -m` == "armv7l" ]; then
-systemctl enable ember-sdmon-cache.timer
 fi
 
