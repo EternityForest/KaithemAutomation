@@ -5,8 +5,7 @@ Change Log
 
 This is mostly just about the install scripts and a few leftover bugs.  A lot has changed on Pi OS with Wayland!
 
-Now that so much of the custom and unusual code is gone,
-I expect future versions to be much more reliable, compatible,
+There was a huge amount of old stuff to clean up, but now that so much of the custom and unusual code is gone, I expect future versions to be much more reliable, compatible,
 and easier to maintain.
 
 
@@ -21,6 +20,7 @@ and easier to maintain.
 
  - :bug: Fix various helper script compatibility issues.
  - :bug: Restore world maps and web console that the new linter accidentally broke...
+ - :bug: Fix external modules being loaded with wrong name
 
 #### Tested on
 OS: Debian GNU/Linux 12 (bookworm) aarch64
