@@ -37,6 +37,9 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         statemachines,  # noqa: F401
     )
 
+    from . import pathsetup  # noqa
+
+    pathsetup.setupPath()
     # Enable importing stuff directly from ./thirdparty,
     # Since we include lots of dependancies that would normally be provided by the system.
     # This must be done before CherryPy
@@ -57,7 +60,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         modules_interface,  # noqa: F401
         newevt,  # noqa: F401
         notifications,  # noqa: F401
-        pathsetup,  # noqa: F401
         persist,  # noqa: F401
         plugin_system,  # noqa: F401
         pylogginghandler,  # noqa: F401

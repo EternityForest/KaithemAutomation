@@ -10,8 +10,15 @@ import sys
 
 logger = logging.getLogger("system")
 
+setup = False
+
 
 def setupPath(linuxpackage=None, force_local=False):
+    global setup
+    if setup:
+        return
+    setup = True
+
     global startupPluginsPath
     # There are some libraries that are actually different for 3 and 2, so we use the appropriate one
     # By changing the pathe to include the proper ones.
