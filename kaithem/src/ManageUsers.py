@@ -4,7 +4,8 @@
 """Provides a web interface over the authorization system"""
 
 import cherrypy
-from . import auth, pages, messagebus
+
+from . import auth, dialogs, messagebus, pages
 from .util import quote
 
 
@@ -44,7 +45,11 @@ class ManageAuthorization:
     def deleteuser(self, **kwargs):
         pages.require("system_admin")
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        return pages.get_template("auth/deleteuser.html").render()
+        d = dialogs.Dialog("Delete User")
+        d.text_input("user")
+        d.submit_button("Delete")
+
+        return d.render("/auth/deluser")
 
     # Interface to select a group to delete
     @cherrypy.expose
@@ -57,8 +62,15 @@ class ManageAuthorization:
     @cherrypy.expose
     def newuser(self):
         pages.require("system_admin")
+        d = dialogs.Dialog("Add New User")
+        d.text_input("username")
+        d.text_input("password")
+        d.checkbox("useSystemPassword", title="Use Linux User Password")
+
+        d.submit_button("Submit")
+
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        return pages.get_template("auth/adduser.html").render()
+        return d.render("/auth/newusertarget")
 
     # add group interface
     @cherrypy.expose
@@ -83,9 +95,7 @@ class ManageAuthorization:
             useSystem="useSystemPassword" in kwargs,
         )
         # Take the user back to the users page
-        messagebus.post_message(
-            "/system/notifications", 'New user "' + kwargs["username"] + '" added'
-        )
+        messagebus.post_message("/system/notifications", 'New user "' + kwargs["username"] + '" added')
         messagebus.post_message(
             "/system/auth/user/added",
             {"user": kwargs["username"], "addedby": pages.getAcessingUser()},
@@ -130,9 +140,7 @@ class ManageAuthorization:
 
             if auth.Users[user].get("password") == "system":
                 if not kwargs["password"]:
-                    raise ValueError(
-                        "Must specify a password to disable the system password feature"
-                    )
+                    raise ValueError("Must specify a password to disable the system password feature")
 
         # Remove the user from all groups that the checkbox was not checked for
         for i in auth.Users[user]["groups"]:
@@ -148,9 +156,7 @@ class ManageAuthorization:
         if (not kwargs["password"] == "") or useSystem:
             auth.changePassword(user, kwargs["password"], useSystem=useSystem)
 
-        auth.setUserSetting(
-            pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs
-        )
+        auth.setUserSetting(pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs)
         auth.setUserSetting(user, "restrict-lan", "lanonly" in kwargs)
         auth.setUserSetting(user, "telemetry-alerts", "telemetryalerts" in kwargs)
 

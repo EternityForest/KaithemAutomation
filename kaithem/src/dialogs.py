@@ -32,7 +32,7 @@ class Dialog:
         disabled = " disabled" if disabled else ""
         self.items.append((title, f'<input name="{name}" value="{html.escape(default)}" {disabled}>'))
 
-    def checkbox(self, name: str, *, title: str | None = None, default: str = "", disabled=None):
+    def checkbox(self, name: str, *, title: str | None = None, default=False, disabled=None):
         title = title or self.name_to_title(name)
 
         if disabled is None:
