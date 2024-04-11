@@ -1,7 +1,7 @@
 $schema: http://json-schema.org/draft-04/schema#
 type: object
 
-# All of these keys correspond 
+# All of these keys correspond
 properties:
   number:
     type: integer
@@ -24,7 +24,9 @@ properties:
     default: 0
 
   length:
-    type: number
+    anyOf:
+      - { "type": "number" }
+      - { "type": "string" }
     default: 0
 
   track:
@@ -32,7 +34,10 @@ properties:
     default: true
 
   next_cue:
-    type: string
+    anyOf:
+      - { "type": "number" }
+      - { "type": "string" }
+      - { "type": "null" }
     default: ''
 
   sound:
@@ -90,7 +95,7 @@ properties:
   inherit_rules:
     type: string
     default: ''
-      
+
   rules:
     type: array
     default: []
@@ -108,13 +113,13 @@ properties:
       additionalProperties:
         anyOf:
           - { "type": "number" }
-          - { "type": "string" } 
-          - { "type": "null" } 
-      
+          - { "type": "string" }
+          - { "type": "null" }
+
   sound_volume:
     anyOf:
       - { "type": "number" }
-      - { "type": "string" } 
+      - { "type": "string" }
     default: 1
 
   sound_loops:
@@ -124,7 +129,7 @@ properties:
   trigger_shortcut:
     type: string
     default: ''
-      
+
   named_for_sound:
     type: boolean
     default: false
