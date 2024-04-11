@@ -47,43 +47,6 @@
     /* Chrome 26+, Opera 23+, Firefox 39+ */
 }
 
-/* b612-regular - latin */
-@font-face {
-    font-family: 'B612';
-    font-style: normal;
-    font-weight: 400;
-    src: local('B612 Regular'), local('B612Mono-Regular'), url('/static/fonts/b612/b612-v4-latin-regular.woff2') format('woff2');
-    /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
-
-/* b612-italic - latin */
-@font-face {
-    font-family: 'B612';
-    font-style: italic;
-    font-weight: 400;
-    src: local('B612 Italic'), local('B612Mono-Italic'), url('/static/fonts/b612/b612-v4-latin-italic.woff2') format('woff2');
-    /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
-
-/* b612-700 - latin */
-@font-face {
-    font-family: 'B612';
-    font-style: normal;
-    font-weight: 700;
-    src: local('B612 Bold'), local('B612Mono-Bold'), url('/static/fonts/b612/b612-v4-latin-700.woff2') format('woff2');
-    /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
-
-
-
-/* b612-700italic - latin */
-@font-face {
-    font-family: 'B612';
-    font-style: italic;
-    font-weight: 700;
-    src: local('B612 Bold Italic'), local('B612Mono-BoldItalic'), url('/static/fonts/b612/b612-v4-latin-700italic.woff2') format('woff2');
-    /* Chrome 26+, Opera 23+, Firefox 39+ */
-}
 
 @font-face {
     font-family: 'Lato';

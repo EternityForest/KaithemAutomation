@@ -109,7 +109,7 @@ user-kaithem-status: # Get the status of the running kaithem instance
 
 .PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt
-	@sudo apt install scrot mpv python3-opencv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
+	@sudo apt install mpv python3-opencv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
 
 .PHONY: root-use-pipewire-jack
 root-use-pipewire-jack: # Make JACK clients work with pipewire
