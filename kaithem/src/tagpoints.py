@@ -26,10 +26,10 @@ from typing import (
     final,
 )
 
+import beartype
 import dateutil
 import dateutil.parser
 from scullery import scheduling
-from typeguard import typechecked
 
 from . import (
     alerts,
@@ -225,7 +225,7 @@ class GenericTagPointClass(Generic[T]):
         except Exception:
             return f"<Tag Point: {self.name}>"
 
-    @typechecked
+    @beartype.beartype
     def __init__(self: GenericTagPointClass[T], name: str):
         global allTagsAtomic
         _name: str = normalize_tag_name(name)
@@ -454,7 +454,7 @@ class GenericTagPointClass(Generic[T]):
     def isDynamic(self) -> bool:
         return callable(self.vta[0])
 
-    @typechecked
+    @beartype.beartype
     def expose(
         self,
         read_perms: str | list[str] = "",
@@ -773,7 +773,7 @@ class GenericTagPointClass(Generic[T]):
             hasUnsavedData[0] = True
 
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
-    @typechecked
+    @beartype.beartype
     def set_alarm(
         self,
         name: str,
@@ -984,7 +984,7 @@ class GenericTagPointClass(Generic[T]):
 
         return recalc2
 
-    @typechecked
+    @beartype.beartype
     def _alarm_from_data(self, name: str, d: dict):
         if not d.get("condition", ""):
             return
@@ -1499,7 +1499,7 @@ class GenericTagPointClass(Generic[T]):
         else:
             print("Timed out in the push function")
 
-    @typechecked
+    @beartype.beartype
     def subscribe(self, f: Callable[[T, float, Any], Any], immediate: bool = False):
         if isinstance(f, GenericTagPointClass) and (f.unreliable or self.unreliable):
             f = f.fast_push
@@ -1562,7 +1562,7 @@ class GenericTagPointClass(Generic[T]):
             self.testForDeadlock()
             raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
 
-    @typechecked
+    @beartype.beartype
     def unsubscribe(self, f: Callable):
         if self.lock.acquire(timeout=20):
             try:
@@ -1585,7 +1585,7 @@ class GenericTagPointClass(Generic[T]):
             self.testForDeadlock()
             raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
 
-    @typechecked
+    @beartype.beartype
     def setHandler(self, f: Callable[[T, float, Any], Any]):
         self.handler = weakref.ref(f)
 
@@ -1792,7 +1792,7 @@ class GenericTagPointClass(Generic[T]):
         priority: float | None = None,
         timestamp: float | None = None,
         annotation: Any = None,
-        expiration: float = 0,
+        expiration: int | float = 0,
     ) -> Claim[T]:
         """Adds a 'claim', a request to set the tag's value either to a literal
         number or to a getter function.
@@ -1977,7 +1977,7 @@ class GenericTagPointClass(Generic[T]):
         priority: float,
         timestamp: float,
         annotation: Any,
-        expiration: float = 0,
+        expiration: int | float = 0,
     ):
         return Claim[T](self, value, name, priority, timestamp, annotation, expiration)
 
@@ -2036,7 +2036,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     defaultData = 0
     type = "number"
 
-    @typechecked
+    @beartype.beartype
     def __init__(self, name: str, min: float | None = None, max: float | None = None):
         self.vta: tuple[float, float, Any]
 
@@ -2142,7 +2142,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         priority: float,
         timestamp: float,
         annotation: Any,
-        expiration: float = 0,
+        expiration: int | float = 0,
     ):
         return NumericClaim(self, value, name, priority, timestamp, annotation, expiration)
 
@@ -2285,7 +2285,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
     type = "string"
     mqttEncoding = "utf8"
 
-    @typechecked
+    @beartype.beartype
     def __init__(self, name: str):
         self.vta: tuple[str, float, Any]
         self.guiLock = threading.Lock()
@@ -2377,7 +2377,7 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
     defaultData: dict[str, Any] = {}
     type = "object"
 
-    @typechecked
+    @beartype.beartype
     def __init__(self, name: str):
         self.vta: tuple[dict[str, Any], float, Any]
         self.guiLock = threading.Lock()
@@ -2486,7 +2486,7 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
     defaultData: bytes = b""
     type = "binary"
 
-    @typechecked
+    @beartype.beartype
     def __init__(self, name: str):
         self.vta: tuple[bytes, float, Any]
         self.guiLock = threading.Lock()
@@ -2512,7 +2512,7 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
 class Claim(Generic[T]):
     "Represents a claim on a tag point's value"
 
-    @typechecked
+    @beartype.beartype
     def __init__(
         self,
         tag: GenericTagPointClass[T],
@@ -2521,7 +2521,7 @@ class Claim(Generic[T]):
         priority: int | float = 50,
         timestamp: int | float | None = None,
         annotation=None,
-        expiration: float = 0,
+        expiration: int | float = 0,
     ):
         self.name = name
         self.tag = tag
@@ -2646,7 +2646,7 @@ class Claim(Generic[T]):
             else:
                 raise RuntimeError("Cannot get lock to set priority, waited 90s")
 
-    def set_expiration(self, expiration: float, expiredPriority: float = 1):
+    def set_expiration(self, expiration: float, expiredPriority: int | float = 1):
         """Set the time in seconds before this claim is regarded as stale, and what priority to revert to in the stale state.
         Note that that if you use a getter with this, it will constantly poll in the background
         """
@@ -2771,7 +2771,7 @@ class Claim(Generic[T]):
 class NumericClaim(Claim[float]):
     "Represents a claim on a tag point's value"
 
-    @typechecked
+    @beartype.beartype
     def __init__(
         self,
         tag: NumericTagPointClass,
@@ -2780,7 +2780,7 @@ class NumericClaim(Claim[float]):
         priority: int | float = 50,
         timestamp: int | float | None = None,
         annotation=None,
-        expiration: float = 0,
+        expiration: int | float = 0,
     ):
         self.tag: NumericTagPointClass
         Claim.__init__(self, tag, value, name, priority, timestamp, annotation, expiration)

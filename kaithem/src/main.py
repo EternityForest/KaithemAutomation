@@ -2,9 +2,12 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import importlib
 import logging
 import os
 import sys
+import threading
+import time
 from typing import Any, Dict, Optional
 
 from kaithem import __version__
@@ -15,12 +18,43 @@ __version_info__ = __version__.__version_info__
 __version__ = __version__.__version__
 
 
+def import_in_thread(m):
+    def f():
+        importlib.import_module(m)
+
+    threading.Thread(target=f, daemon=True, name=f"nostartstoplog.importer.{m}").start()
+
+
 def initialize(cfg: Optional[Dict[str, Any]] = None):
     "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
+
     from . import (
         logconfig,  # noqa: F401
         tweaks,  # noqa: F401
     )
+
+    # Paralellize slow imports
+    for i in [
+        "tornado",
+        "sqlite3",
+        "pytz",
+        "mako",
+        "mako.lookup",
+        "jinja2",
+        "tornado.websocket",
+        "tornado.routing",
+        "typeguard",
+        "multiprocessing",
+        "glob",
+        "beartype",
+        "pygments",
+        "numpy",
+        "zeroconf",
+        "msgpack",
+        "cherrypy",
+    ]:
+        import_in_thread(i)
+    time.sleep(0.1)
 
     # config needs to be available before init for overrides
     # but it can't be initialized until after pathsetup which may

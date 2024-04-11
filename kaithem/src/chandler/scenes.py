@@ -20,8 +20,8 @@ from typing import Any
 import numpy
 import numpy.typing
 import recur
+from beartype import beartype
 from tinytag import TinyTag
-from typeguard import typechecked
 
 from .. import schemas, tagpoints, widgets
 from ..kaithemobj import kaithem
@@ -2105,7 +2105,7 @@ class Scene:
 
         self.pushMeta(statusOnly=True)
 
-    @typechecked
+    @beartype
     def setMqttServer(self, mqtt_server: str):
         with self.lock:
             x = mqtt_server.strip().split(":")

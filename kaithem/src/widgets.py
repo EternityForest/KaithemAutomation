@@ -23,7 +23,7 @@ from typing import Any
 import tornado.websocket
 from tornado.httputil import HTTPServerRequest
 from tornado.web import Application
-from typeguard import typechecked
+from beartype import beartype
 
 from . import auth, messagebus, pages, unitsofmeasure, util, workers
 from .unitsofmeasure import convert, unit_types
@@ -718,13 +718,13 @@ class Widget:
         return ""
 
     # Set a callback if it ever changes
-    @typechecked
+    @beartype
     def attach(self, f: Callable):
         self._callback = f
 
     # Set a callback if it ever changes.
     # This version also gives you the connection ID
-    @typechecked
+    @beartype
     def attach2(self, f: Callable):
         self._callback2 = f
 

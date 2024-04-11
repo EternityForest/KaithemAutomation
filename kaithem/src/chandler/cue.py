@@ -19,7 +19,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Callable
 
 import numpy
-from typeguard import typechecked
+from beartype import beartype
 
 from .. import schemas
 from . import core
@@ -345,7 +345,7 @@ class Cue:
             if push:
                 self.push()
 
-    @typechecked
+    @beartype
     def set_value(self, universe: str, channel: str | int, value: str | float | None):
         disallow_special(universe, allow="_@.")
 

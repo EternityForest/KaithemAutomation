@@ -1,21 +1,24 @@
 from __future__ import annotations
-import os
-from scullery import persist, statemachines, scheduling
-from . import directories
-from . import (
-    widgets,
-    workers,
-    pages,
-    messagebus,
-    unitsofmeasure,
-)
-from typeguard import typechecked
-from typing import Any
+
 import logging
+import os
+import random
 import threading
 import time
-import random
 import weakref
+from typing import Any
+
+from beartype import beartype
+from scullery import persist, scheduling, statemachines
+
+from . import (
+    directories,
+    messagebus,
+    pages,
+    unitsofmeasure,
+    widgets,
+    workers,
+)
 
 logger = logging.getLogger("system.alerts")
 lock = threading.RLock()
@@ -80,9 +83,7 @@ def getAlertState() -> dict[str, dict[str, Any]]:
                         "state": alert.sm.state,
                         "priority": alert.priority,
                         "description": alert.description,
-                        "barrel-class": priority_to_class.get(
-                            alert.priority, {"warning": 1}
-                        ),
+                        "barrel-class": priority_to_class.get(alert.priority, {"warning": 1}),
                         "message": alert.trip_message,
                     }
             return d
@@ -115,11 +116,7 @@ sfile = "alert.ogg"
 
 
 def formatAlerts():
-    return {
-        i: active[i]().format()
-        for i in active
-        if active[i]() and pages.canUserDoThis(active[i]().permissions)
-    }
+    return {i: active[i]().format() for i in active if active[i]() and pages.canUserDoThis(active[i]().permissions)}
 
 
 class API(widgets.APIWidget):
@@ -228,7 +225,7 @@ def cleanup():
 
 
 class Alert:
-    @typechecked
+    @beartype
     def __init__(
         self,
         name: str,
@@ -401,21 +398,15 @@ class Alert:
 
         if self.priority in ("error", "critical", "important"):
             logger.error(f"Alarm {self.name} ACTIVE")
-            messagebus.post_message(
-                "/system/notifications/errors", f"Alarm {self.name} is active"
-            )
+            messagebus.post_message("/system/notifications/errors", f"Alarm {self.name} is active")
         if self.priority in ("warning"):
-            messagebus.post_message(
-                "/system/notifications/warnings", f"Alarm {self.name} is active"
-            )
+            messagebus.post_message("/system/notifications/warnings", f"Alarm {self.name} is active")
             logger.warning(f"Alarm {self.name} ACTIVE")
         else:
             logger.info(f"Alarm {self.name} active")
 
         if self.priority in ("info"):
-            messagebus.post_message(
-                "/system/notifications", f"Alarm {self.name} is active"
-            )
+            messagebus.post_message("/system/notifications", f"Alarm {self.name} is active")
         sendMessage()
         pushAlertState()
 

@@ -47,7 +47,6 @@ colorzero = "*"
 # Still included in repo because it doesn't install correctly due to 
 # suds-passworddigest
 #onvif
-typeguard = "4.2.0"
 tinytag = "*"
 jsonschema = "*"
 pint = "*"
@@ -93,6 +92,7 @@ scipy = ">=1.11.0"
 # TODO is this line really needed? We don't use it directly,
 # Maybe just removing addr was enough?
 attrs = ">=23.2.0"
+beartype = "^0.18.2"
 
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"

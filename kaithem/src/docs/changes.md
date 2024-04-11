@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.79.0
+
+- :sparkles: Switch from typeguard to Beartype.
+
+
 ### 0.78.2
 
 Development is advanced enough on the new overhaul that it makes sense
