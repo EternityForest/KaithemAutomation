@@ -1398,6 +1398,10 @@ class Scene:
         elif cue_name == "__schedule__":
             # Fast forward through scheduled @time endings.
 
+            # Avoid confusing stuff even though we technically could impleent it.
+            if self.default_next.strip():
+                raise RuntimeError("Scene's default next is not empty, __schedule__ doesn't work here.")
+
             def processlen(raw_length) -> str:
                 # Return length but always a string and empty if it was 0
                 try:
@@ -1415,7 +1419,10 @@ class Scene:
             pointer = self.cue
             for safety_counter in range(1000):
                 # The logical next cue, except that __fast_forward also points to the next in sequence
-                nxt = (pointer.next_cue if not pointer.next_cue == "__schedule__" else self.getDefaultNext()) or self.getDefaultNext()
+                nextname = ""
+                if pointer.next_ll:
+                    nextname = pointer.next_ll.name
+                nxt = (pointer.next_cue if not pointer.next_cue == "__schedule__" else nextname) or nextname
 
                 if pointer is not self.cue:
                     if str(pointer.next_cue).startswith("__"):
@@ -1424,7 +1431,7 @@ class Scene:
                     if str(pointer.length).startswith("="):
                         raise RuntimeError("Found special =expression length cue, fast forward not possible")
 
-                if nxt and (processlen(pointer.length) or pointer is self.cue):
+                if processlen(pointer.length) or pointer is self.cue:
                     consider.append(pointer)
                     found[pointer.name] = True
                 else:
@@ -1455,7 +1462,17 @@ class Scene:
 
                     a2 = dt_to_ts(a)
 
-                    times[cue.name] = a2
+                    # We found the end time of the cue.
+                    # If that turns out to be the most recent,
+                    # We go to the one after that ifit has a next,
+                    # Else just go to
+                    if cue.next_ll:
+                        times[cue.next_ll.name] = a2
+                    elif cue.next_cue in self.cues:
+                        times[cue.next_cue] = a2
+                    else:
+                        times[cue.name] = a2
+
                     last = a2
 
                 else:
@@ -2013,14 +2030,10 @@ class Scene:
             selector = util.get_rrule_selector(cuelen_str[1:], ref)
             nextruntime = selector.after(ref, True)
 
-            # Workaround for "every hour" and the like, which would normally return the start of the current hour,
-            # But in this case we want the next one.
-            # We don't want exclusive matching
-            # because.... lets not change too much at once here!
             if nextruntime <= ref:
                 nextruntime = selector.after(nextruntime, False)
 
-            t2 = dt_to_ts(nextruntime, selector.tz)
+            t2 = dt_to_ts(nextruntime, None)
 
             nextruntime = t2
 
