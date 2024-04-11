@@ -52,6 +52,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         "zeroconf",
         "msgpack",
         "cherrypy",
+        "dateutil.rrule",
     ]:
         import_in_thread(i)
     time.sleep(0.1)

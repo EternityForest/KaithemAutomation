@@ -65,18 +65,6 @@ function f(element)
     %if messagelogging.log:
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
             <div id="f_${i}">
-                %if not set(messagebus.MessageBus.parse_topic(i)).isdisjoint(set(messagelogging.toSave)):
-                    <h3 ${'class="danger"' if 'error' in i else ''}>${i|h}</h3>
-                    (logging)
-                    %if i in messagelogging.toSave:
-                        <form method="post" action="/logs/stoplogging/${url(i)}"><button>Stop</button></form>
-                    %else:
-                        [logged because it is part of a subtree that is being logged]
-                    %endif
-                %else:
-                    <h3 ${'class="danger"' if 'error' in i else ''}>${i|h}</h3>
-                    will not be saved to log file <form method="post" action="/logs/startlogging/${url(i)}"><button>Start logging</button> </form>
-                %endif
 
                 <p>
                     <table border=1>
@@ -98,18 +86,5 @@ function f(element)
     %endif
 </div>
 
-<h2>Topics to log</h2>
-<div class="window paper">
-    <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>All topics listed here(one per line) will be saved to the log dumps if log dumps are enabled.
-    You can use topic names ending in a "/" to match entire trees of topics.</details>
-
-    <form action='/logs/setlogging' method="post">
-    <textarea name = "txt" class="code">\
-%for i in messagelogging.toSave:
-${i+'\n'}\
-%endfor
-</textarea>
-    <input type="submit" value="Update Logging List"></input>
-    </form>
 </div>
 <%include file="/pagefooter.html"/>

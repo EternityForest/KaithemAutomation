@@ -22,7 +22,6 @@ from . import (
     messagebus,
     pages,
     persist,
-    systasks,
     util,
     weblogin,
 )
@@ -561,16 +560,6 @@ class Settings:
 
         messagebus.post_message("/system/notifications/important", "Push notification config was changed")
 
-        raise cherrypy.HTTPRedirect("/settings/system")
-
-    @cherrypy.expose
-    def changeupnptarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-
-        upnpsettings.set("wan_port", int(kwargs["exposeport"]))
-
-        systasks.doUPnP()
         raise cherrypy.HTTPRedirect("/settings/system")
 
     @cherrypy.expose

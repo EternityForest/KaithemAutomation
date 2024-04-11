@@ -1469,6 +1469,17 @@ files = [
 python-pam = "*"
 
 [[package]]
+name = "parsedatetime"
+version = "2.6"
+description = "Parse human-readable date/time text."
+optional = false
+python-versions = "*"
+files = [
+    {file = "parsedatetime-2.6-py3-none-any.whl", hash = "sha256:cb96edd7016872f58479e35879294258c71437195760746faffedb692aef000b"},
+    {file = "parsedatetime-2.6.tar.gz", hash = "sha256:4cb368fbb18a0b7231f4d76119165451c8d2e35951455dfee97c62a87b04d455"},
+]
+
+[[package]]
 name = "passlib"
 version = "1.7.4"
 description = "comprehensive password hashing framework supporting over 30 schemes"
@@ -2091,6 +2102,19 @@ files = [
 ]
 
 [[package]]
+name = "recurrent"
+version = "0.4.1"
+description = "Natural language parsing and formatting of recurring events"
+optional = false
+python-versions = ">3.6.0"
+files = [
+    {file = "recurrent-0.4.1.tar.gz", hash = "sha256:5452089d2cf1294dbaa51463798284bd8abd9a852ff0785dbb317851c5b596a6"},
+]
+
+[package.dependencies]
+parsedatetime = "*"
+
+[[package]]
 name = "referencing"
 version = "0.34.0"
 description = "JSON Referencing + Python"
@@ -2487,20 +2511,6 @@ files = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
-
-[[package]]
-name = "tatsu"
-version = "5.8.3"
-description = "TatSu takes a grammar in a variation of EBNF as input, and outputs a memoizing PEG/Packrat parser in Python."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "TatSu-5.8.3-py2.py3-none-any.whl", hash = "sha256:0a836692e67247cad9f251e083b045b13345cc715e69a7fbc16522beaa0f2163"},
-    {file = "TatSu-5.8.3.zip", hash = "sha256:571ecbcdf33b7828c05e5cd95a8e8ad06af111c2c83a6a245be4d8f7c43de7bb"},
-]
-
-[package.extras]
-future-regex = ["regex"]
 
 [[package]]
 name = "tempora"
@@ -3101,4 +3111,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "220d720b593fbf7da3293f6091cd45c47ce8a7134510001d5d4adcb316f39260"
+content-hash = "90445eccd01cf59b66b2c31f675a1e972401c786c50665030e22addba7253748"

@@ -3,15 +3,6 @@
 from kaithem.src import config,sound,persist,directories,geolocation,alerts,settings
 import yaml,os
 
-jacksettingsfile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
-jacksettings = persist.getStateFile(jacksettingsfile)
-
-
-upnpsettingsfile = os.path.join(
-    directories.vardir, "core.settings", "upnpsettings.yaml")
-
-upnpsettingsfile = persist.getStateFile(upnpsettingsfile)
-
 notificationsfn = os.path.join(
     directories.vardir, "core.settings", "pushnotifications.toml")
 
@@ -29,8 +20,8 @@ location = geolocation.getLocation('default')
     <details>
         <summary>Saving info</summary>
         Most changes are saved temporarily to RAM until either a configured autosave, or a manual save of the server state.
-    
-    </details> 
+
+    </details>
 
 <a href="/settings/save">Save server state to disk(Flushes logs, users, and groups)</a><br>
 <a href="/settings/reloadcfg">Reload the configuration file(Not all options take effect without restart)</a>
@@ -46,32 +37,13 @@ location = geolocation.getLocation('default')
         returns.
     </p>
 
-    <p>The simplest way to get started is to set the target to "ntfy://your_secret_topic_name", and use 
+    <p>The simplest way to get started is to set the target to "ntfy://your_secret_topic_name", and use
         <a href="https://ntfy.sh/">ntfy.sh</a> via the web or the Android app, to subscribe to the topic.  No account setup is needed.  "dbus://"" will give linux desktop notifications.</p>
 
 <table border=1>
 <tr>
 <td>Apprise Target</td>
 <td><input name="apprise_target" value="${pushsettings.get('apprise_target','')}"></td>
-</tr>
-</table>
-<input type="submit" >
-</form>
-</section>
-
-
-<h2>Port Forwarding</h2>
-<section class="window paper">
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-This allows you to use UPnP to allow access to kaithem from the internet. Only HTTPS
-is supported. Use at your own risk. Don't make kaithem publically acessible unless all user
-passwords are very strong. This will open a port on all discovered routers if enabled.</a>
-</details>
-<form method="POST" action="/settings/changeupnptarget">
-<table border=1>
-<tr>
-<td>HTTPS WAN Port(0 to disable forwarding)</td>
-<td><input name="exposeport" value="${upnpsettingsfile.get('wan_port',0)}".></td>
 </tr>
 </table>
 <input type="submit" >

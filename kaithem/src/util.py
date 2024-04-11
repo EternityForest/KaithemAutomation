@@ -1,31 +1,79 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from typing import List
-from urllib.request import urlopen  # noqa
-import reprlib
-from urllib.parse import quote
-from urllib.parse import unquote as unurl  # noqa
-
-import os
-import threading
+import collections
 import copy
-import sys
-import shutil
+import datetime
 import difflib
+import getpass
+import hashlib
+import logging
+import os
+import reprlib
+import shutil
+import stat
+import struct
+import sys
+import threading
 import time
 import traceback
-import stat
-import collections
 import types
 import weakref
-import logging
-import struct
-import hashlib
-import getpass
+from typing import Iterable, List
+from urllib.parse import quote
+from urllib.parse import unquote as unurl  # noqa
+from urllib.request import urlopen  # noqa
+
+import dateutil.rrule
+import recurrent
 import yaml
-from typing import Iterable
 import zeroconf
+
+
+def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
+    """
+    Given a natural expression like every tuesday get a dateutil rrule obj.
+    Has the old recur behavior or something like ir
+    """
+
+    s = s.replace("noon", "12pm")
+    s = s.replace("midnight", "12am")
+
+    ref = ref or datetime.datetime.now()
+
+    r = recurrent.RecurringEvent(now_date=ref)
+    r.parse(s)
+
+    if not r.is_recurring:
+        try:
+            r = recurrent.RecurringEvent(now_date=ref)
+            for i in ("every day at ", "every year on "):
+                r.parse(i + s)
+                rule = r.get_RFC_rrule()
+                if rule:
+                    selector = dateutil.rrule.rrulestr(rule)
+                    selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
+                    selector.tz = None  # type: ignore
+                    return selector
+            raise Exception()
+
+        except Exception:
+            # Couldn't get it to give us a valid rule,
+            # Must be a one time.
+            r = recurrent.RecurringEvent(now_date=ref)
+            dt = r.parse(s)
+            selector = dateutil.rrule.rrule(freq=dateutil.rrule.YEARLY, dtstart=dt, count=1)
+            selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
+            selector.tz = None  # type: ignore
+            return selector
+
+    rule = r.get_RFC_rrule()
+    selector = dateutil.rrule.rrulestr(rule)
+    selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
+    selector.tz = None  # type: ignore
+
+    return selector
+
 
 zeroconf = zeroconf.Zeroconf()
 
@@ -44,9 +92,7 @@ else:
     datadir = os.path.join(dn, "../data")
 
 eff_wordlist = [s.split()[1] for s in open(os.path.join(datadir, "words_eff.txt"))]
-mnemonic_wordlist = [
-    s.strip() for s in open(os.path.join(datadir, "words_mnemonic.txt"))
-]
+mnemonic_wordlist = [s.strip() for s in open(os.path.join(datadir, "words_mnemonic.txt"))]
 
 
 def memorableHash(x, num=3, separator=""):
@@ -101,12 +147,7 @@ def chmod_private_try(p, execute=True):
         if execute:
             os.chmod(
                 p,
-                stat.S_IRUSR
-                | stat.S_IWUSR
-                | stat.S_IXUSR
-                | stat.S_IRGRP
-                | stat.S_IWGRP
-                | stat.S_IXGRP,
+                stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP,
             )
         else:
             os.chmod(p, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
@@ -172,20 +213,14 @@ def readfile(f):
 
 
 def get_immediate_subdirectories(folder):
-    return [
-        name for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name))
-    ]
+    return [name for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name))]
 
 
 # Get a list of all filenames but not the full paths
 
 
 def get_files(folder):
-    return [
-        name
-        for name in os.listdir(folder)
-        if not os.path.isdir(os.path.join(folder, name))
-    ]
+    return [name for name in os.listdir(folder) if not os.path.isdir(os.path.join(folder, name))]
 
 
 def search_paths(fn: str, paths: List[str]) -> str | None:
@@ -362,12 +397,7 @@ def resourcename_escape(s):
 
 
 def module_onelevelup(s):
-    return "/".join(
-        [
-            i.replace("\\", "\\\\").replace("/", "\\/")
-            for i in split_escape(s, "/", "\\")[:-1]
-        ]
-    )
+    return "/".join([i.replace("\\", "\\\\").replace("/", "\\/") for i in split_escape(s, "/", "\\")[:-1]])
 
 
 numberlock = threading.Lock()
