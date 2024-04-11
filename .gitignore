@@ -9,7 +9,7 @@ out/**
 **.snap
 # This is for when building under nix
 result/**
-
+**/.directory
 .venv/**
 
 poetry.toml

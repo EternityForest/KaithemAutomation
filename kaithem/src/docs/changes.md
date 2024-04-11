@@ -3,14 +3,14 @@ Change Log
 
 ### 0.79.0
 
-- :sparkles: Switch from typeguard to Beartype.
-- :coffin: Remove more old files
-
-
-### 0.78.2
-
 Development is advanced enough on the new overhaul that it makes sense
 to start using the [GitFlow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) methodology.
+
+
+- :sparkles: Switch from typeguard to Beartype.
+- :coffin: Remove more old files
+- :coffin: Remove all references to custom `recur` library, use more standard dateutil+recurrent
+- :sparkles: \_\_schedule\_\_ special cue skips ahead through a chain of cues with @time lengths, to the one matching the current time best.
 
 - :bug: fix broken shuffle:* special cue
 
