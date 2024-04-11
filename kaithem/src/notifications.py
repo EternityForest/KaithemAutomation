@@ -1,17 +1,18 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from . import workers
-import time
 import json
 import logging
-import cherrypy
 import os
 import threading
+import time
+
+import cherrypy
 from scullery import scheduling
-from . import messagebus, pages, widgets, persist, directories
-from .unitsofmeasure import strftime
+
+from . import directories, messagebus, pages, persist, widgets, workers
 from .config import config
+from .unitsofmeasure import strftime
 
 mlogger = logging.getLogger("system.msgbuslog")
 
@@ -21,9 +22,7 @@ ilogger = logging.getLogger("system.notifications.important")
 notificationslog = []
 
 
-notificationsfn = os.path.join(
-    directories.vardir, "core.settings", "pushnotifications.toml"
-)
+notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotifications.toml")
 
 pushsettings = persist.getStateFile(notificationsfn)
 
@@ -98,7 +97,9 @@ def apprise():
                 f = pending_notifications.pop(0)
                 try:
                     f()
-                    time.sleep(5)
+                    # Secondary rate limit, don't rapid fire even in the
+                    # short bursts the other limit allows
+                    time.sleep(0.5)
                 except Exception:
                     # There's still room!  We can just keep retrying!
                     if len(pending_notifications) < 35:
@@ -128,9 +129,7 @@ def subscriber(topic, message):
 
     if "error" in topic or "warning" in topic or "important" in topic:
         # Add allowed notifications at a rate of  under 1 per miniute up to 15 "stored credits"
-        epochAndRemaining[1] = max(
-            (time.monotonic() - epochAndRemaining[0]) / 240 + epochAndRemaining[1], 15
-        )
+        epochAndRemaining[1] = max((time.monotonic() - epochAndRemaining[0]) / 240 + epochAndRemaining[1], 15)
         epochAndRemaining[0] = time.monotonic()
 
         if epochAndRemaining[1] > 1:
@@ -155,9 +154,7 @@ def subscriber(topic, message):
                     # notify all of the services loaded into our Apprise object.
                     apobj.notify(
                         body=str(message),
-                        title=("Notification" if "error" not in topic else "Error")
-                        + " "
-                        + ts,
+                        title=("Notification" if "error" not in topic else "Error") + " " + ts,
                     )
 
             pending_notifications.append(f)

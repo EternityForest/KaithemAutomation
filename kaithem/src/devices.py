@@ -1291,6 +1291,7 @@ def makeDevice(name, data, cls=None):
             dt = wrapCrossFramework(dt, "Placeholder device")
             log.exception("Err creating device")
             err = traceback.format_exc()
+            logging.exception("Error making device")
 
     new_data = copy.deepcopy(data)
     new_data.pop("framework_data", None)

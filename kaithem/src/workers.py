@@ -4,16 +4,17 @@
 # This file manages a work queue that feeds a threadpool
 # Tasks will be performed on a best effort basis and errors will be caught and ignored.
 
-from scullery.workers import EXIT
-from scullery.workers import do  # noqa
+import atexit
+import traceback
+
+import cherrypy
+from scullery import workers
+from scullery.workers import (
+    EXIT,
+    do,  # noqa
+)
 
 from . import config as cfg
-from scullery import workers
-
-import traceback
-import cherrypy
-import atexit
-
 
 # I would *really* like to just use this code here. Unfortunately it's too slow.
 # import concurrent.futures
@@ -53,4 +54,5 @@ workers.start(count, qsize, wait)
 # Only now do we do the import, as we will actually have everything loaded
 
 atexit.register(EXIT)
-cherrypy.engine.subscribe("exit", EXIT)
+# Don't do this till after everything else because it blocks
+cherrypy.engine.subscribe("exit", EXIT, priority=1)

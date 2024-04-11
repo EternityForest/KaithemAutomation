@@ -1,5 +1,6 @@
 import os
 import signal
+import threading
 import time
 import traceback
 
@@ -45,7 +46,7 @@ signal.signal(signal.SIGUSR1, dumpThreads)
 def stop(*args):
     import cherrypy
 
-    icemedia.sound_player.stop_all_sounds()
+    threading.Thread(target=icemedia.sound_player.stop_all_sounds, daemon=True).start()
     messagebus.post_message("/system/notifications/shutdown", "Recieved SIGINT or SIGTERM.")
     messagebus.post_message("/system/shutdown", "Recieved SIGINT or SIGTERM.")
 
