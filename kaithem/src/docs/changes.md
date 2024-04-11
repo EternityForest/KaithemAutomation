@@ -4,6 +4,7 @@ Change Log
 ### 0.79.0
 
 - :sparkles: Switch from typeguard to Beartype.
+- :coffin: Remove more old files
 
 
 ### 0.78.2

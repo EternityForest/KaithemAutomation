@@ -1,41 +1,38 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import time
-import threading
 import ctypes  # Calm down, this has become standard library since 2.5
-import cherrypy
-import os
-import subprocess
-import shutil
 import logging
+import os
+import shutil
+import subprocess
+import threading
+import time
 import traceback
 import zipfile
+
+import cherrypy
 from cherrypy.lib.static import serve_file
+
 from . import (
-    pages,
-    util,
-    messagebus,
     auth,
-    kaithemobj,
     config,
-    weblogin,
-    systasks,
     directories,
+    kaithemobj,
+    messagebus,
+    pages,
     persist,
+    systasks,
+    util,
+    weblogin,
 )
 
-
-notificationsfn = os.path.join(
-    directories.vardir, "core.settings", "pushnotifications.toml"
-)
+notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotifications.toml")
 
 pushsettings = persist.getStateFile(notificationsfn)
 
 
-upnpsettingsfile = os.path.join(
-    directories.vardir, "core.settings", "upnpsettings.yaml"
-)
+upnpsettingsfile = os.path.join(directories.vardir, "core.settings", "upnpsettings.yaml")
 
 upnpsettings = persist.getStateFile(upnpsettingsfile)
 
@@ -76,8 +73,7 @@ def setScreenRotate(direction):
     if direction not in ("", "left", "right", "normal", "invert"):
         raise RuntimeError("Security!!!")
     os.system(
-        """DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate """
-        + direction
+        """DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate """ + direction
     )
     display["__first__"]["rotate"] = direction
     persist.save(display, displayfn, private=True)
@@ -111,9 +107,7 @@ def ctype_async_raise(thread_obj, exception):
     if not found:
         raise ValueError("Invalid thread object")
 
-    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(
-        ctypes.c_long(target_tid), ctypes.py_object(exception)
-    )
+    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), ctypes.py_object(exception))
     # ref: http://docs.python.org/c-api/init.html#PyThreadState_SetAsyncExc
     if ret == 0:
         raise ValueError("Invalid thread ID")
@@ -171,11 +165,9 @@ class Settings:
         pages.require(
             "system_admin",
         )
-        from kaithem.src import jackmixer, directories
+        from kaithem.src import directories, jackmixer
 
-        return pages.get_template("settings/mixer.html").render(
-            os=os, jackmixer=jackmixer, directories=directories
-        )
+        return pages.get_template("settings/mixer.html").render(os=os, jackmixer=jackmixer, directories=directories)
 
     @cherrypy.expose
     def fix_alsa_volume(self, *a, **k):
@@ -411,9 +403,7 @@ class Settings:
                 pass
             return pages.get_template("settings/console.html").render(output=x)
         else:
-            return pages.get_template("settings/console.html").render(
-                output="Kaithem System Shell"
-            )
+            return pages.get_template("settings/console.html").render(output="Kaithem System Shell")
 
     @cherrypy.expose
     def account(self):
@@ -454,9 +444,7 @@ class Settings:
                 # Filter too long values
                 auth.setUserSetting(pages.getAcessingUser(), i[5:], kwargs[i][:200])
 
-        auth.setUserSetting(
-            pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs
-        )
+        auth.setUserSetting(pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs)
 
         raise cherrypy.HTTPRedirect("/settings/account")
 
@@ -468,9 +456,7 @@ class Settings:
         if len(kwargs["email"]) > 120:
             raise RuntimeError("Limit 120 chars for email address")
         auth.setUserSetting(pages.getAcessingUser(), "email", kwargs["email"])
-        messagebus.post_message(
-            "/system/auth/user/changedemail", pages.getAcessingUser()
-        )
+        messagebus.post_message("/system/auth/user/changedemail", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect("/settings/account")
 
     @cherrypy.expose
@@ -490,9 +476,7 @@ class Settings:
                 raise cherrypy.HTTPRedirect("/errors/mismatch")
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
-        messagebus.post_message(
-            "/system/auth/user/selfchangedepassword", pages.getAcessingUser()
-        )
+        messagebus.post_message("/system/auth/user/selfchangedepassword", pages.getAcessingUser())
 
         raise cherrypy.HTTPRedirect("/")
 
@@ -502,22 +486,9 @@ class Settings:
         return pages.get_template("settings/global_settings.html").render()
 
     @cherrypy.expose
-    def save(self):
-        pages.require("system_admin")
-        return pages.get_template("settings/save.html").render()
-
-    @cherrypy.expose
     def theming(self):
         pages.require("system_admin")
         return pages.get_template("settings/theming.html").render()
-
-    @cherrypy.expose
-    def savetarget(self):
-        "Used to save the whole state.  Now just saves logs, everything else is instant or auto."
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        util.SaveAllState()
-        raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
     def settime(self):
@@ -576,9 +547,7 @@ class Settings:
             timezone=kwargs["timezone"],
         )
 
-        messagebus.post_message(
-            "/system/settings/changedelocation", pages.getAcessingUser()
-        )
+        messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect("/settings/system")
 
     @cherrypy.expose
@@ -590,9 +559,7 @@ class Settings:
 
         pushsettings.set("apprise_target", t.strip())
 
-        messagebus.post_message(
-            "/system/notifications/important", "Push notification config was changed"
-        )
+        messagebus.post_message("/system/notifications/important", "Push notification config was changed")
 
         raise cherrypy.HTTPRedirect("/settings/system")
 
@@ -646,9 +613,7 @@ class Settings:
             discovered_location["countryCode"],
         )
 
-        messagebus.post_message(
-            "/system/settings/changedelocation", pages.getAcessingUser()
-        )
+        messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect("/settings/system")
 
     @cherrypy.expose
@@ -675,9 +640,7 @@ class Settings:
         @cherrypy.expose
         def bytotal():
             pages.require("system_admin")
-            return pages.get_template("settings/profiler/index.html").render(
-                sort="total"
-            )
+            return pages.get_template("settings/profiler/index.html").render(sort="total")
 
         @cherrypy.expose
         def start():
@@ -693,9 +656,7 @@ class Settings:
                     logging.exception("CPU time profiling not supported")
 
             time.sleep(0.5)
-            messagebus.post_message(
-                "/system/settings/activatedprofiler", pages.getAcessingUser()
-            )
+            messagebus.post_message("/system/settings/activatedprofiler", pages.getAcessingUser())
             raise cherrypy.HTTPRedirect("/settings/profiler")
 
         @cherrypy.expose
