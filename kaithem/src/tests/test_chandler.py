@@ -336,7 +336,7 @@ def test_tag_io():
     s = scenes.Scene(name="TestingScene5", id="TEST")
     board.addScene(s)
 
-    s.setDisplayTags(display_tags)
+    s.set_display_tags(display_tags)
 
     s.go()
 

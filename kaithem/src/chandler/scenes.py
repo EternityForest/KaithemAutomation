@@ -128,7 +128,7 @@ def gotoCommand(scene: str = "=SCENE", cue: str = ""):
             raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
 
     # We don't want to handle other bindings after a goto, leaving a scene stops execution.
-    scenes_by_name[scene].scriptContext.stopAfterThisHandler()
+    scenes_by_name[scene].script_context.stopAfterThisHandler()
     scenes_by_name[scene].goto_cue(cue, cause=newcause)
     return True
 
@@ -430,8 +430,8 @@ class Scene:
         # This is used for the remote media triggers feature.
         # We must explicitly give it an ID so that it stays consistent
         # between runs and we can auto-reconnect
-        self.mediaLink = APIWidget(id=self.id + "_media_link")
-        self.mediaLink.echo = False
+        self.media_link_socket = APIWidget(id=self.id + "_media_link")
+        self.media_link_socket.echo = False
 
         self.slide_overlay_url: str = slide_overlay_url
 
@@ -442,7 +442,7 @@ class Scene:
         self.music_visualizations = music_visualizations
 
         # The active media file being played through the remote playback mechanism.
-        self.allowMediaUrlRemote = None
+        self.allowed_remote_media_url = None
 
         self.hide = hide
 
@@ -499,7 +499,7 @@ class Scene:
                     "Web media playback error in remote browser: " + v[1],
                 )
 
-        self.mediaLink.attach2(handleMediaLink)
+        self.media_link_socket.attach2(handleMediaLink)
         self.lock = threading.RLock()
         self.randomizeModifier = 0
 
@@ -656,7 +656,8 @@ class Scene:
         # Last time the scene was started. Not reset when stopped
         self.started = 0.0
 
-        self.chandlerVars = {}
+        # Script engine variable space
+        self.chandler_vars: dict[str, Any] = {}
 
         if name:
             scenes_by_name[self.name] = self
@@ -666,16 +667,23 @@ class Scene:
 
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
-        self.scriptContext = self.make_script_context()
+        self.script_context = self.make_script_context()
 
-        self.displayTagSubscriptions = []
-        self.display_tags = []
-        self.displayTagValues = {}
-        self.displayTagPointObjects: dict[str, object] = {}
-        self.displayTagMeta: dict[str, dict[str, Any]] = {}
-        self.setDisplayTags(display_tags)
+        # Holds (tagpoint, subscribe function) tuples whenever we subscribe
+        # to a tag to display it
+        self.display_tag_subscription_refs: list[tuple[tagpoints.GenericTagPointClass, Callable]] = []
 
-        self.refreshRules()
+        # Name, TagpointName, properties
+        # This is the actual configured data.
+        self.display_tags: list[tuple[str, str, dict[str, Any]]] = []
+
+        # The most recent values of our display tags
+        self.display_tag_values: dict[str, Any] = {}
+
+        self.display_tag_meta: dict[str, dict[str, Any]] = {}
+        self.set_display_tags(display_tags)
+
+        self.refresh_ules()
 
         self.mqtt_server = mqtt_server
         self.activeMqttServer = None
@@ -696,23 +704,23 @@ class Scene:
         self.subscribe_command_tags()
 
     def send_all_media_link_info(self):
-        self.mediaLink.send(["volume", self.alpha])
+        self.media_link_socket.send(["volume", self.alpha])
 
-        self.mediaLink.send(["text", self.cue.markdown])
+        self.media_link_socket.send(["text", self.cue.markdown])
 
-        self.mediaLink.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
+        self.media_link_socket.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
 
-        self.mediaLink.send(["all_variables", self.web_variables])
+        self.media_link_socket.send(["all_variables", self.web_variables])
 
-        self.mediaLink.send(
+        self.media_link_socket.send(
             [
                 "mediaURL",
-                self.allowMediaUrlRemote,
+                self.allowed_remote_media_url,
                 self.entered_cue,
                 max(0, self.cue.fade_in or self.cue.sound_fade_in or self.crossfade),
             ]
         )
-        self.mediaLink.send(
+        self.media_link_socket.send(
             [
                 "slide",
                 self.cue.slide,
@@ -720,7 +728,7 @@ class Scene:
                 max(0, self.cue.fade_in or self.crossfade),
             ]
         )
-        self.mediaLink.send(["overlay", self.slide_overlay_url])
+        self.media_link_socket.send(["overlay", self.slide_overlay_url])
 
     def toDict(self) -> dict[str, Any]:
         # These are the properties that aren't just straight 1 to 1 copies
@@ -751,7 +759,7 @@ class Scene:
         return x
 
     def set_slideshow_variable(self, k: str, v: Any):
-        self.mediaLink.send(["web_var", k, v])
+        self.media_link_socket.send(["web_var", k, v])
 
         self.web_variables[k] = v
 
@@ -782,7 +790,7 @@ class Scene:
 
         Basically, implements something like the logic from a spreadsheet app.
         """
-        return self.scriptContext.preprocessArgument(s)
+        return self.script_context.preprocessArgument(s)
 
     def insertSorted(self, c):
         "Insert a None to just recalt the whole ordering"
@@ -919,8 +927,8 @@ class Scene:
     def _event(self, s: str, value: Any, info: str = ""):
         "Manually trigger any script bindings on an event"
         try:
-            if self.scriptContext:
-                self.scriptContext.event(s, value)
+            if self.script_context:
+                self.script_context.event(s, value)
         except Exception:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
@@ -1076,7 +1084,7 @@ class Scene:
         kwargs_var: collections.defaultdict[str, str] = collections.defaultdict(lambda: "")
         kwargs_var.update(k2)
 
-        self.scriptContext.setVar("KWARGS", kwargs_var)
+        self.script_context.setVar("KWARGS", kwargs_var)
 
         cue_entered_time = cue_entered_time or time.time()
 
@@ -1139,7 +1147,7 @@ class Scene:
 
                 if not (cue == self.cue.name):
                     if generateEvents:
-                        if self.active and self.scriptContext:
+                        if self.active and self.script_context:
                             self.event("cue.exit", value=[self.cue.name, cause])
 
                 # We return if some the enter transition already
@@ -1155,7 +1163,7 @@ class Scene:
                     # Take rules from new cue, don't actually set this as the cue we are in
                     # Until we succeed in running all the rules that happen as we enter
                     # We do set the local variables for the incoming cue though.
-                    self.refreshRules(cobj)
+                    self.refresh_ules(cobj)
                 except Exception:
                     core.rl_log_exc("Error handling script")
                     print(traceback.format_exc(6))
@@ -1187,7 +1195,7 @@ class Scene:
                         print("Bad cue variable name, it's not a string", var_name)
                         continue
                     try:
-                        self.scriptContext.setVar(var_name, self.evalExpr(cuevars[var_name]))
+                        self.script_context.setVar(var_name, self.evalExpr(cuevars[var_name]))
                     except Exception:
                         print(traceback.format_exc())
                         core.rl_log_exc("Error with cue variable " + str(var_name))
@@ -1195,7 +1203,7 @@ class Scene:
                 if self.cues[cue].track:
                     self.apply_tracked_values(cue)
 
-                self.mediaLink.send(
+                self.media_link_socket.send(
                     [
                         "slide",
                         self.cues[cue].slide,
@@ -1204,7 +1212,7 @@ class Scene:
                     ]
                 )
 
-                self.mediaLink.send(
+                self.media_link_socket.send(
                     [
                         "text",
                         self.cues[cue].markdown,
@@ -1242,7 +1250,7 @@ class Scene:
                         else:
                             stop_sound(str(self.id))
 
-                    self.allowMediaUrlRemote = None
+                    self.allowed_remote_media_url = None
 
                     out: str | None = self.cues[cue].sound_output
 
@@ -1252,8 +1260,8 @@ class Scene:
                         out = None
 
                     if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
-                        self.mediaLink.send(["volume", self.alpha])
-                        self.mediaLink.send(
+                        self.media_link_socket.send(["volume", self.alpha])
+                        self.media_link_socket.send(
                             [
                                 "mediaURL",
                                 None,
@@ -1289,7 +1297,7 @@ class Scene:
                                 # Also fade in for crossfade,
                                 # but in that case we only do it if there is something to fade in from.
 
-                                spd = self.scriptContext.preprocessArgument(self.cues[cue].media_speed)
+                                spd = self.script_context.preprocessArgument(self.cues[cue].media_speed)
                                 spd = spd or 1
                                 spd = float(spd)
 
@@ -1332,9 +1340,9 @@ class Scene:
                                     )
 
                             else:
-                                self.allowMediaUrlRemote = sound
-                                self.mediaLink.send(["volume", self.alpha])
-                                self.mediaLink.send(
+                                self.allowed_remote_media_url = sound
+                                self.media_link_socket.send(["volume", self.alpha])
+                                self.media_link_socket.send(
                                     [
                                         "mediaURL",
                                         sound,
@@ -1407,7 +1415,7 @@ class Scene:
 
                 self.preload_next_cue_sound()
 
-                self.mediaLink.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
+                self.media_link_socket.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
 
     def apply_tracked_values(self, cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -1502,7 +1510,7 @@ class Scene:
         "Calculate the actual cue len, without changing the randomizeModifier"
         if not self.active:
             return
-        cuelen = self.scriptContext.preprocessArgument(self.cue.length)
+        cuelen = self.script_context.preprocessArgument(self.cue.length)
         v = cuelen or 0
         cuelen_str = str(cuelen)
 
@@ -1536,14 +1544,14 @@ class Scene:
                         # TODO this should not stop early if the next cue overrides
                         duration = core.get_audio_duration(path) or 0
                         if duration > 0:
-                            start = self.scriptContext.preprocessArgument(self.cue.sound_start_position) or 0
+                            start = self.script_context.preprocessArgument(self.cue.sound_start_position) or 0
                             start = float(start)
 
                             # Account for media speed
-                            spd = self.scriptContext.preprocessArgument(self.cue.media_speed) or 1
+                            spd = self.script_context.preprocessArgument(self.cue.media_speed) or 1
                             spd = float(spd)
 
-                            windup = self.scriptContext.preprocessArgument(self.cue.media_speed) or 0
+                            windup = self.script_context.preprocessArgument(self.cue.media_speed) or 0
                             windup = float(spd)
 
                             avg_speed_during_windup = (0.1 + spd) / 2
@@ -1651,7 +1659,8 @@ class Scene:
 
             self.rerenderOnVarChange = False
 
-            dest = {}
+            # TODO stronger type
+            dest: dict[str | int, Any] = {}
 
             for j in cuex.values[i]:
                 if isinstance(j, str) and j.startswith("__dest__."):
@@ -1691,7 +1700,7 @@ class Scene:
                         self.rerenderOnVarChange = True
 
     def make_script_context(self):
-        scriptContext = DebugScriptContext(self, rootContext, variables=self.chandlerVars, gil=core.lock)
+        scriptContext = DebugScriptContext(self, rootContext, variables=self.chandler_vars, gil=core.lock)
 
         scriptContext.addNamespace("pagevars")
 
@@ -1703,24 +1712,24 @@ class Scene:
         scriptContext.commands["sendMQTT"] = sendMQTT
         return scriptContext
 
-    def refreshRules(self, rulesFrom: Cue | None = None):
+    def refresh_ules(self, rulesFrom: Cue | None = None):
         with core.lock:
             # We copy over the event recursion depth so that we can detct infinite loops
-            if not self.scriptContext:
-                self.scriptContext = self.make_script_context()
+            if not self.script_context:
+                self.script_context = self.make_script_context()
 
-            self.scriptContext.clearBindings()
+            self.script_context.clearBindings()
 
-            self.scriptContext.setVar("SCENE", self.name)
+            self.script_context.setVar("SCENE", self.name)
             self.runningTimers = {}
 
             if self.active:
-                self.scriptContext.setVar("CUE", (rulesFrom or self.cue).name)
+                self.script_context.setVar("CUE", (rulesFrom or self.cue).name)
 
                 # Actually add the bindings
                 rules = (rulesFrom or self.cue).rules
                 if rules:
-                    self.scriptContext.addBindings(rules)
+                    self.script_context.addBindings(rules)
 
                 loopPrevent = {(rulesFrom or self.cue.name): True}
 
@@ -1735,13 +1744,13 @@ class Scene:
 
                     loopPrevent[x.strip()] = True
 
-                    self.scriptContext.addBindings(self.cues[x].rules)
+                    self.script_context.addBindings(self.cues[x].rules)
                     x = self.cues[x].inherit_rules
 
                 if "__rules__" in self.cues:
-                    self.scriptContext.addBindings(self.cues["__rules__"].rules)
+                    self.script_context.addBindings(self.cues["__rules__"].rules)
 
-                self.scriptContext.startTimers()
+                self.script_context.startTimers()
                 self.doMqttSubscriptions()
 
             try:
@@ -1789,9 +1798,9 @@ class Scene:
                 self.mqttConnection.subscribe(f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}")
                 self.mqttConnection.subscribe(f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}")
 
-        if self.mqttConnection and self.scriptContext:
+        if self.mqttConnection and self.script_context:
             # Subscribe to everything we aren't subscribed to
-            for i in self.scriptContext.eventListeners:
+            for i in self.script_context.eventListeners:
                 if i.startswith("$mqtt:"):
                     x = i.split(":", 1)
                     if x[1] not in self.mqttSubscribed:
@@ -1802,7 +1811,7 @@ class Scene:
             torm = []
 
             for i in self.mqttSubscribed:
-                if "$mqtt:" + i not in self.scriptContext.eventListeners:
+                if "$mqtt:" + i not in self.script_context.eventListeners:
                     if i not in self.unusedMqttTopics:
                         self.unusedMqttTopics[i] = time.monotonic()
                         continue
@@ -1825,51 +1834,43 @@ class Scene:
 
     def clearDisplayTags(self):
         with core.lock:
-            for i in self.displayTagSubscriptions:
+            for i in self.display_tag_subscription_refs:
                 i[0].unsubscribe(i[1])
-            self.displayTagSubscriptions = []
-            self.displayTagValues = {}
-            self.displayTagMeta = {}
-            self.displayTagPointObjects = {}
+            self.display_tag_subscription_refs = []
+            self.display_tag_values = {}
+            self.display_tag_meta = {}
 
-    def displayTagSubscriber(self, n):
-        t = n[1]
-        if not t.startswith("/"):
-            t = "/" + t
+    def make_display_tag_subscriber(self, tag: tagpoints.GenericTagPointClass) -> tuple[tagpoints.GenericTagPointClass, Callable]:
+        "Create and return a subscriber to a display tag"
+        tag_name = tag.name
 
-        if not self.scriptContext.canGetTagpoint(t):
-            raise ValueError("Not allowed tag " + t)
+        # Todo remove this as we now assume full authority
+        if not self.script_context.canGetTagpoint(tag_name):
+            raise ValueError("Not allowed tag " + tag_name)
 
-        try:
-            t = kaithem.tags.all_tags_raw[t]()
-        except Exception:
-            t = kaithem.tags[n[1]]
-        if not t:
-            t = kaithem.tags[n[1]]
-
-        sn = n[1]
-        self.displayTagMeta[sn] = {}
-        if isinstance(t, kaithem.tags.NumericTagPointClass):
-            self.displayTagMeta[sn]["min"] = t.min
-            self.displayTagMeta[sn]["max"] = t.max
-            self.displayTagMeta[sn]["hi"] = t.hi
-            self.displayTagMeta[sn]["lo"] = t.lo
-            self.displayTagMeta[sn]["unit"] = t.unit
-        self.displayTagMeta[sn]["subtype"] = t.subtype
+        sn = tag_name[1]
+        self.display_tag_meta[sn] = {}
+        if isinstance(tag, kaithem.tags.NumericTagPointClass):
+            self.display_tag_meta[sn]["min"] = tag.min
+            self.display_tag_meta[sn]["max"] = tag.max
+            self.display_tag_meta[sn]["hi"] = tag.hi
+            self.display_tag_meta[sn]["lo"] = tag.lo
+            self.display_tag_meta[sn]["unit"] = tag.unit
+        self.display_tag_meta[sn]["subtype"] = tag.subtype
 
         self.pushMeta(keys=["displayTagMeta"])
 
         def f(v, t, a):
-            self.displayTagValues[sn] = v
+            self.display_tag_values[sn] = v
             self.pushMeta(keys=["displayTagValues"])
 
-        t.subscribe(f)
-        self.displayTagValues[sn] = t.value
+        tag.subscribe(f)
+        self.display_tag_values[sn] = tag.value
         self.pushMeta(keys=["displayTagValues"])
 
-        return t, f
+        return tag, f
 
-    def setDisplayTags(self, dt):
+    def set_display_tags(self, dt):
         dt = dt[:]
         with core.lock:
             self.clearDisplayTags()
@@ -1898,10 +1899,7 @@ class Scene:
                         if i[2]["type"] == "string_input":
                             t = kaithem.tags.StringTag(i[1])
 
-                        if t:
-                            self.displayTagPointObjects[i[1]] = t
-
-                    self.displayTagSubscriptions.append(self.displayTagSubscriber(i))
+                    self.display_tag_subscription_refs.append(self.make_display_tag_subscriber(t))
             except Exception:
                 print(traceback.format_exc())
                 self.event("board.error", traceback.format_exc())
@@ -2030,7 +2028,7 @@ class Scene:
 
     def go(self, nohandoff=False):
         global active_scenes, _active_scenes
-        self.setDisplayTags(self.display_tags)
+        self.set_display_tags(self.display_tags)
 
         with core.lock:
             if self in active_scenes:
@@ -2158,7 +2156,7 @@ class Scene:
             self.name = name
             scenes_by_name[name] = self
             self.metadata_already_pushed_by = {}
-            self.scriptContext.setVar("SCENE", self.name)
+            self.script_context.setVar("SCENE", self.name)
 
     def setMQTTFeature(self, feature: str, state):
         if state:
@@ -2243,9 +2241,9 @@ class Scene:
         global active_scenes, _active_scenes
         with core.lock:
             # No need to set rerender
-            if self.scriptContext:
-                self.scriptContext.clearBindings()
-                self.scriptContext.clearState()
+            if self.script_context:
+                self.script_context.clearBindings()
+                self.script_context.clearState()
 
             # Use the cue as the marker of if we actually
             # Completed the stop, not just if we logically should be stopped
@@ -2286,10 +2284,10 @@ class Scene:
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
             self.doMqttSubscriptions(keepUnused=0)
 
-            self.mediaLink.send(["text", ""])
+            self.media_link_socket.send(["text", ""])
 
-            self.mediaLink.send(["mediaURL", "", 0, 0])
-            self.mediaLink.send(["slide", "", 0, 0])
+            self.media_link_socket.send(["mediaURL", "", 0, 0])
+            self.media_link_socket.send(["slide", "", 0, 0])
 
     def noteOn(self, ch: int, note: int, vel: float):
         self.event("midi.note:" + str(ch) + "." + number_to_note(note), vel)
@@ -2349,7 +2347,7 @@ class Scene:
         self.pushMeta(keys={"music_visualizations"})
 
     def sendVisualizations(self):
-        self.mediaLink.send(
+        self.media_link_socket.send(
             [
                 "butterchurnfiles",
                 [i.split("milkdrop:")[-1] for i in self.music_visualizations.split("\n") if i],
@@ -2381,7 +2379,7 @@ class Scene:
             self.pushMeta(keys={"alpha", "default_alpha"})
         self.rerender = True
 
-        self.mediaLink.send(["volume", val])
+        self.media_link_socket.send(["volume", val])
 
     def add_cue(self, name: str, **kw: Any):
         return Cue(self, name, **kw)

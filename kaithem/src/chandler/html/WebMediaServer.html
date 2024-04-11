@@ -19,19 +19,19 @@ __doc__= "#Python Code here runs every page load"
 
 
 if 'albumArt' in kwargs:
-  sound = scenes.cues[kwargs['albumArt']].sound  
-  
+  sound = scenes.cues[kwargs['albumArt']].sound
+
 
   if not sound:
-    return ''  
-    
+    return ''
+
   sound = module.resolve_sound(sound)
 
   if vignette:
     t = vignette.try_get_thumbnail(sound)
     if t:
       kaithem.web.serve_file(t)
-    
+
   soundMeta = TinyTag.get(sound,image=True)
   t = soundMeta.get_image()
   if not t:
@@ -40,18 +40,18 @@ if 'albumArt' in kwargs:
 
 
 if 'slideAlbumArt' in kwargs:
-  sound = scenes.cues[kwargs['albumArt']].slide or scenes.cues[kwargs['albumArt']].sound  
-  
+  sound = scenes.cues[kwargs['albumArt']].slide or scenes.cues[kwargs['albumArt']].sound
+
   if not sound:
-    return ''  
-    
+    return ''
+
   sound = module.resolve_sound(sound)
 
   if vignette:
     t = vignette.try_get_thumbnail(sound)
     if t:
       kaithem.web.serve_file(t)
-    
+
   soundMeta = TinyTag.get(sound,image=True)
   t = soundMeta.get_image()
   if not t:
@@ -61,7 +61,7 @@ if 'slideAlbumArt' in kwargs:
 
 
 else:
-  if 'scene' in kwargs and scenes.scenes[kwargs['scene']].allowMediaUrlRemote == kwargs['file']:
+  if 'scene' in kwargs and scenes.scenes[kwargs['scene']].allowed_remote_media_url == kwargs['file']:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
   elif 'scene' in kwargs and scenes.scenes[kwargs['scene']].cue.slide == kwargs['file']:
     kaithem.web.serve_file(scenes.scenes[kwargs['scene']].resolve_sound(kwargs['file']),name= os.path.basename(kwargs['file']))

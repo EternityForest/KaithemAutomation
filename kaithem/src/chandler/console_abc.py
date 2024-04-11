@@ -1,7 +1,7 @@
-from typing import List, Dict, Any, Callable, Optional, Set, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
 
-class Console_ABC():
+class Console_ABC:
     "Abstract base class for console to make typing easier"
 
     def linkSend(self, data: List[Any]):
@@ -12,12 +12,14 @@ class Console_ABC():
 
     def pushCueMeta(self, cueid: str):
         "Push all metadata about the cue to the clients"
-        pass
 
     def pushCueData(self, cueid: str):
         "Push lighting values for cue to clients"
-        pass
 
-    def pushMeta(self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None):
+    def pushMeta(
+        self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
+    ):
         "Push scene metadata"
-        pass
+
+    def pushEv(self, event: str, target, time_unix=None, value=None, info=""):
+        "Tell frontend about event"

@@ -5,7 +5,7 @@ import time
 import traceback
 import uuid
 import weakref
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 import yaml
 from scullery import scheduling
@@ -458,7 +458,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         except Exception:
             print(traceback.format_exc())
 
-    def pushEv(self, event, target, t=None, value=None, info=""):
+    def pushEv(self, event: str, target, time_unix=None, value=None, info=""):
         # TODO: Do we want a better way of handling this? We don't want to clog up the semi-re
         def f():
             if self.gui_send_lock.acquire(timeout=5):
@@ -469,7 +469,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                             [
                                 event,
                                 target,
-                                kaithem.time.strftime(t or time.time()),
+                                kaithem.time.strftime(time_unix or time.time()),
                                 value,
                                 info,
                             ],
@@ -598,10 +598,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.linkSend(["cnames", u, d])
 
     def pushMeta(
-        self,
-        sceneid: str,
-        statusOnly: bool = False,
-        keys: Optional[List[Any] | Set[Any] | Dict[Any, Any]] = None,
+        self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
     ):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
         scene = scenes.scenes.get(sceneid, None)
@@ -610,12 +607,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             return
 
         v = {}
-        if scene.scriptContext:
+        if scene.script_context:
             try:
-                for j in scene.scriptContext.variables:
+                for j in scene.script_context.variables:
                     if not j == "_":
-                        if isinstance(scene.scriptContext.variables[j], (int, float, str, bool)):
-                            v[j] = scene.scriptContext.variables[j]
+                        if isinstance(scene.script_context.variables[j], (int, float, str, bool)):
+                            v[j] = scene.script_context.variables[j]
 
                         else:
                             v[j] = "__PYTHONDATA__"
@@ -635,8 +632,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "vars": v,
                 "timers": scene.runningTimers,
                 "entered_cue": scene.entered_cue,
-                "displayTagValues": scene.displayTagValues,
-                "displayTagMeta": scene.displayTagMeta,
+                "displayTagValues": scene.display_tag_values,
+                "displayTagMeta": scene.display_tag_meta,
                 "cuelen": scene.cuelen,
                 "name": scene.name,
                 # Placeholder because cues are separate in the web thing.
@@ -662,7 +659,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "id": sceneid,
                 "active": scene.is_active(),
                 "default_active": scene.default_active,
-                "displayTagValues": scene.displayTagValues,
+                "displayTagValues": scene.display_tag_values,
                 "entered_cue": scene.entered_cue,
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
                 "cuelen": scene.cuelen,

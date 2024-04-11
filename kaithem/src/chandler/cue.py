@@ -291,7 +291,7 @@ class Cue:
             self.push()
             scene = self.scene()
             if scene:
-                scene.mediaLink.send(
+                scene.media_link_socket.send(
                     [
                         "text",
                         self._markdown,
@@ -300,11 +300,11 @@ class Cue:
 
     def setRules(self, r: list[list[str | float | bool] | str | float | bool] | None):
         self.rules = r or []
-        self.getScene().refreshRules()
+        self.getScene().refresh_ules()
 
     def setInheritRules(self, r):
         self.inherit_rules = r
-        self.getScene().refreshRules()
+        self.getScene().refresh_ules()
 
     def setShortcut(self, code: str, push: bool = True):
         code = normalize_shortcut(code)
@@ -384,7 +384,7 @@ class Cue:
         with core.lock:
             if universe == "__variables__":
                 assert isinstance(channel, str)
-                scene.scriptContext.setVar(channel, scene.evalExpr(value))
+                scene.script_context.setVar(channel, scene.evalExpr(value))
 
             reset = False
             if value is not None:
