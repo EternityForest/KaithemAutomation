@@ -21,11 +21,10 @@ from typing import Any
 
 import numpy
 import numpy.typing
-import recur
 from tinytag import TinyTag
 from typeguard import typechecked
 
-from .. import schemas, tagpoints, widgets
+from .. import schemas, tagpoints, util, widgets
 from ..kaithemobj import kaithem
 from . import blendmodes, core, mqtt, universes
 from .core import disallow_special
@@ -1408,11 +1407,11 @@ class Scene:
                     else:
                         return ""
                 except Exception:
-                    return raw_length
+                    return str(raw_length)
 
             consider: list[Cue] = []
 
-            found = {}
+            found: dict[str, bool] = {}
             pointer = self.cue
             for safety_counter in range(1000):
                 # The logical next cue, except that __fast_forward also points to the next in sequence
@@ -1425,9 +1424,9 @@ class Scene:
                     if str(pointer.length).startswith("="):
                         raise RuntimeError("Found special =expression length cue, fast forward not possible")
 
-                if nxt and processlen(pointer.length):
+                if nxt and (processlen(pointer.length) or pointer is self.cue):
                     consider.append(pointer)
-                    found[pointer] = True
+                    found[pointer.name] = True
                 else:
                     break
 
@@ -1442,19 +1441,19 @@ class Scene:
 
             scheduled_count = 0
 
+            # Follow chain of next cues to get a set to consider
             for cue in consider:
                 if processlen(cue.length).startswith("@"):
                     scheduled_count += 1
-                    selector = recur.getConstraint(processlen(cue.length)[1:])
                     ref = datetime.datetime.now()
-
-                    a = selector.before(ref, True)
+                    selector = util.get_rrule_selector(processlen(cue.length)[1:], ref)
+                    a = selector.before(ref)
 
                     # Hasn't happened yet, can't fast forward past it
                     if not a:
                         break
 
-                    a2 = dt_to_ts(a[0], selector.tz)
+                    a2 = dt_to_ts(a)
 
                     times[cue.name] = a2
                     last = a2
@@ -1465,7 +1464,9 @@ class Scene:
 
             # Can't fast forward without a scheduled cue
             if scheduled_count:
-                most_recent = (0, None)
+                most_recent: tuple[float, str | None] = (0.0, None)
+
+                # Find the scheduled one that occurred most recently
                 for entry in times:
                     if times[entry] > most_recent[0]:
                         if times[entry] < time.time():
@@ -2008,13 +2009,14 @@ class Scene:
         cuelen_str = str(cuelen)
 
         if cuelen_str.startswith("@"):
-            selector = recur.getConstraint(cuelen_str[1:])
             ref = datetime.datetime.now()
+            selector = util.get_rrule_selector(cuelen_str[1:], ref)
             nextruntime = selector.after(ref, True)
 
             # Workaround for "every hour" and the like, which would normally return the start of the current hour,
             # But in this case we want the next one.
-            # We don't want exclusive matching all the either as that seems a bit buggy.
+            # We don't want exclusive matching
+            # because.... lets not change too much at once here!
             if nextruntime <= ref:
                 nextruntime = selector.after(nextruntime, False)
 

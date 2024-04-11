@@ -54,25 +54,26 @@ If there is an unrecognized type, it is treated as a string.
 
 from __future__ import annotations
 
-from . import geolocation
-from . import astrallibwrapper as sky
-import logging
-import traceback
-import inspect
-import threading
-import random
-import time
-import weakref
-import pytz
-import math
-from typing import Any
-from collections.abc import Callable
-from scullery.scheduling import scheduler
-from scullery import workers
 import datetime
+import inspect
+import logging
+import math
+import random
+import threading
+import time
+import traceback
+import weakref
+from collections.abc import Callable
 from types import MethodType
-from . import tagpoints
+from typing import Any
+
+import pytz
 import simpleeval
+from scullery import workers
+from scullery.scheduling import scheduler
+
+from . import astrallibwrapper as sky
+from . import geolocation, tagpoints, util
 
 simpleeval.MAX_POWER = 1024
 
@@ -292,8 +293,6 @@ lock = threading.RLock()
 
 class ScheduleTimer:
     def __init__(self, selector, context):
-        import recur
-
         self.eventName = selector
         self.context = weakref.ref(context)
 
@@ -303,7 +302,10 @@ class ScheduleTimer:
         if not selector[0] == "@":
             raise ValueError("Invalid")
 
-        self.selector = recur.getConstraint(selector[1:])
+        ref = datetime.datetime.now()
+
+        self.selector = util.get_rrule_selector(selector[1:], ref)
+
         nextruntime = self.selector.after(datetime.datetime.now(), False)
         self.nextruntime = dt_to_ts(nextruntime, self.selector.tz)
         self.next = scheduler.schedule(self.handler, self.nextruntime, False)
@@ -336,24 +338,18 @@ def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
         utc = pytz.timezone("UTC")
-        return (
-            tz.localize(dt.replace(tzinfo=None))
-            - datetime.datetime(1970, 1, 1, tzinfo=utc)
-        ) / datetime.timedelta(seconds=1)
+        return (tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1)
 
     else:
         # Local Time
         ts = time.time()
-        offset = (
-            datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)
-        ).total_seconds()
-        return (
-            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
-        ) - offset
+        offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
 
 
 class ScriptActionKeeper:
-    "This typecheck wrapper is courtesy of two hours spent debugging at 2am, and my desire to avoid repeating that"
+    """This typecheck wrapper is courtesy
+    of two hours spent debugging at 2am, and my desire to avoid repeating that"""
 
     def __init__(self):
         self.scriptcommands = weakref.WeakValueDictionary()
@@ -369,15 +365,8 @@ class ScriptActionKeeper:
 
         p = inspect.signature(value).parameters
         for i in p:
-            if (
-                (not p[i].default == p[i].empty)
-                and p[i].default
-                and not isinstance(p[i].default, (str, int, bool))
-            ):
-                raise ValueError(
-                    "All default values must be int, string, or bool, not "
-                    + str(p[i].default)
-                )
+            if (not p[i].default == p[i].empty) and p[i].default and not isinstance(p[i].default, (str, int, bool)):
+                raise ValueError("All default values must be int, string, or bool, not " + str(p[i].default))
 
         self.scriptcommands[key] = value
 
@@ -430,20 +419,26 @@ class BaseChandlerScriptContext:
         # Performance hit
         self.needRefreshForVariable = {}
 
-        # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY, as in right now, in this thread, executing an event.
-        # Not a pure stack or semaphor, when you queue up an event, that event will run at one higher than the event that created it,
-        # And always return to 0 when it is not actively executing event code, to ensure that things not caused directly by an event
-        # Don't have a nonzero depth.
+        # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY,
+        # as in right now, in this thread, executing an event. Not a pure stack
+        # or semaphor, when you queue up an event, that event will run at one
+        # higher than the event that created it, And always return to 0 when it
+        # is not actively executing event code, to ensure that things not caused
+        # directly by an event Don't have a nonzero depth.
 
-        # It'ts not even tracking recursion really, more like async causation, or parenthood back to an event not caused my another event.
+        # It'ts not even tracking recursion really, more like async causation,
+        # or parenthood back to an event not caused my another event.
 
-        # The whole point is not to let an event create another event, which runs the first event, etc.
+        # The whole point is not to let an event create another event, which
+        # runs the first event, etc.
         self.eventRecursionDepth = threading.local()
 
         # Should we propagate events to children
         self.propagateEvents = False
 
-        # Used to allow objects named foo.bar to be accessed as actual attributes of a foo obj,
+        # Used to allow objects named foo.bar to be accessed as actual
+        # attributes of a foo obj,
+
         # Even though we use a flat list of vars.
         self.namespaces = {}
         self.contextName = "ScriptContext"
@@ -453,8 +448,8 @@ class BaseChandlerScriptContext:
         self.slowpoller = None
         selfid = id(self)
 
-        # Stack to keep track of the $event variable for the current event we are running,
-        # For nested events
+        # Stack to keep track of the $event variable for the current event we
+        # are running, For nested events
         self.eventValueStack = []
 
         # Look for rising edge detects that already fired
@@ -516,9 +511,7 @@ class BaseChandlerScriptContext:
 
         self.functions = functions
 
-        self.evaluator = simpleeval.SimpleEval(
-            functions=functions, names=self._nameLookup
-        )
+        self.evaluator = simpleeval.SimpleEval(functions=functions, names=self._nameLookup)
 
         if not gil:
             self.gil = threading.RLock()
@@ -541,9 +534,7 @@ class BaseChandlerScriptContext:
                         # Change =/ to just =
                         r = self.preprocessArgument(f"={i[2:]}")
                         if r:
-                            if (i not in self.risingEdgeDetects) or (
-                                not self.risingEdgeDetects[i]
-                            ):
+                            if (i not in self.risingEdgeDetects) or (not self.risingEdgeDetects[i]):
                                 self.risingEdgeDetects[i] = True
                                 self.event(i, r)
                         else:
@@ -562,7 +553,8 @@ class BaseChandlerScriptContext:
                     raise
 
     def getCommandDataForEditor(self):
-        "Get the data, as python dict which can be JSONed, which must be bound to the commands prop of the editor, so that the editor can know what commands we have"
+        """Get the data, as python dict which can be JSONed, which must be bound to the
+        commands prop of the editor, so that the editor can know what commands we have"""
         with self.gil:
             c = self.commands.scriptcommands
             info = {}
@@ -587,9 +579,7 @@ class BaseChandlerScriptContext:
                 finally:
                     self.gil.release()
             else:
-                raise RuntimeError(
-                    "Event queue stalled, cannot execute, timed out waiting for the lock. Queued events are still buffered and may run later"
-                )
+                raise RuntimeError("Event queue stalled, cannot execute, timed out waiting for the lock. may run later")
 
     def onTimerChange(self, timer, nextRunTime):
         pass
@@ -646,7 +636,8 @@ class BaseChandlerScriptContext:
     def event(self, evt, val=None):
         "Queue an event to run in the background. Queued events run in FIFO"
 
-        # Capture the depth we are at, so we can make sure that _event knows if it was caused by another event.
+        # Capture the depth we are at, so we can make sure that _event knows if
+        # it was caused by another event.
         #
         try:
             depth = self.eventRecursionDepth.d
@@ -671,9 +662,7 @@ class BaseChandlerScriptContext:
 
         try:
             if self.eventRecursionDepth.d > 8:
-                raise RecursionError(
-                    "Cannot nest more than 8 events directly causing each other"
-                )
+                raise RecursionError("Cannot nest more than 8 events directly causing each other")
 
             if not isinstance(val, Event):
                 self.eventValueStack.append(Event(evt, val))
@@ -706,9 +695,9 @@ class BaseChandlerScriptContext:
             if self.eventValueStack:
                 self.eventValueStack.pop()
 
-            # We are done running the event, now we can set to 0
-            # The depth must be 0, because there is no event currently running till the queued ones happen.
-            # This is not a stack or semaphore!
+            # We are done running the event, now we can set to 0 The depth must
+            # be 0, because there is no event currently running till the queued
+            # ones happen. This is not a stack or semaphore!
             self.eventRecursionDepth.d = 0
             context_info.event = None
 
@@ -835,9 +824,7 @@ class BaseChandlerScriptContext:
                 if i.strip().startswith("="):
                     if not self.slowpoller:
                         needCheck = True
-                        self.slowpoller = scheduler.schedule_repeating(
-                            self.checkPollEvents, 3
-                        )
+                        self.slowpoller = scheduler.schedule_repeating(self.checkPollEvents, 3)
 
             # Run right away for faster response
             if needCheck:
@@ -924,9 +911,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
     def specialVariableHook(self, k, v):
         if k.startswith("$tag:"):
-            raise NameError(
-                "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)"
-            )
+            raise NameError("Tagpoint variables are not writable. Use setTag")
 
     def on_clearBindingsHook(self):
         for i in self.tagHandlers:
@@ -947,10 +932,9 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         BaseChandlerScriptContext.__init__(self, *a, **k)
 
         def setTag(tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority=75):
-            """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
-
-            If the tag does not exist, the type is auto-guessed based on the type of the value.
-
+            """Set a Tagpoint with the given claim priority.
+            Use a value of None to unset existing tags. If the tag does not
+            exist, the type is auto-guessed based on the type of the value.
             None will silently return and do nothing if the tag does not exist.
             """
 
@@ -1048,9 +1032,7 @@ def bat(a):
 
 
 def no(*a, **k):
-    raise RuntimeError(
-        "This shouldn't run, the prev command returning None stops the pipe"
-    )
+    raise RuntimeError("This shouldn't run, the prev command returning None stops the pipe")
 
 
 c.commands["baseball"] = baseball
