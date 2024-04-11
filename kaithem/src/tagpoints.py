@@ -781,7 +781,7 @@ class GenericTagPointClass(Generic[T]):
         priority: str = "info",
         releaseCondition: str | None = "",
         auto_ack: bool | str = "no",
-        trip_delay: float | str = "0",
+        trip_delay: float | int | str = "0",
         isConfigured: bool = False,
         _refresh: bool = True,
     ):
