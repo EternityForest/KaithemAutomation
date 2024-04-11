@@ -40,6 +40,11 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     from . import pathsetup  # noqa
 
     pathsetup.setupPath()
+
+    from . import sound
+
+    sound.init()
+
     # Enable importing stuff directly from ./thirdparty,
     # Since we include lots of dependancies that would normally be provided by the system.
     # This must be done before CherryPy
@@ -67,7 +72,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         selftest,  # noqa: F401
         settings,  # noqa: F401
         signalhandlers,  # noqa: F401
-        sound,  # noqa: F401
         systasks,  # noqa: F401
         tag_errors,  # noqa: F401
         tagpoints,  # noqa: F401
