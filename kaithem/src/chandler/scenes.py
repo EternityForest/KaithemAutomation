@@ -777,12 +777,12 @@ class Scene:
             if scenes.get(self.id, None) is self:
                 del scenes[self.id]
 
-    def evalExprFloat(self, s: str | float) -> float:
+    def evalExprFloat(self, s: str | int | float) -> float:
         f = self.evalExpr(s)
         assert isinstance(f, (int, float))
         return f
 
-    def evalExpr(self, s: str | float | bool | None):
+    def evalExpr(self, s: str | int | float | bool | None):
         """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
         return the input.
 
@@ -1887,23 +1887,33 @@ class Scene:
                     if "type" not in i[2]:
                         i[2]["type"] = "auto"
 
-                    if not i[1].startswith("="):
-                        t = None
+                    if i[2]["type"] == "auto":
+                        logging.error("Auto type tag display no longer supported")
+                        continue
 
-                        if i[2]["type"] == "numeric_input":
-                            t = kaithem.tags[i[1]]
+                    t = None
 
-                        if i[2]["type"] == "switch_input":
-                            t = kaithem.tags[i[1]]
+                    if i[2]["type"] == "numeric_input":
+                        t = kaithem.tags[i[1]]
 
-                        if i[2]["type"] == "string_input":
-                            t = kaithem.tags.StringTag(i[1])
+                    elif i[2]["type"] == "switch_input":
+                        t = kaithem.tags[i[1]]
+
+                    elif i[2]["type"] == "string_input":
+                        t = kaithem.tags.StringTag(i[1])
+
+                    elif i[2]["type"] == "text":
+                        t = kaithem.StringTag[i[1]]
+
+                    elif i[2]["type"] == "meter":
+                        t = kaithem.tags[i[1]]
+
                     if t:
                         self.display_tag_subscription_refs.append(self.make_display_tag_subscriber(t))
                     else:
                         raise ValueError("Bad tag type?")
             except Exception:
-                print(traceback.format_exc())
+                logging.exception("Failed setting up display tags")
                 self.event("board.error", traceback.format_exc())
             self.display_tags = dt
 

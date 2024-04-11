@@ -1561,10 +1561,12 @@ ${lists}
 
                                 <td><select v-model="v[2].type"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
-                                        <option value="auto">Auto Display</option>
+                                        <option value="meter">Meter Display</option>
+                                        <option value="text">Text Display</option>
                                         <option value="string_input">Text Input</option>
                                         <option value="numeric_input">Numeric Input</option>
                                         <option value="switch_input">Switch Input</option>
+                                        <option value="auto">auto(no longer supported)/option>
 
                                     </select>
                                 </td>

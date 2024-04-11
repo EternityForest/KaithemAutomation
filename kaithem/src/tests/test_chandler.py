@@ -327,7 +327,7 @@ def test_tag_io():
     "Tests the tag point UI inputs and meters that you can do in the scenes overview"
     # Not as thorough of a test as it maybe should be...
     display_tags = [
-        ["Label", "=177", {"type": "auto"}],
+        ["Label", "=177", {"type": "meter"}],
         ["Label", "blah", {"type": "string_input"}],
         ["Label", "goo", {"type": "switch_input"}],
         ["Label", "ghjgy", {"type": "numeric_input"}],
@@ -344,7 +344,7 @@ def test_tag_io():
     board._onmsg("__admin__", ["inputtagvalue", s.id, "ghjgy", 97], "nonexistantsession")
 
     # Make sure the input tag thing actually sets the value
-    assert tagpoints.Tag("/ghjgy").value == 97
+    assert tagpoints.Tag("ghjgy").value == 97
 
     # Validate that the output display tag actually exists
     assert "=177" in tagpoints.allTagsAtomic

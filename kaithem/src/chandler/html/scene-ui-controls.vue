@@ -39,12 +39,18 @@ input {
                 <tr v-for="v in sceneData.displayTags">
                     <td>{{ v[0] }}</td>
 
-                    <template v-if="v[2].type == 'auto'">
+                    <template v-if="v[2].type == 'meter'">
                         <td>
                             <meter v-if="sceneData.displayTagMeta[v[1]]" :min="sceneData.displayTagMeta[v[1]].min"
                                 :max="sceneData.displayTagMeta[v[1]].max" :high="sceneData.displayTagMeta[v[1]].hi"
                                 :lo="sceneData.displayTagMeta[v[1]].lo" :value="sceneData.displayTagValues[v[1]]"></meter>
 
+                            {{ sceneData.displayTagValues[v[1]] }}
+                        </td>
+                    </template>
+
+                    <template v-if="v[2].type == 'text'">
+                        <td>
                             {{ sceneData.displayTagValues[v[1]] }}
                         </td>
                     </template>

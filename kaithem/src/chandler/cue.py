@@ -166,7 +166,7 @@ class Cue:
         self.sound: str
         self.slide: str
         self.sound_output: str
-        self.sound_start_position: str | float
+        self.sound_start_position: str | int | float
         self.media_speed: str
         self.media_wind_up: str
         self.media_wind_down: str
@@ -242,7 +242,7 @@ class Cue:
     def pushData(self):
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
-    def pushoneval(self, u: str, ch: str | int, v: str | float | None):
+    def pushoneval(self, u: str, ch: str | int, v: str | float | int | None):
         core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v]))
 
     def clone(self, name: str):
@@ -346,7 +346,7 @@ class Cue:
                 self.push()
 
     @beartype
-    def set_value(self, universe: str, channel: str | int, value: str | float | None):
+    def set_value(self, universe: str, channel: str | int, value: str | int | float | None):
         disallow_special(universe, allow="_@.")
 
         scene = self.getScene()
