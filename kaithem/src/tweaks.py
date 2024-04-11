@@ -110,6 +110,10 @@ def installThreadLogging():
     init_old = threading.Thread.__init__
 
     def init(self, *args, **kwargs):
+        # This does not need to block shutdown.
+        if kwargs.get("name", "").startswith("zeroconf-ServiceBrowser"):
+            kwargs["daemon"] = True
+
         init_old(self, *args, **kwargs)
         run_old = self.run
 

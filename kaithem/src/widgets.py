@@ -1,26 +1,32 @@
 # SPDX-FileCopyrightText: Copyright 2014 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+
+# Long lines, legacy stuff rarely touched...
+# ruff: noqa
+
 from __future__ import annotations
-from typing import Any
+
+import base64
+import collections
+import copy
+import json
+import logging
+import os
+import threading
+import time
+import traceback
+import weakref
 from collections.abc import Callable
+from typing import Any
+
+import tornado.websocket
 from tornado.httputil import HTTPServerRequest
 from tornado.web import Application
-import tornado.websocket
-
 from typeguard import typechecked
+
+from . import auth, messagebus, pages, unitsofmeasure, util, workers
 from .unitsofmeasure import convert, unit_types
-import weakref
-import time
-import json
-import base64
-import os
-import traceback
-import threading
-import logging
-import copy
-import collections
-from . import auth, pages, unitsofmeasure, util, messagebus, workers
 
 logger = logging.getLogger("system.widgets")
 
@@ -138,9 +144,7 @@ def subsc_closure(self, i, widget):
                     "/system/notifications/errors",
                     "Problem in widget " + repr(widget) + ", see logs",
                 )
-                logger.exception(
-                    "Error sending data from widget " + repr(widget) + " via websocket"
-                )
+                logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
             else:
                 logging.exception("Error sending data from websocket")
 
@@ -168,9 +172,7 @@ def raw_subsc_closure(self, i, widget):
                     "/system/notifications/errors",
                     "Problem in widget " + repr(widget) + ", see logs",
                 )
-                logger.exception(
-                    "Error sending data from widget " + repr(widget) + " via websocket"
-                )
+                logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
             else:
                 logging.exception("Error sending data from websocket")
 
@@ -179,9 +181,7 @@ def raw_subsc_closure(self, i, widget):
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections: weakref.WeakValueDictionary[str, websocket_impl] = (
-    weakref.WeakValueDictionary()
-)
+ws_connections: weakref.WeakValueDictionary[str, websocket_impl] = weakref.WeakValueDictionary()
 
 
 def get_connectionRefForID(id, deleteCallback=None):
@@ -246,14 +246,7 @@ class websocket_impl:
     def __init__(self, parent, user, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
-        self.uuid = (
-            "id"
-            + base64.b64encode(os.urandom(16))
-            .decode()
-            .replace("/", "")
-            .replace("-", "")
-            .replace("+", "")[:-2]
-        )
+        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
         self.parent = parent
         self.user = user
         self.widget_wslock = threading.Lock()
@@ -349,17 +342,11 @@ class websocket_impl:
                     # Only log one user error per minute, globally.  It's not meant to catch *everything*,
                     # just to give you a decent change
                     if lastLoggedUserError < time.time() - 10:
-                        logger.error(
-                            "Client side err(These are globally ratelimited):\r\n"
-                            + i[1]
-                        )
+                        logger.error("Client side err(These are globally ratelimited):\r\n" + i[1])
                         lastLoggedUserError = time.time()
 
                     elif lastPrintedUserError < time.time() - 1:
-                        print(
-                            "Client side err(These are globally ratelimited):\r\n"
-                            + i[1]
-                        )
+                        print("Client side err(These are globally ratelimited):\r\n" + i[1])
                         lastPrintedUserError = time.time()
 
             if "subsc" in o:
@@ -371,9 +358,7 @@ class websocket_impl:
                     elif i == "__SHOWMESSAGE__":
                         continue
                     elif i == "__SHOWSNACKBAR__":
-                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1] > (
-                            time.monotonic() - lastGlobalAlertMessage[2]
-                        ):
+                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1] > (time.monotonic() - lastGlobalAlertMessage[2]):
                             self.send(
                                 json.dumps(
                                     [
@@ -381,11 +366,7 @@ class websocket_impl:
                                             "__SHOWSNACKBAR__",
                                             [
                                                 lastGlobalAlertMessage[0],
-                                                lastGlobalAlertMessage[2]
-                                                - (
-                                                    time.monotonic()
-                                                    - lastGlobalAlertMessage[1]
-                                                ),
+                                                lastGlobalAlertMessage[2] - (time.monotonic() - lastGlobalAlertMessage[1]),
                                             ],
                                         ]
                                     ]
@@ -394,9 +375,7 @@ class websocket_impl:
 
                     # TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
                     if self.subCount > 1024:
-                        raise RuntimeError(
-                            "Too many subscriptions for this connnection"
-                        )
+                        raise RuntimeError("Too many subscriptions for this connnection")
 
                     with subscriptionLock:
                         if i in widgets:
@@ -408,24 +387,16 @@ class websocket_impl:
                                             [
                                                 [
                                                     "__SHOWMESSAGE__",
-                                                    "You are missing permission: "
-                                                    + str(p)
-                                                    + ", data may be incorrect",
+                                                    "You are missing permission: " + str(p) + ", data may be incorrect",
                                                 ]
                                             ]
                                         )
                                     )
-                                    raise PermissionError(
-                                        user + " missing permission: " + str(p)
-                                    )
+                                    raise PermissionError(user + " missing permission: " + str(p))
                                 self.usedPermissions[p] += 1
 
-                            widgets[i].subscriptions[self.uuid] = subsc_closure(
-                                self, i, widgets[i]
-                            )
-                            widgets[i].subscriptions_atomic = widgets[
-                                i
-                            ].subscriptions.copy()
+                            widgets[i].subscriptions[self.uuid] = subsc_closure(self, i, widgets[i])
+                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
 
                             widgets[i].lastSubscribedTo = time.monotonic()
 
@@ -453,9 +424,7 @@ class websocket_impl:
                                     self.usedPermissions[p] -= 1
                                     if self.usedPermissions[p] == 0:
                                         del self.usedPermissions[p]
-                            widgets[i].subscriptions_atomic = widgets[
-                                i
-                            ].subscriptions.copy()
+                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
 
         # Permissionerrors are too common to do the full logging thing
         except PermissionError as e:
@@ -463,17 +432,13 @@ class websocket_impl:
 
         except Exception as e:
             logging.exception("Error in widget, responding to " + str(d))
-            messagebus.post_message(
-                "system/errors/widgets/websocket", traceback.format_exc(6)
-            )
+            messagebus.post_message("system/errors/widgets/websocket", traceback.format_exc(6))
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
 def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandler:
     class WS(tornado.websocket.WebSocketHandler):
-        def __init__(
-            self, application: Application, request: HTTPServerRequest, **kwargs: Any
-        ) -> None:
+        def __init__(self, application: Application, request: HTTPServerRequest, **kwargs: Any) -> None:
             self.is_closed = False
             super().__init__(application, request, **kwargs)
 
@@ -504,11 +469,7 @@ def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandl
 
             impl.peer_address = x
 
-            if (
-                user == "__guest__"
-                and (not x.startswith("127."))
-                and (len(wsrunners) > 8)
-            ):
+            if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
                 self.runner = guestWSRunner
             else:
                 self.runner = WSActionRunner()
@@ -537,14 +498,7 @@ class rawwebsocket_impl:
     def __init__(self, parent, user, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
-        self.uuid = (
-            "id"
-            + base64.b64encode(os.urandom(16))
-            .decode()
-            .replace("/", "")
-            .replace("-", "")
-            .replace("+", "")[:-2]
-        )
+        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
         self.widget_wslock = threading.Lock()
         self.subCount = 0
         ws_connections[self.uuid] = self
@@ -563,12 +517,8 @@ class rawwebsocket_impl:
                         raise RuntimeError(self.user + " missing permission: " + str(p))
                     self.usedPermissions[p] += 1
 
-                widgets[widgetName].subscriptions[self.uuid] = raw_subsc_closure(
-                    self, widgetName, widgets[widgetName]
-                )
-                widgets[widgetName].subscriptions_atomic = widgets[
-                    widgetName
-                ].subscriptions.copy()
+                widgets[widgetName].subscriptions[self.uuid] = raw_subsc_closure(self, widgetName, widgets[widgetName])
+                widgets[widgetName].subscriptions_atomic = widgets[widgetName].subscriptions.copy()
 
                 widgets[widgetName].lastSubscribedTo = time.monotonic()
 
@@ -613,13 +563,7 @@ def makeRawTornadoSocket():
 
 def randID():
     "Generate a base64 id"
-    return (
-        base64.b64encode(os.urandom(8))[:-1]
-        .decode()
-        .replace("+", "")
-        .replace("/", "")
-        .replace("-", "")
-    )
+    return base64.b64encode(os.urandom(8))[:-1].decode().replace("+", "").replace("/", "").replace("-", "")
 
 
 idlock = threading.RLock()
@@ -640,7 +584,8 @@ class Widget:
 
         # Used for GC, we have a fake subscriber right away so we can do a grace
         # Period before trashing it.
-        # Also tracks unsubscribe, you need to combine this with if there are any subscribers
+        # Also tracks unsubscribe, you need to combine this with
+        # if there are any subscribers
         self.lastSubscribedTo = time.monotonic()
 
         def f(u, v):
@@ -682,10 +627,13 @@ class Widget:
 
     # This function is called by the web interface code
     def _on_request(self, user, uuid):
-        """Widgets on the client side send AJAX requests for the new value. This function must
-        return the value for the widget. For example a slider might request the newest value.
+        """Widgets on the client side send AJAX requests for the new value.
+          This function must
+        return the value for the widget. For example a slider might request the
+        newest value.
 
-        This function is also responsible for verifying that the user has the right permissions
+        This function is also responsible for verifying that the user has the right
+          permissions
 
         This function is generally only called by the library.
 
@@ -711,7 +659,8 @@ class Widget:
 
     # This function is meant to be overridden or used as is
     def on_request(self, user: str, uuid):
-        """This function is called after permissions have been verified when a client requests the current value. Usually just returns self.value
+        """This function is called after permissions have been verified when a client
+          requests the current value. Usually just returns self.value
 
         Args:
             user(string):
@@ -721,7 +670,8 @@ class Widget:
 
     # This function is called by the web interface whenever this widget is written to
     def _on_update(self, user, value, uuid):
-        """Called internally to write a value to the widget. Responisble for verifying permissions. Returns if user does not have permission"""
+        """Called internally to write a value to the widget. Responisble for
+        verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
             if not pages.canUserDoThis(i, user):
                 return
@@ -806,7 +756,8 @@ class Widget:
         if len(d) > 32 * 1024 * 1024:
             raise ValueError("Data is too large, refusing to send")
 
-        # Yes, I really had a KeyError here. Somehow the dict was replaced with the new version in the middle of iteration
+        # Yes, I really had a KeyError here.
+        # Somehow the dict was replaced with the new version in the middle of iteration
         # So we use an intermediate value so we know it won't change
         x = self.subscriptions_atomic
         for i in x:
@@ -819,7 +770,9 @@ class Widget:
         try:
             d = json.dumps([[self.uuid]])
 
-            # Yes, I really had a KeyError here. Somehow the dict was replaced with the new version in the middle of iteration
+            # Yes, I really had a KeyError here.
+            # Somehow the dict was replaced with the new version in
+            # the middle of iteration
             # So we use an intermediate value so we know it won't change
             x = self.subscriptions_atomic
             for i in x:
@@ -828,7 +781,8 @@ class Widget:
                 except Exception:
                     print("WS Send Error ", traceback.format_exc())
         except Exception:
-            print(traceback.format_exc())
+            if traceback:
+                print(traceback.format_exc())
 
     def sendTo(self, value, target):
         "Send a value to one subscriber by the connection ID"
@@ -853,7 +807,8 @@ class Widget:
         self._write_perms = copy.copy(write)
 
 
-# This widget is just a time display, it doesn't really talk to the server, but it's useful to keep the same interface.
+# This widget is just a time display, it doesn't really talk to the server,
+# but it's useful to keep the same interface.
 
 
 class TimeWidget(Widget):
@@ -883,9 +838,7 @@ class TimeWidget(Widget):
             </div>""".format(
                 self.uuid,
                 self.uuid,
-                auth.getUserSetting(pages.getAcessingUser(), "strftime").replace(
-                    "%l", "%I"
-                ),
+                auth.getUserSetting(pages.getAcessingUser(), "strftime").replace("%l", "%I"),
             )
 
         elif type == "inline":
@@ -904,9 +857,7 @@ class TimeWidget(Widget):
             </span>""".format(
                 self.uuid,
                 self.uuid,
-                auth.getUserSetting(pages.getAcessingUser(), "strftime").replace(
-                    "%l", "%I"
-                ),
+                auth.getUserSetting(pages.getAcessingUser(), "strftime").replace("%l", "%I"),
             )
         else:
             raise ValueError("Invalid type")
@@ -956,9 +907,7 @@ class DataSource(Widget):
     attrs = ""
 
     def render(self):
-        raise RuntimeError(
-            "This is not a real widget, you must manually subscribe to this widget's ID and build your own handling for it."
-        )
+        raise RuntimeError("This is not a real widget, you must manually subscribe to this widget's ID and build your own handling for it.")
 
 
 class TextDisplay(Widget):
@@ -1087,7 +1036,8 @@ class Meter(Widget):
         raise RuntimeError("Only the server can edit this widget")
 
     def formatForUser(self, v, displayUnit=None):
-        """Format the value into something for display, like 27degC, if we have a unit configured.
+        """Format the value into something for display, like 27degC,
+        if we have a unit configured.
         Otherwise just return the value
         """
         try:
@@ -1126,9 +1076,7 @@ class Meter(Widget):
                         # We're just hardcoding this for now
                         s += str(round(convert(v, unit, i), 2)) + i
 
-                return (
-                    s.replace("degC", "C").replace("degF", "F") + self.get_extra_info()
-                )
+                return s.replace("degC", "C").replace("degF", "F") + self.get_extra_info()
             else:
                 return str(round(v, 3)) + self.get_extra_info()
         except Exception as e:
@@ -1138,7 +1086,8 @@ class Meter(Widget):
     def render_as_span(self, label=""):
         """
         Returns:
-            string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
+            string: An HTML and JS string that can be directly added
+              as one would add any HTML inline block tag
         """
         return f"""{label}<span id="{self.uuid}">
         <script type="text/javascript">
@@ -1210,7 +1159,8 @@ class Meter(Widget):
         }}
         kaithemapi.subscribe('{uuid}',upd);
         </script>
-        <meter class="grow" id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
+        <meter class="grow" id="{uuid}_m" value="{value:f}" min="{min:f}"
+          max="{max:f}" high="{high:f}" low="{low:f}"></meter>
         <span class="nogrow" id="{uuid}">{valuestr}</span>
         </div>
 
@@ -1251,7 +1201,8 @@ class Meter(Widget):
         <span class="numericpv" id="{uuid}" style=" margin:0px;">
         {valuestr}
         </span><br>
-        <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}" style="width: 100%"></meter>
+        <meter id="{uuid}_m" value="{value:f}" min="{min:f}"
+          max="{max:f}" high="{high:f}" low="{low:f}" style="width: 100%"></meter>
         </div>
         </div>""".format(
             uuid=self.uuid,
@@ -1269,7 +1220,10 @@ class Button(Widget):
     def render(self, content, type="default"):
         if type == "default":
             return f"""
-            <button {self.isWritable()} type="button" id="{self.uuid}" onmousedown="kaithemapi.sendValue('{self.uuid}','pushed')" onmouseleave="kaithemapi.sendValue('{self.uuid}','released')" onmouseup="kaithemapi.sendValue('{self.uuid}','released')">{content}</button>
+            <button {self.isWritable()} type="button" id="{self.uuid}"
+            onmousedown="kaithemapi.sendValue('{self.uuid}','pushed')"
+            onmouseleave="kaithemapi.sendValue('{self.uuid}','released')"
+              onmouseup="kaithemapi.sendValue('{self.uuid}','released')">{content}</button>
              """
 
         if type == "trigger":
@@ -1510,8 +1464,10 @@ class TextBox(Widget):
 
 class ScrollingWindow(Widget):
     """A widget used for chatroom style scrolling text.
-    Only the new changes are ever pushed over the net. To use, just write the HTML to it, it will
-    go into a nev div in the log, old entries automatically go away, use the length param to decide
+    Only the new changes are ever pushed over the net.
+    To use, just write the HTML to it, it will
+    go into a nev div in the log, old entries automatically go away,
+    use the length param to decide
     how many to keep"""
 
     def __init__(self, length=250, *args, **kwargs):

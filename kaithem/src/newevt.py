@@ -5,40 +5,41 @@
 # ALWAYS GET _event_list_lock LAST
 # IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
+from __future__ import annotations
 
-import traceback
-import threading
-import typing
-from collections.abc import Callable
-import time
-import cherrypy
-import os
 import base64
-import types
-import weakref
-import recur
-import re
-import pytz
-import gc
-import random
-import logging
-import textwrap
 import datetime
-from scullery import scheduling
-from .resource_serialization import toPyFile
+import gc
+import logging
+import os
+import random
+import re
+import textwrap
+import threading
+import time
+import traceback
+import types
+import typing
+import weakref
+from collections.abc import Callable
 
+import cherrypy
+import pytz
+import recur
+from scullery import scheduling
+from scullery.scheduling import scheduler
 
 from . import (
-    workers,
+    devices,
     kaithemobj,
     messagebus,
-    util,
     modules_state,
     unitsofmeasure,
-    devices,
+    util,
+    workers,
 )
 from .config import config
-from scullery.scheduling import scheduler
+from .resource_serialization import toPyFile
 
 ctime = time.time
 do = workers.do
@@ -62,6 +63,9 @@ syslogger = logging.getLogger("system.events")
 
 
 eventsByModuleName = weakref.WeakValueDictionary()
+
+
+load_order: list[weakref.ref[BaseEvent]] = []
 
 
 class EventInterface:
@@ -134,11 +138,7 @@ def getPrintOutput(event):
 def getEventInfo(event):
     """Given a tuple of (module, resource),  return the doc
     string of an event if it exists, else return ''"""
-    return (
-        EventReferences[event].__doc__
-        if event in EventReferences and EventReferences[event].__doc__
-        else ""
-    )
+    return EventReferences[event].__doc__ if event in EventReferences and EventReferences[event].__doc__ else ""
 
 
 def renameEvent(oldModule, oldResource, module, resource):
@@ -156,9 +156,7 @@ def getEventErrors(module, event):
         try:
             return __EventReferences[module, event].errors
         except (KeyError, AttributeError) as e:
-            return [
-                ["0", f"Event does not exist or was not properly initialized:{str(e)}"]
-            ]
+            return [["0", f"Event does not exist or was not properly initialized:{str(e)}"]]
 
 
 def fastGetEventErrors(module, event):
@@ -262,12 +260,23 @@ run = [True]
 
 def STOP():
     global run
+    global load_order
     if run:
         run.pop()
-        print("Threads should be stopping")
+
+    # Shut down in opposite order we started in
+    with _event_list_lock:
+        for i in reversed(load_order):
+            x = i()
+            if x:
+                try:
+                    x.unregister()
+                    x.cleanup()
+                except Exception:
+                    logging.exception("Error in shutdown cleanup")
 
 
-cherrypy.engine.subscribe("stop", STOP)
+cherrypy.engine.subscribe("stop", STOP, priority=30)
 
 
 t = 0
@@ -307,13 +316,7 @@ class EventSchedulerObject(scheduling.RepeatingEvent):
         self.resource = resource
 
     def __repr__(self):
-        return (
-            "<newevt.EventSchedulerObject object for event at "
-            + str((self.module, self.resource))
-            + "with id "
-            + str(id(self))
-            + ">"
-        )
+        return "<newevt.EventSchedulerObject object for event at " + str((self.module, self.resource)) + "with id " + str(id(self)) + ">"
 
     def run(self):
         do(self._run)
@@ -380,29 +383,19 @@ def Event(
         return MessageEvent(when, do, continual, ratelimit, setup, priority, **kwargs)
 
     elif trigger[0] == "!onchange":
-        return ChangedEvalEvent(
-            when, do, continual, ratelimit, setup, priority, **kwargs
-        )
+        return ChangedEvalEvent(when, do, continual, ratelimit, setup, priority, **kwargs)
 
     elif trigger[0] == "!edgetrigger":
         if priority == "realtime":
-            return ThreadPolledEvalEvent(
-                when, do, continual, ratelimit, setup, priority, **kwargs
-            )
+            return ThreadPolledEvalEvent(when, do, continual, ratelimit, setup, priority, **kwargs)
         else:
-            return PolledEvalEvent(
-                when, do, continual, ratelimit, setup, priority, **kwargs
-            )
+            return PolledEvalEvent(when, do, continual, ratelimit, setup, priority, **kwargs)
 
     elif trigger[0] == "!time":
-        return RecurringEvent(
-            " ".join(trigger[1:]), do, continual, ratelimit, setup, priority, **kwargs
-        )
+        return RecurringEvent(" ".join(trigger[1:]), do, continual, ratelimit, setup, priority, **kwargs)
     else:
         # Defensive programming, raise error on nonsense event type
-        raise RuntimeError(
-            f"Invalid trigger expression that begins with {str(trigger[0])}"
-        )
+        raise RuntimeError(f"Invalid trigger expression that begins with {str(trigger[0])}")
 
 
 # A brief rundown on how these classes work. You have the BaseEvent,
@@ -441,9 +434,7 @@ def makeBackgroundPrintFunction(p, t, title, self):
 def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
-        self.logWindow.write(
-            f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>'
-        )
+        self.logWindow.write(f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>')
 
     return f
 
@@ -539,16 +530,15 @@ class BaseEvent:
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
+        with _event_list_lock:
+            global load_order
+            load_order.append(weakref.ref(self))
+            load_order = load_order[-1000:]
+
     def __repr__(self):
         try:
             return (
-                "<"
-                + type(self).__name__
-                + "object at"
-                + hex(id(self))
-                + " for module,resource "
-                + repr((self.module, self.resource))
-                + ">"
+                "<" + type(self).__name__ + "object at" + hex(id(self)) + " for module,resource " + repr((self.module, self.resource)) + ">"
             )
         except Exception:
             return f"<error in repr for event object at {hex(id(self))}>"
@@ -560,9 +550,7 @@ class BaseEvent:
             if not self.lock.acquire(False):
                 time.sleep(0.7)
                 if not self.lock.acquire(False):
-                    raise RuntimeError(
-                        "Could not acquire lock while event already running or polling. Trying again may work."
-                    )
+                    raise RuntimeError("Could not acquire lock while event already running or polling. Trying again may work.")
         try:
             self._on_trigger()
         finally:
@@ -611,9 +599,7 @@ class BaseEvent:
                     # messagebus.post_message('/system/events/ran',[self.module, self.resource])
                 except Exception as e:
                     # This is not a child of system
-                    logger.exception(
-                        f"Error running event {self.resource} of {self.module}"
-                    )
+                    logger.exception(f"Error running event {self.resource} of {self.module}")
                     self._handle_exception(e)
         finally:
             kaithemobj.kaithem.context.event = None
@@ -630,16 +616,10 @@ class BaseEvent:
         # Keep only the most recent errors
         self.errors = self.errors[-(config["errors-to-keep"]) :]
 
-        workers.do(
-            makeBackgroundErrorFunction(
-                textwrap.fill(tb, 120), unitsofmeasure.strftime(time.time()), self
-            )
-        )
+        workers.do(makeBackgroundErrorFunction(textwrap.fill(tb, 120), unitsofmeasure.strftime(time.time()), self))
 
         try:
-            messagebus.post_message(
-                f"/system/errors/events/{self.module}/{self.resource}", str(tb)
-            )
+            messagebus.post_message(f"/system/errors/events/{self.module}/{self.resource}", str(tb))
         except Exception as e:
             print(e)
 
@@ -668,11 +648,7 @@ class BaseEvent:
             syslogger.exception(f"Error running event {self.resource} of {self.module}")
             messagebus.post_message(
                 "/system/notifications/errors",
-                'Event "'
-                + self.resource
-                + '" of module "'
-                + self.module
-                + '" may need attention',
+                'Event "' + self.resource + '" of module "' + self.module + '" may need attention',
             )
 
     def end_polling(self):
@@ -695,9 +671,7 @@ class BaseEvent:
 
         self.schedulerobj = EventSchedulerObject(
             self.check,
-            config["priority-response"].get(self.symbolicpriority, 0.08)
-            + (insert_phase * 0.03)
-            - 0.015,
+            config["priority-response"].get(self.symbolicpriority, 0.08) + (insert_phase * 0.03) - 0.015,
         )
         try:
             self.schedulerobj.module = self.module
@@ -802,9 +776,7 @@ class CompileCodeStringsMixin(BaseEvent):
         try:
             self.pymodule.__dict__["kaithem"] = kaithemobj.kaithem
             self.pymodule.__dict__["module"] = (
-                modules_state.scopes[self.module]
-                if self.module in modules_state.scopes
-                else DummyModuleScope()
+                modules_state.scopes[self.module] if self.module in modules_state.scopes else DummyModuleScope()
             )
             try:
                 # To avoid a garbage cycle, the function is a closure
@@ -827,9 +799,7 @@ class CompileCodeStringsMixin(BaseEvent):
                     kaithemobj.kaithem.context.event = (self.module, self.resource)
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
-                    logging.exception(
-                        f"Error in event code for {self.module}:{self.resource}"
-                    )
+                    logging.exception(f"Error in event code for {self.module}:{self.resource}")
                     err.append(e)
                 finally:
                     kaithemobj.kaithem.context.event = None
@@ -853,9 +823,7 @@ class CompileCodeStringsMixin(BaseEvent):
                 modules_state.pollMlockRequests()
 
                 if time.monotonic() - t > 15:
-                    raise UnrecoverableEventInitError(
-                        "event initializer stuck in loop, and may still be running. Undefined behavior? "
-                    )
+                    raise UnrecoverableEventInitError("event initializer stuck in loop, and may still be running. Undefined behavior? ")
         finally:
             modules_state.stopMlockRequests()
             modules_state.pollMlockRequests()
@@ -1088,13 +1056,9 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
                     except Exception as e:
                         if not (run and self.runthread):
                             return
-                        logger.exception(
-                            f"Error in event {self.resource} of {self.module}"
-                        )
+                        logger.exception(f"Error in event {self.resource} of {self.module}")
                         self._handle_exception(e)
-                        time.sleep(
-                            config["error-backoff"].get(self.symbolicpriority, 5)
-                        )
+                        time.sleep(config["error-backoff"].get(self.symbolicpriority, 5))
 
         self.loop = f
 
@@ -1105,9 +1069,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
         else:
             self.polled = True
         # Compile the trigger
-        x = compile(
-            f"def _event_trigger():\n    return {when}", self.pymoduleName, "exec"
-        )
+        x = compile(f"def _event_trigger():\n    return {when}", self.pymoduleName, "exec")
         exec(x, self.pymodule.__dict__)
 
         self._init_setup_and_action(setup, do)
@@ -1147,9 +1109,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
         self.runthread = True
         if self.lock.acquire(False):
             try:
-                self.thread = threading.Thread(
-                    target=self.loop, name=f"Event_{self.module}_{self.resource}"
-                )
+                self.thread = threading.Thread(target=self.loop, name=f"Event_{self.module}_{self.resource}")
                 self.thread.start()
             finally:
                 self.lock.release()
@@ -1224,20 +1184,13 @@ def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
         utc = pytz.timezone("UTC")
-        return (
-            tz.localize(dt.replace(tzinfo=None))
-            - datetime.datetime(1970, 1, 1, tzinfo=utc)
-        ) / datetime.timedelta(seconds=1)
+        return (tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1)
 
     else:
         # Local Time
         ts = time.time()
-        offset = (
-            datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)
-        ).total_seconds()
-        return (
-            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
-        ) - offset
+        offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
 
 
 class RecurringEvent(CompileCodeStringsMixin):
@@ -1304,9 +1257,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             if not self.lock.acquire(False):
                 self.nextruntime = self.selector.after(self.nextruntime, False)
 
-                self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime, self.tz), False
-                )
+                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
                 return
         try:
             # If the scheduler misses it and we have exact configured, then we just don't do the
@@ -1331,9 +1282,7 @@ class RecurringEvent(CompileCodeStringsMixin):
                 return
 
             if self.nextruntime:
-                self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime, self.tz), False
-                )
+                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
                 return
             print(
                 "Caught event trying to return None for get next run, time is:",
@@ -1365,9 +1314,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             time.sleep(1.353)
 
             if self.nextruntime:
-                self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime, self.tz), False
-                )
+                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
                 return
             print(
                 """Caught event trying to return None for get next run
@@ -1396,9 +1343,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             if self.nextruntime is None:
                 return
 
-            self.next = scheduler.schedule(
-                self.handler, dt_to_ts(self.nextruntime, self.tz), False
-            )
+            self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
 
             self.disable = False
 
@@ -1611,18 +1556,8 @@ def getEventsFromModules(only=None):
                         slt = time.time()
                         i.f()
 
-                        messagebus.post_message(
-                            "/system/events/loaded", [i.module, i.resource]
-                        )
-                        logging.debug(
-                            "Loaded "
-                            + i.module
-                            + ":"
-                            + i.resource
-                            + " in "
-                            + str(round(time.time() - slt, 2))
-                            + "s"
-                        )
+                        messagebus.post_message("/system/events/loaded", [i.module, i.resource])
+                        logging.debug("Loaded " + i.module + ":" + i.resource + " in " + str(round(time.time() - slt, 2)) + "s")
                         time.sleep(0.005)
 
                     except (SyntaxError, UnrecoverableEventInitError):
@@ -1657,9 +1592,7 @@ def getEventsFromModules(only=None):
                 d = makeDummyEvent(i.module, i.resource)
                 d._handle_exception(tb=i.error)
                 # Add the reason for the error to the actual object so it shows up on the page.
-                __EventReferences[i.module, i.resource].errors.append(
-                    [time.strftime(config["time-format"]), str(i.error)]
-                )
+                __EventReferences[i.module, i.resource].errors.append([time.strftime(config["time-format"]), str(i.error)])
                 messagebus.post_message(
                     "/system/notifications/errors",
                     "Failed to load event resource: "

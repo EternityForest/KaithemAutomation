@@ -63,6 +63,9 @@ recent_scanned_tags = {}
 callable = callable
 
 
+load_order: list[weakref.ref[Device]] = []
+
+
 def delete_bookkeep(name, confdir=False):
     with modules_state.modulesLock:
         x = remote_devices[name]
@@ -156,14 +159,15 @@ dbgd = weakref.WeakValueDictionary()
 
 
 def closeAll(*a):
-    for i in list(remote_devices_atomic.keys()):
-        try:
-            c = remote_devices_atomic[i]
-        except KeyError:
-            continue
-        c = c()
-        if c:
-            c.close()
+    global load_order
+    with modules_state.modulesLock:
+        for i in reversed(load_order):
+            x = i()
+            if x:
+                try:
+                    x.close()
+                except Exception:
+                    logging.exception("Error in shutdown cleanup")
 
 
 finished_reading_resources = False
@@ -498,6 +502,10 @@ class Device(iot_devices.device.Device):
         with modules_state.modulesLock:
             remote_devices[name] = self
             remote_devices_atomic = wrcopy(remote_devices)
+
+            global load_order
+            load_order.append(weakref.ref(self))
+            load_order = load_order[-1000:]
 
     def handleException(self):
         try:

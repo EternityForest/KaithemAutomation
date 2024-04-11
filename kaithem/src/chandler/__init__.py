@@ -4,6 +4,7 @@ import traceback
 import weakref
 from typing import Dict
 
+import cherrypy
 import numpy
 
 from ..kaithemobj import kaithem
@@ -308,6 +309,8 @@ kaithem.web.nav_bar_plugins["chandler2"] = nbr2
 controluniverse = universes.Universe("control")
 varsuniverse = universes.Universe("__variables__")
 
+run = [True]
+
 
 def loop():
     # This function is apparently slightly slow?
@@ -315,7 +318,7 @@ def loop():
     u = universes.universes
     u_id = id(u)
 
-    while 1:
+    while run[0]:
         try:
             if not u_id == id(universes.universes):
                 u_cache = universes.getUniverses()
@@ -343,3 +346,10 @@ def loop():
 
 thread = threading.Thread(target=loop, name="ChandlerThread", daemon=True)
 thread.start()
+
+
+def STOP():
+    run[0] = False
+
+
+cherrypy.engine.subscribe("stop", STOP, priority=10)

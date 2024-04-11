@@ -1,3 +1,6 @@
+"""Don't waste too much time cleaning this.
+The way forward is moving individual setters to setCueProperty and setSceneProperty"""
+
 from __future__ import annotations
 
 import os

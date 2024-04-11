@@ -5,11 +5,11 @@
 import logging
 import os
 import sys
+from typing import Any, Dict, Optional
 
 from kaithem import __version__
-from . import config
-from typing import Dict, Any, Optional
 
+from . import config
 
 __version_info__ = __version__.__version_info__
 __version__ = __version__.__version__
@@ -17,8 +17,10 @@ __version__ = __version__.__version__
 
 def initialize(cfg: Optional[Dict[str, Any]] = None):
     "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
-    from . import tweaks  # noqa: F401
-    from . import logconfig  # noqa: F401
+    from . import (
+        logconfig,  # noqa: F401
+        tweaks,  # noqa: F401
+    )
 
     # config needs to be available before init for overrides
     # but it can't be initialized until after pathsetup which may
@@ -29,58 +31,59 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     geolocation.use_api_if_needed()
 
     # must load AFTER config init
-    from . import directories
+    from scullery import (
+        messagebus,
+        scheduling,  # noqa: F401
+        statemachines,  # noqa: F401
+    )
 
     # Enable importing stuff directly from ./thirdparty,
     # Since we include lots of dependancies that would normally be provided by the system.
     # This must be done before CherryPy
-    from . import pathsetup  # noqa: F401
-
     # Thhese happpen early so we cab start logging stuff soon
-    from . import messagelogging  # noqa: F401
-    from . import pylogginghandler  # noqa: F401
-
-    from . import notifications  # noqa: F401
-
-    from . import workers
-    from . import selftest  # noqa: F401
-    from . import devices  # noqa: F401
-    from scullery import messagebus
-    from scullery import statemachines  # noqa: F401
-    from . import auth  # noqa: F401
-
+    from . import (
+        ManageUsers,  # noqa: F401
+        alerts,  # noqa: F401
+        auth,  # noqa: F401
+        builtintags,  # noqa: F401
+        chandler,  # noqa: F401
+        devices,  # noqa: F401
+        directories,
+        gis,  # noqa: F401
+        kaithemobj,  # noqa: F401
+        logviewer,  # noqa: F401
+        messagelogging,  # noqa: F401
+        modules,  # noqa: F401
+        modules_interface,  # noqa: F401
+        newevt,  # noqa: F401
+        notifications,  # noqa: F401
+        pathsetup,  # noqa: F401
+        persist,  # noqa: F401
+        plugin_system,  # noqa: F401
+        pylogginghandler,  # noqa: F401
+        rtmidimanager,  # noqa: F401
+        selftest,  # noqa: F401
+        settings,  # noqa: F401
+        signalhandlers,  # noqa: F401
+        sound,  # noqa: F401
+        systasks,  # noqa: F401
+        tag_errors,  # noqa: F401
+        tagpoints,  # noqa: F401
+        usrpages,  # noqa: F401
+        webapproot,  # noqa: F401
+        weblogin,  # noqa: F401
+        widgets,  # noqa: F401
+        wifimanager,  # noqa: F401
+        workers,
+    )
     from . import config as cfg
-    from . import gis  # noqa: F401
-    from . import sound  # noqa: F401
-    from . import tagpoints  # noqa: F401
-    from . import builtintags  # noqa: F401
-    from . import kaithemobj  # noqa: F401
-    from . import wifimanager  # noqa: F401
-    from . import rtmidimanager  # noqa: F401
-    from . import logviewer  # noqa: F401
-    from . import weblogin  # noqa: F401
-    from . import ManageUsers  # noqa: F401
-    from . import newevt  # noqa: F401
-    from . import persist  # noqa: F401
-    from . import modules  # noqa: F401
-    from . import modules_interface  # noqa: F401
-    from . import settings  # noqa: F401
-    from . import usrpages  # noqa: F401
-    from . import systasks  # noqa: F401
-    from . import widgets  # noqa: F401
-    from . import alerts  # noqa: F401
-    from . import tag_errors  # noqa: F401
-    from scullery import scheduling  # noqa: F401
-    from . import plugin_system  # noqa: F401
-    from . import signalhandlers  # noqa: F401
-    from . import webapproot  # noqa: F401
-    from . import chandler  # noqa: F401
 
     def handle_error(f):
         # If we can, try to send the exception back whence it came
         try:
-            from . import newevt
             import traceback
+
+            from . import newevt
 
             if f.__module__ in newevt.eventsByModuleName:
                 newevt.eventsByModuleName[f.__module__]._handle_exception()
@@ -92,12 +95,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
         try:
             if hasattr(f, "__name__") and hasattr(f, "__module__"):
-                logger.exception(
-                    "Exception in scheduled function "
-                    + f.__name__
-                    + " of module "
-                    + f.__module__
-                )
+                logger.exception("Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
         except Exception:
             logger.exception(f"Exception in scheduled function {repr(f)}")
 
@@ -106,11 +104,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         m = f.__module__
         messagebus.post_message(
             "/system/notifications/errors",
-            "Problem in scheduled event function: "
-            + repr(f)
-            + " in module: "
-            + m
-            + ", check logs for more info.",
+            "Problem in scheduled event function: " + repr(f) + " in module: " + m + ", check logs for more info.",
         )
 
     scheduling.handle_first_error = handle_first_error

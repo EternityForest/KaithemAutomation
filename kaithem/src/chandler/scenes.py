@@ -1428,7 +1428,7 @@ class Scene:
         # this cue, but that is nit supported yet
         cobj = self.cues[cue]
 
-        vars = {}
+        vars: dict[str, Any] = {}
 
         if (
             self.backtrack
@@ -1898,8 +1898,10 @@ class Scene:
 
                         if i[2]["type"] == "string_input":
                             t = kaithem.tags.StringTag(i[1])
-
-                    self.display_tag_subscription_refs.append(self.make_display_tag_subscriber(t))
+                    if t:
+                        self.display_tag_subscription_refs.append(self.make_display_tag_subscriber(t))
+                    else:
+                        raise ValueError("Bad tag type?")
             except Exception:
                 print(traceback.format_exc())
                 self.event("board.error", traceback.format_exc())
@@ -1954,7 +1956,7 @@ class Scene:
             for i in [self.command_tag]:
                 t = kaithem.tags.ObjectTag(i)
                 s = self.command_tag_subscriber()
-                self.command_tagSubscriptions.append([t, s])
+                self.command_tagSubscriptions.append((t, s))
                 t.subscribe(s)
 
     def rename_cue(self, old: str, new: str):

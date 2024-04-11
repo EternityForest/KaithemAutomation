@@ -9,15 +9,16 @@ import logging
 import sys
 import tempfile
 import traceback
+import weakref
 from concurrent import futures
 from io import BytesIO
 
+import cherrypy
 from tornado import escape, gen, web
 from tornado.iostream import StreamClosedError
 from tornado.wsgi import to_wsgi_str
-from . import auth
-from . import pages
-import cherrypy
+
+from . import auth, pages
 
 _logger = logging.getLogger(__name__)
 
@@ -28,6 +29,9 @@ cherrypy._cprequest.Request.throw_errors = True
 # As a terrible hack, i encode it to this then decode.
 slashmarkerb = b"51e0db35-6279-4d10-91ef-eae1938ac9fa"
 slashmarker = "51e0db35-6279-4d10-91ef-eae1938ac9fa"
+
+
+executors: weakref.WeakValueDictionary[int, futures.ThreadPoolExecutor] = weakref.WeakValueDictionary()
 
 
 @web.stream_request_body
@@ -65,9 +69,7 @@ class WSGIHandler(web.RequestHandler):
             "REQUEST_METHOD": request.method,
             "SCRIPT_NAME": "",
             "PATH_INFO": to_wsgi_str(
-                escape.url_unescape(
-                    request.path.replace("%2F", slashmarker), encoding=None, plus=False
-                ).replace(slashmarkerb, b"%2F")
+                escape.url_unescape(request.path.replace("%2F", slashmarker), encoding=None, plus=False).replace(slashmarkerb, b"%2F")
             ),
             "QUERY_STRING": request.query,
             "REMOTE_ADDR": request.remote_ip,
@@ -95,14 +97,8 @@ class WSGIHandler(web.RequestHandler):
             excp = kwargs["exc_info"][1]
             tb = kwargs["exc_info"][2]
             stack = traceback.extract_tb(tb)
-            clean_stack = [
-                i
-                for i in stack
-                if i[0][-6:] != "gen.py" and i[0][-13:] != "concurrent.py"
-            ]
-            error_msg = "{}\n  Exception: {}".format(
-                "".join(traceback.format_list(clean_stack)), excp
-            )
+            clean_stack = [i for i in stack if i[0][-6:] != "gen.py" and i[0][-13:] != "concurrent.py"]
+            error_msg = "{}\n  Exception: {}".format("".join(traceback.format_list(clean_stack)), excp)
 
             self.write(error_msg)
 
@@ -121,9 +117,7 @@ class WSGIHandler(web.RequestHandler):
         else:
             self.body_chunks.append(chunk)
 
-            limit = auth.getUserLimit(
-                pages.getAcessingUser(self.request), "web.maxbytes"
-            )
+            limit = auth.getUserLimit(pages.getAcessingUser(self.request), "web.maxbytes")
 
             # User has not configured limits, use at least 1M
             limit = max(10**6, limit)
@@ -157,9 +151,7 @@ class WSGIHandler(web.RequestHandler):
             return response.append
 
         environ = self.environ(self.request)
-        app_response = yield self.executor.submit(
-            self.wsgi_application, environ, start_response
-        )
+        app_response = yield self.executor.submit(self.wsgi_application, environ, start_response)
         app_response = iter(app_response)
 
         if not data:
@@ -212,7 +204,18 @@ class WSGIHandler(web.RequestHandler):
     def executor(self):
         cls = type(self)
         if not hasattr(cls, "_executor"):
-            cls._executor = futures.ThreadPoolExecutor(
-                cls.thread_pool_size, thread_name_prefix="nostartstoplog.http."
-            )
+            cls._executor = futures.ThreadPoolExecutor(cls.thread_pool_size, thread_name_prefix="nostartstoplog.http.")
+        executors[id(self)] = cls._executor
         return cls._executor
+
+
+# Just to speed up shutdown, doesn't need perfect reliability
+def STOP():
+    try:
+        for i in executors:
+            executors[i].shutdown(False)
+    except Exception:
+        pass
+
+
+cherrypy.engine.subscribe("stop", STOP, priority=30)

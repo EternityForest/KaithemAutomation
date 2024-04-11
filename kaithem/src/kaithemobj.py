@@ -142,7 +142,7 @@ class Kaithem:
     devices = devices.DeviceNamespace()
     context = threading.local()
     tags = TagInterface()
-    chandlerscript = scriptbindings
+
     widget = widgets
 
     assetpacks = assetlib.AssetPacks(os.path.join(directories.vardir, "assets"))
@@ -177,6 +177,11 @@ class Kaithem:
 
     class alerts:
         Alert = alerts.Alert
+
+    class chandlerscript:
+        ChandlerScriptContext = scriptbindings.ChandlerScriptContext
+        context_info = scriptbindings.context_info
+        get_function_info = scriptbindings.get_function_info
 
     class logging:
         @staticmethod

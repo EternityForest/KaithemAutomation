@@ -1,7 +1,11 @@
-import signal
-import traceback
 import os
+import signal
 import time
+import traceback
+
+import icemedia.sound_player
+from scullery import messagebus
+
 
 def dumpThreads(*a):
     from . import pages
@@ -28,6 +32,7 @@ def sigquit(*a):
         raise
     import cherrypy
     import tornado
+
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.add_callback(ioloop.stop)
     cherrypy.bus.exit()
@@ -39,13 +44,13 @@ signal.signal(signal.SIGUSR1, dumpThreads)
 
 def stop(*args):
     import cherrypy
-    from . import messagebus
-    messagebus.post_message(
-        '/system/notifications/shutdown', "Recieved SIGINT or SIGTERM.")
-    messagebus.post_message(
-        '/system/shutdown', "Recieved SIGINT or SIGTERM.")
-    
+
+    icemedia.sound_player.stop_all_sounds()
+    messagebus.post_message("/system/notifications/shutdown", "Recieved SIGINT or SIGTERM.")
+    messagebus.post_message("/system/shutdown", "Recieved SIGINT or SIGTERM.")
+
     import tornado
+
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.add_callback(ioloop.stop)
     cherrypy.engine.exit()

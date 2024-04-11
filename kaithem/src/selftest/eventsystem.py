@@ -3,8 +3,8 @@
 
 # This file runs a self test when python starts
 
-import time
 import logging
+import time
 import weakref
 
 running_tests = []
@@ -22,7 +22,7 @@ def eventSystemTest():
 
 
 def _eventSystemTest():
-    from .. import newevt, messagebus, modules_state
+    from .. import messagebus, modules_state, newevt
 
     logging.info("Beginning self test of event system")
     running_tests.append(1)
@@ -124,9 +124,7 @@ def _eventSystemTest():
     # It was an old thing to caths a circular reference bug.
     with newevt._event_list_lock:
         # Now we test the message bus event
-        x = newevt.Event(
-            "!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0"
-        )
+        x = newevt.Event("!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0")
         x.module = x.resource = "TEST2"
         # Make sure nobody is iterating the eventlist
         # Add new event
@@ -149,9 +147,7 @@ def _eventSystemTest():
         if not hasattr(x.pymodule, "y"):
             raise RuntimeError("Message Event did nothing or took longer than 5s")
         else:
-            raise RuntimeError(
-                "Message Event had slow performance, delivery took more than 0.25s"
-            )
+            raise RuntimeError("Message Event had slow performance, delivery took more than 0.25s")
 
     try:
         x.pymodule.y = 1
@@ -171,9 +167,7 @@ def _eventSystemTest():
         gc.collect(1)
         gc.collect(2)
         if testObj():
-            raise RuntimeError(
-                "Object in event scope still exists after module deletion and GC"
-            )
+            raise RuntimeError("Object in event scope still exists after module deletion and GC")
 
     messagebus.post_message("foo", "/system/selftest")
     # If there is no y or pymodule, this test won't work but we can probably assume it unregistered correctly.
