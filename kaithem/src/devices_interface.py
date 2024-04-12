@@ -1,30 +1,25 @@
+import copy
+import gc
 import json
 import os
 import time
-import urllib.parse
-import gc
-import copy
 import traceback
+import urllib.parse
 
-import colorzero
 import cherrypy
 import cherrypy.lib.static
+import colorzero
 
-
-from kaithem.src import pages
-from kaithem.src import devices
-from kaithem.src import modules_state
-from kaithem.src import messagebus
-
+from kaithem.src import devices, messagebus, modules_state, pages
 from kaithem.src.devices import (
     Device,
-    specialKeys,
-    getDeviceType,
     delete_bookkeep,
-    storeDeviceInModule,
-    saveDevice,
-    updateDevice,
+    getDeviceType,
     makeDevice,
+    saveDevice,
+    specialKeys,
+    storeDeviceInModule,
+    updateDevice,
     wrcopy,
 )
 
@@ -53,54 +48,28 @@ def devStatString(d):
             for i in d.tagPoints:
                 if hasattr(d.tagPoints[i], "meterWidget"):
                     if d.tagPoints[i].type == "number":
-                        s.append(
-                            d.tagPoints[i].meterWidget.render_oneline(label=i + ": ")
-                        )
+                        s.append(d.tagPoints[i].meterWidget.render_oneline(label=i + ": "))
 
         else:
             if "rssi" in d.tagPoints:
                 s.append(d.tagPoints["rssi"].meterWidget.render_oneline(label="RSSI: "))
             if "battery" in d.tagPoints:
-                s.append(
-                    d.tagPoints["battery"].meterWidget.render_oneline(label="Battery: ")
-                )
+                s.append(d.tagPoints["battery"].meterWidget.render_oneline(label="Battery: "))
             if "powered" in d.tagPoints:
-                s.append(
-                    d.tagPoints["powered"].meterWidget.render_oneline(label="Powered: ")
-                )
+                s.append(d.tagPoints["powered"].meterWidget.render_oneline(label="Powered: "))
 
             if "switch" in d.tagPoints:
-                s.append(
-                    d.tagPoints["switch"].meterWidget.render_oneline(label="Switch: ")
-                )
+                s.append(d.tagPoints["switch"].meterWidget.render_oneline(label="Switch: "))
             if "running" in d.tagPoints:
-                s.append(
-                    d.tagPoints["running"].meterWidget.render_oneline(label="Running: ")
-                )
+                s.append(d.tagPoints["running"].meterWidget.render_oneline(label="Running: "))
             if "record" in d.tagPoints:
-                s.append(
-                    d.tagPoints["record"].meterWidget.render_oneline(
-                        label="Recording: "
-                    )
-                )
+                s.append(d.tagPoints["record"].meterWidget.render_oneline(label="Recording: "))
             if "temperature" in d.tagPoints:
-                s.append(
-                    d.tagPoints["temperature"].meterWidget.render_oneline(
-                        label="Temperature: "
-                    )
-                )
+                s.append(d.tagPoints["temperature"].meterWidget.render_oneline(label="Temperature: "))
             if "humidity" in d.tagPoints:
-                s.append(
-                    d.tagPoints["humidity"].meterWidget.render_oneline(
-                        label="Humidity: "
-                    )
-                )
+                s.append(d.tagPoints["humidity"].meterWidget.render_oneline(label="Humidity: "))
             if "uv_index" in d.tagPoints:
-                s.append(
-                    d.tagPoints["uv_index"].meterWidget.render_oneline(
-                        label="UV Index: "
-                    )
-                )
+                s.append(d.tagPoints["uv_index"].meterWidget.render_oneline(label="UV Index: "))
             if "wind" in d.tagPoints:
                 s.append(d.tagPoints["wind"].meterWidget.render_oneline(label="Wind: "))
 
@@ -121,13 +90,7 @@ def devStatString(d):
 
 def getshownkeys(obj: Device):
     return sorted(
-        [
-            i
-            for i in obj.config.keys()
-            if i not in specialKeys
-            and not i.startswith("kaithem.")
-            and not i.startswith("temp.kaithem")
-        ]
+        [i for i in obj.config.keys() if i not in specialKeys and not i.startswith("kaithem.") and not i.startswith("temp.kaithem")]
     )
 
 
@@ -141,9 +104,7 @@ device_page_env = {
 
 def render_device_tag(obj, tag):
     try:
-        return pages.render_jinja_template(
-            "devices/device_tag_component.j2.html", i=tag, obj=obj
-        )
+        return pages.render_jinja_template("devices/device_tag_component.j2.html", i=tag, obj=obj)
     except Exception:
         return f"<article>{traceback.format_exc()}</article>"
 
@@ -211,11 +172,7 @@ class WebDevices:
                 merged.update(devices.device_data[name])
 
             if obj.parentModule:
-                merged.update(
-                    modules_state.ActiveModules[obj.parentModule][obj.parentResource][
-                        "device"
-                    ]
-                )
+                merged.update(modules_state.ActiveModules[obj.parentModule][obj.parentResource]["device"])
 
             # I think stored data is enough, this is just defensive
             merged.update(devices.remote_devices[name].config)
@@ -282,9 +239,7 @@ class WebDevices:
             intent="step",
         )
 
-        return pages.get_template("devices/discoverstep.html").render(
-            data=d, current=current, name=devname, obj=obj
-        )
+        return pages.get_template("devices/discoverstep.html").render(data=d, current=current, name=devname, obj=obj)
 
     @cherrypy.expose
     def createDevice(self, name=None, **kwargs):
@@ -295,11 +250,12 @@ class WebDevices:
 
         name = name or kwargs.get("name", None)
         m = r = None
+
         with modules_state.modulesLock:
             if "module" in kwargs:
                 m = str(kwargs["module"])
                 r = str(kwargs["resource"])
-                name = r
+                name = name or r
                 del kwargs["module"]
                 del kwargs["resource"]
                 d = {i: kwargs[i] for i in kwargs if not i.startswith("temp.")}
@@ -315,9 +271,7 @@ class WebDevices:
                 }
                 modules_state.modulesHaveChanged()
             else:
-                raise RuntimeError(
-                    "Creating devices outside of modules is no longer supported."
-                )
+                raise RuntimeError("Creating devices outside of modules is no longer supported.")
                 if not name:
                     raise RuntimeError("No name?")
                 d = {i: str(kwargs[i]) for i in kwargs if not i.startswith("temp.")}
@@ -329,9 +283,7 @@ class WebDevices:
             if m and r:
                 storeDeviceInModule(d, m, r)
             else:
-                raise RuntimeError(
-                    "Creating devices outside of modules is no longer supported."
-                )
+                raise RuntimeError("Creating devices outside of modules is no longer supported.")
                 devices.device_data[name] = d
                 saveDevice(name)
 
@@ -354,9 +306,7 @@ class WebDevices:
         tp = getDeviceType(kwargs["type"])
         assert tp
 
-        return pages.get_template("devices/createpage.html").render(
-            name=name, type=kwargs["type"], module=module, resource=resource
-        )
+        return pages.get_template("devices/createpage.html").render(name=name, type=kwargs["type"], module=module, resource=resource)
 
     @cherrypy.expose
     def deleteDevice(self, name, **kwargs):
@@ -405,14 +355,9 @@ class WebDevices:
 
         if tag in x.tagpoints:
             try:
-                x.tagpoints[tag].value = (
-                    colorzero.Color.from_string(x.tagpoints[tag].value)
-                    * colorzero.Luma(value)
-                ).html
+                x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(value)).html
             except Exception:
-                x.tagpoints[tag].value = (
-                    colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(value)
-                ).html
+                x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(value)).html
 
     @cherrypy.expose
     def triggertarget(self, name, tag, **kwargs):
@@ -438,9 +383,7 @@ class WebDevices:
             delete_bookkeep(name, "delete_conf_dir" in kwargs)
 
             if x.parentModule:
-                modules_state.rawDeleteResource(
-                    x.parentModule, x.parentResource or name
-                )
+                modules_state.rawDeleteResource(x.parentModule, x.parentResource or name)
                 modules_state.modulesHaveChanged()
 
             # no zombie reference

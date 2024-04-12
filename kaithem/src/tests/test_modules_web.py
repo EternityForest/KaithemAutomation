@@ -1,9 +1,9 @@
-from kaithem.src import webapproot
-from kaithem.src import modules_state
-from kaithem.src import newevt
-import cherrypy
-import time
 import os
+import time
+
+import cherrypy
+
+from kaithem.src import modules_state, newevt, webapproot
 
 dir = "/dev/shm/kaithem_tests/"
 
@@ -24,11 +24,17 @@ def test_make_module_web():
 
     assert n in modules_state.ActiveModules
 
+    assert n in webapproot.webapproot().modules.index()
+
+    assert webapproot.webapproot().modules.module(n)
+
     try:
         webapproot.root.modules.module(n, "addresourcetarget", "event", name="testevt")
         raise RuntimeError("Newmoduletarget should redirect")
     except cherrypy.HTTPRedirect:
         pass
+
+    assert webapproot.webapproot().modules.module(n, "resource", "testevt")
 
     # Check file on disk and internal data structure
     assert os.path.exists(os.path.join(dir, "modules/data/" + n))
@@ -52,6 +58,8 @@ def test_make_module_web():
         raise RuntimeError("Newmoduletarget should redirect")
     except cherrypy.HTTPRedirect:
         pass
+
+    assert "x = 8" in webapproot.webapproot().modules.module(n, "resource", "testevt")
 
     assert (n, "testevt") in newevt.EventReferences
 

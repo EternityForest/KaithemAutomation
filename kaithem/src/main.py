@@ -53,6 +53,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         "msgpack",
         "cherrypy",
         "dateutil.rrule",
+        "psutil",
     ]:
         import_in_thread(i)
     time.sleep(0.1)
@@ -88,7 +89,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         ManageUsers,  # noqa: F401
         alerts,  # noqa: F401
         auth,  # noqa: F401
-        builtintags,  # noqa: F401
         chandler,  # noqa: F401
         devices,  # noqa: F401
         directories,
@@ -103,7 +103,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         persist,  # noqa: F401
         plugin_system,  # noqa: F401
         pylogginghandler,  # noqa: F401
-        rtmidimanager,  # noqa: F401
         selftest,  # noqa: F401
         settings,  # noqa: F401
         signalhandlers,  # noqa: F401
@@ -170,12 +169,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         cherrypy.engine.exit()
         sys.exit()
 
-    builtintags.create()
     plugin_system.load_plugins()
-
-    # Devices is started with the additional resource types system
-    # devices.init_devices()
-    rtmidimanager.init()
 
     # Load all modules from the active modules directory
     modules.initModules()

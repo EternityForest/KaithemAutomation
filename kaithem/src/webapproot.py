@@ -368,10 +368,6 @@ class webapproot:
         return pages.get_template("help/help.html").render()
 
     @cherrypy.expose
-    def makohelp(self, *path, **data):
-        return pages.get_template("help/makoreference.html").render()
-
-    @cherrypy.expose
     def themetest(self, *path, **data):
         return pages.get_template("help/themetest.html").render()
 
@@ -390,13 +386,6 @@ class webapproot:
     @cherrypy.expose
     def license(self, *path, **data):
         return pages.get_template("help/license.html").render()
-
-    @cherrypy.expose
-    def aerolabs_blockrain(self, *path, **data):
-        # There is no reason to be particularly concerned here, I have no reason not to trust
-        # Aerolabs, this is just for the people that hate hidden games and such.
-        cherrypy.response.headers["Content-Security-Policy"] = "connect-src none"
-        return pages.get_template("blockrain.html").render()
 
 
 root = webapproot()

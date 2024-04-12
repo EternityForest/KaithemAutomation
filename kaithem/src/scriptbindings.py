@@ -402,10 +402,10 @@ class BaseChandlerScriptContext:
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
         self.eventQueue = []
-        self.eventListeners: dict[str, list[list[Any]]] = {}
+        self.event_listeners: dict[str, list[list[Any]]] = {}
         self.variables: dict[str, Any] = variables if variables is not None else {}
         self.commands = ScriptActionKeeper()
-        self.contextCommands = ScriptActionKeeper()
+        self.context_commands = ScriptActionKeeper()
 
         self.children: dict[str, BaseChandlerScriptContext] = {}
         self.children_iterable = {}
@@ -415,7 +415,8 @@ class BaseChandlerScriptContext:
         # Cache whether or not any binding is watching a variable
         # or variable. False positives are acceptable, it's just a slight
         # Performance hit
-        self.needRefreshForVariable = {}
+        self.need_refresh_for_variable: dict[str, bool] = {}
+        self.need_refresh_for_tag: dict[str, bool] = {}
 
         # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY, as in right now, in this thread, executing an event.
         # Not a pure stack or semaphor, when you queue up an event, that event will run at one higher than the event that created it,
@@ -519,7 +520,7 @@ class BaseChandlerScriptContext:
         be triggered
         """
         with self.gil:
-            for i in self.eventListeners:
+            for i in self.event_listeners:
                 try:
                     # Edge trigger
                     if i.startswith("=/"):
@@ -580,7 +581,7 @@ class BaseChandlerScriptContext:
     def _runCommand(self, c):
         # ContextCommands take precendence
         a = self.commands.get(c[0], None)
-        a = self.contextCommands.get(c[0], a)
+        a = self.context_commands.get(c[0], a)
 
         seen = {}
 
@@ -594,7 +595,7 @@ class BaseChandlerScriptContext:
             p = p.parentContext
             if p:
                 a = p.commands.get(c[0], None)
-                a = p.contextCommands.get(c[0], a)
+                a = p.context_commands.get(c[0], a)
             else:
                 break
 
@@ -666,9 +667,9 @@ class BaseChandlerScriptContext:
             self.variables["_"] = True if val is None else val
             self.stopScriptFlag = False
             try:
-                if evt in self.eventListeners:
+                if evt in self.event_listeners:
                     handled = True
-                    for pipeline in self.eventListeners[evt]:
+                    for pipeline in self.event_listeners[evt]:
                         if self.stopScriptFlag:
                             break
                         for command in pipeline:
@@ -754,12 +755,12 @@ class BaseChandlerScriptContext:
             self.variables[k] = v
             self.changedVariables[k] = v
             self.onVarSet(k, v)
-            if k not in self.needRefreshForVariable:
-                self.needRefreshForVariable[k] = False
-                for i in self.eventListeners:
+            if k not in self.need_refresh_for_variable:
+                self.need_refresh_for_variable[k] = False
+                for i in self.event_listeners:
                     if k in i:
-                        self.needRefreshForVariable[k] = True
-            if self.needRefreshForVariable[k]:
+                        self.need_refresh_for_variable[k] = True
+            if self.need_refresh_for_variable[k]:
                 self.checkPollEvents()
         finally:
             self.gil.release()
@@ -786,17 +787,17 @@ class BaseChandlerScriptContext:
         """
         with self.gil:
             # Cache is invalidated, bindings have changed
-            self.needRefreshForVariable = {}
-            self.needRefreshForTag = {}
+            self.need_refresh_for_variable = {}
+            self.need_refresh_for_tag = {}
             for i in b:
-                if i[0] not in self.eventListeners:
-                    self.eventListeners[i[0]] = []
-                self.eventListeners[i[0]].append(i[1])
+                if i[0] not in self.event_listeners:
+                    self.event_listeners[i[0]] = []
+                self.event_listeners[i[0]].append(i[1])
                 self.onBindingAdded(i)
 
-            if "now" in self.eventListeners:
+            if "now" in self.event_listeners:
                 self.event("now")
-                del self.eventListeners["now"]
+                del self.event_listeners["now"]
 
     def onBindingAdded(self, evt):
         "Called when a binding is added that listens to evt"
@@ -804,7 +805,7 @@ class BaseChandlerScriptContext:
     def startTimers(self):
         needCheck = 0
         with self.gil:
-            for i in self.eventListeners:
+            for i in self.event_listeners:
                 if i and i.strip()[0] == "@":
                     if i not in self.timeEvents:
                         self.timeEvents[i] = ScheduleTimer(i, self)
@@ -830,7 +831,7 @@ class BaseChandlerScriptContext:
         Don't clear any binding for an event listed in preserve.
         """
         with self.gil:
-            self.eventListeners = {}
+            self.event_listeners = {}
             for i in self.timeEvents:
                 self.timeEvents[i].stop()
             self.timeEvents = {}
@@ -869,12 +870,12 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             if isinstance(val, str) and len(val) > 16000:
                 raise RuntimeError(f"{tagname} val too long for chandlerscript")
             self.setVar(f"$tag:{tagname}", val, True)
-            if tagname not in self.needRefreshForTag:
-                self.needRefreshForTag[tagname] = False
-                for i in self.eventListeners:
+            if tagname not in self.need_refresh_for_tag:
+                self.need_refresh_for_tag[tagname] = False
+                for i in self.event_listeners:
                     if tagname in i:
-                        self.needRefreshForTag[tagname] = True
-            if self.needRefreshForTag[tagname]:
+                        self.need_refresh_for_tag[tagname] = True
+            if self.need_refresh_for_tag[tagname]:
                 self.checkPollEvents()
 
         if len(self.eventQueue) > 128:
@@ -892,7 +893,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             self.onTagChange(tag.name, v)
 
         tag.subscribe(onchange)
-        self.needRefreshForTag[tag.name] = True
+        self.need_refresh_for_tag[tag.name] = True
         self.tagHandlers[tag.name] = (tag, onchange)
 
     def canGetTagpoint(self, t):
@@ -917,8 +918,8 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         # Clear all the tagpoints that we may have been watching for changes
         self.tagHandlers = {}
         self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
-        self.needRefreshForVariable = {}
-        self.needRefreshForTag = {}
+        self.need_refresh_for_variable = {}
+        self.need_refresh_for_tag = {}
 
     def __init__(self, *a, **k):
         BaseChandlerScriptContext.__init__(self, *a, **k)
@@ -934,7 +935,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             if not tagName[0] == "/":
                 tagName = f"/{tagName}"
 
-            self.needRefreshForTag = {}
+            self.need_refresh_for_tag = {}
 
             tagType = None
             priority = float(priority)

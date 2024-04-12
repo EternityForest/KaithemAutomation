@@ -1800,7 +1800,7 @@ class Scene:
 
         if self.mqttConnection and self.script_context:
             # Subscribe to everything we aren't subscribed to
-            for i in self.script_context.eventListeners:
+            for i in self.script_context.event_listeners:
                 if i.startswith("$mqtt:"):
                     x = i.split(":", 1)
                     if x[1] not in self.mqttSubscribed:
@@ -1811,7 +1811,7 @@ class Scene:
             torm = []
 
             for i in self.mqttSubscribed:
-                if "$mqtt:" + i not in self.script_context.eventListeners:
+                if "$mqtt:" + i not in self.script_context.event_listeners:
                     if i not in self.unusedMqttTopics:
                         self.unusedMqttTopics[i] = time.monotonic()
                         continue

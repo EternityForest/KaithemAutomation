@@ -1,9 +1,11 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from . import tagpoints
-from scullery import messagebus, scheduling
 import traceback
+
+from scullery import messagebus, scheduling
+
+from kaithem.src import tagpoints
 
 allInputs = {}
 
@@ -28,9 +30,7 @@ def setTag14(n, v, a=None):
 
 def onMidiMessage(m, d):
     if m.isNoteOn():
-        messagebus.post_message(
-            f"/midi/{d}", ("noteon", m.getChannel(), m.getNoteNumber(), m.getVelocity())
-        )
+        messagebus.post_message(f"/midi/{d}", ("noteon", m.getChannel(), m.getNoteNumber(), m.getVelocity()))
         setTag(
             f"/midi/{d}/{str(m.getChannel())}.note",
             m.getNoteNumber(),
@@ -38,9 +38,7 @@ def onMidiMessage(m, d):
         )
 
     elif m.isNoteOff():
-        messagebus.post_message(
-            f"/midi/{d}", ("noteoff", m.getChannel(), m.getNoteNumber())
-        )
+        messagebus.post_message(f"/midi/{d}", ("noteoff", m.getChannel(), m.getNoteNumber()))
         setTag(f"/midi/{d}/{str(m.getChannel())}.note", 0, a=0)
 
     elif m.isController():
@@ -55,9 +53,7 @@ def onMidiMessage(m, d):
         )
 
     elif m.isPitchWheel():
-        messagebus.post_message(
-            f"/midi/{d}", ("pitch", m.getChannel(), m.getPitchWheelValue())
-        )
+        messagebus.post_message(f"/midi/{d}", ("pitch", m.getChannel(), m.getPitchWheelValue()))
         setTag14(
             f"/midi/{d}/{str(m.getChannel())}.pitch",
             m.getPitchWheelValue(),
@@ -121,20 +117,13 @@ def doScan():
     if not scanning_connection:
         # Support versions of rtmidi where it does not work the first time
         try:
-            scanning_connection = rtmidi.MidiIn(
-                rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}"
-            )
+            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}")
         except Exception:
-            scanning_connection = rtmidi.MidiIn(
-                rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}"
-            )
+            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}")
         ctr += 1
     torm = []
     try:
-        present = [
-            (i, scanning_connection.get_port_name(i))
-            for i in range(scanning_connection.get_port_count())
-        ]
+        present = [(i, scanning_connection.get_port_name(i)) for i in range(scanning_connection.get_port_count())]
         scanning_connection.close_port()
     except Exception:
         scanning_connection = None
@@ -155,11 +144,7 @@ def doScan():
                 def f(
                     x,
                     *a,
-                    d=i[1]
-                    .replace(":", "_")
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace(" ", ""),
+                    d=i[1].replace(":", "_").replace("[", "").replace("]", "").replace(" ", ""),
                 ):
                     if isinstance(x, tuple):
                         try:

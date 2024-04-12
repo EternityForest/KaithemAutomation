@@ -5,8 +5,7 @@ import time
 import traceback
 
 from kaithem.src import alerts, geolocation, messagebus, tagpoints
-
-from . import astrallibwrapper as sky
+from kaithem.src import astrallibwrapper as sky
 
 refs = []
 
