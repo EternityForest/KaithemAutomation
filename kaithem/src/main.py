@@ -54,6 +54,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         "cherrypy",
         "dateutil.rrule",
         "psutil",
+        "kaithem.src.jackmanager",
     ]:
         import_in_thread(i)
     time.sleep(0.1)
@@ -113,7 +114,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         webapproot,  # noqa: F401
         weblogin,  # noqa: F401
         widgets,  # noqa: F401
-        wifimanager,  # noqa: F401
         workers,
     )
     from . import config as cfg
@@ -176,11 +176,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     logger.info("Loaded modules")
 
     workers.do(systasks.doUPnP)
-
-    def loadJackMixer():
-        from . import jackmixer  # noqa: F401
-
-    workers.do(loadJackMixer)
 
     if config.config["change-process-title"]:
         try:

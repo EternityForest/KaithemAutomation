@@ -50,7 +50,7 @@ import cherrypy,socket,base64
           y = getCookie("LastSawMainPage");
         }
 
-        
+
         wsapi.upd = function (e) {
           try {
             var k = e;
@@ -81,7 +81,7 @@ import cherrypy,socket,base64
             console.log("JSON Parse Error in websocket response:\n" + e.data);
           }
         }
-      
+
       wsapi.send(["countsince",parseFloat(y)])
 
       </script>
@@ -100,7 +100,7 @@ import cherrypy,socket,base64
     <a href="/index"><b>${socket.gethostname()|h}</b>
 
     <span id="notifications_toolbar_item"  title="New Notifications">
-      
+
     </span>
   </a>
     %endif
@@ -129,10 +129,9 @@ import cherrypy,socket,base64
           Devices</a>
 
 
-        
+
           <a href="/tagpoints"><i class="mdi mdi-chart-bar-stacked"></i>Tags</a>
 
-        <a href="/settings/mixer"><i class="mdi mdi-volume-high"></i>Mixer</a>
 
         <a href="/settings" >
           <i class="mdi mdi-cog-outline"></i>
@@ -169,12 +168,12 @@ Tools</a>
         <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
         %endif
 
-  
+
 
     </div>
     %endif
     </header>
-    
+
     <div id="kaithem-main-dropdown-panel" class="window paper w-sm-double" style="z-index: 5; display:none; position: absolute; left:0.6em; top:3em;width: 35wv;">
       <div class="tool-bar w-full">
         <button onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='none'"><i class="mdi mdi-close"></i>Close</button>

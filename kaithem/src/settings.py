@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
+from __future__ import annotations
 
 import ctypes  # Calm down, this has become standard library since 2.5
 import logging
@@ -121,12 +122,30 @@ def ctype_async_raise(thread_obj, exception):
 syslogger = logging.getLogger("system")
 
 
+page_plugins: dict[str, PagePlugin] = {}
+
+
+class PagePlugin:
+    def __init__(self, name: str, perms=("system_admin",)):
+        page_plugins[name] = self
+        self.perms = perms
+
+    def handle(self, *a, **k):
+        raise NotImplementedError()
+
+
 class Settings:
     @cherrypy.expose
     def index(self):
         """Index page for web interface"""
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return pages.get_template("settings/index.html").render()
+
+    @cherrypy.expose
+    def default(self, plugin: str, *a, **k):
+        pages.require(page_plugins[plugin].perms)
+
+        return page_plugins[plugin].handle()
 
     @cherrypy.expose
     def loginfailures(self, **kwargs):
@@ -158,15 +177,6 @@ class Settings:
             if str(id(i)) == a:
                 ctype_async_raise(i, SystemExit)
         raise cherrypy.HTTPRedirect("/settings/threads")
-
-    @cherrypy.expose
-    def mixer(self, *a, **k):
-        pages.require(
-            "system_admin",
-        )
-        from kaithem.src import directories, jackmixer
-
-        return pages.get_template("settings/mixer.html").render(os=os, jackmixer=jackmixer, directories=directories)
 
     @cherrypy.expose
     def fix_alsa_volume(self, *a, **k):

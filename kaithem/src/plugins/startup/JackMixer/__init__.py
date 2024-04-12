@@ -14,22 +14,12 @@ import traceback
 import uuid
 
 import cherrypy
+import mako.lookup
 from icemedia import iceflow
-from scullery import scheduling
+from scullery import jacktools, scheduling
 
-from . import (
-    alerts,
-    directories,
-    gstwrapper,
-    jackmanager,
-    messagebus,
-    mixerfx,
-    persist,
-    tagpoints,
-    util,
-    widgets,
-    workers,
-)
+from kaithem.src import alerts, directories, gstwrapper, messagebus, pages, persist, settings, tagpoints, util, widgets, workers
+from kaithem.src.plugins.startup.JackMixer import mixerfx
 
 global_api = widgets.APIWidget()
 global_api.require("system_admin")
@@ -58,19 +48,11 @@ try:
     ds = DummySource()
     ds.start()
     for i in range(25):
-        if [i.name for i in jackmanager.get_ports() if i.name.startswith("SILENCE")]:
+        if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
             break
         time.sleep(0.1)
 except Exception:
     log.exception("Dummy source")
-
-
-def replaceClientNameForDisplay(i):
-    x = i.split(":")[0]
-    if x in jackmanager.portJackNames:
-        return i.replace(x, jackmanager.portJackNames[x])
-
-    return i
 
 
 def onPortAdd(t, m):
@@ -202,8 +184,8 @@ class FluidSynthChannel(BaseChannel):
     def __init__(self, board, name, input, output, mapToChannel=0):
         self.name = name
 
-        self.input = jackmanager.MonoAirwire(input, f"{self.name}-midi:*")
-        self.output = jackmanager.airwire(self.name, output)
+        self.input = jacktools.MonoAirwire(input, f"{self.name}-midi:*")
+        self.output = jacktools.airwire(self.name, output)
 
     def start(self):
         if self.map:
@@ -366,9 +348,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def check_ports(self):
         "Check that the ports actually exist"
-        if not [i.name for i in jackmanager.get_ports() if i.name.startswith(f"{self.name}_in:")]:
+        if not [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_in:")]:
             return False
-        if not [i.name for i in jackmanager.get_ports() if i.name.startswith(f"{self.name}_out:")]:
+        if not [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_out:")]:
             return False
         return True
 
@@ -391,7 +373,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             "--no-video",
         ]
 
-        x = jackmanager.Airwire(n, f"{self.name}_in", force_combining=(self.channels == 1))
+        x = jacktools.Airwire(n, f"{self.name}_in", force_combining=(self.channels == 1))
         x.connect()
 
         p = Popen(line)
@@ -435,29 +417,29 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self.usingJack:
                 t = time.time()
                 while (time.time() - t) < 3:
-                    if jackmanager.get_ports():
+                    if jacktools.get_ports():
                         break
-                if not jackmanager.get_ports():
+                if not jacktools.get_ports():
                     return
 
         self.start(timeout=wait)
         # We unfortunately can't suppress auto connect in this version
         # use this hack.  Wait till ports show up then disconnect.
         for i in range(25):
-            if [i.name for i in jackmanager.get_ports() if i.name.startswith(f"{self.name}_in:")]:
+            if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_in:")]:
                 break
             time.sleep(0.1)
 
         for i in range(25):
-            if [i.name for i in jackmanager.get_ports() if i.name.startswith(f"{self.name}_out:")]:
+            if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_out:")]:
                 break
             time.sleep(0.1)
 
-        self.silencein = jackmanager.Airwire("SILENCE", f"{self.name}_in")
+        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
         self.silencein.connect()
 
-        jackmanager.disconnect_all_from(f"{self.name}_in")
-        jackmanager.disconnect_all_from(f"{self.name}_out")
+        jacktools.disconnect_all_from(f"{self.name}_in")
+        jacktools.disconnect_all_from(f"{self.name}_out")
 
         # do it here, after things are set up
         self.faderTag.value = self.initialFader
@@ -470,8 +452,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         # wait till it exists for real
         for i in range(8):
-            p = [i.name for i in jackmanager.get_ports()]
-            p2 = [i.clientName for i in jackmanager.get_ports()]
+            p = [i.name for i in jacktools.get_ports()]
+            p2 = [i.clientName for i in jacktools.get_ports()]
             p = p + p2
             if (f"{self.name}_out" in p) and (f"{self.name}_in") in p:
                 break
@@ -479,7 +461,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 time.sleep(0.5)
 
         for i in self.outputs:
-            x = jackmanager.Airwire(f"{self.name}_out", i, force_combining=(self.channels == 1))
+            x = jacktools.Airwire(f"{self.name}_out", i, force_combining=(self.channels == 1))
             x.connect()
             self._outputs.append(x)
 
@@ -488,7 +470,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         for i in restore:
             for j in i[1]:
                 try:
-                    jackmanager.connect(i[0], j)
+                    jacktools.connect(i[0], j)
                 except Exception:
                     log.exception("Failed to conneect airwire")
         for i in self.sendAirwires:
@@ -517,8 +499,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         if not at_exit:
             # wait till jack catches up
             for i in range(15):
-                p = [i.name for i in jackmanager.get_ports()]
-                p2 = [i.clientName for i in jackmanager.get_ports()]
+                p = [i.name for i in jacktools.get_ports()]
+                p2 = [i.clientName for i in jacktools.get_ports()]
                 p = p + p2
                 # Todo check the sends as well?
                 if f"{name}_out" in p:
@@ -531,10 +513,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def backup(self):
         c = []
 
-        for i in jackmanager.get_ports(f"{self.name}_in:"):
-            c.append((i, jackmanager.get_connections(i)))
-        for i in jackmanager.get_ports(f"{self.name}_out:"):
-            c.append((i, jackmanager.get_connections(i)))
+        for i in jacktools.get_ports(f"{self.name}_in:"):
+            c.append((i, jacktools.get_connections(i)))
+        for i in jacktools.get_ports(f"{self.name}_out:"):
+            c.append((i, jacktools.get_connections(i)))
         return c
 
     def setInput(self, input):
@@ -547,7 +529,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self._input:
                 self._input.disconnect()
             if "://" not in self.input:
-                self._input = jackmanager.Airwire(self.input, f"{self.name}_in", force_combining=(self.channels == 1))
+                self._input = jacktools.Airwire(self.input, f"{self.name}_in", force_combining=(self.channels == 1))
                 self._input.connect()
             else:
                 t = threading.Thread(target=self.mpv_input_loop, daemon=True)
@@ -561,7 +543,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             self._outputs = []
             for i in self.outputs:
-                x = jackmanager.Airwire(f"{self.name}_out", i, force_combining=(self.channels == 1))
+                x = jacktools.Airwire(f"{self.name}_out", i, force_combining=(self.channels == 1))
                 x.connect()
                 self._outputs.append(x)
 
@@ -587,7 +569,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             cname = f"{self.name}_send{str(len(self.sends))}"
             element2.set_property("client-name", cname)
 
-            self.sendAirwires[id] = jackmanager.Airwire(cname, target, force_combining=(self.channels == 1))
+            self.sendAirwires[id] = jacktools.Airwire(cname, target, force_combining=(self.channels == 1))
             self.sends.append(element2)
 
     def loadData(self, d):
@@ -727,7 +709,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     # Keep the old origin, just swap the destination
                     if effectId in self.sendAirwires:
                         self.sendAirwires[effectId].disconnect()
-                        self.sendAirwires[effectId] = jackmanager.Airwire(
+                        self.sendAirwires[effectId] = jacktools.Airwire(
                             self.sendAirwires[effectId].orig,
                             value,
                             force_combining=(self.channels == 1),
@@ -1005,10 +987,10 @@ class MixingBoard:
     def sendState(self):
         if not self.running:
             return
-        inPorts = jackmanager.get_port_names_with_aliases(is_audio=True, is_input=True)
-        outPorts = jackmanager.get_port_names_with_aliases(is_audio=True, is_output=True)
-        midiOutPorts = jackmanager.get_port_names_with_aliases(is_midi=True, is_output=True)
-        midiInPorts = jackmanager.get_port_names_with_aliases(is_midi=True, is_input=True)
+        inPorts = jacktools.get_port_names_with_aliases(is_audio=True, is_input=True)
+        outPorts = jacktools.get_port_names_with_aliases(is_audio=True, is_output=True)
+        midiOutPorts = jacktools.get_port_names_with_aliases(is_midi=True, is_output=True)
+        midiInPorts = jacktools.get_port_names_with_aliases(is_midi=True, is_input=True)
 
         self.api.send(["inports", {i: {} for i in inPorts}])
         self.api.send(["outports", {i: {} for i in outPorts}])
@@ -1343,7 +1325,7 @@ board = MixingBoard()
 try:
     board.loadPreset("default")
 except Exception:
-    messagebus.post_message("Could not load default preset for JACK mixer")
+    messagebus.post_message("/system/notifications/errors", "Could not load default preset for JACK mixer")
     log.exception("Could not load default preset for JACK mixer. Maybe it doesn't exist?")
 
 
@@ -1356,3 +1338,26 @@ def STOP():
 
 
 cherrypy.engine.subscribe("stop", STOP, priority=30)
+
+td = os.path.join(os.path.dirname(__file__), "html")
+lookup = mako.lookup.TemplateLookup(td)
+
+
+class Page(settings.PagePlugin):
+    def handle(self, *a, **k):
+        from kaithem.src import directories
+
+        return lookup.get_template("mixer.html").render(os=os, board=board, global_api=global_api, directories=directories)
+
+
+p = Page("mixer", ("system_admin",))
+
+
+def nbr():
+    return (
+        50,
+        '<a href="/settings/mixer"><i class="mdi mdi-volume-high"></i>Mixer</a>',
+    )
+
+
+pages.nav_bar_plugins["mixer"] = nbr

@@ -32,8 +32,8 @@
 </style>
 
 <script type="text/javascript" src="/static/js/widget.js"></script>
-${jackmixer.board.api.render("api")}
-${jackmixer.global_api.render("gapi")}
+${board.api.render("api")}
+${global_api.render("gapi")}
 
 
 <div id="app">
@@ -72,7 +72,7 @@ ${jackmixer.global_api.render("gapi")}
       </header>
 
         <div v-if="activePane=='status'">
-          
+
           <h3>Audio ports</h3>
           <div class="flex-row gaps margin">
 
@@ -94,7 +94,7 @@ ${jackmixer.global_api.render("gapi")}
               </table>
             </section>
 
-   
+
         </div>
 
 

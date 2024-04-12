@@ -4,7 +4,6 @@
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
 import importlib
-import json
 import os
 import random
 import subprocess
@@ -14,12 +13,9 @@ import traceback
 import weakref
 from typing import Any, Callable, Dict, List, Optional
 
-import cherrypy
 import jinja2
-import yaml
 from icemedia import sound_player as sound
 from scullery import persist as sculleryPersist
-from scullery import statemachines
 
 from kaithem import __version__
 
@@ -36,17 +32,13 @@ from . import (
     persist,
     scriptbindings,
     tagpoints,
-    theming,
     unitsofmeasure,
     util,
     widgets,
     workers,
 )
 from . import astrallibwrapper as sky
-
-wsgi_apps = []
-tornado_apps = []
-
+from .api import web as webapi
 
 bootTime = time.time()
 
@@ -418,66 +410,7 @@ class Kaithem:
             except Exception:
                 return "sensors call failed"
 
-    class states:
-        StateMachine = statemachines.StateMachine
-
-    class web:
-        controllers = pages.nativeHandlers
-
-        nav_bar_plugins = pages.nav_bar_plugins
-
-        theming = theming
-
-        @staticmethod
-        def add_wsgi_app(pattern: str, app, permission="system_admin"):
-            "Mount a WSGI application to handle all URLs matching the pattern regex"
-            wsgi_apps.append((pattern, app, permission))
-
-        @staticmethod
-        def add_tornado_app(pattern: str, app, args, permission="system_admin"):
-            "Mount a Tornado application to handle all URLs matching the pattern regex"
-            tornado_apps.append((pattern, app, args, permission))
-
-        @staticmethod
-        def freeboard(page, kwargs, plugins=[]):
-            "Returns the ready-to-embed code for freeboard.  Used to unclutter user created pages that use it."
-            if cherrypy.request.method == "POST":
-                import html
-                import re
-
-                pages.require("system_admin")
-                c = re.sub(
-                    r"<\s*freeboard-data\s*>[\s\S]*<\s*\/freeboard-data\s*>",
-                    "<freeboard-data>\n" + html.escape(yaml.dump(json.loads(kwargs["bd"]))) + "\n</freeboard-data>",
-                    page.getContent(),
-                )
-                page.setContent(c)
-            else:
-                return pages.get_template("freeboard/app.html").render(plugins=plugins)
-
-        @staticmethod
-        def go_back():
-            raise cherrypy.HTTPRedirect(cherrypy.request.headers["Referer"])
-
-        @staticmethod
-        def goto(url):
-            raise cherrypy.HTTPRedirect(url)
-
-        @staticmethod
-        def serve_file(*a, **k):
-            pages.serveFile(*a, **k)
-
-        @staticmethod
-        def user():
-            x = pages.getAcessingUser()
-            if x:
-                return x
-            else:
-                return ""
-
-        @staticmethod
-        def has_permission(permission):
-            return pages.canUserDoThis(permission)
+    web = webapi
 
     class sound:
         resolve_sound = sound.resolve_sound

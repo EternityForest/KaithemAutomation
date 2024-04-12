@@ -1,12 +1,14 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import tornado
 import os
 import random
-from tornado import httpclient
-from . import pages, directories, kaithemobj
 
+import tornado
+from tornado import httpclient
+
+from kaithem.src import directories, pages
+from kaithem.src.api import web as webapi
 
 http_client = httpclient.AsyncHTTPClient()
 
@@ -55,9 +57,7 @@ class MainHandler(tornado.web.RequestHandler):
         components = [x for x in self.request.path.replace(".png", "").split("/") if x]
 
         z, x, y = components[-3], components[-2], components[-1]
-        if pages.canUserDoThis(
-            "/users/maptiles.view", pages.getAcessingUser(self.request)
-        ):
+        if pages.canUserDoThis("/users/maptiles.view", pages.getAcessingUser(self.request)):
             if os.path.exists(get_fn(x, y, z, map)):
                 return self.serve(get_fn(x, y, z, map))
 
@@ -78,14 +78,8 @@ class MainHandler(tornado.web.RequestHandler):
                     )
                 )
 
-            if os.path.exists(
-                os.path.join(f"/home/pi/.local/share/marble/maps/earth/{map}", z, x, y)
-            ):
-                return self.serve(
-                    os.path.exists(
-                        os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y)
-                    )
-                )
+            if os.path.exists(os.path.join(f"/home/pi/.local/share/marble/maps/earth/{map}", z, x, y)):
+                return self.serve(os.path.exists(os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y)))
 
             await get_tile(x, y, z, self.request, map)
 
@@ -94,6 +88,4 @@ class MainHandler(tornado.web.RequestHandler):
         raise RuntimeError("No Tile Found")
 
 
-kaithemobj.kaithem.web.add_tornado_app(
-    "/maptiles/tile/.*", MainHandler, {}, "__guest__"
-)
+webapi.add_tornado_app("/maptiles/tile/.*", MainHandler, {}, "__guest__")

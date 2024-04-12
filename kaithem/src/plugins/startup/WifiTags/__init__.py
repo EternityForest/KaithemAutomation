@@ -1,13 +1,11 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import weakref
 import logging
+
 from scullery import scheduling
 
-from . import widgets, tagpoints, workers
-
-by_uuid = weakref.WeakValueDictionary()
+from kaithem.src import tagpoints, workers
 
 log = logging.getLogger("system.wifi")
 
@@ -77,13 +75,8 @@ def get_connectionstatus():
         ethernetClaim.set(eth)
 
 
-def handleMessage(u, v):
-    if v[0] == "refresh":
-        api.send(["status", get_connectionstatus()])
-
-
 try:
-    from . import util
+    from .... import util
 
     if not util.which("nmcli"):
         raise RuntimeError("nmcli binary not founfd")
@@ -91,7 +84,7 @@ try:
     @scheduling.scheduler.every_minute
     def worker():
         try:
-            api.send(["status", get_connectionstatus()])
+            get_connectionstatus()
         except Exception:
             log.exception("Error in WifiManager")
 
@@ -99,7 +92,3 @@ try:
 
 except Exception:
     log.exception("Could not use NetworkManager client. Network management disabled.")
-
-api = widgets.APIWidget()
-api.require("system_admin")
-api.attach(handleMessage)

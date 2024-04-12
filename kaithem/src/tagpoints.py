@@ -356,13 +356,6 @@ class GenericTagPointClass(Generic[T]):
 
         self.handler: typing.Callable[..., Any] | None = None
 
-        from . import kaithemobj
-
-        if hasattr(kaithemobj.kaithem.context, "event"):
-            self.originEvent = kaithemobj.kaithem.context.event
-        else:
-            self.originEvent = None
-
         # Used for the expressions in alert conditions and such
         self.evalContext: dict[str, Any] = {
             "math": math,
@@ -371,7 +364,6 @@ class GenericTagPointClass(Generic[T]):
             # go away cleanly
             "tag": weakref.proxy(self),
             "re": re,
-            "kaithem": kaithemobj.kaithem,
             "random": random,
             # It is perfect;y fine that these reference ourself, because when we pass this to an alarm,
             # We have alarm specific ones.

@@ -132,7 +132,7 @@ A dict-like object allowing you to access resources by module, resource tuple.
 
 ### kaithem.states
 
-This namespace deals with kaithem's state machine library.  It is recommended that you use [Scullery](https://github.com/EternityForest/scullery) state machines directly.
+This namespace used to deal with kaithem's state machine library.  It is removed and recommended that you use [Scullery](https://github.com/EternityForest/scullery) state machines directly.
 
 
 ### kaithem.alerts

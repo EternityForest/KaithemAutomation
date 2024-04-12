@@ -41,7 +41,6 @@ from . import (
     systasks,
     tagpoints,
     # TODO we gotta stop depending on import side effects
-    tileserver,  # noqa
     usrpages,
     util,
     web_console,  # noqa
@@ -49,6 +48,7 @@ from . import (
     widgets,
     wsgi_adapter,
 )
+from .api import web as webapi
 from .chandler import web as cweb
 from .config import config
 
@@ -548,10 +548,10 @@ def startServer():
         Rule(PathMatches("/widgets/ws.*"), wsapp),
     ]
 
-    from . import kaithemobj, tableview
+    from . import tableview
 
     x = []
-    for i in kaithemobj.wsgi_apps:
+    for i in webapi.wsgi_apps:
         x += [
             (
                 KAuthMatcher(i[0], i[2]),
@@ -566,7 +566,7 @@ def startServer():
         ]
 
     xt = []
-    for i in kaithemobj.tornado_apps:
+    for i in webapi.tornado_apps:
         xt += [
             (KAuthMatcher(i[0], i[3]), i[1], i[2]),
             (
