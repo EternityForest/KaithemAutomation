@@ -73,7 +73,7 @@ from scullery import workers
 from scullery.scheduling import scheduler
 
 from . import astrallibwrapper as sky
-from . import geolocation, tagpoints
+from . import geolocation, tagpoints, util
 
 simpleeval.MAX_POWER = 1024
 
@@ -293,8 +293,6 @@ lock = threading.RLock()
 
 class ScheduleTimer:
     def __init__(self, selector, context):
-        import recur
-
         self.eventName = selector
         self.context = weakref.ref(context)
 
@@ -304,7 +302,10 @@ class ScheduleTimer:
         if not selector[0] == "@":
             raise ValueError("Invalid")
 
-        self.selector = recur.getConstraint(selector[1:])
+        ref = datetime.datetime.now()
+
+        self.selector = util.get_rrule_selector(selector[1:], ref)
+
         nextruntime = self.selector.after(datetime.datetime.now(), False)
         self.nextruntime = dt_to_ts(nextruntime, self.selector.tz)
         self.next = scheduler.schedule(self.handler, self.nextruntime, False)
@@ -347,7 +348,8 @@ def dt_to_ts(dt, tz=None):
 
 
 class ScriptActionKeeper:
-    "This typecheck wrapper is courtesy of two hours spent debugging at 2am, and my desire to avoid repeating that"
+    """This typecheck wrapper is courtesy
+    of two hours spent debugging at 2am, and my desire to avoid repeating that"""
 
     def __init__(self):
         self.scriptcommands = weakref.WeakValueDictionary()
@@ -418,20 +420,26 @@ class BaseChandlerScriptContext:
         self.need_refresh_for_variable: dict[str, bool] = {}
         self.need_refresh_for_tag: dict[str, bool] = {}
 
-        # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY, as in right now, in this thread, executing an event.
-        # Not a pure stack or semaphor, when you queue up an event, that event will run at one higher than the event that created it,
-        # And always return to 0 when it is not actively executing event code, to ensure that things not caused directly by an event
-        # Don't have a nonzero depth.
+        # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY,
+        # as in right now, in this thread, executing an event. Not a pure stack
+        # or semaphor, when you queue up an event, that event will run at one
+        # higher than the event that created it, And always return to 0 when it
+        # is not actively executing event code, to ensure that things not caused
+        # directly by an event Don't have a nonzero depth.
 
-        # It'ts not even tracking recursion really, more like async causation, or parenthood back to an event not caused my another event.
+        # It'ts not even tracking recursion really, more like async causation,
+        # or parenthood back to an event not caused my another event.
 
-        # The whole point is not to let an event create another event, which runs the first event, etc.
+        # The whole point is not to let an event create another event, which
+        # runs the first event, etc.
         self.eventRecursionDepth = threading.local()
 
         # Should we propagate events to children
         self.propagateEvents = False
 
-        # Used to allow objects named foo.bar to be accessed as actual attributes of a foo obj,
+        # Used to allow objects named foo.bar to be accessed as actual
+        # attributes of a foo obj,
+
         # Even though we use a flat list of vars.
         self.namespaces = {}
         self.contextName = "ScriptContext"
@@ -441,8 +449,8 @@ class BaseChandlerScriptContext:
         self.slowpoller = None
         selfid = id(self)
 
-        # Stack to keep track of the $event variable for the current event we are running,
-        # For nested events
+        # Stack to keep track of the $event variable for the current event we
+        # are running, For nested events
         self.eventValueStack = []
 
         # Look for rising edge detects that already fired
@@ -630,7 +638,8 @@ class BaseChandlerScriptContext:
     def event(self, evt, val=None):
         "Queue an event to run in the background. Queued events run in FIFO"
 
-        # Capture the depth we are at, so we can make sure that _event knows if it was caused by another event.
+        # Capture the depth we are at, so we can make sure that _event knows if
+        # it was caused by another event.
         #
         try:
             depth = self.eventRecursionDepth.d
@@ -688,9 +697,9 @@ class BaseChandlerScriptContext:
             if self.eventValueStack:
                 self.eventValueStack.pop()
 
-            # We are done running the event, now we can set to 0
-            # The depth must be 0, because there is no event currently running till the queued ones happen.
-            # This is not a stack or semaphore!
+            # We are done running the event, now we can set to 0 The depth must
+            # be 0, because there is no event currently running till the queued
+            # ones happen. This is not a stack or semaphore!
             self.eventRecursionDepth.d = 0
             context_info.event = None
 
@@ -925,10 +934,9 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         BaseChandlerScriptContext.__init__(self, *a, **k)
 
         def setTag(tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority=75):
-            """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
-
-            If the tag does not exist, the type is auto-guessed based on the type of the value.
-
+            """Set a Tagpoint with the given claim priority.
+            Use a value of None to unset existing tags. If the tag does not
+            exist, the type is auto-guessed based on the type of the value.
             None will silently return and do nothing if the tag does not exist.
             """
 

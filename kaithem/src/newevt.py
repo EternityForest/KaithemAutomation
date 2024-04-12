@@ -25,7 +25,6 @@ from collections.abc import Callable
 
 import cherrypy
 import pytz
-import recur
 from scullery import scheduling
 from scullery.scheduling import scheduler
 
@@ -1216,8 +1215,11 @@ class RecurringEvent(CompileCodeStringsMixin):
         self.handler = self._handler
         self.exact = self.get_exact()
 
-        self.selector = recur.getConstraint(when)
-        self.tz = self.selector.tz
+        ref = datetime.datetime.now()
+        selector = util.get_rrule_selector(when, ref)
+
+        self.selector = selector
+        self.tz = None
 
         self.nextruntime = None
         self.next = None
