@@ -83,7 +83,7 @@ expression changes. the most recent value of expression is availible as
 #### !time \[expression\]
 
 This causes the event to occur at a specific time, such as "every
-Friday" or "every hour on Monday". This is powered by the recur library
+Friday" or "every hour on Monday". This is powered by the recurrent library
 and supports any expression that library does. Events will occur near
 the start of a second. Specific time zones are supported with olson
 format time zones, e.g. "!time Every day at 8:30pm Etc/UTC". If no time
@@ -95,8 +95,7 @@ up.
 
 Examples: "!time every minute", "Every day at 8:30pm".
 
-This feature previously used a library called recurrent, but now uses a
-custom library called recur that solves some performance issues.
+This feature uses a library called recurrent.
 
 #### !function \[name\]
 
