@@ -15,12 +15,7 @@ from mako.lookup import TemplateLookup
 
 from . import auth, directories
 
-_Lookup = TemplateLookup(
-    directories=[
-        directories.htmldir,
-        os.path.join(directories.htmldir, "makocomponents"),
-    ]
-)
+_Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(directories.htmldir, "makocomponents"), "/"])
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])
@@ -28,9 +23,7 @@ _varLookup = TemplateLookup(directories=[directories.vardir])
 
 #
 _jl = jinja2.FileSystemLoader(
-    [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates"), "/"],
-    encoding="utf-8",
-    followlinks=False,
+    [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates"), "/"], encoding="utf-8", followlinks=False
 )
 
 

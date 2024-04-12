@@ -43,7 +43,6 @@ from . import (
     # TODO we gotta stop depending on import side effects
     usrpages,
     util,
-    web_console,  # noqa
     weblogin,
     widgets,
     wsgi_adapter,

@@ -151,7 +151,6 @@ import cherrypy,socket,base64
           %endif
 Tools</a>
 
-        <a href="/helpmenu"><i class="mdi mdi-book-open-blank-variant-outline"></i>Help</a>
 
         %if "kaithem_auth" in cherrypy.request.cookie:
         %if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens:

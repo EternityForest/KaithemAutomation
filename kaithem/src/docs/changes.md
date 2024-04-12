@@ -16,6 +16,9 @@ This release is another one that's smaller than the last while still a
 - :bug: fix broken shuffle:* special cue
 - :coffin: Must explicity specify a type for all display tags
 
+- :lipstick: Move help to inside the tools page
+- :hammer: Many features moved to included core plugins, but still work exactly as before.
+
 ### 0.78.1
 
 This is mostly just about the install scripts and a few leftover bugs.  A lot has changed on Pi OS with Wayland!

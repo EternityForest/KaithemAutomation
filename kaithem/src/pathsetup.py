@@ -31,11 +31,9 @@ def setupPath(linuxpackage=None, force_local=False):
 
     x = os.path.join(x, "src")
 
-    sys.path = [os.path.join(x, "plugins", "ondemand")] + sys.path
-    sys.path = [os.path.join(x, "plugins", "startup")] + sys.path
+    sys.path = [os.path.join(x, "plugins")] + sys.path
 
-    startupPluginsPath = os.path.join(x, "plugins", "startup")
-    sys.path = sys.path + [os.path.join(x, "plugins", "lowpriority")]
+    startupPluginsPath = os.path.join(x, "plugins")
 
     # With snaps, lets not use this style of including the packages.
     # Perhaps we'll totally leave it behind later!

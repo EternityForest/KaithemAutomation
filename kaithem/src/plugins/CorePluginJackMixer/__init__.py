@@ -14,12 +14,11 @@ import traceback
 import uuid
 
 import cherrypy
-import mako.lookup
 from icemedia import iceflow
 from scullery import jacktools, scheduling
 
 from kaithem.src import alerts, directories, gstwrapper, messagebus, pages, persist, settings, tagpoints, util, widgets, workers
-from kaithem.src.plugins.startup.JackMixer import mixerfx
+from kaithem.src.plugins.JackMixer import mixerfx
 
 global_api = widgets.APIWidget()
 global_api.require("system_admin")
@@ -1339,18 +1338,18 @@ def STOP():
 
 cherrypy.engine.subscribe("stop", STOP, priority=30)
 
-td = os.path.join(os.path.dirname(__file__), "html")
-lookup = mako.lookup.TemplateLookup(td)
+
+td = os.path.join(os.path.dirname(__file__), "html", "mixer.html")
 
 
 class Page(settings.PagePlugin):
     def handle(self, *a, **k):
         from kaithem.src import directories
 
-        return lookup.get_template("mixer.html").render(os=os, board=board, global_api=global_api, directories=directories)
+        return pages.get_template(td).render(os=os, board=board, global_api=global_api, directories=directories)
 
 
-p = Page("mixer", ("system_admin",))
+p = Page("mixer", ("system_admin",), title="Mixing Board")
 
 
 def nbr():

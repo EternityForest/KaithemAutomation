@@ -1,5 +1,5 @@
 <%include file="/pageheader.html"/>
-<%from kaithem.src import directories
+<%from kaithem.src import directories, settings
 import os%>
 <title>KSettings</title>
 
@@ -11,6 +11,10 @@ import os%>
 
     <div style="position: absolute; top: 0%; right: 0%; height: 6em; width: 10em;" class="decorative-image-corner-ur decorative-image"></div>
 <dl>
+
+<h3>Help</h3>
+<a href="/helpmenu"><i class="mdi mdi-book-open-blank-variant-outline"></i>Help Index</a>
+
 <h3><i class="mdi mdi-cog-outline"></i>Settings</h3>
 <dl>
 <dt><a href="/settings/account"><i class="mdi mdi-account"></i>My Account</a></dt>
@@ -76,9 +80,12 @@ import os%>
 <h3><i class="mdi mdi-tools"></i>Utilities</h3>
 <dl>
 
-<dt><a href="/settings/console"><i class="mdi mdi-powershell"></i> Shell</a></dt>
-<dd>XTerm-powered system shell</dd>
+% for i in settings.page_plugins:
 
+
+<dt><a href="/settings/${i}">${settings.page_plugins[i].title|h}</a></dt>
+<dd>Plugin</dd>
+%endfor
 
 <dt>Object Inspector(Explore starting from the list of modules)</dt>
 

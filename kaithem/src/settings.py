@@ -126,9 +126,10 @@ page_plugins: dict[str, PagePlugin] = {}
 
 
 class PagePlugin:
-    def __init__(self, name: str, perms=("system_admin",)):
+    def __init__(self, name: str, perms=("system_admin",), title=""):
         page_plugins[name] = self
         self.perms = perms
+        self.title = title
 
     def handle(self, *a, **k):
         raise NotImplementedError()
@@ -144,7 +145,7 @@ class Settings:
     @cherrypy.expose
     def default(self, plugin: str, *a, **k):
         pages.require(page_plugins[plugin].perms)
-
+        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return page_plugins[plugin].handle()
 
     @cherrypy.expose
@@ -356,63 +357,6 @@ class Settings:
         pages.postOnly()
         kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
         return pages.get_template("settings/broadcast.html").render()
-
-    @cherrypy.expose
-    def console(self, **kwargs):
-        pages.require("system_admin")
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        if "script" in kwargs:
-            pages.postOnly()
-            x = ""
-            env = {}
-            env.update(os.environ)
-
-            if util.which("bash"):
-                p = subprocess.Popen(
-                    "bash -i",
-                    universal_newlines=True,
-                    shell=True,
-                    env=env,
-                    stdout=subprocess.PIPE,
-                    stdin=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-            else:
-                p = subprocess.Popen(
-                    "sh -i",
-                    universal_newlines=True,
-                    shell=True,
-                    env=env,
-                    stdout=subprocess.PIPE,
-                    stdin=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-
-            t = p.communicate(kwargs["script"])
-
-            if isinstance(t, bytes):
-                try:
-                    t = t.decode("utf-8")
-                except Exception:
-                    pass
-
-            x += t[0] + t[1]
-            try:
-                time.sleep(0.1)
-                t = p.communicate("")
-                x += t[0] + t[1]
-                p.kill()
-                if p.stdout:
-                    p.stdout.close()
-                if p.stderr:
-                    p.stderr.close()
-                if p.stdin:
-                    p.stdin.close()
-            except Exception:
-                pass
-            return pages.get_template("settings/console.html").render(output=x)
-        else:
-            return pages.get_template("settings/console.html").render(output="Kaithem System Shell")
 
     @cherrypy.expose
     def account(self):
