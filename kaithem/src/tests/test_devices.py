@@ -1,9 +1,13 @@
 import gc
+import os
 import time
 
 import cherrypy
+import yaml
 
 from kaithem.src import devices, devices_interface, modules_state, tagpoints, webapproot
+
+dir = "/dev/shm/kaithem_tests/"
 
 
 def test_make_demo_device():
@@ -56,6 +60,13 @@ def test_make_demo_device():
 
     assert "10000909000" in d.device("pytest_demo", "manage")
 
+    assert os.path.exists(os.path.join(dir, "modules/data/", n, "devtest.yaml"))
+
+    with open(os.path.join(dir, "modules/data/", n, "devtest.yaml")) as f:
+        lr = f.read()
+
+    assert str(yaml.load(lr, yaml.SafeLoader)["device"]["device.fixed_number_multiplier"]) == "10000909000"
+
     assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value > 1
 
     try:
@@ -75,3 +86,5 @@ def test_make_demo_device():
 
     assert len(devices.remote_devices) == 0
     assert len(devices.remote_devices_atomic) == 0
+
+    assert not os.path.exists(os.path.join(dir, "modules/data/", n, "devtest.yaml"))

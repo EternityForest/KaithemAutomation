@@ -9,6 +9,7 @@ to start using the [GitFlow](https://www.atlassian.com/git/tutorials/comparing-w
 This release is another one that's smaller than the last while still a
 
 - :sparkles: Switch from typeguard to Beartype.
+- :sparkles: More unit testing
 - :coffin: Remove more old files
 - :coffin: Remove all references to custom `recur` library, use more standard dateutil+recurrent
 - :sparkles: \_\_schedule\_\_ special cue skips ahead through a chain of cues with @time lengths, to the one matching the current time best.

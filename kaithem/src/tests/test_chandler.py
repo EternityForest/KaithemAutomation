@@ -1,11 +1,14 @@
-import logging
+# pyright: strict, reportOptionalMemberAccess=false,  reportUnknownMemberType=false, reportAttributeAccessIssue=false
+
+
+import datetime
 import os
 import time
 
 import yaml
 
 from kaithem.src import directories, tagpoints
-from kaithem.src.chandler import core, scenes
+from kaithem.src.chandler import core, scenes, web
 from kaithem.src.sound import play_logs
 
 board = core.boards[0]()
@@ -24,6 +27,13 @@ def test_make_scene():
     assert s in scenes.active_scenes
     assert s.cue.name == "default"
 
+    # Ensure the web render functions at least work
+    assert web.Web().editor()
+    assert web.Web().config()
+
+    # Make sure we can access it's web media display
+    assert web.Web().default("webmediadisplay", scene=s.id)
+
     s.add_cue("cue2")
     s.goto_cue("cue2")
     assert s.cue.name == "cue2"
@@ -38,6 +48,73 @@ def test_make_scene():
 
     board.check_autosave()
     assert not os.path.exists(os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml"))
+
+
+def test_shuffle():
+    s = scenes.Scene("TestingScene1", id="TEST")
+    # Must add scenes to the board so we can save them and test the saving
+    board.addScene(s)
+
+    s.go()
+
+    assert s.active
+    assert s.cue.name == "default"
+
+    s.add_cue("cue2", next_cue="shuffle:x_*")
+
+    for i in range(250):
+        s.add_cue(f"x_{i}")
+
+    s.goto_cue("cue2")
+
+    s.next_cue()
+    assert s.cue.name != "cue2"
+
+    x = s.cue.name
+    s.goto_cue("cue2")
+
+    s.next_cue()
+    assert s.cue.name != x
+
+    s.close()
+    board.rmScene(s)
+    assert "TestingScene1" not in scenes.scenes_by_name
+
+
+def test_sched():
+    s = scenes.Scene("TestingScene1", id="TEST")
+    # Must add scenes to the board so we can save them and test the saving
+    board.addScene(s)
+
+    s.go()
+
+    assert s.active
+    assert s.cue.name == "default"
+
+    t = datetime.datetime.now() - datetime.timedelta(hours=2)
+
+    # Make a looping schedule.  Before_b ends before the current time, we want to be in
+    # after_a
+
+    s.add_cue("before_a", length=f"@{t.strftime('%l%P')}")
+    t += datetime.timedelta(hours=1)
+
+    s.add_cue("before_b", length=f"@{t.strftime('%l%P')}")
+    t += datetime.timedelta(hours=2)
+
+    s.add_cue("after_a", length=f"@{t.strftime('%l%P')}")
+    t += datetime.timedelta(hours=2)
+    s.add_cue("after_b", length=f"@{t.strftime('%l%P')}", next_cue="before_a")
+
+    s.cue.next_cue = "__schedule__"
+
+    s.next_cue()
+
+    assert s.cue.name == "after_a"
+
+    s.close()
+    board.rmScene(s)
+    assert "TestingScene1" not in scenes.scenes_by_name
 
 
 def test_timer_scene():
@@ -156,7 +233,6 @@ def test_trigger_shortcuts():
 
 
 def test_cue_logic():
-    logging.warning(scenes.rootContext.commands.scriptcommands)
     s = scenes.Scene(name="TestingScene5", id="TEST")
     s2 = scenes.Scene(name="TestingScene6", id="TEST2")
     board.addScene(s)

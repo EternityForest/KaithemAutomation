@@ -476,9 +476,9 @@ except Exception:
 ${kaithemobj.kaithem.sys.sensors()|h}
 </pre>
             <%
-def module_version(m):
+def module_version(m, name):
     try:
-        v = version(m)
+        v = version(name)
         if v:
             return v
     except Exception:
@@ -508,10 +508,10 @@ def module_version(m):
                         <th>Version</th>
                     </tr>
                     %for i in sorted(sys.modules):
-                     %if module_version(sys.modules[i]):
+                     %if module_version(sys.modules[i], i):
                     <tr>
                         <td>${i|h}</td>
-                        <td>${module_version(sys.modules[i])|h}</td>
+                        <td>${module_version(sys.modules[i], i)|h}</td>
                     </tr>
                     %endif
                     %endfor
