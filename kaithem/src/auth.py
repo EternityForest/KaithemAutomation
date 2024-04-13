@@ -12,28 +12,28 @@ of a valid token"""
 # Users and groups are saved in RAM and synched with the filesystem due to the goal
 # of not using the filesystem much to save any SD cards.
 
-import copy
-from . import util, directories, modules_state, messagebus
-import json
 import base64
-import os
-import time
-import shutil
+import copy
 import hashlib
-import yaml
 import hmac
-import struct
+import json
 import logging
+import os
+import shutil
+import struct
 import threading
+import time
+
+import yaml
+
+from . import directories, messagebus, modules_state, util
 
 lock = threading.RLock()
 
 defaultData = {
     "groups": {
         "Administrators": {"permissions": ["__all_permissions__"]},
-        "Guests": {
-            "permissions": ["view_admin_info", "view_admin_info", "view_status"]
-        },
+        "Guests": {"permissions": ["view_admin_info", "view_admin_info", "view_status"]},
     },
     "users": {
         "__guest__": {
@@ -93,7 +93,7 @@ Groups: dict[str, dict] = {}
 """These are the "built in" permissions required to control basic functions
 User code can add to these"""
 BasePermissions: dict[str, str] = {
-    "system_admin": "The main admin permission to configure the system. Implies that the user can do anything the base account running the server can.",
+    "system_admin": "The main admin permission. Implies that the user can do anything the base account running the server can.",
     "view_admin_info": "Allows read but not write access to most of the system state",
     "view_status": "View the main page of the application, the active alerts, the about box, and other basic overview info",
     "acknowledge_alerts": "Required to acknowledge alerts",
@@ -142,14 +142,9 @@ def importPermissionsFromModules():
         for module in modules_state.ActiveModules.copy():  # Iterate over all modules
             # for every resource of type permission
             for resource in modules_state.ActiveModules[module].copy():
-                if (
-                    modules_state.ActiveModules[module][resource]["resource-type"]
-                    == "permission"
-                ):
+                if modules_state.ActiveModules[module][resource]["resource-type"] == "permission":
                     # add it to the permissions list
-                    p2[util.split_escape(resource, "/", "\\")[-1]] = (
-                        modules_state.ActiveModules[module][resource]
-                    )
+                    p2[util.split_escape(resource, "/", "\\")[-1]] = modules_state.ActiveModules[module][resource]
     global Permissions
     Permissions = p2
 
@@ -268,20 +263,15 @@ def removeUserFromGroup(username, group):
 
 
 def tryToLoadFrom(d):
-    global tokenHashes
     with lock:
-        if os.path.isfile(os.path.join(d, "__COMPLETE__")):
-            try:
-                f = open(os.path.join(d, "users.json"))
-                temp = json.load(f)
-            finally:
-                f.close()
+        try:
+            f = open(os.path.join(d, "users.json"))
+            temp = json.load(f)
+        finally:
+            f.close()
 
-            loadFromData(temp)
-            return True
-        else:
-            raise RuntimeError("No complete marker found")
-        logger.info("Loaded auth data from " + d)
+        loadFromData(temp)
+        return True
 
 
 def loadFromData(d):
@@ -317,13 +307,10 @@ def initializeAuthentication():
             tryToLoadFrom(os.path.join(directories.usersdir, "data"))
             loaded = True
         except Exception as e:
-            logger.exception(
-                "Error loading auth data, may be able to continue from old state"
-            )
+            logger.exception("Error loading auth data, may be able to continue from old state")
             messagebus.post_message(
                 "/system/notifications/errors",
-                "Error loading auth data, may be able to continue from old state:\n"
-                + str(e),
+                "Error loading auth data, may be able to continue from old state:\n" + str(e),
             )
 
             try:
@@ -429,14 +416,12 @@ def userLogin(username, password):
     # The user that we are running as
 
     try:
-        import pwd
         import getpass
+        import pwd
 
         # pragma: allowlist nextline secret
         if (
-            username in Users
-            and ("password" in Users[username])
-            and Users[username]["password"] == "system"  # pragma: allowlist secret
+            username in Users and ("password" in Users[username]) and Users[username]["password"] == "system"  # pragma: allowlist secret
         ):
             runningUser = getpass.getuser()
             if runningUser in (username, "root"):
@@ -468,9 +453,7 @@ def userLogin(username, password):
             m.update(usr_bytes(password, "utf8"))
             m.update(base64.b64decode(Users[username]["salt"].encode("utf8")))
             m = m.digest()
-            if hmac.compare_digest(
-                base64.b64decode(Users[username]["password"].encode("utf8")), m
-            ):
+            if hmac.compare_digest(base64.b64decode(Users[username]["password"].encode("utf8")), m):
                 # We can't just always assign a new token because that would break multiple
                 # Logins as same user
                 if not Users[username].token:
@@ -702,10 +685,7 @@ def canUserDoThis(user, permission):
         if "__guest__" in Users and permission in Users["__guest__"].permissions:
             return True
         else:
-            if (
-                "__guest__" in Users
-                and "__all_permissions__" in Users["__guest__"].permissions
-            ):
+            if "__guest__" in Users and "__all_permissions__" in Users["__guest__"].permissions:
                 return True
 
         return False

@@ -21,7 +21,7 @@ NVRChannel = "*"
 # NVRChannel didn't bring this in 0.15.0
 opencv-python = "*"
 
-numpy = "^1.26.1"
+numpy = ">1.26.1"
 cherrypy = "*"
 cheroot = "*"
 flask = "*"
@@ -41,7 +41,7 @@ apprise = "*"
 
 ffmpeg-python = "*"
 yappi = "*"
-zeroconf = "^0.119.0"
+zeroconf = ">=0.119.0"
 colorzero = "*"
 # Still included in repo because it doesn't install correctly due to 
 # suds-passworddigest

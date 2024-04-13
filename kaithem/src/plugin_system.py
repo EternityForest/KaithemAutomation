@@ -41,7 +41,8 @@ def import_in_thread(m):
 def load_plugins():
     try:
         for i in os.listdir(pathsetup.startupPluginsPath):
-            import_in_thread(i)
+            if "." not in i or i.endswith(".py"):
+                import_in_thread(i)
 
         for i in range(240000):
             time.sleep(0.001)

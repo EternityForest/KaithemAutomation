@@ -1,15 +1,14 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-import webbrowser
-import urllib.parse
-import time
 import threading
+import time
+import urllib.parse
+import webbrowser
 
 from flask import redirect, url_for
-from sqlite_web import initialize_app
-from sqlite_web import app
+from sqlite_web import app, initialize_app, sqlite_web
 
-from sqlite_web import sqlite_web
+from kaithem.src.api import web as webapi
 
 
 def install_auth_handler():
@@ -22,7 +21,7 @@ def install_auth_handler():
 
 
 def open_browser_tab(name, host, port):
-    url = "http://%s:%s/%s/" % (host, port, name)
+    url = f"http://{host}:{port}/{name}/"
 
     def _open_tab(url):
         time.sleep(1.5)
@@ -49,3 +48,6 @@ def get_app():
     initialize_app("database")
 
     return app
+
+
+webapi.add_wsgi_app("/database.*", get_app(), "system_admin")

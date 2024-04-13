@@ -547,8 +547,6 @@ def startServer():
         Rule(PathMatches("/widgets/ws.*"), wsapp),
     ]
 
-    from . import tableview
-
     x = []
     for i in webapi.wsgi_apps:
         x += [
@@ -575,23 +573,6 @@ def startServer():
             ),
         ]
 
-    if config["esphome-config-dir"]:
-        from . import esphome_dash
-
-        rules.extend(
-            [
-                Rule(
-                    KAuthMatcher("/esphome.*", "system_admin"),
-                    esphome_dash.start_web_server(),
-                ),
-                Rule(
-                    PathMatches("/esphome.*"),
-                    tornado.web.RedirectHandler,
-                    {"url": "/login", "permanent": False},
-                ),
-            ]
-        )
-
     rules.append(
         Rule(
             AnyMatches(),
@@ -599,16 +580,6 @@ def startServer():
                 x
                 + xt
                 + [
-                    (
-                        KAuthMatcher("/database.*", "system_admin"),
-                        wsgi_adapter.WSGIHandler,
-                        {"wsgi_application": tableview.get_app()},
-                    ),
-                    (
-                        PathMatches("/database.*"),
-                        tornado.web.RedirectHandler,
-                        {"url": "/login", "permanent": False},
-                    ),
                     (
                         AnyMatches(),
                         wsgi_adapter.WSGIHandler,

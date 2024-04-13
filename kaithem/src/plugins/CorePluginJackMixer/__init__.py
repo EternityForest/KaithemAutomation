@@ -18,7 +18,7 @@ from icemedia import iceflow
 from scullery import jacktools, scheduling
 
 from kaithem.src import alerts, directories, gstwrapper, messagebus, pages, persist, settings, tagpoints, util, widgets, workers
-from kaithem.src.plugins.JackMixer import mixerfx
+from kaithem.src.plugins.CorePluginJackMixer import mixerfx
 
 global_api = widgets.APIWidget()
 global_api.require("system_admin")

@@ -3,7 +3,7 @@
 
 import logging
 
-from scullery import scheduling
+from scullery import scheduling, util
 
 from kaithem.src import tagpoints, workers
 
@@ -76,8 +76,6 @@ def get_connectionstatus():
 
 
 try:
-    from .... import util
-
     if not util.which("nmcli"):
         raise RuntimeError("nmcli binary not founfd")
 
