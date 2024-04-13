@@ -14,6 +14,10 @@
                 {{i[1]}}
             {% endif %}
         {% endfor %}
+
+        {% for i in hidden_inputs %}
+        <input type="hidden" name="{{i}}" value="{{hidden_inputs[i]}}">
+        {% endfor %}
         </form>
     </section>
 </main>

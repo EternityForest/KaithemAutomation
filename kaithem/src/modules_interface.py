@@ -168,8 +168,8 @@ def searchTags(search):
     p = []
     from . import tagpoints
 
-    for i in tagpoints.configTagData:
-        if search in json.dumps(tagpoints.configTagData[i].data) or search in i:
+    for i in tagpoints.config_tag_data:
+        if search in json.dumps(tagpoints.config_tag_data[i].data) or search in i:
             p.append(i)
     return p
 

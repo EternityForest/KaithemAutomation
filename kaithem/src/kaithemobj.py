@@ -3,7 +3,6 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import importlib
 import os
 import random
 import subprocess
@@ -13,11 +12,11 @@ import traceback
 import weakref
 from typing import Any, Callable, Dict, List, Optional
 
-import jinja2
 from icemedia import sound_player as sound
 from scullery import persist as sculleryPersist
 
 from kaithem import __version__
+from kaithem.api import web as webapi
 
 from . import (
     alerts,
@@ -31,6 +30,7 @@ from . import (
     pages,
     persist,
     scriptbindings,
+    tagfilters,
     tagpoints,
     unitsofmeasure,
     util,
@@ -38,23 +38,8 @@ from . import (
     workers,
 )
 from . import astrallibwrapper as sky
-from .api import web as webapi
 
 bootTime = time.time()
-
-
-# This is for plugins to use and extend pageheader.
-_jl = jinja2.FileSystemLoader(
-    [os.path.join(directories.htmldir, "jinjatemplates"), "/"],
-    encoding="utf-8",
-    followlinks=False,
-)
-
-env = jinja2.Environment(loader=_jl, autoescape=False)
-
-
-def render_jinja_template(template_filename: str, **kw):
-    return _jl.load(env, template_filename, env.globals).render(imp0rt=importlib.import_module, **kw)
 
 
 # Persist is one of the ones that we want to be usable outside of kaithem, so we add our path resolution stuff here.
@@ -122,8 +107,8 @@ class TagInterface:
     NumericTagPointClass = tagpoints.NumericTagPointClass
 
     # HysteresisFilter = tagpoints.HysteresisFilter
-    LowpassFilter = tagpoints.LowpassFilter
-    HighpassFilter = tagpoints.HighpassFilter
+    LowpassFilter = tagfilters.LowpassFilter
+    HighpassFilter = tagfilters.HighpassFilter
 
 
 class SoundOutput:

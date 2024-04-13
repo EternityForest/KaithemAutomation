@@ -1,26 +1,25 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from . import directories, messagebus
+import getpass
+import json
+import logging
+import os
+import shutil
+import socket
+import sqlite3
+import threading
+import time
+import traceback
+import weakref
+
 from scullery import scheduling
 
-import os
-import weakref
-import time
-import sqlite3
-import logging
-import traceback
-import threading
-import getpass
-import socket
-import shutil
-import json
+from . import directories, messagebus
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
-ramdbfile = (
-    "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.ldb"
-)
+ramdbfile = "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.ldb"
 
 
 syslogger = logging.getLogger("system")
@@ -47,7 +46,7 @@ class TagLogger:
     accumType = "latest"
     defaultAccum = 0
 
-    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600, target="disk"):
+    def __init__(self, tag, interval, history_length=3 * 30 * 24 * 3600, target="disk"):
         # We can have purely ram file based logging
         if target == "disk":
             self.h = historian
@@ -63,7 +62,7 @@ class TagLogger:
         self.accumVal = self.defaultAccum
         self.accumCount = 0
         self.accumTime = 0
-        self.historyLength = historyLength
+        self.history_length = history_length
 
         # To avoid extra lock calls, the historian actually briefly takes over the tag's lock.
         self.lock = tag.lock
@@ -90,7 +89,7 @@ class TagLogger:
 
     def clearOldData(self, force=False):
         "Only called by the historian, that's why we can reuse the connection and do everything in one transaction"
-        if not self.historyLength:
+        if not self.history_length:
             return
 
         # Attempt to detect impossible times indicating the clock is wrong.
@@ -103,7 +102,7 @@ class TagLogger:
             c = conn.cursor()
             c.execute(
                 "SELECT count(*) FROM record WHERE channel=? AND timestamp<?",
-                (self.chID, time.time() - self.historyLength),
+                (self.chID, time.time() - self.history_length),
             )
             count = c.fetchone()[0]
 
@@ -111,7 +110,7 @@ class TagLogger:
             if count > 8192 if not force else 1024:
                 c.execute(
                     "DELETE FROM record WHERE channel=? AND timestamp<?",
-                    (self.chID, time.time() - self.historyLength),
+                    (self.chID, time.time() - self.history_length),
                 )
             conn.close()
 
@@ -232,11 +231,7 @@ class TagLogger:
                 raise ValueError("bad tag accum " + str(self.accumType))
 
             for i in c:
-                if (
-                    i["tagName"] == tag.name
-                    and i["unit"] == tag.unit
-                    and i["accumulate"] == self.accumType
-                ):
+                if i["tagName"] == tag.name and i["unit"] == tag.unit and i["accumulate"] == self.accumType:
                     self.chID = i["rowid"]
 
             if not self.chID:
@@ -307,9 +302,7 @@ class MinLogger(TagLogger):
                 return
 
         offset = time.time() - time.monotonic()
-        self.insertData(
-            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal)
-        )
+        self.insertData((self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = 10**18
@@ -336,9 +329,7 @@ class MaxLogger(MinLogger):
                 return
 
         offset = time.time() - time.monotonic()
-        self.insertData(
-            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal)
-        )
+        self.insertData((self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = -(10**18)
@@ -367,9 +358,7 @@ class TagHistorian:
         self.history = sqlite3.Connection(file)
 
         try:
-            self.history.execute(
-                "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)"
-            )
+            self.history.execute("CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
         except Exception:
             shutil.move(file, file + ".error_archived")
             newfile = True
@@ -383,18 +372,14 @@ class TagHistorian:
         self.lock = threading.RLock()
         self.children = {}
 
-        self.history.execute(
-            "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)"
-        )
-        self.history.execute(
-            "CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)"
-        )
+        self.history.execute("CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
+        self.history.execute("CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)")
 
         self.history.execute(
-            "CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.tagName as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"
+            "CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.tagName as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"  # noqa
         )
         self.history.execute(
-            "CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.tagName as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"
+            "CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.tagName as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"  # noqa
         )
 
         self.pending = []
@@ -477,7 +462,5 @@ try:
 except Exception:
     messagebus.post_message(
         "/system/notifications/errors",
-        "Failed to create tag historian, logging will not work."
-        + "\n"
-        + traceback.format_exc(),
+        "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc(),
     )

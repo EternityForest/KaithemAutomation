@@ -23,12 +23,15 @@ from cherrypy import _cperror
 from cherrypy.lib.static import serve_file
 from tornado.routing import AnyMatches, Matcher, PathMatches, Rule, RuleRouter
 
+from kaithem.api import web as webapi
+
 from . import (
     ManageUsers,
     alerts,
     auth,
     devices,
     devices_interface,
+    dialogs,
     directories,
     logviewer,
     messagebus,
@@ -47,7 +50,6 @@ from . import (
     widgets,
     wsgi_adapter,
 )
-from .api import web as webapi
 from .chandler import web as cweb
 from .config import config
 
@@ -285,23 +287,36 @@ class webapproot:
     def tagpoints(self, *path, show_advanced="", **data):
         # This page could be slow because of the db stuff, so we restrict it more
         pages.require("system_admin")
-        if "new_numtag" in data:
+
+        if "__new_prompt__" in path:
+            d = dialogs.Dialog(f"New Tag in {data['module']}")
+            d.text_input("new_tag_name", title="Tag Name")
+            d.selection("new_tag_type", options=["numeric", "string"], title="Type")
+            d.text_input("resource", title="Resource(Blank=use tag name)")
+            d.submit_button("Submit")
+            return d.render("/tagpoints/", {"module": data["module"]})
+
+        if "new_tag_type" in data:
             pages.postOnly()
-            return pages.get_template("settings/tagpoint.html").render(
-                new_numtag=data["new_numtag"],
-                tagname=data["new_numtag"],
-                show_advanced=True,
-            )
-        if "new_strtag" in data:
-            pages.postOnly()
-            return pages.get_template("settings/tagpoint.html").render(
-                new_strtag=data["new_strtag"],
-                tagname=data["new_strtag"],
-                show_advanced=True,
+            tagpoints.new_tag_POST(
+                data["new_tag_name"], new_tag_type=data["new_tag_type"], module=data["module"], resource=data["resource"]
             )
 
-        if data:
+        if path:
+            tn = "/".join(path)
+            if (not tn.startswith("=")) and not tn.startswith("/"):
+                tn = "/" + tn
+        else:
+            tn = data.get("new_tag_name", "")
+
+        if data and "new_tag_type" not in data:
+            if not tn:
+                raise ValueError("No tag name")
             pages.postOnly()
+            tagpoints.handle_POST(
+                tn,
+                **data,
+            )
 
         if path:
             tn = "/".join(path)
@@ -309,9 +324,9 @@ class webapproot:
                 tn = "/" + tn
             if tn not in tagpoints.allTags:
                 raise ValueError("This tag does not exist")
-            return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=data, show_advanced=show_advanced)
+            return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=data, show_advanced=True, module="", resource="")
         else:
-            return pages.get_template("settings/tagpoints.html").render(data=data)
+            return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
 
     @cherrypy.expose
     def tagpointlog(self, *path, **data):
@@ -548,7 +563,7 @@ def startServer():
     ]
 
     x = []
-    for i in webapi.wsgi_apps:
+    for i in webapi._wsgi_apps:
         x += [
             (
                 KAuthMatcher(i[0], i[2]),
@@ -563,7 +578,7 @@ def startServer():
         ]
 
     xt = []
-    for i in webapi.tornado_apps:
+    for i in webapi._tornado_apps:
         xt += [
             (KAuthMatcher(i[0], i[3]), i[1], i[2]),
             (

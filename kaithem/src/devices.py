@@ -680,9 +680,9 @@ class Device(iot_devices.device.Device):
 
     def __setupTagPerms(self, t, writable=True):
         # Devices can have a default exposure
-        readPerms = self.config.get("kaithem.read_perms", "").strip()
-        writePerms = self.config.get("kaithem.write_perms", "").strip()
-        t.expose(readPerms, writePerms if writable else [])
+        read_perms = self.config.get("kaithem.read_perms", "").strip()
+        write_perms = self.config.get("kaithem.write_perms", "").strip()
+        t.expose(read_perms, write_perms if writable else [])
 
     def handle_web_request(self, relpath, params, method, **kwargs):
         "To be called by the framework"

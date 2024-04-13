@@ -70,8 +70,10 @@
                 href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}">{{ modules.additionalTypes[i].createButton| escape }}</a>
             {% endif %}
             {% endfor %}
+            <a class="button"
+            href="/tagpoints/__new_prompt__?module={{url(name)}}">Tagpoint</a>
 
-            <form action="/modules/module/{{url(name)}}/scanfiles" method="POST" name="new">
+            <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
 
@@ -81,6 +83,7 @@
                     </i></button>
 
             </form>
+
         </div>
         <dl>
             {% if path and len(util.split_escape(path[0],"/","\\"))>1 %}
@@ -198,6 +201,22 @@
                 </div>
             </dt>
             {% endif %}
+
+            {% if module[i]['resource-type'] == 'tagpoint' %}
+            <dt>
+                <div class="tool-bar w-full">
+                    <h3>
+                        <a
+                            href="/tagpoints/{{module[i]['tag']['name']}}"> <i class="mdi mdi-chip"></i> {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                    </h3>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-molecule"></i>Delete</a>
+                    <br>
+                </div>
+            </dt>
+            {% endif %}
+
+
             {% if module[i]['resource-type'] == 'device' %}
             <dt>
                 <div class="tool-bar w-full">

@@ -8,7 +8,7 @@ import webbrowser
 from flask import redirect, url_for
 from sqlite_web import app, initialize_app, sqlite_web
 
-from kaithem.src.api import web as webapi
+from kaithem.api import web as webapi
 
 
 def install_auth_handler():

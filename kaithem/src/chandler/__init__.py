@@ -289,21 +289,21 @@ k_interface = ObjPlugin()
 kaithem.chandler = k_interface
 
 
-def nbr():
+def _nbr():
     return (
         50,
         '<a href="/chandler/commander"><i class="mdi mdi-dance-ballroom"></i>Chandler</a>',
     )
 
 
-kaithem.web.nav_bar_plugins["chandler"] = nbr
+kaithem.web.nav_bar_plugins["chandler"] = _nbr
 
 
-def nbr2():
+def _nbr2():
     return (50, '<a href="/chandler/editor"><i class="mdi mdi-pencil"></i>Editor</a>')
 
 
-kaithem.web.nav_bar_plugins["chandler2"] = nbr2
+kaithem.web.nav_bar_plugins["chandler2"] = _nbr2
 
 
 controluniverse = universes.Universe("control")

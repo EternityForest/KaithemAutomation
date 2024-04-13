@@ -120,19 +120,10 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 %endfor
 </table>
 
-<div class="menubar tool-bar">
-    <form method="POST" action="/tagpoints">
-        <input name="new_numtag"><input type="submit" value="New Number Tag">
-    </form>
-    <form method="POST" action="/tagpoints">
-        <input name="new_strtag"><input type="submit" value="New String Tag">
-    </form>
-    <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
-</div>
 <h3>Configured but not used</h3>
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>Empty configs go away when the server state is saved</details>
 <ul>
-%for i in tagpoints.configTagData:
+%for i in tagpoints.config_tag_data:
 %if not i in tagpoints.allTags:
 <li><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a></li>
 %endif

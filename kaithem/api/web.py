@@ -1,12 +1,15 @@
-import html
-import json
-import re
+import html as _html
+import json as _json
+import os as _os
+import re as _re
 
-import cherrypy
-import yaml
+import cherrypy as _cherrypy
+import jinja2 as _jinja2
+import yaml as _yaml
 
-from .. import pages as _pages
-from .. import theming
+from kaithem.src import directories as _directories
+from kaithem.src import pages as _pages
+from kaithem.src import theming
 
 theming = theming
 
@@ -15,26 +18,43 @@ controllers = _pages.nativeHandlers
 nav_bar_plugins = _pages.nav_bar_plugins
 
 
-wsgi_apps = []
-tornado_apps = []
+_wsgi_apps = []
+_tornado_apps = []
+
+
+# This is for plugins to use and extend pageheader.
+_jl = _jinja2.FileSystemLoader(
+    [_os.path.join(_directories.htmldir, "jinjatemplates"), "/"],
+    encoding="utf-8",
+    followlinks=False,
+)
+
+_env = _jinja2.Environment(loader=_jl, autoescape=False)
+
+
+def render_jinja_template(template_filename: str, **kw):
+    """Given the filename of a template, render it in a context where it has
+    access to certain Kaithm standard templates.
+    """
+    return _jl.load(_env, template_filename, _env.globals).render(**kw)
 
 
 def add_wsgi_app(pattern: str, app, permission="system_admin"):
     "Mount a WSGI application to handle all URLs matching the pattern regex"
-    wsgi_apps.append((pattern, app, permission))
+    _wsgi_apps.append((pattern, app, permission))
 
 
 def add_tornado_app(pattern: str, app, args, permission="system_admin"):
     "Mount a Tornado application to handle all URLs matching the pattern regex"
-    tornado_apps.append((pattern, app, args, permission))
+    _tornado_apps.append((pattern, app, args, permission))
 
 
 def go_back():
-    raise cherrypy.HTTPRedirect(cherrypy.request.headers["Referer"])
+    raise _cherrypy.HTTPRedirect(_cherrypy.request.headers["Referer"])
 
 
 def goto(url):
-    raise cherrypy.HTTPRedirect(url)
+    raise _cherrypy.HTTPRedirect(url)
 
 
 def serve_file(*a, **k):
@@ -66,11 +86,11 @@ def freeboard(page, kwargs, plugins=[]):
     Used to unclutter user created pages that use it.
     Should not be messed with manually most likely
     """
-    if cherrypy.request.method == "POST":
+    if _cherrypy.request.method == "POST":
         _pages.require("system_admin")
-        c = re.sub(
+        c = _re.sub(
             r"<\s*freeboard-data\s*>[\s\S]*<\s*\/freeboard-data\s*>",
-            "<freeboard-data>\n" + html.escape(yaml.dump(json.loads(kwargs["bd"]))) + "\n</freeboard-data>",
+            "<freeboard-data>\n" + _html.escape(_yaml.dump(_json.loads(kwargs["bd"]))) + "\n</freeboard-data>",
             page.getContent(),
         )
         page.setContent(c)

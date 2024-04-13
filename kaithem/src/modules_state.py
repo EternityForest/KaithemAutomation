@@ -204,7 +204,7 @@ def saveResource(m, r, resourceData, name=None):
     # In the upload code itself.
 
 
-def rawDeleteResource(m: str, r: str):
+def rawDeleteResource(m: str, r: str, type: str | None = None):
     """
     Delete a resource from the module, but don't do
     any bookkeeping. Will not remove whatever runtime objectes
@@ -214,6 +214,9 @@ def rawDeleteResource(m: str, r: str):
     modulename, resource = m, r
 
     resourceData = ActiveModules[m].pop(r)
+
+    if type and resourceData["resource-type"] != type:
+        raise ValueError("Resource exists but is wrong type")
 
     # Open a file at /where/module/resource
     fn = getResourceFn(modulename, resource, resourceData)

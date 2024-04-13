@@ -45,7 +45,7 @@ This of course, means that it is possible to create deadlocks.
 
 To prevent this, tags have a timeout, of around ten seconds after which they will give up on most actions and raise a RuntimeError. As kaithem is all about auto-retry in case of error, this shoud save you from most mistaks, but you should still be aware.
 
-Reading from tags may or may not involve the lock, due to caching. 
+Reading from tags may or may not involve the lock, due to caching.
 
 You can always break possible lock cycles by doing something in a background thread,
 if the application can handle it.
@@ -71,7 +71,7 @@ Errors in getters are logged, and the most recent value is used. Errors in sette
 
 #### TagPoint.value
 
-Property that can get the tag's value, or set the value of the default claim. 
+Property that can get the tag's value, or set the value of the default claim.
 
 Errors in getters will never cause an error to be raised getting or setting this.
 
@@ -116,11 +116,11 @@ A tag may only have one handler, and the tag strongly references it.
 
 
 #### TagPoint.unit
-A string that determines the unit of a tag. Units are expressed in strings like "m" or "degF". Currently only a small number 
+A string that determines the unit of a tag. Units are expressed in strings like "m" or "degF". Currently only a small number
 of unit conversions are supported natively and others use pint, which is not as fast.
 
-SI prefixes should not be used in units, as it interferes with auto-prefixing for display that meter widgets can do, 
-and generally complicates coding. This includes kilograms. 
+SI prefixes should not be used in units, as it interferes with auto-prefixing for display that meter widgets can do,
+and generally complicates coding. This includes kilograms.
 
 Grams should be used for internal calculations instead despite Kg being the base unit according to SI.
 
@@ -199,10 +199,10 @@ This means that you can write a Null to it, and everyone will be able to see tha
 
 
 
-You must always have at least one read permission, and writePerms defaults to `__admin__`.   Note that if the user
+You must always have at least one read permission, and write_perms defaults to `__admin__`.   Note that if the user
 sets or configures any permissions via the web API, they will override those set in code.
 
-If readPerms or writePerms is empty, disable exposure.
+If read_perms or write_perms is empty, disable exposure.
 
 You cannot have different priority levels for different users this way, that would be highly confusing. Use multiple tags
 or code your own API for that.
@@ -313,7 +313,7 @@ Kaithem has a specific API for filters. Custom filters are encouraged to use thi
 
 ### Filter(name, inputTag, *,priority=60,interval=-1)
 
-Create a tag with the name(Or use any existing tag), claim it with priority 60, and manage it as a filtered version of the input tag. 
+Create a tag with the name(Or use any existing tag), claim it with priority 60, and manage it as a filtered version of the input tag.
 Both pull and push data must be supported.
 
 interval only affects output tags, -1 indicates automatic.

@@ -33,106 +33,17 @@ def combineLogs(a):
     pageGCListIgnoreFlag = True
 
 
-    tagConfig={}
-    ald = {}
 
-    if new_numtag:
-        tag=tagpoints.Tag(new_numtag)
-    elif new_strtag:
-        tag=tagpoints.StringTag(new_strtag)
-
+    if tagName in tagpoints.allTags:
+        tag=tagpoints.allTags[tagName]()
     else:
-        if data:
-            pages.postOnly()
-            with tagpoints.lock:
-                loggers = {}
-                loggersList = []
-                loggerTypes={}
+        tag=tagpoints.Tag(tagName)
 
-                for i in data:
-                    if i.startswith("alarm_"):
-                        x = i.split("_",1)[1]
-                        if x.count(":")>1:
-                            raise ValueError("Likely invalid alarm name containing :")
-
-                        alarmName, alarmProperty =x.split(":")
-
-
-                        #There's no row yet for the new alarm that might be happening
-                        if alarmName=="NEW":
-                            alarmName = data['alarm_NEW:name']
-                            if not alarmName:
-                                continue
-
-                        if not alarmName in ald:
-                            ald[alarmName]={}
-
-                        ald[alarmName][alarmProperty] = data[i]
-
-
-                    if i.startswith("logger_"):
-                        x = i.split("_",1)[1]
-
-                        loggerNumber, loggerProperty =x.split(":")
-
-                        # Nonempty props indicate we don't get rid of it
-                        if not loggerNumber in loggers:
-                            loggers[loggerNumber]={}
-                        loggers[loggerNumber][loggerProperty] = data[i]
-
-
-
-                for i in sorted(list(loggers.keys())):
-                    interval = float(loggers[i]['interval'])
-                    historyLength = float(loggers[i]['historyLength'])
-                    accumulate = loggers[i]['accumulate']
-                    target=loggers[i].get("target",'disk')
-                    if interval:
-                        #It would create confusing output if you did this
-                        if accumulate in loggerTypes:
-                            raise RuntimeError("Can't have two loggers of the same type")
-                        loggerTypes[accumulate]=True
-
-                        loggersList.append({'interval':interval, 'accumulate':accumulate,'historyLength':historyLength,'target':target})
-
-                for i in list(ald.keys()):
-                    #Changing name to empty
-                    #Setting an alarm to  none is how  you delete it
-                    if 'name' in ald[i]:
-                        if not ald[i]['name'].strip():
-                            ald[i]=None
-
-                        #Rename
-                        elif ald[i]['name'] !=  i:
-                            ald[ald[i]['name']] =  ald[i]
-                            del  ald[i]
-
-                data['alarms']=ald
-                data['loggers']=loggersList
-
-                data['permissions']= [data['readPerms'],data['writePerms'],data['apiPriority'] ]
-
-                del data['readPerms']
-                del data['writePerms']
-                del data['apiPriority']
-
-                tagpoints.config_tag_from_data(tagName,data)
-
-            raise cherrypy.HTTPRedirect("/tagpoints/"+ util.url(tagName))
-
-        if tagName in tagpoints.allTags:
-            tag=tagpoints.allTags[tagName]()
-        else:
-            tag=tagpoints.Tag(tagName)
     #normalize
     normalizednormalizedTagName=tag.name
 
-    configData = tagpoints.configTagData.get(normalizednormalizedTagName,{})
+    configData = tagpoints.config_tag_data.get(normalizednormalizedTagName,{})
     ald= configData.get('alarms',{})
-
-
-
-
 
 
     if hasattr(tag, 'kweb_manual_override_claim') and tag.kweb_manual_override_claim:
@@ -151,7 +62,6 @@ def combineLogs(a):
     # Use to show the placeholders for what you'll get if you blank out something
     defaultAlarmData = collections.defaultdict(lambda: {})
     defaultAlarmData.update(tag.dynamic_alarm_data)
-
 
 
 %>
@@ -301,6 +211,21 @@ else:
         <td>${tag.unit|h}</td>
     </tr>
     %endif
+
+
+    <tr>
+        <td>Module</td>
+        <td>
+            <input name="module" value="${module or tag.module|h}">
+        </td>
+    </tr>
+
+    <tr>
+        <td>Resource</td>
+        <td>
+            <input name="resource" value="${resource or tag.resource|h}">
+        </td>
+    </tr>
 </table>
 
 <h3>Config</h3>
@@ -451,7 +376,7 @@ else:
         <td>Read Permissions</td>
 
     <td>
-        <input name="readPerms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
+        <input name="read_perms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
     </td>
     </tr>
 
@@ -459,14 +384,14 @@ else:
         <td>Write Permissions(comma separated, empty for admin-only)</td>
 
     <td>
-        <input name="writePerms" value="${configData.get('permissions',['','',''])[1]|h}" placeholder="${tag.getEffectivePermissions()[1]|h}" style="width:24em">
+        <input name="write_perms" value="${configData.get('permissions',['','',''])[1]|h}" placeholder="${tag.getEffectivePermissions()[1]|h}" style="width:24em">
     </td>
 </tr>
     <tr>
         <td>Priority of claims set by the API</td>
 
     <td>
-        <input name="apiPriority" value="${configData.get('permissions',['','',''])[2]|h}" placeholder="${tag.getEffectivePermissions()[2]|h}" style="width:24em">
+        <input name="api_priority" value="${configData.get('permissions',['','',''])[2]|h}" placeholder="${tag.getEffectivePermissions()[2]|h}" style="width:24em">
     </td>
  </tr>
 </table>
@@ -571,7 +496,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
             %endif
         </select>
     </td>
-    <td><input type="number" step="1800" value="${i.get('historyLength',3*30*24*3600)}" name="logger_${n}:historyLength"></td>
+    <td><input type="number" step="1800" value="${i.get('history_length',3*30*24*3600)}" name="logger_${n}:history_length"></td>
     <td>
         <select name="logger_${n}:target">
             <option value="ram" ${'selected' if i.get("target","disk")=='disk' else ''}>RAM</option>

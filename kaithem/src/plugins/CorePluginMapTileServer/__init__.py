@@ -7,8 +7,8 @@ import random
 import tornado
 from tornado import httpclient
 
+from kaithem.api import web as webapi
 from kaithem.src import directories, pages
-from kaithem.src.api import web as webapi
 
 http_client = httpclient.AsyncHTTPClient()
 

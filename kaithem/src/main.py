@@ -159,8 +159,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     auth.initializeAuthentication()
     logger.info("Loaded auth data")
 
-    tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir, "tags"))
-
     if cfg.argcmd.initialpackagesetup:
         auth.dumpDatabase()
         logger.info("Kaithem users set up. Now exiting.")

@@ -9,7 +9,6 @@ import gc
 import json
 import logging
 import math
-import os
 import random
 import re
 import threading
@@ -27,20 +26,13 @@ from typing import (
 )
 
 import beartype
+import cherrypy
 import dateutil
 import dateutil.parser
 from scullery import scheduling
 
-from . import (
-    alerts,
-    directories,
-    messagebus,
-    persist,
-    taghistorian,
-    util,
-    widgets,
-    workers,
-)
+from . import alerts, messagebus, modules_state, taghistorian, util, widgets, workers
+from .modules_state import ResourceType, additionalTypes
 from .unitsofmeasure import convert, unit_types
 
 
@@ -155,35 +147,10 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
 
 
 configTags: dict[str, object] = {}
-configTagData: dict[str, persist.SharedStateFile] = {}
 
-
-def get_filename_for_tag_config(i: str):
-    "Given the name of a tag, get the name of it's config file"
-    if i.startswith("/"):
-        n = i[1:]
-    else:
-        n = i
-    if n.startswith("="):
-        n = f"=/{util.url(n[1:])}"
-    return os.path.join(directories.vardir, "tags", f"{n}.yaml")
-
-
-def _gc_empty_config_tags():
-    torm: list[str] = []
-    # Empty dicts can be deleted from disk, letting us just revert to defaultsP
-    for i in configTagData:
-        if not configTagData[i].getAllData():
-            # Can't delete the actual data till the file on disk is gone,
-            # Which is handled by the persist libs
-            if not os.path.exists(configTagData[i].filename):
-                torm.append(i)
-
-    # Note that this is pretty much the only way something can ever be deleted,
-    # When it is empty we garbarge collect it.
-    # This means we never need to worry about what to keep config data for.
-    for i in torm:
-        configTagData.pop(i, 0)
+# This holds user configuration for each tag that's configured.  It is
+# indexed by tag name.  We flush it to the module/resource.
+config_tag_data: dict[str, dict[str, Any]] = {}
 
 
 # _ and . allowed
@@ -231,6 +198,10 @@ class GenericTagPointClass(Generic[T]):
         _name: str = normalize_tag_name(name)
         if _name in allTags:
             raise RuntimeError("Tag with this name already exists, use the getter function to get it instead")
+
+        # If tag was defined by a resource.
+        self.module = ""
+        self.resource = ""
 
         # Todo WHY cant we type it as claim[T]??
         self.kweb_manual_override_claim: Claim[Any] | None
@@ -287,7 +258,7 @@ class GenericTagPointClass(Generic[T]):
 
         self._dynConfigValues: dict[str, Any] = {}
         self.dynamic_alarm_data: dict[str, dict[str, Any]] = {}
-        self.configuredAlarmData: dict[str, persist.SharedStateFile] = {}
+        self.configuredAlarmData: dict[str, dict[str, Any]] = {}
         # The merged combo of both of those
         self.effective_alarm_data: dict[str, Any] = {}
 
@@ -422,10 +393,10 @@ class GenericTagPointClass(Generic[T]):
             self.exprClaim = self.createGetterFromExpression(self.name)
             self.writable = False
         with lock:
-            d: Any = configTagData.get(self.name, {})
+            d: Any = config_tag_data.get(self.name, {})
             if hasattr(d, "data"):
                 d = d.data.copy()
-            self.set_config_data(d)
+            self.set_config_data(d, save=False)
 
     @property
     def meterWidget(self):
@@ -608,12 +579,12 @@ class GenericTagPointClass(Generic[T]):
         Get the permissions that currently apply here. Configured ones override in-code ones
 
         Returns:
-            list: [readPerms, writePerms, writePriority]. Priority determines the priority of web API claims.
+            list: [read_perms, write_perms, writePriority]. Priority determines the priority of web API claims.
         """
         d2 = [
-            self.configuredPermissions[0] or self.permissions[0],
-            self.configuredPermissions[1] or self.permissions[1],
-            self.configuredPermissions[2] or self.permissions[2],
+            str(self.configuredPermissions[0] or self.permissions[0]),
+            str(self.configuredPermissions[1] or self.permissions[1]),
+            str(self.configuredPermissions[2] or self.permissions[2]),
         ]
 
         # Block exposure at all if the permission is never
@@ -690,17 +661,16 @@ class GenericTagPointClass(Generic[T]):
         # Treat them as meaning to get rid of the attr
         if v not in (None, "") and (v.strip() if isinstance(v, str) else True):
             self.configOverrides[k] = v
-            if self.name not in configTagData:
-                configTagData[self.name] = persist.getStateFile(get_filename_for_tag_config(self.name))
-                configTagData[self.name][k] = v
-                configTagData[self.name].noFileForEmpty = True
-            configTagData[self.name][k] = v
+            if self.name not in config_tag_data:
+                config_tag_data[self.name] = {}
+                config_tag_data[self.name][k] = v
+            config_tag_data[self.name][k] = v
         else:
             # Setting at attr to none or an empty string
             # Deletes it.
             self.configOverrides.pop(k, 0)
-            if self.name in configTagData:
-                configTagData[self.name].pop(k, 0)
+            if self.name in config_tag_data:
+                config_tag_data[self.name].pop(k, 0)
 
     def recalc(self, *a):
         "Just re-get the value as needed"
@@ -764,6 +734,34 @@ class GenericTagPointClass(Generic[T]):
 
             hasUnsavedData[0] = True
 
+    @beartype.beartype
+    def save_to_module(self, module: str, resourcename: str):
+        global fully_loaded
+        resourcename = resourcename or (self.name.replace("/", "_")[1:])
+
+        if self.module != module or resourcename != self.resource:
+            try:
+                modules_state.rawDeleteResource(module, resourcename, type="tagpoint")
+            except KeyError:
+                pass
+
+        self.module = module
+        self.resource = resourcename
+
+        d = copy.copy(config_tag_data.get(self.name, {}))
+
+        d.pop("module", None)
+        d.pop("resource", None)
+
+        d["name"] = self.name
+
+        modules_state.ActiveModules[module][resourcename] = {
+            "resource-type": "tagpoint",
+            "tag": d,
+        }
+        modules_state.saveResource(module, resourcename, {"resource-type": "tagpoint", "tag": d})
+        modules_state.modulesHaveChanged()
+
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
     @beartype.beartype
     def set_alarm(
@@ -821,16 +819,15 @@ class GenericTagPointClass(Generic[T]):
                 if not isConfigured:
                     self.dynamic_alarm_data[name] = d
 
-            # If we have configured alarms, there should be a configTagData entry.
+            # If we have configured alarms, there should be a config_tag_data entry.
             # If not, delete, because when that is empty it's how we know
             # to delete the actual file
             if isConfigured:
                 if self.configuredAlarmData:
-                    if self.name not in configTagData:
-                        configTagData[self.name] = persist.getStateFile(get_filename_for_tag_config(self.name))
-                        configTagData[self.name].noFileForEmpty = True
+                    if self.name not in config_tag_data:
+                        config_tag_data[self.name] = {}
 
-                configTagData[self.name]["alarms"] = self.configuredAlarmData
+                config_tag_data[self.name]["alarms"] = self.configuredAlarmData
 
             if _refresh:
                 x = self.createAlarm(name)
@@ -1115,16 +1112,18 @@ class GenericTagPointClass(Generic[T]):
 
         return alarmPollFunction
 
-    def set_config_data(self, data: dict[str, Any]):
+    def set_config_data(self, data: dict[str, Any], save=True):
         with lock:
             hasUnsavedData[0] = True
             # New config, new chance to see if there's a problem.
             self.alreadyPostedDeadlock = False
             self._runtime_config_data.update(data)
 
-            if data and self.name not in configTagData:
-                configTagData[self.name] = persist.getStateFile(get_filename_for_tag_config(self.name))
-                configTagData[self.name].noFileForEmpty = True
+            self.module = data.get("module", self.module)
+            self.resource = data.get("resource", self.resource)
+
+            if data and self.name not in config_tag_data:
+                config_tag_data[self.name] = {}
 
             if "type" in data:
                 if data["type"] == "number" and not isinstance(self, NumericTagPointClass):
@@ -1157,7 +1156,7 @@ class GenericTagPointClass(Generic[T]):
                 # external reference
                 configTags.pop(self.name, 0)
 
-            loggers = data.get("loggers", [])
+            loggers: list[dict[str, Any]] = data.get("loggers", [])
 
             if loggers:
                 self._recordConfigAttr("loggers", loggers)
@@ -1169,7 +1168,7 @@ class GenericTagPointClass(Generic[T]):
                 interval = float(i.get("interval", 60) or 60)
                 target = i.get("target", "disk")
 
-                length = float(i.get("historyLength", 3 * 30 * 24 * 3600) or 3 * 30 * 24 * 3600)
+                length = float(i.get("history_length", 3 * 30 * 24 * 3600) or 3 * 30 * 24 * 3600)
 
                 accum = i["accumulate"]
                 try:
@@ -1200,7 +1199,7 @@ class GenericTagPointClass(Generic[T]):
             # We know it has never been set.
             if "value" in data:
                 if not str(data["value"]).strip() == "":
-                    configTagData[self.name]["value"] = str(data["value"])
+                    config_tag_data[self.name]["value"] = str(data["value"])
 
                     if self.timestamp == 0:
                         # Set timestamp to 0, this marks the tag as still using a default
@@ -1212,8 +1211,8 @@ class GenericTagPointClass(Generic[T]):
                         # Which can be further changed
                         self.set_claim_val("default", self.default, 0, "Configured default")
             else:
-                if self.name in configTagData:
-                    configTagData[self.name].pop("value", 0)
+                if self.name in config_tag_data:
+                    config_tag_data[self.name].pop("value", 0)
 
             # Todo there's a duplication here, we refresh allthe alarms, not sure we need to
             self.createAlarms()
@@ -1292,6 +1291,9 @@ class GenericTagPointClass(Generic[T]):
             p = data.get("permissions", ("", "", ""))
             # Set configured permissions, overriding runtime
             self.expose(*p, configured=True)
+
+            if save:
+                self.save_to_module(self.module, self.resource)
 
     def createGetterFromExpression(self: GenericTagPointClass[T], e: str, priority=98) -> Claim[T]:
         "Create a getter for tag self using expression e"
@@ -2506,7 +2508,7 @@ class Claim(Generic[T]):
 
     @beartype.beartype
     def __init__(
-        self,
+        self: Claim,
         tag: GenericTagPointClass[T],
         value: T,
         name: str = "default",
@@ -2765,7 +2767,7 @@ class NumericClaim(Claim[float]):
 
     @beartype.beartype
     def __init__(
-        self,
+        self: NumericClaim,
         tag: NumericTagPointClass,
         value: float | Callable[[], float | None],
         name: str = "default",
@@ -2788,142 +2790,9 @@ class NumericClaim(Claim[float]):
         self.set(convert(value, unit, self.tag.unit), timestamp, annotation)
 
 
-# Math for the first order filter
-# v is our state, k is a constant, and i is input.
-
-# At each timestep of one, we do:
-# v = v*(1-k) + i*k
-
-# moving towards the input with sped determined by k.
-# We can reformulate that as explicitly taking the difference, and moving along portion of it
-# v = (v+((i-v)*k))
-
-# We can show this reformulation is correct with XCas:
-# solve((v*(1-k) + i*k) - (v+((i-v)*k)) =x,x)
-
-# x is 0, because the two equations are always the same.
-
-# Now we use 1-k instead, such that k now represents the amount of difference allowed to remain.
-# Higher k is slower.
-# (v+((i-v)*(1-k)))
-
-# Twice the time means half the remaining difference, so we are going to raise k to the power of the number of timesteps
-# at each round to account for the uneven timesteps we are using:
-# v = (v+((i-v)*(1-(k**t))))
-
-# Now we need k such that v= 1/e when starting at 1 going to 0, with whatever our value of t is.
-# So we substitute 1 for v and 0 for i, and solve for k:
-# solve(1/e = (1+((0-1)*(1-(k**t)))),k)
-
-# Which gives us k=exp(-(1/t))
-
-
-class Filter:
-    pass
-
-
-class LowpassFilter(Filter):
-    def __init__(self, name, inputTag, timeConstant, priority=60, interval=-1):
-        self.state = inputTag.value
-        self.filtered = self.state
-        self.lastRanFilter = time.monotonic()
-        self.lastState = self.state
-
-        # All math derived with XCas
-        self.k = math.exp(-(1 / timeConstant))
-        self.lock = threading.Lock()
-
-        self.inputTag = inputTag
-        inputTag.subscribe(self.doInput)
-
-        self.tag = Tag(name)
-        self.claim = self.tag.claim(self.getter, name=f"{inputTag.name}.lowpass", priority=priority)
-
-        if interval is None:
-            self.tag.interval = timeConstant / 2
-        else:
-            self.tag.interval = interval
-
-    def doInput(self, val, ts, annotation):
-        "On new data, we poll the output tag which also loads the input tag data."
-        self.tag.poll()
-
-    def getter(self):
-        self.state = self.inputTag.value
-
-        # Get the average state over the last period
-        state = (self.state + self.lastState) / 2
-        t = time.monotonic() - self.lastRanFilter
-        self.filtered = self.filtered + ((state - self.filtered) * (1 - (self.k**t)))
-        self.lastRanFilter += t
-
-        self.lastState = self.state
-
-        # Suppress extremely small changes that lead to ugly decimals and network traffic
-        if abs(self.filtered - self.state) < (self.filtered / 1000000.0):
-            return self.state
-        else:
-            return self.filtered
-
-
-class HighpassFilter(LowpassFilter):
-    def getter(self):
-        self.state = self.inputTag.value
-
-        # Get the average state over the last period
-        state = (self.state + self.lastState) / 2
-        t = time.monotonic() - self.lastRanFilter
-        self.filtered = self.filtered + ((state - self.filtered) * (1 - (self.k**t)))
-        self.lastRanFilter += t
-
-        self.lastState = self.state
-
-        s = self.state - self.filtered
-
-        # Suppress extremely small changes that lead to ugly decimals and network traffic
-        if abs(s) < (0.0000000000000001):
-            return 0
-        else:
-            return s
-
-
-# class HysteresisFilter(Filter):
-#     def __init__(self, name, inputTag, hysteresis=0, priority=60):
-#         self.state = inputTag.value
-
-#         # Start at midpoint with the window centered
-#         self.hysteresisUpper = self.state + hysteresis / 2
-#         self.hysteresisLower = self.state + hysteresis / 2
-#         self.lock = threading.Lock()
-
-#         self.inputTag = inputTag
-#         inputTag.subscribe(self.doInput)
-
-#         self.tag = _NumericTagPoint(name)
-#         self.claim = self.tag.claim(
-#             self.getter, name=inputTag.name + ".hysteresis", priority=priority)
-
-#     def doInput(self, val, ts, annotation):
-#         "On new data, we poll the output tag which also loads the input tag data."
-#         self.tag.poll()
-
-#     def getter(self):
-#         with self.lock:
-#             self.lastState = self.state
-
-#             if val >= self.hysteresisUpper:
-#                 self.state = val
-#                 self.hysteresisUpper = val
-#                 self.hysteresisLower = val - self.hysteresis
-#             elif val <= self.hysteresisLower:
-#                 self.state = val
-#                 self.hysteresisUpper = val + self.hysteresis
-#                 self.hysteresisLower = val
-#             return self.state
-
-
-def config_tag_from_data(name: str, data: dict):
+def config_tag_from_data(name: str, data: dict, module: str, resourcename: str, save=False):
     name = normalize_tag_name(name)
+    resourcename = resourcename or (name.replace("/", "_")[1:])
 
     t = data.get("type", "")
 
@@ -2948,39 +2817,163 @@ def config_tag_from_data(name: str, data: dict):
         tag = StringTag(name)
     elif name in allTags:
         tag = allTags[name]()
-    else:
-        # Config later when the tag is actually created
-        configTagData[name] = persist.getStateFile(get_filename_for_tag_config(name))
-        for i in data:
-            configTagData[name][i] = data[i]
-        return
+
+    # Config later when the tag is actually created
+    config_tag_data[name] = {}
+    for i in data:
+        config_tag_data[name][i] = data[i]
+
+    config_tag_data[name]["module"] = module
+    config_tag_data[name]["resource"] = resourcename
 
     if tag:
         configTags[name] = tag
+        tag.module = module
+        tag.resource = resourcename
         # Now set it's config.
-        tag.set_config_data(data)
+        tag.set_config_data(data, save=save)
+    else:
+        if save:
+            d = copy.copy(config_tag_data[name])
+            m = d.pop("module", None)
+            r = d.pop("resource", None)
+            d["name"] = name
 
-
-def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
-    with lock:
-        global configTagData
-
-        configTagData = persist.loadAllStateFiles(f)
-
-        _gc_empty_config_tags()
-
-        for i in list(configTagData.keys()):
-            try:
-                config_tag_from_data(i, configTagData[i].getAllData())
-            except Exception:
-                logging.exception(f"Failure with configured tag: {i}")
-                messagebus.post_message(
-                    "/system/notifications/errors",
-                    f"Failed to preconfigure tag {i}\n{traceback.format_exc()}",
-                )
+            if m and r:
+                modules_state.ActiveModules[module][resourcename] = {
+                    "resource-type": "tagpoint",
+                    "tag": config_tag_data[name],
+                }
+                modules_state.saveResource(module, resourcename, {"resource-type": "tagpoint", "tag": config_tag_data[name]})
+                modules_state.modulesHaveChanged()
 
 
 Tag = NumericTagPointClass.Tag
 ObjectTag = ObjectTagPointClass.Tag
 StringTag = StringTagPointClass.Tag
 BinaryTag = BinaryTagPointClass.Tag
+
+
+fully_loaded = False
+
+
+class TagResourceType(ResourceType):
+    def onfinishedloading(self):
+        global fully_loaded
+        fully_loaded = True
+
+    def onload(self, module, resourcename, value):
+        tag_name: str = value["tag"]["name"]
+
+        try:
+            config_tag_from_data(tag_name, value["tag"], module, resourcename)
+        except Exception:
+            logging.exception(f"Failure with configured tag: {tag_name}")
+            messagebus.post_message(
+                "/system/notifications/errors",
+                f"Failed to preconfigure tag {tag_name}\n{traceback.format_exc()}",
+            )
+
+    def ondelete(self, module, name, value):
+        configTags.pop(value["tag"]["name"])
+
+    def create(self, module, path, name, kwargs):
+        raise RuntimeError("Not implemented, devices uses it's own create page")
+
+    def createpage(self, module, path):
+        raise RuntimeError("Not implemented, devices uses it's own create page")
+
+    def editpage(self, module, name, value): ...
+
+
+tr = TagResourceType()
+additionalTypes["tagpoint"] = tr
+
+
+def new_tag_POST(tagname, new_tag_type: str, module: str, resource: str):
+    "Handle a POST for new data"
+    if new_tag_type == "numeric":
+        tag = Tag(tagname)
+    elif new_tag_type == "string":
+        tag = StringTag(tagname)
+    configTags[tagname] = tag
+
+    tag.save_to_module(module, resource)
+
+
+def handle_POST(tagname, module: str, resource: str, **data):
+    "Handle a POST for setting config on this tag"
+
+    if data:
+        ald = {}
+        with lock:
+            loggers = {}
+            loggersList = []
+            loggerTypes = {}
+
+            for i in data:
+                if i.startswith("alarm_"):
+                    x = i.split("_", 1)[1]
+                    if x.count(":") > 1:
+                        raise ValueError("Likely invalid alarm name containing :")
+
+                    alarm_name, alarm_property = x.split(":")
+
+                    # There's no row yet for the new alarm that might be happening
+                    if alarm_name == "NEW":
+                        alarm_name = data["alarm_NEW:name"]
+                        if not alarm_name:
+                            continue
+
+                    if alarm_name not in ald:
+                        ald[alarm_name] = {}
+
+                    ald[alarm_name][alarm_property] = data[i]
+
+                if i.startswith("logger_"):
+                    x = i.split("_", 1)[1]
+
+                    loggerNumber, loggerProperty = x.split(":")
+
+                    # Nonempty props indicate we don't get rid of it
+                    if loggerNumber not in loggers:
+                        loggers[loggerNumber] = {}
+                    loggers[loggerNumber][loggerProperty] = data[i]
+
+            for i in sorted(list(loggers.keys())):
+                interval = float(loggers[i]["interval"])
+                history_length = float(loggers[i]["history_length"])
+                accumulate = loggers[i]["accumulate"]
+                target = loggers[i].get("target", "disk")
+                if interval:
+                    # It would create confusing output if you did this
+                    if accumulate in loggerTypes:
+                        raise RuntimeError("Can't have two loggers of the same type")
+                    loggerTypes[accumulate] = True
+
+                    loggersList.append({"interval": interval, "accumulate": accumulate, "history_length": history_length, "target": target})
+
+            for i in list(ald.keys()):
+                # Changing name to empty
+                # Setting an alarm to  none is how  you delete it
+                if "name" in ald[i]:
+                    if not ald[i]["name"].strip():
+                        ald[i] = None
+
+                    # Rename
+                    elif ald[i]["name"] != i:
+                        ald[ald[i]["name"]] = ald[i]
+                        del ald[i]
+
+            data["alarms"] = ald
+            data["loggers"] = loggersList
+
+            data["permissions"] = [data["read_perms"], data["write_perms"], data["api_priority"]]
+
+            del data["read_perms"]
+            del data["write_perms"]
+            del data["api_priority"]
+
+            config_tag_from_data(tagname, data, module, resource, save=True)
+
+        raise cherrypy.HTTPRedirect("/tagpoints/" + util.url(tagname))
