@@ -190,9 +190,8 @@ class GenericTagPointClass(Generic[T]):
         if _name in allTags:
             raise RuntimeError("Tag with this name already exists, use the getter function to get it instead")
 
-        # If tag was defined by a resource.
-        self.module = ""
-        self.resource = ""
+        # Used to store loggers sey elsewhere.
+        self.configLoggers = weakref.WeakValueDictionary()
 
         # Todo WHY cant we type it as claim[T]??
         self.kweb_manual_override_claim: Claim[Any] | None
@@ -1767,7 +1766,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     @property
     def lo(self) -> float | int:
         if self._lo is None:
-            return 10**18
+            return -(10**18)
         return self._lo
 
     @lo.setter

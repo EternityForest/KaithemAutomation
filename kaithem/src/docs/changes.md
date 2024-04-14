@@ -11,12 +11,14 @@ to start using the [GitFlow](https://www.atlassian.com/git/tutorials/comparing-w
 
 Since this was a core feature, it will be back.  But it was one of the worst parts of the codebase AND had bad UX,  it was very much in need of a full rewrite.
 
-For now it is not possible to set or override alerts or loggers.  I normally *hate* rewrites, but believe this is really needed.
+For now it is not possible to set or override alerts.  I normally *hate* rewrites, but believe this is really needed.
 
 Tags, in newer editions, should have a single source of config, and the code for config should be separate from tag internals.
 
 - :sparkles: Switch from typeguard to Beartype.
 - :sparkles: More unit testing
+- :sparkles: Loggers are now a resource type that lives in modules, separate from tags.
+
 - :coffin: Remove more old files
 - :coffin: Remove all references to custom `recur` library, use more standard dateutil+recurrent
 - :sparkles: \_\_schedule\_\_ special cue skips ahead through a chain of cues with @time lengths, to the one matching the current time best.

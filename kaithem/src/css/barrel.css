@@ -2023,6 +2023,9 @@ footer.padding {
     gap: 0px;
     line-height: calc(var(--control-height) - calc(var(--control-border-width) * 2 + 1px));
 
+    &>*{
+        text-wrap: nowrap;
+    }
     /*Undo any effect something else set on convex elements for consistency*/
     & :is(button, .button) {
         box-shadow: none;
@@ -2182,6 +2185,7 @@ footer.padding {
     /*repeat here, specificity issue*/
     & input[type="checkbox"].toggle {
         width: calc(var(--control-height) * 1.77) !important;
+        min-width: calc(var(--control-height) * 1.77) !important;
     }
 
 
@@ -2615,6 +2619,8 @@ input[type='checkbox']:not(.toggle) {
 input[type="checkbox"].toggle {
     border-radius: 50px;
     width: calc(var(--control-height) * 1.77) !important;
+    min-width: calc(var(--control-height) * 1.77) !important;
+
     --slider-position: var(--control-border-width);
 
     &:checked {

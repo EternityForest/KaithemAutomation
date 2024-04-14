@@ -65,14 +65,12 @@
             <a class="button"
                 href="/modules/module/{{ url(name) }}/addresource/device/{{ url('/'.join(path) ) }}">Device</a>
             {% for i in modules.additionalTypes %}
-            {% if hasattr(modules.additionalTypes[i],'createButton') and modules.additionalTypes[i].createButton %}
+            {% if modules.additionalTypes[i].mdi_icon %}
             <a class="button createbutton"
-                href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}">{{ modules.additionalTypes[i].createButton| escape }}</a>
+                href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}">
+                <i class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{i.capitalize()| escape }}</a>
             {% endif %}
             {% endfor %}
-            <a class="button"
-            href="/tagpoints/__new_prompt__?module={{url(name)}}">Tagpoint</a>
-
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
@@ -202,18 +200,22 @@
             </dt>
             {% endif %}
 
-            {% if module[i]['resource-type'] == 'tagpoint' %}
+            {% if module[i]['resource-type'] in modules_state.additionalTypes %}
+            {% if modules.additionalTypes[module[i]['resource-type']].mdi_icon %}
             <dt>
-                <div class="tool-bar w-full">
+                <div class="tool-bar w-full inline">
                     <h3>
-                        <a
-                            href="/tagpoints{{module[i]['tag']['name']}}"> <i class="mdi mdi-chip"></i> {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-{{modules.additionalTypes[module[i]['resource-type']].mdi_icon}}"></i>
+                            {{ util.split_escape(i,'/','\\')[-1] | escape }} ({{module[i]['resource-type']}})</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
-                    <br>
                 </div>
             </dt>
+            <dd>
+                {{modules.additionalTypes[module[i]['resource-type']].blurb(name,i,module[i] )}}
+            </dd>
+            {% endif %}
             {% endif %}
 
 

@@ -12,10 +12,12 @@ import threading
 import time
 import traceback
 import weakref
+from typing import Callable
+from urllib.parse import quote
 
 from scullery import scheduling
 
-from . import directories, messagebus
+from . import dialogs, directories, messagebus, modules_state, tagpoints
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
@@ -337,7 +339,6 @@ class MaxLogger(MinLogger):
 
 
 accumTypes = {
-    "replace": TagLogger,
     "latest": TagLogger,
     "mean": AverageLogger,
     "max": MaxLogger,
@@ -464,3 +465,82 @@ except Exception:
         "/system/notifications/errors",
         "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc(),
     )
+
+
+loggers: dict[tuple[str, str], TagLogger] = {}
+
+pending: dict[tuple[str, str], Callable] = {}
+
+
+class LoggerType(modules_state.ResourceType):
+    def blurb(self, m, r, value):
+        return f"""
+        <div>
+            <form  action="/tagpointlog/{quote(value['tag'], safe='')}" method="post">
+                <button>View Logs</button>
+            </form>
+        </div>
+        """
+
+    def onload(self, module, resourcename, value):
+        cls = accumTypes[value["logger-type"]]
+
+        def f(v=None):
+            t = tagpoints.allTagsAtomic.get(value["tag"], None)
+            if not t:
+                return
+            t = t()
+            if not t:
+                return
+            loggers[module, resourcename] = cls(t, float(value["interval"]), int(value["history-length"]), value["log-target"])
+
+            t.configLoggers[module, resourcename] = loggers[module, resourcename]
+
+            pending.pop(module, resourcename)
+            messagebus.unsubscribe("/system/tags/created", f)
+
+        pending[module, resourcename] = f
+
+        if value["tag"] in tagpoints.allTagsAtomic:
+            f()
+        else:
+            # Do it later when ye olde tag existe.
+            messagebus.subscribe("/system/tags/created", f)
+
+    def ondelete(self, module, name, value):
+        del loggers[module, name]
+
+    def oncreate(self, module, name, kwargs):
+        d = {"resource-type": self.type}
+        d.update(kwargs)
+        d.pop("name")
+        d.pop("Save", None)
+
+        return d
+
+    def createpage(self, module, path):
+        d = dialogs.Dialog("New Logger")
+        d.text_input("name", title="Logger Name")
+        d.text_input("tag", title="Tag Point to Log")
+        d.selection("logger-type", options=list(accumTypes.keys()), title="Accumulate Mode")
+        d.selection("log-target", options=["disk", "ram"])
+        d.text_input("interval", title="Interval(seconds)")
+        d.text_input("history-length", title="History Lenth(seconds)", default=str(24 * 30 * 3600))
+
+        d.submit_button("Save")
+        return d.render(self.get_create_target(module, path))
+
+    def editpage(self, module, name, value):
+        d = dialogs.Dialog("New Logger")
+        d.text_input("tag", title="Tag Point to Log", default=value["tag"])
+        d.selection("logger-type", options=list(accumTypes.keys()), default=value["logger-type"], title="Accumulate Mode")
+        d.selection("log-target", options=["disk", "ram"], default=value["log-target"])
+        d.text_input("interval", title="Interval(seconds)", default=value["interval"])
+        d.text_input("history-length", title="History Lenth(seconds)", default=value["history-length"])
+
+        d.submit_button("Save")
+        return d.render(self.get_update_target(module, name))
+
+
+drt = LoggerType("logger", mdi_icon="sine-wave")
+modules_state.additionalTypes["logger"] = drt

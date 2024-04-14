@@ -109,6 +109,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         signalhandlers,  # noqa: F401
         systasks,  # noqa: F401
         tag_errors,  # noqa: F401
+        taghistorian,  # noqa: F401
         tagpoints,  # noqa: F401
         usrpages,  # noqa: F401
         webapproot,  # noqa: F401

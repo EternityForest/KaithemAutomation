@@ -14,6 +14,7 @@ import urllib.parse
 import weakref
 from threading import RLock
 from typing import Any, Dict
+from urllib.parse import quote
 
 import yaml
 
@@ -278,10 +279,26 @@ def saveModule(module, modulename: str):
 
 
 class ResourceType:
-    def __init__(self):
+    def __init__(self, type: str, mdi_icon=""):
+        self.type = type
+        self.mdi_icon = mdi_icon
         self.createButton = None
 
+    def get_create_target(self, module, folder):
+        return f"/modules/module/{module}/addresourcetarget/{self.type}/{quote(folder,safe='')}"
+
+    def get_update_target(self, module, resource):
+        return f"/modules/module/{quote(module)}/updateresource/{quote(resource,safe='')}"
+
+    def blurb(self, module, resource, object):
+        """Empty or a single overview div"""
+        return ""
+
     def createpage(self, module, path):
+        """
+        Must be a page with a form pointing at the create target.
+        The only required kwarg is "name"
+        """
         return f"""
 
         <form method=POST action="/modules/module/{module}/addresourcetarget/example/{path}">
@@ -290,13 +307,15 @@ class ResourceType:
         </form>
         """
 
-    def create(self, module, path, name, kwargs):
+    def oncreate(self, module, name, kwargs):
+        "Must return a resource object given kwargs from createpage"
         return {"resource-type": "example"}
 
     def editpage(self, module, resource, resourceobj):
         return str(resourceobj)
 
-    def update(self, module, resource, resourceobj, **kwargs):
+    def onupdate(self, module, resource, resourceobj, **kwargs):
+        "Called with the kwargs from editpage.  Gets old resource obj, must return new"
         return resourceobj
 
     def onload(self, module, resource, resourceobj):

@@ -240,7 +240,7 @@ class DeviceResourceType(ResourceType):
 
             delete_bookkeep(n, True)
 
-    def create(self, module, path, name, kwargs):
+    def oncreate(self, module, name, kwargs):
         raise RuntimeError("Not implemented, devices uses it's own create page")
 
     def createpage(self, module, path):
@@ -254,7 +254,7 @@ class DeviceResourceType(ResourceType):
         return pages.get_template("devices/device.html").render(data=remote_devices[n].config, obj=remote_devices[n], name=n)
 
 
-drt = DeviceResourceType()
+drt = DeviceResourceType("device")
 additionalTypes["device"] = drt
 
 

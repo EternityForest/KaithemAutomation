@@ -16,9 +16,9 @@ def combineLogs(a):
     for i in a:
         for j in a[i]:
             op.append((j[0],unitsofmeasure.strftime(j[0]),i,j[1]))
-    
+
     return sorted(op)
-    
+
 %>
 <%
     tz=pytz.timezone(auth.getUserSetting(pages.getAcessingUser(),'timezone'))
@@ -76,7 +76,7 @@ def combineLogs(a):
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
 
     %if isinstance(tag,tagpoints.NumericTagPointClass):
-        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
+        %for i in combineLogs({tag.configLoggers[i].accumType:tag.configLoggers[i].getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
         <tr>
             <td>${i[1]}</td>
             <td>${i[2]}</td>
@@ -90,7 +90,7 @@ def combineLogs(a):
         </tr>
         %endfor
     %else:
-        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
+        %for i in combineLogs({tag.configLoggers[i].accumType:tag.configLoggers[i].getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
         <tr>
             <td>${i[1]}</td>
             <td>${i[2]}</td>

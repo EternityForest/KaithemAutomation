@@ -43,7 +43,7 @@ class Dialog:
 
         self.items.append((title, f'<input type="checkbox" name="{name}" {checked} {disabled}>'))
 
-    def selection(self, name: str, *, options: list[str], title: str | None = None, disabled=None):
+    def selection(self, name: str, *, options: list[str], default="", title: str | None = None, disabled=None):
         title = title or self.name_to_title(name)
 
         if disabled is None:
@@ -56,7 +56,7 @@ class Dialog:
         o = ""
 
         for i in options:
-            o += f"<option>{i}</option>\n"
+            o += f"<option{' selected' if i==default else ''}>{i}</option>\n"
 
         self.items.append(
             (
@@ -82,7 +82,7 @@ class Dialog:
         return pages.render_jinja_template(
             "dialogs/generic.j2.html",
             items=self.items,
-            hidden_inputs=hidden_inputs,
+            hidden_inputs=hidden_inputs or {},
             target=target,
             title=self.title,
         )
