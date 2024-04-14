@@ -6,16 +6,21 @@ Change Log
 Development is advanced enough on the new overhaul that it makes sense
 to start using the [GitFlow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) methodology.
 
+
+- :coffin: Mako user pages are deprecated and will be removed
+- :coffin: The `kaithem` object will likely be removed eventually. Replace with importable `kaithem.api` when in catches up on features.
+
 - :coffin: :boom: Remove ALL web tag configurability.
 
 
 Since this was a core feature, it will be back.  But it was one of the worst parts of the codebase AND had bad UX,  it was very much in need of a full rewrite.
 
-For now it is not possible to set or override alerts.  I normally *hate* rewrites, but believe this is really needed.
+For now it is not possible to set or override alerts.  I normally *hate* rewrites, but believe this is really needed.  You can create loggers already, they are their own separate resource type.
 
 Tags, in newer editions, should have a single source of config, and the code for config should be separate from tag internals.
 
-- :coffin: :boom: Remove freeboard.  It was a good run, but I'd rather focus on core code quality than maintain the customized fork, which in itself had become bloated.  Similar functionality may come back, but really, Chandler handles those use cases.
+- :coffin: :boom: Remove freeboard.
+  It was a good run, but I'd rather focus on core code quality than maintain the customized fork, which in itself had become bloated.  Similar functionality may come back, but really, Chandler handles those use cases.
 
 - :sparkles: Switch from typeguard to Beartype.
 - :sparkles: More unit testing
