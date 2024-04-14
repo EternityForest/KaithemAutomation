@@ -539,7 +539,7 @@ class LoggerType(modules_state.ResourceType):
         return d
 
     def createpage(self, module, path):
-        d = dialogs.Dialog("New Logger")
+        d = dialogs.SimpleDialog("New Logger")
         d.text_input("name", title="Logger Name")
         d.text_input("tag", title="Tag Point to Log")
         d.selection("logger-type", options=list(accumTypes.keys()), title="Accumulate Mode")
@@ -551,7 +551,7 @@ class LoggerType(modules_state.ResourceType):
         return d.render(self.get_create_target(module, path))
 
     def editpage(self, module, name, value):
-        d = dialogs.Dialog("New Logger")
+        d = dialogs.SimpleDialog("Editing Logger")
         d.text_input("tag", title="Tag Point to Log", default=value["tag"])
         d.selection("logger-type", options=list(accumTypes.keys()), default=value["logger-type"], title="Accumulate Mode")
         d.selection("log-target", options=["disk", "ram"], default=value["log-target"])

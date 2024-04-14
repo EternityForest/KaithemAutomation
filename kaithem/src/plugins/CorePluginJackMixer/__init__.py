@@ -757,7 +757,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             # Avoid having to do the whole tag lock thing if
             # the value hasn't changed, it's not critcal and the
             # race condition is fine
-            if not self.levelTag.lastValue == rms:
+            if not self.levelTag.last_value == rms:
                 self.levelTag.value = rms
 
             self.doSoundFuse(rms)
