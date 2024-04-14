@@ -42,7 +42,7 @@ def combineLogs(a):
     This page show logs for one tag.
 </details>
 
-<form method="GET" action="/tagpointlog/${tag.name|u}">
+<form method="POST" action="/plugin-tag-history/${tag.name|u}">
 
 
 %if hasattr(tag, 'configLoggers'):
@@ -50,7 +50,7 @@ def combineLogs(a):
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>All times use the time zone and format from your user settings. Very recent data may be shown, but data is buffered to disk for 10 minutes. Saving the server state flushes all data to disk.</details>
 
 <h4>Export Data</h4>
-<form method="post" action="/tagpointlog/${tag.name|u}">
+<form method="POST" action="/plugin-tag-history/${tag.name|u}">
     <label>Starting Time:<input name="logtime" type='datetime-local' value="${pytz.utc.localize(datetime.datetime.utcnow()-datetime.timedelta(days=1)).astimezone(tz).replace(microsecond=0,second=0).replace(tzinfo=None).isoformat()}"></label>
     <label>Max Values:<input type=number name="exportRows" value="10000"></label>
     <label>Export As:<select name='exportFormat'>
@@ -68,7 +68,7 @@ def combineLogs(a):
 </form>
 <h4>Goto</h4>
 
-<form method="post" action="/tagpointlog/${tag.name|u}">
+<form method="POST" action="/plugin-tag-history/${tag.name|u}">
     <input name="logtime" type='datetime-local' value="${pytz.utc.localize(datetime.datetime.utcnow()).astimezone(tz).replace(microsecond=0,second=0).replace(tzinfo=None).isoformat()}"> <button type="submit">Goto Time</button>
 </form>
 

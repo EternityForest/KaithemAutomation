@@ -59,9 +59,6 @@ def isHTTPAllowed(ip):
     return ip.startswith(("::1", "127.", "::ffff:192.", "::ffff:10.", "192.", "10.", "fc", "fd")) or ip == "::ffff:127.0.0.1"
 
 
-nativeHandlers = weakref.WeakValueDictionary()
-
-
 def getSubdomain():
     x = cherrypy.request.base.split("://", 1)[-1]
 

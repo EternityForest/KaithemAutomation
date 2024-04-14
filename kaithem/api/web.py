@@ -2,7 +2,9 @@ import html as _html
 import json as _json
 import os as _os
 import re as _re
+import typing as _typing
 
+import beartype as _beartype
 import cherrypy as _cherrypy
 import jinja2 as _jinja2
 import yaml as _yaml
@@ -13,13 +15,14 @@ from kaithem.src import theming
 
 theming = theming
 
-controllers = _pages.nativeHandlers
 
 nav_bar_plugins = _pages.nav_bar_plugins
 
 
 _wsgi_apps = []
 _tornado_apps = []
+
+_simple_handlers = {}
 
 
 # This is for plugins to use and extend pageheader.
@@ -47,6 +50,22 @@ def add_wsgi_app(pattern: str, app, permission="system_admin"):
 def add_tornado_app(pattern: str, app, args, permission="system_admin"):
     "Mount a Tornado application to handle all URLs matching the pattern regex"
     _tornado_apps.append((pattern, app, args, permission))
+
+
+@_beartype.beartype
+def add_simple_cherrypy_handler(prefix: str, permissions: str, handler: _typing.Callable[[list[str], dict[str, str]], str]):
+    """
+    Register handler for all requests that look like /prefix.
+    handler must look like:
+    f(*path, **kwargs)
+
+    It will by in a cherrypy context.
+
+    This function is alpha.
+
+    """
+
+    _simple_handlers[prefix] = (permissions, handler)
 
 
 def go_back():

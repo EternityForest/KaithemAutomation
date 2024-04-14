@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import atexit
-import datetime
 import logging
 import mimetypes
 import os
@@ -13,11 +12,9 @@ from typing import Any, Dict
 
 import cherrypy
 import cherrypy._cpreqbody
-import dateutil.parser
 import iot_devices
 import mako
 import mako.exceptions
-import pytz
 import tornado
 from cherrypy import _cperror
 from cherrypy.lib.static import serve_file
@@ -28,7 +25,6 @@ from kaithem.api import web as webapi
 from . import (
     ManageUsers,
     alerts,
-    auth,
     devices,
     devices_interface,
     directories,
@@ -149,74 +145,13 @@ class webapproot:
     devices = devices_interface.WebDevices()
     chandler = cweb.Web()
 
-    # This lets users mount stuff at arbitrary points, so long
-    # As it doesn't conflict with anything.
-
-    # foo.bar.com/foo maps to foo,bar,/,foo
-    # bar.com/foo is just foo
-
-    def _cp_dispatch(self, vpath):
-        sdpath = pages.getSubdomain()
-
-        vpath2 = vpath[:]
-
-        # For binding the root of subdomains
-
-        while vpath2:
-            # Check for any subdomain specific handling.
-            if tuple(sdpath + ["/"] + vpath2) in pages.nativeHandlers:
-                # found match, remove N elements from the beginning of the path,
-                # where n is the length of the "mountpoint", becsause the mountpoint
-                # already consumed those.
-
-                # Don't do it for the fake one we add just to make this loop work though
-                for i in vpath2:
-                    vpath.pop(0)
-
-                x = pages.nativeHandlers[tuple(sdpath + ["/"] + vpath2)]
-
-                # Traverse to the actual function, if there is a match, else return the index.
-
-                if vpath and hasattr(x, vpath[0]):
-                    x2 = getattr(x, vpath[0])
-                    if hasattr(x2, "exposed") and x2.exposed:
-                        vpath.pop(0)
-                        x = x2
-                if not isinstance(x, Exception):
-                    return x
-                else:
-                    raise x
-
-            if tuple(vpath2) in pages.nativeHandlers:
-                # found match, remove N elements from the beginning of the path,
-                # where n is the length of the "mountpoint", because the mountpoint
-                # already consumed those
-                for i in range(len(vpath2)):
-                    vpath.pop(0)
-
-                x = pages.nativeHandlers[tuple(vpath2)]
-                if vpath and hasattr(x, vpath[0]):
-                    x2 = getattr(x, vpath[0])
-                    if vpath and hasattr(x2, "exposed") and x2.exposed:
-                        vpath.pop(0)
-                        x = x2
-                if not isinstance(x, Exception):
-                    return x
-                else:
-                    raise x
-
-            if None in pages.nativeHandlers:
-                return pages.nativeHandlers[None]
-
-            # Successively remove things from the end till we get a
-            # prefix match
-            vpath2.pop(-1)
-
-        return None
-
     @cherrypy.expose
     def default(self, *path, **data):
-        return self._cp_dispatch(list(path))(*path, **data)
+        if path[0] in webapi._simple_handlers:
+            pages.require(webapi._simple_handlers[path[0]][0])
+
+            return webapi._simple_handlers[path[0]][1](*path, **data)
+        raise ValueError("No builtin or plugin handler")
 
     @cherrypy.expose
     @cherrypy.config(**{"response.timeout": 7200})
@@ -296,39 +231,6 @@ class webapproot:
             return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=data, show_advanced=True, module="", resource="")
         else:
             return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
-
-    @cherrypy.expose
-    def tagpointlog(self, *path, **data):
-        # This page could be slow because of the db stuff, so we restrict it more
-        pages.require("system_admin")
-        pages.postOnly()
-        if "exportRows" not in data:
-            return pages.get_template("settings/tagpointlog.html").render(tagName=path[0], data=data)
-        else:
-            tag = tagpoints.allTags[path[0]]()
-            if tag is None:
-                raise RuntimeError("This tag seems to no longer exist")
-
-            for i in tag.configLoggers:
-                if i.accumType == data["exportType"]:
-                    tz = pytz.timezone(auth.getUserSetting(pages.getAcessingUser(), "timezone"))
-                    logtime = tz.localize(dateutil.parser.parse(data["logtime"])).timestamp()
-                    raw = i.getDataRange(logtime, time.time() + 10000000, int(data["exportRows"]))
-
-                    if data["exportFormat"] == "csv.iso":
-                        cherrypy.response.headers["Content-Disposition"] = (
-                            'attachment; filename="%s"' % path[0].replace("/", "_").replace(".", "_").replace(":", "_")[1:]
-                            + "_"
-                            + data["exportType"]
-                            + tz.localize(dateutil.parser.parse(data["logtime"])).isoformat()
-                            + ".csv"
-                        )
-                        cherrypy.response.headers["Content-Type"] = "text/csv"
-                        d = ["Time(ISO), " + path[0].replace(",", "") + " <accum " + data["exportType"] + ">"]
-                        for i in raw:
-                            dt = datetime.datetime.fromtimestamp(i[0])
-                            d.append(dt.isoformat() + "," + str(i[1])[:128])
-                        return "\r\n".join(d) + "\r\n"
 
     @cherrypy.expose
     def pagelisting(self, *path, **data):

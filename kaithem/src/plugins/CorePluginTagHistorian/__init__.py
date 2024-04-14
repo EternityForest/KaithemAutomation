@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import datetime
 import getpass
 import json
 import logging
@@ -15,9 +16,13 @@ import weakref
 from typing import Callable
 from urllib.parse import quote
 
+import cherrypy
+import dateutil.parser
+import pytz
 from scullery import scheduling
 
-from . import dialogs, directories, messagebus, modules_state, tagpoints
+from kaithem.api import web as webapi
+from kaithem.src import dialogs, directories, messagebus, modules_state, pages, tagpoints
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
@@ -476,7 +481,7 @@ class LoggerType(modules_state.ResourceType):
     def blurb(self, m, r, value):
         return f"""
         <div>
-            <form  action="/tagpointlog/{quote(value['tag'], safe='')}" method="post">
+            <form  action="/plugin-tag-history/{quote(value['tag'], safe='')}" method="post">
                 <button>View Logs</button>
             </form>
         </div>
@@ -544,3 +549,44 @@ class LoggerType(modules_state.ResourceType):
 
 drt = LoggerType("logger", mdi_icon="sine-wave")
 modules_state.additionalTypes["logger"] = drt
+
+
+t = os.path.join(os.path.dirname(__file__), "html", "logpage.html")
+
+
+def logpage(*path, **data):
+    path = path[1:]
+    # This page could be slow because of the db stuff, so we restrict it more
+    if not cherrypy.request.method.lower() == "post":
+        raise RuntimeError("POST only")
+
+    if "exportRows" not in data:
+        return pages.get_template(t).render(tagName=path[0], data=data)
+    else:
+        tag = tagpoints.allTags[path[0]]()
+        if tag is None:
+            raise RuntimeError("This tag seems to no longer exist")
+
+        for key, i in tag.configLoggers.items():
+            if i.accumType == data["exportType"]:
+                tz = pytz.timezone("Etc/UTC")
+                logtime = tz.localize(dateutil.parser.parse(data["logtime"])).timestamp()
+                raw = i.getDataRange(logtime, time.time() + 10000000, int(data["exportRows"]))
+
+                if data["exportFormat"] == "csv.iso":
+                    cherrypy.response.headers["Content-Disposition"] = (
+                        'attachment; filename="%s"' % path[0].replace("/", "_").replace(".", "_").replace(":", "_")[1:]
+                        + "_"
+                        + data["exportType"]
+                        + tz.localize(dateutil.parser.parse(data["logtime"])).isoformat()
+                        + ".csv"
+                    )
+                    cherrypy.response.headers["Content-Type"] = "text/csv"
+                    d = ["Time(ISO), " + path[0].replace(",", "") + " <accum " + data["exportType"] + ">"]
+                    for i in raw:
+                        dt = datetime.datetime.fromtimestamp(i[0])
+                        d.append(dt.isoformat() + "," + str(i[1])[:128])
+                    return "\r\n".join(d) + "\r\n"
+
+
+webapi.add_simple_cherrypy_handler("plugin-tag-history", "system_admin", logpage)
