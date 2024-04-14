@@ -279,6 +279,11 @@ def saveModule(module, modulename: str):
 
 
 class ResourceType:
+    """Allows creating new resource types.
+    Data keys starting with resource- are reserved.
+
+    """
+
     def __init__(self, type: str, mdi_icon=""):
         self.type = type
         self.mdi_icon = mdi_icon
@@ -296,8 +301,10 @@ class ResourceType:
 
     def createpage(self, module, path):
         """
+        Called when the user clicks the create button.
+
         Must be a page with a form pointing at the create target.
-        The only required kwarg is "name"
+        The only required kwarg in the form is "name".
         """
         return f"""
 
@@ -307,18 +314,24 @@ class ResourceType:
         </form>
         """
 
-    def oncreate(self, module, name, kwargs):
-        "Must return a resource object given kwargs from createpage"
+    def oncreaterequest(self, module, name, kwargs):
+        """Must return a resource object given kwargs from createpage.
+        Called on submitting create form
+        """
         return {"resource-type": "example"}
 
     def editpage(self, module, resource, resourceobj):
+        """Given current resource data, return a manager page.
+        It may submit to get_update_target()
+        """
         return str(resourceobj)
 
-    def onupdate(self, module, resource, resourceobj, **kwargs):
+    def onupdaterequest(self, module, resource, resourceobj, kwargs):
         "Called with the kwargs from editpage.  Gets old resource obj, must return new"
         return resourceobj
 
     def onload(self, module, resource, resourceobj):
+        """Called when loaded from disk."""
         return True
 
     def onfinishedloading(self):
@@ -327,10 +340,14 @@ class ResourceType:
         """
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
+        """Called when object has been moved.  All additionaltypes must be movable."""
         return True
 
     def ondelete(self, module, resource, obj):
         return True
+
+    def onupdate(self, module, resource, obj):
+        """Called when something has updated the data.  Usually the web UI but could be anything."""
 
 
 additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()

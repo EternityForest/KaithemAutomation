@@ -512,15 +512,30 @@ class LoggerType(modules_state.ResourceType):
             # Do it later when ye olde tag existe.
             messagebus.subscribe("/system/tags/created", f)
 
+    def onmove(self, module, resource, toModule, toResource, resourceobj):
+        x = loggers.pop((module, resource), None)
+        if x:
+            loggers[toModule, toResource] = x
+
+    def onupdate(self, module, resource, obj):
+        self.onload(module, resource, obj)
+
     def ondelete(self, module, name, value):
         del loggers[module, name]
 
-    def oncreate(self, module, name, kwargs):
+    def oncreaterequest(self, module, name, kwargs):
         d = {"resource-type": self.type}
         d.update(kwargs)
         d.pop("name")
         d.pop("Save", None)
 
+        return d
+
+    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+        d = resourceobj
+        d.update(kwargs)
+        d.pop("name", None)
+        d.pop("Save", None)
         return d
 
     def createpage(self, module, path):

@@ -761,7 +761,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 
         else:
             # If create returns None, assume it doesn't want to insert a module or handles it by itself
-            r = modules_state.additionalTypes[type].oncreate(module, name, kwargs)
+            r = modules_state.additionalTypes[type].oncreaterequest(module, name, kwargs)
             if r:
                 insertResource(r)
                 f = modules_state.additionalTypes[type].onload
@@ -880,7 +880,11 @@ def resourceUpdateTarget(module, resource, kwargs):
         resourceobj["resource-timestamp"] = int(time.time() * 1000000)
 
         if t in modules_state.additionalTypes:
-            modules_state.additionalTypes[t].onupdate()
+            n = modules_state.additionalTypes[t].onupdaterequest(module, resource, old_resource, kwargs)
+            if n:
+                resourceobj = n
+                modules_state.ActiveModules[module][resource] = n
+                modules.saveResource(module, resource, n, resource)
 
         if t == "permission":
             resourceobj["description"] = kwargs["description"]

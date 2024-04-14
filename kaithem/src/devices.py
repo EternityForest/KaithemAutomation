@@ -240,7 +240,7 @@ class DeviceResourceType(ResourceType):
 
             delete_bookkeep(n, True)
 
-    def oncreate(self, module, name, kwargs):
+    def oncreaterequest(self, module, name, kwargs):
         raise RuntimeError("Not implemented, devices uses it's own create page")
 
     def createpage(self, module, path):

@@ -1145,4 +1145,4 @@ def handleResourceChange(module, resource, obj=None):
                 )
 
         else:
-            additionalTypes[resourceobj["resource-type"]].update(module, resource, {})
+            additionalTypes[resourceobj["resource-type"]].onupdate(module, resource, modules_state.ActiveModules[module][resource])
