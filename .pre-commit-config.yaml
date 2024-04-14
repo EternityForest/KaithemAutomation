@@ -41,13 +41,14 @@ repos:
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
-      - id: forbid-crlf
+      - id: remove-crlf
         types_or:
         - "python"
         - "yaml"
         - "json"
         - "markdown"
         - "html"
+
       - id: forbid-tabs
         types_or:
           - "python"
