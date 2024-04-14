@@ -71,9 +71,6 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.NumericTagPointClass):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a>
-    %if tagpoints.allTagsAtomic[i]().configLoggers:
-    <i  title="Logging is enabled for this tag" class="mdi mdi-press"></i>
-    %endif
     </td>
     <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().lastValue}</td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
@@ -120,14 +117,5 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 %endfor
 </table>
 
-<h3>Configured but not used</h3>
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>Empty configs go away when the server state is saved</details>
-<ul>
-%for i in tagpoints.config_tag_data:
-%if not i in tagpoints.allTags:
-<li><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a></li>
-%endif
-%endfor
-</ul>
 </div>
 <%include file="/pagefooter.html"/>

@@ -144,7 +144,7 @@ A string that determines a more specific type.  Use a com.site.x name, or someth
 "Official" ones include bool, which can be 1 or 0, or tristate, which can be -1 for unset/no effect, 0, or 1.
 
 
-#### TagPoint.displayUnits
+#### TagPoint.display_units
 
 This can be None, or a pipe-separated string listing one or more units that the tag's value should be displayed in.
 Base SI units imply that the correct prefix should be used for readability, but units that contain a prefix imply fixed

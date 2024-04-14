@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import copy
 import functools
-import gc
 import json
 import logging
 import math
@@ -26,13 +25,11 @@ from typing import (
 )
 
 import beartype
-import cherrypy
 import dateutil
 import dateutil.parser
 from scullery import scheduling
 
-from . import alerts, messagebus, modules_state, taghistorian, util, widgets, workers
-from .modules_state import ResourceType, additionalTypes
+from . import alerts, messagebus, widgets, workers
 from .unitsofmeasure import convert, unit_types
 
 
@@ -52,11 +49,6 @@ syslogger = logging.getLogger("system")
 
 exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = weakref.WeakValueDictionary()
 
-# These are the atrtibutes of a tag that can be overridden by configuration.
-# Setting tag.hi sets the runtime property, but we ignore it if the configuration takes precedence.
-configAttrs = {"hi", "lo", "min", "max", "interval", "displayUnits", "enum"}
-softConfigAttrs = {"overrideName", "overrideValue", "overridePriority", "type", "value"}
-
 t = time.monotonic
 
 # This is used for messing with the set of tags.
@@ -68,7 +60,6 @@ allTagsAtomic: dict[str, weakref.ref[GenericTagPointClass[Any]]] = {}
 
 subscriber_error_handlers: list[Callable[..., Any]] = []
 
-hasUnsavedData = [0]
 
 default_display_units = {
     "temperature": "degC|degF",
@@ -258,9 +249,6 @@ class GenericTagPointClass(Generic[T]):
 
         self._dynConfigValues: dict[str, Any] = {}
         self.dynamic_alarm_data: dict[str, dict[str, Any]] = {}
-        self.configuredAlarmData: dict[str, dict[str, Any]] = {}
-        # The merged combo of both of those
-        self.effective_alarm_data: dict[str, Any] = {}
 
         self.alarms: dict[str, Alert] = {}
 
@@ -349,6 +337,10 @@ class GenericTagPointClass(Generic[T]):
         except ImportError:
             pass
 
+        # Set this to false if made via UI config. In that case
+        # We can unlock extra settings in the UI
+        self.made_in_code = True
+
         self.lastPushedValue: T | None = None
         self.onSourceChanged: typing.Callable[..., Any] | None = None
 
@@ -373,7 +365,6 @@ class GenericTagPointClass(Generic[T]):
         # that api clients can use.
         # As always, configured takes priority
         self.permissions = ["", "", 50]
-        self.configuredPermissions = ["", "", 50]
 
         self.apiClaim: None | Claim[T] = None
 
@@ -383,20 +374,12 @@ class GenericTagPointClass(Generic[T]):
 
         self._alarms: dict[str, object] = {}
 
-        # Used for storing the full config data set including stuff we shouldn't save
-        self._runtime_config_data = {}
-
         with lock:
             messagebus.post_message("/system/tags/created", self.name, synchronous=True)
 
         if self.name.startswith("="):
             self.exprClaim = self.createGetterFromExpression(self.name)
             self.writable = False
-        with lock:
-            d: Any = config_tag_data.get(self.name, {})
-            if hasattr(d, "data"):
-                d = d.data.copy()
-            self.set_config_data(d, save=False)
 
     @property
     def meterWidget(self):
@@ -422,14 +405,9 @@ class GenericTagPointClass(Generic[T]):
         self,
         read_perms: str | list[str] = "",
         write_perms: str | list[str] = "__never__",
-        expose_priority: str | int = 50,
-        configured: bool = False,
+        expose_priority: str | int | float = 50,
     ):
-        """If not r, disable web API.  Otherwise, set read and write permissions.
-        If configured permissions are set, they totally override code permissions.
-        Empty configured perms fallback tor runtime
-
-        """
+        """If not r, disable web API.  Otherwise, set read and write permissions."""
 
         if isinstance(read_perms, list):
             read_perms = ",".join(read_perms)
@@ -458,29 +436,22 @@ class GenericTagPointClass(Generic[T]):
         if not expose_priority:
             expose_priority = 50
         # Make set we don't somehow save bad data and break everything
-        expose_priority = int(expose_priority)
+        expose_priority = float(expose_priority)
         write_perms = str(write_perms)
         read_perms = str(read_perms)
 
         if not read_perms or not write_perms:
             d = ["", "", 50]
-            emptyPerms = True
         else:
-            emptyPerms = False
             d = [read_perms, write_perms, expose_priority]
 
         with lock:
             with self.lock:
-                if configured:
-                    self.configuredPermissions = d
+                self.permissions = d
 
-                    self._recordConfigAttr("permissions", d if not emptyPerms else None)
-                    hasUnsavedData[0] = True
-                else:
-                    self.permissions = d
-
-                # Merge config and direct
                 d2 = self.getEffectivePermissions()
+                if d2[2]:
+                    expose_priority = float(d2[2])
 
                 # Be safe, only allow writes if user specifies a permission
                 d2[1] = d2[1] or "__never__"
@@ -582,9 +553,9 @@ class GenericTagPointClass(Generic[T]):
             list: [read_perms, write_perms, writePriority]. Priority determines the priority of web API claims.
         """
         d2 = [
-            str(self.configuredPermissions[0] or self.permissions[0]),
-            str(self.configuredPermissions[1] or self.permissions[1]),
-            str(self.configuredPermissions[2] or self.permissions[2]),
+            str(self.permissions[0]),
+            str(self.permissions[1]),
+            float(self.permissions[2]),
         ]
 
         # Block exposure at all if the permission is never
@@ -644,34 +615,6 @@ class GenericTagPointClass(Generic[T]):
 
         workers.do(f)
 
-    def _recordConfigAttr(self, k: str, v: Any):
-        "Make sure a config attr setting gets saved"
-
-        # If it looks like a number, it is.  That makes the code simpler for dealing
-        # With web inputs and assorted things like that in a uniform way without needing to
-        # special case based on the attribute name
-        try:
-            v = float(v)
-        except ValueError:
-            pass
-        except TypeError:
-            pass
-
-        # Reject various kinds of empty, like None, empty strings, all whitespace.
-        # Treat them as meaning to get rid of the attr
-        if v not in (None, "") and (v.strip() if isinstance(v, str) else True):
-            self.configOverrides[k] = v
-            if self.name not in config_tag_data:
-                config_tag_data[self.name] = {}
-                config_tag_data[self.name][k] = v
-            config_tag_data[self.name][k] = v
-        else:
-            # Setting at attr to none or an empty string
-            # Deletes it.
-            self.configOverrides.pop(k, 0)
-            if self.name in config_tag_data:
-                config_tag_data[self.name].pop(k, 0)
-
     def recalc(self, *a):
         "Just re-get the value as needed"
         # It's a getter, ignore the mypy unused thing.
@@ -699,69 +642,6 @@ class GenericTagPointClass(Generic[T]):
             return self.source_tags[n].value
         return 0
 
-    def set_config_attr(self, k: str, v: Any):
-        "Sets the configured attribute by name, and also sets the corresponding dynamic attribute."
-
-        if k not in configAttrs:
-            raise ValueError(f"{k} does not support overriding by configuration")
-
-        with lock:
-            self._recordConfigAttr(k, v)
-            if isinstance(v, str):
-                if v.strip() == "":
-                    v = None
-                else:
-                    try:
-                        v = float(v)
-                    except Exception:
-                        # Can't use pass or it will trigger the linter
-                        v = v
-            # Attempt to go back to the values set by code
-            if v is None:
-                v = self._dynConfigValues.get(k, v)
-
-            # For all the config attrs, setting the property sets the dynamic attr.
-            # But WE also want to invoke all the side effects of setting the prop when we reconfigure.
-            # As a hack, we save and restore that value, so that we preserve the original un-configured val.
-
-            x = self._dynConfigValues.get(k, None)
-
-            setattr(self, k, v)
-
-            # Restore TODO race condition here!!!!!!
-            # We get the old dyn val if it is set by another thread in between
-            self._dynConfigValues[k] = x
-
-            hasUnsavedData[0] = True
-
-    @beartype.beartype
-    def save_to_module(self, module: str, resourcename: str):
-        global fully_loaded
-        resourcename = resourcename or (self.name.replace("/", "_")[1:])
-
-        if self.module != module or resourcename != self.resource:
-            try:
-                modules_state.rawDeleteResource(module, resourcename, type="tagpoint")
-            except KeyError:
-                pass
-
-        self.module = module
-        self.resource = resourcename
-
-        d = copy.copy(config_tag_data.get(self.name, {}))
-
-        d.pop("module", None)
-        d.pop("resource", None)
-
-        d["name"] = self.name
-
-        modules_state.ActiveModules[module][resourcename] = {
-            "resource-type": "tagpoint",
-            "tag": d,
-        }
-        modules_state.saveResource(module, resourcename, {"resource-type": "tagpoint", "tag": d})
-        modules_state.modulesHaveChanged()
-
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
     @beartype.beartype
     def set_alarm(
@@ -769,11 +649,9 @@ class GenericTagPointClass(Generic[T]):
         name: str,
         condition: str | None = "",
         priority: str = "info",
-        releaseCondition: str | None = "",
+        release_condition: str | None = "",
         auto_ack: bool | str = "no",
         trip_delay: float | int | str = "0",
-        isConfigured: bool = False,
-        _refresh: bool = True,
     ):
         with lock:
             if not name:
@@ -791,121 +669,18 @@ class GenericTagPointClass(Generic[T]):
                 "priority": priority,
                 "auto_ack": auto_ack,
                 "trip_delay": trip_delay,
-                "releaseCondition": releaseCondition,
+                "release_condition": release_condition,
             }
 
             # Remove empties to make way for defaults
             d = {i: d[i] for i in d if d[i]}
 
-            if isConfigured:
-                if not isinstance(condition, str) and condition is not None:
-                    raise ValueError("Configurable alarms only allow str or none condition")
-                hasUnsavedData[0] = True
+            x = self._alarm_from_data(name, d)
 
-                storage = self.configuredAlarmData
-            else:
-                storage = self.dynamic_alarm_data
-                # Dynamics are weak reffed
-                if not _refresh:
-                    # This is because we need somewhere to return the strong ref
-                    raise RuntimeError("Cannot create dynamic alarm without the refresh option")
-
-            if condition is None:
-                try:
-                    storage.pop(name, 0)
-                except Exception:
-                    logger.exception("I don't think this matters")
-            else:
-                if not isConfigured:
-                    self.dynamic_alarm_data[name] = d
-
-            # If we have configured alarms, there should be a config_tag_data entry.
-            # If not, delete, because when that is empty it's how we know
-            # to delete the actual file
-            if isConfigured:
-                if self.configuredAlarmData:
-                    if self.name not in config_tag_data:
-                        config_tag_data[self.name] = {}
-
-                config_tag_data[self.name]["alarms"] = self.configuredAlarmData
-
-            if _refresh:
-                x = self.createAlarm(name)
-                if x and not isConfigured:
-                    # Alarms have to have a reference to the config data
-                    x.tagpoint_config_data = d
-                    x.tagpoint_name = self.name
-                    return x
-
-    def clearDynamicAlarms(self):
-        with lock:
-            if self.dynamic_alarm_data:
-                self.dynamic_alarm_data.clear()
-                self.createAlarms()
-
-    # TODO when there's time, refactor so createAlarms calls createAlarm
-    def createAlarm(self, name: str) -> Alert:
-        x = self.createAlarms(name)
-        assert isinstance(x, Alert)
-        return x
-
-    def createAlarms(self, limitTo: str | None = None):
-        merged: dict[str, dict[str, dict[str, Any]]] = {}
-        with lock:
-            # Combine the merged and configured alarms
-            # at a granular per-attribute level
-
-            for i in self.dynamic_alarm_data:
-                d = self.dynamic_alarm_data[i]
-                if d:
-                    merged[i] = merged.get(i, {})
-                    for j in d:
-                        merged[i][j] = d[j]
-
-            for i in self.configuredAlarmData:
-                merged[i] = merged.get(i, {})
-                for j in self.configuredAlarmData[i]:
-                    merged[i][j] = self.configuredAlarmData[i][j]
-
-            self.effective_alarm_data = merged.copy()
-
-            # Cancel all existing alarms
-            for i in self.alarms:
-                a = self.alarms[i]
-                if a:
-                    if not limitTo or i == limitTo:
-                        # This is the polling function, the poller, and the subscriber
-                        pollStuff = self._alarmGCRefs.pop(i, None)
-
-                        if pollStuff:
-                            try:
-                                self.unsubscribe(pollStuff[2])
-                            except Exception:
-                                logger.exception("Maybe already unsubbed?")
-
-                            # This is the poller for polling even when there is no change, at a very low rate,
-                            # To catch any edge cases not caught by watching tag changes
-                            try:
-                                pollStuff[1].unregister()
-                            except Exception:
-                                logger.exception("Maybe already unsubbed?")
-
-                        a.release()
-
-            if not limitTo:
-                self.alarms = {}
-                self._configuredAlarms = {}
-            else:
-                self.alarms.pop(limitTo, 0)
-                self._configuredAlarms.pop(limitTo, 0)
-
-            for i in merged:
-                if not limitTo or i == limitTo:
-                    d = merged[i]
-                    self._alarm_from_data(i, d)
-
-            if limitTo and limitTo in self.alarms:
-                return self.alarms[limitTo]
+            # Alarms have to have a reference to the config data
+            x.tagpoint_config_data = d
+            x.tagpoint_name = self.name
+            return x
 
     @staticmethod
     def _makeTagAlarmHTMLFunc(selfwr):
@@ -982,7 +757,7 @@ class GenericTagPointClass(Generic[T]):
             return
         tripCondition = d["condition"]
 
-        releaseCondition = d.get("releaseCondition", None)
+        release_condition = d.get("release_condition", None)
 
         priority = d.get("priority", "warning") or "warning"
         auto_ack = d.get("auto_ack", "").lower() in ("yes", "true", "y", "auto")
@@ -992,8 +767,8 @@ class GenericTagPointClass(Generic[T]):
         context = copy.copy(self.evalContext)
 
         tripCondition = compile(tripCondition, f"{self.name}.alarms.{name}_trip", "eval")
-        if releaseCondition:
-            releaseCondition = compile(releaseCondition, f"{self.name}.alarms.{name}_release", "eval")
+        if release_condition:
+            release_condition = compile(release_condition, f"{self.name}.alarms.{name}_release", "eval")
 
         n = self.name.replace("=", "expr_")
         for i in ILLEGAL_NAME_CHARS:
@@ -1055,8 +830,8 @@ class GenericTagPointClass(Generic[T]):
             try:
                 if eval(tripCondition, context, context):
                     obj.trip(f"Tag value:{str(context['value'])[:128]}")
-                elif releaseCondition:
-                    if eval(releaseCondition, context, context):
+                elif release_condition:
+                    if eval(release_condition, context, context):
                         obj.release()
                 else:
                     obj.release()
@@ -1112,189 +887,6 @@ class GenericTagPointClass(Generic[T]):
 
         return alarmPollFunction
 
-    def set_config_data(self, data: dict[str, Any], save=True):
-        with lock:
-            hasUnsavedData[0] = True
-            # New config, new chance to see if there's a problem.
-            self.alreadyPostedDeadlock = False
-            self._runtime_config_data.update(data)
-
-            self.module = data.get("module", self.module)
-            self.resource = data.get("resource", self.resource)
-
-            if data and self.name not in config_tag_data:
-                config_tag_data[self.name] = {}
-
-            if "type" in data:
-                if data["type"] == "number" and not isinstance(self, NumericTagPointClass):
-                    raise RuntimeError("Tag already exists and is not a numeric tag")
-                if data["type"] == "string" and not isinstance(self, StringTagPointClass):
-                    raise RuntimeError("Tag already exists and is not a string tag")
-                if data["type"] == "object" and not isinstance(self, ObjectTagPointClass):
-                    raise RuntimeError("Tag already exists and is not an object tag")
-
-            # Only modify tags if the current data matches the existing
-            # Configured value and has not beed overwritten by code
-            for i in configAttrs:
-                if i in data:
-                    self.set_config_attr(i, data[i])
-                else:
-                    self.set_config_attr(i, None)
-
-            for i in softConfigAttrs:
-                if i in data:
-                    self._recordConfigAttr(i, data[i])
-                else:
-                    self._recordConfigAttr(i, None)
-
-            # The type field is what determines a tag that can be
-            # created purely through config
-            if data.get("type", None):
-                configTags[self.name] = self
-            else:
-                # Pop from that storage, this shouldn't exist if there is no
-                # external reference
-                configTags.pop(self.name, 0)
-
-            loggers: list[dict[str, Any]] = data.get("loggers", [])
-
-            if loggers:
-                self._recordConfigAttr("loggers", loggers)
-            else:
-                self._recordConfigAttr("loggers", None)
-
-            self.configLoggers = []
-            for i in loggers:
-                interval = float(i.get("interval", 60) or 60)
-                target = i.get("target", "disk")
-
-                length = float(i.get("history_length", 3 * 30 * 24 * 3600) or 3 * 30 * 24 * 3600)
-
-                accum = i["accumulate"]
-                try:
-                    if target not in ("disk", "ram"):
-                        raise ValueError(f"Bad logging target :{target}")
-
-                    c = taghistorian.accumTypes[accum](self, interval, length, target)
-                    self.configLoggers.append(c)
-                except Exception:
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        "Error creating logger for: " + self.name + "\n" + traceback.format_exc(),
-                    )
-
-            # this is apparently just for the configured part, the dynamic part happens behind the scenes in
-            # set_alarm via createAlarma
-            alarms = data.get("alarms", {})
-            self.configuredAlarmData = {}
-            for i in alarms:
-                if alarms[i]:
-                    # Avoid duplicate param
-                    alarms[i].pop("name", "")
-                    self.set_alarm(i, **alarms[i], isConfigured=True, _refresh=False)
-                else:
-                    self.set_alarm(i, None, isConfigured=True, _refresh=False)
-
-            # This one is a little different. If the timestamp is 0,
-            # We know it has never been set.
-            if "value" in data:
-                if not str(data["value"]).strip() == "":
-                    config_tag_data[self.name]["value"] = str(data["value"])
-
-                    if self.timestamp == 0:
-                        # Set timestamp to 0, this marks the tag as still using a default
-                        # Which can be further changed
-                        self.set_claim_val("default", data["value"], 0, "Configured default")
-                else:
-                    if self.timestamp == 0:
-                        # Set timestamp to 0, this marks the tag as still using a default
-                        # Which can be further changed
-                        self.set_claim_val("default", self.default, 0, "Configured default")
-            else:
-                if self.name in config_tag_data:
-                    config_tag_data[self.name].pop("value", 0)
-
-            # Todo there's a duplication here, we refresh allthe alarms, not sure we need to
-            self.createAlarms()
-
-            # Delete any existing configured value override claim
-            if hasattr(self, "kweb_manual_override_claim"):
-                toRelease = self.kweb_manual_override_claim
-            else:
-                toRelease = None
-
-            # Val override last, in case it triggers an alarm
-            # Convert to string for consistent handling, the config engine things anything that looks like a number, is.
-            overrideValue = str(data.get("overrideValue", "")).strip()
-            tempOverrideValue = str(data.get("tempOverrideValue", "")).strip()
-
-            if self.type == "binary":
-                try:
-                    overrideValue = bytes.fromhex(overrideValue)
-                except Exception:
-                    logging.exception("Bad hex in tag override")
-                    overrideValue = b""
-
-                try:
-                    tempOverrideValue = bytes.fromhex(tempOverrideValue)
-                except Exception:
-                    logging.exception("Bad hex in tag override")
-                    overrideValue = b""
-
-            if overrideValue:
-                if str(overrideValue).startswith("="):
-                    self.kweb_manual_override_claim = self.createGetterFromExpression(
-                        str(overrideValue), int(data.get("overridePriority", "") or 90)
-                    )
-                else:
-                    self.kweb_manual_override_claim = self.claim(
-                        overrideValue,
-                        data.get("overrideName", "config"),
-                        int(data.get("overridePriority", "") or 90),
-                    )
-            else:
-                self.kweb_manual_override_claim = None
-
-            # We already replaced it because we use the same name, don't release the one we just made.
-            # Only need to release if going to no override.
-            if toRelease and self.kweb_manual_override_claim is not toRelease:
-                toRelease.release()
-                toRelease = None
-
-            # #################### Temp stuff ##############################
-
-            # Delete any existing configured temporary value override claim
-            # I think two should really be enough, a temp and a permanent.
-            if hasattr(self, "kweb_tempManualOverrideClaim"):
-                toRelease = self.kweb_tempManualOverrideClaim
-            else:
-                toRelease = None
-
-            if tempOverrideValue:
-                self.kweb_tempManualOverrideClaim = self.claim(
-                    str(tempOverrideValue),
-                    "kwebtempmanualoverride",
-                    int(data.get("tempOverridePriority", "") or 90),
-                    expiration=int(data.get("tempOverrideLength", "") or 90),
-                )
-            else:
-                self.kweb_tempManualOverrideClaim = None
-
-            # We already replaced it because we use the same name, don't release the one we just made.
-            # Only need to release if going to no override.
-            if toRelease and self.kweb_tempManualOverrideClaim is not toRelease:
-                toRelease.release()
-                toRelease = None
-
-            ##############################################################
-
-            p = data.get("permissions", ("", "", ""))
-            # Set configured permissions, overriding runtime
-            self.expose(*p, configured=True)
-
-            if save:
-                self.save_to_module(self.module, self.resource)
-
     def createGetterFromExpression(self: GenericTagPointClass[T], e: str, priority=98) -> Claim[T]:
         "Create a getter for tag self using expression e"
         try:
@@ -1327,12 +919,8 @@ class GenericTagPointClass(Generic[T]):
         return self._interval
 
     @interval.setter
-    def interval(self, val):
-        self._dynConfigValues["interval"] = val
-
-        # Config tages priority over code
-        if not val == self.configOverrides.get("interval", val):
-            return
+    @beartype.beartype
+    def interval(self, val: int | float | None):
         if val is not None:
             self._interval = val
         else:
@@ -1359,9 +947,6 @@ class GenericTagPointClass(Generic[T]):
 
     @default.setter
     def default(self: GenericTagPointClass[T], val: T):
-        self._dynConfigValues["default"] = val
-        if not val == self.configOverrides.get("value", val):
-            return
         if val is not None:
             self._default = val
         else:
@@ -2034,13 +1619,14 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     def __init__(self, name: str, min: float | None = None, max: float | None = None):
         self.vta: tuple[float, float, Any]
 
-        # Real active compouted vals after the dynamic/configured override logic
+        # Real backing vars for props
+
         self._hi: float | None = None
         self._lo: float | None = None
         self._min: float | None = min
         self._max: float | None = max
         # Pipe separated list of how to display value
-        self._displayUnits: str | None = None
+        self._display_units: str | None = None
         self._unit: str = ""
         self.guiLock = threading.Lock()
         self._meterWidget = None
@@ -2145,11 +1731,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         return self._min if self._min is not None else -(10**18)
 
     @min.setter
-    def min(self, v: float | None):
-        self._dynConfigValues["min"] = v
-
-        if not v == self.configOverrides.get("min", v):
-            return
+    @beartype.beartype
+    def min(self, v: float | int | None):
         self._min = v
         self.pull()
         self._setupMeter()
@@ -2159,10 +1742,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         return self._max if self._max is not None else 10**18
 
     @max.setter
-    def max(self, v: float | None):
-        self._dynConfigValues["max"] = v
-        if not v == self.configOverrides.get("max", v):
-            return
+    @beartype.beartype
+    def max(self, v: float | int | None):
         self._max = v
         self.pull()
         self._setupMeter()
@@ -2176,10 +1757,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             return x
 
     @hi.setter
-    def hi(self, v: float | None):
-        self._dynConfigValues["hi"] = v
-        if not v == self.configOverrides.get("hi", v):
-            return
+    @beartype.beartype
+    def hi(self, v: float | int | None):
         if v is None:
             v = 10**16
         self._hi = v
@@ -2192,10 +1771,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         return self._lo
 
     @lo.setter
-    def lo(self, v: float | None):
-        self._dynConfigValues["lo"] = v
-        if not v == self.configOverrides.get("lo", v):
-            return
+    @beartype.beartype
+    def lo(self, v: float | int | None):
         if v is None:
             v = -(10**16)
         self._lo = v
@@ -2210,7 +1787,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             self._hi if self._hi is not None else 10**16,
             self._lo if self._lo is not None else -(10**16),
             unit=self.unit,
-            displayUnits=self.displayUnits,
+            display_units=self.display_units,
         )
 
     def convertTo(self, unit: str):
@@ -2236,18 +1813,18 @@ class NumericTagPointClass(GenericTagPointClass[float]):
                     raise ValueError("Cannot change unit of tagpoint. To override this, set to None or '' first")
         # TODO race condition in between check, but nobody will be setting this from different threads
         # I don't think
-        if not self._displayUnits:
+        if not self._display_units:
             # Rarely does anyone want alternate views of dB values
             if "dB" not in value:
                 try:
-                    self._displayUnits = default_display_units[unit_types[value]]
+                    self._display_units = default_display_units[unit_types[value]]
                     # Always show the native unit
-                    if value not in self._displayUnits:
-                        self._displayUnits = f"{value}|{self._displayUnits}"
+                    if value not in self._display_units:
+                        self._display_units = f"{value}|{self._display_units}"
                 except Exception:
-                    self._displayUnits = value
+                    self._display_units = value
             else:
-                self._displayUnits = value
+                self._display_units = value
 
         self._unit = value
         self._setupMeter()
@@ -2255,18 +1832,15 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             self._meterWidget.write(self.value)
 
     @property
-    def displayUnits(self):
-        return self._displayUnits
+    def display_units(self):
+        return self._display_units
 
-    @displayUnits.setter
-    def displayUnits(self, value):
+    @display_units.setter
+    def display_units(self, value):
         if value and not isinstance(value, str):
             raise RuntimeError("units must be str")
-        self._dynConfigValues["displayUnits"] = value
-        if not value == self.configOverrides.get("displayUnits", value):
-            return
 
-        self._displayUnits = value
+        self._display_units = value
         self._setupMeter()
         if self._meterWidget:
             self._meterWidget.write(self.value)
@@ -2790,190 +2364,7 @@ class NumericClaim(Claim[float]):
         self.set(convert(value, unit, self.tag.unit), timestamp, annotation)
 
 
-def config_tag_from_data(name: str, data: dict, module: str, resourcename: str, save=False):
-    name = normalize_tag_name(name)
-    resourcename = resourcename or (name.replace("/", "_")[1:])
-
-    t = data.get("type", "")
-
-    # Get rid of any unused existing tag
-    try:
-        if name in configTags:
-            del configTags[name]
-            gc.collect()
-            time.sleep(0.01)
-            gc.collect()
-            time.sleep(0.01)
-            gc.collect()
-    except Exception:
-        logger.exception("Deleting tag config")
-
-    tag: GenericTagPointClass | None = None
-    # Create or get the tag
-    if t == "number":
-        tag = Tag(name)
-
-    elif t == "string":
-        tag = StringTag(name)
-    elif name in allTags:
-        tag = allTags[name]()
-
-    # Config later when the tag is actually created
-    config_tag_data[name] = {}
-    for i in data:
-        config_tag_data[name][i] = data[i]
-
-    config_tag_data[name]["module"] = module
-    config_tag_data[name]["resource"] = resourcename
-
-    if tag:
-        configTags[name] = tag
-        tag.module = module
-        tag.resource = resourcename
-        # Now set it's config.
-        tag.set_config_data(data, save=save)
-    else:
-        if save:
-            d = copy.copy(config_tag_data[name])
-            m = d.pop("module", None)
-            r = d.pop("resource", None)
-            d["name"] = name
-
-            if m and r:
-                modules_state.ActiveModules[module][resourcename] = {
-                    "resource-type": "tagpoint",
-                    "tag": config_tag_data[name],
-                }
-                modules_state.saveResource(module, resourcename, {"resource-type": "tagpoint", "tag": config_tag_data[name]})
-                modules_state.modulesHaveChanged()
-
-
 Tag = NumericTagPointClass.Tag
 ObjectTag = ObjectTagPointClass.Tag
 StringTag = StringTagPointClass.Tag
 BinaryTag = BinaryTagPointClass.Tag
-
-
-fully_loaded = False
-
-
-class TagResourceType(ResourceType):
-    def onfinishedloading(self):
-        global fully_loaded
-        fully_loaded = True
-
-    def onload(self, module, resourcename, value):
-        tag_name: str = value["tag"]["name"]
-
-        try:
-            config_tag_from_data(tag_name, value["tag"], module, resourcename)
-        except Exception:
-            logging.exception(f"Failure with configured tag: {tag_name}")
-            messagebus.post_message(
-                "/system/notifications/errors",
-                f"Failed to preconfigure tag {tag_name}\n{traceback.format_exc()}",
-            )
-
-    def ondelete(self, module, name, value):
-        configTags.pop(value["tag"]["name"])
-
-    def create(self, module, path, name, kwargs):
-        raise RuntimeError("Not implemented, devices uses it's own create page")
-
-    def createpage(self, module, path):
-        raise RuntimeError("Not implemented, devices uses it's own create page")
-
-    def editpage(self, module, name, value): ...
-
-
-tr = TagResourceType()
-additionalTypes["tagpoint"] = tr
-
-
-def new_tag_POST(tagname, new_tag_type: str, module: str, resource: str):
-    "Handle a POST for new data"
-    if new_tag_type == "numeric":
-        tag = Tag(tagname)
-    elif new_tag_type == "string":
-        tag = StringTag(tagname)
-    configTags[tagname] = tag
-
-    tag.save_to_module(module, resource)
-
-
-def handle_POST(tagname, module: str, resource: str, **data):
-    "Handle a POST for setting config on this tag"
-
-    if data:
-        ald = {}
-        with lock:
-            loggers = {}
-            loggersList = []
-            loggerTypes = {}
-
-            for i in data:
-                if i.startswith("alarm_"):
-                    x = i.split("_", 1)[1]
-                    if x.count(":") > 1:
-                        raise ValueError("Likely invalid alarm name containing :")
-
-                    alarm_name, alarm_property = x.split(":")
-
-                    # There's no row yet for the new alarm that might be happening
-                    if alarm_name == "NEW":
-                        alarm_name = data["alarm_NEW:name"]
-                        if not alarm_name:
-                            continue
-
-                    if alarm_name not in ald:
-                        ald[alarm_name] = {}
-
-                    ald[alarm_name][alarm_property] = data[i]
-
-                if i.startswith("logger_"):
-                    x = i.split("_", 1)[1]
-
-                    loggerNumber, loggerProperty = x.split(":")
-
-                    # Nonempty props indicate we don't get rid of it
-                    if loggerNumber not in loggers:
-                        loggers[loggerNumber] = {}
-                    loggers[loggerNumber][loggerProperty] = data[i]
-
-            for i in sorted(list(loggers.keys())):
-                interval = float(loggers[i]["interval"])
-                history_length = float(loggers[i]["history_length"])
-                accumulate = loggers[i]["accumulate"]
-                target = loggers[i].get("target", "disk")
-                if interval:
-                    # It would create confusing output if you did this
-                    if accumulate in loggerTypes:
-                        raise RuntimeError("Can't have two loggers of the same type")
-                    loggerTypes[accumulate] = True
-
-                    loggersList.append({"interval": interval, "accumulate": accumulate, "history_length": history_length, "target": target})
-
-            for i in list(ald.keys()):
-                # Changing name to empty
-                # Setting an alarm to  none is how  you delete it
-                if "name" in ald[i]:
-                    if not ald[i]["name"].strip():
-                        ald[i] = None
-
-                    # Rename
-                    elif ald[i]["name"] != i:
-                        ald[ald[i]["name"]] = ald[i]
-                        del ald[i]
-
-            data["alarms"] = ald
-            data["loggers"] = loggersList
-
-            data["permissions"] = [data["read_perms"], data["write_perms"], data["api_priority"]]
-
-            del data["read_perms"]
-            del data["write_perms"]
-            del data["api_priority"]
-
-            config_tag_from_data(tagname, data, module, resource, save=True)
-
-        raise cherrypy.HTTPRedirect("/tagpoints/" + util.url(tagname))

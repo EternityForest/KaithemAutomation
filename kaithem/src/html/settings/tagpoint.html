@@ -7,62 +7,17 @@ import gc
 import collections
 import dateutil
 import cherrypy
-
-
-def combineLogs(a):
-    op = []
-
-    for i in a:
-        for j in a[i]:
-            op.append((unitsofmeasure.strftime(j[0]),i,j[1]))
-
-    return sorted(op)
-
 %>
 <%
-
-    if data:
-        data.pop("kaithem_disable_header",0)
-
-    logtime=time.time()-3600
-    if data and 'logtime' in data:
-        logtime = dateutil.parser.parse(data['logtime']).timestamp()
-
-
-
     pageGCListIgnoreFlag = True
-
-
 
     if tagName in tagpoints.allTags:
         tag=tagpoints.allTags[tagName]()
     else:
-        tag=tagpoints.Tag(tagName)
+        raise RuntimeError("Nonexistant Tag")
 
     #normalize
     normalizednormalizedTagName=tag.name
-
-    configData = tagpoints.config_tag_data.get(normalizednormalizedTagName,{})
-    ald= configData.get('alarms',{})
-
-
-    if hasattr(tag, 'kweb_manual_override_claim') and tag.kweb_manual_override_claim:
-        x  = tag.kweb_manual_override_claim
-        orval = x.value
-        orprio=x.priority
-        orname =x.name
-    else:
-        orval=''
-        orprio=90
-        orname="config"
-
-
-    eald = tag.effective_alarm_data
-
-    # Use to show the placeholders for what you'll get if you blank out something
-    defaultAlarmData = collections.defaultdict(lambda: {})
-    defaultAlarmData.update(tag.dynamic_alarm_data)
-
 
 %>
 
@@ -77,80 +32,11 @@ else:
 <script src="/static/js/widget.js"></script>
 <h2><a href="/tagpoints/${extraUrlStuff}">(back)</a><a href="/tagpoints/${normalizednormalizedTagName|u}?show_advanced=y">(Advanced View)</a> Tag Point: <small>${normalizednormalizedTagName}</small></h2>
 <div class="window paper">
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-    This page manages one tagpoint. To save configured defaults you must save the server state
-    to disk.  The important thing to know about tag points is that they have two configurations: runtime and configured.
 
-    Runtime is set directly in code, but can be overridden on a per-setting basis bu configuration set through the web UI.
-    When you remove a configured alarm or logger, it goes away, and returns to the config set in code, if any.
-</br>
-
-    Changing the default value will only take effect if the tag's value has never been set any other way(data timestamp==0)
-</br>
-
-<b>Tags dissapear if there are neither any references in code, nor any config vals set!</b></details>
 <form method="POST" action="/tagpoints/${normalizednormalizedTagName|u}">
-
     <h3>Description</h3>
     ${tag.description or "No description set"}
-
-
-
-<h3>Temporary Override</h3>
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-   Only direct literal values are supported here.  These values will not survive a reboot.
-   Re-saving and this page will restart the timer, otherwise the claim wil go away at the end of the delay.
-</details>
-<table border="1" class="w-full">
-    <tr>
-        <td>Claim Value(Blank for no Override)</td>
-        <td><input name="tempOverrideValue" value="${tag._runtime_config_data.get('tempOverrideValue','')|h}"  style="width:100%;"></td>
-    </tr>
-    <tr>
-        <td>Claim Priority</td>
-        <td><input  name="tempOverridePriority" value="${float(tag._runtime_config_data.get('overridePriority','50.5'))|h}" placeholder="50"></td>
-    </tr>
-    <tr>
-        <td>How Long?</td>
-        <td><input  name="tempOverrideLength" value="${int(tag._runtime_config_data.get('tempOverrideLength','3600'))|h}">S</td>
-    </tr>
-    %if hasattr(tag,'kweb_tempManualOverrideClaim') and tag.kweb_tempManualOverrideClaim and tag.kweb_tempManualOverrideClaim.expiration:
-    <tr>
-        <td>Time till expiration</td>
-        <td>
-            ${ tag.kweb_tempManualOverrideClaim.expiration -(time.monotonic()-tag.kweb_tempManualOverrideClaim.timestamp)}
-        </td>
-    </tr>
-    %endif
-
-</table>
-
-
-%if show_advanced:
 <div>
-%else:
-<div style="display: none;">
-%endif
-
-<h3>Permanent Override/Fixed Claim</h3><details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-    You can use an =expression as the value to create a dynamic getter.  The expression polls at the tag's interval if there are any subscribers, just like any other getter.
-    if you use tv('tagName') or stv('stringTagName') in your expression, it will also re-evaluate when any of the tags you use change.  As with alarms,
-    you have access to kaithem, random, math, and numpy, plus dateutil and dateutil.parser.
-</details>
-<table border="1" class="w-full">
-    <tr>
-        <td>Claim Name</td>
-        <td><input name="overrideName" value="${configData.get('overrideName','')|h}" placeholder="config"></td>
-    </tr>
-    <tr>
-        <td>Claim Value(Blank for no Override)</td>
-        <td><input name="overrideValue" value="${configData.get('overrideValue','')|h}"  style="width:80em; max-width: 60vw;"></td>
-    </tr>
-    <tr>
-        <td>Claim Priority</td>
-        <td><input  name="overridePriority" value="${int(configData.get('overridePriority','50'))|h}" placeholder="50"></td>
-    </tr>
-</table>
 
 
 
@@ -212,98 +98,59 @@ else:
     </tr>
     %endif
 
-
-    <tr>
-        <td>Module</td>
-        <td>
-            <input name="module" value="${module or tag.module|h}">
-        </td>
-    </tr>
-
-    <tr>
-        <td>Resource</td>
-        <td>
-            <input name="resource" value="${resource or tag.resource|h}">
-        </td>
-    </tr>
 </table>
 
-<h3>Config</h3>
+<h3>Current State</h3>
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>If you do not configure a type, the tag will not exist until requested via code.</details>
 <table border="1" class="w-full">
-<tr>
-    <th>Type/Create As</th>
-    <th>Interval</th>
-    <th>Min</th>
-    <th>Max</th>
-    <th>hi</th>
-    <th>lo</th>
-    <th>displayUnits</th>
-</tr>
-<tr><th>Current Values</th></tr>
 
 %if tag and isinstance(tag,tagpoints.NumericTagPointClass):
 <tr>
+    <td>Type</td>
     <td>${tag.type|h}</td>
+</tr>
+<tr>
+    <td>Interval</td>
     <td>${tag.interval}</td>
+</tr>
+<tr>
+    <td>Min</td>
     <td>${tag.min}</td>
+</tr>
+<tr>
+    <td>Max</td>
     <td>${tag.max}</td>
+</tr>
+<tr>
+    <td>Hi</td>
     <td>${tag.hi}</td>
+</tr>
+<tr>
+    <td>Lo</td>
     <td>${tag.lo}</td>
-    <td>${tag.displayUnits}
+</tr>
+<tr>
+    <td>Display in Units</td>
+    <td>${tag.display_units}</td>
 </tr>
 %endif
 
 %if tag and isinstance(tag,(tagpoints.StringTagPointClass, tagpoints.ObjectTagPointClass)):
 <tr>
-    <td>${tag.type}</td>
+    <td>Type</td>
+    <td>${tag.type|h}</td>
+</tr>
+<tr>
+    <td>Interval</td>
     <td>${tag.interval}</td>
-    <td>${tag.min}</td>
-    <td>${tag.max}</td>
-    <td>NA</td>
-    <td>NA</td>
-    <td>NA</td>
 </tr>
 %endif
 
 %if tag==None:
 <tr>
     <td>DELETED</td>
-    <td>DELETED</td>
-    <td>DELETED</td>
-    <td>DELETED</td>
-    <td>DELETED</td>
-    <td>DELETED</td>
-
 </tr>
 %endif
-<tr><th>Configured Values(Leave blank for default)</th></tr>
-<tr>
-    <td>
-        <%
-            # pre-set the configured type, if we got to this page by clicking the new tag button to make a specific type.
-            configType= configData.get('type','')
-
-            if new_strtag:
-                configType='string'
-            if new_numtag:
-                configType='number'
-        %>
-        <select name="type">
-            <option value="" ${'selected' if configType=='' else ''}>No setting/Create in code </option>
-            <option value="string" ${'selected' if configType=='string' else ''}>String</option>
-            <option value="number" ${'selected' if configType=='number' else ''}>Number</option>
-            <option value="object" ${'selected' if configType=='object' else ''}>Object</option>
-        </select>
-
-    </td>
-    <td><input name="interval" value="${configData.get('interval','')}" style="width:6em"></td>
-    <td><input name="min" value="${configData.get('min','')}" style="width:6em"></td>
-    <td><input name="max" value="${configData.get('max','')}" style="width:6em"></td>
-    <td><input name="hi" value="${configData.get('hi','')}" style="width:6em"></td>
-    <td><input name="lo" value="${configData.get('lo','')}" style="width:6em"></td>
-    <td><input name="displayUnits" value="${configData.get('displayUnits','')}" style="width:6em"><td></td>
-</tr>
 </table>
 
 </div>
@@ -323,7 +170,6 @@ else:
     </tr>
     <tr>
 
-<td><input name="value" value="${configData.get('value','')}"></td>
 
 %if tag and isinstance(tag,tagpoints.NumericTagPointClass):
     %try:
@@ -349,8 +195,8 @@ else:
 
 
 
-
-<h3>WebAPI exposure</h3>
+<details>
+<summary><h3>WebAPI exposure</h3></summary>
 <div class="help">
 
     <p>This section allows you to directly expose tags via the WebSockets API, for use in places like the integratedFreeBoard Dashboard creator. </p>
@@ -370,182 +216,30 @@ else:
 <>To un-expose something wth an exposed runtime config, use the special permission __never__ to disallow all users.</p>
 </div>
 
-
-<table border="1" class="w-full">
-    <tr>
-        <td>Read Permissions</td>
-
-    <td>
-        <input name="read_perms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
-    </td>
-    </tr>
-
-    <tr>
-        <td>Write Permissions(comma separated, empty for admin-only)</td>
-
-    <td>
-        <input name="write_perms" value="${configData.get('permissions',['','',''])[1]|h}" placeholder="${tag.getEffectivePermissions()[1]|h}" style="width:24em">
-    </td>
-</tr>
-    <tr>
-        <td>Priority of claims set by the API</td>
-
-    <td>
-        <input name="api_priority" value="${configData.get('permissions',['','',''])[2]|h}" placeholder="${tag.getEffectivePermissions()[2]|h}" style="width:24em">
-    </td>
- </tr>
-</table>
-
+</details>
 
 <h3>Alerting</h3>
-<div class="help"><p>Setting blank name deletes that alarm. Conditions are python expressions that can use the tag itself(tag), the value(value),
-     and the kaithem object.  Conditions are regular subscribers and can poll at the tag's interval.</p>
-
-<p>You cannot delete hardcoded alarms, but you can disable by setting the condition to False or 0</p>
-
-<p>You can also use tv('name') to get any numeric tag value by name inside your expressions, stv('name') to get string tags, and np to access numpy. You also have
-    math, random, re, and dateutil.parser.
+<p class="highlight">Formerly you could create tags via the web UI.  This was implemented in an unnecessarily complex way.
+    It will be back eventually!
 </p>
 
-<p>Kaithem tracks the tags you use in this way, and the alarms will re-evaluate when needed.</p>
-
-</div>
 
 <table border=1 class="w-full">
     <tr>
         <th>Name</th>
-        <th>Condition</th>
-        <th>Release Condition</th>
-        <th>Priority</th>
-        <th>auto_ack</th>
-        <th>Trip Delay</th>
         <th>State</th>
     </tr>
 
 
-%for i in eald:
-<tr>
-    %if not i in tag.dynamic_alarm_data:
-    <td><input name="alarm_${i}:name" value="${i|h}"></td>
-    %else:
-    <td><input title="Cannot change name of alarm that was created in code, set condition to None to disable" disabled=1 value="${i|h}"></td>
-    %endif
-    <td><input name="alarm_${i}:condition" value="${ald.get(i,{}).get('condition','')|h}" placeholder="${defaultAlarmData[i].get('condition','')}" style="width:24em"></td>
-    <td><input name="alarm_${i}:releaseCondition" value="${ald.get(i,{}).get('releaseCondition','')|h}" placeholder="${defaultAlarmData[i].get('releaseCondition','when tripCondition is False')}" style="width:24em"></td>
-    <td>
-        <select name="alarm_${i}:priority"  style="width:6em">
-            <option value="" ${'selected' if ald.get(i,{}).get('priority')=='' else ''}>unchanged/default(${eald[i].get('priority','warning')})</option>
-            <option value="debug" ${'selected' if ald.get(i,{}).get('priority')=='debug' else ''}>debug</option>
-            <option value="info" ${'selected' if ald.get(i,{}).get('priority')=='info' else ''}>info</option>
-            <option value="warning" ${'selected' if ald.get(i,{}).get('priority')=='warning' else ''}>warning</option>
-            <option value="error" ${'selected' if ald.get(i,{}).get('priority')=='error' else ''}>error</option>
-            <option value="critical" ${'selected' if ald.get(i,{}).get('priority')=='critical' else ''}>critical</option>
-        </select>
-    </td>
-    <td><input name="alarm_${i}:auto_ack" value="${ald.get(i,{}).get('auto_ack','')|h}" placeholder="${defaultAlarmData[i].get('auto_ack','False')}" style="width:4em"></td>
-    <td><input name="alarm_${i}:trip_delay" value="${ald.get(i,{}).get('trip_delay','')|h}" placeholder="${defaultAlarmData[i].get('trip_delay','0')}" style="width:6em"></td>
-
-    %if i in tag.alarms:
-    <td style="background-color: ${'lightgreen' if tag.alarms[i].sm.state=='normal' else 'yellow'};">${tag.alarms[i].sm.state}</td>
-    %else:
-    <td>Null Alarm</td>
-    %endif
-
-</tr>
+%for i in tag.alarms:
+    <tr>
+        <td>${i}</td>
+        <td>${tag.alarms[i].sm.state}</td>
+    </tr>
 %endfor
 
-<tr>
-    <td><input name="alarm_NEW:name" placeholder="New Alarm Name"></td>
-    <td><input name="alarm_NEW:condition" placeholder="New Alarm Condition"></td>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td></td>
-</tr>
-
 </table>
+</div>
 
-<h3>Loggers</h3>
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>These loggers control the logging of tag data to history.db</br>
-Interval is the maximum rate to log at. No logs are created if there are no changes. Tags that change more often than the interval will always 'flush' the most recent value after sufficient time.</br>
-Accumulate determines what happens to multiple readings within an interval.  To store the latest, use latest. To store the mean for the whole interval, use average.</br>
-Set the interval to 0 to delete the logger. Set history length to 0 to disable deleting old data.</details>
-
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>Set the target to ram to only log in memory, but beware filling availible space.</details>
-
-<table border=1 class="w-full">
-    <tr>
-        <th>Interval(s)</th>
-        <th>Accumulate Mode</th>
-        <th>Keep History</th>
-        <th>Target</th>
-
-    </tr>
-    %for n,i in enumerate(configData.get('loggers',[]) + [{'interval':0, 'accumulate': 'latest'}]):
-
-    <tr>
-        <td><input type="number" step="0.1" value="${i['interval']}" name="logger_${n}:interval"></td>
-    <td>
-        <select name="logger_${n}:accumulate">
-            <option value="latest" ${'selected' if i['accumulate']=='latest' else ''}>Latest</option>
-            %if isinstance(tag,tagpoints.NumericTagPointClass):
-            <option value="mean" ${'selected' if i['accumulate']=='mean' else ''}>Average</option>
-            <option value="min" ${'selected' if i['accumulate']=='min' else ''}>Minimum</option>
-            <option value="max" ${'selected' if i['accumulate']=='max' else ''}>Maximum</option>
-            %endif
-        </select>
-    </td>
-    <td><input type="number" step="1800" value="${i.get('history_length',3*30*24*3600)}" name="logger_${n}:history_length"></td>
-    <td>
-        <select name="logger_${n}:target">
-            <option value="ram" ${'selected' if i.get("target","disk")=='disk' else ''}>RAM</option>
-            <option value="disk" ${'selected' if i.get("target","disk")=='disk' else ''}>Disk</option>
-        </select>
-    </td>
-    </tr>
-    %endfor
-</table>
-
-
-%if hasattr(tag, 'configLoggers'):
-<h3>Recent Log Data </h3>
-
-<table border=1 class="w-full">
-    <tr><th>Time</th><th>Type</th><th>Val</th></tr>
-    %if isinstance(tag,tagpoints.NumericTagPointClass):
-        %for i in combineLogs({(i.accumType,i.target):i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):
-        <tr>
-            <td>${i[0]}</td>
-            <td>${i[1]}</td>
-
-            %if i[2]>tag.hi or i[2]<tag.lo:
-            <td><span class="danger">${i[2]}</span></td>
-            %else:
-            <td>${i[2]}</td>
-            %endif
-
-        </tr>
-        %endfor
-    %else:
-        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):
-        <tr>
-            <td>${i[0]}</td>
-            <td>${i[1]}</td>
-            <td>${str(i[2])[:128]}</td>
-        </tr>
-        %endfor
-    %endif
-</table>
-%endif
-
-
-
-<br>
-
-
-<input type="submit">
-</form>
-<form method="post" action="/tagpointlog/${normalizednormalizedTagName|u}"><button>Full Logs</button></form>
 
 <%include file="/pagefooter.html"/>

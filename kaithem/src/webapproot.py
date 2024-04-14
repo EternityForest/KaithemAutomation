@@ -31,7 +31,6 @@ from . import (
     auth,
     devices,
     devices_interface,
-    dialogs,
     directories,
     logviewer,
     messagebus,
@@ -288,41 +287,11 @@ class webapproot:
         # This page could be slow because of the db stuff, so we restrict it more
         pages.require("system_admin")
 
-        if "__new_prompt__" in path:
-            d = dialogs.Dialog(f"New Tag in {data['module']}")
-            d.text_input("new_tag_name", title="Tag Name")
-            d.selection("new_tag_type", options=["numeric", "string"], title="Type")
-            d.text_input("resource", title="Resource(Blank=use tag name)")
-            d.submit_button("Submit")
-            return d.render("/tagpoints/", {"module": data["module"]})
-
-        if "new_tag_type" in data:
-            pages.postOnly()
-            tagpoints.new_tag_POST(
-                data["new_tag_name"], new_tag_type=data["new_tag_type"], module=data["module"], resource=data["resource"]
-            )
-
         if path:
             tn = "/".join(path)
             if (not tn.startswith("=")) and not tn.startswith("/"):
                 tn = "/" + tn
-        else:
-            tn = data.get("new_tag_name", "")
-
-        if data and "new_tag_type" not in data:
-            if not tn:
-                raise ValueError("No tag name")
-            pages.postOnly()
-            tagpoints.handle_POST(
-                tn,
-                **data,
-            )
-
-        if path:
-            tn = "/".join(path)
-            if (not tn.startswith("=")) and not tn.startswith("/"):
-                tn = "/" + tn
-            if tn not in tagpoints.allTags:
+            if tagpoints.normalize_tag_name(tn) not in tagpoints.allTags:
                 raise ValueError("This tag does not exist")
             return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=data, show_advanced=True, module="", resource="")
         else:

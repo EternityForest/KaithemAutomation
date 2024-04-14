@@ -207,10 +207,10 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a
-                            href="/tagpoints/{{module[i]['tag']['name']}}"> <i class="mdi mdi-chip"></i> {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                            href="/tagpoints{{module[i]['tag']['name']}}"> <i class="mdi mdi-chip"></i> {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-molecule"></i>Delete</a>
+                            class="mdi mdi-delete"></i>Delete</a>
                     <br>
                 </div>
             </dt>
@@ -230,9 +230,10 @@
                 </div>
             </dt>
             {% endif %}
-            {% if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref','device'] and not i.startswith("__") %}
+
+            {% if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref','device','tagpoint'] and not i.startswith("__") %}
             <dt>
-                <span></span>\
+                <span></span>
                 <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                         class="mdi mdi-delete"></i>Delete</a>
             </dt>

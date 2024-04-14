@@ -960,7 +960,7 @@ class Meter(Widget):
 
         self.extraInfo = extraInfo
 
-        self.displayUnits = None
+        self.display_units = None
         self.defaultLabel = ""
         if "unit" not in kwargs:
             self.unit = None
@@ -1005,7 +1005,7 @@ class Meter(Widget):
         self.value = [round(value, 3), self.c, self.formatForUser(value)]
         Widget.write(self, self.value, push)
 
-    def setup(self, min, max, high, low, unit=None, displayUnits=None):
+    def setup(self, min, max, high, low, unit=None, display_units=None):
         "On-the-fly change of parameters"
         d = {
             "high": high,
@@ -1020,7 +1020,7 @@ class Meter(Widget):
         if not unit:
             self.unit = None
         else:
-            self.displayUnits = displayUnits
+            self.display_units = display_units
             try:
                 # Throw an error if you give it a bad unit
                 self.unit = unit
@@ -1055,8 +1055,8 @@ class Meter(Widget):
                 else:
                     return str(round(v, 3)) + unit
                 # Overrides are allowed, we ignorer the user specified units
-                if self.displayUnits:
-                    units = self.displayUnits
+                if self.display_units:
+                    units = self.display_units
                 else:
                     # Always show the base unit by default
                     if unit not in units:

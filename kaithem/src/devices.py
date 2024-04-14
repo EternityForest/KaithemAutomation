@@ -898,7 +898,7 @@ class Device(iot_devices.device.Device):
             priority=priority,
             trip_delay=trip_delay,
             auto_ack=auto_ack,
-            releaseCondition=release_condition,
+            release_condition=release_condition,
         )
         if x:
             self.alerts[name] = x

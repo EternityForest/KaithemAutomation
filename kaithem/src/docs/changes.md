@@ -6,7 +6,14 @@ Change Log
 Development is advanced enough on the new overhaul that it makes sense
 to start using the [GitFlow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) methodology.
 
-This release is another one that's smaller than the last while still a
+- :coffin: :boom: Remove ALL web tag configurability.
+
+
+Since this was a core feature, it will be back.  But it was one of the worst parts of the codebase AND had bad UX,  it was very much in need of a full rewrite.
+
+For now it is not possible to set or override alerts or loggers.  I normally *hate* rewrites, but believe this is really needed.
+
+Tags, in newer editions, should have a single source of config, and the code for config should be separate from tag internals.
 
 - :sparkles: Switch from typeguard to Beartype.
 - :sparkles: More unit testing

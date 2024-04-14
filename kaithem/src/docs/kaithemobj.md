@@ -364,7 +364,7 @@ label, which specifies a label such as "CH1 Voltage"
 The constructor takes an optional "unit" parameter, which is a string like "m" that describes the
 native unit of the meter.
 
-It also takes a parameter displayUnits, which describe what units should be displayed. It is a pipe-separated
+It also takes a parameter display_units, which describe what units should be displayed. It is a pipe-separated
 list without spaces.
 
 #### kaithem.widgets.Slider(\*\*kwargs)

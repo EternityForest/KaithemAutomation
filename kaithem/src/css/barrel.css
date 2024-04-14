@@ -545,6 +545,8 @@ button,
 input,
 select {
     min-height: calc(min(var(--control-height), 100%));
+    width: fit-content;
+    flex-basis: min-content;
     /*Don't set button height, remember they can be multiine*/
 }
 
@@ -1125,9 +1127,13 @@ header:not(.undecorated) .tool-bar {
         flex-grow: 0;
         padding: 0px;
 
-        &>:is(input:not(input[type=radio], input[type=checkbox]), select) {
+        &>:is(input:not(input[type=radio], input[type=checkbox])) {
             width: 100%;
             max-width: 100%;
+        }
+
+        &>:is(select) {
+            max-width: max-content;
         }
 
         &:has(input[type="radio"], input[type="checkbox"]) {

@@ -166,7 +166,7 @@ if psutil:
                 tempTags[i].set_alarm(
                     "temperature",
                     "value>78",
-                    releaseCondition="value<65",
+                    release_condition="value<65",
                     priority="warning",
                 )
                 tempTags[i].set_alarm("lowtemperature", "value<5")
