@@ -2,8 +2,14 @@
 allow-origins:
 - '*'
 allow-xss: false
+alt-top-banner: ''
 auto-reload: false
 auto-reload-interval: 5.0
+code: "device = all_devices[path[1]]\r\nfor i in all_devices[path[1]].config.get('kaithem.read_perms','').strip().split(\"\
+  ,\"):\r\n    if not kaithem.web.has_permission(i):\r\n        raise RuntimeError(\"\
+  Missing permission for that camera: \"+repr(i))\r\n\r\ndir = os.path.expanduser(device.config['device.storage_dir'])\r\
+  \nfor i in path:\r\n    if i.startswith(\"/\"):\r\n        raise RuntimeError(\"\
+  security\")\r\n        \r\nserve_file(os.path.join(dir,*path[1:]))\r\n"
 mimetype: text/html
 no-header: false
 no-navheader: false
@@ -12,29 +18,12 @@ require-method:
 - POST
 require-permissions:
 - view_nvr
-resource-timestamp: 1646328863381615
+resource-timestamp: 1713117546920368
 resource-type: page
+setupcode: "import os\r\nfrom kaithem.api.devices import all_devices\r\nfrom kaithem.api.web\
+  \ import serve_file"
+streaming-response: false
 template-engine: mako
+theme-css-url: ''
 
 ---
-<%!
-#Code Here runs once when page is first rendered. Good place for import statements.
-import os
-%>
-
-<%
-
-device = kaithem.devices[path[1]]
-for i in kaithem.devices[path[1]].config.get('kaithem.read_perms','').strip().split(","):
-    if not kaithem.web.has_permission(i):
-        raise RuntimeError("Missing permission for that camera: "+repr(i))
-
-dir = os.path.expanduser(device.config['device.storage_dir'])
-for i in path:
-    if i.startswith("/"):
-        raise RuntimeError("security")
-        
-kaithem.web.serve_file(os.path.join(dir,*path[1:]))
-
-%>
-

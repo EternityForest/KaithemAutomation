@@ -1,0 +1,40 @@
+---
+allow-origins:
+- '*'
+allow-xss: false
+alt-top-banner: ''
+auto-reload: false
+auto-reload-interval: 5.0
+code: ''
+mimetype: text/html
+no-header: false
+no-navheader: false
+require-method:
+- GET
+- POST
+require-permissions: []
+resource-timestamp: 1713116971217800
+resource-type: page
+setupcode: "from kaithem.api.widgets import APIWidget\r\n\r\nt = APIWidget(echo=False,\
+  \ id=\"YourWidgetID\")\r\n\r\ndef f(user: str, value, connection_id: str):\r\n \
+  \   t.send_to(f\"Echoing {value} from {user} on {connection_id}\", connection_id)\r\
+  \n\r\nt.attach2(f)\r\n\r\n# This returns an HTML string to embed in a page\r\n#\
+  \ which also includes /static/js/widget.js\r\n\r\nt.render(\"js_var_name\")"
+streaming-response: false
+template-engine: jinja2
+theme-css-url: ''
+
+---
+{% extends "pagetemplate.j2.html" %}
+
+{% block title %} {basename} {% endblock %}
+
+{% block body %}
+{{t.render("api")}}
+
+<script>
+    api.upd = (val) => console.log(val)
+    api.send("MyValue")
+</script>
+
+{% endblock %}
