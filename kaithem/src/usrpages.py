@@ -17,7 +17,8 @@ import cherrypy.lib.static
 import jinja2
 import mako
 import mako.template
-import tornado
+
+# import tornado.exceptions
 from mako.lookup import TemplateLookup
 
 from . import directories, messagebus, modules_state, pages, theming, util
@@ -699,8 +700,8 @@ class KaithemPage:
             if isinstance(e, self.kaithemobj.ServeFileInsteadOfRenderingPageException):
                 return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
 
-            # tb = traceback.format_exc(chain=True)
-            tb = tornado.exceptions.text_error_template().render()
+            tb = traceback.format_exc(chain=True)
+            # tb = tornado.exceptions.text_error_template().render()
             data = (
                 "Request from: " + cherrypy.request.remote.ip + "(" + pages.getAcessingUser() + ")\n" + cherrypy.request.request_line + "\n"
             )

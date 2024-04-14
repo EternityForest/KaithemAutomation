@@ -73,17 +73,20 @@ else:
 
     <tr>
         <td>WebAPI read perms</td>
-        <td>${tag.getEffectivePermissions()[0]}</td>
+        <td>${tag.get_effective_permissions(
+)[0]}</td>
     </tr>
 
     <tr>
         <td>WebAPI write perms</td>
-        <td>${tag.getEffectivePermissions()[1]}</td>
+        <td>${tag.get_effective_permissions(
+)[1]}</td>
     </tr>
 
     <tr>
         <td>WebAPI priority</td>
-        <td>${tag.getEffectivePermissions()[2]}</td>
+        <td>${tag.get_effective_permissions(
+)[2]}</td>
     </tr>
 
     <tr>

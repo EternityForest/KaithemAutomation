@@ -72,7 +72,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a>
     </td>
-    <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().lastValue}</td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().last_value}</td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 </tr>
 %endif
@@ -80,7 +80,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.StringTagPointClass):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
-    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} </td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().last_value)[:32]|h} </td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 
 </tr>
@@ -89,7 +89,7 @@ if cherrypy.request.params.get("kaithem_disable_header",0):
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.ObjectTagPointClass):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
-    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().lastValue)[:32]|h} </td>
+    <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().last_value)[:32]|h} </td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 
 </tr>

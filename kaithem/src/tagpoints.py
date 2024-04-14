@@ -35,7 +35,7 @@ from .unitsofmeasure import convert, unit_types
 
 def _make_tag_info_helper(t: GenericTagPointClass[Any]):
     def f():
-        x = t.currentSource
+        x = t.current_source
         if x == "default":
             return ""
         else:
@@ -234,8 +234,8 @@ class GenericTagPointClass(Generic[T]):
         # It is not guaranteed to store the last value, to error check the value,
         # To prevent multiple writes at the same time, and the claims may be ignored.
 
-        # Subscribing the tag directly to another tga uses fastPush that bypasses all claims.
-        # In unreliable mode you should only use fastPush to set values.
+        # Subscribing the tag directly to another tga uses fast_push that bypasses all claims.
+        # In unreliable mode you should only use fast_push to set values.
 
         self.unreliable: bool = False
 
@@ -288,7 +288,7 @@ class GenericTagPointClass(Generic[T]):
         self.handler: typing.Callable[..., Any] | None = None
 
         # Used for the expressions in alert conditions and such
-        self.evalContext: dict[str, Any] = {
+        self.eval_context: dict[str, Any] = {
             "math": math,
             "time": time,
             # Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
@@ -305,7 +305,7 @@ class GenericTagPointClass(Generic[T]):
         try:
             import numpy as np
 
-            self.evalContext["np"] = np
+            self.eval_context["np"] = np
         except ImportError:
             pass
 
@@ -415,7 +415,7 @@ class GenericTagPointClass(Generic[T]):
             with self.lock:
                 self.permissions = d
 
-                d2 = self.getEffectivePermissions()
+                d2 = self.get_effective_permissions()
                 if d2[2]:
                     expose_priority = float(d2[2])
 
@@ -482,12 +482,12 @@ class GenericTagPointClass(Generic[T]):
             self.apiClaim = self.claim(
                 v,
                 "WebAPIClaim",
-                priority=float(self.getEffectivePermissions()[2]),
+                priority=float(self.get_effective_permissions()[2]),
                 annotation=u,
             )
 
             # They tried to set the value but could not, so inform them of such.
-            if not self.currentSource == self.apiClaim.name:
+            if not self.current_source == self.apiClaim.name:
                 self._apiPush()
 
     def controlApiHandler(self, u, v: T | None):
@@ -501,17 +501,17 @@ class GenericTagPointClass(Generic[T]):
             self.apiClaim = self.claim(
                 v,
                 "WebAPIClaim",
-                priority=float((self.getEffectivePermissions())[2] or 50),
+                priority=float((self.get_effective_permissions())[2] or 50),
                 annotation=u,
             )
 
             # They tried to set the value but could not, so inform them of such.
-            if not self.currentSource == self.apiClaim.name:
+            if not self.current_source == self.apiClaim.name:
                 self._apiPush()
 
         self.dataSourceAutoControl.write(v)
 
-    def getEffectivePermissions(self) -> list[str]:
+    def get_effective_permissions(self) -> list[str]:
         """
         Get the permissions that currently apply here. Configured ones override in-code ones
 
@@ -618,7 +618,7 @@ class GenericTagPointClass(Generic[T]):
         release_condition: str | None = "",
         auto_ack: bool | str = "no",
         trip_delay: float | int | str = "0",
-    ):
+    ) -> _Alert | None:
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
@@ -641,12 +641,15 @@ class GenericTagPointClass(Generic[T]):
             # Remove empties to make way for defaults
             d = {i: d[i] for i in d if d[i]}
 
-            x = self._alarm_from_data(name, d)
+            self._alarm_from_data(name, d)
 
-            # Alarms have to have a reference to the config data
-            x.tagpoint_config_data = d
-            x.tagpoint_name = self.name
-            return x
+            if name in self.alarms:
+                x = self.alarms[name]
+                # Alarms have to have a reference to the config data
+                x.tagpoint_config_data = d
+                x.tagpoint_name = self.name
+                return x
+        return None
 
     @staticmethod
     def _makeTagAlarmHTMLFunc(selfwr):
@@ -730,7 +733,7 @@ class GenericTagPointClass(Generic[T]):
         trip_delay = float(d.get("trip_delay", 0) or 0)
 
         # Shallow copy, because we are going to override the tag getter
-        context = copy.copy(self.evalContext)
+        context = copy.copy(self.eval_context)
 
         tripCondition = compile(tripCondition, f"{self.name}.alarms.{name}_trip", "eval")
         if release_condition:
@@ -871,7 +874,7 @@ class GenericTagPointClass(Generic[T]):
         c = compile(e[1:], f"{self.name}_expr", "eval")
 
         def f():
-            return eval(c, self.evalContext, self.evalContext)
+            return eval(c, self.eval_context, self.eval_context)
 
         # Overriding these tags would be extremely confusing because the
         # Expression is right in the name, so don't make it easy
@@ -945,7 +948,7 @@ class GenericTagPointClass(Generic[T]):
             return rval
 
     @property
-    def currentSource(self) -> str:
+    def current_source(self) -> str:
         # Avoid the lock by using retru in case claim disappears
         for i in range(10000):
             try:
@@ -1131,7 +1134,7 @@ class GenericTagPointClass(Generic[T]):
             raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
 
     @beartype.beartype
-    def setHandler(self, f: Callable[[T, float, Any], Any]):
+    def set_handler(self, f: Callable[[T, float, Any], Any]):
         self.handler = weakref.ref(f)
 
     def _debugAdminPush(self, value: T, t: float | None, a: Any):
@@ -1224,7 +1227,7 @@ class GenericTagPointClass(Generic[T]):
             self.lock.release()
 
     def _get_value(self, force=False) -> T:
-        "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
+        "Get the processed value of the tag, and update last_value, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
         if (self.last_got_value > time.monotonic() - self.interval) and not force:
@@ -1756,11 +1759,11 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             display_units=self.display_units,
         )
 
-    def convertTo(self, unit: str):
+    def convert_to(self, unit: str):
         "Return the tag's current vakue converted to the given unit"
         return convert(self.value, self.unit, unit)
 
-    def convertValue(self, value: float | int, unit: str) -> float | int:
+    def convert_value(self, value: float | int, unit: str) -> float | int:
         "Convert a value in the tag's native unit to the given unit"
         return convert(value, self.unit, unit)
 
@@ -2319,7 +2322,7 @@ class NumericClaim(Claim[float]):
         self.tag: NumericTagPointClass
         Claim.__init__(self, tag, value, name, priority, timestamp, annotation, expiration)
 
-    def setAs(
+    def set_as(
         self,
         value: float,
         unit: str,

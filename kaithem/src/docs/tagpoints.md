@@ -54,7 +54,7 @@ if the application can handle it.
 ### Expression Tags
 Any tag having a name that begins with an equals sign will be created with a getter that evaluates the name as an expression.  The priority of the expression source will be 98.
 
-You have access to time, math, random, re, and the kaithem object, plus the tag itself as 'tag', and anything else you put in tag.evalContext in code.
+You have access to time, math, random, re, and the kaithem object, plus the tag itself as 'tag', and anything else you put in tag.eval_context in code.
 
 Note: tag point configuration is not part of a module and as such is a little harder to share, since you don't get the ZIP file uploads. You may want to create tags through code instead.
 
@@ -105,7 +105,7 @@ this function.
 The signature of f must be:
 f(value, timestamp, annotation)
 
-#### TagPoint.setHandler(f)
+#### TagPoint.set_handler(f)
 
 Similar to subscribe, except the handler is us called before the value is actually stored,
 before any subscribers, and any errors are simply unhandled and will we raised in the thread
@@ -150,10 +150,10 @@ This can be None, or a pipe-separated string listing one or more units that the 
 Base SI units imply that the correct prefix should be used for readability, but units that contain a prefix imply fixed
 display only in that unit.
 
-#### TagPoint.convertTo(unit)
+#### TagPoint.convert_to(unit)
 Return the value in the given unit
 
-#### TagPoint.convertValue(value,unit)
+#### TagPoint.convert_value(value,unit)
 Value must be a number in the tag's native unit. Returns the value after converting.
 
 
@@ -174,7 +174,7 @@ to just work with the default claim, for ease of use.
 
 Return the value from a tag, forcing a new update from the getter without any caching. May also trigger the subscribers if the value changes.
 
-##### TagPoint.evalContext
+##### TagPoint.eval_context
 Dict used as globals and locals for evaluating alarm conditions and expression tags.
 
 
@@ -210,35 +210,8 @@ or code your own API for that.
 If configured is True, will actually set the persistant config rather than the runtime config. This will not be made permanent till the user clicks "save server state to disk".
 
 
-#### tagPoint.mqttConnect(self, **,server=None, port=1883, password=None,message_bus_name=None, mqttTopic=None, incomingPriority=None, incomingExpiration=None)
 
-Used to connect a tag point for 2-way sync to an MQTT server.  When the tag's value changes, the value will be sent, JSON encoded if needed, to
-the server at the selected topic, or under /tagpoints/TAGNAME.  Messages will be sent with the retain flag active.
-
-When a message is incoming, it's value will set the local tag's value using a claim that has incomingPriority.
-
-This uses Scullery's connection pool system. The suggested use is to leave the server blank, set and set a message_bus_name to use an existing connection
-configured through the device manager.
-
-
-You can use this to sync tags on two Kaithem instances, but the data has been kept as simple as possible so you can also use it to interact with other software.
-
-
-
-
-
-Note that due to the use of the retain flag, upon reconnection to the server, the value may "snap back" to whatever the server thinks the value should be, the MQTT server
-is the "source of truth" here.  Tag points are intended to represent one shared point kept on the server and are not "directional".
-
-The incoming expiration tag will cause the claim representing MQTT data to expire if the data is more than that old.  Note that we currently only send data on changes, so this is of limited utility,
-until we have a perioding rebroadcasting feature.
-
-Upon expiration, the value will become that of the next highest claim, and this new value will be sent over the MQTT topic like anything else.
-
-
-
-
-#### tagPoint.getEffectivePermissions()
+#### tagPoint.get_effective_permissions()
 
 Returns the read, write, and max priority permissions that are currently in effect, after merging in the web GUI config settings.  If nothing is set up, read abd write will be "",
 and you should interpret this as meaning the tag should not be exposed.
@@ -258,11 +231,11 @@ Set the value of a claim. You can optionally also set the timestamp of the messa
 ##### Claim()
 Equivalent to claim.set(). This allows claims themselves to be subscribers for another tagpoint
 
-##### Claim.setAs(value,unit,timestamp=None,annotation=None)
+##### Claim.set_as(value,unit,timestamp=None,annotation=None)
 Set the value of a claim with a value of the given unit, if neccesary, converts to the tag's
 native unit before setting. You can optionally also set the timestamp of the message.
 
-#### TagPoint.currentSource
+#### TagPoint.current_source
 Return the Claim object that is currently controlling the tag
 
 ##### Claim.release()
@@ -297,7 +270,7 @@ kaithem.tags.all_tags_raw['foo']() gets you the foo tag.
 
 Set to true, makes tag act more like a UDP connection. Setting the value just pushed to subscribers. Polling not guaranteed to work. Type checking disabled.
 
-#### BinaryTag.fastPush(self, value,timestamp=None, annotation=None)
+#### BinaryTag.fast_push(self, value,timestamp=None, annotation=None)
 
 Just notify sbscribers. Use with unreliable mode.  Does not set the value and ignores all claims and priorities. Allows tag points to be used for realtime
 media streaming.  Preferably, use MPEG 2 TS. Subtype should be "mpegts" and data packets must start at 188 byte boundaries for that.
@@ -305,52 +278,11 @@ media streaming.  Preferably, use MPEG 2 TS. Subtype should be "mpegts" and data
 
 
 
-
-
-## Soft tags and Filtering
-
-Kaithem has a specific API for filters. Custom filters are encouraged to use this pattern:
-
-### Filter(name, inputTag, *,priority=60,interval=-1)
-
-Create a tag with the name(Or use any existing tag), claim it with priority 60, and manage it as a filtered version of the input tag.
-Both pull and push data must be supported.
-
-interval only affects output tags, -1 indicates automatic.
-
-
-
-### Filter.tag
-This is always the output tag.
-
-
-#### kaithem.tags.LowpassFilter(name, inputTag, timeConstant, priority=60,interval=-1)
-BETA: My math could be off in this implementation
-
-First-order lowpass filter with the given time constant in seconds
-
-
-
-#### kaithem.tags.HighpassFilter(name, inputTag, timeConstant, priority=60,interval=-1)
-BETA: My math could be off in this implementation
-
-First-order highpass filter with the given time constant in seconds
-
-
-#### kaithem.tags.HysteresisFilter(name, inputTag, hysteresis, priority=60,interval=-1)
-BETA: My math could be off in this implementation
-
-Suppress small changes with a hysteresis window.  If window is 3, and you set input to ten, respond immediately to positive change, but ignore negative change till
-you get to 7.
-
-Once at 7, the output will be 7, and positive changes will be ignored till you get back up to 10.  If you go to 11, the back of the window will then move to 8.
-
-
 ### The Tag Point Classes
 
 TagPointClass, StringTagPointClass,ObjectTagPointClass, and BinaryTagPointClass  exist under kaithem.tags.
 
-Subclassing is a bad plan but you mak want them for type hinting.
+Subclassing is a bad plan but you may want them for type hinting.
 
 ## The raw data API endpoint
 

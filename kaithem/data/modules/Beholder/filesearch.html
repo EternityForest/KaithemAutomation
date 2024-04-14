@@ -2,9 +2,43 @@
 allow-origins:
 - '*'
 allow-xss: false
+alt-top-banner: ''
 auto-reload: false
 auto-reload-interval: 5.0
-code: ''
+code: "__doc__= \"#Python Code here runs every page load\"\r\n\r\nif 'starttime' in\
+  \ kwargs:\r\n  starttime = datetime.datetime.fromisoformat(kwargs['starttime'])\r\
+  \nelse:\r\n  starttime= datetime.datetime.fromisoformat('1900-01-01'+\"+00:00\"\
+  ).replace(tzinfo=datetime.timezone.utc)\r\n\r\ndirs = []\r\nresult = []\r\n\r\n\
+  l=''\r\n\r\ndef parse(s):\r\n  if not \"Z\" in s and not '+' in s:\r\n    x= datetime.datetime.fromisoformat(s+\"\
+  +00:00\")\r\n  else:\r\n    x= datetime.datetime.fromisoformat(s.replace(\"Z\",\"\
+  +00:00\"))\r\n\r\n    if x.tzinfo is None:\r\n      x=x.replace(tzinfo=datetime.timezone.utc)\r\
+  \n  return x\r\n\r\nfor i in kaithem.devices:\r\n  if kaithem.devices[i].device_type_name\
+  \ in ['NVRChannel']:\r\n    canDo=True\r\n    for j in  kaithem.devices[i].config.get(\"\
+  kaithem.read_perms\",'').strip().split(\",\"):\r\n      if not kaithem.web.has_permission(j.strip()):\r\
+  \n        canDo=False\r\n    if canDo:\r\n      if not 'filter' in kwargs or not\
+  \ kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():\r\n\
+  \        dirs.append((os.path.join(os.path.expanduser(kaithem.devices[i].config['device.storage_dir']),i,'recordings'),\
+  \ i))\r\n\r\n\r\nenough = 0\r\n\r\nfor t in dirs:\r\n  i=t[0]\r\n  if not os.path.isdir(i):\r\
+  \n    continue\r\n  for j in os.listdir(i):\r\n    j2 = os.path.join(i,j)\r\n  \
+  \  if not os.path.isdir(j2):\r\n      continue\r\n    \r\n    #Parse the day folders\r\
+  \n    try:\r\n      jt = parse(j)\r\n    except:\r\n      print(traceback.format_exc)\r\
+  \n      continue\r\n\r\n    # Only look in the correct top level dir.\r\n    if\
+  \ (jt- starttime).total_seconds() > (3600 * 25):\r\n      if enough:\r\n       \
+  \ continue\r\n\r\n\r\n    # Only look in the correct top level dir.\r\n    if jt<starttime\
+  \ and (starttime-jt).total_seconds() > (3600 * 25):\r\n        continue\r\n\r\n\r\
+  \n    for k in os.listdir(j2):\r\n      k2 = os.path.join(j2,k)\r\n      # Date\
+  \ range filter\r\n      # Always get everything from exact day, limit count from\
+  \ next day\r\n      if  (parse(k)>starttime and (parse(k)-starttime).total_seconds()\
+  \ < ((24*3600)+60))  or((not enough) and parse(k)>starttime):\r\n        if not\
+  \ os.path.isfile(os.path.join(k2, \"playlist.m3u8\")):\r\n          continue\r\n\
+  \        \r\n        fn =  os.path.join(t[1],'recordings',j,k)\r\n        title\
+  \ = ''\r\n\r\n        try:\r\n          regex = '^#EXTALB:(.*)$'\r\n          with\
+  \ open(os.path.join(k2, \"playlist.m3u8\")) as f:\r\n            fd = f.read()\r\
+  \n          \r\n          x = re.search(regex, fd, re.MULTILINE)\r\n          if\
+  \ x:\r\n            title = x.group(1)\r\n\r\n        except Exception as e:\r\n\
+  \          print(e)\r\n\r\n        \r\n        result.append((k,fn, t[1], title))\r\
+  \n\r\n        if len(result)>500:\r\n          enough=1\r\noutput = json.dumps(list(sorted(result)))\r\
+  \n"
 mimetype: text/html
 no-header: true
 no-navheader: true
@@ -13,114 +47,14 @@ require-method:
 - POST
 require-permissions:
 - view_nvr
-resource-timestamp: 1675751279621439
+resource-timestamp: 1713106900940510
 resource-type: page
-setupcode: ''
+setupcode: "#Code Here runs once when page is first rendered. Good place for import\
+  \ statements.\r\nimport json\r\nimport os\r\nimport datetime\r\nimport traceback\r\
+  \nimport re\r\n"
 streaming-response: false
-template-engine: mako
+template-engine: jinja2
+theme-css-url: ''
 
 ---
-<%!
-#Code Here runs once when page is first rendered. Good place for import statements.
-import json
-import os
-import datetime
-import traceback
-import re
-%>
-
-<%
-__doc__= "#Python Code here runs every page load"
-
-if 'starttime' in kwargs:
-  starttime = datetime.datetime.fromisoformat(kwargs['starttime'])
-else:
-  starttime= datetime.datetime.fromisoformat('1900-01-01'+"+00:00").replace(tzinfo=datetime.timezone.utc)
-
-dirs = []
-result = []
-
-l=''
-
-def parse(s):
-  if not "Z" in s and not '+' in s:
-    x= datetime.datetime.fromisoformat(s+"+00:00")
-  else:
-    x= datetime.datetime.fromisoformat(s.replace("Z","+00:00"))
-
-    if x.tzinfo is None:
-      x=x.replace(tzinfo=datetime.timezone.utc)
-  return x
-
-for i in kaithem.devices:
-  if kaithem.devices[i].device_type_name in ['NVRChannel']:
-    canDo=True
-    for j in  kaithem.devices[i].config.get("kaithem.read_perms",'').strip().split(","):
-      if not kaithem.web.has_permission(j.strip()):
-        canDo=False
-    if canDo:
-      if not 'filter' in kwargs or not kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():
-        dirs.append((os.path.join(os.path.expanduser(kaithem.devices[i].config['device.storage_dir']),i,'recordings'), i))
-
-
-enough = 0
-
-for t in dirs:
-  i=t[0]
-  if not os.path.isdir(i):
-    continue
-  for j in os.listdir(i):
-    j2 = os.path.join(i,j)
-    if not os.path.isdir(j2):
-      continue
-    
-    #Parse the day folders
-    try:
-      jt = parse(j)
-    except:
-      print(traceback.format_exc)
-      continue
-
-    # Only look in the correct top level dir.
-    if (jt- starttime).total_seconds() > (3600 * 25):
-      if enough:
-        continue
-
-
-    # Only look in the correct top level dir.
-    if jt<starttime and (starttime-jt).total_seconds() > (3600 * 25):
-        continue
-
-
-    for k in os.listdir(j2):
-      k2 = os.path.join(j2,k)
-      # Date range filter
-      # Always get everything from exact day, limit count from next day
-      if  (parse(k)>starttime and (parse(k)-starttime).total_seconds() < ((24*3600)+60))  or((not enough) and parse(k)>starttime):
-        if not os.path.isfile(os.path.join(k2, "playlist.m3u8")):
-          continue
-        
-        fn =  os.path.join(t[1],'recordings',j,k)
-        title = ''
-
-        try:
-          regex = '^#EXTALB:(.*)$'
-          with open(os.path.join(k2, "playlist.m3u8")) as f:
-            fd = f.read()
-          
-          x = re.search(regex, fd, re.MULTILINE)
-          if x:
-            title = x.group(1)
-
-        except Exception as e:
-          print(e)
-
-        
-        result.append((k,fn, t[1], title))
-
-        if len(result)>500:
-          enough=1
-
-%>
-
-${json.dumps(list(sorted(result)))}
+{{output}}

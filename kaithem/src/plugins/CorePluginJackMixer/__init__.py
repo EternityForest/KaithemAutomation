@@ -397,7 +397,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     @soundFuseSetting.setter
     def soundFuseSetting(self, v):
         self._soundFuseSetting = v
-        self.levelTag.evalContext["soundFuseSetting"] = v
+        self.levelTag.eval_context["soundFuseSetting"] = v
 
     def finalize(self, wait=3):
         with self.lock:
@@ -1151,7 +1151,7 @@ class MixingBoard:
             # Push the real current value, not just repeating what was sent
             self.api.send(["fader", channel, c.faderTag.value])
 
-            if c.faderTag.currentSource == "default":
+            if c.faderTag.current_source == "default":
                 self.channels[channel]["fader"] = float(level)
 
     def savePreset(self, presetName):
