@@ -139,7 +139,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def linkSendTo(self, data: list[Any], target: str):
         if self.link:
-            return self.link.sendTo(data, target)
+            return self.link.send_to(data, target)
 
     def send_everything(self, sessionid):
         with core.lock:
@@ -648,7 +648,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             )
 
         elif cmd_name == "mediaLinkCommand":
-            scenes.scenes_by_name[msg[1]].media_link_socket.sendTo(msg[3], msg[2])
+            scenes.scenes_by_name[msg[1]].media_link_socket.send_to(msg[3], msg[2])
             return
 
         elif cmd_name == "newFromSound":

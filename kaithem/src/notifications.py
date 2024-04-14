@@ -43,7 +43,7 @@ toolbarapi.echo = False
 
 def f(u, v, id):
     if v[0] == "countsince":
-        toolbarapi.sendTo(json.dumps(countnew(v[1])), id)
+        toolbarapi.send_to(json.dumps(countnew(v[1])), id)
 
 
 toolbarapi.attach2(f)

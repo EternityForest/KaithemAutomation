@@ -199,7 +199,7 @@ class GenericTagPointClass(Generic[T]):
 
         self._default: T
 
-        self.dataSourceWidget: widgets.Widget | None = None
+        self.data_source_widget: widgets.Widget | None = None
         self.dataSourceAutoControl: widgets.Widget | None = None
 
         # Used for pushing data to frontend
@@ -423,7 +423,7 @@ class GenericTagPointClass(Generic[T]):
                 d2[1] = d2[1] or "__never__"
 
                 if not d2[0]:
-                    self.dataSourceWidget = None
+                    self.data_source_widget = None
                     self.dataSourceAutoControl = None
                     try:
                         del exposedTags[self.name]
@@ -464,7 +464,7 @@ class GenericTagPointClass(Generic[T]):
                     w.attach(self._weakApiHandler)
                     self.dataSourceAutoControl.attach(self._weakApiHandler)
 
-                    self.dataSourceWidget = w
+                    self.data_source_widget = w
 
     @staticmethod
     def makeWeakApiHandler(wr):
@@ -532,20 +532,20 @@ class GenericTagPointClass(Generic[T]):
         return d2
 
     def _apiPush(self):
-        "If the expose function was used, push this to the dataSourceWidget"
-        if not self.dataSourceWidget:
+        "If the expose function was used, push this to the data_source_widget"
+        if not self.data_source_widget:
             return
 
         # Immediate write, don't push yet, do that in a thread because TCP can block
         def pushFunction():
             # Set value immediately, for later page loads
-            assert self.dataSourceWidget
-            self.dataSourceWidget.value = self.value
+            assert self.data_source_widget
+            self.data_source_widget.value = self.value
             if self._guiLock.acquire(timeout=1):
                 try:
                     # Use the new literal computed value, not what we were passed,
                     # Because it could have changed by the time we actually get to push
-                    self.dataSourceWidget.send(self.value)
+                    self.data_source_widget.send(self.value)
                 finally:
                     self._guiLock.release()
 
@@ -1030,7 +1030,7 @@ class GenericTagPointClass(Generic[T]):
             if f:
                 f(value, timestamp, annotation)
 
-        if not self.dataSourceWidget:
+        if not self.data_source_widget:
             return
 
         # Set value immediately, for later page loads
@@ -1038,7 +1038,7 @@ class GenericTagPointClass(Generic[T]):
             try:
                 # Use the new literal computed value, not what we were passed,
                 # Because it could have changed by the time we actually get to push
-                self.dataSourceWidget.send(value)
+                self.data_source_widget.send(value)
 
             except Exception:
                 raise

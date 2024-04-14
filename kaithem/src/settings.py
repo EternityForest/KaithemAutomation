@@ -376,7 +376,7 @@ class Settings:
 
         from . import widgets
 
-        widgets.sendTo("__FORCEREFRESH__", "", target)
+        widgets.send_to("__FORCEREFRESH__", "", target)
         raise cherrypy.HTTPRedirect("/settings/account")
 
     @cherrypy.expose

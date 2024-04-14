@@ -1143,6 +1143,7 @@ def handleResourceChange(module, resource, obj=None):
                     "/system/notifications/errors",
                     "Failed to load page resource: " + resource + " module: " + module + "\n" + str(e) + "\n" + "please edit and reload.",
                 )
+                raise
 
         else:
             additionalTypes[resourceobj["resource-type"]].onupdate(module, resource, modules_state.ActiveModules[module][resource])

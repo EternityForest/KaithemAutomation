@@ -105,7 +105,9 @@ user-restart-pipewire:
 user-kaithem-status: # Get the status of the running kaithem instance
 	@systemctl --user status kaithem.service
 
-
+.PHONY: dev-build-docs
+dev-build-docs:
+	@handsdown -i kaithem/api/ -o kaithem/src/docs/api
 
 .PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt

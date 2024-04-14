@@ -77,16 +77,14 @@ def add_simple_cherrypy_handler(prefix: str, permissions: str, handler: _typing.
     _simple_handlers[prefix] = (permissions, handler)
 
 
-def go_back():
-    raise _cherrypy.HTTPRedirect(_cherrypy.request.headers["Referer"])
-
-
 def goto(url):
+    "Call from within a CherryPy handler to raise an exception to go to another URL"
     raise _cherrypy.HTTPRedirect(url)
 
 
-def serve_file(*a, **k):
-    _pages.serveFile(*a, **k)
+def serve_file(path, contenttype="", name=None):
+    "Call from within a CherryPy handler to server a file."
+    _pages.serveFile(path=path, contenttype=contenttype, name=name)
 
 
 def user() -> str:

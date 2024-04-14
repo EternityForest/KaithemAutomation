@@ -332,7 +332,7 @@ class CompiledPage:
 
                 elif resource["template-engine"] == "jinja2":
                     if "setupcode" in resource and resource["setupcode"].strip():
-                        exec(resource["setupcode"], None, self.scope)
+                        exec(resource["setupcode"], self.scope, self.scope)
                     if "code" in resource and resource["code"].strip():
                         self.code_obj = compile(resource["code"], "Jinja2Page", mode="exec")
                     else:

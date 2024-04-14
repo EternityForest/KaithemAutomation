@@ -204,7 +204,7 @@ except Exception:
 lastGlobalAlertMessage = ["", 0, 0]
 
 
-def sendToAll(d):
+def send_toAll(d):
     d = json.dumps(d)
     x = {}
 
@@ -225,10 +225,10 @@ def sendGlobalAlert(msg, duration=60.0):
     lastGlobalAlertMessage[1] = time.monotonic()
     lastGlobalAlertMessage[2] = duration
 
-    sendToAll([["__SHOWSNACKBAR__", [msg, float(duration)]]])
+    send_toAll([["__SHOWSNACKBAR__", [msg, float(duration)]]])
 
 
-def sendTo(topic, value, target):
+def send_to(topic, value, target):
     "Send a value to one subscriber by the connection ID"
     if usingmp:
         d = msgpack.packb([[topic, value]])
@@ -784,7 +784,7 @@ class Widget:
             if traceback:
                 print(traceback.format_exc())
 
-    def sendTo(self, value, target):
+    def send_to(self, value, target):
         "Send a value to one subscriber by the connection ID"
         if usingmp:
             d = msgpack.packb([[self.uuid, value]])
@@ -1623,7 +1623,7 @@ t = APIWidget(echo=False, id="_ws_timesync_channel")
 
 
 def f(s, v, id):
-    t.sendTo([v, time.time() * 1000], id)
+    t.send_to([v, time.time() * 1000], id)
 
 
 t.attach2(f)

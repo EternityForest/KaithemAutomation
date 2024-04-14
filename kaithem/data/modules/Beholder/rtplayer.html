@@ -38,7 +38,7 @@ template-engine: mako
 
 <script>
         view = videoElement = document.getElementById('videl')
-        
+
         lastPostion = 0
         function checkStalled(){
                 if(videoElement.currentTime == lastPostion){
@@ -179,7 +179,7 @@ image.oncanplay = function() {
 
         stage.addChild(videoSprite);
 
-        
+
 
         animate();
         var begin = Date.now()
@@ -228,8 +228,8 @@ setInterval(onresize, 5000)
 
     <div class="tool-bar" style="opacity:40%">
             <button type="button"  onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify Motion</button>
-            <button type="button"  id="recbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',true)">Record</button>
-            <button type="button"  id="stoprecbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}',false)">Stop Record</button>
+            <button type="button"  id="recbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}',true)">Record</button>
+            <button type="button"  id="stoprecbutton" onclick="kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}',false)">Stop Record</button>
     </div>
 %else:
 <style>
@@ -247,7 +247,7 @@ body{
 
 
 
-    <script> 
+    <script>
             if(!mpegts.isSupported())
             {       alert("MPEG TS Not supported here")
                     kaithemapi.sendErrorMessage("MPEG TS Not supported here")
@@ -257,7 +257,7 @@ body{
             var player = mpegts.createPlayer({
                     type: 'mpegts',  // could also be mpegts, m2ts, flv
                     isLive: true,
-                    url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${kaithem.devices[kwargs['play']].tagpoints['raw_feed'].dataSourceWidget.uuid|u}",
+                    url: kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid=${kaithem.devices[kwargs['play']].tagpoints['raw_feed'].data_source_widget.uuid|u}",
                     liveBufferLatencyChasing: true,
                     liveBufferLatencyMaxLatency: 2,
                     liveBufferLatencyMinRemain: 1,
@@ -297,20 +297,20 @@ function onrecordchange(d){
         }
         else{
                 var rb = document.getElementById('recbutton')
-                rb.classList.remove('highlight');  
+                rb.classList.remove('highlight');
         }
 }
 
-kaithemapi.subscribe("${kaithem.devices[kwargs['play']].tagpoints['record'].dataSourceWidget.uuid}", onrecordchange)
+kaithemapi.subscribe("${kaithem.devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}", onrecordchange)
 
 function startEVM(video,canvas){
 
         canvas.style.display="block"
 
-        var alpha = 10, 
-        lambda_c = 16, 
-        r1 = 0.4, 
-        r2 = 0.05, 
+        var alpha = 10,
+        lambda_c = 16,
+        r1 = 0.4,
+        r2 = 0.05,
         chromAttenuation = 1;
 
         var exaggeration_factor = 2;
@@ -323,7 +323,7 @@ function startEVM(video,canvas){
         var findVideoSize = function() {
                 // demo_app(width, height);
                 var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
-                
+
                 var w = Math.floor(video.videoWidth * s >> 3) << 3,
                 h = Math.floor(video.videoHeight * s >> 3) << 3;
                 // video.style.width = w + 'px'
@@ -353,14 +353,14 @@ function startEVM(video,canvas){
                 var s = Math.min(640 / video.videoWidth, 480 / video.videoHeight)
                 // var s = 0.01 // call this number for fun times
                 ctx.drawImage(video, 0, 0, video.videoWidth * s, video.videoHeight * s)
-                
+
                 evm()
                 if(frames_processed == 0){
                 lowpass1.iirFilter(img_pyr, 1);
                 lowpass2.iirFilter(img_pyr, 1);
                 }
                 frames_processed++
-                
+
         }
         }
 }

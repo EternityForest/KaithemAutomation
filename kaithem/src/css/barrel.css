@@ -624,6 +624,9 @@ dd {
 
 /*Headings and lines */
 
+h1{
+    text-align: center;
+}
 h1,
 h2,
 h3,
@@ -653,7 +656,6 @@ h3,
 h4 {
     margin-bottom: var(--padding);
     margin-top: var(--padding);
-    text-align: center;
     padding-inline-end: var(--header-padding);
     padding-inline-start: var(--header-padding);
     text-shadow: var(--heading-text-shadow);
