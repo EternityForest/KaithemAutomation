@@ -30,7 +30,7 @@ from . import directories, messagebus, modules_state, util
 
 lock = threading.RLock()
 
-defaultData = {
+default_data = {
     "groups": {
         "Administrators": {"permissions": ["__all_permissions__"]},
         "Guests": {"permissions": ["view_admin_info", "view_admin_info", "view_status"]},
@@ -333,7 +333,7 @@ def initializeAuthentication():
                 )
 
         if not Groups and not Users:
-            loadFromData(defaultData)
+            loadFromData(default_data)
 
         normalUsers = [i for i in Users if not i.startswith("__")]
 

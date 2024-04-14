@@ -3,35 +3,6 @@
 
 import time
 
-freeboardhtml = """
-<%doc>
-NOTE: This page is self modifying and embeds it's own editor to customize the page!
-You should not need to modify this code, except for changing the theme.
-Just visit the page with admin permissions to get started.
-
-
-
-The layout you create gets saved back to this file in the freeboard-data tag, as standard YAML.
-kaithem.web.freeboard() handles the real work of generating the page, and also handles saving.
-</%doc>
-
-<%!
-#Add your plugins here.
-plugins=[
-]
-%>
-
-
-<freeboard-data>
-</freeboard-data>
-
-<title>Dashboard</title>
-
-${{kaithem.web.freeboard(page, kwargs, plugins)}}
-
-"""
-
-
 defaulthtml = """
 {{% extends "pagetemplate.j2.html" %}}
 
@@ -109,18 +80,6 @@ def vue(basename, **kw):
     }
 
 
-def freeboard(basename, **kw):
-    return {
-        "resource-type": "page",
-        "body": freeboardhtml.format(basename=basename),
-        "no-navheader": True,
-        "no-header": True,
-        "require-method": ["GET", "POST"],
-        "require-permissions": [],
-        "resource-timestamp": int(time.time() * 1000000),
-    }
-
-
 # For making a web API call
 def service(basename, **kw):
     return {
@@ -137,7 +96,6 @@ def service(basename, **kw):
 
 templates = {
     "default": default,
-    "freeboard": freeboard,
     "service": service,
     "vue3": vue,
 }

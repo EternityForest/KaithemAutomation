@@ -298,7 +298,7 @@ class WebInterface:
     @cherrypy.expose
     def newmodule(self):
         pages.require("system_admin")
-        d = dialogs.Dialog("Add New Module")
+        d = dialogs.SimpleDialog("Add New Module")
         d.text_input("name", title="Name of New Module")
         d.text("Choose an existing dir to load that module.")
         d.text_input("location", title="Save location(Blank: auto in kaithem dir)")
@@ -317,7 +317,7 @@ class WebInterface:
     @cherrypy.expose
     def deletemodule(self):
         pages.require("system_admin")
-        d = dialogs.Dialog("Delete Module")
+        d = dialogs.SimpleDialog("Delete Module")
         d.text_input("name")
         d.submit_button("Submit")
         return d.render("/modules/deletemoduletarget")
@@ -408,7 +408,7 @@ class WebInterface:
                 pages.require("system_admin")
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
 
-                d = dialogs.Dialog("Run event manually")
+                d = dialogs.SimpleDialog("Run event manually")
                 d.text_input("name", default=path[1])
                 d.submit_button("Run")
                 return d.render(f"/modules/module/{url(module)}/runevent")
@@ -586,7 +586,7 @@ class WebInterface:
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
                 pages.require("system_admin", noautoreturn=True)
 
-                d = dialogs.Dialog(f"Delete resource in {root}")
+                d = dialogs.SimpleDialog(f"Delete resource in {root}")
                 d.text_input("name", default=path[1])
                 d.submit_button("Submit")
                 return d.render(f"/modules/module/{url(root)}/deleteresourcetarget")
@@ -685,14 +685,14 @@ def addResourceDispatcher(module, type, path):
 
     # Return a crud to add a new permission
     if type in ("permission", "event", "page", "directory"):
-        d = dialogs.Dialog(f"New {type.capitalize()} in {module}")
+        d = dialogs.SimpleDialog(f"New {type.capitalize()} in {module}")
         d.text_input("name")
 
         if type in ("permission",):
             d.text_input("description")
 
         if type == "page":
-            d.selection("template", options=["default", "freeboard"])
+            d.selection("template", options=["default"])
 
         d.submit_button("Create")
         return d.render(f"/modules/module/{url(module)}/addresourcetarget/{type}/{url(path)}")
@@ -852,7 +852,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 def permissionEditPage(module, resource):
     pages.require("view_admin_info")
 
-    d = dialogs.Dialog(f"Permission: {resource} in {module}")
+    d = dialogs.SimpleDialog(f"Permission: {resource} in {module}")
     d.text_input(
         "description",
         default=modules_state.ActiveModules[module][resource]["description"],

@@ -45,7 +45,7 @@ class ManageAuthorization:
     def deleteuser(self, **kwargs):
         pages.require("system_admin")
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        d = dialogs.Dialog("Delete User")
+        d = dialogs.SimpleDialog("Delete User")
         d.text_input("user")
         d.submit_button("Delete")
 
@@ -62,7 +62,7 @@ class ManageAuthorization:
     @cherrypy.expose
     def newuser(self):
         pages.require("system_admin")
-        d = dialogs.Dialog("Add New User")
+        d = dialogs.SimpleDialog("Add New User")
         d.text_input("username")
         d.text_input("password")
         d.checkbox("useSystemPassword", title="Use Linux User Password")

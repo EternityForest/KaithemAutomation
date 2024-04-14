@@ -3,27 +3,25 @@
 
 
 # This file handles the display of user-created pages
-import time
+import gc
+import importlib
+import mimetypes
 import os
 import threading
+import time
 import traceback
-import gc
-import mimetypes
 import types
 
-from . import util, pages, directories, messagebus, modules_state, theming
-import mako
-import mako.template
 import cherrypy
 import cherrypy.lib.static
-import tornado
-import importlib
 import jinja2
-
-from .config import config
-
+import mako
+import mako.template
+import tornado
 from mako.lookup import TemplateLookup
 
+from . import directories, messagebus, modules_state, pages, theming, util
+from .config import config
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
@@ -144,8 +142,13 @@ class CompiledPageAPIObject:
         self.url = url_for_resource(p.module, p.resourceName)
 
     def setContent(self, c):
-        """This allows self-modifying pages, as many things are best edited directly.  The intended use is for replacing the contents of custom html-elements with a simple regex.
-        One must be careful to use elements that actually can be replaced like that, which only have one instance.
+        """This allows self-modifying pages, as many things
+          are best edited directly.  The intended use is for
+          replacing the contents of custom html-elements with
+          a simple regex.
+
+        One must be careful to use elements that actually
+        can be replaced like that, which only have one instance.
 
         """
 
@@ -159,9 +162,7 @@ class CompiledPageAPIObject:
         self.page.resource["body"] = c
         self.page.refreshFromResource()
 
-        modules_state.saveResource(
-            self.page.module, self.page.resourceName, self.page.resource
-        )
+        modules_state.saveResource(self.page.module, self.page.resourceName, self.page.resource)
 
     def getContent(self):
         return self.page.resource["body"]
@@ -193,8 +194,7 @@ class CompiledPage:
         self.theme: str
 
         # This API is available as 'page' from within
-        # Mako template code.   It's main use is for self modifying pages, mostly just for implementing
-        # FreeBoard.
+        # Mako template code.   It's main use is for self modifying pages
 
         self.localAPI = CompiledPageAPIObject(self)
         from . import kaithemobj
@@ -248,17 +248,9 @@ class CompiledPage:
                             )
                         )
                     else:
-                        header = util.readfile(
-                            os.path.join(
-                                directories.htmldir, "makocomponents", "pageheader.html"
-                            )
-                        )
+                        header = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pageheader.html"))
                 else:
-                    header = util.readfile(
-                        os.path.join(
-                            directories.htmldir, "makocomponents", "pageheader.html"
-                        )
-                    )
+                    header = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pageheader.html"))
 
                 if "no-header" in resource:
                     if resource["no-header"]:
@@ -269,11 +261,7 @@ class CompiledPage:
                         header += f'<meta http-equiv="refresh" content="{resource["auto-reload-interval"]}">'
 
                 if "no-header" not in resource or not (resource["no-header"]):
-                    footer = util.readfile(
-                        os.path.join(
-                            directories.htmldir, "makocomponents", "pagefooter.html"
-                        )
-                    )
+                    footer = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pagefooter.html"))
                 else:
                     footer = ""
 
@@ -287,10 +275,7 @@ class CompiledPage:
                 if m in modules_state.scopes:
                     self.scope["module"] = modules_state.scopes[m]
 
-                if (
-                    "template-engine" not in resource
-                    or resource["template-engine"] == "mako"
-                ):
+                if "template-engine" not in resource or resource["template-engine"] == "mako":
                     # Add in the separate code
 
                     usejson = False
@@ -348,9 +333,7 @@ class CompiledPage:
                     if "setupcode" in resource and resource["setupcode"].strip():
                         exec(resource["setupcode"], None, self.scope)
                     if "code" in resource and resource["code"].strip():
-                        self.code_obj = compile(
-                            resource["code"], "Jinja2Page", mode="exec"
-                        )
+                        self.code_obj = compile(resource["code"], "Jinja2Page", mode="exec")
                     else:
                         self.code_obj = None
 
@@ -358,19 +341,10 @@ class CompiledPage:
                     self.useJinja = True
 
                 elif resource["template-engine"] == "markdown":
-                    header = mako.template.Template(
-                        header, uri=f"Template{m}_{r}", lookup=component_lookup
-                    ).render(**self.scope)
-                    footer = mako.template.Template(
-                        footer, uri=f"Template{m}_{r}", lookup=component_lookup
-                    ).render(**self.scope)
+                    header = mako.template.Template(header, uri=f"Template{m}_{r}", lookup=component_lookup).render(**self.scope)
+                    footer = mako.template.Template(footer, uri=f"Template{m}_{r}", lookup=component_lookup).render(**self.scope)
 
-                    self.text = (
-                        str(header)
-                        + "\r\n"
-                        + markdownToSelfRenderingHTML(template, r)
-                        + footer
-                    )
+                    self.text = str(header) + "\r\n" + markdownToSelfRenderingHTML(template, r) + footer
                 else:
                     self.text = template
 
@@ -379,10 +353,7 @@ class CompiledPage:
                 self.name = os.path.basename(modules_state.fileResourceAbsPaths[m, r])
 
                 self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
-                self.mime = self.mime = str(
-                    resource.get("mimetype", "").strip()
-                    or mimetypes.guess_type(self.name)[0]
-                )
+                self.mime = self.mime = str(resource.get("mimetype", "").strip() or mimetypes.guess_type(self.name)[0])
 
         self.refreshFromResource = refreshFromResource
         self.refreshFromResource()
@@ -531,9 +502,7 @@ def getPagesFromModules():
                                 ]
                             )
                             try:
-                                messagebus.post_message(
-                                    f"system/errors/pages/{i}/{m}", str(tb)
-                                )
+                                messagebus.post_message(f"system/errors/pages/{i}/{m}", str(tb))
                             except Exception as e:
                                 print(e)
                             # Keep only the most recent 25 errors
@@ -543,11 +512,7 @@ def getPagesFromModules():
                             if len(_Pages[i][m].errors) == 1:
                                 messagebus.post_message(
                                     "/system/notifications/errors",
-                                    'Page "'
-                                    + m
-                                    + '" of module "'
-                                    + i
-                                    + '" may need attention',
+                                    'Page "' + m + '" of module "' + i + '" may need attention',
                                 )
                     elif j["resource-type"] in "internal-fileref":
                         if j.get("serve", False):
@@ -566,9 +531,7 @@ def getPagesFromModules():
                                     ]
                                 )
                                 try:
-                                    messagebus.post_message(
-                                        f"system/errors/pages/{i}/{m}", str(tb)
-                                    )
+                                    messagebus.post_message(f"system/errors/pages/{i}/{m}", str(tb))
                                 except Exception as e:
                                     print(e)
                                 # Keep only the most recent 25 errors
@@ -578,11 +541,7 @@ def getPagesFromModules():
                                 if len(_Pages[i][m].errors) == 1:
                                     messagebus.post_message(
                                         "/system/notifications/errors",
-                                        'Page "'
-                                        + m
-                                        + '" of module "'
-                                        + i
-                                        + '" may need attention',
+                                        'Page "' + m + '" of module "' + i + '" may need attention',
                                     )
                         else:
                             try:
@@ -642,13 +601,8 @@ class KaithemPage:
         cherrypy.response.headers["Allow"] = f"{x}, HEAD, OPTIONS"
         if page.xss:
             if "Origin" in cherrypy.request.headers:
-                if (
-                    cherrypy.request.headers["Origin"] in page.origins
-                    or "*" in page.origins
-                ):
-                    cherrypy.response.headers["Access-Control-Allow-Origin"] = (
-                        cherrypy.request.headers["Origin"]
-                    )
+                if cherrypy.request.headers["Origin"] in page.origins or "*" in page.origins:
+                    cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
                 cherrypy.response.headers["Access-Control-Allow-Methods"] = x
 
     def _serve(self, module, *args, **kwargs):
@@ -661,18 +615,10 @@ class KaithemPage:
             raise cherrypy.NotFound()
 
         if "Origin" in cherrypy.request.headers:
-            if not (
-                cherrypy.request.headers["Origin"] in page.origins
-                or "*" in page.origins
-            ):
-                raise RuntimeError(
-                    "Refusing XSS from this origin: "
-                    + cherrypy.request.headers["Origin"]
-                )
+            if not (cherrypy.request.headers["Origin"] in page.origins or "*" in page.origins):
+                raise RuntimeError("Refusing XSS from this origin: " + cherrypy.request.headers["Origin"])
             else:
-                cherrypy.response.headers["Access-Control-Allow-Origin"] = (
-                    cherrypy.request.headers["Origin"]
-                )
+                cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
 
         x = ""
         for i in page.methods:
@@ -732,16 +678,12 @@ class KaithemPage:
         except self.kaithemobj.ServeFileInsteadOfRenderingPageException as e:
             if page.streaming and hasattr(e.f_filepath, "read"):
                 cherrypy.response.headers["Content-Type"] = e.f_MIME
-                cherrypy.response.headers["Content-Disposition"] = (
-                    f'attachment ; filename = "{e.f_name}"'
-                )
+                cherrypy.response.headers["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
                 return streamGen(e.f_filepath)
 
             if hasattr(e.f_filepath, "getvalue"):
                 cherrypy.response.headers["Content-Type"] = e.f_MIME
-                cherrypy.response.headers["Content-Disposition"] = (
-                    f'attachment ; filename = "{e.f_name}"'
-                )
+                cherrypy.response.headers["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
                 return e.f_filepath.getvalue()
 
             return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
@@ -760,21 +702,13 @@ class KaithemPage:
             # tb = traceback.format_exc(chain=True)
             tb = tornado.exceptions.text_error_template().render()
             data = (
-                "Request from: "
-                + cherrypy.request.remote.ip
-                + "("
-                + pages.getAcessingUser()
-                + ")\n"
-                + cherrypy.request.request_line
-                + "\n"
+                "Request from: " + cherrypy.request.remote.ip + "(" + pages.getAcessingUser() + ")\n" + cherrypy.request.request_line + "\n"
             )
             # When an error happens, log it and save the time
             # Note that we are logging to the compiled event object
             page.errors.append([time.strftime(config["time-format"]), tb, data])
             try:
-                messagebus.post_message(
-                    f"system/errors/pages/{module}/{'/'.join(args)}", str(tb)
-                )
+                messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
             except Exception as e:
                 print(e)
             # Keep only the most recent 25 errors
@@ -784,10 +718,6 @@ class KaithemPage:
             if len(page.errors) == 1:
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    'Page "'
-                    + "/".join(args)
-                    + '" of module "'
-                    + module
-                    + '" may need attention',
+                    'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
                 )
             raise (e)

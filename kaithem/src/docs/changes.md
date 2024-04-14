@@ -15,6 +15,8 @@ For now it is not possible to set or override alerts.  I normally *hate* rewrite
 
 Tags, in newer editions, should have a single source of config, and the code for config should be separate from tag internals.
 
+- :coffin: :boom: Remove freeboard.  It was a good run, but I'd rather focus on core code quality than maintain the customized fork, which in itself had become bloated.  Similar functionality may come back, but really, Chandler handles those use cases.
+
 - :sparkles: Switch from typeguard to Beartype.
 - :sparkles: More unit testing
 - :sparkles: Loggers are now a resource type that lives in modules, separate from tags.
