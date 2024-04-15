@@ -53,15 +53,14 @@ do = workers.do
 # Ratelimiter for calling gc.collect automatically when we get OSErrors
 _lastGC = 0
 
-# Use this lock whenever you access __EventReferences in any way.
+# Use this lock whenever you access _events_by_module_resource in any way.
 # Most of the time it should be held by the event manager
 # that continually iterates it.
 _event_list_lock = threading.RLock()
 
 # Let us now have a way to get at active event objects by
 # means of their origin (module, resource) tuple.
-__EventReferences = {}
-EventReferences = __EventReferences
+_events_by_module_resource = {}
 
 logger = logging.getLogger("system_event_errors")
 syslogger = logging.getLogger("system.events")
@@ -80,9 +79,9 @@ class EventInterface:
 
 def get_time(ev):
     try:
-        if not EventReferences[ev].nextruntime:
+        if not _events_by_module_resource[ev].nextruntime:
             return 0
-        return dt_to_ts(EventReferences[ev].nextruntime or 0, EventReferences[ev].tz)
+        return dt_to_ts(_events_by_module_resource[ev].nextruntime or 0, _events_by_module_resource[ev].tz)
     except Exception:
         return -1
 
@@ -150,14 +149,14 @@ def makePrintFunction(ev):
 
 def manualRun(event):
     "Run an event manually"
-    return EventReferences[event].manualRun()
+    return _events_by_module_resource[event].manualRun()
 
 
 def getPrintOutput(event):
     """Given a tuple of (module, resource),  return
     the doc string of an event if it exists, else return ''"""
     try:
-        return EventReferences[event].printoutput
+        return _events_by_module_resource[event].printoutput
     except Exception as e:
         return f"Err getting output:{str(e)}"
 
@@ -165,22 +164,26 @@ def getPrintOutput(event):
 def getEventInfo(event):
     """Given a tuple of (module, resource),  return the doc
     string of an event if it exists, else return ''"""
-    return EventReferences[event].__doc__ if event in EventReferences and EventReferences[event].__doc__ else ""
+    return (
+        _events_by_module_resource[event].__doc__
+        if event in _events_by_module_resource and _events_by_module_resource[event].__doc__
+        else ""
+    )
 
 
 def renameEvent(oldModule, oldResource, module, resource):
     with _event_list_lock:
-        __EventReferences[module, resource] = __EventReferences[oldModule, oldResource]
-        del __EventReferences[oldModule, oldResource]
-        __EventReferences[module, resource].resource = resource
-        __EventReferences[module, resource].module = module
+        _events_by_module_resource[module, resource] = _events_by_module_resource[oldModule, oldResource]
+        del _events_by_module_resource[oldModule, oldResource]
+        _events_by_module_resource[module, resource].resource = resource
+        _events_by_module_resource[module, resource].module = module
 
 
 def getEventErrors(module, event):
     "Return a list of errors for a given event. Uses _event_list_lock"
     with _event_list_lock:
         try:
-            return __EventReferences[module, event].errors
+            return _events_by_module_resource[module, event].errors
         except (KeyError, AttributeError) as e:
             return [["0", f"Event does not exist or was not properly initialized:{str(e)}"]]
 
@@ -189,7 +192,7 @@ def fastGetEventErrors(module, event):
     """This version might not always be accurate,
     but will never modify anything or return an error. Does not  use a lock."""
     try:
-        return __EventReferences[module, event].errors
+        return _events_by_module_resource[module, event].errors
     except Exception as e:
         return [["0", f"{str(e)}Try refreshing page? "]]
 
@@ -246,7 +249,7 @@ def when(trigger, action, priority="interactive"):
     )
     e.module = module
     e.resource = resource
-    __EventReferences[module, resource] = e
+    _events_by_module_resource[module, resource] = e
     e.register()
 
 
@@ -263,21 +266,21 @@ def after(delay, action, priority="interactive"):
 def getEventLastRan(module, event):
     with _event_list_lock:
         try:
-            return __EventReferences[module, event].lastexecuted
+            return _events_by_module_resource[module, event].lastexecuted
         except Exception:
             return 0
 
 
 def getEventCompleted(m, r):
     try:
-        return EventReferences[m, r].lastcompleted > EventReferences[m.r].lastexecuted
+        return _events_by_module_resource[m, r].lastcompleted > _events_by_module_resource[m.r].lastexecuted
     except Exception:
         return False
 
 
 def countEvents():
     # Why bother with the lock. The event count is not critical at all.
-    return len(__EventReferences)
+    return len(_events_by_module_resource)
 
 
 # Used for interpreter shutdown
@@ -918,7 +921,7 @@ class MessageEvent(CompileCodeStringsMixin):
                 self.lastran = time.time()
                 # These two lines were an old fix for a circular reference buf that made message events not go away.
                 # It is still here just in case another circular reference bug pops up.
-                if (self.module, self.resource) not in EventReferences:
+                if (self.module, self.resource) not in _events_by_module_resource:
                     return
 
                 # setup environment
@@ -1392,9 +1395,9 @@ class RecurringEvent(CompileCodeStringsMixin):
 
 def recalc_schedule():
     with _event_list_lock:
-        for i in __EventReferences:
-            if isinstance(__EventReferences[i], RecurringEvent):
-                __EventReferences[i].recalc_time()
+        for i in _events_by_module_resource:
+            if isinstance(_events_by_module_resource[i], RecurringEvent):
+                _events_by_module_resource[i].recalc_time()
 
 
 # BORING BOOKEEPING BELOW
@@ -1403,10 +1406,10 @@ def recalc_schedule():
 # Delete a event from the cache by module and resource
 def removeOneEvent(module, resource):
     with _event_list_lock:
-        if (module, resource) in __EventReferences:
-            __EventReferences[module, resource].unregister()
-            __EventReferences[module, resource].cleanup()
-            del __EventReferences[module, resource]
+        if (module, resource) in _events_by_module_resource:
+            _events_by_module_resource[module, resource].unregister()
+            _events_by_module_resource[module, resource].cleanup()
+            del _events_by_module_resource[module, resource]
     gc.collect(0)
     gc.collect(1)
     gc.collect(2)
@@ -1415,12 +1418,12 @@ def removeOneEvent(module, resource):
 # Delete all _events in a module from the cache
 def removeModuleEvents(module):
     with _event_list_lock:
-        for i in __EventReferences.copy():
+        for i in _events_by_module_resource.copy():
             if i[0] == module:
                 # delete both the event and the reference to it
-                __EventReferences[i].unregister()
-                __EventReferences[i].cleanup()
-                del __EventReferences[i]
+                _events_by_module_resource[i].unregister()
+                _events_by_module_resource[i].cleanup()
+                del _events_by_module_resource[i]
         gc.collect(0)
         gc.collect(1)
         gc.collect(2)
@@ -1431,13 +1434,13 @@ def removeModuleEvents(module):
 # Now if you already have an event object, like from a test compile, you can just use that.
 
 
-def updateOneEvent(resource: str, module: str, o=None):
+def updateOneEvent(module: str, resource: str, o=None):
     # This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
         try:
             # Get either a reference to the old version or None
-            if (module, resource) in EventReferences:
-                old = EventReferences[module, resource]
+            if (module, resource) in _events_by_module_resource:
+                old = _events_by_module_resource[module, resource]
             else:
                 old = None
 
@@ -1472,7 +1475,7 @@ def updateOneEvent(resource: str, module: str, o=None):
                 # Add new event
                 x.register()
                 # Update index
-                __EventReferences[module, resource] = x
+                _events_by_module_resource[module, resource] = x
 
             data = event_resources[module, resource]
 
@@ -1516,13 +1519,14 @@ def makeDummyEvent(module, resource):
         x = Event(m=module, r=resource)
         # Here is the other lock(!)
         with _event_list_lock:  # Make sure nobody is iterating the eventlist
-            if (module, resource) in __EventReferences:
-                __EventReferences[module, resource].unregister()
+            if (module, resource) in _events_by_module_resource:
+                _events_by_module_resource[module, resource].unregister()
 
             # Add new event
             x.register()
             # Update index
-            __EventReferences[module, resource] = x
+            _events_by_module_resource[module, resource] = x
+
         return x
 
 
@@ -1545,7 +1549,7 @@ def getEventsFromModules(only: str | None = None):
             x = make_event_from_resource(self.module, self.resource)
             x.register()
             # Now we update the references
-            globals()["__EventReferences"][self.module, self.resource] = x
+            globals()["_events_by_module_resource"][self.module, self.resource] = x
             self.evt = x
 
     with modules_state.modulesLock:
@@ -1621,7 +1625,7 @@ def getEventsFromModules(only: str | None = None):
                 d = makeDummyEvent(i.module, i.resource)
                 d._handle_exception(tb=i.error)
                 # Add the reason for the error to the actual object so it shows up on the page.
-                __EventReferences[i.module, i.resource].errors.append([time.strftime(config["time-format"]), str(i.error)])
+                _events_by_module_resource[i.module, i.resource].errors.append([time.strftime(config["time-format"]), str(i.error)])
                 messagebus.post_message(
                     "/system/notifications/errors",
                     "Failed to load event resource: "
@@ -1656,12 +1660,12 @@ def make_event_from_resource(module: str, resource: str, subst: modules_state.Re
 
     # Add defaults for legacy events that do not have setup, rate limit, etc.
     if "setup" in r:
-        setupcode = r["setup"]
+        setupcode = str(r["setup"])
     else:
         setupcode = "pass"
 
     if "rate-limit" in r:
-        ratelimit = r["rate-limit"]
+        ratelimit = float(r["rate-limit"])
     else:
         ratelimit = 0
 
@@ -1669,6 +1673,8 @@ def make_event_from_resource(module: str, resource: str, subst: modules_state.Re
         continual = r["continual"]
     else:
         continual = False
+
+    assert isinstance(continual, bool)
 
     if "priority" in r:
         priority = r["priority"]
@@ -1708,7 +1714,7 @@ def make_event_from_resource(module: str, resource: str, subst: modules_state.Re
         )
 
     except Exception as e:
-        if (module, resource) not in __EventReferences:
+        if (module, resource) not in _events_by_module_resource:
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
         raise
@@ -1725,15 +1731,15 @@ class EventAPI(modules_state.ResourceObject):
         modules_state.ResourceObject.__init__(self, m, r, o)
 
     def run(self):
-        EventReferences[self.module, self.resource].manualRun()
+        _events_by_module_resource[self.module, self.resource].manualRun()
 
     @property
     def scope(self):
-        return EventReferences[self.module, self.resource].pymodule
+        return _events_by_module_resource[self.module, self.resource].pymodule
 
     @property
     def data(self):
-        return EventReferences[self.module, self.resource].data
+        return _events_by_module_resource[self.module, self.resource].data
 
     # Allow people to start and stop events at runtime.
     # Some events support a separate new pause/unpause api, otherwise use register
@@ -1741,14 +1747,14 @@ class EventAPI(modules_state.ResourceObject):
     # have a pause api.
 
     def start(self):
-        ev = EventReferences[self.module, self.resource]
+        ev = _events_by_module_resource[self.module, self.resource]
         if hasattr(ev, "unpause"):
             ev.unpause()
         else:
             ev.register()
 
     def stop(self):
-        ev = EventReferences[self.module, self.resource]
+        ev = _events_by_module_resource[self.module, self.resource]
         if hasattr(ev, "pause"):
             ev.pause()
         else:
@@ -1756,7 +1762,7 @@ class EventAPI(modules_state.ResourceObject):
 
     def report_exception(self):
         """Call in an exception handler to handle the exception as if it came from the given event"""
-        EventReferences[self.module, self.resource]._handle_exception()
+        _events_by_module_resource[self.module, self.resource]._handle_exception()
 
 
 init_done = False
@@ -1767,37 +1773,41 @@ class EventType(modules_state.ResourceType):
         return render_jinja_template(
             os.path.join(os.path.dirname(__file__), "html", "event_blurb.j2.html"),
             unitsofmeasure=unitsofmeasure,
-            evt_obj=EventReferences[m, r],
+            evt_obj=_events_by_module_resource[m, r],
             lastran=getEventLastRan(m, r),
             docstring=getEventInfo((m, r)),
             resource_obj=event_resources[m, r],
             get_next_run=get_next_run,
             module=m,
             resource=r,
+            time=time,
             getEventCompleted=getEventCompleted,
         )
 
     def onfinishedloading(self, module: str | None):
-        global init_done
-        if module is None:
-            init_done = True
-            getEventsFromModules()
-        elif init_done:
-            getEventsFromModules(module)
+        with _event_list_lock:
+            global init_done
+            if module is None:
+                init_done = True
+                getEventsFromModules()
+            elif init_done:
+                getEventsFromModules(module)
 
     @beartype.beartype
     def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
-        event_resources[module, resourcename] = copy.deepcopy(value)
-        if init_done:
-            updateOneEvent(module, resourcename)
+        with _event_list_lock:
+            event_resources[module, resourcename] = copy.deepcopy(value)
+            if init_done:
+                updateOneEvent(module, resourcename)
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
-        x = event_resources.pop((module, resource), None)
-        if x:
-            removeOneEvent(module, resource)
-            event_resources[toModule, toResource] = x
-            updateOneEvent(toModule, toResource)
-        renameEvent(module, resource, toModule, toResource)
+        with _event_list_lock:
+            x = event_resources.pop((module, resource), None)
+            if x:
+                removeOneEvent(module, resource)
+                event_resources[toModule, toResource] = x
+                updateOneEvent(toModule, toResource)
+            renameEvent(module, resource, toModule, toResource)
 
     def onupdate(self, module, resource, obj):
         self.onload(module, resource, obj)
@@ -1819,18 +1829,50 @@ class EventType(modules_state.ResourceType):
         return d
 
     def onupdaterequest(self, module, resource, resourceobj, kwargs):
-        compiled_object = None
-        # Test compile, throw error on fail.
+        with _event_list_lock:
+            compiled_object = None
+            # Test compile, throw error on fail.
 
-        if "tabtospace" in kwargs:
-            actioncode = kwargs["action"].replace("\t", "    ")
-            setupcode = kwargs["setup"].replace("\t", "    ")
-        else:
-            actioncode = kwargs["action"]
-            setupcode = kwargs["setup"]
+            if "tabtospace" in kwargs:
+                actioncode = kwargs["action"].replace("\t", "    ")
+                setupcode = kwargs["setup"].replace("\t", "    ")
+            else:
+                actioncode = kwargs["action"]
+                setupcode = kwargs["setup"]
 
-        if "enable" in kwargs:
-            try:
+            if "enable" in kwargs:
+                try:
+                    # Make a copy of the old resource object and modify it
+                    r2 = resourceobj.copy()
+                    r2["trigger"] = kwargs["trigger"]
+                    r2["action"] = actioncode
+                    r2["setup"] = setupcode
+                    r2["priority"] = kwargs["priority"]
+                    r2["continual"] = "continual" in kwargs
+                    r2["rate-limit"] = float(kwargs["ratelimit"])
+                    r2["enable"] = "enable" in kwargs
+
+                    # Test for syntax errors at least, before we do anything more
+                    test_compile(setupcode, actioncode)
+
+                    # Remove the old event even before we even do a test run of setup.
+                    # If we can't do the new version just put the old one back.
+                    # Todo actually put old one back
+                    removeOneEvent(module, resource)
+                    # Leave a delay so that effects of cleanup can fully propagate.
+                    time.sleep(0.08)
+                    # Make event from resource, but use our substitute modified dict
+                    compiled_object = make_event_from_resource(module, resource, r2)  # noqa
+
+                except Exception:
+                    messagebus.post_message(
+                        "system/errors/misc/failedeventupdate",
+                        f"In: {module} {resource}\n{traceback.format_exc(4)}",
+                    )
+                    raise
+                return r2
+            # Save but don't enable
+            else:
                 # Make a copy of the old resource object and modify it
                 r2 = resourceobj.copy()
                 r2["trigger"] = kwargs["trigger"]
@@ -1839,46 +1881,15 @@ class EventType(modules_state.ResourceType):
                 r2["priority"] = kwargs["priority"]
                 r2["continual"] = "continual" in kwargs
                 r2["rate-limit"] = float(kwargs["ratelimit"])
-                r2["enable"] = "enable" in kwargs
+                r2["enable"] = False
 
-                # Test for syntax errors at least, before we do anything more
-                test_compile(setupcode, actioncode)
-
-                # Remove the old event even before we even do a test run of setup.
+                # Remove the old event even before we do a test compile.
                 # If we can't do the new version just put the old one back.
-                # Todo actually put old one back
                 removeOneEvent(module, resource)
                 # Leave a delay so that effects of cleanup can fully propagate.
                 time.sleep(0.08)
-                # Make event from resource, but use our substitute modified dict
-                compiled_object = make_event_from_resource(module, resource, r2)  # noqa
 
-            except Exception:
-                messagebus.post_message(
-                    "system/errors/misc/failedeventupdate",
-                    f"In: {module} {resource}\n{traceback.format_exc(4)}",
-                )
-                raise
-            return r2
-        # Save but don't enable
-        else:
-            # Make a copy of the old resource object and modify it
-            r2 = resourceobj.copy()
-            r2["trigger"] = kwargs["trigger"]
-            r2["action"] = actioncode
-            r2["setup"] = setupcode
-            r2["priority"] = kwargs["priority"]
-            r2["continual"] = "continual" in kwargs
-            r2["rate-limit"] = float(kwargs["ratelimit"])
-            r2["enable"] = False
-
-            # Remove the old event even before we do a test compile.
-            # If we can't do the new version just put the old one back.
-            removeOneEvent(module, resource)
-            # Leave a delay so that effects of cleanup can fully propagate.
-            time.sleep(0.08)
-
-            return r2
+                return r2
 
     def createpage(self, module, path):
         d = SimpleDialog(f"New {self.type.capitalize()} in {module}")
@@ -1887,6 +1898,16 @@ class EventType(modules_state.ResourceType):
         return d.render(self.get_create_target(module, path))
 
     def editpage(self, module, resource, event):
+        x = 0
+        c = 0
+        avg_time = 0
+        if (module, resource) in _events_by_module_resource:
+            for i in _events_by_module_resource[module, resource].history:
+                x += i[1] - i[0]
+                c += 1
+            if c:
+                avg_time = x / c
+
         priority = defaultdict(str)
         if "priority" in event:
             if event["priority"] in ["realtime", "interactive", "high", "medium", "low", "verylow"]:
@@ -1894,9 +1915,9 @@ class EventType(modules_state.ResourceType):
         else:
             priority["interactive"] = 'selected="selected"'
         try:
-            timetaken = round(EventReferences[module, resource].timeTakenToLoad, 2)
-            disabled = EventReferences[module, resource].disable
-            prev = EventReferences[module, resource]._prevstate
+            timetaken = round(_events_by_module_resource[module, resource].timeTakenToLoad, 2)
+            disabled = _events_by_module_resource[module, resource].disable
+            prev = _events_by_module_resource[module, resource]._prevstate
         except Exception as e:
             print(e)
             disabled = True
@@ -1906,7 +1927,7 @@ class EventType(modules_state.ResourceType):
         def formatnextrun():
             try:
                 return unitsofmeasure.strftime(
-                    dt_to_ts(EventReferences[module, resource].nextruntime, EventReferences[module, resource].tz)
+                    dt_to_ts(_events_by_module_resource[module, resource].nextruntime, _events_by_module_resource[module, resource].tz)
                 )
             except Exception as e:
                 return str(e)
@@ -1922,8 +1943,8 @@ class EventType(modules_state.ResourceType):
             format_time_interval=unitsofmeasure.format_time_interval,
             strftime=unitsofmeasure.strftime,
             can_edit=has_permission("system_admin"),
-            EventReferences=EventReferences,
-            resource_obj=EventReferences[module, resource],
+            EventReferences=_events_by_module_resource,
+            resource_obj=_events_by_module_resource[module, resource],
             getEventLastRan=getEventLastRan,
             dt_to_ts=dt_to_ts,
             getEventErrors=getEventErrors,
@@ -1932,6 +1953,8 @@ class EventType(modules_state.ResourceType):
             disabled=disabled,
             prevstate=prev,
             formatnextrun=formatnextrun,
+            avg_time=avg_time,
+            round=round,
         )
 
 

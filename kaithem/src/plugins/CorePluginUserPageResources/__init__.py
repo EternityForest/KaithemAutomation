@@ -841,5 +841,5 @@ class PageType(modules_state.ResourceType):
         )
 
 
-p = PageType("page", mdi_icon="flag")
+p = PageType("page", mdi_icon="page")
 modules_state.additionalTypes["page"] = p

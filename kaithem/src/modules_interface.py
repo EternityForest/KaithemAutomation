@@ -394,7 +394,7 @@ class WebInterface:
                     objname = f"Module Obj: {root}"
 
                 if path[1] == "event":
-                    obj = CorePluginEventResources.EventReferences[root, path[2]].pymodule
+                    obj = CorePluginEventResources._events_by_module_resource[root, path[2]].pymodule
                     objname = f"Event: {path[2]}"
 
                 # Inspector should prob be its own module since it does all this.

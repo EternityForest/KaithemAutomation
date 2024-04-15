@@ -220,8 +220,8 @@ This event last ran:
 
 
 %try:
-%if EventReferences[module,name].lastcompleted>EventReferences[module,name].lastran:
-<br>Completed in ${round(EventReferences[module,name].lastcompleted-EventReferences[module,name].lastran,3)|h}s
+%if EventReferences[module,name].lastcompleted>EventReferences[module,name].lastexecuted:
+<br>Completed in ${round(EventReferences[module,name].lastcompleted-EventReferences[module,name].lastexecuted,3)|h}s
 %else:
 <span class="highlight">Still Running</span>
 %endif
