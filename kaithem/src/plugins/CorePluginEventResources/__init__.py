@@ -342,7 +342,7 @@ class EventSchedulerObject(scheduling.RepeatingEvent):
         self.resource = resource
 
     def __repr__(self):
-        return "<newevt.EventSchedulerObject object for event at " + str((self.module, self.resource)) + "with id " + str(id(self)) + ">"
+        return "<EventSchedulerObject object for event at " + str((self.module, self.resource)) + "with id " + str(id(self)) + ">"
 
     def run(self):
         do(self._run)
@@ -1774,6 +1774,7 @@ class EventType(modules_state.ResourceType):
             get_next_run=get_next_run,
             module=m,
             resource=r,
+            getEventCompleted=getEventCompleted,
         )
 
     def onfinishedloading(self, module: str | None):

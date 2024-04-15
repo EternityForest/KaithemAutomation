@@ -1,0 +1,18 @@
+
+<div>
+    {% if getPageErrors(modulename,resourcename) %}
+    <span class="danger">[{{ len(getPageErrors(modulename,resourcename) ) }} Errors]</span>
+    {% endif %}
+
+    <a class="button nogrow" href="{{ (url_for_resource(modulename,resourcename) ) }}">
+        <i class="mdi mdi-play"></i>Go to page </a>
+
+    <p class="resource-docstring">{{ getPageInfo(modulename,resourcename) | escape }}</p>
+    {% if 'require-permissions' in resource and resource['require-permissions'] %}
+    Permissions:
+    {% for x in resource['require-permissions'] %}<i class="mdi mdi-key"></i>{{ x| escape }}{% endfor %}
+    {% endif %}
+    {% if 'require-method' in resource %}
+    <i class="mdi mdi-unlocked"></i>Access: {{ ','.join(resource['require-method']) }}
+    {% endif %}
+</div>

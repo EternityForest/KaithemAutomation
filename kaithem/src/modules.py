@@ -21,7 +21,7 @@ import beartype
 import cherrypy
 import yaml
 
-from . import auth, directories, kaithemobj, messagebus, modules_state, pages, schemas, usrpages, util
+from . import auth, directories, kaithemobj, messagebus, modules_state, pages, schemas, util
 from .modules_state import (
     ResourceDictType,
     additionalTypes,
@@ -37,7 +37,7 @@ from .modules_state import (
     scopes,
     serializeResource,
 )
-from .plugins import CorePluginEventResources
+from .plugins import CorePluginEventResources, CorePluginUserPageResources
 from .util import url
 
 logger = logging.getLogger("system")
@@ -237,12 +237,8 @@ class ModuleObject:
                 modules_state.modulesHaveChanged()
 
                 # Make sure we recognize the resource-type, or else we can't load it.
-                if (resourcetype not in ["page", "permission", "directory"]) and (resourcetype not in additionalTypes):
+                if (resourcetype not in ["permission", "directory"]) and (resourcetype not in additionalTypes):
                     raise ValueError("Unknown resource-type")
-
-                elif resourcetype == "page":
-                    # Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
-                    usrpages.updateOnePage(name, module)
 
                 elif resourcetype == "permission":
                     auth.importPermissionsFromModules()
@@ -430,7 +426,6 @@ def initModules():
 
     auth.importPermissionsFromModules()
     loadAllCustomResourceTypes()
-    usrpages.getPagesFromModules()
     modules_state.moduleshash = modules_state.hashModules()
     logger.info("Initialized modules")
 
@@ -937,13 +932,6 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
         del fileResourceAbsPaths[module, resource]
         return
 
-    if rt == "page":
-        modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
-        del modules_state.ActiveModules[module][resource]
-        usrpages.removeOnePage(module, resource)
-        usrpages.updateOnePage(toResource, toModule)
-        return
-
     if rt in modules_state.additionalTypes:
         modules_state.additionalTypes[rt].onmove(module, resource, toModule, toResource, obj)
 
@@ -964,10 +952,16 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         rt = r["resource-type"]
         assert isinstance(rt, str)
 
-        if rt == "page":
-            usrpages.removeOnePage(module, resource)
+        # Filerefs also handled by the pages object
+        if rt == "internal-fileref":
+            try:
+                os.remove(fileResourceAbsPaths[module, resource])
+            except Exception:
+                print(traceback.format_exc())
 
-        elif rt == "directory":
+            CorePluginUserPageResources.removeOnePage(module, resource)
+
+        if rt == "directory":
             # Directories are special, they can have the extra data file
             fn = f"{getResourceFn(module, resource, r)}.yaml"
 
@@ -976,15 +970,6 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
 
         elif rt == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
-
-        elif rt == "internal-fileref":
-            try:
-                os.remove(fileResourceAbsPaths[module, resource])
-            except Exception:
-                print(traceback.format_exc())
-
-            del fileResourceAbsPaths[module, resource]
-            usrpages.removeOnePage(module, resource)
 
         else:
             additionalTypes[rt].ondelete(module, resource, r)
@@ -1066,7 +1051,6 @@ def rmModule(module, message="deleted"):
 
     # Get rid of any permissions defined in the modules.
     auth.importPermissionsFromModules()
-    usrpages.removeModulePages(module)
 
     with modulesLock:
         if module in external_module_locations:
@@ -1099,29 +1083,17 @@ def handleResourceChange(module, resource, obj=None, newly_added=False):
 
         assert isinstance(t, str)
 
-        if t == "permission":
-            auth.importPermissionsFromModules()  # sync auth's list of permissions
-
-        elif t == "internal-fileref":
+        if t == "internal-fileref":
             try:
-                usrpages.updateOnePage(resource, module)
+                CorePluginUserPageResources.updateOnePage(resource, module, resourceobj)
             except Exception:
                 messagebus.post_message(
                     "/system/notifications/errors",
                     f"Failed to load file resource: {resource} module: {module}",
                 )
 
-        elif t == "page":
-            try:
-                usrpages.updateOnePage(resource, module)
-            except Exception as e:
-                usrpages.makeDummyPage(resource, module)
-                logger.exception("failed to load resource")
-                messagebus.post_message(
-                    "/system/notifications/errors",
-                    "Failed to load page resource: " + resource + " module: " + module + "\n" + str(e) + "\n" + "please edit and reload.",
-                )
-                raise
+        if t == "permission":
+            auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         else:
             if not newly_added:

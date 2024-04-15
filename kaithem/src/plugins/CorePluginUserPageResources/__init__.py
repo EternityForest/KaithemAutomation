@@ -12,6 +12,7 @@ import time
 import traceback
 import types
 
+import beartype
 import cherrypy
 import cherrypy.lib.static
 import jinja2
@@ -21,8 +22,12 @@ import mako.template
 # import tornado.exceptions
 from mako.lookup import TemplateLookup
 
-from . import directories, messagebus, modules_state, pages, theming, util
-from .config import config
+from kaithem.api.web import render_jinja_template
+from kaithem.api.web.dialogs import SimpleDialog
+
+from ... import directories, messagebus, modules_state, pages, theming, util
+from ...config import config
+from ...util import url
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
@@ -142,31 +147,31 @@ class CompiledPageAPIObject:
         self.page = p
         self.url = url_for_resource(p.module, p.resourceName)
 
-    def setContent(self, c):
-        """This allows self-modifying pages, as many things
-          are best edited directly.  The intended use is for
-          replacing the contents of custom html-elements with
-          a simple regex.
+    # def setContent(self, c):
+    #     """This allows self-modifying pages, as many things
+    #       are best edited directly.  The intended use is for
+    #       replacing the contents of custom html-elements with
+    #       a simple regex.
 
-        One must be careful to use elements that actually
-        can be replaced like that, which only have one instance.
+    #     One must be careful to use elements that actually
+    #     can be replaced like that, which only have one instance.
 
-        """
+    #     """
 
-        pages.require("system_admin")
-        pages.postOnly()
+    #     pages.require("system_admin")
+    #     pages.postOnly()
 
-        if not isinstance(c, str):
-            raise RuntimeError("Content must be a string")
-        modules_state.modulesHaveChanged()
+    #     if not isinstance(c, str):
+    #         raise RuntimeError("Content must be a string")
+    #     modules_state.modulesHaveChanged()
 
-        self.page.resource["body"] = c
-        self.page.refreshFromResource()
+    #     self.page.resource["body"] = c
+    #     self.page.refreshFromResource()
 
-        modules_state.saveResource(self.page.module, self.page.resourceName, self.page.resource)
+    #     modules_state.saveResource(self.page.module, self.page.resourceName, self.page.resource)
 
-    def getContent(self):
-        return self.page.resource["body"]
+    # def getContent(self):
+    #     return self.page.resource["body"]
 
 
 class CompiledPage:
@@ -198,7 +203,7 @@ class CompiledPage:
         # Mako template code.   It's main use is for self modifying pages
 
         self.localAPI = CompiledPageAPIObject(self)
-        from . import kaithemobj
+        from ... import kaithemobj
 
         self.kaithemobj = kaithemobj
 
@@ -437,7 +442,7 @@ def removeModulePages(module):
 
 # This piece of code will update the actual event object based on the event resource definition in the module
 # Also can add a new page
-def updateOnePage(resource, module):
+def updateOnePage(resource, module, data: modules_state.ResourceDictType):
     # This is one of those places that uses two different locks
     with modules_state.modulesLock:
         if module not in _Pages:
@@ -453,15 +458,13 @@ def updateOnePage(resource, module):
             pass
 
         enable = True
-        # Get the page resource in question
-        j = modules_state.ActiveModules[module][resource]
 
         # Don't serve file if that's not enabled
-        if j["resource-type"] == "internal-fileref":
-            if not j.get("serve", False):
+        if data["resource-type"] == "internal-fileref":
+            if not data.get("serve", False):
                 enable = False
         if enable:
-            _Pages[module][resource] = CompiledPage(j, module, resource)
+            _Pages[module][resource] = CompiledPage(data, module, resource)
         lookup.invalidate_cache()
 
 
@@ -515,7 +518,7 @@ def getPagesFromModules():
                                     "/system/notifications/errors",
                                     'Page "' + m + '" of module "' + i + '" may need attention',
                                 )
-                    elif j["resource-type"] in "internal-fileref":
+                    elif j["resource-type"] == "internal-fileref":
                         if j.get("serve", False):
                             try:
                                 _Pages[i][m] = CompiledPage(j, i, m)
@@ -567,7 +570,7 @@ class KaithemPage:
     exposed = True
 
     def __init__(self) -> None:
-        from . import kaithemobj
+        from ... import kaithemobj
 
         self.kaithemobj = kaithemobj
 
@@ -722,3 +725,112 @@ class KaithemPage:
                     'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
                 )
             raise (e)
+
+
+class PageType(modules_state.ResourceType):
+    def blurb(self, m, r, value):
+        return render_jinja_template(
+            os.path.join(os.path.dirname(__file__), "html", "page_blurb.j2.html"),
+            getPageErrors=getPageErrors,
+            getPageInfo=getPageInfo,
+            resource=value,
+            url_for_resource=url_for_resource,
+            modulename=m,
+            resourcename=r,
+        )
+
+    @beartype.beartype
+    def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
+        updateOnePage(resourcename, module, value)
+
+    def onmove(self, module, resource, toModule, toResource, resourceobj):
+        x = _Pages.pop((module, resource), None)
+        if x:
+            _Pages[toModule, toResource] = x
+
+    def onupdate(self, module, resource, obj):
+        self.onload(module, resource, obj)
+
+    def ondelete(self, module, name, value):
+        removeOnePage(module, name)
+
+    def oncreaterequest(self, module, name, kwargs):
+        from . import pageresourcetemplates
+
+        template = kwargs["template"]
+        return pageresourcetemplates.templates[template](name)
+
+    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+        if "tabtospace" in kwargs:
+            body = kwargs["body"].replace("\t", "    ")
+        else:
+            body = kwargs["body"]
+
+        if "tabtospace" in kwargs:
+            code = kwargs["code"].replace("\t", "    ")
+        else:
+            code = kwargs["code"]
+
+        if "tabtospace" in kwargs:
+            setupcode = kwargs["setupcode"].replace("\t", "    ")
+        else:
+            setupcode = kwargs["setupcode"]
+
+        resourceobj["body"] = body
+        resourceobj["theme-css-url"] = kwargs["themecss"].strip()
+        resourceobj["code"] = code
+        resourceobj["setupcode"] = setupcode
+        resourceobj["alt-top-banner"] = kwargs["alttopbanner"]
+
+        resourceobj["mimetype"] = kwargs["mimetype"]
+        resourceobj["template-engine"] = kwargs["template-engine"]
+        resourceobj["no-navheader"] = "no-navheader" in kwargs
+        resourceobj["streaming-response"] = "streaming-response" in kwargs
+
+        resourceobj["no-header"] = "no-header" in kwargs
+        resourceobj["auto-reload"] = "autoreload" in kwargs
+        resourceobj["allow-xss"] = "allow-xss" in kwargs
+        resourceobj["allow-origins"] = [i.strip() for i in kwargs["allow-origins"].split(",")]
+        resourceobj["auto-reload-interval"] = float(kwargs["autoreloadinterval"])
+        # Method checkboxes
+        resourceobj["require-method"] = []
+        if "allow-GET" in kwargs:
+            resourceobj["require-method"].append("GET")
+        if "allow-POST" in kwargs:
+            resourceobj["require-method"].append("POST")
+        # permission checkboxes
+        resourceobj["require-permissions"] = []
+        for i in kwargs:
+            # Since HTTP args don't have namespaces we prefix all the permission
+            # checkboxes with permission
+            if i[:10] == "Permission":
+                if kwargs[i] == "true":
+                    resourceobj["require-permissions"].append(i[10:])
+
+        return resourceobj
+
+    def createpage(self, module, path):
+        d = SimpleDialog(f"New page in {module}")
+        d.text_input("name")
+        d.selection("template", options=["default"])
+
+        d.submit_button("Create")
+        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}/{url(path)}")
+
+    def editpage(self, module, resource, resourceinquestion):
+        if "require-permissions" in resourceinquestion:
+            requiredpermissions = resourceinquestion["require-permissions"]
+        else:
+            requiredpermissions = []
+
+        return pages.get_template(os.path.join(os.path.dirname(__file__), "html", "page.html")).render(
+            module=module,
+            name=resource,
+            kwargs={},
+            page=resourceinquestion,
+            requiredpermissions=requiredpermissions,
+        )
+
+
+p = PageType("page", mdi_icon="flag")
+modules_state.additionalTypes["page"] = p

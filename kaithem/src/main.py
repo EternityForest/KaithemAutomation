@@ -109,7 +109,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         systasks,  # noqa: F401
         tag_errors,  # noqa: F401
         tagpoints,  # noqa: F401
-        usrpages,  # noqa: F401
         webapproot,  # noqa: F401
         weblogin,  # noqa: F401
         widgets,  # noqa: F401

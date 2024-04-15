@@ -16,7 +16,6 @@
     import kaithem
     from scullery import workers as sworkers
     from kaithem.src import unitsofmeasure
-    from kaithem.src import newevt
     from kaithem.src import systasks
     from icemedia import sound_player as sound
     from kaithem.src import usrpages
@@ -320,10 +319,6 @@ except Exception:
 <p>
 <h3>Current Statistics</h3>
     <table border=1 class="w-full">
-        <tr>
-            <td>Total polled events</td>
-            <td>${str(newevt.countEvents())}</td>
-        </tr>
         <tr>
             <td>Process Started</td>
             <td>${time.strftime(config['time-format'],time.localtime(systasks.systemStarted))}</td>

@@ -98,34 +98,6 @@
                     %>
             {% endif %}
 
-            {% if module[i]['resource-type'] == 'page' %}
-            <dt>
-                <div class="tool-bar w-full inline">
-                    <a aria-role="header" href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#pagebody">
-                        <i class="mdi mdi-web"></i>
-                        <b>{{ util.split_escape(i,'/','\\')[-1] | escape }}</b>
-                    </a>
-                    {% if usrpages.getPageErrors(name,i) %}
-                    <span class="danger">[{{ len(usrpages.getPageErrors(name,i) ) }} Errors]</span>
-                    {% endif %}
-                    <a class="button nogrow" href="{{ (usrpages.url_for_resource(name,i) ) }}">
-                        <i class="mdi mdi-play"></i>Go to page </a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
-                        <i class="mdi mdi-delete"></i>
-                        Delete</a>
-                </div>
-            </dt>
-            <dd>
-                <p class="resource-docstring">{{ usrpages.getPageInfo(name,i) | escape }}</p>
-                {% if 'require-permissions' in module[i] and module[i]['require-permissions'] %}
-                Permissions:
-                {% for x in module[i]['require-permissions'] %}<i class="mdi mdi-key"></i>{{ x| escape }}{% endfor %}
-                {% endif %}
-                {% if 'require-method' in module[i] %}
-                <i class="mdi mdi-unlocked"></i>Access: {{ ','.join(module[i]['require-method']) }}
-                {% endif %}
-            </dd>
-            {% endif %}
             {% if module[i]['resource-type'] == 'permission' %}
             <dt>
                 <div class="tool-bar w-full inline">

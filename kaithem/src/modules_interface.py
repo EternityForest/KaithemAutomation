@@ -22,14 +22,12 @@ from . import (
     modules,
     modules_state,
     pages,
-    schemas,
     unitsofmeasure,
-    usrpages,
     util,
 )
 from .config import config
 from .modules import external_module_locations
-from .plugins import CorePluginEventResources
+from .plugins import CorePluginEventResources, CorePluginUserPageResources
 from .util import url
 
 syslog = logging.getLogger("system")
@@ -105,8 +103,6 @@ module_page_context = {
     "getModuleHash": modules_state.getModuleHash,
     "getModuleWordHash": modules_state.getModuleWordHash,
     "pages": pages,
-    "newevt": CorePluginEventResources,
-    "usrpages": usrpages,
     "unitsofmeasure": unitsofmeasure,
     "util": util,
     "scheduling": scheduling,
@@ -283,7 +279,7 @@ class WebInterface:
     # @cherrypy.expose
     # def manual_run(self,module, resource):
     # These modules handle their own permissions
-    # if isinstance(EventReferences[module,resource], newevt.ManualEvent):
+    # if isinstance(EventReferences[module,resource], ManualEvent):
     # EventReferences[module,resource].run()
     # else:
     # raise RuntimeError("Event does not support running manually")
@@ -652,7 +648,6 @@ class WebInterface:
                             if rt in modules_state.additionalTypes:
                                 modules_state.additionalTypes[rt].ondelete(root, r, obj)
 
-                        usrpages.removeModulePages(root)
                         # And calls this function the generate the new cache
                         modules.bookkeeponemodule(kwargs["name"], update=True)
                         # Just for fun, we should probably also sync the permissions
@@ -668,15 +663,12 @@ def addResourceDispatcher(module, type, path):
     pages.require("system_admin")
 
     # Return a crud to add a new permission
-    if type in ("permission", "page", "directory"):
+    if type in ("permission", "directory"):
         d = dialogs.SimpleDialog(f"New {type.capitalize()} in {module}")
         d.text_input("name")
 
         if type in ("permission",):
             d.text_input("description")
-
-        if type == "page":
-            d.selection("template", options=["default"])
 
         d.submit_button("Create")
         return d.render(f"/modules/module/{url(module)}/addresourcetarget/{type}/{url(path)}")
@@ -719,14 +711,6 @@ def addResourceTarget(module, type, name, kwargs, path):
             insertResource({"resource-type": "permission", "description": kwargs["description"]})
             # has its own lock
             auth.importPermissionsFromModules()  # sync auth's list of permissions
-
-        elif type == "page":
-            from . import pageresourcetemplates
-
-            template = kwargs["template"]
-            basename = util.split_escape(name, "/", "\\")[-1]
-            insertResource(pageresourcetemplates.templates[template](basename))
-            usrpages.updateOnePage(escapedName, root)
 
         else:
             # If create returns None, assume it doesn't want to insert a module or handles it by itself
@@ -780,20 +764,6 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 module=module,
                 resource=resource,
                 resourceobj=resourceinquestion,
-                requiredpermissions=requiredpermissions,
-            )
-
-        if resourceinquestion["resource-type"] == "page":
-            if "require-permissions" in resourceinquestion:
-                requiredpermissions = resourceinquestion["require-permissions"]
-            else:
-                requiredpermissions = []
-
-            return pages.get_template("modules/pages/page.html").render(
-                module=module,
-                name=resource,
-                kwargs=kwargs,
-                page=resourceinquestion,
                 requiredpermissions=requiredpermissions,
             )
 
@@ -876,56 +846,6 @@ def resourceUpdateTarget(module, resource, kwargs):
 
             modules.saveResource(module, resource, resourceobj, newname)
 
-        elif t == "page":
-            if "tabtospace" in kwargs:
-                body = kwargs["body"].replace("\t", "    ")
-            else:
-                body = kwargs["body"]
-
-            if "tabtospace" in kwargs:
-                code = kwargs["code"].replace("\t", "    ")
-            else:
-                code = kwargs["code"]
-
-            if "tabtospace" in kwargs:
-                setupcode = kwargs["setupcode"].replace("\t", "    ")
-            else:
-                setupcode = kwargs["setupcode"]
-
-            resourceobj["body"] = body
-            resourceobj["theme-css-url"] = kwargs["themecss"].strip()
-            resourceobj["code"] = code
-            resourceobj["setupcode"] = setupcode
-            resourceobj["alt-top-banner"] = kwargs["alttopbanner"]
-
-            resourceobj["mimetype"] = kwargs["mimetype"]
-            resourceobj["template-engine"] = kwargs["template-engine"]
-            resourceobj["no-navheader"] = "no-navheader" in kwargs
-            resourceobj["streaming-response"] = "streaming-response" in kwargs
-
-            resourceobj["no-header"] = "no-header" in kwargs
-            resourceobj["auto-reload"] = "autoreload" in kwargs
-            resourceobj["allow-xss"] = "allow-xss" in kwargs
-            resourceobj["allow-origins"] = [i.strip() for i in kwargs["allow-origins"].split(",")]
-            resourceobj["auto-reload-interval"] = float(kwargs["autoreloadinterval"])
-            # Method checkboxes
-            resourceobj["require-method"] = []
-            if "allow-GET" in kwargs:
-                resourceobj["require-method"].append("GET")
-            if "allow-POST" in kwargs:
-                resourceobj["require-method"].append("POST")
-            # permission checkboxes
-            resourceobj["require-permissions"] = []
-            for i in kwargs:
-                # Since HTTP args don't have namespaces we prefix all the permission
-                # checkboxes with permission
-                if i[:10] == "Permission":
-                    if kwargs[i] == "true":
-                        resourceobj["require-permissions"].append(i[10:])
-
-            schemas.get_validator("resources/page").validate(resourceobj)
-            modules.saveResource(module, resource, resourceobj, newname)
-
         else:
             modules.saveResource(module, resource, resourceobj, newname)
 
@@ -948,7 +868,7 @@ def resourceUpdateTarget(module, resource, kwargs):
     if "name" in kwargs:
         r = kwargs["name"]
     if "GoNow" in kwargs:
-        raise cherrypy.HTTPRedirect(usrpages.url_for_resource(module, r))
+        raise cherrypy.HTTPRedirect(CorePluginUserPageResources.url_for_resource(module, r))
     # Return user to the module page. If name has a folder, return the
     # user to it;s containing folder.
     x = util.split_escape(r, "/", "\\")

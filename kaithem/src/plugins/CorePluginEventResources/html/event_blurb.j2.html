@@ -6,8 +6,8 @@
     {% if lastran %}
     <code>{{ unitsofmeasure.strftime(lastran )| escape }}
                 ({{ (unitsofmeasure.format_time_interval(time.time() -lastran,2)) }} ago)</code>
-    {% if newevt.getEventCompleted(module, resource) %}
-    <code>Completed in {{ round(evt_obj.lastcompleted-newevt.evt_obj.lastexecuted,3) | escape }}s</code>
+    {% if getEventCompleted(module, resource) %}
+    <code>Completed in {{ round(evt_obj.lastcompleted-evt_obj.lastexecuted,3) | escape }}s</code>
     {% else %}
     <span class="highlight">Still Running</span>
     {% endif %}

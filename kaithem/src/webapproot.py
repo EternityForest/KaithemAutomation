@@ -39,7 +39,6 @@ from . import (
     systasks,
     tagpoints,
     # TODO we gotta stop depending on import side effects
-    usrpages,
     util,
     weblogin,
     widgets,
@@ -47,6 +46,7 @@ from . import (
 )
 from .chandler import web as cweb
 from .config import config
+from .plugins import CorePluginUserPageResources
 
 logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
@@ -138,7 +138,7 @@ class webapproot:
     settings = settings.Settings()
     errors = Errors()
     utils = Utils()
-    pages = usrpages.KaithemPage()
+    pages = CorePluginUserPageResources.KaithemPage()
     logs = messagelogging.WebInterface()
     notifications = notifications.WI()
     syslog = logviewer.WebInterface()
