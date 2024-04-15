@@ -142,7 +142,7 @@ oot-uninstall-bloatware: # Uninstall random junk you probably don't want on an e
 
 
 .PHONY: root-install-utilities
-oot-install-utilities: # Install random junk you might want, like drivers for obscure devices and troubleshooting utils
+root-install-utilities: # Install random junk you might want, like drivers for obscure devices and troubleshooting utils
 	@cd ${ROOT_DIR}
 	@bash ./scripts/install-utilities.sh
 

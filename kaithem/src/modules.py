@@ -17,6 +17,7 @@ import zipfile
 from io import BytesIO as StringIO
 from typing import Any, Dict, Optional
 
+import beartype
 import cherrypy
 import yaml
 
@@ -88,7 +89,7 @@ def readToplevelBlock(p, heading):
     """
     x = p.split("\n")
     state = "outside"
-    indent = 0
+    indent = ""
     lines = []
     outside_lines = []
     firstline = ""
@@ -118,7 +119,7 @@ def readToplevelBlock(p, heading):
     return ("\n".join(lines), "\n".join(outside_lines))
 
 
-def readStringFromSource(s, var):
+def readStringFromSource(s, var) -> str | None:
     "Without executing it, get a string var from source code"
     a = ast.parse(s)
     b = a.body
@@ -154,7 +155,7 @@ def loadAllCustomResourceTypes():
 
 
 class ResourceObject:
-    def __init__(self, m: str = None, r: str = None, o=None):
+    def __init__(self, m: str | None = None, r: str | None = None, o=None):
         self.resource = r
         self.module = m
         self._object = o
@@ -319,7 +320,8 @@ class ResourceAPI:
 kaithemobj.kaithem.resource = ResourceAPI()
 
 
-def readResourceFromFile(fn: str, relative_name: str, ver: int = 1, modulename=Optional[str]):
+@beartype.beartype
+def readResourceFromFile(fn: str, relative_name: str, ver: int = 1, modulename: str | None = None):
     """Relative name is rel to the folder, aka the part of the path that actually belongs in
     the resource name.
 
@@ -364,8 +366,12 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                 setup, restofthecode = readToplevelBlock(restofthecode, "if __name__ == '__setup__':")
                 # Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
                 # A syntax error preventing reading the data at all
+                code = readStringFromSource(restofthecode, "__data__")
+                if code is None:
+                    raise RuntimeError("Could not get code")
+
                 data = yaml.load(
-                    readStringFromSource(restofthecode, "__data__"),
+                    code,
                     Loader=yaml.SafeLoader,
                 )
                 data["trigger"] = readStringFromSource(restofthecode, "__trigger__")
@@ -550,9 +556,10 @@ def validate(r):
         print(str(r)[10240])
 
 
-def loadOneResource(folder, relpath, module):
+@beartype.beartype
+def loadOneResource(folder: str, relpath: str, module: str):
     try:
-        r, resourcename = readResourceFromFile(os.path.join(folder, relpath), relpath, module)
+        r, resourcename = readResourceFromFile(os.path.join(folder, relpath), relpath, modulename=module)
     except Exception:
         messagebus.post_message(
             "/system/notifications/errors",
@@ -697,6 +704,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
         # bookkeeponemodule(name)
 
 
+@beartype.beartype
 def autoGenerateFileRefResources(module: Dict[str, Any], modulename: str):
     "Return true if anything generared"
     rt = False

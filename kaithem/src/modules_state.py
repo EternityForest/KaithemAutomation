@@ -16,7 +16,9 @@ from threading import RLock
 from typing import Any, Dict
 from urllib.parse import quote
 
+import beartype
 import yaml
+from jsonschema import validate
 
 from . import directories, resource_serialization, util
 
@@ -118,10 +120,6 @@ def serializeResource(obj):
 
 
 def writeResource(obj: dict, fn: str):
-    # Don't save VResources
-    if isinstance(obj, weakref.ref):
-        # logger.debug("Did not save resource because it is virtual")
-        return
     # logger.debug("Saving resource to "+str(fn))
 
     if obj.get("do-not-save-to-disk", False):
@@ -205,6 +203,7 @@ def saveResource(m, r, resourceData, name=None):
     # In the upload code itself.
 
 
+@beartype.beartype
 def rawDeleteResource(m: str, r: str, type: str | None = None):
     """
     Delete a resource from the module, but don't do
@@ -239,7 +238,8 @@ def getResourceFn(m, r, o):
     return os.path.join(dir, urllib.parse.quote(r, safe=" /")) + getExt(o)
 
 
-def saveModule(module, modulename: str):
+@beartype.beartype
+def saveModule(module: dict[str, dict[str, dict | list | str | float | int | None]], modulename: str):
     """Returns a list of saved module,resource tuples and the saved resource.
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
@@ -284,10 +284,22 @@ class ResourceType:
 
     """
 
-    def __init__(self, type: str, mdi_icon=""):
+    def __init__(self, type: str, mdi_icon="", schema=None):
         self.type = type
         self.mdi_icon = mdi_icon
         self.createButton = None
+        self.schema: dict | None = schema
+
+    @beartype.beartype
+    def validate(self, d: dict[str, dict[str, Any] | list | str | int | float | bool | None]):
+        """Raise an error if the provided data is bad.
+        By default uses the type's schema if one was provided, or else does
+        nothing.
+        """
+        d = {i: d[i] for i in d if not i.startswith("resource-")}
+
+        if self.schema:
+            validate(d, self.schema)
 
     def get_create_target(self, module, folder):
         return f"/modules/module/{module}/addresourcetarget/{self.type}/{quote(folder,safe='')}"
@@ -433,7 +445,7 @@ class HierarchyDict:
 
 
 # Lets just store the entire list of modules as a huge dict for now at least
-ActiveModules: Dict[str, Dict] = {}
+ActiveModules: dict[str, dict[str, dict | list | int | float | str | bool | None]] = {}
 
 moduleshash = "000000000000000000000000"
 modulehashes = {}
@@ -450,8 +462,6 @@ def hashModules():
             for i in sorted(ActiveModules.keys()):
                 m.update(i.encode("utf-8"))
                 for j in sorted(ActiveModules[i].keys()):
-                    if isinstance(ActiveModules[i][j], weakref.ref):
-                        continue
                     m.update(j.encode("utf-8"))
                     m.update(json.dumps(ActiveModules[i][j], sort_keys=True, separators=(",", ":")).encode("utf-8"))
         return m.hexdigest().upper()
@@ -466,7 +476,7 @@ def hashModule(module: str):
         with modulesLock:
             m.update(
                 json.dumps(
-                    {i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i], weakref.ref)},
+                    {i: ActiveModules[module][i] for i in ActiveModules[module]},
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode("utf-8")
@@ -482,7 +492,7 @@ def wordHashModule(module: str):
         with modulesLock:
             return util.blakeMemorable(
                 json.dumps(
-                    {i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i], weakref.ref)},
+                    {i: ActiveModules[module][i] for i in ActiveModules[module]},
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode("utf-8"),

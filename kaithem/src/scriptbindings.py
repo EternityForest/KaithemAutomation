@@ -69,6 +69,7 @@ from typing import Any
 
 import pytz
 import simpleeval
+from beartype import beartype
 from scullery import workers
 from scullery.scheduling import scheduler
 
@@ -391,26 +392,24 @@ class Event:
 class BaseChandlerScriptContext:
     def __init__(
         self,
-        parentContext: BaseChandlerScriptContext = None,
-        gil: threading.RLock = None,
+        parentContext: BaseChandlerScriptContext | None = None,
+        gil: threading.RLock | None = None,
         functions: dict[str, Callable[..., Any]] = {},
         variables: dict[str, Any] | None = None,
         constants: dict[str, Any] | None = None,
         contextFunctions: dict[str, Callable[..., Any]] = {},
         contextName: str = "script",
     ):
-        self.pipelines = []
-
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
-        self.eventQueue = []
-        self.event_listeners: dict[str, list[list[Any]]] = {}
+        self.event_queue: list[Callable[[], Any]] = []
+        self.event_listeners: dict[str, list[list[str | list[list[str | float | int | bool]]]]] = {}
         self.variables: dict[str, Any] = variables if variables is not None else {}
         self.commands = ScriptActionKeeper()
         self.context_commands = ScriptActionKeeper()
 
-        self.children: dict[str, BaseChandlerScriptContext] = {}
-        self.children_iterable = {}
+        self.children: dict[int, weakref.ref[BaseChandlerScriptContext]] = {}
+        self.children_iterable: dict[int, weakref.ref[BaseChandlerScriptContext]] = {}
         self.constants: dict[str, Any] = constants if (constants is not None) else {}
         self.contextName = contextName
 
@@ -441,10 +440,10 @@ class BaseChandlerScriptContext:
         # attributes of a foo obj,
 
         # Even though we use a flat list of vars.
-        self.namespaces = {}
+        self.namespaces: dict[str, NamespaceGetter] = {}
         self.contextName = "ScriptContext"
 
-        self.timeEvents = {}
+        self.time_events: dict[str, ScheduleTimer] = {}
         self.poller = None
         self.slowpoller = None
         selfid = id(self)
@@ -520,7 +519,7 @@ class BaseChandlerScriptContext:
             self.gil = gil
 
     def waitForEvents(self):
-        while self.eventQueue:
+        while self.event_queue:
             time.sleep(0.001)
 
     def checkPollEvents(self):
@@ -568,14 +567,14 @@ class BaseChandlerScriptContext:
 
     def doEventQueue(self, allowAsync=True):
         # Run all events in the queue, under the gil.
-        while self.eventQueue:
+        while self.event_queue:
             if self.gil.acquire(timeout=20):
                 # Run them all as one block
                 try:
-                    while self.eventQueue:
+                    while self.event_queue:
                         try:
-                            if self.eventQueue:
-                                self.eventQueue.pop(False)()
+                            if self.event_queue:
+                                self.event_queue.pop(False)()
                         except Exception:
                             logging.exception("Error in script context")
                 finally:
@@ -650,10 +649,10 @@ class BaseChandlerScriptContext:
         def f():
             self._event(evt, val, depth)
 
-        if len(self.eventQueue) > 128:
+        if len(self.event_queue) > 128:
             raise RuntimeError("Too Many queued events!!!")
 
-        self.eventQueue.append(f)
+        self.event_queue.append(f)
         workers.do(self.doEventQueue)
 
     def _event(self, evt, val, depth):
@@ -784,7 +783,8 @@ class BaseChandlerScriptContext:
 
         self.commands[name] = wrap(self, callable)
 
-    def addBindings(self, b: list[list[str | float | bool] | str | float | int | bool]):
+    @beartype
+    def addBindings(self, b: list[list[str | list[list[str | float | int | bool]]]]):
         """
         Take a list of bindings and add them to the context.
         A binding looks like:
@@ -799,9 +799,17 @@ class BaseChandlerScriptContext:
             self.need_refresh_for_variable = {}
             self.need_refresh_for_tag = {}
             for i in b:
-                if i[0] not in self.event_listeners:
-                    self.event_listeners[i[0]] = []
-                self.event_listeners[i[0]].append(i[1])
+                evt_name = i[0]
+                cmds: list[str | list[list[str | float | int | bool]]] = i[1]
+                if not isinstance(evt_name, str):
+                    raise ValueError(f"First item in binding must be str, got {i[0]}")
+
+                if not isinstance(cmds, list):
+                    raise ValueError(f"Second item in binding must be command list, got {i[1]}")
+
+                if evt_name not in self.event_listeners:
+                    self.event_listeners[evt_name] = []
+                self.event_listeners[evt_name].append(cmds)
                 self.onBindingAdded(i)
 
             if "now" in self.event_listeners:
@@ -816,9 +824,9 @@ class BaseChandlerScriptContext:
         with self.gil:
             for i in self.event_listeners:
                 if i and i.strip()[0] == "@":
-                    if i not in self.timeEvents:
-                        self.timeEvents[i] = ScheduleTimer(i, self)
-                        self.onTimerChange(i, self.timeEvents[i].nextruntime)
+                    if i not in self.time_events:
+                        self.time_events[i] = ScheduleTimer(i, self)
+                        self.onTimerChange(i, self.time_events[i].nextruntime)
                 if i == "script.poll":
                     if not self.poller:
                         self.poller = scheduler.schedule_repeating(self.poll, 1 / 24.0)
@@ -835,15 +843,18 @@ class BaseChandlerScriptContext:
     def poll(self):
         self.event("script.poll")
 
+    def on_clearBindingsHook(self):
+        pass
+
     def clearBindings(self):
         """Clear event bindings and associated data like timers.
         Don't clear any binding for an event listed in preserve.
         """
         with self.gil:
             self.event_listeners = {}
-            for i in self.timeEvents:
-                self.timeEvents[i].stop()
-            self.timeEvents = {}
+            for i in self.time_events:
+                self.time_events[i].stop()
+            self.time_events = {}
 
             if self.poller:
                 self.poller.unregister()
@@ -887,11 +898,11 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             if self.need_refresh_for_tag[tagname]:
                 self.checkPollEvents()
 
-        if len(self.eventQueue) > 128:
+        if len(self.event_queue) > 128:
             raise RuntimeError("Too Many queued events!!!")
 
         # All tag point changes happen async
-        self.eventQueue.append(f)
+        self.event_queue.append(f)
         workers.do(self.doEventQueue)
 
     def setupTag(self, tag):
@@ -956,6 +967,9 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                     # Semi idempotence, no need to set if it is not already there.
                     if tagName not in self.tagClaims:
                         return True
+
+            if tagType is None:
+                raise ValueError("Could not guess proper tag type")
 
             if self.canGetTagpoint(tagName):
                 if tagName in self.tagClaims:
@@ -1042,7 +1056,7 @@ c.commands["bat"] = bat
 c.commands["no"] = no
 c.commands
 
-b = [
+b: list[list[str | list[list[str]]]] = [
     ["window", [["baseball"], ["bat", "='glove'"], ["no", "this", "shouldn't", "run"]]],
     ["test", [["set", "foo", "bar"]]],
 ]

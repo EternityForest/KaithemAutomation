@@ -1,14 +1,4 @@
 repos:
-  - repo: local
-    hooks:
-    - id: no-dash-e
-      name: nodashe
-      description: check no editable modules in requirements
-      entry: '\-e '
-      language: pygrep
-      files: '.*requirements.txt'
-      types: [file]
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
