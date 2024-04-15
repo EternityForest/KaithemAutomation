@@ -15,7 +15,7 @@ import traceback
 import weakref
 import zipfile
 from io import BytesIO as StringIO
-from typing import Any, Dict, Optional
+from typing import Any
 
 import beartype
 import cherrypy
@@ -705,7 +705,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
 
 
 @beartype.beartype
-def autoGenerateFileRefResources(module: Dict[str, Any], modulename: str):
+def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
     "Return true if anything generared"
     rt = False
     with modulesLock:
@@ -764,7 +764,7 @@ def autoGenerateFileRefResources(module: Dict[str, Any], modulename: str):
 def getModuleAsYamlZip(module, noFiles=True):
     incompleteError = False
     with modulesLock:
-        # Ensure any manually put therer files are there
+        # Ensure any manually put there files are there
         autoGenerateFileRefResources(module, modules_state.ActiveModules[module])
         # We use a stringIO so we can avoid using a real file.
         ram_file = StringIO()
@@ -1039,7 +1039,7 @@ def getModuleDir(module: str):
         return os.path.join(directories.moduledir, "data", module)
 
 
-def newModule(name: str, location: Optional[str] = None):
+def newModule(name: str, location: str | None = None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
 
     # If there is no module by that name, create a blank template and the scope obj

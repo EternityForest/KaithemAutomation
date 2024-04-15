@@ -13,7 +13,7 @@ import urllib
 import urllib.parse
 import weakref
 from threading import RLock
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import quote
 
 import beartype
@@ -29,7 +29,7 @@ safeFnChars = "~@*&()-_=+/ '"
 logger = logging.getLogger("system")
 
 # This lets us have some modules saved outside the var dir.
-external_module_locations: Dict[str, str] = {}
+external_module_locations: dict[str, str] = {}
 
 
 # Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
@@ -64,7 +64,7 @@ external_module_locations: Dict[str, str] = {}
 
 # This is a dict indexed by module/resource tuples that contains the absolute path to what
 # The system considers the current "loaded" version.
-fileResourceAbsPaths: Dict[tuple, str] = {}
+fileResourceAbsPaths: dict[tuple, str] = {}
 
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
@@ -609,4 +609,4 @@ def pollMlockRequests():
 # Define a place to keep the module private scope obects.
 # Every module has a object of class object that is used so user code can share state between resources in
 # a module
-scopes: Dict[str, Any] = {}
+scopes: dict[str, Any] = {}
