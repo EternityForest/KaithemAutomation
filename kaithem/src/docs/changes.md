@@ -36,6 +36,8 @@ Tags, in newer editions, should have a single source of config, and the code for
 - :lipstick: Move help to inside the tools page
 - :hammer: Many features moved to included core plugins, but still work exactly as before.
 
+- :bug: Fix module import/export
+-
 ### 0.78.1
 
 This is mostly just about the install scripts and a few leftover bugs.  A lot has changed on Pi OS with Wayland!
