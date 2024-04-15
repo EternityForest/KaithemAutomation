@@ -171,8 +171,8 @@ class WebDevices:
             if name in devices.device_data:
                 merged.update(devices.device_data[name])
 
-            if obj.parentModule:
-                merged.update(modules_state.ActiveModules[obj.parentModule][obj.parentResource]["device"])
+            if obj.parent_module:
+                merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])
 
             # I think stored data is enough, this is just defensive
             merged.update(devices.remote_devices[name].config)
@@ -287,8 +287,8 @@ class WebDevices:
                 devices.device_data[name] = d
                 saveDevice(name)
 
-            devices.remote_devices[name].parentModule = m
-            devices.remote_devices[name].parentResource = r
+            devices.remote_devices[name].parent_module = m
+            devices.remote_devices[name].parent_resource = r
             devices.remote_devices_atomic = devices.wrcopy(devices.remote_devices)
             messagebus.post_message("/devices/added/", name)
 
@@ -382,8 +382,8 @@ class WebDevices:
             # Delete bookkeep removes it from device data if present
             delete_bookkeep(name, "delete_conf_dir" in kwargs)
 
-            if x.parentModule:
-                modules_state.rawDeleteResource(x.parentModule, x.parentResource or name)
+            if x.parent_module:
+                modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
                 modules_state.modulesHaveChanged()
 
             # no zombie reference

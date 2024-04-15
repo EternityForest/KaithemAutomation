@@ -311,7 +311,7 @@ class ModuleObject:
 
 
 class ResourceAPI:
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
         if isinstance(name, tuple):
             x = modules_state.ActiveModules[name[0]][name[1]]
             if isinstance(x, weakref.ref):
@@ -949,7 +949,10 @@ def bookkeeponemodule(module, update=False):
 
     for i in modules_state.ActiveModules[module]:
         # Handle events separately due to dependency resolution logic
-        if modules_state.ActiveModules[module][i]["resource-type"] not in ("event"):
+        rt = modules_state.ActiveModules[module][i]["resource-type"]
+        assert isinstance("rt", str)
+
+        if rt not in ("event",):
             try:
                 handleResourceChange(module, i, newly_added=not update)
             except Exception:
@@ -1007,23 +1010,26 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         r = modules_state.ActiveModules[module].pop(resource)
         modules_state.modulesHaveChanged()
     try:
-        if r["resource-type"] == "page":
+        rt = r["resource-type"]
+        assert isinstance(rt, str)
+
+        if rt == "page":
             usrpages.removeOnePage(module, resource)
 
-        elif r["resource-type"] == "event":
+        elif rt == "event":
             newevt.removeOneEvent(module, resource)
 
-        elif r["resource-type"] == "directory":
+        elif rt == "directory":
             # Directories are special, they can have the extra data file
             fn = f"{getResourceFn(module, resource, r)}.yaml"
 
             if os.path.exists(fn):
                 os.remove(fn)
 
-        elif r["resource-type"] == "permission":
+        elif rt == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
-        elif r["resource-type"] == "internal-fileref":
+        elif rt == "internal-fileref":
             try:
                 os.remove(fileResourceAbsPaths[module, resource])
             except Exception:
@@ -1033,7 +1039,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
             usrpages.removeOnePage(module, resource)
 
         else:
-            additionalTypes[r["resource-type"]].ondelete(module, resource, r)
+            additionalTypes[rt].ondelete(module, resource, r)
 
         fn = getResourceFn(module, resource, r)
 
@@ -1098,7 +1104,9 @@ def rmModule(module, message="deleted"):
     for k in j:
         if j[k].get("resource-type", None) in additionalTypes:
             try:
-                additionalTypes[j[k]["resource-type"]].ondelete(module, k, j[k])
+                rt = j[k]["resource-type"]
+                assert isinstance(rt, str)
+                additionalTypes[rt].ondelete(module, k, j[k])
             except Exception:
                 messagebus.post_message(
                     "/system/modules/errors/unloading",
@@ -1140,6 +1148,8 @@ def handleResourceChange(module, resource, obj=None, newly_added=False):
 
         resourceobj = modules_state.ActiveModules[module][resource]
 
+        assert isinstance(t, str)
+
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
@@ -1171,6 +1181,6 @@ def handleResourceChange(module, resource, obj=None, newly_added=False):
 
         else:
             if not newly_added:
-                additionalTypes[resourceobj["resource-type"]].onupdate(module, resource, modules_state.ActiveModules[module][resource])
+                additionalTypes[t].onupdate(module, resource, resourceobj)
             else:
-                additionalTypes[resourceobj["resource-type"]].onload(module, resource, modules_state.ActiveModules[module][resource])
+                additionalTypes[t].onload(module, resource, resourceobj)

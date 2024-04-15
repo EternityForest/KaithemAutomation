@@ -108,7 +108,7 @@
         {% endif %}
         <form method="POST" action="/devices/updateDevice/{{ url(name) }}">
 
-            {% if obj.parentModule %}
+            {% if obj.parent_module %}
             <h2>Module/Resource</h2>
             <p>This device is part of a module, rather than the global devices list.</p>
             {% endif %}
@@ -128,11 +128,11 @@
                     <tr>
                         <td>Store settings in Module(blank=store in main devices list)</td>
                         <td><input required list="k_modules" name="temp.kaithem.store_in_module"
-                                value="{{ obj.parentModule or '' | escape }}"></td>
+                                value="{{ obj.parent_module or '' | escape }}"></td>
                     </tr>
                     <tr>
                         <td>Resource Name(blank=use device name)</td>
-                        <td><input name="temp.kaithem.store_in_resource" value="{{ obj.parentResource or ''| escape }}">
+                        <td><input name="temp.kaithem.store_in_resource" value="{{ obj.parent_resource or ''| escape }}">
                         </td>
                     </tr>
                 </table>

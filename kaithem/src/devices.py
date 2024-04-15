@@ -106,8 +106,8 @@ def delete_bookkeep(name, confdir=False):
         except KeyError:
             pass
 
-        pm = x.parentModule
-        pr = x.parentResource
+        pm = x.parent_module
+        pr = x.parent_resource
 
         if confdir:
             try:
@@ -219,8 +219,8 @@ class DeviceResourceType(ResourceType):
 
                 d = makeDevice(devname, value["device"], cls)
                 remote_devices[devname] = d
-                d.parentModule = module
-                d.parentResource = resourcename
+                d.parent_module = module
+                d.parent_resource = resourcename
 
                 global remote_devices_atomic
                 remote_devices_atomic = wrcopy(remote_devices)
@@ -289,12 +289,12 @@ def saveDevice(d):
 
 
 def get_config_folder_from_device(d: str, create=True):
-    if not hasattr(remote_devices[d], "parentModule") or not remote_devices[d].parentModule:
+    if not hasattr(remote_devices[d], "parent_module") or not remote_devices[d].parent_module:
         module = None
         resource = None
     else:
-        module = remote_devices[d].parentModule
-        resource = remote_devices[d].parentModule
+        module = remote_devices[d].parent_module
+        resource = remote_devices[d].parent_module
 
     return get_config_folder_from_info(module, resource, d, create=create)
 
@@ -380,7 +380,7 @@ class Device(iot_devices.device.Device):
     def data(self, v):
         return self.config.update(v)
 
-    def setDataKey(self, key, val):
+    def setDataKey(self, key: str, val):
         "Lets a device set it's own persistent stored data"
 
         v = str(val)
@@ -389,19 +389,22 @@ class Device(iot_devices.device.Device):
             self.config[key] = v
 
             if not self.config.get("is_ephemeral", False) and not key.startswith("temp.") and not key.startswith("kaithem.temp."):
-                if self.parentModule:
-                    modules_state.ActiveModules[self.parentModule][self.parentResource]["device"][key] = v
+                if self.parent_module:
+                    assert self.parent_resource
+                    devdata = modules_state.ActiveModules[self.parent_module][self.parent_resource]["device"]
+                    assert isinstance(devdata, dict)
+                    devdata[key] = v
 
                     modules_state.saveResource(
-                        self.parentModule,
-                        self.parentResource,
-                        modules_state.ActiveModules[self.parentModule][self.parentResource],
+                        self.parent_module,
+                        self.parent_resource,
+                        modules_state.ActiveModules[self.parent_module][self.parent_resource],
                     )
                     modules_state.modulesHaveChanged()
                 else:
                     # This might not be stored in the master lists,
                     # and yet it might not be connected to
-                    # the parentModule, because of legacy API reasons.
+                    # the parent_module, because of legacy API reasons.
                     # Just store it it self.config which will get saved
                     # at the end of makeDevice, that pretty much handles all module devices
                     if self.name in device_data:
@@ -466,11 +469,14 @@ class Device(iot_devices.device.Device):
         dbgd[name + str(time.time())] = self
 
         # If the device is from a module, tells us where
-        self.parentModule: str | None = None
+        # None only when we haven't fully set it up.
+        # Or when we are a subdevice just kind of floating
+        # With no config
+        self.parent_module: str | None = None
 
         # This can exist even without parent module, not doing
         # anything but telling us what the name would be.
-        self.parentResource: str | None = None
+        self.parent_resource: str | None = None
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
@@ -637,14 +643,14 @@ class Device(iot_devices.device.Device):
             # TODO what happens with more than two layers?
             # Get rid of the module name part in the resource
             device_location_cache[name] = (
-                self.parentModule,
-                ".d/".join(name.split("/")[1 if self.parentModule else 0 :]),
+                self.parent_module,
+                ".d/".join(name.split("/")[1 if self.parent_module else 0 :]),
             )
 
         m = makeDevice(name=name, data=config, cls=cls)
 
         if name in device_location_cache:
-            m.parentModule, m.parentResource = device_location_cache[name]
+            m.parent_module, m.parent_resource = device_location_cache[name]
 
         m._kaithem_is_subdevice = True
 
@@ -1037,23 +1043,26 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         subdevice = hasattr(remote_devices[devname], "_kaithem_is_subdevice")
 
-        parentModule = remote_devices[devname].parentModule
-        parentResource = remote_devices[devname].parentResource
-        old_dev_conf_folder = get_config_folder_from_info(parentModule, parentResource, devname, create=False, always_return=True)
+        parent_module = remote_devices[devname].parent_module
+        parent_resource = remote_devices[devname].parent_resource
+        old_dev_conf_folder = get_config_folder_from_info(parent_module, parent_resource, devname, create=False, always_return=True)
 
         if "temp.kaithem.store_in_module" in kwargs:
-            newparentModule = kwargs["temp.kaithem.store_in_module"]
-            newparentResource = kwargs["temp.kaithem.store_in_resource"] or ".d/".join(name.split("/"))
+            newparent_module = kwargs["temp.kaithem.store_in_module"]
+            newparent_resource = kwargs["temp.kaithem.store_in_resource"] or ".d/".join(name.split("/"))
 
         else:
             raise ValueError("Can only save in module")
 
-        new_dev_conf_folder = get_config_folder_from_info(newparentModule, newparentResource, name, create=False, always_return=True)
+        new_dev_conf_folder = get_config_folder_from_info(newparent_module, newparent_resource, name, create=False, always_return=True)
 
-        if not parentModule:
+        if not parent_module:
             dt = device_data[devname]
         else:
-            dt = modules_state.ActiveModules[parentModule][parentResource]["device"]
+            assert parent_resource
+            dt = modules_state.ActiveModules[parent_module][parent_resource]["device"]
+
+        assert isinstance(dt, dict)
 
         # Not the same as currently being a subdevice. We have placeholders to edit subdevices that don't exist.
         configuredAsSubdevice = dt.get("is_subdevice", False) in (
@@ -1065,7 +1074,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             1,
             "1",
         )
-        configuredAsSubdevice = configuredAsSubdevice or dt.get("parent_device", "").strip()
+        configuredAsSubdevice = configuredAsSubdevice or dt.get("parent_device", "").strip()  # type: ignore
 
         old_read_perms = remote_devices[devname].config.get("kaithem.read_perms", [])
 
@@ -1138,7 +1147,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
             k = {i: kwargs[i] for i in kwargs if not i.startswith("filedata.") and not i.startswith("temp.kaithem.")}
             subdevice_data_cache[name] = savable_data
-            device_location_cache[name] = newparentModule, newparentResource
+            device_location_cache[name] = newparent_module, newparent_resource
 
             remote_devices[name].update_config(k)
 
@@ -1146,20 +1155,20 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         # after updating the device runtime sucessfully
 
         # Delete and then recreate because we may be renaming to a different name
-        if not parentModule:
+        if not parent_module:
             del device_data[devname]
             saveDevice(devname)
         else:
-            if not parentResource:
+            if not parent_resource:
                 raise RuntimeError("?????????????")
-            modules_state.rawDeleteResource(parentModule, parentResource)
+            modules_state.rawDeleteResource(parent_module, parent_resource)
 
         # set the location info
-        remote_devices[name].parentModule = newparentModule
-        remote_devices[name].parentResource = newparentResource
+        remote_devices[name].parent_module = newparent_module
+        remote_devices[name].parent_resource = newparent_resource
 
-        if newparentModule:
-            storeDeviceInModule(savable_data, newparentModule, newparentResource or name)
+        if newparent_module:
+            storeDeviceInModule(savable_data, newparent_module, newparent_resource or name)
         else:
             # Allow name changing via data, we save under new, not the old name
             device_data[name] = savable_data

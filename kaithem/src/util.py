@@ -352,9 +352,9 @@ def roundto(n, s):
         return n - n % s
 
 
-def split_escape(s, separator, escape=None, preserve_escapes=False):
+def split_escape(s: str, separator: str, escape=None, preserve_escapes=False) -> list[str]:
     current_token = ""
-    tokens = []
+    tokens: list[str] = []
     literal = False
 
     for i in s:
@@ -378,7 +378,7 @@ def split_escape(s, separator, escape=None, preserve_escapes=False):
         return tokens
 
 
-def unescape(s, escape="\\"):
+def unescape(s: str, escape="\\") -> str:
     s2 = ""
     literal = False
     for i in s:

@@ -22,7 +22,8 @@ from jsonschema import validate
 
 from . import directories, resource_serialization, util
 
-ResourceDictType = dict[str, dict[str, dict | list | int | float | str | bool | None]]
+# Approximately type JSON, could be better
+ResourceDictType = dict[str, str | list | int | float | bool | None | dict[str, dict | list | int | float | str | bool | None]]
 
 # / is there because we just forbid use of that char for anything but dirs,
 # So there is no confusion
@@ -216,8 +217,10 @@ def rawDeleteResource(m: str, r: str, type: str | None = None):
     modulename, resource = m, r
 
     resourceData = ActiveModules[m].pop(r)
+    rt = resourceData["resource-type"]
+    assert isinstance(rt, str)
 
-    if type and resourceData["resource-type"] != type:
+    if type and rt != type:
         raise ValueError("Resource exists but is wrong type")
 
     # Open a file at /where/module/resource
@@ -241,7 +244,7 @@ def getResourceFn(m, r, o):
 
 
 @beartype.beartype
-def saveModule(module: dict[str, dict[str, dict | list | str | float | int | None]], modulename: str):
+def saveModule(module: dict[str, ResourceDictType], modulename: str):
     """Returns a list of saved module,resource tuples and the saved resource.
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
@@ -525,22 +528,22 @@ def modulesHaveChanged():
     modulewordhashes = {}
 
 
-def in_folder(r, f):
+def in_folder(n: str, fn: str):
     """Return true if name r represents a kaihem resource in folder f"""
     # Note: this is about kaithem resources and folders, not actual filesystem dirs.
-    if not r.startswith(f):
+    if not n.startswith(fn):
         return False
     # Get the path as a list
-    r = util.split_escape(r, "/", "\\")
+    r = util.split_escape(n, "/", "\\")
     # Get the path of the folder
-    f = util.split_escape(f, "/", "\\")
+    f = util.split_escape(fn, "/", "\\")
     # make sure the resource path is one longer than module
     if not len(r) == len(f) + 1:
         return False
     return True
 
 
-def ls_folder(m: str, d: str):
+def ls_folder(m: str, d: str) -> list[str]:
     "List a kaithem resource folder's direct children"
     o = []
     x = ActiveModules[m]
@@ -581,7 +584,8 @@ def listenForMlockRequests():
         while mlockFunctionQueue:
             time.sleep(0.01)
         if g._err:
-            raise g._err
+            # No clue whats happening here
+            raise g._err  # type: ignore
         return g._ret
 
     runWithModulesLock = f
