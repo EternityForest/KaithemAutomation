@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from scullery import messagebus
-import traceback
-import cherrypy
-import weakref
 import logging
+import traceback
+import weakref
+
+import cherrypy
+from scullery import messagebus
 
 post_message = messagebus.post_message
 post = messagebus.post_message
@@ -18,16 +19,11 @@ MessageBus = messagebus.MessageBus
 
 def handleMsgbusError(f, topic, message):
     try:
-        messagebus.log.exception(
-            "Error in subscribed function for "
-            + topic
-            + " with message "
-            + str(message)[:64]
-        )
-        from . import newevt
+        messagebus.log.exception("Error in subscribed function for " + topic + " with message " + str(message)[:64])
+        from .plugins import CorePluginEventResources
 
-        if f.__module__ in newevt.eventsByModuleName:
-            newevt.eventsByModuleName[f.__module__]._handle_exception()
+        if f.__module__ in CorePluginEventResources.eventsByModuleName:
+            CorePluginEventResources.eventsByModuleName[f.__module__]._handle_exception()
 
         # If we can't handle it whence it came
         else:

@@ -8,7 +8,6 @@ import logging
 import mimetypes
 import os
 import time
-import traceback
 import weakref
 
 import cherrypy
@@ -22,7 +21,6 @@ from . import (
     messagebus,
     modules,
     modules_state,
-    newevt,
     pages,
     schemas,
     unitsofmeasure,
@@ -31,6 +29,7 @@ from . import (
 )
 from .config import config
 from .modules import external_module_locations
+from .plugins import CorePluginEventResources
 from .util import url
 
 syslog = logging.getLogger("system")
@@ -38,28 +37,6 @@ searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
 
 
 prev_versions: dict[tuple, dict] = {}
-
-
-def get_time(ev):
-    try:
-        if not newevt.EventReferences[ev].nextruntime:
-            return 0
-        return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz)
-    except Exception:
-        return -1
-
-
-def get_next_run(name, i):
-    xyz = get_time((name, i))
-    unitsofmeasure.strftime()
-    if xyz == 0:
-        xyz = "<b>Not Scheduled to Run</b>"
-    elif xyz == -1:
-        xyz = "Error getting next run time, try refreshing page again."
-    else:
-        xyz = unitsofmeasure.strftime(xyz)
-
-    return xyz
 
 
 # n is the module name
@@ -128,7 +105,7 @@ module_page_context = {
     "getModuleHash": modules_state.getModuleHash,
     "getModuleWordHash": modules_state.getModuleWordHash,
     "pages": pages,
-    "newevt": newevt,
+    "newevt": CorePluginEventResources,
     "usrpages": usrpages,
     "unitsofmeasure": unitsofmeasure,
     "util": util,
@@ -139,8 +116,6 @@ module_page_context = {
     "weakref": weakref,
     "getDesc": getDesc,
     "in_folder": in_folder,
-    "get_time": get_time,
-    "get_next_run": get_next_run,
     "urlForPath": urlForPath,
     "sorted_module_path_list": sorted_module_path_list,
     "get_f_size": get_f_size,
@@ -400,7 +375,7 @@ class WebInterface:
             if path[0] == "runevent":
                 pages.require("system_admin")
                 pages.postOnly()
-                newevt.manualRun((module, kwargs["name"]))
+                CorePluginEventResources.manualRun((module, kwargs["name"]))
                 raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
             if path[0] == "runeventdialog":
@@ -423,7 +398,7 @@ class WebInterface:
                     objname = f"Module Obj: {root}"
 
                 if path[1] == "event":
-                    obj = newevt.EventReferences[root, path[2]].pymodule
+                    obj = CorePluginEventResources.EventReferences[root, path[2]].pymodule
                     objname = f"Event: {path[2]}"
 
                 # Inspector should prob be its own module since it does all this.
@@ -666,14 +641,23 @@ class WebInterface:
                     # TODO This needs to handle custom resource types if we ever implement them.
                     if not kwargs["name"] == root:
                         modules_state.ActiveModules[kwargs["name"]] = modules_state.ActiveModules.pop(root)
-                        # UHHG. So very much code tht just syncs data structures.
-                        # This gets rid of the cache under the old name
-                        newevt.removeModuleEvents(root)
+
+                        for rt in modules_state.additionalTypes:
+                            modules_state.additionalTypes[rt].ondeletemodule(root)
+
+                        # Calll the deleter
+                        for r, obj in modules_state.ActiveModules[kwargs["name"]].items():
+                            rt = modules_state.ActiveModules[kwargs["name"]]["resource-type"]
+                            assert isinstance(rt, str)
+                            if rt in modules_state.additionalTypes:
+                                modules_state.additionalTypes[rt].ondelete(root, r, obj)
+
                         usrpages.removeModulePages(root)
                         # And calls this function the generate the new cache
                         modules.bookkeeponemodule(kwargs["name"], update=True)
                         # Just for fun, we should probably also sync the permissions
                         auth.importPermissionsFromModules()
+
                 raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(kwargs['name'])}")
 
 
@@ -684,7 +668,7 @@ def addResourceDispatcher(module, type, path):
     pages.require("system_admin")
 
     # Return a crud to add a new permission
-    if type in ("permission", "event", "page", "directory"):
+    if type in ("permission", "page", "directory"):
         d = dialogs.SimpleDialog(f"New {type.capitalize()} in {module}")
         d.text_input("name")
 
@@ -736,21 +720,6 @@ def addResourceTarget(module, type, name, kwargs, path):
             # has its own lock
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
-        elif type == "event":
-            insertResource(
-                {
-                    "resource-type": "event",
-                    "setup": "# This code runs once when the event loads.\n__doc__=''",
-                    "trigger": "False",
-                    "action": "pass",
-                    "once": True,
-                    "enable": True,
-                }
-            )
-            # newevt maintains a cache of precompiled events that must be kept in sync with
-            # the modules
-            newevt.updateOneEvent(escapedName, root)
-
         elif type == "page":
             from . import pageresourcetemplates
 
@@ -801,11 +770,6 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 
         if resourceinquestion["resource-type"] == "permission":
             return permissionEditPage(module, resource)
-
-        if resourceinquestion["resource-type"] == "event":
-            return pages.get_template("modules/events/event.html").render(
-                module=module, name=resource, event=resourceinquestion, version=version
-            )
 
         if resourceinquestion["resource-type"] == "internal-fileref":
             if "require-permissions" in resourceinquestion:
@@ -911,93 +875,6 @@ def resourceUpdateTarget(module, resource, kwargs):
                         resourceobj["require-permissions"].append(i[10:])
 
             modules.saveResource(module, resource, resourceobj, newname)
-
-        elif t == "event":
-            compiled_object = None
-            # Test compile, throw error on fail.
-
-            if "tabtospace" in kwargs:
-                actioncode = kwargs["action"].replace("\t", "    ")
-                setupcode = kwargs["setup"].replace("\t", "    ")
-            else:
-                actioncode = kwargs["action"]
-                setupcode = kwargs["setup"]
-
-            if "enable" in kwargs:
-                try:
-                    # Make a copy of the old resource object and modify it
-                    r2 = resourceobj.copy()
-                    r2["trigger"] = kwargs["trigger"]
-                    r2["action"] = actioncode
-                    r2["setup"] = setupcode
-                    r2["priority"] = kwargs["priority"]
-                    r2["continual"] = "continual" in kwargs
-                    r2["rate-limit"] = float(kwargs["ratelimit"])
-                    r2["enable"] = "enable" in kwargs
-
-                    # Test for syntax errors at least, before we do anything more
-                    newevt.test_compile(setupcode, actioncode)
-
-                    # Remove the old event even before we even do a test run of setup.
-                    # If we can't do the new version just put the old one back.
-                    # Todo actually put old one back
-                    newevt.removeOneEvent(module, resource)
-                    # Leave a delay so that effects of cleanup can fully propagate.
-                    time.sleep(0.08)
-                    # Make event from resource, but use our substitute modified dict
-                    compiled_object = newevt.make_event_from_resource(module, resource, r2)
-
-                except Exception:
-                    if "versions" not in resourceobj:
-                        resourceobj["versions"] = {}
-                    if "versions" in r2:
-                        r2.pop("versions")
-
-                    resourceobj["versions"]["__draft__"] = copy.deepcopy(r2)
-                    modules.saveResource(module, resource, resourceobj, newname)
-
-                    messagebus.post_message(
-                        "system/errors/misc/failedeventupdate",
-                        f"In: {module} {resource}\n{traceback.format_exc(4)}",
-                    )
-                    raise
-
-                # If everything seems fine, then we update the actual resource data
-                modules_state.ActiveModules[module][resource] = r2
-                resourceobj = r2
-            # Save but don't enable
-            else:
-                # Make a copy of the old resource object and modify it
-                r2 = resourceobj.copy()
-                r2["trigger"] = kwargs["trigger"]
-                r2["action"] = actioncode
-                r2["setup"] = setupcode
-                r2["priority"] = kwargs["priority"]
-                r2["continual"] = "continual" in kwargs
-                r2["rate-limit"] = float(kwargs["ratelimit"])
-                r2["enable"] = False
-
-                # Remove the old event even before we do a test compile.
-                # If we can't do the new version just put the old one back.
-                newevt.removeOneEvent(module, resource)
-                # Leave a delay so that effects of cleanup can fully propagate.
-                time.sleep(0.08)
-
-                # If everything seems fine, then we update the actual resource data
-                modules_state.ActiveModules[module][resource] = r2
-
-            # I really need to do something about this possibly brittle bookkeeping system
-            # But anyway, when the active modules thing changes we must update
-            # the newevt cache thing.
-
-            # Delete the draft if any
-            try:
-                del resourceobj["versions"]["__draft__"]
-            except KeyError:
-                pass
-
-            modules.saveResource(module, resource, resourceobj, newname)
-            resourceobj = r2
 
         elif t == "page":
             if "tabtospace" in kwargs:

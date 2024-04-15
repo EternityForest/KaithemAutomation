@@ -347,14 +347,19 @@ class ResourceType:
         "Called with the kwargs from editpage.  Gets old resource obj, must return new"
         return resourceobj
 
-    def onload(self, module, resource, resourceobj):
+    def onload(self, module: str, resource: str, resourceobj: ResourceDictType):
         """Called when loaded from disk."""
         return True
 
-    def onfinishedloading(self):
-        """Called during init, when every resource has finished loading with onload(), and before
-        any events or pages are loaded.
+    def onfinishedloading(self, module: str | None):
+        """Called with module name when every resource has finished loading with onload(),
+        and before any events or pages are loaded.
+
+        Called during init with None when ALL modules are done loading.
         """
+
+    def ondeletemodule(self, module: str):
+        """Called before the resource deleter callbacks"""
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
         """Called when object has been moved.  All additionaltypes must be movable."""
@@ -616,3 +621,10 @@ def pollMlockRequests():
 # Every module has a object of class object that is used so user code can share state between resources in
 # a module
 scopes: dict[str, Any] = {}
+
+
+class ResourceObject:
+    def __init__(self, m: str | None = None, r: str | None = None, o=None):
+        self.resource = r
+        self.module = m
+        self._object = o

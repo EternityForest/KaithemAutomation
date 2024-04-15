@@ -97,51 +97,7 @@
                     continue
                     %>
             {% endif %}
-            {% if module[i]['resource-type'] == 'event' %}
-            <dt>
-                <div class="tool-bar w-full inline">
-                    <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#setupheading">
-                        <i class="mdi mdi-flag"></i>
-                        <b>
-                            {{ util.split_escape(i,'/','\\')[-1] | escape }}
-                        </b>
-                    </a>
-                    {% if not module[i].get('enable',"True") %}(disabled){% endif %}
-                    <span class="error"
-                        title="This event has loaded normally, but has been stopped, likely by calling stop() on it's interface.">{{ "(stopped)" if (newevt.EventReferences[name,i].disable) else "" }}</span>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/runeventdialog/{{ url(i) }}"><i
-                            class="mdi mdi-play"></i>Run Now</a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
-                    {% if newevt.fastGetEventErrors(name,i) %}
-                    <span class="danger">[{{ len(newevt.fastGetEventErrors(name,i) ) }} Errors]</span>
-                    {% endif %}
-                </div>
-            </dt>
-            <dd>
-                <p class="resource-docstring">{{ newevt.getEventInfo((name,i) )| escape }}</p>
-                Trigger: <code>{{ module[i]['trigger']| escape }}</code>
-                <br>
-                Last Ran:
-                {% if newevt.getEventLastRan(name,i) %}
-                <code>{{ unitsofmeasure.strftime(newevt.getEventLastRan(name,i) )| escape }}
-                            ({{ (unitsofmeasure.format_time_interval(time.time() -newevt.getEventLastRan(name,i),2)) }} ago)</code>
-                {% if newevt.getEventCompleted(name, i) %}
-                <code>Completed in {{ round(newevt.EventReferences[name,i].lastcompleted-newevt.EventReferences[name,i].lastexecuted,3) | escape }}s</code>
-                {% else %}
-                <span class="highlight">Still Running</span>
-                {% endif %}
-                {% else %}
-                This event has not ran since it loaded.
-                {% endif %}
-                {% if module[i]['trigger'].startswith("!time") and module[i].get('enable',"True") %}
-                <br>
-                <b>Next Run:</b>
-                <code>{{ get_next_run(name,i) }}</code>
-                </p>
-            </dd>
-            {% endif %}
-            {% endif %}
+
             {% if module[i]['resource-type'] == 'page' %}
             <dt>
                 <div class="tool-bar w-full inline">

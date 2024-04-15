@@ -1304,11 +1304,11 @@ class GenericTagPointClass(Generic[T]):
                         syslogger.exception("Error getting tag value. This message will only be logged every ten minutes.")
                     # If we can, try to send the exception back whence it came
                     try:
-                        from . import newevt
+                        from .plugins import CorePluginEventResources
 
                         if hasattr(active_claim_value, "__module__"):
-                            if active_claim_value.__module__ in newevt.eventsByModuleName:
-                                newevt.eventsByModuleName[active_claim_value.__module__]._handle_exception()
+                            if active_claim_value.__module__ in CorePluginEventResources.eventsByModuleName:
+                                CorePluginEventResources.eventsByModuleName[active_claim_value.__module__]._handle_exception()
                     except Exception:
                         print(traceback.format_exc())
 

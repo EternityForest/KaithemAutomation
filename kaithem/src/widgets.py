@@ -89,10 +89,10 @@ guestWSRunner = WSActionRunner()
 def eventErrorHandler(f):
     # If we can, try to send the exception back whence it came
     try:
-        from . import newevt
+        from .plugins import CorePluginEventResources
 
-        if f.__module__ in newevt.eventsByModuleName:
-            newevt.eventsByModuleName[f.__module__]._handle_exception()
+        if f.__module__ in CorePluginEventResources.eventsByModuleName:
+            CorePluginEventResources.eventsByModuleName[f.__module__]._handle_exception()
     except Exception:
         print(traceback.format_exc())
 

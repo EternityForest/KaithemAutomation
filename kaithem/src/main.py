@@ -99,7 +99,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         messagelogging,  # noqa: F401
         modules,  # noqa: F401
         modules_interface,  # noqa: F401
-        newevt,  # noqa: F401
         notifications,  # noqa: F401
         persist,  # noqa: F401
         plugin_system,  # noqa: F401
@@ -123,10 +122,10 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         try:
             import traceback
 
-            from . import newevt
+            from .plugins import CorePluginEventResources
 
-            if f.__module__ in newevt.eventsByModuleName:
-                newevt.eventsByModuleName[f.__module__]._handle_exception()
+            if f.__module__ in CorePluginEventResources.eventsByModuleName:
+                CorePluginEventResources.eventsByModuleName[f.__module__]._handle_exception()
             else:
                 print(traceback.format_exc())
 

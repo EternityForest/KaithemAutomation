@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import base64
+import copy
 import datetime
 import gc
 import logging
@@ -21,14 +22,19 @@ import traceback
 import types
 import typing
 import weakref
+from collections import defaultdict
 from collections.abc import Callable
 
+import beartype
 import cherrypy
 import pytz
 from scullery import scheduling
 from scullery.scheduling import scheduler
 
-from . import (
+from kaithem.api.web import has_permission, render_jinja_template
+from kaithem.api.web.dialogs import SimpleDialog
+
+from ... import (
     devices,
     kaithemobj,
     messagebus,
@@ -37,8 +43,8 @@ from . import (
     util,
     workers,
 )
-from .config import config
-from .resource_serialization import toPyFile
+from ...config import config
+from ...resource_serialization import toPyFile
 
 ctime = time.time
 do = workers.do
@@ -70,6 +76,28 @@ load_order: list[weakref.ref[BaseEvent]] = []
 class EventInterface:
     def __init__(self, ev) -> None:
         self.__ev = ev
+
+
+def get_time(ev):
+    try:
+        if not EventReferences[ev].nextruntime:
+            return 0
+        return dt_to_ts(EventReferences[ev].nextruntime or 0, EventReferences[ev].tz)
+    except Exception:
+        return -1
+
+
+def get_next_run(name, i):
+    xyz = get_time((name, i))
+    unitsofmeasure.strftime()
+    if xyz == 0:
+        xyz = "<b>Not Scheduled to Run</b>"
+    elif xyz == -1:
+        xyz = "Error getting next run time, try refreshing page again."
+    else:
+        xyz = unitsofmeasure.strftime(xyz)
+
+    return xyz
 
 
 def run_in_thread(f: typing.Callable, name: str):
@@ -141,7 +169,6 @@ def getEventInfo(event):
 
 
 def renameEvent(oldModule, oldResource, module, resource):
-    "Move an event, similar to unix mv"
     with _event_list_lock:
         __EventReferences[module, resource] = __EventReferences[oldModule, oldResource]
         del __EventReferences[oldModule, oldResource]
@@ -525,7 +552,7 @@ class BaseEvent:
         # A place to put errors
         self.errors = []
 
-        from . import widgets
+        from ... import widgets
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
@@ -1404,7 +1431,7 @@ def removeModuleEvents(module):
 # Now if you already have an event object, like from a test compile, you can just use that.
 
 
-def updateOneEvent(resource, module, o=None):
+def updateOneEvent(resource: str, module: str, o=None):
     # This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
         try:
@@ -1447,7 +1474,7 @@ def updateOneEvent(resource, module, o=None):
                 # Update index
                 __EventReferences[module, resource] = x
 
-            data = modules_state.ActiveModules[module][resource]
+            data = event_resources[module, resource]
 
             del old
 
@@ -1458,7 +1485,7 @@ def updateOneEvent(resource, module, o=None):
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
 
-        from . import codechecks
+        from ... import codechecks
 
         data = toPyFile(data)
         e = codechecks.check(data, resource + ".py")
@@ -1499,11 +1526,12 @@ def makeDummyEvent(module, resource):
         return x
 
 
+event_resources: dict[tuple[str, str], modules_state.ResourceDictType] = {}
+
+
 # look in the modules and compile all the event code
 # if only is supplied, must be a set and will only look in those modules
-
-
-def getEventsFromModules(only=None):
+def getEventsFromModules(only: str | None = None):
     toLoad = []
 
     # Closures were acting weird. This class is to be like a non wierd closure.
@@ -1522,20 +1550,19 @@ def getEventsFromModules(only=None):
 
     with modules_state.modulesLock:
         with _event_list_lock:
-            for module in modules_state.ActiveModules:
+            for module, resource in event_resources:
                 # now we loop over all the resources of the module to see which ones are events
                 if only is None or (module in only):
-                    for resource in modules_state.ActiveModules[module]:
-                        x = modules_state.ActiveModules[module][resource]
-                        if x["resource-type"] == "event":
-                            # For every resource that is an event, we make an event object based on it
-                            # And put it in the event referenced thing.
-                            # However, we do this indirectly, for each event we create a function representing
-                            # the actions to set it up
-                            f = needstobeloaded(module, resource)
-                            toLoad.append(f)
-                            f.module = module
-                            f.resource = resource
+                    x = event_resources[module, resource]
+                    if x["resource-type"] == "event":
+                        # For every resource that is an event, we make an event object based on it
+                        # And put it in the event referenced thing.
+                        # However, we do this indirectly, for each event we create a function representing
+                        # the actions to set it up
+                        f = needstobeloaded(module, resource)
+                        toLoad.append(f)
+                        f.module = module
+                        f.resource = resource
 
             # This sorting means root folder stuff loads before child folder stuff.
             toLoad = sorted(toLoad, key=lambda x: (x.module, x.resource))
@@ -1613,7 +1640,7 @@ def getEventsFromModules(only=None):
     logging.exception("Created events from modules")
 
 
-def make_event_from_resource(module, resource, subst=None):
+def make_event_from_resource(module: str, resource: str, subst: modules_state.ResourceDictType | None = None):
     """Returns an event object when given a module and resource name pointing to an event resource.
     Also, if subst is a dict, will use the dict given in subst instead of looking it up.
 
@@ -1621,9 +1648,11 @@ def make_event_from_resource(module, resource, subst=None):
     """
     t = time.time()
     if not subst:
-        r = modules_state.ActiveModules[module][resource]
+        r = event_resources[module, resource]
     else:
         r = subst
+
+    assert isinstance(r, dict)
 
     # Add defaults for legacy events that do not have setup, rate limit, etc.
     if "setup" in r:
@@ -1687,3 +1716,223 @@ def make_event_from_resource(module, resource, subst=None):
     # findCapitalizationIssues(setupcode+" \n "+r['trigger']+ "\n "+r['action'], x)
     x.timeTakenToLoad = time.time() - t
     return x
+
+
+class EventAPI(modules_state.ResourceObject):
+    resourceType = "event"
+
+    def __init__(self, m, r, o):
+        modules_state.ResourceObject.__init__(self, m, r, o)
+
+    def run(self):
+        EventReferences[self.module, self.resource].manualRun()
+
+    @property
+    def scope(self):
+        return EventReferences[self.module, self.resource].pymodule
+
+    @property
+    def data(self):
+        return EventReferences[self.module, self.resource].data
+
+    # Allow people to start and stop events at runtime.
+    # Some events support a separate new pause/unpause api, otherwise use register
+    # and unregister. It might not be safe to re-register events that
+    # have a pause api.
+
+    def start(self):
+        ev = EventReferences[self.module, self.resource]
+        if hasattr(ev, "unpause"):
+            ev.unpause()
+        else:
+            ev.register()
+
+    def stop(self):
+        ev = EventReferences[self.module, self.resource]
+        if hasattr(ev, "pause"):
+            ev.pause()
+        else:
+            ev.unregister()
+
+    def report_exception(self):
+        """Call in an exception handler to handle the exception as if it came from the given event"""
+        EventReferences[self.module, self.resource]._handle_exception()
+
+
+init_done = False
+
+
+class EventType(modules_state.ResourceType):
+    def blurb(self, m, r, value):
+        return render_jinja_template(
+            os.path.join(os.path.dirname(__file__), "html", "event_blurb.j2.html"),
+            unitsofmeasure=unitsofmeasure,
+            evt_obj=EventReferences[m, r],
+            lastran=getEventLastRan(m, r),
+            docstring=getEventInfo((m, r)),
+            resource_obj=event_resources[m, r],
+            get_next_run=get_next_run,
+            module=m,
+            resource=r,
+        )
+
+    def onfinishedloading(self, module: str | None):
+        global init_done
+        if module is None:
+            init_done = True
+            getEventsFromModules()
+        elif init_done:
+            getEventsFromModules(module)
+
+    @beartype.beartype
+    def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
+        event_resources[module, resourcename] = copy.deepcopy(value)
+        if init_done:
+            updateOneEvent(module, resourcename)
+
+    def onmove(self, module, resource, toModule, toResource, resourceobj):
+        x = event_resources.pop((module, resource), None)
+        if x:
+            removeOneEvent(module, resource)
+            event_resources[toModule, toResource] = x
+            updateOneEvent(toModule, toResource)
+        renameEvent(module, resource, toModule, toResource)
+
+    def onupdate(self, module, resource, obj):
+        self.onload(module, resource, obj)
+
+    def ondelete(self, module, name, value):
+        del event_resources[module, name]
+        removeOneEvent(module, name)
+
+    def oncreaterequest(self, module, name, kwargs):
+        d = {
+            "resource-type": "event",
+            "setup": "# This code runs once when the event loads.\n__doc__=''",
+            "trigger": "False",
+            "action": "pass",
+            "once": True,
+            "enable": True,
+        }
+
+        return d
+
+    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+        compiled_object = None
+        # Test compile, throw error on fail.
+
+        if "tabtospace" in kwargs:
+            actioncode = kwargs["action"].replace("\t", "    ")
+            setupcode = kwargs["setup"].replace("\t", "    ")
+        else:
+            actioncode = kwargs["action"]
+            setupcode = kwargs["setup"]
+
+        if "enable" in kwargs:
+            try:
+                # Make a copy of the old resource object and modify it
+                r2 = resourceobj.copy()
+                r2["trigger"] = kwargs["trigger"]
+                r2["action"] = actioncode
+                r2["setup"] = setupcode
+                r2["priority"] = kwargs["priority"]
+                r2["continual"] = "continual" in kwargs
+                r2["rate-limit"] = float(kwargs["ratelimit"])
+                r2["enable"] = "enable" in kwargs
+
+                # Test for syntax errors at least, before we do anything more
+                test_compile(setupcode, actioncode)
+
+                # Remove the old event even before we even do a test run of setup.
+                # If we can't do the new version just put the old one back.
+                # Todo actually put old one back
+                removeOneEvent(module, resource)
+                # Leave a delay so that effects of cleanup can fully propagate.
+                time.sleep(0.08)
+                # Make event from resource, but use our substitute modified dict
+                compiled_object = make_event_from_resource(module, resource, r2)  # noqa
+
+            except Exception:
+                messagebus.post_message(
+                    "system/errors/misc/failedeventupdate",
+                    f"In: {module} {resource}\n{traceback.format_exc(4)}",
+                )
+                raise
+            return r2
+        # Save but don't enable
+        else:
+            # Make a copy of the old resource object and modify it
+            r2 = resourceobj.copy()
+            r2["trigger"] = kwargs["trigger"]
+            r2["action"] = actioncode
+            r2["setup"] = setupcode
+            r2["priority"] = kwargs["priority"]
+            r2["continual"] = "continual" in kwargs
+            r2["rate-limit"] = float(kwargs["ratelimit"])
+            r2["enable"] = False
+
+            # Remove the old event even before we do a test compile.
+            # If we can't do the new version just put the old one back.
+            removeOneEvent(module, resource)
+            # Leave a delay so that effects of cleanup can fully propagate.
+            time.sleep(0.08)
+
+            return r2
+
+    def createpage(self, module, path):
+        d = SimpleDialog(f"New {self.type.capitalize()} in {module}")
+        d.text_input("name")
+        d.submit_button("Create")
+        return d.render(self.get_create_target(module, path))
+
+    def editpage(self, module, resource, event):
+        priority = defaultdict(str)
+        if "priority" in event:
+            if event["priority"] in ["realtime", "interactive", "high", "medium", "low", "verylow"]:
+                priority[event["priority"]] = 'selected="selected"'
+        else:
+            priority["interactive"] = 'selected="selected"'
+        try:
+            timetaken = round(EventReferences[module, resource].timeTakenToLoad, 2)
+            disabled = EventReferences[module, resource].disable
+            prev = EventReferences[module, resource]._prevstate
+        except Exception as e:
+            print(e)
+            disabled = True
+            timetaken = -1
+            prev = ""
+
+        def formatnextrun():
+            try:
+                return unitsofmeasure.strftime(
+                    dt_to_ts(EventReferences[module, resource].nextruntime, EventReferences[module, resource].tz)
+                )
+            except Exception as e:
+                return str(e)
+
+        return render_jinja_template(
+            os.path.join(os.path.dirname(__file__), "html", "event.j2.html"),
+            module=module,
+            name=resource,
+            event=event,
+            priority=priority,
+            split_escape=util.split_escape,
+            url=util.url,
+            format_time_interval=unitsofmeasure.format_time_interval,
+            strftime=unitsofmeasure.strftime,
+            can_edit=has_permission("system_admin"),
+            EventReferences=EventReferences,
+            resource_obj=EventReferences[module, resource],
+            getEventLastRan=getEventLastRan,
+            dt_to_ts=dt_to_ts,
+            getEventErrors=getEventErrors,
+            time=time,
+            timetaken=timetaken,
+            disabled=disabled,
+            prevstate=prev,
+            formatnextrun=formatnextrun,
+        )
+
+
+rt = EventType("event", mdi_icon="flag")
+modules_state.additionalTypes["event"] = rt

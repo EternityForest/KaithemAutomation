@@ -1,29 +1,17 @@
-<%!
-from kaithem.src.util import url
-from kaithem.src import newevt,unitsofmeasure,pages,auth,modules_state,pages,widgets, modules_interface
-from collections import defaultdict
-import traceback,time
-from scullery import scheduling
-from kaithem.src.config import config
-from kaithem.src import util
-import cherrypy
-%>
-
-
 <%include file="/pageheader.html"/>
 
 <script src="/static/js/widget.js"></script>
 
-<title>Event: ${util.split_escape(name,'/','\\')[-1] | h}
+<title>Event: ${split_escape(name,'/','\\')[-1] | h}
 </title>
-<h2>Event ${util.split_escape(name,'/','\\')[-1] | h} of module <a href="/modules/module/${url(module)}">${module|h}</a>
+<h2>Event ${split_escape(name,'/','\\')[-1] | h} of module <a href="/modules/module/${url(module)}">${module|h}</a>
 %try:
-<span class=error>${"(stopped)" if (newevt.EventReferences[module,name].disable) else ""}</span>\
+<span class=error>${"(stopped)" if (EventReferences[module,name].disable) else ""}</span>\
 %except Exception as e:
 %endtry
 </h2>
 
-%if not (module,name) in newevt.EventReferences:
+%if not (module,name) in EventReferences:
 <span class="danger">Event not active, An error prevented this event from loading.</span>
 %endif
 %if version == '__draft__':
@@ -35,16 +23,6 @@ or go to the working copy and save that to delete this draft.</p>
 </p>
 %endif
 
-%if (module,name) in modules_interface.prev_versions:
-%if not version == '__old__':
-<p class="menubar">
-<a class="button" href="/modules/module/${url(module)}/resource/${url(name)}/__old__">Go to previous version</a>
-</p>
-%else:
-<p class="menubar">
-    <a class="button" href="/modules/module/${url(module)}/resource/${url(name)}">Go to current version</a>
-</p>
-%endif
 %endif
 
 
@@ -52,7 +30,7 @@ or go to the working copy and save that to delete this draft.</p>
     <p class="pathnav">Path:
         <%
         temp_p = ""
-        path = util.split_escape(name,"/","\\")
+        path = split_escape(name,"/","\\")
         %>
         <a class="button" href="/modules/module/${url(module)}#resources">${module|h}</a>
         %if path:
@@ -66,7 +44,7 @@ or go to the working copy and save that to delete this draft.</p>
         <b>${path[-1]|h}</b>
         </p>
         %try:
-        <small>(Loaded in ${round(newevt.EventReferences[module,name].timeTakenToLoad,2)|h}s)</small>\
+        <small>(Loaded in ${round(EventReferences[module,name].timeTakenToLoad,2)|h}s)</small>\
         %except Exception as e:
         (Load time unknown)
         %endtry
@@ -107,7 +85,7 @@ or go to the working copy and save that to delete this draft.</p>
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
 You will need to use the global keyword in the event action to overwrite a variable defined here.
-%if not pages.canUserDoThis("system_admin"):
+%if not can_edit:
 <br>
 <span class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</span>
 %endif
@@ -120,7 +98,7 @@ else:
     xyz = "pass"
 %>
 <textarea  data-editor="python" rows=30 class="pythoncode w-full" name="setup" id="setupbox" onchange="wasChanged=true"
-%if not pages.canUserDoThis("system_admin"):
+%if not can_edit:
             disabled=1\
 %endif
 >${xyz|h}</textarea>
@@ -128,7 +106,7 @@ else:
 
 <h3>Trigger\
 %try:
-(Currently ${newevt.EventReferences[module,name]._prevstate|h})\
+(Currently ${EventReferences[module,name]._prevstate|h})\
 %except Exception as e:
 ${e}
 %endtry
@@ -139,7 +117,7 @@ ${e}
 
 
 <input class="pythoncode w-full" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"
-%if not pages.canUserDoThis("system_admin"):
+%if not can_edit:
             disabled=1\
 %endif
 onchange="wasChanged=true"
@@ -148,7 +126,7 @@ onchange="wasChanged=true"
 %if event['trigger'].startswith("!time"):
 %try:
 <p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}":
-${unitsofmeasure.strftime(newevt.dt_to_ts(newevt.EventReferences[module,name].nextruntime,newevt.EventReferences[module,name].tz))|h}</p>
+${strftime(dt_to_ts(EventReferences[module,name].nextruntime,EventReferences[module,name].tz))|h}</p>
 %except Exception as e:
 ${e}
 %endtry
@@ -164,7 +142,7 @@ ${e}
             checked="yes"
             %endif
          %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>Do the action repeatedly while the trigger is true<br>
@@ -175,20 +153,13 @@ ${e}
          %else:
             value="0"
          %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>seconds. Does not affect poll rate(To avoid missing short events). <br>
-        <%
-        priority = defaultdict(str)
-        if 'priority' in event:
-            if event['priority'] in ['realtime','interactive','high','medium','low','verylow']:
-                priority[event['priority']] = 'selected="selected"'
-        else:
-            priority["interactive"] = 'selected="selected"'
-        %>
+
        Polling Priority(to reduce CPU usage, use the lowest possible rate):<select name="priority"
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
         >
@@ -213,44 +184,44 @@ you may need to use the global keyword. You may also need to use the global keyw
 
 <textarea data-editor="python" id="actionbox" name="action" rows=50 class="pythoncode w-full" onchange="wasChanged=true"
 
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
 >${event["action"]|h}</textarea>
 
 <h3>Output</h3>
-%if (module,name) in newevt.EventReferences:
-${newevt.EventReferences[module,name].logWindow.render()}
+%if (module,name) in EventReferences:
+${EventReferences[module,name].logWindow.render()}
 
 
 <h3>Info</h3>
 <p>
 This event last ran:
-%if newevt.getEventLastRan(module,name):
-<b>${unitsofmeasure.strftime(newevt.getEventLastRan(module,name))|h}
-(about ${unitsofmeasure.format_time_interval(time.time()-newevt.getEventLastRan(module,name),2)} ago)
+%if getEventLastRan(module,name):
+<b>${strftime(getEventLastRan(module,name))|h}
+(about ${format_time_interval(time.time()-getEventLastRan(module,name),2)} ago)
 </b>
 
 
 <%
     x = 0
     c=0
-    for i in newevt.EventReferences[module,name].history:
+    for i in EventReferences[module,name].history:
         x+= i[1]-i[0]
         c+=1
     if c:
         avg_time =x/c
 %>
 %if c:
-    <br>Average Time(Last ${c} runs): ${unitsofmeasure.format_time_interval(avg_time,2)}<br>
+    <br>Average Time(Last ${c} runs): ${format_time_interval(avg_time,2)}<br>
 %endif
 
 %endif
 
 
 %try:
-%if newevt.EventReferences[module,name].lastcompleted>newevt.EventReferences[module,name].lastran:
-<br>Completed in ${round(newevt.EventReferences[module,name].lastcompleted-newevt.EventReferences[module,name].lastran,3)|h}s
+%if EventReferences[module,name].lastcompleted>EventReferences[module,name].lastran:
+<br>Completed in ${round(EventReferences[module,name].lastcompleted-EventReferences[module,name].lastran,3)|h}s
 %else:
 <span class="highlight">Still Running</span>
 %endif
@@ -267,10 +238,10 @@ This event last ran:
 <table border=1>
 %try:
 <tr><th>Started at</th><th>Completed in</th></tr>
-%for i in newevt.EventReferences[module,name].history:
+%for i in EventReferences[module,name].history:
 <tr>
-    <td>${unitsofmeasure.strftime(i[0])}</td>
-    <td>${unitsofmeasure.format_time_interval(i[1]-i[0],2)}</td>
+    <td>${strftime(i[0])}</td>
+    <td>${format_time_interval(i[1]-i[0],2)}</td>
 </tr>
 %endfor
 %except Exception as e:
@@ -278,13 +249,13 @@ This event last ran:
 </table>
 </div>
 
-%if newevt.getEventErrors(module,name):
-<h3 class="danger">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
+%if getEventErrors(module,name):
+<h3 class="danger">Errors[${len(getEventErrors(module,name))}]</h3>
 <p class ="help">
 This section the most recent errors that ocurred while executing the event or trigger.
 </p>
 <div class="max-h-12rem scroll border">
-%for i in newevt.getEventErrors(module,name):
+%for i in getEventErrors(module,name):
     <h4>${i[0]|h}</h4>
     <pre>${i[1]|h}</pre>
 %endfor
@@ -297,12 +268,10 @@ This section the most recent errors that ocurred while executing the event or tr
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </details>
-%if pages.canUserDoThis("system_admin"):
+%if can_edit:
 <input type="submit" value="Save Changes" onclick="wasChanged=false; kaithemapi.enableWidgetGoneAlert=false"></input>
 <label><input type="checkbox"  name="tabtospace"
-     %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
         checked="yes"
-     %endif
    ></input>Convert tabs to spaces on saving</label>
 %else:
 <p>You must have the "system_admin" permission to make changes. Are you logged in?</p>
@@ -340,7 +309,7 @@ Saving this module will case it to completely reload, including its local scope.
             editor.getSession().on('change', function() {
                 wasChanged=true;
             })
-            %if not pages.canUserDoThis("system_admin"):
+            %if not can_edit:
             editor.setReadOnly(true)
             %endif
             // copy back to textarea on form submit...

@@ -1,0 +1,23 @@
+<div>
+    <p class="resource-docstring">{{ docstring | escape }}</p>
+    Trigger: <code>{{ resource_obj['trigger']| escape }}</code>
+    <br>
+    Last Ran:
+    {% if lastran %}
+    <code>{{ unitsofmeasure.strftime(lastran )| escape }}
+                ({{ (unitsofmeasure.format_time_interval(time.time() -lastran,2)) }} ago)</code>
+    {% if newevt.getEventCompleted(module, resource) %}
+    <code>Completed in {{ round(evt_obj.lastcompleted-newevt.evt_obj.lastexecuted,3) | escape }}s</code>
+    {% else %}
+    <span class="highlight">Still Running</span>
+    {% endif %}
+    {% else %}
+    This event has not ran since it loaded.
+    {% endif %}
+    {% if resource_obj['trigger'].startswith("!time") and resource_obj.get('enable',"True") %}
+    <br>
+    <b>Next Run:</b>
+    <code>{{ get_next_run(module, resource) }}</code>
+    {% endif %}
+    </p>
+</div>

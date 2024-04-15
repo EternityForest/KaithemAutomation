@@ -7,31 +7,33 @@ import logging
 import time
 import weakref
 
+from ..plugins import CorePluginEventResources
+
 running_tests = []
 
 
 def eventSystemTest():
-    from .. import newevt
+    from ..plugins import CorePluginEventResources
 
     try:
         _eventSystemTest()
     finally:
-        newevt.removeOneEvent("testevt", "testevt")
-        newevt.removeOneEvent("TEST1", "TEST1")
-        newevt.removeOneEvent("TEST2", "TEST2")
+        CorePluginEventResources.removeOneEvent("testevt", "testevt")
+        CorePluginEventResources.removeOneEvent("TEST1", "TEST1")
+        CorePluginEventResources.removeOneEvent("TEST2", "TEST2")
 
 
 def _eventSystemTest():
-    from .. import messagebus, modules_state, newevt
+    from .. import messagebus, modules_state
 
     logging.info("Beginning self test of event system")
     running_tests.append(1)
     modules_state.scopes["x"] = {}
     # Create an event that sets y to 0 if it is 1
-    with newevt._event_list_lock:
-        x = newevt.Event("y==1", "global y\ny=0", setup="y=0")
+    with CorePluginEventResources._event_list_lock:
+        x = CorePluginEventResources.Event("y==1", "global y\ny=0", setup="y=0")
         x.module = x.resource = "testevt"
-        newevt.EventReferences[x.module, x.resource] = x
+        CorePluginEventResources.EventReferences[x.module, x.resource] = x
 
         # Register event with polling.
         x.register()
@@ -62,7 +64,7 @@ def _eventSystemTest():
     def g():
         blah[0] = False
 
-    newevt.when(f, g)
+    CorePluginEventResources.when(f, g)
     time.sleep(0.5)
     blah[0] = True
 
@@ -77,7 +79,7 @@ def _eventSystemTest():
     if not blah[0]:
         raise RuntimeError("One time event did not delete itself properly")
 
-    newevt.after(1, g)
+    CorePluginEventResources.after(1, g)
     blah[0] = True
     time.sleep(0.5)
     if not blah[0]:
@@ -92,14 +94,14 @@ def _eventSystemTest():
     if not blah[0]:
         raise RuntimeError("Time delay event did not delete itself properly")
 
-    with newevt._event_list_lock:
+    with CorePluginEventResources._event_list_lock:
         # Same exact thing exept we use the onchange
-        x = newevt.Event("!onchange y", "global y\ny=5")
+        x = CorePluginEventResources.Event("!onchange y", "global y\ny=5")
         # Give it a value to change from
         x.pymodule.y = 0
 
         x.module = x.resource = "TEST1"
-        newevt.EventReferences[x.module, x.resource] = x
+        CorePluginEventResources.EventReferences[x.module, x.resource] = x
 
         # Register event with polling.
         x.register()
@@ -122,15 +124,15 @@ def _eventSystemTest():
 
     # There is a weird old feature where message events don't work if not in EventReferences
     # It was an old thing to caths a circular reference bug.
-    with newevt._event_list_lock:
+    with CorePluginEventResources._event_list_lock:
         # Now we test the message bus event
-        x = newevt.Event("!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0")
+        x = CorePluginEventResources.Event("!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0")
         x.module = x.resource = "TEST2"
         # Make sure nobody is iterating the eventlist
         # Add new event
         x.register()
         # Update index
-        newevt.EventReferences[x.module, x.resource] = x
+        CorePluginEventResources.EventReferences[x.module, x.resource] = x
 
     testObj = weakref.ref(x.pymodule.__dict__["testObj"])
 

@@ -21,7 +21,7 @@ import beartype
 import cherrypy
 import yaml
 
-from . import auth, directories, kaithemobj, messagebus, modules_state, newevt, pages, schemas, usrpages, util
+from . import auth, directories, kaithemobj, messagebus, modules_state, pages, schemas, usrpages, util
 from .modules_state import (
     ResourceDictType,
     additionalTypes,
@@ -37,6 +37,7 @@ from .modules_state import (
     scopes,
     serializeResource,
 )
+from .plugins import CorePluginEventResources
 from .util import url
 
 logger = logging.getLogger("system")
@@ -154,66 +155,18 @@ def loadAllCustomResourceTypes():
                         )
                         logger.exception(f"Error loading resource: {str((i, j))}")
     for i in additionalTypes:
-        additionalTypes[i].onfinishedloading()
+        additionalTypes[i].onfinishedloading(None)
 
 
-class ResourceObject:
-    def __init__(self, m: str | None = None, r: str | None = None, o=None):
-        self.resource = r
-        self.module = m
-        self._object = o
-
-
-class EventAPI(ResourceObject):
-    resourceType = "event"
-
-    def __init__(self, m, r, o):
-        ResourceObject.__init__(self, m, r, o)
-
-    def run(self):
-        newevt.EventReferences[self.module, self.resource].manualRun()
-
-    @property
-    def scope(self):
-        return newevt.EventReferences[self.module, self.resource].pymodule
-
-    @property
-    def data(self):
-        return newevt.EventReferences[self.module, self.resource].data
-
-    # Allow people to start and stop events at runtime.
-    # Some events support a separate new pause/unpause api, otherwise use register
-    # and unregister. It might not be safe to re-register events that
-    # have a pause api.
-
-    def start(self):
-        ev = newevt.EventReferences[self.module, self.resource]
-        if hasattr(ev, "unpause"):
-            ev.unpause()
-        else:
-            ev.register()
-
-    def stop(self):
-        ev = newevt.EventReferences[self.module, self.resource]
-        if hasattr(ev, "pause"):
-            ev.pause()
-        else:
-            ev.unregister()
-
-    def report_exception(self):
-        """Call in an exception handler to handle the exception as if it came from the given event"""
-        newevt.EventReferences[self.module, self.resource]._handle_exception()
-
-
-class Page(ResourceObject):
+class Page(modules_state.ResourceObject):
     resourceType = "page"
 
 
-class Permission(ResourceObject):
+class Permission(modules_state.ResourceObject):
     resourceType = "permission"
 
 
-class InternalFileRef(ResourceObject):
+class InternalFileRef(modules_state.ResourceObject):
     resourceType = "internal-fileref"
 
     def getPath(self):
@@ -244,7 +197,7 @@ class ModuleObject:
             x = Page(module, name, x)
 
         elif resourcetype == "event":
-            x = EventAPI(module, name, x)
+            x = CorePluginEventResources.EventAPI(module, name, x)
 
         elif resourcetype == "permission":
             x = Permission(module, name, x)
@@ -284,13 +237,8 @@ class ModuleObject:
                 modules_state.modulesHaveChanged()
 
                 # Make sure we recognize the resource-type, or else we can't load it.
-                if (resourcetype not in ["event", "page", "permission", "directory"]) and (resourcetype not in additionalTypes):
+                if (resourcetype not in ["page", "permission", "directory"]) and (resourcetype not in additionalTypes):
                     raise ValueError("Unknown resource-type")
-
-                # Do the type-specific init action
-                if resourcetype == "event":
-                    e = newevt.make_event_from_resource(module, name)
-                    newevt.updateOneEvent(module, name, e)
 
                 elif resourcetype == "page":
                     # Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
@@ -482,7 +430,6 @@ def initModules():
 
     auth.importPermissionsFromModules()
     loadAllCustomResourceTypes()
-    newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
     modules_state.moduleshash = modules_state.hashModules()
     logger.info("Initialized modules")
@@ -942,7 +889,8 @@ def load_modules_from_zip(f, replace=False):
 
 
 def bookkeeponemodule(module, update=False):
-    """Given the name of one module that has been copied to modules_state.ActiveModules but nothing else,
+    """Given the name of one module that has been copied to
+    modules_state.ActiveModules but nothing else,
     let the rest of the system know the module is there."""
     if module not in scopes:
         scopes[module] = ModuleObject(module)
@@ -958,7 +906,8 @@ def bookkeeponemodule(module, update=False):
             except Exception:
                 messagebus.post_message("/system/notifications/errors", f"Failed to load  resource: {i}")
 
-    newevt.getEventsFromModules([module])
+    for i in modules_state.additionalTypes:
+        modules_state.additionalTypes[i].onfinishedloading(module)
 
     if not update:
         messagebus.post_message("/system/modules/loaded", module)
@@ -976,25 +925,27 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
     if not (len(new) < 2 or modules_state.ActiveModules[toModule]["/".join(new[:-1])]["resource-type"] == "directory"):
         raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
 
-    if modules_state.ActiveModules[module][resource]["resource-type"] == "internal-fileref":
+    obj: modules_state.ResourceDictType = modules_state.ActiveModules[module][resource]
+    rt = obj["resource-type"]
+
+    assert isinstance(rt, str)
+
+    if rt == "internal-fileref":
         modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
         del modules_state.ActiveModules[module][resource]
         fileResourceAbsPaths[toModule, toResource] = fileResourceAbsPaths[module, resource]
         del fileResourceAbsPaths[module, resource]
         return
 
-    if modules_state.ActiveModules[module][resource]["resource-type"] == "event":
-        modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
-        del modules_state.ActiveModules[module][resource]
-        newevt.renameEvent(module, resource, toModule, toResource)
-        return
-
-    if modules_state.ActiveModules[module][resource]["resource-type"] == "page":
+    if rt == "page":
         modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
         del modules_state.ActiveModules[module][resource]
         usrpages.removeOnePage(module, resource)
         usrpages.updateOnePage(toResource, toModule)
         return
+
+    if rt in modules_state.additionalTypes:
+        modules_state.additionalTypes[rt].onmove(module, resource, toModule, toResource, obj)
 
     o = modules_state.ActiveModules[toModule][toResource]
     os.makedirs(os.path.dirname(getResourceFn(toModule, toResource, o)))
@@ -1015,9 +966,6 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
 
         if rt == "page":
             usrpages.removeOnePage(module, resource)
-
-        elif rt == "event":
-            newevt.removeOneEvent(module, resource)
 
         elif rt == "directory":
             # Directories are special, they can have the extra data file
@@ -1100,6 +1048,9 @@ def rmModule(module, message="deleted"):
         j = {i: copy.deepcopy(x[i]) for i in x if not (isinstance(x[i], weakref.ref))}
         scopes.pop(module)
 
+    for i in additionalTypes:
+        additionalTypes[i].ondeletemodule(module)
+
     # Delete any custom resource types hanging around.
     for k in j:
         if j[k].get("resource-type", None) in additionalTypes:
@@ -1113,8 +1064,6 @@ def rmModule(module, message="deleted"):
                     f"Error deleting resource: {str(module, k)}",
                 )
 
-    # Get rid of any lingering cached events
-    newevt.removeModuleEvents(module)
     # Get rid of any permissions defined in the modules.
     auth.importPermissionsFromModules()
     usrpages.removeModulePages(module)
@@ -1161,11 +1110,6 @@ def handleResourceChange(module, resource, obj=None, newly_added=False):
                     "/system/notifications/errors",
                     f"Failed to load file resource: {resource} module: {module}",
                 )
-
-        elif t == "event":
-            # if the test compile fails, evt will be None and the function will look up the old one in the modules database
-            # And compile that. Otherwise, we avoid having to double-compile.
-            newevt.updateOneEvent(resource, module, obj)
 
         elif t == "page":
             try:

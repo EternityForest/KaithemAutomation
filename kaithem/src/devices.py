@@ -175,10 +175,11 @@ deferred_loaders = []
 
 
 class DeviceResourceType(ResourceType):
-    def onfinishedloading(self):
-        init_devices()
-        global finished_reading_resources
-        finished_reading_resources = True
+    def onfinishedloading(self, module):
+        if module is None:
+            init_devices()
+            global finished_reading_resources
+            finished_reading_resources = True
 
     def onload(self, module, resourcename, value):
         cls = None

@@ -33,10 +33,10 @@ from . import config as cfg
 def workersErrorHandler(f):
     # If we can, try to send the exception back whence it came
     try:
-        from . import newevt
+        from .plugins import CorePluginEventResources
 
-        if f[0].__module__ in newevt.eventsByModuleName:
-            newevt.eventsByModuleName[f[0].__module__]._handle_exception()
+        if f[0].__module__ in CorePluginEventResources.eventsByModuleName:
+            CorePluginEventResources.eventsByModuleName[f[0].__module__]._handle_exception()
     except Exception:
         print(traceback.format_exc())
 
