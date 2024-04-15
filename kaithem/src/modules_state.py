@@ -22,6 +22,8 @@ from jsonschema import validate
 
 from . import directories, resource_serialization, util
 
+ResourceDictType = dict[str, dict[str, dict | list | int | float | str | bool | None]]
+
 # / is there because we just forbid use of that char for anything but dirs,
 # So there is no confusion
 safeFnChars = "~@*&()-_=+/ '"
@@ -70,7 +72,7 @@ fileResourceAbsPaths: dict[tuple, str] = {}
 external_module_locations = {}
 
 
-def parseTarget(t, module, in_ext=False):
+def parseTarget(t: str, module: str, in_ext=False):
     if t.startswith("$MODULERESOURCES/"):
         t = t[len("$MODULERESOURCES/") :]
     return t
@@ -445,7 +447,7 @@ class HierarchyDict:
 
 
 # Lets just store the entire list of modules as a huge dict for now at least
-ActiveModules: dict[str, dict[str, dict | list | int | float | str | bool | None]] = {}
+ActiveModules: dict[str, dict[str, ResourceDictType]] = {}
 
 moduleshash = "000000000000000000000000"
 modulehashes = {}

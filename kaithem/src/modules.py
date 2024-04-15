@@ -23,6 +23,7 @@ import yaml
 
 from . import auth, directories, kaithemobj, messagebus, modules_state, newevt, pages, schemas, usrpages, util
 from .modules_state import (
+    ResourceDictType,
     additionalTypes,
     external_module_locations,
     fileResourceAbsPaths,
@@ -126,8 +127,8 @@ def readStringFromSource(s, var) -> str | None:
     for i in b:
         if isinstance(i, ast.Assign):
             for t in i.targets:
-                if t.id == var:
-                    return i.value.s
+                if t.id == var:  # type: ignore
+                    return i.value.s  # type: ignore
 
 
 def loadAllCustomResourceTypes():
@@ -139,17 +140,19 @@ def loadAllCustomResourceTypes():
             reverse=True,
         ):
             r = modules_state.ActiveModules[i][j]
-            if not isinstance(r, weakref.ref):
-                if hasattr(r, "get"):
-                    if r.get("resource-type", "") in additionalTypes:
-                        try:
-                            additionalTypes[r["resource-type"]].onload(i, j, r)
-                        except Exception:
-                            messagebus.post_message(
-                                "/system/notifications/errors",
-                                f"Error loading resource:{str((i, j))}",
-                            )
-                            logger.exception(f"Error loading resource: {str((i, j))}")
+            if hasattr(r, "get"):
+                if r.get("resource-type", "") in additionalTypes:
+                    try:
+                        rt = r["resource-type"]
+                        assert isinstance(rt, str)
+
+                        additionalTypes[rt].onload(i, j, r)
+                    except Exception:
+                        messagebus.post_message(
+                            "/system/notifications/errors",
+                            f"Error loading resource:{str((i, j))}",
+                        )
+                        logger.exception(f"Error loading resource: {str((i, j))}")
     for i in additionalTypes:
         additionalTypes[i].onfinishedloading()
 
@@ -321,7 +324,9 @@ kaithemobj.kaithem.resource = ResourceAPI()
 
 
 @beartype.beartype
-def readResourceFromFile(fn: str, relative_name: str, ver: int = 1, modulename: str | None = None):
+def readResourceFromFile(
+    fn: str, relative_name: str, ver: int = 1, modulename: str | None = None
+) -> tuple[ResourceDictType | None, str | None]:
     """Relative name is rel to the folder, aka the part of the path that actually belongs in
     the resource name.
 
@@ -342,7 +347,7 @@ def readResourceFromFile(fn: str, relative_name: str, ver: int = 1, modulename: 
 
 
 # Backwards compatible resource loader.
-def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
+def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> tuple[ResourceDictType | None, str | None]:
     """Returns (datadict, ResourceName)
     Should be pure except logging
     """
@@ -424,12 +429,12 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
         # and things like that. Also ignore attempts to load from filedata
         # I'd like to add more workarounds if there are other programs that insert similar crap files.
         if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
-            return (None, False)
+            return (None, None)
         else:
             raise
     if not r or "resource-type" not in r:
         if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
-            return None, False
+            return None, None
         else:
             print(fn)
     # If no resource timestamp use the one from the file time.
@@ -540,7 +545,9 @@ def reloadOneResource(module, resource):
     r = modules_state.ActiveModules[module][resource]
     if "resource-loadedfrom" in r:
         mfolder = getModuleDir(module)
-        loadOneResource(mfolder, os.path.relpath(r["resource-loadedfrom"], mfolder), module)
+        x = r["resource-loadedfrom"]
+        assert isinstance(x, str)
+        loadOneResource(mfolder, os.path.relpath(x, mfolder), module)
 
 
 def validate(r):
@@ -559,7 +566,11 @@ def validate(r):
 @beartype.beartype
 def loadOneResource(folder: str, relpath: str, module: str):
     try:
+        r: ResourceDictType | None
         r, resourcename = readResourceFromFile(os.path.join(folder, relpath), relpath, modulename=module)
+        assert isinstance(r, dict)
+        assert isinstance(resourcename, str)
+        assert "resource-type" in r
     except Exception:
         messagebus.post_message(
             "/system/notifications/errors",
@@ -589,6 +600,8 @@ def loadOneResource(folder: str, relpath: str, module: str):
 
         # Note that we handle things in library modules the same as in loaded vardir modules,
         # Because things in vardir modules get copied to the vardir.
+
+        assert isinstance(r["target"], str)
 
         if util.in_directory(os.path.join(folder, relpath), directories.vardir) or util.in_directory(
             os.path.join(folder, relpath), directories.datadir
@@ -818,6 +831,9 @@ def load_modules_from_zip(f, replace=False):
                     r, n = readResourceFromData(f.read().decode(), relative_name)
                     if r is None:
                         raise RuntimeError("Attempting to decode file " + str(i) + " resulted in a value of None")
+                    if n is None:
+                        raise RuntimeError("Attempting to decode file " + str(i) + " resulted in a name of None")
+
                     new_modules[p][n] = r
                     if r["resource-type"] == "internal-fileref":
                         newfrpaths[p, n] = os.path.join(
