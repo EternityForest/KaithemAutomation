@@ -1,10 +1,6 @@
 <%!
-from kaithem.src.util import url
-from kaithem.src import auth,pages, modules_interface, theming
-from kaithem.src import pages,util
-from kaithem.src.config import config
-import cherrypy,traceback
-from kaithem.src.plugins import CorePluginUserPageResources as usrpages
+from kaithem.src import auth
+import traceback
 %>
 
 <%
@@ -47,26 +43,15 @@ function setTab(t)
 }
 
 </script>
-<title>Edit: ${util.split_escape(name,'/','\\')[-1] | h}</title>
-<h2>Editing page: ${util.split_escape(name,'/','\\')[-1] | h}</h2>
+<title>Edit: ${split_escape(name,'/','\\')[-1] | h}</title>
+<h2>Editing page: ${split_escape(name,'/','\\')[-1] | h}</h2>
 
-%if (module,name) in modules_interface.prev_versions:
-%if not version == '__old__':
-<p class="menubar">
-<a class="button" href="/modules/module/${url(module)}/resource/${url(name)}/__old__">Go to previous version</a>
-</p>
-%else:
-<p class="menubar">
-    <a class="button" href="/modules/module/${url(module)}/resource/${url(name)}">Go to current version</a>
-</p>
-%endif
-%endif
 
 <section class="window paper" style="min-width: 80%;">
     <p class=pathnav>Path:
         <%
         temp_p = ""
-        path = util.split_escape(name,"/","\\")
+        path = split_escape(name,"/","\\")
         %>
         <a class="button" href="/modules/module/${url(module)}#resources">${module|h}</a>
         %if path:
@@ -79,12 +64,12 @@ function setTab(t)
         %endif
         <b>${path[-1]|h}</b>
         </p>
-        Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
+        Page URL: <a class="gobutton" href="${url_for_resource(module,name)}">${''+url_for_resource(module,name)}</a>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"
 >
 <h3>Path</h3>
 <input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%"
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
 ></input>
@@ -92,7 +77,7 @@ function setTab(t)
 
 
 
-%if pages.canUserDoThis("system_admin"):
+%if can_edit:
 <input type="submit" name="GoNow" value="Save Changes and go to page" onclick="wasChanged=false">
 </input>
 
@@ -139,7 +124,7 @@ to the rendered page.  You can also add datalists like __datalists__= {'listid':
 
 
 <textarea data-editor="html" id="box" name="body" rows=25 class="htmlcode w-full"
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
 
@@ -168,7 +153,7 @@ window.onbeforeunload = function(){
 <h3>Setup Code</h3>
 
 <textarea data-editor="python" id="setupbox" name="setupcode" rows=25 class="htmlcode w-full"
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
 
@@ -184,7 +169,7 @@ window.onbeforeunload = function(){
 
 <h3>Handler Code</h3>
 <textarea data-editor="python" id="codebox" name="code" rows=25 class="htmlcode w-full"
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
 
@@ -217,7 +202,7 @@ window.onbeforeunload = function(){
        checked="yes"
        %endif
    %endif
-   %if not pages.canUserDoThis("system_admin"):
+   %if not can_edit:
                disabled=1\
    %endif
   ></input>kaithem.web.serve_file streaming response<br>
@@ -229,7 +214,7 @@ window.onbeforeunload = function(){
             checked="yes"
             %endif
         %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>Don't show the navigation header on this page<br>
@@ -240,7 +225,7 @@ window.onbeforeunload = function(){
             checked="yes"
             %endif
          %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>Don't add any additional content(raw plaintext/webservice mode)<br>
@@ -248,7 +233,7 @@ window.onbeforeunload = function(){
 
 Preprocess Engine:<select name="template-engine"
 
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        >
@@ -265,7 +250,7 @@ Preprocess Engine:<select name="template-engine"
             %endif
          %else:
          %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>Make this page acessable by GET requests<br>
@@ -277,7 +262,7 @@ Preprocess Engine:<select name="template-engine"
             %endif
          %else:
          %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>Make this page acessable by POST requests<br>
@@ -288,7 +273,7 @@ Preprocess Engine:<select name="template-engine"
                 checked="yes"
             %endif
          %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>This page should auto-refresh every
@@ -299,7 +284,7 @@ Preprocess Engine:<select name="template-engine"
         %else:
                 value= 5.0
         %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)<br>
@@ -311,7 +296,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
         %else:
                 value= "text/html"
         %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input><br>
@@ -323,7 +308,7 @@ MIME type:<input step=0.1 name="mimetype" size=6em
                 checked="yes"
             %endif
         %endif
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
        ></input>Allow cross-origin requests from(comma separated, * means any)
@@ -338,7 +323,7 @@ else:
 %>
 <input type="text"  name="allow-origins"
         value= "${origins|h}"
-        %if not pages.canUserDoThis("system_admin"):
+        %if not can_edit:
                     disabled=1\
         %endif
         ></input><br>
@@ -347,7 +332,7 @@ else:
         <label>Theme
             <input type="text"  name="themecss" list="themes"
                     value= "${page.get('theme-css-url','')|h}"
-                    %if not pages.canUserDoThis("system_admin"):
+                    %if not can_edit:
                                 disabled=1\
                     %endif
                     title="default"
@@ -356,7 +341,7 @@ else:
 
     <label>Alt top banner text(Applies when nav disabled)<input type="text"  name="alttopbanner"
     value= "${page.get('alt-top-banner','')|h}"
-    %if not pages.canUserDoThis("system_admin"):
+    %if not can_edit:
                 disabled=1\
     %endif
     ></input></label><br>
@@ -369,12 +354,12 @@ else:
     <p>Require the following permissions to access this page</p>
     <div class="max-h-12rem scroll border">
         <ul>
-            %for i in sorted(auth.Permissions.keys()):
+            %for i in sorted(all_perms):
                 <li><label> <input type="checkbox"  name="Permission${i}" value="true"
                     %if i in requiredpermissions:
                         checked="yes"
                     %endif
-                    %if not pages.canUserDoThis("system_admin"):
+                    %if not can_edit:
                                 disabled=1\
                     %endif
                     ></input>${i|h}</label></li>
@@ -383,34 +368,32 @@ else:
     </div>
 </details>
 
-%if usrpages.getPageErrors(module,name):
-%if (pages.canUserDoThis("view_admin_info") or  pages.canUserDoThis("system_admin") or pages.canUserDoThis("view_admin_info")):
+%if getPageErrors(module,name):
+%if (can_view_admin or  can_edit):
 <h3>Errors</h3>
 <p class ="help">
 This section shows up to the most recent 25 errors that occured while rendering the page.
 </p>
-%try:
+
 <div class="max-h-12rem scroll border">
-%for i in usrpages.getPageErrors(module,name):
+%for i in getPageErrors(module,name):
     <h4>${i[0]|h}</h4>
 <pre>
-%if pages.canUserDoThis("view_admin_info"):
+%if can_view_admin:
 ${str(i[2])|h}
 %endif
 ${str(i[1])|h}
 </pre>
 %endfor
 </div>
-%except:
-<pre class="danger">${traceback.format_exc()|h}</pre></div>
-%endtry
+
 %else:
 <p class="danger">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
 %endif
 %endif
 
 <%
-p = usrpages.getPageOutput(module,name)
+p = getPageOutput(module,name)
 %>
 
 %if p:
@@ -420,15 +403,10 @@ p = usrpages.getPageOutput(module,name)
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
 Saving this module will cause it to be immediately acessable from the web.
 </details>
-%if pages.canUserDoThis("system_admin"):
+%if can_edit:
 <input type="submit" value="Save Changes and go back" onclick="wasChanged=false">
 <label><input type="checkbox"  name="tabtospace"
-     %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
         checked="yes"
-     %endif
-    %if not pages.canUserDoThis("system_admin"):
-        disabled=1\
-    %endif
    ></input>Convert tabs to spaces on saving</label>
 </input>
 %else:
@@ -466,7 +444,7 @@ Saving this module will cause it to be immediately acessable from the web.
             editor.getSession().on('change', function() {
                 wasChanged=true;
             })
-            %if not pages.canUserDoThis("system_admin"):
+            %if not can_edit:
             editor.setReadOnly(true)
             %endif
             // copy back to textarea on form submit...

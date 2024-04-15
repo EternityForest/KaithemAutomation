@@ -25,9 +25,9 @@ from mako.lookup import TemplateLookup
 from kaithem.api.web import render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 
-from ... import directories, messagebus, modules_state, pages, theming, util
+from ... import auth, directories, messagebus, modules_state, pages, theming, util
 from ...config import config
-from ...util import url
+from ...util import split_escape, url
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
@@ -829,6 +829,15 @@ class PageType(modules_state.ResourceType):
             kwargs={},
             page=resourceinquestion,
             requiredpermissions=requiredpermissions,
+            split_escape=split_escape,
+            url=util.url,
+            theming=theming,
+            can_edit=pages.canUserDoThis("system_admin"),
+            can_view_admin=pages.canUserDoThis("view_admin_info"),
+            getPageErrors=getPageErrors,
+            getPageOutput=getPageOutput,
+            url_for_resource=url_for_resource,
+            all_perms=auth.Permissions.keys(),
         )
 
 
