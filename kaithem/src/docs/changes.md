@@ -37,7 +37,8 @@ Tags, in newer editions, should have a single source of config, and the code for
 - :hammer: Many features moved to included core plugins, but still work exactly as before.
 
 - :bug: Fix module import/export
--
+- :bug: Fix back button taking user to old version of event
+
 ### 0.78.1
 
 This is mostly just about the install scripts and a few leftover bugs.  A lot has changed on Pi OS with Wayland!
