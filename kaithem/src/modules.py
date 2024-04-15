@@ -757,7 +757,7 @@ def getModuleAsYamlZip(module, noFiles=True):
     incompleteError = False
     with modulesLock:
         # Ensure any manually put therer files are there
-        autoGenerateFileRefResources(module, modules_state.ActiveModules[module])
+        autoGenerateFileRefResources(modules_state.ActiveModules[module], module)
         # We use a stringIO so we can avoid using a real file.
         ram_file = StringIO()
         z = zipfile.ZipFile(ram_file, "w")
@@ -927,7 +927,7 @@ def bookkeeponemodule(module, update=False):
         # Handle events separately due to dependency resolution logic
         if modules_state.ActiveModules[module][i]["resource-type"] not in ("event"):
             try:
-                handleResourceChange(module, i)
+                handleResourceChange(module, i, newly_added=not update)
             except Exception:
                 messagebus.post_message("/system/notifications/errors", f"Failed to load  resource: {i}")
 
@@ -1108,7 +1108,7 @@ class KaithemEvent(dict):
     pass
 
 
-def handleResourceChange(module, resource, obj=None):
+def handleResourceChange(module, resource, obj=None, newly_added=False):
     modules_state.modulesHaveChanged()
 
     with modules_state.modulesLock:
@@ -1146,4 +1146,7 @@ def handleResourceChange(module, resource, obj=None):
                 raise
 
         else:
-            additionalTypes[resourceobj["resource-type"]].onupdate(module, resource, modules_state.ActiveModules[module][resource])
+            if not newly_added:
+                additionalTypes[resourceobj["resource-type"]].onupdate(module, resource, modules_state.ActiveModules[module][resource])
+            else:
+                additionalTypes[resourceobj["resource-type"]].onload(module, resource, modules_state.ActiveModules[module][resource])
