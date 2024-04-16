@@ -62,9 +62,9 @@ def test_make_module_web():
 
     assert "x = 8" in webapproot.webapproot().modules.module(n, "resource", "testevt")
 
-    assert (n, "testevt") in CorePluginEventResources.EventReferences
+    assert (n, "testevt") in CorePluginEventResources._events_by_module_resource
 
-    x = CorePluginEventResources.EventReferences[(n, "testevt")]
+    x = CorePluginEventResources._events_by_module_resource[(n, "testevt")]
 
     # Ensure the event actually worked
     time.sleep(1)

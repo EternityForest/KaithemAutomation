@@ -403,7 +403,10 @@ class BaseChandlerScriptContext:
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
         self.event_queue: list[Callable[[], Any]] = []
-        self.event_listeners: dict[str, list[list[str | list[list[str | float | int | bool]]]]] = {}
+
+        # Map event names to a list of pipelines, where each pipeline
+        # is a list of commands, a command being a list of strings.
+        self.event_listeners: dict[str, list[list[list[str]]]] = {}
         self.variables: dict[str, Any] = variables if variables is not None else {}
         self.commands = ScriptActionKeeper()
         self.context_commands = ScriptActionKeeper()
@@ -756,10 +759,6 @@ class BaseChandlerScriptContext:
         if not self.gil.acquire(timeout=10):
             raise RuntimeError("Could not get lock")
         try:
-            if k.startswith("$"):
-                if not force:
-                    self.setSpecialVariableHook(k, v)
-
             self.variables[k] = v
             self.changedVariables[k] = v
             self.onVarSet(k, v)
@@ -784,7 +783,7 @@ class BaseChandlerScriptContext:
         self.commands[name] = wrap(self, callable)
 
     @beartype
-    def addBindings(self, b: list[list[str | list[list[str | float | int | bool]]]]):
+    def addBindings(self, b: list[list[str | list[list[str]]]]):
         """
         Take a list of bindings and add them to the context.
         A binding looks like:
@@ -799,16 +798,18 @@ class BaseChandlerScriptContext:
             self.need_refresh_for_variable = {}
             self.need_refresh_for_tag = {}
             for i in b:
-                evt_name = i[0]
-                cmds: list[str | list[list[str | float | int | bool]]] = i[1]
-                if not isinstance(evt_name, str):
+                if not isinstance(i[0], str):
                     raise ValueError(f"First item in binding must be str, got {i[0]}")
 
-                if not isinstance(cmds, list):
+                if not isinstance(i[1], list):
                     raise ValueError(f"Second item in binding must be command list, got {i[1]}")
+
+                evt_name: str = i[0]
+                cmds: list[list[str]] = i[1]
 
                 if evt_name not in self.event_listeners:
                     self.event_listeners[evt_name] = []
+
                 self.event_listeners[evt_name].append(cmds)
                 self.onBindingAdded(i)
 

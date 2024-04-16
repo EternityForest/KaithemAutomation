@@ -1795,6 +1795,7 @@ class EventType(modules_state.ResourceType):
 
     @beartype.beartype
     def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
+        global init_done
         with _event_list_lock:
             event_resources[module, resourcename] = copy.deepcopy(value)
             if init_done:

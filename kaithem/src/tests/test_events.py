@@ -11,7 +11,7 @@ def test_events():
     with CorePluginEventResources._event_list_lock:
         x = CorePluginEventResources.Event("y==1", "global y\ny=0", setup="y=0")
         x.module = x.resource = "pytest_testevt"
-        CorePluginEventResources.EventReferences[x.module, x.resource] = x
+        CorePluginEventResources._events_by_module_resource[x.module, x.resource] = x
 
         # Register event with polling.
         x.register()
@@ -77,7 +77,7 @@ def test_events():
         x.pymodule.y = 0
 
         x.module = x.resource = "pytest_TEST1"
-        CorePluginEventResources.EventReferences[x.module, x.resource] = x
+        CorePluginEventResources._events_by_module_resource[x.module, x.resource] = x
 
         # Register event with polling.
         x.register()
@@ -98,7 +98,7 @@ def test_events():
     if not x.pymodule.y == 1:
         raise RuntimeError("Onchange Event did not go away when unregistered")
 
-    # There is a weird old feature where message events don't work if not in EventReferences
+    # There is a weird old feature where message events don't work if not in _events_by_module_resource
     # It was an old thing to caths a circular reference bug.
     with CorePluginEventResources._event_list_lock:
         # Now we test the message bus event
@@ -108,7 +108,7 @@ def test_events():
         # Add new event
         x.register()
         # Update index
-        CorePluginEventResources.EventReferences[x.module, x.resource] = x
+        CorePluginEventResources._events_by_module_resource[x.module, x.resource] = x
 
     testObj = weakref.ref(x.pymodule.__dict__["testObj"])
 

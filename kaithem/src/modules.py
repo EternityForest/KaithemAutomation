@@ -409,8 +409,6 @@ def initModules():
     if not os.path.isdir(directories.moduledir):
         os.makedirs(directories.moduledir)
 
-    if not util.get_immediate_subdirectories(directories.moduledir):
-        return
     try:
         # __COMPLETE__ is a special file we write to the dump directory to show it as valid
         possibledir = os.path.join(directories.moduledir, "data")
