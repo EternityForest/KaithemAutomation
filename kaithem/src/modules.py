@@ -37,7 +37,7 @@ from .modules_state import (
     scopes,
     serializeResource,
 )
-from .plugins import CorePluginEventResources, CorePluginUserPageResources
+from .plugins import CorePluginEventResources
 from .util import url
 
 logger = logging.getLogger("system")
@@ -959,8 +959,6 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
             except Exception:
                 print(traceback.format_exc())
 
-            CorePluginUserPageResources.removeOnePage(module, resource)
-
         if rt == "directory":
             # Directories are special, they can have the extra data file
             fn = f"{getResourceFn(module, resource, r)}.yaml"
@@ -1083,18 +1081,11 @@ def handleResourceChange(module, resource, obj=None, newly_added=False):
 
         assert isinstance(t, str)
 
-        if t == "internal-fileref":
-            try:
-                CorePluginUserPageResources.updateOnePage(resource, module, resourceobj)
-            except Exception:
-                messagebus.post_message(
-                    "/system/notifications/errors",
-                    f"Failed to load file resource: {resource} module: {module}",
-                )
-
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
+        elif t == "internal-fileref":
+            pass
         else:
             if not newly_added:
                 additionalTypes[t].onupdate(module, resource, resourceobj)

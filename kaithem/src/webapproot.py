@@ -107,12 +107,6 @@ class Errors:
         return pages.get_template("errors/error.html").render(info="An Error Occurred")
 
 
-class Utils:
-    @cherrypy.expose
-    def video_signage(self, *a, **k):
-        return pages.get_template("utils/video_signage.html").render(vid=k["src"], mute=int(k.get("mute", 1)))
-
-
 def cpexception():
     cherrypy.response.status = 500
     try:
@@ -137,7 +131,6 @@ class webapproot:
     modules = modules_interface.WebInterface()
     settings = settings.Settings()
     errors = Errors()
-    utils = Utils()
     pages = CorePluginUserPageResources.KaithemPage()
     logs = messagelogging.WebInterface()
     notifications = notifications.WI()

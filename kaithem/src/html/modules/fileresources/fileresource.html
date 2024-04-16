@@ -1,6 +1,7 @@
 <%!
     from kaithem.src.util import url
-    from kaithem.src import unitsofmeasure,pages,auth,usrpages
+    from kaithem.src import unitsofmeasure,pages,auth
+    from kaithem.src.plugins.CorePluginUserPageResources import url_for_resource
     from kaithem.src.modules import fileResourceAbsPaths
     import os
 %>
@@ -19,7 +20,7 @@
     Size
     </th>
     </tr>
-    
+
     <tr>
         <td>
             ${fileResourceAbsPaths[module,resource]|h}
@@ -30,14 +31,14 @@
     %except:
     File not acessible or does not exist
     %endtry
-   
+
 
     </tr>
     </table>
 
 
     <form action="/modules/module/${url(module)}/updateresource/${url(resource)}" method="POST">
-    
+
         <label>New name(blank to keep)<input name="name" disabled title="Name change not yet supported"></label></input></label>
 
         <h2>Serve to end-users</h2>
@@ -49,12 +50,10 @@
            %endif
        %else:
         %endif
-      ></input>Serve file with the same URL pattern as you would expect for a page(Needed for features in this section) at <a href="${usrpages.url_for_resource(module,resource)}">${usrpages.url_for_resource(module,resource)|h}</a>
+      ></input>Serve file at <a href="${url_for_resource(module,resource)}">${url_for_resource(module,resource)|h}</a>
     </label>
-    
-    <br>
 
-    <a href="/utils/video_signage?src=${usrpages.url_for_resource(module,resource)|u}">Looping video signage link</a>
+    <br>
 <h2>Permissions</h2>
 
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary><span class="permission-icon"></span>Require the following permissions to access this resource</details>

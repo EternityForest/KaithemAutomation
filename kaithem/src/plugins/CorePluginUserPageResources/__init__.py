@@ -115,6 +115,7 @@ def markdownToSelfRenderingHTML(content, title):
 def lookup(module, args):
     resource_path = [i.replace("\\", "\\\\").replace("/", "\\/") for i in args]
     m = _Pages[module]
+
     if "/".join(resource_path) in m:
         return _Pages[module]["/".join(resource_path)]
 
@@ -192,8 +193,6 @@ class CompiledPage:
         self.mime: str
         self.xss: bool
         self.streaming: bool
-
-        self.directServeFile: str | None
         self.permissions: list[str]
         self.origins: list[str]
         self.methods: list[str]
@@ -227,8 +226,6 @@ class CompiledPage:
                 self.origins = resource["allow-origins"]
             else:
                 self.origins = []
-
-            self.directServeFile = None
 
             if resource["resource-type"] == "page":
                 template = resource["body"]
@@ -354,13 +351,6 @@ class CompiledPage:
                 else:
                     self.text = template
 
-            elif resource["resource-type"] == "internal-fileref":
-                self.methods = ["GET"]
-                self.name = os.path.basename(modules_state.fileResourceAbsPaths[m, r])
-
-                self.directServeFile = modules_state.fileResourceAbsPaths[m, r]
-                self.mime = self.mime = str(resource.get("mimetype", "").strip() or mimetypes.guess_type(self.name)[0])
-
         self.refreshFromResource = refreshFromResource
         self.refreshFromResource()
 
@@ -460,9 +450,6 @@ def updateOnePage(resource, module, data: modules_state.ResourceDictType):
         enable = True
 
         # Don't serve file if that's not enabled
-        if data["resource-type"] == "internal-fileref":
-            if not data.get("serve", False):
-                enable = False
         if enable:
             _Pages[module][resource] = CompiledPage(data, module, resource)
         lookup.invalidate_cache()
@@ -518,35 +505,6 @@ def getPagesFromModules():
                                     "/system/notifications/errors",
                                     'Page "' + m + '" of module "' + i + '" may need attention',
                                 )
-                    elif j["resource-type"] == "internal-fileref":
-                        if j.get("serve", False):
-                            try:
-                                _Pages[i][m] = CompiledPage(j, i, m)
-                            except Exception:
-                                makeDummyPage(m, i)
-                                tb = traceback.format_exc(chain=True)
-                                # When an error happens, log it and save the time
-                                # Note that we are logging to the compiled event object
-                                _Pages[i][m].errors.append(
-                                    [
-                                        time.strftime(config["time-format"]),
-                                        tb,
-                                        "Error while initializing",
-                                    ]
-                                )
-                                try:
-                                    messagebus.post_message(f"system/errors/pages/{i}/{m}", str(tb))
-                                except Exception as e:
-                                    print(e)
-                                # Keep only the most recent 25 errors
-
-                                # If this is the first error(high level: transition from ok to not ok)
-                                # send a global system messsage that will go to the front page.
-                                if len(_Pages[i][m].errors) == 1:
-                                    messagebus.post_message(
-                                        "/system/notifications/errors",
-                                        'Page "' + m + '" of module "' + i + '" may need attention',
-                                    )
                         else:
                             try:
                                 del _Pages[i][m]
@@ -611,14 +569,41 @@ class KaithemPage:
 
     def _serve(self, module, *args, **kwargs):
         page = lookup(module, args)
+
         if page is None:
             messagebus.post_message(
                 "/system/errors/http/nonexistant",
                 f"Someone tried to access a page that did not exist in module {module} with path {args}",
             )
+            rn = "/".join(args)
+            x = modules_state.ActiveModules[module].get(rn, None)
+
+            if x and x["resource-type"] == "internal-fileref":
+                fn = modules_state.fileResourceAbsPaths[module, rn]
+                mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
+                if x.get("serve", False):
+                    pages.require(x.get("require-permissions", []))
+                    if "Origin" in cherrypy.request.headers:
+                        origins: list[str] = x["allow-origins"]  # type: ignore
+
+                        if not x["allow-xss"]:
+                            raise RuntimeError("Refusing XSS")
+
+                        if not (cherrypy.request.headers["Origin"] in origins or "*" in origins):
+                            raise RuntimeError("Refusing XSS from this origin: " + cherrypy.request.headers["Origin"])
+                        else:
+                            cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
+
+                    return cherrypy.lib.static.serve_file(
+                        fn,
+                        mime,
+                        os.path.basename(fn),
+                    )
             raise cherrypy.NotFound()
 
         if "Origin" in cherrypy.request.headers:
+            if not page.xss:
+                raise RuntimeError("Refusing XSS")
             if not (cherrypy.request.headers["Origin"] in page.origins or "*" in page.origins):
                 raise RuntimeError("Refusing XSS from this origin: " + cherrypy.request.headers["Origin"])
             else:
@@ -642,13 +627,6 @@ class KaithemPage:
             raise cherrypy.HTTPRedirect("/errors/wrongmethod")
         try:
             cherrypy.response.headers["Content-Type"] = page.mime
-
-            if page.directServeFile:
-                return cherrypy.lib.static.serve_file(
-                    page.directServeFile,
-                    page.mime,
-                    os.path.basename(page.directServeFile),
-                )
 
             t = page.theme
             if t in theming.cssthemes:

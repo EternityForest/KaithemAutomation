@@ -16,8 +16,8 @@ def size(f):
 
 <pre>${dir|h}</pre>
 <details><summary>Upload</summary>
-    
-    <p>Unpacking puts all zip contents into the current dir, without creating a new subdir 
+
+    <p>Unpacking puts all zip contents into the current dir, without creating a new subdir
 "foo" in the zip becomes "DIR/foo".  If a destination file exists, it is overwritten.</p>
 
 
@@ -80,15 +80,6 @@ Upload zip and unpack:
 
 %if i.endswith(".sqlite"):
 <a class="button" href="/database/${util.url(os.path.join(dir,i))}/">Browse</a>
-%endif
-
-%if dir.startswith(os.path.join(directories.vardir,"static")):
-    %if i.endswith(".mp4"):
-    <a class="button" href="/utils/video_signage?src=${util.url('/user_static/'+os.path.join(dir[len(os.path.join(directories.vardir,'static')):],i))}">Digital Signage link</a>
-    <a class="button" href="/utils/video_signage?src=${util.url('/user_static/'+os.path.join(dir[len(os.path.join(directories.vardir,'static')):],i))}&muted=0">Digital Signage(w/ audio)</a>
-
-    %endif
-
 %endif
 
 </div>

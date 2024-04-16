@@ -1,6 +1,9 @@
 Change Log
 ----------
 ### 0.80.0
+- :coffin: Remove non-chandler simple video signage
+- :hammer: Pages and Events moved to core plugin(Code refactor, no change for end users)
+
 
 ### 0.79.0
 

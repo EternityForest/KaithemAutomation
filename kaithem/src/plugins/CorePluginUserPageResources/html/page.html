@@ -463,12 +463,4 @@ if (perfEntries.length && perfEntries[0].type === 'back_forward') {
 }
 </script>
 
-<script>
-    // Fix going back after a change and seeing old data
-    const perfEntries = performance.getEntriesByType('navigation');
-if (perfEntries.length && perfEntries[0].type === 'back_forward') {
-  window.location.reload()
-}
-</script>
-
 <%include file="/pagefooter.html"/>
