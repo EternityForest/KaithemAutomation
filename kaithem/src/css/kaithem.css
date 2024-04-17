@@ -76,9 +76,10 @@
 
 /*********************Code editing************************/
 @font-face {
-    font-family: hack;
-    src: url(/static/hack.ttf);
+    font-family: CodingFont;
+    src: url(/static/fonts/FiraCode-Regular.woff2);
 }
+
 
 .event-trigger-edit-box {
     background: rgb(250, 255, 244);
