@@ -17,6 +17,7 @@
     from scullery import workers as sworkers
     from kaithem.src import unitsofmeasure
     from kaithem.src import systasks
+    from kaithem.src import settings_overrides
     from icemedia import sound_player as sound
     from kaithem.src import util
     from kaithem.src import kaithemobj
@@ -320,7 +321,7 @@ except Exception:
     <table border=1 class="w-full">
         <tr>
             <td>Process Started</td>
-            <td>${time.strftime(config['time-format'],time.localtime(systasks.systemStarted))}</td>
+            <td>${time.strftime(settings_overrides.get_cfg_val('core.strftime_string'),time.localtime(systasks.systemStarted))}</td>
         </tr>
         <tr>
             <td>HTTP Requests per minute(~5min avg)</td>

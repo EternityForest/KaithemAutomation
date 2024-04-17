@@ -23,12 +23,6 @@ site-data-dir: ~/kaithem
 #Max how many threads to allocate for the worker thread pool
 worker-threads: 12
 
-#How many threads cherrypy should use for the web server to serve unencrypted pages
-http-thread-pool: 6
-
-#How many threads cherrypy should use for the web server to serve encrypted pages
-https-thread-pool: 4
-
 #How many tasks can be queued up in the thread pool before inserts start to block until old tasks finish
 #should not really affect much as the task queue should not get even close to full unless you have
 #tons of events
@@ -37,8 +31,6 @@ task-queue-size: 500
 #The maximum polling cycles per second to run at
 max-frame-rate: 60
 
-#A minimum delay between frames even if less would be required to maintain the frame rate.
-delay-between-frames : 0.005
 
 #If yes, don't allow acess from any computer except this one.
 local-access-only: no
@@ -84,8 +76,6 @@ audio-backends:
 #How many times to retry loading an event before marking it as a failure and moving on
 max-load-attempts: 3
 
-#If set to yes and setproctitle is installed, changes process title to kaithem instead of python.
-change-process-title: yes
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface
@@ -113,9 +103,6 @@ log-format: none
 #Type of data compression for log files. Can be: bz2, gzip, or none
 log-compress: none
 
-#How many old errors to show on the event and page editors(does not affect logging)
-errors-to-keep: 50
-
 #How many old system notifications to show on front page(does not affect logging)
 notifications-to-keep: 250
 
@@ -140,8 +127,6 @@ mem-use-warn: 0.85
 #How many messages to keep on topics that are not being logged
 non-logged-topic-limit: 100
 
-#Should downloaded module filenames inclue the MD5 Hash?
-downloads-include-md5-in-filename: yes
 
 #Where to look for audio files that are specified with relative paths. Earlier entries used first.
 #Default refers to the sounds kaithem ships with.
@@ -167,25 +152,27 @@ about-box-banner: "This space can be customized with site specific data in the c
 #theme-url: /static/css/kaithem_scrapbook.css
 theme-url: /static/css/kaithem_minimal.css
 
-#How to format times and dates
-time-format: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 
 #If yes, is 1 Minute 29 Seconds instead of 1m 29s
 full-time-intervals: no
 
-#Should be a path. If it is relative, starts in the datadir
-favicon-png: img/favicon.png
-favicon-ico: img/favicon.png
+
 
 #This is the file which contains a list of strings for kaithem.lorem and a few other places.
 #Used for the quotes in the login screen
 #Must be a YAML file containing a list of strings.
 quotes-file: default
 
+
+### Dynamically overridable in a module
+
+#Should be a path. If it is relative, starts in the datadir
+favicon_ico: img/favicon.ico
+
+#How to format times and dates
+strftime_string: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
+
+
 #####################MISC#######################################################
 
 get-public-ip: no
-
-
-esphome-config-dir: ""
-esphome-dashboard: null

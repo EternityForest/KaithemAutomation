@@ -37,27 +37,9 @@ properties:
         maximum: 800
         minumum: 1
 
-    http-thread-pool:
-        type: integer
-        minimum: 1
-        maximum: 500
-
-    https-thread-pool:
-        type: integer
-        minimum: 1
-        maximum: 500
-
     task-queue-size:
         type: integer
         minimum: 1
-
-    max-frame-rate:
-        type: integer
-        minumum: 1
-
-    delay-between-frames:
-        type: number
-        minimim: 0.001
 
     local-access-only:
         type: boolean
@@ -129,9 +111,6 @@ properties:
         minimum: 1
         maximum: 500
 
-    change-process-title:
-        type: boolean
-
     log-topics:
         type: array
         uniqueitems: yes
@@ -196,9 +175,6 @@ properties:
         type: integer
         minimum: 0
 
-    downloads-include-md5-in-filename:
-        type: boolean
-
     front-page-banner:
         type: string
 
@@ -214,23 +190,17 @@ properties:
     quotes-file:
         type: string
 
-    time-format:
-        type: string
-
     full-time-intervals:
         type: boolean
 
-    favicon-ico:
-        type: string
-    favicon-png:
-        type: string
     get-public-ip:
         type: boolean
 
-    esphome-config-dir:
+
+    favicon_ico:
         type: string
 
-    esphome-dashboard:
-        type: [boolean,"null"]
+    strftime_string:
+        type: string
 
 additionalProperties: yes

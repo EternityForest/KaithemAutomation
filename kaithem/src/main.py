@@ -173,13 +173,12 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     workers.do(systasks.doUPnP)
 
-    if config.config["change-process-title"]:
-        try:
-            import setproctitle
+    try:
+        import setproctitle
 
-            setproctitle.setproctitle("kaithem")
-        except Exception:
-            logger.warning("error setting process title")
+        setproctitle.setproctitle("kaithem")
+    except Exception:
+        logger.warning("error setting process title")
 
 
 def start_server():

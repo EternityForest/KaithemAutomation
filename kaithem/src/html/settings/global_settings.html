@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 <%!
-from kaithem.src import config,sound,persist,directories,geolocation,alerts,settings
+from kaithem.src import config,sound,persist,directories,geolocation,alerts,settings, settings_overrides
 import yaml,os
 
 notificationsfn = os.path.join(
@@ -50,7 +50,17 @@ location = geolocation.getLocation('default')
 </form>
 </section>
 
+<h2>New Config Keys</h2>
+<p>These are set through entries in modules</p>
+<section class="window paper">
 
+<dl>
+    %for i in settings_overrides.list_keys():
+    <dt>${i|h}</dt>
+    <dd>${settings_overrides.get_cfg_val(i)|h}</dd>
+    %endfor
+</dl>
+</section>
 
 <h2>Alternate Homepage</h2>
 <section class="window paper">

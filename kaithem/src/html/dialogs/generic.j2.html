@@ -4,6 +4,14 @@
     <section class="window paper w-sm-double margin">
         <header><h2>{{title}}</h2></header>
 
+        {% for i in datalists %}
+        <datalist id="{{i}}">
+            {%for j in datalists[i] %}
+                <option value="{{j[0]}}">{{j[1]}}</option>
+            {% endfor %}
+        </datalist>
+
+        {% endfor %}
         <form class="stacked-form" action="{{target}}" method="POST">
         {% for i in items %}
             {% if i[0] %}

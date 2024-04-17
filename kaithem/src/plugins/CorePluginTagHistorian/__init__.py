@@ -21,6 +21,7 @@ import dateutil.parser
 import pytz
 from scullery import scheduling
 
+from kaithem.api import tags as tagsapi
 from kaithem.api import web as webapi
 from kaithem.src import dialogs, directories, messagebus, modules_state, pages, tagpoints
 
@@ -541,7 +542,7 @@ class LoggerType(modules_state.ResourceType):
     def createpage(self, module, path):
         d = dialogs.SimpleDialog("New Logger")
         d.text_input("name", title="Logger Name")
-        d.text_input("tag", title="Tag Point to Log")
+        d.text_input("tag", title="Tag Point to Log", suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
         d.selection("logger-type", options=list(accumTypes.keys()), title="Accumulate Mode")
         d.selection("log-target", options=["disk", "ram"])
         d.text_input("interval", title="Interval(seconds)")
@@ -552,7 +553,7 @@ class LoggerType(modules_state.ResourceType):
 
     def editpage(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Logger")
-        d.text_input("tag", title="Tag Point to Log", default=value["tag"])
+        d.text_input("tag", title="Tag Point to Log", default=value["tag"], suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
         d.selection("logger-type", options=list(accumTypes.keys()), default=value["logger-type"], title="Accumulate Mode")
         d.selection("log-target", options=["disk", "ram"], default=value["log-target"])
         d.text_input("interval", title="Interval(seconds)", default=value["interval"])
@@ -569,7 +570,7 @@ modules_state.additionalTypes["logger"] = drt
 t = os.path.join(os.path.dirname(__file__), "html", "logpage.html")
 
 
-def logpage(*path, **data):
+def logpage(*path: str, **data) -> str:
     path = path[1:]
     # This page could be slow because of the db stuff, so we restrict it more
     if not cherrypy.request.method.lower() == "post":
@@ -602,6 +603,8 @@ def logpage(*path, **data):
                         dt = datetime.datetime.fromtimestamp(i[0])
                         d.append(dt.isoformat() + "," + str(i[1])[:128])
                     return "\r\n".join(d) + "\r\n"
+
+        raise RuntimeError("Logger not found")
 
 
 webapi.add_simple_cherrypy_handler("plugin-tag-history", "system_admin", logpage)

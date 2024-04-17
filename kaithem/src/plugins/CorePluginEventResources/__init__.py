@@ -34,15 +34,7 @@ from scullery.scheduling import scheduler
 from kaithem.api.web import has_permission, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 
-from ... import (
-    devices,
-    kaithemobj,
-    messagebus,
-    modules_state,
-    unitsofmeasure,
-    util,
-    workers,
-)
+from ... import devices, kaithemobj, messagebus, modules_state, settings_overrides, unitsofmeasure, util, workers
 from ...config import config
 from ...resource_serialization import toPyFile
 
@@ -641,9 +633,9 @@ class BaseEvent:
         # TODO: Get rid of legacy error stuff
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object
-        self.errors.append([time.strftime(config["time-format"]), tb])
+        self.errors.append([time.strftime(settings_overrides.get_cfg_val("core.strftime_string")), tb])
         # Keep only the most recent errors
-        self.errors = self.errors[-(config["errors-to-keep"]) :]
+        self.errors = self.errors[-50:]
 
         workers.do(makeBackgroundErrorFunction(textwrap.fill(tb, 120), unitsofmeasure.strftime(time.time()), self))
 
@@ -1625,7 +1617,9 @@ def getEventsFromModules(only: str | None = None):
                 d = makeDummyEvent(i.module, i.resource)
                 d._handle_exception(tb=i.error)
                 # Add the reason for the error to the actual object so it shows up on the page.
-                _events_by_module_resource[i.module, i.resource].errors.append([time.strftime(config["time-format"]), str(i.error)])
+                _events_by_module_resource[i.module, i.resource].errors.append(
+                    [time.strftime(settings_overrides.get_cfg_val("core.strftime_string")), str(i.error)]
+                )
                 messagebus.post_message(
                     "/system/notifications/errors",
                     "Failed to load event resource: "

@@ -25,8 +25,7 @@ from mako.lookup import TemplateLookup
 from kaithem.api.web import render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 
-from ... import auth, directories, messagebus, modules_state, pages, theming, util
-from ...config import config
+from ... import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
 from ...util import split_escape, url
 
 _jl = jinja2.FileSystemLoader(
@@ -487,7 +486,7 @@ def getPagesFromModules():
                             # Note that we are logging to the compiled event object
                             _Pages[i][m].errors.append(
                                 [
-                                    time.strftime(config["time-format"]),
+                                    time.strftime(settings_overrides.get_cfg_val("core.strftime_string")),
                                     tb,
                                     "Error while initializing",
                                 ]
@@ -688,7 +687,7 @@ class KaithemPage:
             )
             # When an error happens, log it and save the time
             # Note that we are logging to the compiled event object
-            page.errors.append([time.strftime(config["time-format"]), tb, data])
+            page.errors.append([time.strftime(settings_overrides.get_cfg_val("core.strftime_string")), tb, data])
             try:
                 messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
             except Exception as e:

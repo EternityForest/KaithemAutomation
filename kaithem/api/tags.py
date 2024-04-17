@@ -347,32 +347,28 @@ def tags_docstring():
     """
 
 
-def all_tags_raw(self):
+def all_tags_raw():
     return tagpoints.allTagsAtomic
 
 
-def NumericTag(self, k: str) -> tagpoints.NumericTagPointClass:
+def NumericTag(k: str) -> tagpoints.NumericTagPointClass:
     t = tagpoints.Tag(k)
     return t
 
 
-def StringTag(self, k: str) -> tagpoints.StringTagPointClass:
+def StringTag(k: str) -> tagpoints.StringTagPointClass:
     t = tagpoints.StringTag(k)
     return t
 
 
-def ObjectTag(self, k: str) -> tagpoints.ObjectTagPointClass:
+def ObjectTag(k: str) -> tagpoints.ObjectTagPointClass:
     t = tagpoints.ObjectTag(k)
     return t
 
 
-def BinaryTag(self, k: str) -> tagpoints.BinaryTagPointClass:
+def BinaryTag(k: str) -> tagpoints.BinaryTagPointClass:
     t = tagpoints.BinaryTag(k)
     return t
-
-
-def __iter__(self):
-    return tagpoints.allTagsAtomic
 
 
 GenericTagPointClass = tagpoints.GenericTagPointClass

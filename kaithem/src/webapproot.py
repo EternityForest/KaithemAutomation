@@ -36,6 +36,7 @@ from . import (
     notifications,
     pages,
     settings,
+    settings_overrides,
     systasks,
     tagpoints,
     # TODO we gotta stop depending on import side effects
@@ -137,6 +138,14 @@ class webapproot:
     syslog = logviewer.WebInterface()
     devices = devices_interface.WebDevices()
     chandler = cweb.Web()
+
+    @cherrypy.expose
+    def favicon_ico(self):
+        cherrypy.response.headers["Cache-Control"] = "max-age=3600"
+        fn = os.path.join(directories.datadir, "static", settings_overrides.get_cfg_val("core.favicon_ico"))
+        if not os.path.exists(fn):
+            fn = os.path.join(directories.vardir, settings_overrides.get_cfg_val("core.favicon_ico"))
+        return serve_file(fn)
 
     @cherrypy.expose
     def default(self, *path, **data):
@@ -312,22 +321,6 @@ conf = {
         "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
     },
 }
-
-if not config["favicon-png"] == "default":
-    conf["/favicon.png"] = {
-        "tools.staticfile.on": True,
-        "tools.staticfile.filename": os.path.join(directories.datadir, "static", config["favicon-png"]),
-        "tools.expires.on": True,
-        "tools.expires.secs": 3600,  # expire in an hour
-    }
-
-if not config["favicon-ico"] == "default":
-    conf["/favicon.ico"] = {
-        "tools.staticfile.on": True,
-        "tools.staticfile.filename": os.path.join(directories.datadir, "static", config["favicon-ico"]),
-        "tools.expires.on": True,
-        "tools.expires.secs": 3600,  # expire in an hour
-    }
 
 
 def startServer():
