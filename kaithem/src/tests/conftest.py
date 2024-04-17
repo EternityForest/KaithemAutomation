@@ -7,8 +7,9 @@
 
 import os
 import shutil
-import kaithem.src.config
+
 import kaithem
+import kaithem.src.config
 
 if os.path.exists("/dev/shm/kaithem_tests"):
     shutil.rmtree("/dev/shm/kaithem_tests")
@@ -20,6 +21,7 @@ cfg = {
     "site-data-dir": "/dev/shm/kaithem_tests",
     # Prevent it from getting IP geolocation every time
     "location": "0,0",
+    "log-format": "normal",
 }
 
 kaithem.initialize_app(cfg)

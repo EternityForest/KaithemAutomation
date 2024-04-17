@@ -2,25 +2,24 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import logging
-import threading
-import os
-import time
-import gzip
-import bz2
 import atexit
-import weakref
-import random
-import re
-import textwrap
-import shutil
-import traceback
+import bz2
 import gc
 import getpass
+import gzip
+import logging
+import os
+import random
+import re
+import shutil
+import textwrap
+import threading
+import time
+import traceback
+import weakref
 
-from . import messagebus, directories, unitsofmeasure, util
+from . import directories, messagebus, unitsofmeasure, util
 from .config import config
-
 
 configuredHandlers = {}
 
@@ -64,7 +63,7 @@ class KFormatter(logging.Formatter):
         )
 
 
-lastRaisedLogFailError = [0]
+lastRaisedLogFailError = [0.0]
 
 
 def rateLimitedRaise(e):
@@ -145,9 +144,7 @@ class LoggingHandler(logging.Handler):
         # This callback is for when we want to use this handler as a filter.
         self.callback = lambda x: x
         logging.getLogger().addHandler(self)
-        formatter = KFormatter(
-            "%(levelname)s:%(asctime)s %(name)s %(message)s", "%Y%b%d %H:%M:%S %Z"
-        )
+        formatter = KFormatter("%(levelname)s:%(asctime)s %(name)s %(message)s", "%Y%b%d %H:%M:%S %Z")
         self.setFormatter(formatter)
         all_handlers[(time.time(), random.random(), self.name)] = self
 
@@ -175,17 +172,9 @@ class LoggingHandler(logging.Handler):
     def emit(self, record):
         # We handle all logs that make it to the root logger, and do the filtering ourselves
         if self.doprint:
-            if not self.exclude_print or (
-                not (
-                    record.name == self.exclude_print
-                    or record.name.startswith(f"{self.exclude_print}.")
-                )
-            ):
+            if not self.exclude_print or (not (record.name == self.exclude_print or record.name.startswith(f"{self.exclude_print}."))):
                 print(self.format(record))
-        if (
-            not (record.name == self.name or record.name.startswith(f"{self.name}."))
-            and not self.name == ""
-        ):
+        if not (record.name == self.name or record.name.startswith(f"{self.name}.")) and not self.name == "":
             return
         self.callback(record)
         with self.lock:
@@ -218,7 +207,11 @@ class LoggingHandler(logging.Handler):
         """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
         with self.savelock:
             # Allow null logging handlers that are only used for realtime displays
-            if self.fn == None:
+            if self.fn is None:
+                self.logbuffer = []
+                return
+
+            if config["log-format"] == "none":
                 self.logbuffer = []
                 return
 
@@ -241,9 +234,7 @@ class LoggingHandler(logging.Handler):
             else:
                 openlog = open
                 ext = ".log"
-                print(
-                    "Invalid config option for 'log-compress' so defaulting to no compression"
-                )
+                print("Invalid config option for 'log-compress' so defaulting to no compression")
 
             # Swap out the log buffers so we can work with an immutable copy
             # That way we don't block anything that tries to write a log for the entirety of
@@ -277,9 +268,7 @@ class LoggingHandler(logging.Handler):
                 # TODO: TOo Many Open Files error
                 chmodflag = not os.path.exists(self.current_file)
                 try:
-                    with openlog(
-                        self.current_file, "ba" if self.compress == "none" else "wb"
-                    ) as f:
+                    with openlog(self.current_file, "ba" if self.compress == "none" else "wb") as f:
                         if chmodflag:
                             util.chmod_private_try(fn)
                         for i in logbuffer:
@@ -318,9 +307,7 @@ class LoggingHandler(logging.Handler):
                 # If we have filled up one file, we close it, and let the logic
                 # for the next dump decide what to do about it.
                 # Always start a new file after a compressed dump.
-                if (
-                    self.counter >= self.entries_per_file
-                ) or not self.compress == "none":
+                if (self.counter >= self.entries_per_file) or not self.compress == "none":
                     self.current_file = None
                     self.counter = 0
                     self.bytecounter = 0
@@ -367,7 +354,7 @@ class LoggingHandler(logging.Handler):
 # Don't print, the root logger does that.
 syslogger = LoggingHandler(
     "system",
-    fn="system" if not config["log-format"] == "none" else None,
+    fn="system",
     folder=os.path.join(directories.logdir, "dumps"),
     level=20,
     entries_per_file=config["log-dump-size"],

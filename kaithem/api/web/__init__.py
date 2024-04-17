@@ -1,6 +1,6 @@
 import importlib as _importlib
 import os as _os
-import typing as _typing
+from collections.abc import Callable
 
 import beartype as _beartype
 import cherrypy as _cherrypy
@@ -62,7 +62,7 @@ def add_tornado_app(pattern: str, app, args, permission="system_admin"):
 
 
 @_beartype.beartype
-def add_simple_cherrypy_handler(prefix: str, permissions: str, handler: _typing.Callable[[list[str], dict[str, str]], str]):
+def add_simple_cherrypy_handler(prefix: str, permissions: str, handler: Callable[[list[str], dict[str, str]], str]):
     """
     Register handler for all requests that look like /prefix.
     handler must look like:
