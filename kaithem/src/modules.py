@@ -133,27 +133,35 @@ def readStringFromSource(s, var) -> str | None:
 
 
 def loadAllCustomResourceTypes():
-    for i in modules_state.ActiveModules:
-        # Ensure that child elements load before parent elements.
-        for j in sorted(
-            list(modules_state.ActiveModules[i].keys()),
-            key=lambda n: len(n),
-            reverse=True,
-        ):
-            r = modules_state.ActiveModules[i][j]
-            if hasattr(r, "get"):
-                if r.get("resource-type", "") in additionalTypes:
-                    try:
-                        rt = r["resource-type"]
-                        assert isinstance(rt, str)
+    # TODO this is O(m * n) time. Is that bad?
 
-                        additionalTypes[rt].onload(i, j, r)
-                    except Exception:
-                        messagebus.post_message(
-                            "/system/notifications/errors",
-                            f"Error loading resource:{str((i, j))}",
-                        )
-                        logger.exception(f"Error loading resource: {str((i, j))}")
+    types: list[tuple[float, str]] = []
+    for key, typeobj in additionalTypes.items():
+        types.append((typeobj.priority, key))
+    types = sorted(types)
+
+    for loading_priority, loading_rt in types:
+        for i in modules_state.ActiveModules:
+            # Ensure that child elements load before parent elements.
+            for j in sorted(
+                list(modules_state.ActiveModules[i].keys()),
+                key=lambda n: len(n),
+                reverse=True,
+            ):
+                r = modules_state.ActiveModules[i][j]
+                if hasattr(r, "get"):
+                    if r.get("resource-type", "") == loading_rt:
+                        try:
+                            rt = r["resource-type"]
+                            assert isinstance(rt, str)
+
+                            additionalTypes[rt].onload(i, j, r)
+                        except Exception:
+                            messagebus.post_message(
+                                "/system/notifications/errors",
+                                f"Error loading resource:{str((i, j))}",
+                            )
+                            logger.exception(f"Error loading resource: {str((i, j))}")
     for i in additionalTypes:
         additionalTypes[i].onfinishedloading(None)
 

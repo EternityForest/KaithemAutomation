@@ -287,13 +287,15 @@ class ResourceType:
     """Allows creating new resource types.
     Data keys starting with resource- are reserved.
 
+    Types with lower priority will load first.
     """
 
-    def __init__(self, type: str, mdi_icon="", schema=None):
+    def __init__(self, type: str, mdi_icon="", schema=None, priority=50.0):
         self.type = type
         self.mdi_icon = mdi_icon
         self.createButton = None
         self.schema: dict | None = schema
+        self.priority = priority
 
     @beartype.beartype
     def validate(self, d: dict[str, dict[str, Any] | list | str | int | float | bool | None]):

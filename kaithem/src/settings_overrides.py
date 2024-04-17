@@ -17,7 +17,7 @@ def list_keys() -> list[str]:
         return list(settings.keys())
 
 
-def get_cfg_val(key: str) -> str:
+def get_val(key: str) -> str:
     "Returns the highest priority setting for the key"
     with lock:
         if key in settings:
@@ -28,7 +28,7 @@ def get_cfg_val(key: str) -> str:
 
 
 @beartype.beartype
-def add_cfg_val(key: str, value: str, source: str = "<code>", priority: float | int = 0):
+def add_val(key: str, value: str, source: str = "<code>", priority: float | int = 0):
     """Add a value for the given key.   If empty string, remove it instead.
     The one with the highest priority is the one that is returned.
     Note that this does not save anything to disk.
@@ -55,5 +55,5 @@ def add_cfg_val(key: str, value: str, source: str = "<code>", priority: float | 
 
 with lock:
     for i in config.config:
-        if isinstance(config.config[i], str) and "_" in i or "." in i:
-            add_cfg_val(f"core.{i}", config.config[i], "<Config file>", 10)
+        if isinstance(config.config[i], (str, int, float)) and "/" in i:
+            add_val(i, str(config.config[i]), "<Config file>", 10)

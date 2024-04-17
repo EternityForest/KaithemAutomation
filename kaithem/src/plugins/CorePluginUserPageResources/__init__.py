@@ -486,7 +486,7 @@ def getPagesFromModules():
                             # Note that we are logging to the compiled event object
                             _Pages[i][m].errors.append(
                                 [
-                                    time.strftime(settings_overrides.get_cfg_val("core.strftime_string")),
+                                    time.strftime(settings_overrides.get_val("core/strftime_string")),
                                     tb,
                                     "Error while initializing",
                                 ]
@@ -687,7 +687,7 @@ class KaithemPage:
             )
             # When an error happens, log it and save the time
             # Note that we are logging to the compiled event object
-            page.errors.append([time.strftime(settings_overrides.get_cfg_val("core.strftime_string")), tb, data])
+            page.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb, data])
             try:
                 messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
             except Exception as e:

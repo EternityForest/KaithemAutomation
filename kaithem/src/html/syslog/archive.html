@@ -5,7 +5,7 @@ import time
 from kaithem.src.util import url
 from kaithem.src.config import config
 def formattime(x):
-    return time.strftime(settings_overrides.get_cfg_val('core.strftime_string'),time.localtime(x))
+    return time.strftime(settings_overrides.get_val('core/strftime_string'),time.localtime(x))
 %>
 
 <h2>Old log dumps</h2>

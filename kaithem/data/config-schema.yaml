@@ -197,10 +197,10 @@ properties:
         type: boolean
 
 
-    favicon_ico:
+    core/favicon_ico:
         type: string
 
-    strftime_string:
+    core/strftime_string:
         type: string
 
 additionalProperties: yes

@@ -8,17 +8,17 @@ from kaithem.src import dialogs, modules_state, settings_overrides
 
 
 class Entries:
-    def __init__(self, source: tuple[str, str], data) -> None:
+    def __init__(self, source: tuple[str, str], data, priority: float = 50) -> None:
         entries[source] = self
         self.data = copy.copy(data)
         self.source = source
 
         for i in self.data:
-            settings_overrides.add_cfg_val(i, self.data[i], str(self.source), 50)
+            settings_overrides.add_val(i, self.data[i], str(self.source), priority=priority)
 
     def close(self):
         for i in self.data:
-            settings_overrides.add_cfg_val(i, "", str(self.source))
+            settings_overrides.add_val(i, "", str(self.source))
         try:
             del entries[self.source]
         except KeyError:
@@ -34,7 +34,7 @@ entries: dict[tuple[str, str], Entries] = {}
 class ConfigType(modules_state.ResourceType):
     def onload(self, module, resourcename, value):
         x = entries.pop((module, resourcename), None)
-        entries[module, resourcename] = Entries((module, resourcename), value["data"])
+        entries[module, resourcename] = Entries((module, resourcename), value["data"], float(value.get("config-priority", 50)))
         if x:
             x.close()
 
@@ -50,7 +50,9 @@ class ConfigType(modules_state.ResourceType):
         del entries[module, name]
 
     def oncreaterequest(self, module, name, kwargs):
+        pr = kwargs.pop("config-priority")
         d = {"resource-type": self.type, "data": {kwargs["key"]: kwargs["value"]}}
+        d["config-priority"] = float(pr.strip())
 
         return d
 
@@ -61,14 +63,15 @@ class ConfigType(modules_state.ResourceType):
 
         n = kwargs.pop("_newkey", None)
         v = kwargs.pop("_newv", None)
+        pr = kwargs.pop("config-priority")
 
         if n and v:
             d["data"][n] = v.strip()
 
         for i in kwargs:
-            for c in r"""~!@#$%^&*()+`-=[]\{}|;':"',/<>?""":
+            for c in r"""~!@#$%^&*()+`-=[]\{}|;':"',<>?""":
                 if c in i:
-                    raise ValueError("Special chars are forbidden in keys: " + i)
+                    raise ValueError(f"Special char {c} is forbidden in keys: " + i)
 
             if kwargs[i] and kwargs[i][0] == "=":
                 raise ValueError("Values starting with = are reserved.")
@@ -76,6 +79,7 @@ class ConfigType(modules_state.ResourceType):
         d["data"].update(kwargs)
         d["data"] = {i.strip(): d["data"][i].strip() for i in d["data"] if d["data"][i].strip()}
 
+        d["config-priority"] = float(pr.strip())
         return d
 
     def createpage(self, module, path):
@@ -83,6 +87,7 @@ class ConfigType(modules_state.ResourceType):
         d.text_input("name", title="Resource Name", suggestions=[(i, i) for i in settings_overrides.list_keys()])
         d.text_input("key", title="Config Key")
         d.text_input("value", title="Config Value")
+        d.text_input("priority", title="Config Priority", default="50")
 
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
@@ -97,6 +102,8 @@ class ConfigType(modules_state.ResourceType):
         for i in sorted(list(value["data"].keys())):
             d.text_input(i, title=i, default=value["data"][i])
         d.text("")
+        d.text_input("config-priority", title="Config Priority", default=str(value.get("config-priority", "50")))
+
         d.text_input("_newkey", title="Add New Key?", suggestions=suggestions)
         d.text_input("_newv", title="Value For New Key?")
 

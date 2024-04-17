@@ -142,9 +142,9 @@ class webapproot:
     @cherrypy.expose
     def favicon_ico(self):
         cherrypy.response.headers["Cache-Control"] = "max-age=3600"
-        fn = os.path.join(directories.datadir, "static", settings_overrides.get_cfg_val("core.favicon_ico"))
+        fn = os.path.join(directories.datadir, "static", settings_overrides.get_val("core/favicon_ico"))
         if not os.path.exists(fn):
-            fn = os.path.join(directories.vardir, settings_overrides.get_cfg_val("core.favicon_ico"))
+            fn = os.path.join(directories.vardir, settings_overrides.get_val("core/favicon_ico"))
         return serve_file(fn)
 
     @cherrypy.expose

@@ -633,7 +633,7 @@ class BaseEvent:
         # TODO: Get rid of legacy error stuff
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object
-        self.errors.append([time.strftime(settings_overrides.get_cfg_val("core.strftime_string")), tb])
+        self.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb])
         # Keep only the most recent errors
         self.errors = self.errors[-50:]
 
@@ -1618,7 +1618,7 @@ def getEventsFromModules(only: str | None = None):
                 d._handle_exception(tb=i.error)
                 # Add the reason for the error to the actual object so it shows up on the page.
                 _events_by_module_resource[i.module, i.resource].errors.append(
-                    [time.strftime(settings_overrides.get_cfg_val("core.strftime_string")), str(i.error)]
+                    [time.strftime(settings_overrides.get_val("core/strftime_string")), str(i.error)]
                 )
                 messagebus.post_message(
                     "/system/notifications/errors",

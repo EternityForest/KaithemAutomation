@@ -321,7 +321,7 @@ except Exception:
     <table border=1 class="w-full">
         <tr>
             <td>Process Started</td>
-            <td>${time.strftime(settings_overrides.get_cfg_val('core.strftime_string'),time.localtime(systasks.systemStarted))}</td>
+            <td>${time.strftime(settings_overrides.get_val('core/strftime_string'),time.localtime(systasks.systemStarted))}</td>
         </tr>
         <tr>
             <td>HTTP Requests per minute(~5min avg)</td>

@@ -167,10 +167,10 @@ quotes-file: default
 ### Dynamically overridable in a module
 
 #Should be a path. If it is relative, starts in the datadir
-favicon_ico: img/favicon.ico
+core/favicon_ico: img/favicon.ico
 
 #How to format times and dates
-strftime_string: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
+core/strftime_string: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 
 
 #####################MISC#######################################################

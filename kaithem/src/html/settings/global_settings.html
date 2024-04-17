@@ -57,7 +57,7 @@ location = geolocation.getLocation('default')
 <dl>
     %for i in settings_overrides.list_keys():
     <dt>${i|h}</dt>
-    <dd>${settings_overrides.get_cfg_val(i)|h}</dd>
+    <dd>${settings_overrides.get_val(i)|h}</dd>
     %endfor
 </dl>
 </section>
