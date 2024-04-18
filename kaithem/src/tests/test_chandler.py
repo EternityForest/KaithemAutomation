@@ -50,6 +50,67 @@ def test_make_scene():
     assert not os.path.exists(os.path.join(directories.vardir, "chandler", "scenes", "TestingScene1.yaml"))
 
 
+def test_setup_cue():
+    # Ensure that if a setup cue exists, we go there first
+    # then go to default
+
+    s = scenes.Scene("TestingScene1", id="TEST")
+    board.addScene(s)
+
+    assert "TEST" in scenes.scenes
+
+    s.go()
+
+    assert s.active
+    assert s in scenes.active_scenes
+    assert s.cue.name == "default"
+
+    s.add_cue("__setup__")
+
+    s.stop()
+    s.go()
+
+    assert s.cueHistory[-2][0] == "__setup__"
+    assert s.cue.name == "default"
+
+    s.close()
+    board.rmScene(s)
+    assert "TestingScene1" not in scenes.scenes_by_name
+
+
+def test_checkpoint():
+    # Ensure that if a a checkpoint cue exists, we go there
+
+    s = scenes.Scene("TestingScene1", id="TEST")
+    board.addScene(s)
+
+    assert "TEST" in scenes.scenes
+
+    s.go()
+
+    assert s.active
+    assert s in scenes.active_scenes
+    assert s.cue.name == "default"
+
+    s.add_cue("checkpoint", checkpoint=True)
+
+    s.stop()
+    s.go()
+
+    assert s.cue.name == "default"
+
+    s.goto_cue("checkpoint")
+
+    s.stop()
+    s.go()
+
+    assert s.cue.name == "checkpoint"
+
+    s.close()
+    board.rmScene(s)
+    assert "TestingScene1" not in scenes.scenes_by_name
+
+
 def test_shuffle():
     s = scenes.Scene("TestingScene1", id="TEST")
     # Must add scenes to the board so we can save them and test the saving

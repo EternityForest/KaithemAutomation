@@ -41,7 +41,14 @@ class SimpleDialog:
 
     @beartype.beartype
     def text_input(
-        self, name: str, *, title: str | None = None, default: str = "", disabled=None, suggestions: list[tuple[str, str]] | None = None
+        self,
+        name: str,
+        *,
+        title: str | None = None,
+        default: str = "",
+        disabled=None,
+        suggestions: list[tuple[str, str]] | None = None,
+        multiline=False,
     ):
         "Add a text input. Datalist can be value, title pairs"
         if suggestions:
@@ -55,7 +62,13 @@ class SimpleDialog:
 
         disabled = " disabled" if disabled else ""
 
-        self.items.append((title, f'<input name="{name}" list="x-{id(suggestions)}"  value="{html.escape(default)}" {disabled}>'))
+        if multiline:
+            x = f"""<textarea name="{name}" {disabled} class="max-h-24rem"
+            oninput='this.style.height = "";
+            this.style.height = this.scrollHeight + "px"'>{html.escape(default)}</textarea>"""
+            self.items.append((title, x))
+        else:
+            self.items.append((title, f'<input name="{name}" list="x-{id(suggestions)}"  value="{html.escape(default)}" {disabled}>'))
 
     @beartype.beartype
     def checkbox(self, name: str, *, title: str | None = None, default=False, disabled=None):

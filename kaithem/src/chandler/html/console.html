@@ -170,7 +170,7 @@ ${lists}
 
     <main style="display:flex; flex-wrap:wrap; justify-content: center;" class="w-full">
 
-        <section class="window w-full h-8rem" v-if="Object.keys(sys_alerts).length">
+        <section class="window w-full max-h-12rem" v-if="Object.keys(sys_alerts).length">
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
                     <header :class="v['barrel-class']" class="padding">
@@ -1093,6 +1093,13 @@ ${lists}
                                             v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
                                             v-model="currentcue.number">
                                     </label>
+
+                                    <label>Checkpoint
+                                        <input :disabled="no_edit" type="number" v-model="currentcue.checkpoint"
+                                        title="At startup, jump to the last checkpoint cue you were in."
+                                        v-on:change="setCueProperty(currentcueid,'checkpoint', currentcue.checkpoint)">
+                                    </label>
+                                </p>
                                     <p>
                                         <label>
                                             <input :disabled="no_edit" type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"

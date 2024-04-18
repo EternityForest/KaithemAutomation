@@ -172,6 +172,7 @@ class Cue:
         self.media_wind_down: str
         self.probability: float | str
         self.values: dict[str, dict[str | int, str | int | float | None]]
+        self.checkpoint: bool
 
         self._markdown: str = kw.get("markdown", "").strip()
 
@@ -298,7 +299,7 @@ class Cue:
                     ]
                 )
 
-    def setRules(self, r: list[list[str | float | bool] | str | float | bool] | None):
+    def setRules(self, r: list[list[str | list[list[str]]]]):
         self.rules = r or []
         self.getScene().refresh_ules()
 

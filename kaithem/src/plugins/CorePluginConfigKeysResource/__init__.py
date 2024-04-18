@@ -86,7 +86,7 @@ class ConfigType(modules_state.ResourceType):
         d = dialogs.SimpleDialog("New Config Entries")
         d.text_input("name", title="Resource Name", suggestions=[(i, i) for i in settings_overrides.list_keys()])
         d.text_input("key", title="Config Key")
-        d.text_input("value", title="Config Value")
+        d.text_input("value", title="Config Value", multiline=True)
         d.text_input("priority", title="Config Priority", default="50")
 
         d.submit_button("Save")
@@ -100,12 +100,12 @@ class ConfigType(modules_state.ResourceType):
         suggestions = [(i, i) for i in settings_overrides.list_keys()]
 
         for i in sorted(list(value["data"].keys())):
-            d.text_input(i, title=i, default=value["data"][i])
+            d.text_input(i, title=i, default=value["data"][i], multiline=True)
         d.text("")
         d.text_input("config-priority", title="Config Priority", default=str(value.get("config-priority", "50")))
 
         d.text_input("_newkey", title="Add New Key?", suggestions=suggestions)
-        d.text_input("_newv", title="Value For New Key?")
+        d.text_input("_newv", title="Value For New Key?", multiline=True)
 
         d.submit_button("Save")
         return d.render(self.get_update_target(module, name))

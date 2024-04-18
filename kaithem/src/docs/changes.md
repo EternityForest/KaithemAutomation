@@ -3,6 +3,10 @@ Change Log
 ### 0.80.0
 - :coffin: Remove non-chandler simple video signage
 - :hammer: Pages and Events moved to core plugin(Code refactor, no change for end users)
+- :sparkles: Checkpoint cues. When a Chandler scene starts, it goes to the last cue it was in with the checkpoint flag.  The checkpoints are saved to disk as soon as you enter.
+-
+- :sparkles: \_\_setup\_\_ cues. Chandler scenes go to this cue if it exists at start before going to any checkpoint.
+
 
 
 ### 0.79.0

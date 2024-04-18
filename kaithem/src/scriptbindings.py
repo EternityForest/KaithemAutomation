@@ -74,7 +74,7 @@ from scullery import workers
 from scullery.scheduling import scheduler
 
 from . import astrallibwrapper as sky
-from . import geolocation, tagpoints, util
+from . import geolocation, settings_overrides, tagpoints, util
 
 simpleeval.MAX_POWER = 1024
 
@@ -237,6 +237,10 @@ def is_dark(lat=None, lon=None):
     return sky.is_dark(lat, lon)
 
 
+def cfg(key: str):
+    return settings_overrides.get_val(key)
+
+
 globalUsrFunctions = {
     "unixtime": time.time,
     "millis": millis,
@@ -253,6 +257,7 @@ globalUsrFunctions = {
     "is_night": is_night,
     "is_light": is_light,
     "is_day": is_day,
+    "cfg": cfg,
 }
 
 globalConstants = {"e": math.e, "pi": math.pi}

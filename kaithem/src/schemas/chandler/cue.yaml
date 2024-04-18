@@ -11,6 +11,11 @@ properties:
     type: string
     default: ''
 
+  checkpoint:
+    type: boolean
+    default: false
+    description: If true, when entering this cue, save it to disk to jump back later.
+
   fade_in:
     type: number
     default: 0

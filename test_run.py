@@ -26,5 +26,11 @@ class MyPlugin:
         print("*** test run reporting finishing")
 
 
+@pytest.fixture(scope="function", autouse=True)
+def exit_pytest_first_failure():
+    if pytest.TestReport.outcome == "failed":
+        pytest.exit("Exiting pytest")
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main(["-qq"], plugins=[MyPlugin()]))

@@ -24,7 +24,7 @@ from tinytag import TinyTag
 
 from .. import schemas, tagpoints, util, widgets
 from ..kaithemobj import kaithem
-from . import blendmodes, core, mqtt, universes
+from . import blendmodes, core, mqtt, persistance, universes
 from .core import disallow_special
 from .cue import Cue, allowedCueNameSpecials, cues, fnToCueName, normalize_shortcut, shortcut_codes
 from .fadecanvas import FadeCanvas
@@ -622,6 +622,8 @@ class Scene:
         # Based on what values are in the cue and what values are inherited
         self.affect: list[str] = []
 
+        self.affect_tags: list[str] = []
+
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
         self.cue_cached_vals_as_arrays: dict[str, numpy.typing.NDArray[Any]] = {}
@@ -969,8 +971,12 @@ class Scene:
 
         return random.choices(names, weights=weights)[0]
 
-    def _parseCueName(self, cue_name: str) -> str:
-        "Take a raw cue name and find an actual matching cue. Handles things like shuffle"
+    def _parseCueName(self, cue_name: str) -> tuple[str, float | int]:
+        """
+        Take a raw cue name and find an actual matching cue. Handles things like shuffle
+        Returns a tuple of cuename, entered_time because some special cues are things
+        like stored checkpoints which may have an old entered_time.
+        """
         if cue_name == "__shuffle__":
             x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
 
@@ -981,6 +987,18 @@ class Scene:
                     x.remove(history_item[0])
 
             cue_name = self.pick_random_cue_from_names(x)
+
+        elif cue_name == "__checkpoint__":
+            c = persistance.get_checkpoint(self.id)
+
+            if c:
+                # Can't checkpoint a special cue
+                if c[0].startswith("__"):
+                    return ("", 0)
+                if c[0] in self.cues:
+                    if self.cues[c[0]].checkpoint:
+                        return (c[0], c[1])
+            return ("", 0)
 
         elif cue_name == "__schedule__":
             # Fast forward through scheduled @time endings.
@@ -1076,7 +1094,7 @@ class Scene:
                         if times[entry] < time.time():
                             most_recent = times[entry], entry
                 if most_recent[1]:
-                    return most_recent[1]
+                    return (most_recent[1], most_recent[0])
 
         elif cue_name == "__random__":
             x = [i.name for i in self.cues_ordered if not i.name == self.cue.name]
@@ -1133,7 +1151,8 @@ class Scene:
                 if cue_i.number - (float(cue_name) * 1000) < 0.001:
                     cue_name = cue_i.name
                     break
-        return cue_name
+
+        return (cue_name, 0)
 
     def goto_cue(
         self,
@@ -1214,7 +1233,9 @@ class Scene:
                     self.stop()
                     return
 
-                cue = self._parseCueName(cue)
+                cue, cuetime = self._parseCueName(cue)
+
+                cue_entered_time = cuetime or cue_entered_time
 
                 if not cue:
                     return
@@ -1488,6 +1509,10 @@ class Scene:
                 if sc:
                     shortcutCode(sc, exclude=self)
                 self.cue = self.cues[cue]
+
+                if self.cue.checkpoint:
+                    persistance.set_checkpoint(self.id, self.cue.name)
+
                 self.cueTagClaim.set(self.cues[cue].name, annotation="SceneObject")
 
                 self.recalc_randomize_modifier()
@@ -1514,6 +1539,12 @@ class Scene:
                 self.preload_next_cue_sound()
 
                 self.media_link_socket.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
+
+            if self.cue.name == "__setup__":
+                self.goto_cue("__checkpoint__")
+
+            if self.cue.name == "__setup__":
+                self.goto_cue("default")
 
     def apply_tracked_values(self, cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -2148,11 +2179,13 @@ class Scene:
             self.manualAlpha = False
             self.active = True
 
-            if not self.cue:
-                self.goto_cue("default", sendSync=False, cause="start")
+            if "__setup__" in self.cues:
+                self.goto_cue("__setup__", sendSync=False, cause="start")
             else:
-                # Re-enter cue to create the cache
-                self.goto_cue(self.cue.name, cause="start")
+                self.goto_cue("__checkpoint__", sendSync=False, cause="start")
+                if not self.cue:
+                    self.goto_cue("default", sendSync=False, cause="start")
+
             # Bug workaround for bug where scenes do nothing when first activated
             self.canvas.paint(
                 0,
