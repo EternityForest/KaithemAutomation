@@ -34,6 +34,12 @@ def get_con():
 rl = RateLimiter(hz=1 / 20, burst=300)
 
 
+def del_checkpoint(sceneid: str):
+    c = get_con()
+    c.execute("DELETE FROM checkpoint WHERE sceneid=?", (sceneid,))
+    c.commit()
+
+
 def set_checkpoint(sceneid: str, cuename: str):
     if not rl.limit():
         raise RuntimeError("Rate limit exceeded for entering checkpoint scenes")

@@ -13,7 +13,7 @@ from scullery import scheduling, snake_compat
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas
 from ..kaithemobj import kaithem
-from . import blendmodes, console_abc, core, fixtureslib, scenes, universes
+from . import blendmodes, console_abc, core, fixtureslib, persistance, scenes, universes
 from .core import logger
 from .scenes import Scene, cues, event
 from .universes import getUniverse, getUniverses
@@ -753,6 +753,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             i.stop()
             scenes.scenes_by_name.pop(i.name)
             self.linkSend(["del", i.id])
+            persistance.del_checkpoint(i.id)
 
     def guiPush(self, snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"

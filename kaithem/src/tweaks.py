@@ -128,7 +128,7 @@ def installThreadLogging():
                     raise e
             else:
                 try:
-                    threadlogger.info(
+                    threadlogger.debug(
                         "Thread starting: "
                         + self.name
                         + " with ID: "
@@ -138,7 +138,7 @@ def installThreadLogging():
                     )
 
                     run_old(*args, **kw)
-                    threadlogger.info("Thread stopping: " + self.name + " with ID: " + str(threading.current_thread().ident))
+                    threadlogger.debug("Thread stopping: " + self.name + " with ID: " + str(threading.current_thread().ident))
 
                 except Exception as e:
                     threadlogger.exception(

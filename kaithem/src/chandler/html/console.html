@@ -502,11 +502,14 @@ ${lists}
                                     <i v-if="cuemeta[editingScene.cue].name==i[1].name"
                                         class="mdi mdi-arrow-right-bold-outline nomargin"></i>
 
+
                                     <span title="Cue number, double click to change." style="width:6em; margin: 6px"
                                         v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
 
 
                                     <span>{{i[1].name}}</span>
+
+                                    <span  title="Checkpoint Cue" v-if="i[1].checkpoint" class="mdi mdi-star-four-points-outline"></span>
 
                                     <span v-if="selectedCues[scenename]==i[1].name"><i
                                             class="mdi mdi-pencil nomargin"></i></span>
@@ -605,7 +608,8 @@ ${lists}
 
 
             <div v-if="currentcue">
-                <h3>Editing Cue: {{currentcue.name}}</h3>
+                <h3><i
+                    class="mdi mdi-pencil nomargin"></i>Editing Cue: {{currentcue.name}}</h3>
                 <p v-if="currentcue.name.startsWith('__')" class="highlight">Cues starting with __ are special cues.
                     They are never chosen in random selections or as the default next cue and may have predefined system functions attatched.</p>
 
@@ -1095,7 +1099,7 @@ ${lists}
                                             v-model="currentcue.number">
                                     </label>
 
-                                    <label>Checkpoint
+                                    <label><i class="mdi mdi-star-four-points-outline"></i>Checkpoint
                                         <input :disabled="no_edit" type="checkbox" v-model="currentcue.checkpoint"
                                         title="At startup, jump to the last checkpoint cue you were in."
                                         v-on:change="setCueProperty(currentcueid,'checkpoint', currentcue.checkpoint)">

@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 import subprocess
 import threading
 
@@ -308,3 +309,46 @@ def checkDmesg():
 
 
 checkDmesg()
+
+
+ram_alert = alerts.Alert(
+    "Bitflip Error Detected",
+    priority="error",
+    description="The server may have a bad RAM module",
+)
+
+# Allocate random chunks of memory, try to detect bit errors.
+# We expect this to fire about once a year on normal systems.
+# Randomize size so it can fit in fragmented places for max coverage, if ran for a very long time.
+ramTestData = b""
+lastRamTestValue = 0
+bitErrorTestLock = threading.Lock()
+
+
+@scheduling.scheduler.every_hour
+def checkBitErrors():
+    global ramTestData, lastRamTestValue
+    with bitErrorTestLock:
+        if not lastRamTestValue:
+            for i in ramTestData:
+                if not i == 0:
+                    ram_alert.trip()
+                    messagebus.post_message(
+                        "/system/notifications/errors",
+                        f"RAM Bitflip 0>1 detected: val{str(i)}",
+                    )
+
+            ramTestData = b"\xff" * int(1024 * 2048 * random.random())
+            lastRamTestValue = 255
+
+        else:
+            for i in ramTestData:
+                if not i == 255:
+                    ram_alert.trip()
+                    messagebus.post_message(
+                        "/system/notifications/errors",
+                        f"RAM Bitflip 1>0 detected: val{str(i)}",
+                    )
+
+            ramTestData = b"\0" * int(1024 * 2048 * random.random())
+            lastRamTestValue = 0

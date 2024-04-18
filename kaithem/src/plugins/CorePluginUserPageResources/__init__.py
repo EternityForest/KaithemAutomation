@@ -24,9 +24,8 @@ from mako.lookup import TemplateLookup
 
 from kaithem.api.web import render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
-
-from ... import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
-from ...util import split_escape, url
+from kaithem.src import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
+from kaithem.src.util import split_escape, url
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
@@ -201,7 +200,7 @@ class CompiledPage:
         # Mako template code.   It's main use is for self modifying pages
 
         self.localAPI = CompiledPageAPIObject(self)
-        from ... import kaithemobj
+        from kaithem.src import kaithemobj
 
         self.kaithemobj = kaithemobj
 

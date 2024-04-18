@@ -25,6 +25,8 @@ configuredHandlers = {}
 
 all_handlers = weakref.WeakValueDictionary()
 
+logging.basicConfig(level=logging.INFO)
+
 
 def at_exit():
     """
@@ -356,13 +358,14 @@ syslogger = LoggingHandler(
     "system",
     fn="system",
     folder=os.path.join(directories.logdir, "dumps"),
-    level=20,
+    level=logging.INFO,
     entries_per_file=config["log-dump-size"],
     bufferlen=config["log-buffer"],
     keep=unitsofmeasure.str_to_int_si_multipliers(config["keep-log-files"]),
     compress=config["log-compress"],
     doprint=False,
 )
+logging.getLogger("system").addHandler(syslogger)
 
 # Linux only way of recovering backups even if the
 if os.path.exists(f"/dev/shm/kaithemdbglog_{getpass.getuser()}"):
@@ -421,3 +424,4 @@ if os.path.exists("/dev/shm"):
         exclude_print="system",
     )
     shmhandler.isShmHandler = True
+    logging.getLogger().addHandler(shmhandler)

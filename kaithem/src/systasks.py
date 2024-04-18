@@ -1,24 +1,22 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from . import persist, directories
-import os
-import time
 import atexit
+import gc
+import logging
+import os
 import platform
 import re
-import threading
-import logging
 import socket
-import gc
-import random
+import threading
+import time
+
 import cherrypy
 from scullery import scheduling
-from . import messagebus, unitsofmeasure, util
-from .config import config
-
 from zeroconf import ServiceBrowser, ServiceStateChange
 
+from . import directories, messagebus, persist, unitsofmeasure, util
+from .config import config
 
 # very much not thread safe, doesn't matter, it's only for one UI page
 httpservices = []
@@ -58,9 +56,7 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
 # Not common enough to waste CPU all the time on
 # browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
 
-browser2 = ServiceBrowser(
-    util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change]
-)
+browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change])
 
 
 # Can't think of anywhere else to put this thing.
@@ -74,15 +70,11 @@ lastsaved = time.time()
 def getcfg():
     global saveinterval, dumplogsinterval, lastdumpedlogs
     if not config["autosave-state"] == "never":
-        saveinterval = unitsofmeasure.time_interval_from_string(
-            config["autosave-state"]
-        )
+        saveinterval = unitsofmeasure.time_interval_from_string(config["autosave-state"])
 
     lastdumpedlogs = time.time()
     if not config["autosave-logs"] == "never":
-        dumplogsinterval = unitsofmeasure.time_interval_from_string(
-            config["autosave-logs"]
-        )
+        dumplogsinterval = unitsofmeasure.time_interval_from_string(config["autosave-logs"])
 
 
 getcfg()
@@ -103,9 +95,7 @@ syslogger = logging.getLogger("system")
 
 def doUPnP():
     global upnpMapping
-    upnpsettingsfile = os.path.join(
-        directories.vardir, "core.settings", "upnpsettings.yaml"
-    )
+    upnpsettingsfile = os.path.join(directories.vardir, "core.settings", "upnpsettings.yaml")
 
     upnpsettings = persist.getStateFile(upnpsettingsfile)
     p = upnpsettings.get("wan_port", 0)
@@ -115,9 +105,7 @@ def doUPnP():
             lp = config["https-port"]
             from . import upnpwrapper
 
-            upnpMapping = upnpwrapper.addMapping(
-                p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp
-            )
+            upnpMapping = upnpwrapper.addMapping(p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp)
         except Exception:
             syslogger.exception("Could not create mapping")
     else:
@@ -146,41 +134,6 @@ firstrun = True
 checked = False
 
 
-# Allocate random chunks of memory, try to detect bit errors.
-# We expect this to fire about once a year on normal systems.
-# Randomize size so it can fit in fragmented places for max coverage, if ran for a very long time.
-ramTestData = b""
-lastRamTestValue = 0
-bitErrorTestLock = threading.Lock()
-
-
-@scheduling.scheduler.every_hour
-def checkBitErrors():
-    global ramTestData, lastRamTestValue
-    with bitErrorTestLock:
-        if not lastRamTestValue:
-            for i in ramTestData:
-                if not i == 0:
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        f"RAM Bitflip 0>1 detected: val{str(i)}",
-                    )
-
-            ramTestData = b"\xff" * int(1024 * 2048 * random.random())
-            lastRamTestValue = 255
-
-        else:
-            for i in ramTestData:
-                if not i == 255:
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        f"RAM Bitflip 1>0 detected: val{str(i)}",
-                    )
-
-            ramTestData = b"\0" * int(1024 * 2048 * random.random())
-            lastRamTestValue = 0
-
-
 time_last_minute = 0
 rhistory = []
 
@@ -196,7 +149,10 @@ def check_scheduler():
         if time.time() - (time_last_minute) < 58:
             messagebus.post_message(
                 "/system/notifications/warnings",
-                "Kaithem has detected a scheduled event running too soon.  This tasks should run every 60s.  This error may indicate a 'catch up' event after high load. History:"
+                """Kaithem has detected a scheduled event running
+                  too soon.  This tasks should run every 60s.
+                  This error may indicate a 'catch up' event
+                  after high load. History:"""
                 + repr(rhistory),
             )
     time_last_minute = time.time()
@@ -230,9 +186,7 @@ def logstats():
 
             usedp = round((1 - (free + cache) / float(total)), 3)
             total = round(total / 1024.0, 2)
-            if (time.time() - lastram > (60 * 60)) or (
-                (time.time() - lastram > 600) and usedp > 0.8
-            ):
+            if (time.time() - lastram > (60 * 60)) or ((time.time() - lastram > 600) and usedp > 0.8):
                 logger.info(f"Total ram usage: {str(round(usedp * 100, 1))}")
                 lastram = time.time()
 
@@ -242,9 +196,7 @@ def logstats():
                     if time.time() - lastramwarn > 3600:
                         messagebus.post_message(
                             "/system/notifications/warnings",
-                            "Total System Memory Use rose above "
-                            + str(int(config["mem-use-warn"] * 100))
-                            + "%",
+                            "Total System Memory Use rose above " + str(int(config["mem-use-warn"] * 100)) + "%",
                         )
                         lastramwarn = time.time()
 
@@ -256,9 +208,7 @@ def logstats():
 
 def sd():
     messagebus.post_message("/system/shutdown", "System about to shut down or restart")
-    messagebus.post_message(
-        "/system/notifications/important", "System shutting down now"
-    )
+    messagebus.post_message("/system/notifications/important", "System shutting down now")
 
 
 sd.priority = 25

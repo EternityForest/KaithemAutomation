@@ -92,7 +92,7 @@ def get_next_run(name, i):
 
 
 def run_in_thread(f: typing.Callable, name: str):
-    t = threading.Thread(target=f, name=f"nostartstoplog {name}")
+    t = threading.Thread(target=f, name=f"nostartstoplog.{name}")
     t.start()
 
 

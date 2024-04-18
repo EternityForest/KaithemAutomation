@@ -26,7 +26,7 @@ def import_in_thread(m):
         try:
             t = time.monotonic()
             plugins[m] = importlib.import_module(m)
-            logger.info(f"Loaded plugin {m} in {round((time.monotonic()-t) / 1000,2)}ms")
+            logger.info(f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms")
         except Exception:
             logger.exception("Error loading plugin " + m)
             messagebus.post_message(
