@@ -2,18 +2,18 @@
 
 [[package]]
 name = "aioesphomeapi"
-version = "24.0.0"
+version = "24.1.0"
 description = "Python API for interacting with ESPHome devices."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "aioesphomeapi-24.0.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e80563b39dd252971f80e4194b8f018cb7d0dcdb8c59eebda4659dd12d06b6a9"},
-    {file = "aioesphomeapi-24.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1db340cade94345d6243450bb1dc1aa06c8989168029ca119959c90580ac9c7b"},
-    {file = "aioesphomeapi-24.0.0-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:ba0536da54b861d5dc66bb88f7d2bd4447985c06ef765f09221745f68df6d49c"},
-    {file = "aioesphomeapi-24.0.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2e69c151fee553e747623bb77c0392e96d20c56539834802d56acf489b61b77b"},
-    {file = "aioesphomeapi-24.0.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1f0b5296a026fa654e79c3a0f14d84569c264b6d0e01389172eb57a0e7f8f00b"},
-    {file = "aioesphomeapi-24.0.0-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:45bbc4c2e051640e8fae2750e796063cd8098dc95254291fffe3cccd2683b2ae"},
-    {file = "aioesphomeapi-24.0.0.tar.gz", hash = "sha256:86259601af43369ce51908bf97602a8c77ef1ca8c0bef2ab3302096e2a578420"},
+    {file = "aioesphomeapi-24.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a98d984a325b34adb055c932f82375f3d8136069ee56621e74792ca3b9e99ca9"},
+    {file = "aioesphomeapi-24.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3cdb067e051a544a3f30008fd61476a9b6d4fa6963a564d29ee4cdc1684374ff"},
+    {file = "aioesphomeapi-24.1.0-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b60ea63ff334040a27cfac8f92d577db62de51804f6916e6f92cf289c884a100"},
+    {file = "aioesphomeapi-24.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb4e07f3a6a7a5060e1d985c51c6e4715da074f9f81ab159ce9e5ea2c25c0be5"},
+    {file = "aioesphomeapi-24.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f7184c4c2cd2b354720f4eca5678784e7054366953c0f30038778fe118f6180a"},
+    {file = "aioesphomeapi-24.1.0-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:16ce34f61e60288fb42ec797a4600010a0f7b39e7d94cafa1b73bce9e837ad3a"},
+    {file = "aioesphomeapi-24.1.0.tar.gz", hash = "sha256:f86fa709c089157fdd896edb5b2711cf6716680d5381c8280705f785d8dafa28"},
 ]
 
 [package.dependencies]
@@ -39,13 +39,13 @@ files = [
 
 [[package]]
 name = "apprise"
-version = "1.7.5"
+version = "1.7.6"
 description = "Push Notifications that work with just about every platform!"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "apprise-1.7.5-py3-none-any.whl", hash = "sha256:4e5bba4ba763b237f80a8e386266a5538e6be262c3da4d4578e877c556d7070c"},
-    {file = "apprise-1.7.5.tar.gz", hash = "sha256:0ac34b27009d5c625e87d33ec85fa577062b57f3bced6d7223e17c5afbb40e68"},
+    {file = "apprise-1.7.6-py3-none-any.whl", hash = "sha256:a98d815dbf950c92b5d8e7c2a4ec30e86257cece26a38ae62ec8fd8f7c551cb0"},
+    {file = "apprise-1.7.6.tar.gz", hash = "sha256:077f09309cc8a6c9063dbd614b343807d527d546693b7fe8fc5a4433502fea6c"},
 ]
 
 [package.dependencies]
@@ -124,18 +124,18 @@ files = [
 
 [[package]]
 name = "backports-tarfile"
-version = "1.0.0"
+version = "1.1.0"
 description = "Backport of CPython tarfile module"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "backports.tarfile-1.0.0-py3-none-any.whl", hash = "sha256:bcd36290d9684beb524d3fe74f4a2db056824c47746583f090b8e55daf0776e4"},
-    {file = "backports.tarfile-1.0.0.tar.gz", hash = "sha256:2688f159c21afd56a07b75f01306f9f52c79aebcc5f4a117fb8fbb4445352c75"},
+    {file = "backports.tarfile-1.1.0-py3-none-any.whl", hash = "sha256:b2f4df351db942d094db94588bbf2c6938697a5f190f44c934acc697da56008b"},
+    {file = "backports_tarfile-1.1.0.tar.gz", hash = "sha256:91d59138ea401ee2a95e8b839c1e2f51f3e9ca76bdba8b6a29f8d773564686a8"},
 ]
 
 [package.extras]
 docs = ["furo", "jaraco.packaging (>=9.3)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
-testing = ["pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)"]
+testing = ["jaraco.test", "pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)"]
 
 [[package]]
 name = "beartype"
@@ -650,13 +650,13 @@ test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "holidays"
-version = "0.46"
+version = "0.47"
 description = "Generate and work with holidays in Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "holidays-0.46-py3-none-any.whl", hash = "sha256:25e1ccca4b7cafb8602e0dec286a38183eb02029e4182c0ff1f2c3dc69d0cf82"},
-    {file = "holidays-0.46.tar.gz", hash = "sha256:f6b08f97ba8aa8e7a38a0a29e0be9002af973ad80c1e0bb2241bc1eaa8aa906e"},
+    {file = "holidays-0.47-py3-none-any.whl", hash = "sha256:b1a3487a6b0e711c7085e75720e293e5bd05004077d85f1d68f4521b3ae009a7"},
+    {file = "holidays-0.47.tar.gz", hash = "sha256:8ca475d2f18b78abc453ccda5949346da10a3a15b82ef429821edc702e752bbc"},
 ]
 
 [package.dependencies]
@@ -765,13 +765,13 @@ six = "*"
 
 [[package]]
 name = "itsdangerous"
-version = "2.1.2"
+version = "2.2.0"
 description = "Safely pass data to untrusted environments and back."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "itsdangerous-2.1.2-py3-none-any.whl", hash = "sha256:2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44"},
-    {file = "itsdangerous-2.1.2.tar.gz", hash = "sha256:5dbbc68b317e5e42f327f9021763545dc3fc3bfe22e6deb96aaf1fc38874156a"},
+    {file = "itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"},
+    {file = "itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"},
 ]
 
 [[package]]
@@ -1523,12 +1523,12 @@ totp = ["cryptography"]
 
 [[package]]
 name = "peewee"
-version = "3.17.1"
+version = "3.17.3"
 description = "a little orm"
 optional = false
 python-versions = "*"
 files = [
-    {file = "peewee-3.17.1.tar.gz", hash = "sha256:e009ac4227c4fdc0058a56e822ad5987684f0a1fbb20fed577200785102581c3"},
+    {file = "peewee-3.17.3.tar.gz", hash = "sha256:ef15f90b628e41a584be8306cdc3243c51f73ce88b06154d9572f6d0284a0169"},
 ]
 
 [[package]]
@@ -2373,20 +2373,20 @@ test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "po
 
 [[package]]
 name = "scullery"
-version = "0.1.16"
+version = "0.1.17"
 description = "A utility library based on KaithemAutomation featuring a GStreamer wrapper"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "scullery-0.1.16-py3-none-any.whl", hash = "sha256:470824a0c08e0fb1162b6fc1ec15c69958c1462f67980ec2017e504c1abd4339"},
-    {file = "scullery-0.1.16.tar.gz", hash = "sha256:73abf1932f57a92137b82e0fb1f199e5683b9a175bcf1f00e55815061c82606a"},
+    {file = "scullery-0.1.17-py3-none-any.whl", hash = "sha256:4003da82644c3798273dd517a123febd4fdee87bfefeb261940484826b9d146a"},
+    {file = "scullery-0.1.17.tar.gz", hash = "sha256:cbbdd7e58283938ce380b6880ea17f1f6a990cadd315c62f29666f17e7111193"},
 ]
 
 [package.dependencies]
+beartype = "*"
 paho-mqtt = "*"
 pint = "*"
 pyyaml = "*"
-typeguard = "*"
 
 [[package]]
 name = "setproctitle"
@@ -2490,18 +2490,18 @@ test = ["pytest"]
 
 [[package]]
 name = "setuptools"
-version = "69.2.0"
+version = "69.5.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "setuptools-69.2.0-py3-none-any.whl", hash = "sha256:c21c49fb1042386df081cb5d86759792ab89efca84cf114889191cd09aacc80c"},
-    {file = "setuptools-69.2.0.tar.gz", hash = "sha256:0ff4183f8f42cd8fa3acea16c45205521a4ef28f73c6391d8a25e92893134f2e"},
+    {file = "setuptools-69.5.1-py3-none-any.whl", hash = "sha256:c636ac361bc47580504644275c9ad802c50415c7522212252c033bd15f301f32"},
+    {file = "setuptools-69.5.1.tar.gz", hash = "sha256:6c1fccdac05a97e598fb0ae3bbed5904ccb317337a51139dcd51453611bbb987"},
 ]
 
 [package.extras]
-docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
-testing = ["build[virtualenv]", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "mypy (==1.9)", "packaging (>=23.2)", "pip (>=19.1)", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff (>=0.2.1)", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "mypy (==1.9)", "packaging (>=23.2)", "pip (>=19.1)", "pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy", "pytest-perf", "pytest-ruff (>=0.2.1)", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
 testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "packaging (>=23.2)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
@@ -3127,4 +3127,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "81c2c2da5139601985252cd3dad657829358fc78d95af86ed1ce6b6a3530952c"
+content-hash = "e82bada357f9efbeae5b56f170901524b5a9cc7378c69880438a799aa604fe84"

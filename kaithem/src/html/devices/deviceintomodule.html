@@ -1,29 +1,29 @@
 <%include file="/pageheader.html"/>
-<%! 
+<%!
 from kaithem.src import devices
 %>
 <datalist id="deviceTypes">
     %for i in devices.device_types:
-    <option value="${i}" title=${devices.device_types[i].description} >
+    <option value="${i}" title="${devices.device_types[i].description}" ></option>
     %endfor
 
     %for i in devices.importedDeviceTypes:
-    <option value="${i}" title=${i} >
+    <option value="${i}" title="${i}"></option>
     %endfor
-    
+
 </datalist>
 
 <title>Create Device</title>
 
 
 <h2>Create New Device in a module</h2>
-<div class=window>
+<div class="window">
 <form action="/devices/createDevicePage/dummy" method="post">
-<Label>Target Module:<input name="module"  value="${module|h}"></Label>
-<Label>Target Resource Name:<input name="resource" value="${path|h}"></Label>
-<Label>Type:<input name="type" placeholder="Click for dropdown" list="deviceTypes"></Label>
+<label>Target Module:<input type="text" name="module"  value="${module|h}"></label>
+<label>Target Resource Name:<input type="text" name="resource" value="${path|h}"></label>
+<label>Type:<input type="text" name="type" placeholder="Click for dropdown" list="deviceTypes"></label>
 
-<input type="submit">
+<button type="submit">Create</button>
 </form>
 </div>
 <%include file="/pagefooter.html"/>

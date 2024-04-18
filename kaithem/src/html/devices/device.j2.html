@@ -22,22 +22,22 @@
         text-align: center;
     }
 </style>
-<script type="text/javascript" src="/static/js/widget.js"></script>
-<script type="text/javascript" src="/static/js/thirdparty/mpegts.js"></script>
+<script src="/static/js/widget.js"></script>
+<script src="/static/js/thirdparty/mpegts.js"></script>
 
-<link href="/static/js/thirdparty/croppr/croppr.css" rel="stylesheet" />
-<script type="text/javascript" src="/static/js/thirdparty/croppr/croppr.js"></script>
+<link href="/static/js/thirdparty/croppr/croppr.css" rel="stylesheet">
+<script src="/static/js/thirdparty/croppr/croppr.js"></script>
 
 
-<script type="text/javascript" src="/static/js/thirdparty/jquery3.js"></script>
-<script type="text/javascript" src="/static/js/thirdparty/editTable/editTable.min.js"></script>
+<script src="/static/js/thirdparty/jquery3.js"></script>
+<script src="/static/js/thirdparty/editTable/editTable.min.js"></script>
 <script src="/static/showdown.min.js"></script>
 
 
 
-<script type="text/javascript" src="/static/js/thirdparty/evm/jsfeat.js"></script>
-<script type="text/javascript" src="/static/js/thirdparty/evm/compat.js"></script>
-<script type="text/javascript" src="/static/js/thirdparty/evm/color.js"></script>
+<script src="/static/js/thirdparty/evm/jsfeat.js"></script>
+<script src="/static/js/thirdparty/evm/compat.js"></script>
+<script src="/static/js/thirdparty/evm/color.js"></script>
 
 <link rel="stylesheet" href="/static/js/thirdparty/editTable/editTable.min.css">
 
@@ -99,7 +99,7 @@
             style="height: 22em; min-width: 22em; max-width: 45vw; margin: auto;"></div>
     </div>
 
-    <section style="width: 95%;" class="window padding">
+    <section class="window padding w-full">
 
         {% if not hasattr(obj,'_kaithem_is_subdevice') %}
         <form method="post" action="/devices/discoveryStep?type={{ url(data.get('type','')) }}&devname={{ url(name) }}">
@@ -123,16 +123,16 @@
                     Storing outside of a module may be deprecated at some point.
                 </p>
 
-                <table border="1" style="width:100%">
+                <table border="1" class="w-full">
 
                     <tr>
                         <td>Store settings in Module(blank=store in main devices list)</td>
-                        <td><input required list="k_modules" name="temp.kaithem.store_in_module"
+                        <td><input type="text" required list="k_modules" name="temp.kaithem.store_in_module"
                                 value="{{ obj.parent_module or '' | escape }}"></td>
                     </tr>
                     <tr>
                         <td>Resource Name(blank=use device name)</td>
-                        <td><input name="temp.kaithem.store_in_resource" value="{{ obj.parent_resource or ''| escape }}">
+                        <td><input type="text" name="temp.kaithem.store_in_resource" value="{{ obj.parent_resource or ''| escape }}">
                         </td>
                     </tr>
                 </table>
@@ -265,7 +265,7 @@
                                 onblur="this.type='password'">
                             {% else %}
                             <input name="{{ i| escape }}" id="property_{{ i| escape }}"
-                                value="{{ obj.config[i]| escape }}" style="width: 100%;">
+                                value="{{ obj.config[i]| escape }}" class="w-full">
                             {% endif %}
 
                             {% endif %}

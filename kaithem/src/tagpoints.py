@@ -44,6 +44,11 @@ def _make_tag_info_helper(t: GenericTagPointClass[Any]):
     return f
 
 
+# For the tag numbering feature.
+# Maps assigned numbers to names,
+# only for tags where someone has requested a number.
+assigned_unique_numbers: dict[str, int] = {}
+
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
 
@@ -215,6 +220,8 @@ class GenericTagPointClass(Generic[T]):
         # This string is just used to stash some extra info
         self._subtype: str = ""
 
+        self.unique_int = 0
+
         # Start timestamp at 0 meaning never been set
         # Value, timestamp, annotation.  This is the raw value,
         # and the value could actually be a callable returning a value
@@ -346,6 +353,25 @@ class GenericTagPointClass(Generic[T]):
         if self.name.startswith("="):
             self.exprClaim = self.createGetterFromExpression(self.name)
             self.writable = False
+
+    def get_unique_number(self):
+        """Return a number uniquely representing this tag.
+        It will
+        """
+        with lock:
+            if self.unique_int:
+                return self.unique_int
+            else:
+                for i in range(1000000):
+                    if i not in assigned_unique_numbers:
+                        assigned_unique_numbers[i] = self.name
+                        self.unique_int = i
+                        break
+                    elif assigned_unique_numbers[i] == self.name:
+                        self.unique_int = i
+                        break
+
+                return self.unique_int
 
     @property
     def meterWidget(self):

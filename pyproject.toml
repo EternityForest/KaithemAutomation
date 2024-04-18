@@ -13,7 +13,7 @@ line-length = 140
 [tool.poetry.dependencies]
 python = "^3.10.0"
 # First party
-scullery = "^0.1.16"
+scullery = ">=0.1.17"
 iot-devices = "*"
 icemedia = ">=0.1.2"
 NVRChannel = "*"

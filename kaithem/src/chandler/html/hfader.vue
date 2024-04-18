@@ -2,7 +2,7 @@
 
 <template id="h-fader">
     <div class="hfader">
-        <b style="width: 98%;" v-if="chinfo == undefined">{{ i.ch }}</b>
+        <b class="w-full" v-if="chinfo == undefined">{{ i.ch }}</b>
 
         <div>
             <b v-if="chinfo" v-bind:title="'Actual channel:' + i.u + ':' + i.ch">{{ i.ch }}</b>

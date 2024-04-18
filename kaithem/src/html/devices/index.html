@@ -52,7 +52,7 @@ else:
 %>
 
 %if hasattr(devObj, 'subdevices') and devObj.subdevices:
-<hr style="width: 100%;">
+<hr class="w-full">
 %endif
 <article class="card" style="${greyout} margin: 1em; flex-shrink: 10; flex-grow: 1; flex-basis:0; min-width: fit-content; width: ${'100%;' if (hasattr(devObj, 'subdevices') and devObj.subdevices) else '0px'}; ">
         <header>
@@ -141,7 +141,7 @@ else:
 %for j in devObj.subdevices:
 ${device(devObj.subdevices[j].name, devObj=devObj.subdevices[j])}
 %endfor
-<hr style="width: 100%;">
+<hr class="w-full">
 %endif
 
 

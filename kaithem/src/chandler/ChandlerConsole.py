@@ -8,10 +8,10 @@ import weakref
 from typing import Any, Dict, Iterable, List, Optional, Set
 
 import yaml
-from scullery import scheduling
+from scullery import scheduling, snake_compat
 
 # The frontend's ephemeral state is using CamelCase conventions for now
-from .. import schemas, snake_compat
+from .. import schemas
 from ..kaithemobj import kaithem
 from . import blendmodes, console_abc, core, fixtureslib, scenes, universes
 from .core import logger

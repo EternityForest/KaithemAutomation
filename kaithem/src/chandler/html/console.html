@@ -1095,7 +1095,7 @@ ${lists}
                                     </label>
 
                                     <label>Checkpoint
-                                        <input :disabled="no_edit" type="number" v-model="currentcue.checkpoint"
+                                        <input :disabled="no_edit" type="checkbox" v-model="currentcue.checkpoint"
                                         title="At startup, jump to the last checkpoint cue you were in."
                                         v-on:change="setCueProperty(currentcueid,'checkpoint', currentcue.checkpoint)">
                                     </label>

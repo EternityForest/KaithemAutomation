@@ -66,8 +66,8 @@ ${api.render("api")}
 </style>
 
 
-<div id="app" style="width: 100%;">
-    
+<div id="app" class="w-full">
+
         <transition-group name="notificationstg" tag="div">
                 <div v-for="i in notifications.slice().reverse()" :key="i[0]">
                     <div v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
@@ -131,5 +131,5 @@ ${api.render("api")}
         }
     }
 
-  
+
 </script>

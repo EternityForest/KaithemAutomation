@@ -3,6 +3,8 @@ import sqlite3
 import threading
 import time
 
+from scullery.ratelimits import RateLimiter
+
 from kaithem.src import directories
 
 fn = os.path.expanduser("~/.local/kaithem/chandler_state.db")
@@ -29,29 +31,7 @@ def get_con():
     return connections.con
 
 
-class RateLimiter:
-    def __init__(self, rate: float, accum_limit=250) -> None:
-        self.rate = rate
-        self.accum_limit = accum_limit
-        self.current_limit = accum_limit
-        self.timestamp = time.monotonic()
-
-    def limit(self):
-        """If it hasn't been called too often, reeturn
-        number of credits remaining.  Othewise return 0.
-        Credits refill at "rate" per second up to a max of accum_limit
-        """
-        elapsed = time.monotonic() - self.timestamp
-        self.current_limit = self.rate + elapsed
-        self.current_limit = min(self.current_limit, self.accum_limit)
-        if self.current_limit >= 1:
-            self.current_limit -= 1
-            return self.current_limit
-
-        return 0
-
-
-rl = RateLimiter(1 / 20)
+rl = RateLimiter(hz=1 / 20, burst=300)
 
 
 def set_checkpoint(sceneid: str, cuename: str):

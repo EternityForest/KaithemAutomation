@@ -1511,7 +1511,8 @@ class Scene:
                 self.cue = self.cues[cue]
 
                 if self.cue.checkpoint:
-                    persistance.set_checkpoint(self.id, self.cue.name)
+                    if not cause == "start":
+                        persistance.set_checkpoint(self.id, self.cue.name)
 
                 self.cueTagClaim.set(self.cues[cue].name, annotation="SceneObject")
 
@@ -1544,7 +1545,7 @@ class Scene:
                 self.goto_cue("__checkpoint__")
 
             if self.cue.name == "__setup__":
-                self.goto_cue("default")
+                self.goto_cue("default", sendSync=False)
 
     def apply_tracked_values(self, cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.

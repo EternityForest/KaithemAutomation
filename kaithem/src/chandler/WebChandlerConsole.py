@@ -8,9 +8,9 @@ import time
 import traceback
 from typing import Any
 
+from scullery import snake_compat
 from tinytag import TinyTag
 
-from .. import snake_compat
 from ..alerts import getAlertState
 from ..kaithemobj import kaithem
 from . import ChandlerConsole, core, scenes, universes
