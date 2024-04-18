@@ -1,6 +1,5 @@
 ![AI generated picture of a tavern](kaithem/data/static/img/nov23-ai-watercolor-tavern.webp)
 
-
 ![Linux](badges/linux.png)
 ![Single Board Computer badge](badges/sbc.png)
 ![DMX](badges/dmx.png)
@@ -10,19 +9,33 @@
 ![GPLv3 Badge](badges/gpl-v3.png)
 ![Pre-commit Badge](badges/pre-commit.png)
 ![Makefile Badge](badges/makefile.png)
+
 ![Ten Year Project](badges/ten-years.png)
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
 ![Poetry](badges/poetry.png)
+> Amidst the mists and fiercest frosts,
+>
+> with stoutest wrists and loudest boasts,
+>
+> He thrusts his fists against the posts,
+>
+> And still insists he sees the ghosts.
 
 Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
 You automate things by directly writing python and HTML via a web IDE, or by using the built-in Chandler module, which is a full web-based lighting aud audio control board with a visual programming language adding interactivity.
 
-Installation
+Installation 🌲
 ============
+>The careful text-books measure
+>
+>  (Let all who build beware!)
+>
+> The load, the shock, the pressure
+>
+>  Material can bear.
 
-## How to run it!
 
 ```bash
 git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
@@ -34,7 +47,7 @@ This is an interpreted package, and we use Poetry and pipx,
 but we also use Make just to keep commands in one handy place.
 
 
-### Install system packages
+### Install system packages 🔠
 
 Many of these have to do with audio features, not all are needed. See Makefile for what is actually
 installed. This also installs virtualenv support.
@@ -46,7 +59,7 @@ for NVR object detection, so it's a bit heavy.
 make root-install-system-dependencies
 ```
 
-### Get pipx and Poetry
+### Get pipx and Poetry 🌻
 
 Skip this if you already have them!
 
@@ -68,7 +81,7 @@ After doing this, log out and log back into the py.
 The program doesn't appear in your usable packages until you do that, because Debian strangely enough doesn't have the directory
 on PATH by default
 
-### Install kaithem in the project folder virtualenv
+### Install kaithem in the project folder virtualenv 🍱
 
 Now that you have the system dependencies, you should have pipx from your package manager.
 
@@ -115,7 +128,19 @@ Most likely it will be http://raspberrypi.local:8002/index  if you
 kept the defaults when installing.
 
 
-### Access from Anywhere
+Tips and Troubleshooting ⁉️
+========================
+> So, when the buckled girder
+>
+>  Lets down the grinding span,
+>
+> The blame of loss, or murder,
+>
+>  Is laid upon the man.
+>
+>    Not on the Stuff — the Man!
+
+### Access from Anywhere 🌍
 
 See Wiki Tutorial
 (https://github.com/EternityForest/KaithemAutomation/wiki/Remote-Access)
@@ -177,7 +202,7 @@ make user-start-kaithem-at-boot
 ```
 
 
-### Make sure the SD card stays fresh
+### Make sure the SD card stays fresh 🍃
 
 On a dedicated system, you probably want to disable a buch of
 stuff the Pi comes with that normally writes to the SD card all the time,
@@ -189,11 +214,17 @@ sudo make root-install-linux-tweaks
 sudo make root-install-sd-protection
 ```
 
-### Development
+### Development 🖥️
 
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 
 
-Recent Changes
+Recent Changes 🕗
 ============
+> Good men, the last wave by, crying how bright
+>
+> Their frail deeds might have danced in a green bay,
+>
+> Rage, rage against the dying of the light.
+
 (See [Full Changelog](kaithem/src/docs/changes.md))
