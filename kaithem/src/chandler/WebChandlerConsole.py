@@ -325,6 +325,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.shortcutCode(msg[1])
             return
 
+        elif cmd_name == "addTimeToScene":
+            "Just this time, add a little extra"
+            if scenes.scenes[msg[1]].cuelen:
+                scenes.scenes[msg[1]].cuelen += float(msg[2]) * 60
+                self.pushMeta(msg[1])
+            return
+
         elif cmd_name == "gotonext":
             if cues[msg[1]].next_cue:
                 try:

@@ -8,7 +8,7 @@ Change Log
 - :sparkles: \_\_setup\_\_ cues. Chandler scenes go to this cue if it exists at start before going to any checkpoint.
 -
 - :coffin: Remove ability to create new Mako user pages.
-
+- :sparkles: Button to add time to a running cue
 
 ### 0.79.0
 

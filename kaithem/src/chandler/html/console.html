@@ -461,6 +461,7 @@ ${lists}
 
 
                     </h3>
+                    <button v-if="editingScene.cuelen" v-on:click="addTimeToScene(editingScene.id)"><i class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
 
                     <p>
                         <input v-model="cuefilter" placeholder="Search Cues" />

@@ -97,7 +97,7 @@
             </div>
         </div>
     </section>
-    
+
     <div class="window paper w-full margin" style="overflow: auto; max-width:98vw; flex-grow:1">
         <header>
             <div class="tool-bar">
@@ -174,13 +174,13 @@
 
 
                     <div class="flex-row nogaps nogrow w-full h-min-content" style="align-items: stretch;">
-                        
-                        
+
+
                         <div :class="{'success':i[1].active, 'grow': 1}" v-if="i[1].active && cuemeta[i[1].cue]">
                             {{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small>
-                        
+
                         </div>
-                        
+
                         <img style="border:none; height: fit-content;" class="w-4rem"
                             onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound"
                             :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
@@ -213,14 +213,14 @@
                             <button v-on:click="nextcue(i[0])"><i class="mdi mdi-skip-next"></i></button>
                             <button class="stopbutton" v-on:click="stop(i[0])"><i class="mdi mdi-stop-circle-outline"></i></button>
                         </p>
-                        
+
                         <div class="tool-bar"><input v-if="!i[1].utility" type="range" style="width: 98%" max=1 step=0.01 min=0
-                            v-on:input="setalpha(i[0],parseFloat($event.target.value));" 
+                            v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                             v-on:change="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);"
-                            
+
                             :value="alphas[i[0]]">
                         </div>
-                        
+
                         <div class="tool-bar nogrow" v-if="i[1].eventButtons.length > 0">
                             <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </div>
@@ -235,9 +235,12 @@
     <div class="window paper margin" v-if="editingScene && cuemeta[editingScene.cue]"
         style="display:inline-block;" class="scroll">
         <header>
-            <h3>{{editingScene.name}}
-                <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-            </h3>
+            <div class="tool-bar">
+                <h3>{{editingScene.name}}
+                    <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                </h3>
+                <button v-if="editingScene.cuelen" v-on:click="addTimeToScene(editingScene.id)"><i class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
+            </div>
         </header>
 
         <div id="cuesbox">
@@ -255,13 +258,13 @@
 
 
                     <div class="flex-row nogaps nogrow min-h-6em w-full">
-                        
-                        
-                        <div :class="{'success': cuemeta[editingScene.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}" >                        
+
+
+                        <div :class="{'success': cuemeta[editingScene.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}" >
                             <cue-countdown v-if="cuemeta[editingScene.cue].name==i[1].name" :unixtime="unixtime" :scene="editingScene" :cue="cuemeta[editingScene.cue]"></cue-countdown>
                             <div v-if="i[1].notes.length>0" style="max-width: 10em;">({{i[1].notes}})</div>
                         </div>
-                        
+
                         <img style="border:none; height: fit-content;" class="w-2rem grow"
                             onerror='this.style.display = "none"' v-if="i[1].sound"
                             :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].id)"></img>

@@ -175,13 +175,13 @@ def uiNotificationCommand(text: str):
 
 rootContext.commands["shortcut"] = codeCommand
 rootContext.commands["goto"] = gotoCommand
-rootContext.commands["setAlpha"] = setAlphaCommand
-rootContext.commands["ifCue"] = ifCueCommand
-rootContext.commands["sendEvent"] = eventCommand
-rootContext.commands["setSlideshowVariable"] = setWebVarCommand
-rootContext.commands["consoleNotification"] = uiNotificationCommand
+rootContext.commands["set_alpha"] = setAlphaCommand
+rootContext.commands["if_cue"] = ifCueCommand
+rootContext.commands["send_event"] = eventCommand
+rootContext.commands["set_slideshow_variable"] = setWebVarCommand
+rootContext.commands["console_notification"] = uiNotificationCommand
 
-rootContext.commands["setTag"].completionTags = {"tagName": "tagPointsCompleter"}
+rootContext.commands["set_tag"].completionTags = {"tagName": "tagPointsCompleter"}
 
 
 def sendMqttMessage(topic: str, message: str):
@@ -556,7 +556,7 @@ class Scene:
         self.alpha = alpha
         self.crossfade = crossfade
 
-        self.cuelen = 0
+        self.cuelen = 0.0
 
         # TagPoint for managing the current alpha
         self.alphaTag = kaithem.tags["/chandler/scenes/" + name + ".alpha"]
@@ -1699,7 +1699,7 @@ class Scene:
                     except Exception:
                         logging.exception("Error getting length for sound " + str(path))
                         # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
-                        self.cuelen = 300
+                        self.cuelen = 300.0
                         return
 
             if len(self.cue.slide) and self.cue.rel_length:
@@ -1721,11 +1721,11 @@ class Scene:
                     except Exception:
                         logging.exception("Error getting length for sound " + str(path))
                         # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
-                        self.cuelen = 300
+                        self.cuelen = 300.0
                         return
 
         if v <= 0:
-            self.cuelen = 0
+            self.cuelen = 0.0
         else:
             # never go below 0.1*the setting or else you could go to zero and get a never ending cue
             self.cuelen = max(0, float(v * 0.1), self.randomizeModifier + float(v))

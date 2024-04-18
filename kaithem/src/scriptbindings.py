@@ -999,7 +999,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             return True
 
         self.setTag = setTag
-        self.commands["setTag"] = setTag
+        self.commands["set_tag"] = setTag
 
         self.tagpoints = {}
         self.tagHandlers = {}

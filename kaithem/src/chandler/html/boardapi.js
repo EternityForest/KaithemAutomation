@@ -13,7 +13,7 @@ ${ vars }
 
  1. It was not originally planned to be this feature rich
  2. It started with Vue2
- 
+
 
 */
 
@@ -122,7 +122,7 @@ cueSetData = {}
 appMethods = {
 
     'mediaLinkCommand': function (sc, linkid, data) {
-        
+
         api_link.send(["mediaLinkCommand", sc, linkid, data])
     },
 
@@ -556,7 +556,7 @@ appMethods = {
 
     'addThisFixToCurrentCue': function (fix, idx, len, spacing) {
         //Idx and len are for adding range patters to an array of identical fixtures.
-        //Otherwise they should be one        
+        //Otherwise they should be one
         idx = parseInt(idx)
 
         if (idx != 1) {
@@ -760,7 +760,7 @@ appComputed = {
 }
 
 
-//# sourceURL=appcode.js 
+//# sourceURL=appcode.js
 appData = {
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'formatInterval': formatInterval,
@@ -1051,9 +1051,9 @@ appData = {
         return (o)
     },
 
-    
 
-    
+
+
     'cueNamesBySceneName': function () {
         var d = {}
         for (i in this.scenemeta) {
@@ -1164,6 +1164,13 @@ appData = {
     },
 
 
+    'addTimeToScene': function (scene) {
+        var t = prompt("Add minutes?")
+        if (t) {
+            api_link.send(["addTimeToScene", scene, t])
+        }
+    },
+
     'renamePreset': function (p) {
         var n = prompt("Preset Name?")
 
@@ -1226,7 +1233,7 @@ function f(v) {
     else if (c == 'ui_alert') {
         playAlert(v[1])
     }
-    
+
     else if (c == 'slideshow_telemetry') {
         if (v[2] == null) {
             delete vueapp.$data.slideshow_telemetry[v[1]]
@@ -1244,7 +1251,7 @@ function f(v) {
             vueapp.$data.slideshow_telemetry[v[1]] =v[2]
         }
     }
-        
+
     else if (c == 'scenetimers') {
         vueapp.$data.scenemeta[v[1]].timers = v[2]
     }
@@ -1266,7 +1273,7 @@ function f(v) {
 
         //Just update existing data if we can
         if (vueapp.$data.scenemeta[v[1]]) {
-            Object.assign(vueapp.$data.scenemeta[v[1]], v[2])
+            set(vueapp.$data.scenemeta, v[1], v[2])
         }
         else {
             var meta = v[2];
@@ -1492,7 +1499,7 @@ function f(v) {
         vueapp.$data.editingScene = null
 
     }
-        
+
     else if (c == 'soundfolderlisting') {
         if (v[1] == vueapp.$data.soundfilesdir) {
             vueapp.$data.soundfileslisting = v[2]

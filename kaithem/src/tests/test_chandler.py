@@ -310,7 +310,7 @@ def test_cue_logic():
         "cue2",
         rules=[
             ["cue.enter", [["goto", "TestingScene6", "cue2"]]],
-            ["cue.enter", [["setAlpha", "=SCENE", "0.76"]]],
+            ["cue.enter", [["set_alpha", "=SCENE", "0.76"]]],
         ],
     )
 
@@ -354,7 +354,7 @@ def test_commands():
         "cue2",
         rules=[
             ["cue.enter", [["goto", "TestingScene6", "cue2"]]],
-            ["cue.enter", [["setAlpha", "=SCENE", "0.76"]]],
+            ["cue.enter", [["set_alpha", "=SCENE", "0.76"]]],
         ],
     )
 
