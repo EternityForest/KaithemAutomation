@@ -237,8 +237,11 @@ Preprocess Engine:<select name="template-engine"
                     disabled=1\
         %endif
        >
-    <option value="jinja2" ${'selected' if page.get('template-engine','mako')== 'jinja2' else ''}>Jinja2(New Preferred Option)</option>
-    <option value="mako" ${'selected' if page.get('template-engine','mako')== 'mako' else ''}>Mako templating(old default)</option>
+
+    <option value="jinja2" ${'selected' if page.get('template-engine','mako')== 'jinja2' else ''}>Jinja2</option>
+    % if page.get('template-engine','mako')== 'mako':
+    <option value="mako" ${'selected' if page.get('template-engine','mako')== 'mako' else ''}>Mako</option>
+    % endif
     <option value="markdown" ${'selected' if  page.get('template-engine','mako')== 'markdown' else ''}>Display markdown</option>
     <option value="none" ${'selected' if  page.get('template-engine','mako')== 'none' else ''}>Serve text as-is</option>
     </select><br>
