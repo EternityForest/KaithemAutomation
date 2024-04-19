@@ -10,6 +10,7 @@ Change Log
 - :coffin: Remove ability to create new Mako user pages.
 - :sparkles: Button to add time to a running cue
 - :sparkles: Print more logs
+- :coffin: Special characters no longer allowed in resource names.
 
 ### 0.79.0
 

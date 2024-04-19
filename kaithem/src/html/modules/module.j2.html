@@ -101,6 +101,7 @@
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-key"></i>
                             {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
                     </h3>
+
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
                 </div>
@@ -115,6 +116,9 @@
                     </h3>
                     <a class="settingsbuttton"
                         href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">Properties</a>
+
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span class="mdi mdi-folder-move"></span>
+                            Move</a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
                     <p>
@@ -132,6 +136,8 @@
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-{{modules.additionalTypes[module[i]['resource-type']].mdi_icon}}"></i>
                             {{ util.split_escape(i,'/','\\')[-1] | escape }} ({{module[i]['resource-type']}})</a>
                     </h3>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span class="mdi mdi-folder-move"></span>
+                        Move</a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
                 </div>

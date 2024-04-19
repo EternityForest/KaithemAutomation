@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 # File for keeping track of and editing kaithem modules(not python modules)
-import ast
 import copy
 import gc
 import json
@@ -28,7 +27,6 @@ from .modules_state import (
     external_module_locations,
     fileResourceAbsPaths,
     getModuleFn,
-    getResourceFn,
     modulesLock,
     parseTarget,
     safeFnChars,
@@ -73,63 +71,6 @@ def new_empty_module():
 
 def new_module_container():
     return {}
-
-
-def getInitialWhitespace(s):
-    t = ""
-    for i in s:
-        if i in "\t ":
-            t += i
-        else:
-            break
-    return t
-
-
-def readToplevelBlock(p, heading):
-    """Given code and a heading like an if or a def, read everything under it.
-    return tuple of the code we read, and the code WITHOUT that stuff
-    """
-    x = p.split("\n")
-    state = "outside"
-    indent = ""
-    lines = []
-    outside_lines = []
-    firstline = ""
-    heading = heading.strip()
-    # Eliminate space, this is probably not the best way
-    heading = heading.replace(" ", "").replace('"', "'")
-    for i in x:
-        if state == "outside":
-            if i.replace(" ", "").replace('"', "'").strip().startswith(heading):
-                state = "firstline"
-                firstline = i
-            else:
-                outside_lines.append(i)
-        elif state == "firstline":
-            indent = getInitialWhitespace(i)
-            if not indent:
-                raise ValueError(f"Expected indented block after {firstline}")
-            lines.append(i[len(indent) :])
-            state = "inside"
-        elif state == "inside":
-            if not len(indent) <= len(getInitialWhitespace(i)):
-                state = "outside"
-            lines.append(i[len(indent) :])
-    if not lines:
-        if state == "outside":
-            raise ValueError("No such block")
-    return ("\n".join(lines), "\n".join(outside_lines))
-
-
-def readStringFromSource(s, var) -> str | None:
-    "Without executing it, get a string var from source code"
-    a = ast.parse(s)
-    b = a.body
-    for i in b:
-        if isinstance(i, ast.Assign):
-            for t in i.targets:
-                if t.id == var:  # type: ignore
-                    return i.value.s  # type: ignore
 
 
 def loadAllCustomResourceTypes():
@@ -304,6 +245,9 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
     Should be pure except logging
     """
     fn = relative_name
+    r = None
+    if filename and (not filename.endswith(".yaml") or filename.endswith(".toml")):
+        return None, None
     try:
         # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
         # We don't do anything with more that 3 sections yet, so limit just in case there's ----
@@ -314,49 +258,8 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
 
         isSpecialEncoded = False
         wasProblem = False
-        if fn.endswith(".py"):
-            isSpecialEncoded = True
 
-            try:
-                # Get the two code blocks, then remove  them before further processing
-                action, restofthecode = readToplevelBlock(d, "def eventAction():")
-                setup, restofthecode = readToplevelBlock(restofthecode, "if __name__ == '__setup__':")
-                # Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
-                # A syntax error preventing reading the data at all
-                code = readStringFromSource(restofthecode, "__data__")
-                if code is None:
-                    raise RuntimeError("Could not get code")
-
-                data = yaml.load(
-                    code,
-                    Loader=yaml.SafeLoader,
-                )
-                data["trigger"] = readStringFromSource(restofthecode, "__trigger__")
-                data["setup"] = setup.strip()
-                data["action"] = action.strip()
-
-                r = data
-                # This is a .py file, remove the extension
-                shouldRemoveExtension = True
-            except Exception:
-                isSpecialEncoded = False
-                wasProblem = True
-                logger.exception(f"err loading as pyencoded: {fn}")
-
-        # Markdown and most html files files start with --- and are delimited by ---
-        # The first section is YAML and the second is the page body.
-        elif fn.endswith((".md", ".html")):
-            isSpecialEncoded = True
-            try:
-                data = yaml.load(sections[1], Loader=yaml.SafeLoader)
-                data["body"] = sections[2]
-                r = data
-                shouldRemoveExtension = True
-            except Exception:
-                isSpecialEncoded = False
-                wasProblem = True
-                logger.exception(f"err loading as html encoded: {fn}")
-        elif fn.endswith((".yaml", ".json")):
+        if fn.endswith((".yaml", ".json")):
             shouldRemoveExtension = True
 
         if not isSpecialEncoded:
@@ -366,10 +269,6 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
             if len(sections) > 1:
                 if r["resource-type"] == "page":
                     r["body"] = sections[1]
-
-                if r["resource-type"] == "event":
-                    r["setup"] = sections[1]
-                    r["action"] = sections[2]
 
         if wasProblem:
             messagebus.post_message(
@@ -389,6 +288,9 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
             return None, None
         else:
             print(fn)
+
+    assert r
+
     # If no resource timestamp use the one from the file time.
     if "resource-timestamp" not in r:
         if filename:
@@ -415,7 +317,7 @@ def initModules():
     Then start with an empty list of modules. Should normally be called once at startup."""
 
     if not os.path.isdir(directories.moduledir):
-        os.makedirs(directories.moduledir)
+        os.makedirs(directories.moduledir, exist_ok=True)
 
     try:
         # __COMPLETE__ is a special file we write to the dump directory to show it as valid
@@ -495,7 +397,7 @@ def reloadOneResource(module, resource):
         mfolder = getModuleDir(module)
         x = r["resource-loadedfrom"]
         assert isinstance(x, str)
-        loadOneResource(mfolder, os.path.relpath(x, mfolder), module)
+        load_one_yaml_resource(mfolder, os.path.relpath(x, mfolder), module)
 
 
 def validate(r):
@@ -512,7 +414,9 @@ def validate(r):
 
 
 @beartype.beartype
-def loadOneResource(folder: str, relpath: str, module: str):
+def load_one_yaml_resource(folder: str, relpath: str, module: str):
+    if not relpath.endswith(".yaml") or relpath.endswith(".json"):
+        return "Wrong extension"
     try:
         r: ResourceDictType | None
         r, resourcename = readResourceFromFile(os.path.join(folder, relpath), relpath, modulename=module)
@@ -591,6 +495,10 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
         # Make an empty dict to hold the module resources
         module = {}
 
+        for t in additionalTypes:
+            found = additionalTypes[t].scan_dir(folder)
+            module.update(found)
+
         # Iterate over all resource files and load them
         for root, dirs, files in os.walk(folder):
             # Function used to ignore things like VCS folders and such
@@ -598,48 +506,60 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                 continue
             if root.startswith(resource_folder):
                 continue
+
+            # Handle all resources that have unusual file types.
+
+            # TODO multiple storage types for one
+            # Name mean we can have conflicts, detect and warn
+            for i in dirs:
+                if "/__" not in i:
+                    for t in additionalTypes:
+                        found = additionalTypes[t].scan_dir(os.path.join(root, i))
+                        module.update(found)
+
             for i in files:
                 if ignore_func and ignore_func(i):
                     continue
                 relfn = os.path.relpath(os.path.join(root, i), folder)
                 fn = os.path.join(folder, relfn)
-                try:
-                    # TODO: Lib modules? filedata?
-                    # Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                if fn.endswith(("yaml", ".json")):
                     try:
-                        r, resourcename = readResourceFromFile(fn, relfn)
-                        if not r or not resourcename:
-                            # File managers sprinkle this crap around
-                            if not os.path.basename(fn) == ".directory":
-                                logger.exception(f"Null loading {fn}")
+                        # TODO: Lib modules? filedata?
+                        # Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                        try:
+                            r, resourcename = readResourceFromFile(fn, relfn)
+                            if not r or not resourcename:
+                                # File managers sprinkle this crap around
+                                if not os.path.basename(fn) == ".directory":
+                                    logger.exception(f"Null loading {fn}")
+                                continue
+
+                        except Exception:
+                            logger.exception(f"Error loading {fn}")
                             continue
 
-                    except Exception:
-                        logger.exception(f"Error loading {fn}")
-                        continue
-
-                    module[resourcename] = r
-                    if "resource-type" not in r:
-                        logger.warning(f"No resource type found for {resourcename}")
-                        continue
-                    if r["resource-type"] == "internal-fileref":
-                        fileResourceAbsPaths[modulename, resourcename] = os.path.join(
-                            folder, "__filedata__", url(resourcename, safeFnChars)
-                        )
-
-                        if not os.path.exists(fileResourceAbsPaths[modulename, resourcename]):
-                            logger.error("Missing file resource: " + fileResourceAbsPaths[modulename, resourcename])
-                            messagebus.post_message(
-                                "/system/notifications/errors",
-                                "Missing file resource: " + fileResourceAbsPaths[modulename, resourcename],
+                        module[resourcename] = r
+                        if "resource-type" not in r:
+                            logger.warning(f"No resource type found for {resourcename}")
+                            continue
+                        if r["resource-type"] == "internal-fileref":
+                            fileResourceAbsPaths[modulename, resourcename] = os.path.join(
+                                folder, "__filedata__", url(resourcename, safeFnChars)
                             )
 
-                except Exception:
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        f"Error loading from: {fn}\r\n{traceback.format_exc()}",
-                    )
-                    raise
+                            if not os.path.exists(fileResourceAbsPaths[modulename, resourcename]):
+                                logger.error("Missing file resource: " + fileResourceAbsPaths[modulename, resourcename])
+                                messagebus.post_message(
+                                    "/system/notifications/errors",
+                                    "Missing file resource: " + fileResourceAbsPaths[modulename, resourcename],
+                                )
+
+                    except Exception:
+                        messagebus.post_message(
+                            "/system/notifications/errors",
+                            f"Error loading from: {fn}\r\n{traceback.format_exc()}",
+                        )
+                        raise
 
             for i in dirs:
                 if ignore_func and ignore_func(i):
@@ -737,7 +657,7 @@ def getModuleAsYamlZip(module, noFiles=True):
             if not isinstance(modules_state.ActiveModules[module][resource], dict):
                 continue
             # AFAIK Zip files fake the directories with naming conventions
-            s, ext = serializeResource(modules_state.ActiveModules[module][resource])
+            s, ext = serializeResource(resource, modules_state.ActiveModules[module][resource])
             z.writestr(f"{url(module, ' ')}/{url(resource, safeFnChars)}{ext}", s)
             if modules_state.ActiveModules[module][resource]["resource-type"] == "internal-fileref":
                 if noFiles:
@@ -932,21 +852,41 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
     assert isinstance(rt, str)
 
     if rt == "internal-fileref":
+        old = fileResourceAbsPaths[toModule, toResource]
+        m = getModuleDir(toModule)
+        m = os.path.join(m, "__filedata__", toResource)
+        if not os.path.exists(m):
+            shutil.move(old, m)
+        else:
+            raise FileExistsError(m)
+
         modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
         del modules_state.ActiveModules[module][resource]
-        fileResourceAbsPaths[toModule, toResource] = fileResourceAbsPaths[module, resource]
+        fileResourceAbsPaths[toModule, toResource] = m
         del fileResourceAbsPaths[module, resource]
         return
 
+    mp = []
+    dir = modules_state.get_resource_save_location(toModule, toResource)
+
+    for i in os.listdir(dir):
+        if i.split(".", 1)[0] == resource:
+            new = os.path.join(dir, i.replace(resource, toResource))
+            old = os.path.join(dir, i)
+            mp.append((old, new))
+            if os.path.exists(new):
+                raise FileExistsError(new)
+
+    modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
+    del modules_state.ActiveModules[module][resource]
     if rt in modules_state.additionalTypes:
         modules_state.additionalTypes[rt].onmove(module, resource, toModule, toResource, obj)
 
-    o = modules_state.ActiveModules[toModule][toResource]
-    os.makedirs(os.path.dirname(getResourceFn(toModule, toResource, o)))
+    os.makedirs(dir, exist_ok=True)
 
-    # Don't move if the file is already saved under the right name
-    if os.path.exists(getResourceFn(module, resource, o)):
-        shutil.move(getResourceFn(module, resource, o), getResourceFn(toModule, toResource, o))
+    for i in mp:
+        if not i[0] == i[1]:
+            shutil.move(i[0], i[1])
 
 
 def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
@@ -967,7 +907,8 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
 
         if rt == "directory":
             # Directories are special, they can have the extra data file
-            fn = f"{getResourceFn(module, resource, r)}.yaml"
+            fn = getModuleDir(module)
+            fn = os.path.join(fn, resource)
 
             if os.path.exists(fn):
                 os.remove(fn)
@@ -978,10 +919,10 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         else:
             additionalTypes[rt].ondelete(module, resource, r)
 
-        fn = getResourceFn(module, resource, r)
-
-        if os.path.exists(fn):
-            os.remove(fn)
+        sl = modules_state.get_resource_save_location(module, resource)
+        for i in list(os.listdir(sl)):
+            if i.split(".", 1)[0] == resource:
+                os.remove(os.path.join(sl, i))
 
     except Exception:
         messagebus.post_message(

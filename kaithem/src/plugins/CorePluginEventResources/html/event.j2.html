@@ -47,9 +47,6 @@
         </script>
         <form action="/modules/module/{{ url(module) }}/updateresource/{{ url(name) }}" method="POST">
             <h3>Basic</h3>
-            <label><b>Path:</b><input
-                    title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming."
-                    name="name" value="{{ name| escape }}" style="width:90%;"></input></label><br>
             <label><input type="checkbox" name="enable" {% if 'enable' in event %} {% if event['enable'] == True %}
                     checked="yes" {% endif %} {% else %} checked="yes" {% endif %}></input>Enable</label>
             <h3 id="setupheading">Setup Code</h3>

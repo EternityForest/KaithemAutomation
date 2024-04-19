@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import ast
 import base64
 import copy
 import datetime
@@ -28,15 +29,14 @@ from collections.abc import Callable
 import beartype
 import cherrypy
 import pytz
+import yaml
 from scullery import scheduling
 from scullery.scheduling import scheduler
 
 from kaithem.api.web import has_permission, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
-
-from ... import devices, kaithemobj, messagebus, modules_state, settings_overrides, unitsofmeasure, util, workers
-from ...config import config
-from ...resource_serialization import toPyFile
+from kaithem.src import devices, kaithemobj, messagebus, modules_state, settings_overrides, unitsofmeasure, util, workers
+from kaithem.src.config import config
 
 ctime = time.time
 do = workers.do
@@ -161,14 +161,6 @@ def getEventInfo(event):
         if event in _events_by_module_resource and _events_by_module_resource[event].__doc__
         else ""
     )
-
-
-def renameEvent(oldModule, oldResource, module, resource):
-    with _event_list_lock:
-        _events_by_module_resource[module, resource] = _events_by_module_resource[oldModule, oldResource]
-        del _events_by_module_resource[oldModule, oldResource]
-        _events_by_module_resource[module, resource].resource = resource
-        _events_by_module_resource[module, resource].module = module
 
 
 def getEventErrors(module, event):
@@ -547,7 +539,7 @@ class BaseEvent:
         # A place to put errors
         self.errors = []
 
-        from ... import widgets
+        from kaithem.src import widgets
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
@@ -1480,13 +1472,13 @@ def updateOneEvent(module: str, resource: str, o=None):
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
 
-        from ... import codechecks
+        from kaithem.src import codechecks
 
         data = toPyFile(data)
-        e = codechecks.check(data, resource + ".py")
+        errs = codechecks.check(data, resource + ".py")
         data = data.splitlines()
-        if e:
-            for i in e.splitlines():
+        if errs:
+            for i in errs.splitlines():
                 line = re.search(r":(\d*):", i)
                 if line:
                     line = line.group(1)
@@ -1762,7 +1754,145 @@ class EventAPI(modules_state.ResourceObject):
 init_done = False
 
 
+def getInitialWhitespace(s):
+    t = ""
+    for i in s:
+        if i in "\t ":
+            t += i
+        else:
+            break
+    return t
+
+
+def readToplevelBlock(p, heading):
+    """Given code and a heading like an if or a def, read everything under it.
+    return tuple of the code we read, and the code WITHOUT that stuff
+    """
+    x = p.split("\n")
+    state = "outside"
+    indent = ""
+    lines = []
+    outside_lines = []
+    firstline = ""
+    heading = heading.strip()
+    # Eliminate space, this is probably not the best way
+    heading = heading.replace(" ", "").replace('"', "'")
+    for i in x:
+        if state == "outside":
+            if i.replace(" ", "").replace('"', "'").strip().startswith(heading):
+                state = "firstline"
+                firstline = i
+            else:
+                outside_lines.append(i)
+        elif state == "firstline":
+            indent = getInitialWhitespace(i)
+            if not indent:
+                raise ValueError(f"Expected indented block after {firstline}")
+            lines.append(i[len(indent) :])
+            state = "inside"
+        elif state == "inside":
+            if not len(indent) <= len(getInitialWhitespace(i)):
+                state = "outside"
+            lines.append(i[len(indent) :])
+    if not lines:
+        if state == "outside":
+            raise ValueError("No such block")
+    return ("\n".join(lines), "\n".join(outside_lines))
+
+
+def readStringFromSource(s: str, var: str) -> None | str:
+    "Without executing it, get a string var from source code"
+    a = ast.parse(s)
+    b = a.body
+    for i in b:
+        if isinstance(i, ast.Assign):
+            for t in i.targets:
+                if t.id == var:
+                    return str(i.value.s)
+
+
+def indent(s, prefix="    "):
+    s = [prefix + i for i in s.split("\n")]
+    return "\n".join(s)
+
+
+def toPyFile(r) -> str:
+    r = copy.deepcopy(r)
+    "Encode an event resource as a python file"
+    s = r["setup"]
+    del r["setup"]
+    a = r["action"]
+    del r["action"]
+    t = r["trigger"]
+    del r["trigger"]
+    d = "## Code outside the data string, and the setup and action blocks is ignored\n"
+    d += "## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new\n"
+
+    d += '__data__="""\n'
+    d += yaml.dump(r).replace("\\", "\\\\").replace('"""', r'\"""') + '\n"""\n\n'
+
+    # Autoselect what quote to use
+    if "'" not in t:
+        d += "__trigger__='" + t.replace("\\", "\\\\").replace("'", r"\'") + "'\n\n"
+    else:
+        d += '__trigger__="' + t.replace("\\", "\\\\").replace('"', r"\"") + '"\n\n'
+
+    d += "if __name__=='__setup__':\n"
+    d += indent(s)
+    d += "\n\n"
+
+    d += "def eventAction():\n"
+    d += indent(a)
+    d += "\n"
+    return d
+
+
+def rsc_from_py_file(fn: str):
+    # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
+    # We don't do anything with more that 3 sections yet, so limit just in case there's ----
+    # in a markdown file
+
+    with open(fn) as f:
+        d = f.read()
+
+    # Get the two code blocks, then remove  them before further processing
+    action, restofthecode = readToplevelBlock(d, "def eventAction():")
+    setup, restofthecode = readToplevelBlock(restofthecode, "if __name__ == '__setup__':")
+    # Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
+    # A syntax error preventing reading the data at all
+    yaml_data = readStringFromSource(restofthecode, "__data__")
+    if yaml_data is None:
+        raise RuntimeError("Could not get code")
+
+    data = yaml.load(
+        yaml_data,
+        Loader=yaml.SafeLoader,
+    )
+    data["trigger"] = readStringFromSource(restofthecode, "__trigger__")
+    data["setup"] = setup.strip()
+    data["action"] = action.strip()
+    return data
+
+
 class EventType(modules_state.ResourceType):
+    def to_files(
+        self,
+        name: str,
+        resource: dict[str, str | list | int | float | bool | dict[str, dict | list | int | float | str | bool | None] | None],
+    ) -> dict[str, str]:
+        return {f"{name}.py": toPyFile(resource)}
+
+    def scan_dir(
+        self, dir: str
+    ) -> dict[str, dict[str, str | list | int | float | bool | dict[str, dict | list | int | float | str | bool | None] | None]]:
+        r = {}
+
+        for i in os.listdir(dir):
+            if i.split(".", 1)[-1] == "py":
+                r[i[:-3]] = rsc_from_py_file(os.path.join(dir, i))
+
+        return r
+
     def blurb(self, m, r, value):
         return render_jinja_template(
             os.path.join(os.path.dirname(__file__), "html", "event_blurb.j2.html"),
@@ -1802,7 +1932,6 @@ class EventType(modules_state.ResourceType):
                 removeOneEvent(module, resource)
                 event_resources[toModule, toResource] = x
                 updateOneEvent(toModule, toResource)
-            renameEvent(module, resource, toModule, toResource)
 
     def onupdate(self, module, resource, obj):
         self.onload(module, resource, obj)

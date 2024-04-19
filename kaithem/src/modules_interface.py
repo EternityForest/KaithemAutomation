@@ -135,16 +135,6 @@ def searchModules(search, max_results=100, start=0, mstart=0):
     return (results, max(0, pointer - 1), x[1])
 
 
-def searchTags(search):
-    p = []
-    from . import tagpoints
-
-    for i in tagpoints.config_tag_data:
-        if search in json.dumps(tagpoints.config_tag_data[i].data) or search in i:
-            p.append(i)
-    return p
-
-
 def searchModuleResources(modulename, search, max_results=100, start=0):
     search = search.lower()
     m = modules_state.ActiveModules[modulename]
@@ -215,7 +205,6 @@ class WebInterface:
                 search=kwargs["search"],
                 name=module,
                 results=searchModules(kwargs["search"], 100, start, mstart),
-                tagr=searchTags(kwargs["search"]),
             )
 
     # This lets the user download a module as a zip file with yaml encoded resources
@@ -389,6 +378,9 @@ class WebInterface:
                 pages.require("system_admin")
                 pages.postOnly()
 
+                if not len(path) > 1:
+                    raise ValueError("No object specified")
+
                 if path[1] == "module":
                     obj = scopes[root]
                     objname = f"Module Obj: {root}"
@@ -439,8 +431,11 @@ class WebInterface:
                 pages.postOnly()
                 if len(path) > 2:
                     x = path[2]
-                else:
+                elif len(path) == 2:
                     x = ""
+                else:
+                    raise ValueError("Expected resource type")
+
                 return addResourceTarget(module, path[1], kwargs["name"], kwargs, x)
 
             # This case shows the information and editing page for one resource
@@ -562,6 +557,17 @@ class WebInterface:
                 d.submit_button("Submit")
                 return d.render(f"/modules/module/{url(root)}/deleteresourcetarget")
 
+            if path[0] == "moveresource":
+                cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
+                pages.require("system_admin", noautoreturn=True)
+
+                d = dialogs.SimpleDialog(f"Move resource in {root}")
+                d.text_input("name", default=path[1])
+                d.text_input("newname", default=path[1], title="New Name")
+                d.text_input("newmodule", default=root, title="New Module")
+                d.submit_button("Submit")
+                return d.render(f"/modules/module/{url(root)}/moveresourcetarget")
+
             # This handles the POST request to actually do the deletion
             if path[0] == "deleteresourcetarget":
                 pages.require("system_admin")
@@ -592,11 +598,20 @@ class WebInterface:
                 else:
                     raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
 
+            if path[0] == "moveresourcetarget":
+                pages.require("system_admin")
+                pages.postOnly()
+                modules.mvResource(module, kwargs["name"], kwargs["newmodule"], kwargs["newname"])
+                raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
+
             # This is the target used to change the name and description(basic info) of a module
             if path[0] == "update":
                 pages.require("system_admin")
                 pages.postOnly()
                 modules_state.modulesHaveChanged()
+                if not kwargs["name"] == root:
+                    if "." in kwargs:
+                        raise ValueError("No . in resource name")
                 with modules_state.modulesLock:
                     if "location" in kwargs and kwargs["location"]:
                         external_module_locations[kwargs["name"]] = kwargs["location"]
@@ -684,7 +699,8 @@ def addResourceTarget(module, type, name, kwargs, path):
     pages.require("system_admin")
     pages.postOnly()
     modules_state.modulesHaveChanged()
-
+    if "." in name:
+        raise ValueError("No . in resource name")
     # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
     if path:
@@ -747,6 +763,8 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 version = "__live__"
         else:
             version = "__live__"
+
+        assert isinstance(resourceinquestion, dict)
 
         if "resource-type" not in resourceinquestion:
             logging.warning(f"No resource type found for {resource}")
@@ -820,7 +838,7 @@ def resourceUpdateTarget(module, resource, kwargs):
                 modules_state.ActiveModules[module][resource] = n
                 modules.saveResource(module, resource, n, resource)
 
-        if t == "permission":
+        elif t == "permission":
             resourceobj["description"] = kwargs["description"]
             # has its own lock
             modules.saveResource(module, resource, resourceobj, newname)
@@ -849,14 +867,9 @@ def resourceUpdateTarget(module, resource, kwargs):
         else:
             modules.saveResource(module, resource, resourceobj, newname)
 
-        if "name" in kwargs:
-            if not kwargs["name"] == resource:
-                # Just handles the internal stuff
-                modules.mvResource(module, resource, module, kwargs["name"])
-
         # We can pass a compiled object for things like events that would otherwise
         # have to have a test compile then the real compile
-        modules.handleResourceChange(module, kwargs.get("name", resource), compiled_object)
+        modules.handleResourceChange(module, resource, compiled_object)
 
         prev_versions[(module, resource)] = old_resource
 

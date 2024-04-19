@@ -3,10 +3,12 @@
 
 
 # This file handles the display of user-created pages
+import copy
 import gc
 import importlib
 import mimetypes
 import os
+import re
 import threading
 import time
 import traceback
@@ -18,6 +20,7 @@ import cherrypy.lib.static
 import jinja2
 import mako
 import mako.template
+import yaml
 
 # import tornado.exceptions
 from mako.lookup import TemplateLookup
@@ -703,7 +706,54 @@ class KaithemPage:
             raise (e)
 
 
+def rsc_from_html(fn: str):
+    with open(fn) as f:
+        d = f.read()
+
+    # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
+    # We don't do anything with more that 3 sections yet, so limit just in case there's ----
+    # in a markdown file
+    sections = re.split(r"\r?\n?----*\s*\r?\n*", d, 2)
+
+    # Markdown and most html files files start with --- and are delimited by ---
+    # The first section is YAML and the second is the page body.
+    data = yaml.load(sections[1], Loader=yaml.SafeLoader)
+    data["body"] = sections[2]
+
+    return data
+
+
 class PageType(modules_state.ResourceType):
+    def to_files(
+        self,
+        name: str,
+        resource: dict[str, str | list | int | float | bool | dict[str, dict | list | int | float | str | bool | None] | None],
+    ) -> dict[str, str]:
+        resource = copy.copy(resource)
+
+        if resource.get("template-engine", "") == "markdown":
+            b = resource["body"]
+            del resource["body"]
+            d = "---\n" + yaml.dump(resource) + "\n---\n" + b
+
+            return {f"{name}.md": d}
+        else:
+            b = resource["body"]
+            del resource["body"]
+            d = "---\n" + yaml.dump(resource) + "\n---\n" + b
+            return {f"{name}.html": d}
+
+    def scan_dir(
+        self, dir: str
+    ) -> dict[str, dict[str, str | list | int | float | bool | dict[str, dict | list | int | float | str | bool | None] | None]]:
+        r = {}
+
+        for i in os.listdir(dir):
+            if i.split(".", 1)[-1] in ("html", "md"):
+                r[i[:-5]] = rsc_from_html(os.path.join(dir, i))
+
+        return r
+
     def blurb(self, m, r, value):
         return render_jinja_template(
             os.path.join(os.path.dirname(__file__), "html", "page_blurb.j2.html"),

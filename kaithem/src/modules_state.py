@@ -7,7 +7,6 @@ import hashlib
 import json
 import logging
 import os
-import shutil
 import time
 import urllib
 import urllib.parse
@@ -20,7 +19,7 @@ import beartype
 import yaml
 from jsonschema import validate
 
-from . import directories, resource_serialization, util
+from . import directories, util
 
 # Approximately type JSON, could be better
 ResourceDictType = dict[str, str | list | int | float | bool | None | dict[str, dict | list | int | float | str | bool | None]]
@@ -96,42 +95,32 @@ def getExt(r):
         return ".yaml"
 
 
-def serializeResource(obj):
+def serializeResource(name, obj) -> dict[str, str]:
     "Returns the raw data, plus the proper file extension"
 
     r = copy.deepcopy(obj)
+
     # This is a ram only thing that tells us where it is saved
     if "resource-loadedfrom" in r:
         del r["resource-loadedfrom"]
 
-    if r["resource-type"] == "page":
-        if r.get("template-engine", "") == "markdown":
-            b = r["body"]
-            del r["body"]
-            d = "---\n" + yaml.dump(r) + "\n---\n" + b
-        else:
-            b = r["body"]
-            del r["body"]
-            d = "---\n" + yaml.dump(r) + "\n---\n" + b
-
-    elif r["resource-type"] == "event":
-        d = resource_serialization.toPyFile(r)
+    if r["resource-type"] in additionalTypes:
+        return additionalTypes[r["resource-type"]].to_files(name, r)
 
     else:
-        d = yaml.dump(r)
-    return (d, getExt(obj))
+        return {f"{name}.yaml": yaml.dump(r)}
 
 
-def writeResource(obj: dict, fn: str):
+def writeResource(obj: dict, dir: str, resource_name: str):
+    "Write resource into dir"
     # logger.debug("Saving resource to "+str(fn))
 
     if obj.get("do-not-save-to-disk", False):
         return
 
-    d, ext = serializeResource(obj)
-
     # directories get saved just by writing a literal directory.
     if obj["resource-type"] == "directory":
+        fn = os.path.join(dir, resource_name)
         if os.path.exists(fn):
             if not os.path.isdir(fn):
                 os.remove(fn)
@@ -140,51 +129,53 @@ def writeResource(obj: dict, fn: str):
             os.makedirs(fn, exist_ok=True)
         return
 
-    if os.path.exists(fn):
-        try:
-            # Check for sameness, avoid useless write
+    files = serializeResource(resource_name, obj)
+
+    for bn in files:
+        fn = os.path.join(dir, bn)
+        d = files[bn]
+
+        data = d.encode("utf-8")
+
+        # Check if anything is actually new
+        if os.path.isfile(fn):
             with open(fn, "rb") as f:
-                x = f.read().decode("utf8")
-                if x == d:
+                if f.read() == data:
+                    if "resource-loadedfrom" not in obj:
+                        obj["resource-loadedfrom"] = []
+
+                    obj["resource-loadedfrom"].append(fn)
                     return fn
-        except Exception:
-            logger.exception("err, continuing")
 
-    os.makedirs(os.path.dirname(fn), exist_ok=True)
-    data = d.encode("utf-8")
+        os.makedirs(os.path.dirname(fn), exist_ok=True)
 
-    # Check if anything is actually new
-    if os.path.isfile(fn):
-        with open(fn, "rb") as f:
-            if f.read() == data:
-                obj["resource-loadedfrom"] = fn
-                return fn
+        with open(fn, "wb") as f:
+            util.chmod_private_try(fn, execute=False)
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
 
-    with open(fn, "wb") as f:
-        util.chmod_private_try(fn, execute=False)
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
+            if "resource-loadedfrom" not in obj:
+                obj["resource-loadedfrom"] = []
 
-    # logger.debug("saved resource to file " + fn)
-    obj["resource-loadedfrom"] = fn
-    return fn
+            obj["resource-loadedfrom"].append(fn)
+            return fn
 
 
-def saveResource(m, r, resourceData, name=None):
-    if "__do__not__save__to__disk__:" in m:
+def saveResource(module: str, resource: str, resourceData, name=None):
+    if "__do__not__save__to__disk__:" in module:
         return
 
-    modulename, resource = m, r
     name = name or resource
 
     # Open a file at /where/module/resource
-    fn = getResourceFn(modulename, resource, resourceData)
-    newfn = getResourceFn(modulename, name, resourceData)
 
-    if not newfn == fn:
-        if os.path.exists(newfn):
-            raise ValueError("File exists: " + newfn)
+    dir = get_resource_save_location(module, name)
+
+    if not name == resource:
+        for i in os.listdir(dir):
+            if i.startswith(name + "."):
+                raise ValueError(f"File appears to exist: {os.path.join(dir, i)}")
 
     if resourceData["resource-type"] == "directory":
         d = copy.deepcopy(resourceData)
@@ -197,13 +188,7 @@ def saveResource(m, r, resourceData, name=None):
 
     # Allow non-saved virtual resources
     if not hasattr(resourceData, "ephemeral") or resourceData.ephemeral is False:
-        writeResource(resourceData, fn)
-
-    if not newfn == fn:
-        shutil.move(fn, newfn)
-
-    # Don't need to do anything with the file resource data, it is always modified directly when actually changed
-    # In the upload code itself.
+        writeResource(resourceData, dir, resource)
 
 
 @beartype.beartype
@@ -213,9 +198,6 @@ def rawDeleteResource(m: str, r: str, type: str | None = None):
     any bookkeeping. Will not remove whatever runtime objectes
     were created from the resource, also will not update hashes.
     """
-
-    modulename, resource = m, r
-
     resourceData = ActiveModules[m].pop(r)
     rt = resourceData["resource-type"]
     assert isinstance(rt, str)
@@ -224,9 +206,11 @@ def rawDeleteResource(m: str, r: str, type: str | None = None):
         raise ValueError("Resource exists but is wrong type")
 
     # Open a file at /where/module/resource
-    fn = getResourceFn(modulename, resource, resourceData)
-    if os.path.exists(fn):
-        os.remove(fn)
+    old_fns = resourceData.get("resource-loadedfrom", []) or []
+    if isinstance(old_fns, list):
+        for fn in old_fns:
+            if isinstance(fn, str) and os.path.exists(fn):
+                os.remove(fn)
 
 
 def getModuleFn(modulename: str):
@@ -238,9 +222,9 @@ def getModuleFn(modulename: str):
     return dir
 
 
-def getResourceFn(m, r, o):
+def get_resource_save_location(m, r):
     dir = getModuleFn(m)
-    return os.path.join(dir, urllib.parse.quote(r, safe=" /")) + getExt(o)
+    return os.path.dirname(os.path.join(dir, urllib.parse.quote(r, safe=" /")))
 
 
 @beartype.beartype
@@ -296,6 +280,16 @@ class ResourceType:
         self.createButton = None
         self.schema: dict | None = schema
         self.priority = priority
+
+    def scan_dir(self, dir: str) -> dict[str, ResourceDictType]:
+        """Given a directory path, scan for any resources stored
+        in some format other than the usual YAML.
+        """
+        return {}
+
+    def to_files(self, name: str, resource: ResourceDictType) -> dict[str, str]:
+        """Given a resource, return files as name to content mapping"""
+        return {f"{name}.yaml": yaml.dump(resource)}
 
     @beartype.beartype
     def validate(self, d: dict[str, dict[str, Any] | list | str | int | float | bool | None]):
