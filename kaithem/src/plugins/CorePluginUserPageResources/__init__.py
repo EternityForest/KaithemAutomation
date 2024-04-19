@@ -726,6 +726,8 @@ class PageType(modules_state.ResourceType):
     ) -> dict[str, str]:
         resource = copy.copy(resource)
 
+        name = name.split("/")[-1]
+
         if resource.get("template-engine", "") == "markdown":
             b = resource["body"]
             del resource["body"]
@@ -758,6 +760,7 @@ class PageType(modules_state.ResourceType):
             url_for_resource=url_for_resource,
             modulename=m,
             resourcename=r,
+            len=len,
         )
 
     @beartype.beartype

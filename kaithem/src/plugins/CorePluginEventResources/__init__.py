@@ -1880,6 +1880,7 @@ class EventType(modules_state.ResourceType):
         name: str,
         resource: dict[str, str | list | int | float | bool | dict[str, dict | list | int | float | str | bool | None] | None],
     ) -> dict[str, str]:
+        name = name.split("/")[-1]
         return {f"{name}.py": toPyFile(resource)}
 
     def scan_dir(

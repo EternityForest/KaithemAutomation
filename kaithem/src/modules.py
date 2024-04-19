@@ -41,6 +41,21 @@ from .util import url
 logger = logging.getLogger("system")
 
 
+FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
+
+
+def check_forbdden(s):
+    if not isinstance(s, str):
+        raise RuntimeError("{s} is not even a string")
+
+    if len(s) > 255:
+        raise ValueError(f"Excessively long name {s[:128]}...")
+
+    for i in s:
+        if i in FORBID_CHARS:
+            raise ValueError(f"{s} contains {i}")
+
+
 try:
     import fcntl
 except Exception:
@@ -514,8 +529,16 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
             for i in dirs:
                 if "/__" not in i:
                     for t in additionalTypes:
-                        found = additionalTypes[t].scan_dir(os.path.join(root, i))
-                        module.update(found)
+                        abs = os.path.join(root, i)
+                        rel = os.path.relpath(abs, folder)
+                        found = additionalTypes[t].scan_dir(abs)
+                        found = copy.deepcopy(found)
+
+                        for rn in found:
+                            if rel:
+                                module[rel + "/" + rn] = found[rn]
+                            else:
+                                module[rn] = found[rn]
 
             for i in files:
                 if ignore_func and ignore_func(i):
@@ -836,9 +859,12 @@ def bookkeeponemodule(module, update=False):
 
 def mvResource(module: str, resource: str, toModule: str, toResource: str):
     # Raise an error if the user ever tries to move something somewhere that does not exist.
-    new = util.split_escape(toResource, "/", "\\", True)
+    new = toResource.split("/")
+    for i in new:
+        check_forbdden(i)
+
     if not ("/".join(new[:-1]) in modules_state.ActiveModules[toModule] or len(new) < 2):
-        raise cherrypy.HTTPRedirect("/errors/nofoldeday1veerror")
+        raise cherrypy.HTTPRedirect("/errors/nofoldervmoverror")
     if toModule not in modules_state.ActiveModules:
         raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
     # If something by the name of the directory we are moving to exists but it is not a directory.
@@ -942,6 +968,7 @@ def getModuleDir(module: str):
 def newModule(name: str, location: str | None = None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
 
+    check_forbdden(name)
     # If there is no module by that name, create a blank template and the scope obj
     with modulesLock:
         if location:

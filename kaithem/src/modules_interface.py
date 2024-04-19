@@ -26,7 +26,8 @@ from . import (
     util,
 )
 from .config import config
-from .modules import external_module_locations
+from .modules import check_forbdden, external_module_locations
+from .modules_state import in_folder
 from .util import url
 
 syslog = logging.getLogger("system")
@@ -34,27 +35,6 @@ searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
 
 
 prev_versions: dict[tuple, dict] = {}
-
-
-# n is the module name
-# f is the folder we are checking if it is in, including the module name
-# r is the path of the resource
-
-
-def in_folder(r, f, n):
-    # Get the path as a list, including the module name
-    r = [n] + util.split_escape(r, "/", "\\")
-    # Get the path of the folder
-    f = util.split_escape(f, "/", "\\")
-    # make sure the resource path is one longer than module
-    if not len(r) == len(f) + 1:
-        return False
-    x = 0
-    for i in f:
-        if not r[x] == i:
-            return False
-        x += 1
-    return True
 
 
 def get_f_size(name, i):
@@ -69,7 +49,7 @@ def urlForPath(module, path):
         "/modules/module/"
         + url(module)
         + "/resource/"
-        + "/".join([url(i.replace("\\", "\\\\").replace("/", "\\/")) for i in util.split_escape(path[0], "/", "\\")[:-1]])
+        + "/".join([url(i.replace("\\", "\\\\").replace("/", "\\/")) for i in path[0].split("/")[:-1]])
     )
 
 
@@ -89,7 +69,7 @@ def sorted_module_path_list(name: str, path: list):
 
 def breadcrumbs(path):
     temp_p = ""
-    for i in util.split_escape(path, "/", "\\"):
+    for i in path.split("/"):
         temp_p += f"{i}/"
         yield temp_p[:-1]
 
@@ -301,6 +281,8 @@ class WebInterface:
         pages.require("system_admin")
         pages.postOnly()
 
+        check_forbdden(kwargs["name"])
+
         # If there is no module by that name, create a blank template and the scope obj
         with modules_state.modulesLock:
             if kwargs["name"] in modules_state.ActiveModules:
@@ -331,8 +313,8 @@ class WebInterface:
     # This function handles HTTP requests of or relating to one specific already existing module.
     # The URLs that this function handles are of the form /modules/module/<modulename>[something?]
     def module(self, module, *path, **kwargs):
-        root = util.split_escape(module, "/")[0]
-        modulepath = util.split_escape(module, "/")[1:]
+        root = module.split("/")[0]
+        modulepath = module.split("/")[1:]
         fullpath = module
         if len(path) > 2:
             fullpath += f"/{path[2]}"
@@ -437,6 +419,7 @@ class WebInterface:
                 else:
                     raise ValueError("Expected resource type")
 
+                check_forbdden(kwargs["name"])
                 return addResourceTarget(module, path[1], kwargs["name"], kwargs, x)
 
             # This case shows the information and editing page for one resource
@@ -517,7 +500,7 @@ class WebInterface:
                     escapedName = kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
                     if len(path) > 1:
                         escapedName = f"{path[1]}/{escapedName}"
-                    x = util.split_escape(module, "/", "\\")
+                    x = module.split("/")
                     escapedName = "/".join(x[1:] + [escapedName])
                     root = x[0]
 
@@ -592,7 +575,7 @@ class WebInterface:
                         "resource": kwargs["name"],
                     },
                 )
-                if len(util.split_escape(kwargs["name"], "/", "\\")) > 1:
+                if len(kwargs["name"].split("/")) > 1:
                     raise cherrypy.HTTPRedirect(
                         "/modules/module/" + util.url(module) + "/resource/" + util.url(util.module_onelevelup(kwargs["name"]))
                     )
@@ -602,6 +585,10 @@ class WebInterface:
             if path[0] == "moveresourcetarget":
                 pages.require("system_admin")
                 pages.postOnly()
+
+                # Allow / to move stuf to dirs
+                check_forbdden(kwargs["newname"].replace("/", ""))
+
                 modules.mvResource(module, kwargs["name"], kwargs["newmodule"], kwargs["newname"])
                 raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
 
@@ -700,24 +687,24 @@ def addResourceTarget(module, type, name, kwargs, path):
     pages.require("system_admin")
     pages.postOnly()
     modules_state.modulesHaveChanged()
-    if "." in name:
-        raise ValueError("No . in resource name")
-    # Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
-    escapedName = kwargs["name"].replace("\\", "\\\\").replace("/", "\\/")
+
+    check_forbdden(kwargs["name"])
+
+    name_with_path = kwargs["name"]
     if path:
-        escapedName = f"{path}/{escapedName}"
-    x = util.split_escape(module, "/", "\\")
-    escapedName = "/".join(x[1:] + [escapedName])
+        name_with_path = f"{path}/{name_with_path}"
+    x = module.split("/")
+    name_with_path = "/".join(x[1:] + [name_with_path])
     root = x[0]
 
     def insertResource(r):
         r["resource-timestamp"] = int(time.time() * 1000000)
-        modules_state.ActiveModules[root][escapedName] = r
-        modules.saveResource(root, escapedName, r)
+        modules_state.ActiveModules[root][name_with_path] = r
+        modules.saveResource(root, name_with_path, r)
 
     with modules_state.modulesLock:
         # Check if a resource by that name is already there
-        if escapedName in modules_state.ActiveModules[root]:
+        if name_with_path in modules_state.ActiveModules[root]:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
         if type == "directory":
@@ -736,14 +723,14 @@ def addResourceTarget(module, type, name, kwargs, path):
                 insertResource(r)
                 f = modules_state.additionalTypes[type].onload
                 if f:
-                    f(module, name, r)
+                    f(module, name_with_path, r)
 
         messagebus.post_message(
             "/system/notifications",
-            "User " + pages.getAcessingUser() + " added resource " + escapedName + " of type " + type + " to module " + root,
+            "User " + pages.getAcessingUser() + " added resource " + name_with_path + " of type " + type + " to module " + root,
         )
         # Take the user straight to the resource page
-        raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}/resource/{util.url(escapedName)}")
+        raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}/resource/{util.url(name_with_path)}")
 
 
 # show a edit page for a resource. No side effect here so it only requires the view permission
@@ -793,7 +780,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 "modules/module.j2.html",
                 module=modules_state.ActiveModules[module],
                 name=module,
-                path=util.split_escape(resource, "\\"),
+                path=resource.split("/"),
                 fullpath=f"{module}/{resource}",
                 **module_page_context,
             )
@@ -885,7 +872,7 @@ def resourceUpdateTarget(module, resource, kwargs):
         raise cherrypy.HTTPRedirect(f"/pages/{module}/{r}")
     # Return user to the module page. If name has a folder, return the
     # user to it;s containing folder.
-    x = util.split_escape(r, "/", "\\")
+    x = r.split("/")
     if len(x) > 1:
         raise cherrypy.HTTPRedirect(
             "/modules/module/" + util.url(module) + "/resource/" + "/".join([util.url(i) for i in x[:-1]]) + "#resources"

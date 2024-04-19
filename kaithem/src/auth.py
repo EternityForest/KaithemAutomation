@@ -144,7 +144,7 @@ def importPermissionsFromModules():
             for resource in modules_state.ActiveModules[module].copy():
                 if modules_state.ActiveModules[module][resource]["resource-type"] == "permission":
                     # add it to the permissions list
-                    p2[util.split_escape(resource, "/", "\\")[-1]] = modules_state.ActiveModules[module][resource]
+                    p2[resource.split("/")[-1]] = modules_state.ActiveModules[module][resource]
     global Permissions
     Permissions = p2
 

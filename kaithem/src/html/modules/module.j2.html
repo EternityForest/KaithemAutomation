@@ -80,13 +80,12 @@
 
         </div>
         <dl>
-            {% if path and len(util.split_escape(path[0],"/","\\"))>1 %}
+            {% if path and len(path[0].split("/"))>1 %}
             <dt class="specialentry">
                 <a href="urlForPath(module, path)#resources">..</a>
             </dt>
             {% endif %}
             {% for i in sorted_module_path_list(name, path) %}
-            {% if in_folder(i,fullpath,name) %}
             {% if not 'resource-type' in module[i] %}
             <p class=error>OBJECT {{ i| escape }} MISSING resource-type</p>
             <%
@@ -99,7 +98,7 @@
                 <div class="tool-bar w-full inline">
                     <h3>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-key"></i>
-                            {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                            {{ i.split("/")[-1] | escape }}</a>
                     </h3>
 
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
@@ -112,7 +111,7 @@
                 <div class="tool-bar w-full inline">
                     <h3>
                         <a
-                            href="/modules/module/{{ url(name) }}/getfileresource/{{ url(i) }}">{{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                            href="/modules/module/{{ url(name) }}/getfileresource/{{ url(i) }}">{{ i.split("/")[-1] | escape }}</a>
                     </h3>
                     <a class="settingsbuttton"
                         href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">Properties</a>
@@ -134,7 +133,7 @@
                 <div class="tool-bar w-full inline">
                     <h3>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-{{modules.additionalTypes[module[i]['resource-type']].mdi_icon}}"></i>
-                            {{ util.split_escape(i,'/','\\')[-1] | escape }} ({{module[i]['resource-type']}})</a>
+                            {{ i.split("/")[-1] | escape }} ({{module[i]['resource-type']}})</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span class="mdi mdi-folder-move"></span>
                         Move</a>
@@ -154,7 +153,7 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a class="deviceslink"
-                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}"> <i class="mdi mdi-chip"></i> {{ util.split_escape(i,'/','\\')[-1] | escape }}</a>
+                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}"> <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
@@ -168,7 +167,7 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
-                                class="mdi mdi-folder-outline"></i><b></b>{{ util.split_escape(i,'/')[-1] | escape }}</b></a>
+                                class="mdi mdi-folder-outline"></i><b></b>{{ i.split('/')[-1] | escape }}</b></a>
                     </h3>
                     <a class="button nogrow"
                         href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
@@ -176,8 +175,15 @@
                 </div>
             </dt>
             {% endif %}
-            {% endif %}
             {% endfor %}
             </div>
 </main>
+
+<script>
+    // Fix going back after a change and seeing old data
+    const perfEntries = performance.getEntriesByType('navigation');
+if (perfEntries.length && perfEntries[0].type === 'back_forward') {
+  window.location.reload()
+}
+</script>
 {% endblock %}

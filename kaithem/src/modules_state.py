@@ -132,6 +132,10 @@ def writeResource(obj: dict, dir: str, resource_name: str):
     files = serializeResource(resource_name, obj)
 
     for bn in files:
+        if not bn.split(".")[0] == resource_name.split("/")[-1]:
+            raise RuntimeError(f"Plugin wants to save file {bn} that doesn't match resource {resource_name}")
+        if "/" in bn:
+            raise RuntimeError(f"Resource saving plugins can't create subfolder. Requested fn {bn}")
         fn = os.path.join(dir, bn)
         d = files[bn]
 
@@ -284,11 +288,18 @@ class ResourceType:
     def scan_dir(self, dir: str) -> dict[str, ResourceDictType]:
         """Given a directory path, scan for any resources stored
         in some format other than the usual YAML.
+
+        Must not have side effects.
         """
         return {}
 
     def to_files(self, name: str, resource: ResourceDictType) -> dict[str, str]:
-        """Given a resource, return files as name to content mapping"""
+        """Given a resource, return files as name to content mapping.
+        Returned filenames must not include the path, within the module,
+        although the name given will be the full resource name.
+
+        Must not have side effects.
+        """
         return {f"{name}.yaml": yaml.dump(resource)}
 
     @beartype.beartype
@@ -380,7 +391,7 @@ class HierarchyDict:
         self.root = {}
 
     def parsePath(self, s):
-        return util.split_escape(s, "/", "\\")
+        return s.split("/")
 
     def pathJoin(self, *p):
         return "/".join(p)
@@ -529,15 +540,17 @@ def modulesHaveChanged():
     modulewordhashes = {}
 
 
-def in_folder(n: str, fn: str):
+def in_folder(n: str, folder_name: str):
     """Return true if name r represents a kaihem resource in folder f"""
     # Note: this is about kaithem resources and folders, not actual filesystem dirs.
-    if not n.startswith(fn):
+    if not n.startswith(folder_name):
         return False
     # Get the path as a list
-    r = util.split_escape(n, "/", "\\")
+    r = n.split("/")
     # Get the path of the folder
-    f = util.split_escape(fn, "/", "\\")
+    f = folder_name.split("/")
+    if f[0] == "":
+        f.pop()
     # make sure the resource path is one longer than module
     if not len(r) == len(f) + 1:
         return False

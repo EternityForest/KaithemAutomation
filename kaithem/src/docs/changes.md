@@ -7,7 +7,7 @@ Change Log
 
 - :sparkles: \_\_setup\_\_ cues. Chandler scenes go to this cue if it exists at start before going to any checkpoint.
 -
-- :coffin: Remove ability to create new Mako user pages.
+- :coffin: Remove ability to create new Mako user pages. Jinja2 all the way!
 - :sparkles: Button to add time to a running cue
 - :sparkles: Print more logs
 - :coffin: Special characters no longer allowed in resource names.
