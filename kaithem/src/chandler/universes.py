@@ -1152,15 +1152,6 @@ class OneTagpoint(Universe):
             if self.prev != t:
                 if (x > -1) and (a > 0):
                     self.prev = t
-
-                    if self.tagpoint.min is not None and self.tagpoint.min >= -(10**14):
-                        # Should the tag point have a range set, and should that range be smaller than some very large possible default
-                        # it could be, map the value from our 0-255 scale to whatever the tag point's scale is.
-                        if self.tagpoint.max is not None and self.tagpoint.max <= 10**14:
-                            x = x / 255
-                            x *= self.tagpoint.max - self.tagpoint.min
-                            x += self.tagpoint.min
-
                     self.tagpoint.claim(x, "ChandlerUniverse", 50)
                 else:
                     self.tagpoint.release("ChandlerUniverse")
