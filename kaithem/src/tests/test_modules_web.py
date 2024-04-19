@@ -15,7 +15,7 @@ class testobj:
 
 def test_make_module_web():
     # Make module using the same API that the web frontend would
-    n = "test" + str(time.time())
+    n = "test" + str(time.time()).replace(".", "_")
 
     try:
         webapproot.root.modules.newmoduletarget(name=n)

@@ -209,12 +209,10 @@ def rawDeleteResource(m: str, r: str, type: str | None = None):
     if type and rt != type:
         raise ValueError("Resource exists but is wrong type")
 
-    # Open a file at /where/module/resource
-    old_fns = resourceData.get("resource-loadedfrom", []) or []
-    if isinstance(old_fns, list):
-        for fn in old_fns:
-            if isinstance(fn, str) and os.path.exists(fn):
-                os.remove(fn)
+    dir = get_resource_save_location(m, r)
+    for i in os.listdir(dir):
+        if i.startswith(r + "."):
+            os.remove(os.path.join(dir, i))
 
 
 def getModuleFn(modulename: str):
@@ -289,6 +287,8 @@ class ResourceType:
         """Given a directory path, scan for any resources stored
         in some format other than the usual YAML.
 
+        Will be called for every dir in module.
+
         Must not have side effects.
         """
         return {}
@@ -297,6 +297,11 @@ class ResourceType:
         """Given a resource, return files as name to content mapping.
         Returned filenames must not include the path, within the module,
         although the name given will be the full resource name.
+
+        If resource is foo/bar/baz, fn should be baz.my_extension.
+
+        You can make multiple files but not folders.  On delete this is
+        also called to find what files need to be deleted.
 
         Must not have side effects.
         """

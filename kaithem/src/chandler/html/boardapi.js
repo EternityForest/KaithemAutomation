@@ -591,6 +591,17 @@ appMethods = {
 
     },
 
+    'addTagToCue': function () {
+        if (!this.newcuetag) {
+            return
+        }
+        api_link.send(['add_cueval', this.scenecues[
+            this.scenename]
+        [this.selectedCues[this.scenename]],
+            this.newcuetag, "value"
+        ]);
+
+    },
     'editMode': function () {
         keyboardJS.reset();
         this.keybindmode = "edit";
@@ -779,6 +790,7 @@ appData = {
     'ferrs': '',
     'evfilt': '',
     'newcueu': '',
+    'newcuetag': '',
     'newcuevnumber': '',
     'newscenename': '',
     'nuisianceRateLimit': [10,Date.now()],

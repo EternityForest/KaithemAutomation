@@ -1,22 +1,25 @@
 from __future__ import annotations
+
+import copy
+import gc
+import json
+import logging
+import socket
+import struct
+import threading
+import time
+import traceback
+import weakref
+from typing import Any
+
 import colorzero
 import numpy
-import time
-import threading
-import weakref
-import socket
-import logging
-import traceback
-import gc
-import copy
-import struct
-import json
-from typing import Optional, List, Dict, Any
-from . import core
-from .core import disallow_special
+
+from kaithem.src import alerts
 
 from ..kaithemobj import kaithem
-from kaithem.src import alerts
+from . import core
+from .core import disallow_special
 
 logger = logging.getLogger("system.chandler")
 
@@ -28,19 +31,34 @@ max = max
 min = min
 
 universesLock = core.lock
-universes: Dict[str, weakref.ReferenceType[Universe]] = {}
+universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 # MUTABLE
-_universes: Dict[str, weakref.ReferenceType[Universe]] = {}
+_universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 
-fixtures: Dict[str, weakref.ref[Fixture]] = {}
+fixtures: dict[str, weakref.ref[Fixture]] = {}
+
+
+def get_on_demand_universe(name: str) -> Universe:
+    if not name.strip().startswith("/"):
+        raise ValueError("Only tag point universes")
+
+    if name in universes:
+        try:
+            x = universes[name]()
+            if x:
+                return x
+        except KeyError:
+            pass
+
+    t = OneTagpoint(name)
+    core.add_data_pusher_to_all_boards(lambda s: s.pushChannelNames(name))  # type: ignore
+    return t
 
 
 class Fixture:
-    def __init__(
-        self, name: str, data: Optional[List[List[Any]] | Dict[str, Any]] = None
-    ):
+    def __init__(self, name: str, data: list[list[Any]] | dict[str, Any] | None = None):
         """Represents a contiguous range of channels each with a defined role in one universe.
 
         data is the definition of the type of fixture. It can be a list of channels, or
@@ -66,11 +84,11 @@ class Fixture:
         use the first argument to specify the number of the coarse channel,
         with 0 being the fixture's first channel.
         """
-        self.channels: List[List[Any]]
+        self.channels: list[list[Any]]
 
         if data:
             # Normalize and raise errors on nonsense
-            channels: List[List[Any]] | Dict[str, Any] = json.loads(json.dumps(data))
+            channels: list[list[Any]] | dict[str, Any] = json.loads(json.dumps(data))
 
             if not isinstance(channels, list):
                 channels = channels["channels"]
@@ -82,12 +100,12 @@ class Fixture:
             channels = []
             self.channels = channels
 
-        self.universe: Optional[str] = None
-        self.startAddress: Optional[int] = 0
+        self.universe: str | None = None
+        self.startAddress: int | None = 0
         self.assignment = None
         disallow_special(name, ".")
 
-        self.nameToOffset: Dict[str, int] = {}
+        self.nameToOffset: dict[str, int] = {}
 
         # Used for looking up channel by name
         for i in range(len(channels)):
@@ -132,7 +150,7 @@ class Fixture:
         except Exception:
             print(traceback.format_exc())
 
-    def assign(self, universe: Optional[str], channel: Optional[int]):
+    def assign(self, universe: str | None, channel: int | None):
         with core.lock:
             # First just clear the old assignment, if any
             if self.universe and self.startAddress:
@@ -140,14 +158,9 @@ class Fixture:
 
                 if oldUniverseObj:
                     # Delete current assignments
-                    for i in range(
-                        self.startAddress, self.startAddress + len(self.channels)
-                    ):
+                    for i in range(self.startAddress, self.startAddress + len(self.channels)):
                         if i in oldUniverseObj.channels:
-                            if (
-                                oldUniverseObj.channels[i]()
-                                and oldUniverseObj.channels[i]() is self
-                            ):
+                            if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
                                 del oldUniverseObj.channels[i]
                                 # We just unassigned it, so it's not a hue channel anymore
                                 oldUniverseObj.hueBlendMask[i] = 0
@@ -182,14 +195,7 @@ class Fixture:
                         fixture = universeObj.channels[i]()
                         if fixture:
                             if not self.name == fixture.name:
-                                raise ValueError(
-                                    "channel "
-                                    + str(i)
-                                    + " of "
-                                    + self.name
-                                    + " would overlap with "
-                                    + fixture.name
-                                )
+                                raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
 
             cPointer = 0
             for i in range(channel, channel + len(self.channels)):
@@ -203,9 +209,11 @@ class Fixture:
 class Universe:
     "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX."
 
+    refresh_on_create = True
+
     def __init__(self, name: str, count: int = 512, number: int = 0):
         global universes
-        for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>,":
+        for i in ":[]()*\\`~!@#$%^&*=+|{}'\";<>,":
             if i in name:
                 raise ValueError("Name cannot contain special characters except _")
         self.name = name
@@ -242,7 +250,7 @@ class Universe:
 
         # Dict of all board ids that have already pushed a status update
         self.statusChanged = {}
-        self.channels: Dict[int, weakref.ref[Fixture]] = {}
+        self.channels: dict[int, weakref.ref[Fixture]] = {}
 
         # Maps names to numbers, mostly for tagpoint universes.
         if not hasattr(self, "channelNames"):
@@ -260,11 +268,11 @@ class Universe:
 
         self.count = count
         # Maps fine channel numbers to coarse channel numbers
-        self.fine_channels: Dict[int, int] = {}
+        self.fine_channels: dict[int, int] = {}
 
         # Map fixed channel numbers to values.
         # We implemet that here so they are fixed no matter what the scenes and blend modes say
-        self.fixed_channels: Dict[int, float] = {}
+        self.fixed_channels: dict[int, float] = {}
 
         # Used for the caching. It's the layer we want to save as the background state before we apply.
         # Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
@@ -273,9 +281,7 @@ class Universe:
         # so far in this frame
         self.all_static = True
 
-        self.error_alert = alerts.Alert(
-            f"{self.name}.errorState", priority="error", auto_ack=True
-        )
+        self.error_alert = alerts.Alert(f"{self.name}.errorState", priority="error", auto_ack=True)
         with core.lock:
             with universesLock:
                 if name in _universes and _universes[name]():
@@ -319,8 +325,9 @@ class Universe:
         except Exception as e:
             print(e)
 
-        kaithem.message.post("/chandler/command/refreshFixtures", self.name)
-        self.refresh_scenes()
+        if self.refresh_on_create:
+            kaithem.message.post("/chandler/command/refreshFixtures", self.name)
+            self.refresh_scenes()
 
     def close(self):
         global universes
@@ -332,9 +339,7 @@ class Universe:
             universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
             def alreadyClosed(*a, **k):
-                raise RuntimeError(
-                    "This universe has been stopped, possibly because it was replaced wih a newer one"
-                )
+                raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
 
             self.onFrame = alreadyClosed
             self.setStatus = alreadyClosed
@@ -369,8 +374,9 @@ class Universe:
 
     def __del__(self):
         if not self.closed:
-            # Do as little as possible in the undefined __del__ thread
-            kaithem.message.post("/chandler/command/refreshScenes", None)
+            if self.refresh_on_create:
+                # Do as little as possible in the undefined __del__ thread
+                kaithem.message.post("/chandler/command/refreshScenes", None)
 
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."
@@ -653,9 +659,7 @@ class ArtNetUniverse(Universe):
 
         # Channel 0 is a dummy to make math easier.
         self.values = numpy.array([0.0] * (channels + 1), dtype="f4")
-        self.sender = makeSender(
-            ArtNetSender, weakref.ref(self), addr, port, framerate, scheme
-        )
+        self.sender = makeSender(ArtNetSender, weakref.ref(self), addr, port, framerate, scheme)
 
         Universe.__init__(self, name, channels)
 
@@ -675,86 +679,6 @@ class ArtNetUniverse(Universe):
         except Exception:
             pass
         return super().close()
-
-
-class TagpointUniverse(Universe):
-    "Used for outputting lighting to Kaithem's internal Tagpoint system"
-
-    def __init__(self, name, channels=128, tagpoints={}, framerate=44.0, number=0):
-        self.ok = True
-        self.status = "OK"
-        self.number = number
-        self.statusChanged = {}
-        self.tagpoints = tagpoints
-        self.channelCount = channels
-        self.tagObjsByNum = {}
-        self.claims = {}
-        self.hidden = False
-
-        self.channelNames = {}
-        # Put a claim on all the tags
-        for i in self.tagpoints:
-            # One higher than default
-            try:
-                if not i.strip():
-                    continue
-
-                x = i.split(":")
-
-                chname = ""
-                try:
-                    num = int(x[0].strip())
-                except Exception:
-                    num = len(self.claims) + 1
-                    chname = x[0].strip()
-
-                if len(x) == 2:
-                    chname = x[1].strip()
-                else:
-                    if not chname:
-                        chname = "tp" + str(num)
-
-                tpn = self.tagpoints[i]
-                if tpn:
-                    self.tagObjsByNum[num] = kaithem.tags[tpn]
-                    self.claims[num] = kaithem.tags[tpn].claim(
-                        0, "Chandler_" + name, 50 if number < 2 else number
-                    )
-                    self.channelNames[chname] = num
-
-            except Exception as e:
-                self.status = "error, " + i + " " + str(e)
-                logger.exception("Error related to tag point " + i)
-                print(traceback.format_exc())
-                event("board.error", traceback.format_exc())
-
-        # Sender needs the values to be there for setup
-        self.values = numpy.array([0.0] * channels, dtype="f4")
-
-        Universe.__init__(self, name, channels)
-
-    def onFrame(self):
-        for i in self.claims:
-            try:
-                x = float(self.values[i])
-                if x > -1:
-                    if (
-                        self.tagObjsByNum[i].min is not None
-                        and self.tagObjsByNum[i].min >= -(10**14)
-                    ):
-                        # Should the tag point have a range set, and should that range be smaller than some very large possible default
-                        # it could be, map the value from our 0-255 scale to whatever the tag point's scale is.
-                        if (
-                            self.tagObjsByNum[i].max is not None
-                            and self.tagObjsByNum[i].max <= 10**14
-                        ):
-                            x = x / 255
-                            x *= self.tagObjsByNum[i].max - self.tagObjsByNum[i].min
-                            x += self.tagObjsByNum[i].min
-                    self.claims[i].set(x)
-            except Exception:
-                core.rl_log_exc("Error in tagpoint universe")
-                print(traceback.format_exc())
 
 
 def makeSender(c, uref, *a):
@@ -871,9 +795,7 @@ class ArtNetSender:
                 # DMX starts at 1, don't send element 0 even though it exists.
                 p = (
                     b"Art-Net\x00\x00\x50\x00\x0e\0"
-                    + struct.pack(
-                        "<BH", physical if physical is not None else universe, universe
-                    )
+                    + struct.pack("<BH", physical if physical is not None else universe, universe)
                     + struct.pack(">H", len(data))
                     + (data.astype(numpy.uint8).tobytes()[1:])
                 )
@@ -988,9 +910,7 @@ class RawDMXSender:
                 self.port.close()
             except Exception:
                 pass
-            self.port = serial.Serial(
-                p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2
-            )
+            self.port = serial.Serial(p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2)
 
             self.port.read(self.port.inWaiting())
             time.sleep(0.05)
@@ -1073,13 +993,7 @@ kaithem.message.subscribe("/system/tags/deleted", onDelTag)
 
 
 def onAddTag(t, m):
-    if (
-        "color" not in m
-        and "fade" not in m
-        and "light" not in m
-        and "bulb" not in m
-        and "colour" not in m
-    ):
+    if "color" not in m and "fade" not in m and "light" not in m and "bulb" not in m and "colour" not in m:
         return
     discoverColorTagDevices()
 
@@ -1157,9 +1071,7 @@ class ColorTagUniverse(Universe):
         Universe.__init__(self, name, 4)
         self.hidden = False
         self.tag = tag
-        self.f = Fixture(
-            self.name + ".rgb", [["R", "red"], ["G", "green"], ["B", "blue"]]
-        )
+        self.f = Fixture(self.name + ".rgb", [["R", "red"], ["G", "green"], ["B", "blue"]])
         self.f.assign(self.name, 1)
         self.lock = threading.RLock()
 
@@ -1183,9 +1095,7 @@ class ColorTagUniverse(Universe):
         kaithem.misc.do(f)
 
     def _onFrame(self):
-        c = colorzero.Color.from_rgb(
-            self.values[1] / 255, self.values[2] / 255, self.values[3] / 255
-        ).html
+        c = colorzero.Color.from_rgb(self.values[1] / 255, self.values[2] / 255, self.values[3] / 255).html
 
         tm = time.monotonic()
 
@@ -1205,7 +1115,62 @@ class ColorTagUniverse(Universe):
 core.discoverColorTagDevices = discoverColorTagDevices
 
 
-def getUniverse(u: Optional[str]) -> Optional[Universe]:
+class OneTagpoint(Universe):
+    "Used for outputting lighting to Kaithem's internal Tagpoint system"
+
+    refresh_on_create = False
+
+    def __init__(self, name, channels=3, tagpoints={}, framerate=44.0, number=0):
+        self.ok = True
+        self.status = "OK"
+        self.number = number
+        self.statusChanged = {}
+        self.tagpoint = kaithem.tags[name]
+
+        self.count = 3
+        self.hidden = True
+
+        self.prev = (-1, -1)
+
+        self.channelNames = {"value": 1}
+
+        # Sender needs the values to be there for setup
+        self.values = numpy.array([0.0] * (self.count), dtype="f4")
+
+        Universe.__init__(self, name, self.count)
+
+    def onFrame(self):
+        try:
+            x = float(self.values[1])
+            a = float(self.alphas[1])
+
+            t = (x, a)
+
+            # Do our own change detection. We don't want
+            # to unnecessarily set the tag and interfere with external
+            # settings.
+            if self.prev != t:
+                if (x > -1) and (a > 0):
+                    self.prev = t
+
+                    if self.tagpoint.min is not None and self.tagpoint.min >= -(10**14):
+                        # Should the tag point have a range set, and should that range be smaller than some very large possible default
+                        # it could be, map the value from our 0-255 scale to whatever the tag point's scale is.
+                        if self.tagpoint.max is not None and self.tagpoint.max <= 10**14:
+                            x = x / 255
+                            x *= self.tagpoint.max - self.tagpoint.min
+                            x += self.tagpoint.min
+
+                    self.tagpoint.claim(x, "ChandlerUniverse", 50)
+                else:
+                    self.tagpoint.release("ChandlerUniverse")
+
+        except Exception:
+            core.rl_log_exc("Error in tagpoint universe")
+            print(traceback.format_exc())
+
+
+def getUniverse(u: str | None) -> Universe | None:
     "Get strong ref to universe if it exists, else get none."
     if not u:
         return None
@@ -1216,7 +1181,7 @@ def getUniverse(u: Optional[str]) -> Optional[Universe]:
     return oldUniverseObj
 
 
-def getUniverses() -> Dict[str, Universe]:
+def getUniverses() -> dict[str, Universe]:
     "Returns dict of strong refs to universes, filtered to exclude weak refs"
     m = universes
     u = {}
@@ -1249,7 +1214,7 @@ def mapUniverse(u: str):
     return x.universe
 
 
-def mapChannel(u: str, c: str | int) -> Optional[tuple[str, int]]:
+def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
     index = 1
 
     if isinstance(c, str):
@@ -1262,6 +1227,11 @@ def mapChannel(u: str, c: str | int) -> Optional[tuple[str, int]]:
 
     if not u.startswith("@"):
         if isinstance(c, str):
+            # Special case the tag points, we need to map before they
+            # actually exist
+            if c == "value" and u[0] == "/":
+                return u, 1
+
             universe = getUniverse(u)
             if universe:
                 c = universe.channelNames.get(c, None)

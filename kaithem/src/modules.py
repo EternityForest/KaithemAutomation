@@ -44,7 +44,7 @@ logger = logging.getLogger("system")
 FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
 
 
-def check_forbdden(s):
+def check_forbidden(s):
     if not isinstance(s, str):
         raise RuntimeError("{s} is not even a string")
 
@@ -425,7 +425,7 @@ def validate(r):
     except Exception:
         print("Ignoring invalid resource and loading anyway for now")
         print(traceback.format_exc())
-        print(str(r)[10240])
+        print(str(r)[:1024])
 
 
 @beartype.beartype
@@ -541,10 +541,14 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                                 module[rn] = found[rn]
 
             for i in files:
-                if ignore_func and ignore_func(i):
-                    continue
                 relfn = os.path.relpath(os.path.join(root, i), folder)
                 fn = os.path.join(folder, relfn)
+                if ignore_func and ignore_func(i):
+                    continue
+
+                if "/." in fn:
+                    continue
+
                 if fn.endswith(("yaml", ".json")):
                     try:
                         # TODO: Lib modules? filedata?
@@ -861,7 +865,7 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
     # Raise an error if the user ever tries to move something somewhere that does not exist.
     new = toResource.split("/")
     for i in new:
-        check_forbdden(i)
+        check_forbidden(i)
 
     if not ("/".join(new[:-1]) in modules_state.ActiveModules[toModule] or len(new) < 2):
         raise cherrypy.HTTPRedirect("/errors/nofoldervmoverror")
@@ -968,7 +972,7 @@ def getModuleDir(module: str):
 def newModule(name: str, location: str | None = None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
 
-    check_forbdden(name)
+    check_forbidden(name)
     # If there is no module by that name, create a blank template and the scope obj
     with modulesLock:
         if location:

@@ -24,7 +24,7 @@ from beartype import beartype
 from .. import schemas
 from . import core
 from .core import disallow_special
-from .universes import getUniverse, mapChannel
+from .universes import get_on_demand_universe, getUniverse, mapChannel
 
 if TYPE_CHECKING:
     from .scenes import Scene
@@ -348,7 +348,7 @@ class Cue:
 
     @beartype
     def set_value(self, universe: str, channel: str | int, value: str | int | float | None):
-        disallow_special(universe, allow="_@.")
+        disallow_special(universe, allow="_@./")
 
         scene = self.getScene()
 
@@ -423,6 +423,12 @@ class Cue:
                 # Otherwise if we are changing a simple mapped channel we optimize
                 elif mapped_channel:
                     universe, channel = mapped_channel[0], mapped_channel[1]
+
+                    uobj = None
+
+                    if universe.startswith("/"):
+                        uobj = get_on_demand_universe(universe)
+                        scene.on_demand_universes[universe] = uobj
 
                     if (universe not in scene.cue_cached_alphas_as_arrays) and value is not None:
                         uobj = getUniverse(universe)

@@ -135,7 +135,7 @@ ${lists}
 
             <p>Enter your sound folder paths here, one per line</p>
             <div class="scroll">
-                <textarea class="h-36rem"  style="width: 80rem;" v-bind:value="soundfolders.join('\r\n')" 
+                <textarea class="h-36rem"  style="width: 80rem;" v-bind:value="soundfolders.join('\r\n')"
                 v-on:change="setSoundFolders($event.target.value.replace('\r',''))"
                 v-on:blur="setSoundFolders($event.target.value.replace('\r',''))"
                 ></textarea>
@@ -207,7 +207,6 @@ ${lists}
                 <option value="enttecopen"
                     title="Enttec Open DMX and most cheap FTDI based adapters, or raw serial ports">
                 </option>
-                <option value="tagpoints" title="Control tagpoints based on the values"></option>
                 <option value="smartbulb" title="A smart bulb from kaithem's device manager'"></option>
 
                 <option value="enttec"></option>
@@ -277,46 +276,6 @@ ${lists}
         <section v-if="universeFullSettings" class="flex-item window paper">
             <h3><button v-on:click="universeFullSettings=0"><i class="mdi mdi-close"></i>Close</button>Universe
                 Setup:{{universeFullSettings}}</h3>
-
-            <div v-if="configuredUniverses[universeFullSettings].type=='tagpoints'">
-                <details class="help">
-                    <summary><i class="mdi mdi-help-circle-outline"></i></summary>
-                    Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign
-                    tags
-                    to channels. You can give
-                    channels
-                    names in addition
-                    to numbers by using number:name syntax.
-                </details>
-                <table border="1">
-                    <tr>
-                        <th>Channel Number</th>
-                        <th>Tagpoint Name</th>
-                        <th>Action</th>
-                    </tr>
-                    <tr v-for="(v,i) in configuredUniverses[universeFullSettings]['channelConfig'] || {}">
-                        <td><b>{{i}}</b></td>
-                        <td><input v-model="configuredUniverses[universeFullSettings]['channelConfig'][i]"
-                                list="tagslisting">
-                        </td>
-                        <td><button
-                                v-on:click="delete configuredUniverses[universeFullSettings]['channelConfig'][i]">Delete</button>
-                        </td>
-
-                    </tr>
-
-                    <tr>
-                        <td><input placeholder="CH # or number:Name" v-model="newTagPointChannelNumber"></td>
-                        <td><input placeholder="Tagpoint" v-model="newTagPoint" list="tagslisting"></td>
-                        <td><button
-                                v-on:click="configuredUniverses[universeFullSettings]['channelConfig'][newTagPointChannelNumber]=newTagPoint">Add</button>
-                        </td>
-                    </tr>
-
-
-                </table>
-
-            </div>
         </section>
 
 
@@ -513,7 +472,7 @@ ${lists}
                 </div>
             </div>
         </section>
-    
+
     </main>
 
 </div>
@@ -558,7 +517,7 @@ ${core.boards[0]().link.render('api_link')}
                 old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
                 [i], 3, undefined)
             }
-    
+
             else if (this.fixtureClasses[this.selectedFixtureClass]
             [i][1] == 'fixed') {
                 var v = this.fixtureClasses[this.selectedFixtureClass][i]
@@ -570,7 +529,7 @@ ${core.boards[0]().link.render('api_link')}
                 [i], 2, 0)
                 old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
                 [i], 3, undefined)
-    
+
             }
             this.pushfixture(i)
         },
@@ -616,8 +575,8 @@ ${core.boards[0]().link.render('api_link')}
             api_link.send(['setfixtureclass', i, this.fixtureClasses[
                 i]])
         },
-    
-    
+
+
         'pushfixtureopz': function (i) {
             api_link.send(['setfixtureclassopz', i, this.fixtureClasses[
                 i]])
@@ -625,16 +584,16 @@ ${core.boards[0]().link.render('api_link')}
         'setFixtureAssignment': function (i, v) {
             api_link.send(['setFixtureAssignment', i, v])
         },
-    
+
         'rmFixtureAssignment': function (i) {
             api_link.send(['rmFixtureAssignment', i])
         },
 
         'setSoundFolders': function (folders) {
             api_link.send(['setsoundfolders',folders]);
-    
+
         },
-    
+
     }
 
     appMethods = Object.assign({}, appMethods, m)

@@ -410,6 +410,8 @@ class Scene:
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]
 
+        self.on_demand_universes: dict[str, universes.Universe] = {}
+
         disallow_special(name)
 
         self.mqtt_sync_features: dict[str, Any] = mqtt_sync_features or {}
@@ -621,8 +623,6 @@ class Scene:
         # List of universes we should be affecting right now
         # Based on what values are in the cue and what values are inherited
         self.affect: list[str] = []
-
-        self.affect_tags: list[str] = []
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
@@ -1527,6 +1527,9 @@ class Scene:
                         if i not in self.affect:
                             self.affect.append(i)
 
+                    if i and i.startswith("/"):
+                        self.on_demand_universes[i] = universes.get_on_demand_universe(i)
+
                 self.cue_vals_to_numpy_cache(self.cue, not self.cue.track)
                 self.fade_in_completed = False
 
@@ -1772,6 +1775,10 @@ class Scene:
                 chCount = int(self.evalExprFloat(s))
 
             uobj = getUniverse(universe)
+
+            if universe.startswith("/"):
+                self.on_demand_universes[i] = universes.get_on_demand_universe(universe)
+                uobj = self.on_demand_universes[i]
 
             if not uobj:
                 continue
@@ -2403,6 +2410,7 @@ class Scene:
                 print(traceback.format_exc())
 
             self.affect = []
+            self.on_demand_universes = {}
             if self in _active_scenes:
                 _active_scenes.remove(self)
                 active_scenes = _active_scenes[:]
@@ -2429,6 +2437,12 @@ class Scene:
 
             self.media_link_socket.send(["mediaURL", "", 0, 0])
             self.media_link_socket.send(["slide", "", 0, 0])
+
+            gc.collect()
+            time.sleep(0.002)
+            gc.collect()
+            time.sleep(0.002)
+            gc.collect()
 
     def noteOn(self, ch: int, note: int, vel: float):
         self.event("midi.note:" + str(ch) + "." + number_to_note(note), vel)
@@ -2587,11 +2601,18 @@ class Scene:
 
                 # But we *do* still keep tracked and backtracked values.
                 self.affect = []
+                odu = {}
+
                 for i in self.cue_cached_vals_as_arrays:
                     u = mapUniverse(i)
                     if u and u in universes.universes:
                         if u not in self.affect:
                             self.affect.append(u)
+
+                    if u and u.startswith("/"):
+                        odu[u] = universes.get_on_demand_universe(u)
+
+                self.on_demand_universes = odu
 
                 # Remove unused universes from the cue
                 self.canvas.clean(self.cue_cached_vals_as_arrays)

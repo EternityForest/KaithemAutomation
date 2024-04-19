@@ -375,27 +375,28 @@ def test_commands():
 
 
 def test_lighting_value_set_tag():
+    # old code, now we just can set tags directly
     # Use the same API that the web would, to create a tagpoint universe
     # Which maps the first two channels to tag points
-    universes = {
-        "tags": {
-            "channelConfig": {"2": "test2", "1:test1": "test1"},
-            "channels": 512,
-            "framerate": 44,
-            "number": 1,
-            "type": "tagpoints",
-        }
-    }
+    # universes = {
+    #     "tags": {
+    #         "channelConfig": {"2": "test2", "1:test1": "test1"},
+    #         "channels": 512,
+    #         "framerate": 44,
+    #         "number": 1,
+    #         "type": "tagpoints",
+    #     }
+    # }
 
-    board._onmsg("__admin__", ["setconfuniverses", universes], "nonexistantsession")
-    board.check_autosave()
+    # board._onmsg("__admin__", ["setconfuniverses", universes], "nonexistantsession")
+    # board.check_autosave()
 
-    # Make sure universe settings saved
-    p = os.path.join(directories.vardir, "chandler", "universes", "tags.yaml")
-    with open(p) as f:
-        f2 = yaml.load(f, Loader=yaml.SafeLoader)
+    # # Make sure universe settings saved
+    # p = os.path.join(directories.vardir, "chandler", "universes", "tags.yaml")
+    # with open(p) as f:
+    #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
 
-    assert f2 == universes["tags"]
+    # assert f2 == universes["tags"]
 
     s = scenes.Scene(name="TestingScene5", id="TEST")
     s2 = scenes.Scene(name="TestingScene6", id="TEST2")
@@ -406,8 +407,8 @@ def test_lighting_value_set_tag():
     s2.go()
 
     # Set values and check that tags change
-    s.cues["default"].set_value("tags", 1, 50)
-    s.cues["default"].set_value("tags", 2, 60)
+    s.cues["default"].set_value("/test1", "value", 50)
+    s.cues["default"].set_value("/test2", "value", 60)
     time.sleep(0.25)
     assert tagpoints.Tag("/test1").value == 50
     assert tagpoints.Tag("/test2").value == 60
@@ -424,8 +425,8 @@ def test_lighting_value_set_tag():
     s2.priority = 65
 
     # Set values and check that tags change
-    s2.cues["default"].set_value("tags", 1, 255)
-    s2.cues["default"].set_value("tags", 2, 255)
+    s2.cues["default"].set_value("/test1", "value", 255)
+    s2.cues["default"].set_value("/test2", "value", 255)
 
     # Ensure the values are changing
     t1 = tagpoints.Tag("/test1").value
@@ -442,8 +443,8 @@ def test_lighting_value_set_tag():
     with open(p) as f:
         f2 = yaml.load(f, Loader=yaml.SafeLoader)
 
-    assert f2["cues"]["default"]["values"]["tags"][1] == 50
-    assert f2["cues"]["default"]["values"]["tags"][2] == 60
+    assert f2["cues"]["default"]["values"]["/test1"]["value"] == 50
+    assert f2["cues"]["default"]["values"]["/test2"]["value"] == 60
 
     # Make sure scene settings saved
     p = os.path.join(directories.vardir, "chandler", "scenes", "TestingScene6.yaml")

@@ -11,6 +11,8 @@ Change Log
 - :sparkles: Button to add time to a running cue
 - :sparkles: Print more logs
 - :coffin: Special characters no longer allowed in resource names.
+- :coffin: Tag point universes are gone
+- :sparkles: Now you can add tag points directly to a scene as a value.
 
 ### 0.79.0
 

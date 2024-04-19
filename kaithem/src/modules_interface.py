@@ -26,7 +26,7 @@ from . import (
     util,
 )
 from .config import config
-from .modules import check_forbdden, external_module_locations
+from .modules import check_forbidden, external_module_locations
 from .modules_state import in_folder
 from .util import url
 
@@ -281,7 +281,7 @@ class WebInterface:
         pages.require("system_admin")
         pages.postOnly()
 
-        check_forbdden(kwargs["name"])
+        check_forbidden(kwargs["name"])
 
         # If there is no module by that name, create a blank template and the scope obj
         with modules_state.modulesLock:
@@ -419,7 +419,7 @@ class WebInterface:
                 else:
                     raise ValueError("Expected resource type")
 
-                check_forbdden(kwargs["name"])
+                check_forbidden(kwargs["name"])
                 return addResourceTarget(module, path[1], kwargs["name"], kwargs, x)
 
             # This case shows the information and editing page for one resource
@@ -587,7 +587,7 @@ class WebInterface:
                 pages.postOnly()
 
                 # Allow / to move stuf to dirs
-                check_forbdden(kwargs["newname"].replace("/", ""))
+                check_forbidden(kwargs["newname"].replace("/", ""))
 
                 modules.mvResource(module, kwargs["name"], kwargs["newmodule"], kwargs["newname"])
                 raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
@@ -688,7 +688,7 @@ def addResourceTarget(module, type, name, kwargs, path):
     pages.postOnly()
     modules_state.modulesHaveChanged()
 
-    check_forbdden(kwargs["name"])
+    check_forbidden(kwargs["name"])
 
     name_with_path = kwargs["name"]
     if path:

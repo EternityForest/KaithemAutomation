@@ -692,6 +692,25 @@ ${lists}
 
                             </div>
 
+                            <div class="card margin">
+                                <header>
+                                    <h4>Add Tag Point</h4>
+                                </header>
+
+                                <div class="stacked-form w-24rem">
+                                    <label>Tag
+                                        <input
+                                            v-model="newcuetag" list="tagslisting"></input>
+                                    </label>
+
+
+                                    <button  :disabled="no_edit" v-on:click="addTagToCue()"><i class="mdi mdi-plus"></i>Add Channel to
+                                        Cue</button>
+                                </div>
+
+                            </div>
+
+
                             <div class="card margin w-24rem">
                                 <header>
                                     <h4>Add Fixture</h4>

@@ -16,7 +16,6 @@ from kaithem.src.devices import (
     delete_bookkeep,
     getDeviceType,
     makeDevice,
-    saveDevice,
     specialKeys,
     storeDeviceInModule,
     updateDevice,
@@ -284,15 +283,11 @@ class WebDevices:
                 storeDeviceInModule(d, m, r)
             else:
                 raise RuntimeError("Creating devices outside of modules is no longer supported.")
-                devices.device_data[name] = d
-                saveDevice(name)
 
             devices.remote_devices[name].parent_module = m
             devices.remote_devices[name].parent_resource = r
             devices.remote_devices_atomic = devices.wrcopy(devices.remote_devices)
             messagebus.post_message("/devices/added/", name)
-
-        saveDevice(name)
 
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -397,7 +392,6 @@ class WebDevices:
             time.sleep(0.2)
             gc.collect()
 
-            saveDevice(name)
             messagebus.post_message("/devices/removed/", name)
 
         raise cherrypy.HTTPRedirect("/devices")

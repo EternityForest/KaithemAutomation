@@ -237,14 +237,6 @@ class ChandlerConsole(console_abc.Console_ABC):
                     framerate=float(u[i].get("framerate", 44)),
                     number=int(u[i].get("number", 0)),
                 )
-            elif u[i]["type"] == "tagpoints":
-                universeObjects[i] = universes.TagpointUniverse(
-                    i,
-                    channels=int(u[i].get("channels", 128)),
-                    tagpoints=u[i].get("channelConfig", {}),
-                    framerate=float(u[i].get("framerate", 44)),
-                    number=int(u[i].get("number", 0)),
-                )
             else:
                 event("system.error", "No universe type: " + u[i]["type"])
         self.universe_objects = universeObjects
@@ -578,6 +570,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 return
 
             d = {}
+
             for i in uobj.channels:
                 fixture = uobj.channels[i]()
                 if not fixture:

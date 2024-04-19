@@ -11,7 +11,7 @@ dir = "/dev/shm/kaithem_tests/"
 
 
 def test_make_demo_device():
-    n = "test" + str(time.time())
+    n = "test" + str(time.time()).replace(".", "_")
 
     try:
         webapproot.root.modules.newmoduletarget(name=n)

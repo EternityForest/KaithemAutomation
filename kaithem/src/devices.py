@@ -268,27 +268,6 @@ def getZombies():
     return x
 
 
-def saveDevice(d):
-    """Save a device named d, or save the lack thereof, if it doesn't exist.  Only saves
-    from device_data into files, module stuff handled elsewhere.
-    """
-    sd = device_data
-    saveLocation = os.path.join(directories.vardir, "devices")
-    if not os.path.exists(saveLocation):
-        os.mkdir(saveLocation)
-
-    # Lock used to prevent conflict, saving over each other with nonsense data.
-    with modules_state.modulesLock:
-        if d in sd:
-            persist.save(sd[d], os.path.join(saveLocation, f"{d}.yaml"))
-            os.chmod(os.path.join(saveLocation, f"{d}.yaml"), 0o600)
-
-        if d not in sd:
-            fn = os.path.join(saveLocation, f"{d}.yaml")
-            if os.path.isfile(fn):
-                os.remove(fn)
-
-
 def get_config_folder_from_device(d: str, create=True):
     if not hasattr(remote_devices[d], "parent_module") or not remote_devices[d].parent_module:
         module = None
@@ -402,15 +381,6 @@ class Device(iot_devices.device.Device):
                         modules_state.ActiveModules[self.parent_module][self.parent_resource],
                     )
                     modules_state.modulesHaveChanged()
-                else:
-                    # This might not be stored in the master lists,
-                    # and yet it might not be connected to
-                    # the parent_module, because of legacy API reasons.
-                    # Just store it it self.config which will get saved
-                    # at the end of makeDevice, that pretty much handles all module devices
-                    if self.name in device_data:
-                        device_data[self.name][key] = v
-                        saveDevice(self.name)
 
     @staticmethod
     def makeUIMsgHandler(wr):
@@ -1156,13 +1126,13 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         # after updating the device runtime sucessfully
 
         # Delete and then recreate because we may be renaming to a different name
-        if not parent_module:
-            del device_data[devname]
-            saveDevice(devname)
-        else:
-            if not parent_resource:
-                raise RuntimeError("?????????????")
-            modules_state.rawDeleteResource(parent_module, parent_resource)
+
+        assert parent_module
+        assert parent_resource
+
+        if not parent_resource:
+            raise RuntimeError("?????????????")
+        modules_state.rawDeleteResource(parent_module, parent_resource)
 
         # set the location info
         remote_devices[name].parent_module = newparent_module
@@ -1173,8 +1143,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         else:
             # Allow name changing via data, we save under new, not the old name
             device_data[name] = savable_data
-
-        saveDevice(name)
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
@@ -1355,7 +1323,6 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
         if "name" in d:
             if d["name"] in device_data:
                 device_data.pop(d["name"])
-                saveDevice(d["name"])
 
         modules_state.ActiveModules[module][resource] = {
             "resource-type": "device",
