@@ -27,7 +27,6 @@ from . import (
 )
 from .config import config
 from .modules import external_module_locations
-from .plugins import CorePluginEventResources, CorePluginUserPageResources
 from .util import url
 
 syslog = logging.getLogger("system")
@@ -360,6 +359,8 @@ class WebInterface:
             if path[0] == "runevent":
                 pages.require("system_admin")
                 pages.postOnly()
+                from .plugins import CorePluginEventResources
+
                 CorePluginEventResources.manualRun((module, kwargs["name"]))
                 raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
@@ -881,7 +882,7 @@ def resourceUpdateTarget(module, resource, kwargs):
     if "name" in kwargs:
         r = kwargs["name"]
     if "GoNow" in kwargs:
-        raise cherrypy.HTTPRedirect(CorePluginUserPageResources.url_for_resource(module, r))
+        raise cherrypy.HTTPRedirect(f"/pages/{module}/{r}")
     # Return user to the module page. If name has a folder, return the
     # user to it;s containing folder.
     x = util.split_escape(r, "/", "\\")

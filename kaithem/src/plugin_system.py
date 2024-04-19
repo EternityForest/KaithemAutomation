@@ -4,6 +4,7 @@
 import importlib
 import logging
 import os
+import sys
 import threading
 import time
 import traceback
@@ -25,7 +26,9 @@ def import_in_thread(m):
     def f():
         try:
             t = time.monotonic()
-            plugins[m] = importlib.import_module(m)
+            # TODO WHY would it not already know it's there?
+            if m not in sys.modules:
+                plugins[m] = importlib.import_module(m)
             logger.info(f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms")
         except Exception:
             logger.exception("Error loading plugin " + m)
@@ -41,8 +44,11 @@ def import_in_thread(m):
 def load_plugins():
     try:
         for i in os.listdir(pathsetup.startupPluginsPath):
-            if "." not in i or i.endswith(".py"):
-                import_in_thread(i)
+            if ("." not in i or i.endswith(".py")) and "__" not in i:
+                # Very important to use the full name, not just add it to path,
+                # or it would not know that it was the same module we might
+                # import elsewhere
+                import_in_thread("kaithem.src.plugins." + i)
 
         for i in range(240000):
             time.sleep(0.001)

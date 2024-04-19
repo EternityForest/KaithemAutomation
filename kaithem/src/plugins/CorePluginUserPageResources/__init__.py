@@ -41,6 +41,9 @@ env = jinja2.Environment(loader=_jl, autoescape=False)
 
 errors = {}
 
+_pages_by_module_resource = {}
+_page_list_lock = threading.Lock()
+
 # Used for including builtin components
 component_lookup = TemplateLookup(
     directories=[
@@ -115,21 +118,21 @@ def markdownToSelfRenderingHTML(content, title):
 @util.lrucache(50)
 def lookup(module, args):
     resource_path = [i.replace("\\", "\\\\").replace("/", "\\/") for i in args]
-    m = _Pages[module]
+    m = _pages_by_module_resource[module]
 
     if "/".join(resource_path) in m:
-        return _Pages[module]["/".join(resource_path)]
+        return _pages_by_module_resource[module]["/".join(resource_path)]
 
     if "/".join(resource_path + ["__index__"]) in m:
-        return _Pages[module]["/".join(resource_path + ["__index__"])]
+        return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
 
     while resource_path:
         resource_path.pop()
         if "/".join(resource_path) in m:
-            return _Pages[module]["/".join(resource_path)]
+            return _pages_by_module_resource[module]["/".join(resource_path)]
 
         if "/".join(resource_path + ["__index__"]) in m:
-            return _Pages[module]["/".join(resource_path + ["__index__"])]
+            return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
 
         if "/".join(resource_path + ["__default__"]) in m:
             return m["/".join(resource_path + ["__default__"])]
@@ -137,10 +140,7 @@ def lookup(module, args):
 
 
 def url_for_resource(module, resource):
-    s = "/pages/"
-    s += util.url(module)
-    s += "/"
-    s += "/".join([util.url(i) for i in util.split_escape(resource, "/")])
+    s = f"/pages/{module}/{resource}"
     return s
 
 
@@ -368,7 +368,7 @@ class CompiledPage:
 
 def getPageErrors(module, resource):
     try:
-        return _Pages[module][resource].errors
+        return _pages_by_module_resource[module][resource].errors
     except KeyError:
         return (
             0,
@@ -379,7 +379,7 @@ def getPageErrors(module, resource):
 
 def getPageOutput(module, resource):
     try:
-        return _Pages[module][resource].printoutput
+        return _pages_by_module_resource[module][resource].printoutput
     except KeyError:
         return (
             0,
@@ -388,14 +388,10 @@ def getPageOutput(module, resource):
         )
 
 
-_Pages = {}
-_page_list_lock = threading.Lock()
-
-
 def getPageHTMLDoc(m, r):
     try:
-        if hasattr(_Pages[m][r].template.module, "__html_doc__"):
-            return str(_Pages[m][r].template.module.__html_doc__)
+        if hasattr(_pages_by_module_resource[m][r].template.module, "__html_doc__"):
+            return str(_pages_by_module_resource[m][r].template.module.__html_doc__)
     except Exception:
         pass
 
@@ -404,7 +400,7 @@ def getPageInfo(module, resource):
     # There's enough possible trouble with new kinds of events and users stuffing bizzare things
     # in there that i'm Putting this in a try block.
     try:
-        return _Pages[module][resource].template.module.__doc__ or ""
+        return _pages_by_module_resource[module][resource].template.module.__doc__ or ""
     except Exception:
         return ""
 
@@ -415,9 +411,9 @@ def getPageInfo(module, resource):
 def removeOnePage(module, resource):
     # Look up the eb
     with _page_list_lock:
-        if module in _Pages:
-            if resource in _Pages[module]:
-                del _Pages[module][resource]
+        if module in _pages_by_module_resource:
+            if resource in _pages_by_module_resource[module]:
+                del _pages_by_module_resource[module][resource]
     gc.collect()
     lookup.invalidate_cache()
 
@@ -425,8 +421,8 @@ def removeOnePage(module, resource):
 # Delete all __events in a module from the cache
 def removeModulePages(module):
     # There might not be any pages, so we use the if
-    if module in _Pages:
-        del _Pages[module]
+    if module in _pages_by_module_resource:
+        del _pages_by_module_resource[module]
     gc.collect()
     lookup.invalidate_cache()
 
@@ -436,12 +432,12 @@ def removeModulePages(module):
 def updateOnePage(resource, module, data: modules_state.ResourceDictType):
     # This is one of those places that uses two different locks
     with modules_state.modulesLock:
-        if module not in _Pages:
-            _Pages[module] = {}
+        if module not in _pages_by_module_resource:
+            _pages_by_module_resource[module] = {}
 
         # Delete the old version if present
         try:
-            del _Pages[module][resource]
+            del _pages_by_module_resource[module][resource]
             gc.collect()
             time.sleep(0.125)
             gc.collect()
@@ -452,41 +448,40 @@ def updateOnePage(resource, module, data: modules_state.ResourceDictType):
 
         # Don't serve file if that's not enabled
         if enable:
-            _Pages[module][resource] = CompiledPage(data, module, resource)
+            _pages_by_module_resource[module][resource] = CompiledPage(data, module, resource)
         lookup.invalidate_cache()
 
 
 def makeDummyPage(resource, module):
-    if module not in _Pages:
-        _Pages[module] = {}
+    if module not in _pages_by_module_resource:
+        _pages_by_module_resource[module] = {}
 
     # Get the page resource in question
     j = {"resource-type": "page", "body": "Content here", "no-navheader": True}
-    _Pages[module][resource] = CompiledPage(j, module, resource)
+    _pages_by_module_resource[module][resource] = CompiledPage(j, module, resource)
 
 
 # look in the modules and compile all the event code
 def getPagesFromModules():
-    global _Pages
     with modules_state.modulesLock:
         with _page_list_lock:
             # Set __events to an empty list we can build on
-            _Pages = {}
+            _pages_by_module_resource.clear()
             for i in modules_state.ActiveModules.copy():
                 # For each loaded and active module, we make a subdict in _Pages
-                _Pages[i] = {}  # make an empty place for pages in this module
+                _pages_by_module_resource[i] = {}  # make an empty place for pages in this module
                 # now we loop over all the resources o the module to see which ones are pages
                 for m in modules_state.ActiveModules[i].copy():
                     j = modules_state.ActiveModules[i][m]
                     if j["resource-type"] == "page":
                         try:
-                            _Pages[i][m] = CompiledPage(j, i, m)
+                            _pages_by_module_resource[i][m] = CompiledPage(j, i, m)
                         except Exception:
                             makeDummyPage(m, i)
                             tb = traceback.format_exc(chain=True)
                             # When an error happens, log it and save the time
                             # Note that we are logging to the compiled event object
-                            _Pages[i][m].errors.append(
+                            _pages_by_module_resource[i][m].errors.append(
                                 [
                                     time.strftime(settings_overrides.get_val("core/strftime_string")),
                                     tb,
@@ -501,14 +496,14 @@ def getPagesFromModules():
 
                             # If this is the first error(high level: transition from ok to not ok)
                             # send a global system messsage that will go to the front page.
-                            if len(_Pages[i][m].errors) == 1:
+                            if len(_pages_by_module_resource[i][m].errors) == 1:
                                 messagebus.post_message(
                                     "/system/notifications/errors",
                                     'Page "' + m + '" of module "' + i + '" may need attention',
                                 )
                         else:
                             try:
-                                del _Pages[i][m]
+                                del _pages_by_module_resource[i][m]
                             except KeyError:
                                 pass
 
@@ -770,9 +765,9 @@ class PageType(modules_state.ResourceType):
         updateOnePage(resourcename, module, value)
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
-        x = _Pages.pop((module, resource), None)
+        x = _pages_by_module_resource.pop((module, resource), None)
         if x:
-            _Pages[toModule, toResource] = x
+            _pages_by_module_resource[toModule, toResource] = x
 
     def onupdate(self, module, resource, obj):
         self.onload(module, resource, obj)
