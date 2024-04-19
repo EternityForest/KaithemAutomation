@@ -17,7 +17,7 @@
 
 ## SimpleDialog
 
-[Show source in dialogs.py:6](../../../../api/web/dialogs.py#L6)
+[Show source in dialogs.py:8](../../../../api/web/dialogs.py#L8)
 
 Class that generates a dialog.
 
@@ -34,13 +34,14 @@ class SimpleDialog:
 
 ### SimpleDialog().checkbox
 
-[Show source in dialogs.py:49](../../../../api/web/dialogs.py#L49)
+[Show source in dialogs.py:73](../../../../api/web/dialogs.py#L73)
 
 Add a checkbox
 
 #### Signature
 
 ```python
+@beartype.beartype
 def checkbox(
     self, name: str, title: str | None = None, default=False, disabled=None
 ): ...
@@ -48,7 +49,7 @@ def checkbox(
 
 ### SimpleDialog().is_disabled_by_default
 
-[Show source in dialogs.py:29](../../../../api/web/dialogs.py#L29)
+[Show source in dialogs.py:32](../../../../api/web/dialogs.py#L32)
 
 If an element does not specify whether it is disabled, this is called.
 You can subclass it, by default it checks system_admin.
@@ -61,7 +62,7 @@ def is_disabled_by_default(self): ...
 
 ### SimpleDialog().name_to_title
 
-[Show source in dialogs.py:20](../../../../api/web/dialogs.py#L20)
+[Show source in dialogs.py:23](../../../../api/web/dialogs.py#L23)
 
 If title not provided, this will be
 called to create one fron the control's name
@@ -74,25 +75,29 @@ def name_to_title(self, s: str): ...
 
 ### SimpleDialog().render
 
-[Show source in dialogs.py:97](../../../../api/web/dialogs.py#L97)
+[Show source in dialogs.py:124](../../../../api/web/dialogs.py#L124)
 
 The form will target the given URL and have all the keys and values in hidden inputs
 
 #### Signature
 
 ```python
-def render(self, target: str, hidden_inputs: dict | None = None): ...
+@beartype.beartype
+def render(
+    self, target: str, hidden_inputs: dict[str, str | int | float] | None = None
+): ...
 ```
 
 ### SimpleDialog().selection
 
-[Show source in dialogs.py:61](../../../../api/web/dialogs.py#L61)
+[Show source in dialogs.py:86](../../../../api/web/dialogs.py#L86)
 
 Add a select element
 
 #### Signature
 
 ```python
+@beartype.beartype
 def selection(
     self,
     name: str,
@@ -105,13 +110,14 @@ def selection(
 
 ### SimpleDialog().submit_button
 
-[Show source in dialogs.py:88](../../../../api/web/dialogs.py#L88)
+[Show source in dialogs.py:114](../../../../api/web/dialogs.py#L114)
 
 Add a submit button
 
 #### Signature
 
 ```python
+@beartype.beartype
 def submit_button(
     self, name: str, title: str | None = None, value: str = "", disabled=None
 ): ...
@@ -119,7 +125,7 @@ def submit_button(
 
 ### SimpleDialog().text
 
-[Show source in dialogs.py:35](../../../../api/web/dialogs.py#L35)
+[Show source in dialogs.py:38](../../../../api/web/dialogs.py#L38)
 
 Add some help text
 
@@ -131,14 +137,21 @@ def text(self, s: str): ...
 
 ### SimpleDialog().text_input
 
-[Show source in dialogs.py:39](../../../../api/web/dialogs.py#L39)
+[Show source in dialogs.py:42](../../../../api/web/dialogs.py#L42)
 
-Add a text input
+Add a text input. Datalist can be value, title pairs
 
 #### Signature
 
 ```python
+@beartype.beartype
 def text_input(
-    self, name: str, title: str | None = None, default: str = "", disabled=None
+    self,
+    name: str,
+    title: str | None = None,
+    default: str = "",
+    disabled=None,
+    suggestions: list[tuple[str, str]] | None = None,
+    multiline=False,
 ): ...
 ```

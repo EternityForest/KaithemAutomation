@@ -32,9 +32,7 @@ This function is alpha.
 ```python
 @_beartype.beartype
 def add_simple_cherrypy_handler(
-    prefix: str,
-    permissions: str,
-    handler: _typing.Callable[[list[str], dict[str, str]], str],
+    prefix: str, permissions: str, handler: Callable[..., str]
 ): ...
 ```
 

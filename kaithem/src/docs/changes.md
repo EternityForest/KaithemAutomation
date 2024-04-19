@@ -13,6 +13,9 @@ Change Log
 - :coffin: Special characters no longer allowed in resource names.
 - :coffin: Tag point universes are gone
 - :sparkles: Now you can add tag points directly to a scene as a value.
+- :sparkles: Any module in your ~/kaithem/plugins folder will be imported at early
+            boot.  This is part of the ongoing effort to enable creating content
+            outside the web UI.
 
 ### 0.79.0
 
