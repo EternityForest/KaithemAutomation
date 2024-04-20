@@ -1,6 +1,6 @@
 from typing import Any, Callable
 
-from kaithem.src import chandler as _chandler
+from kaithem.src.chandler import scenes as _scenes
 
 
 def add_command(name: str, f: Callable):
@@ -8,14 +8,14 @@ def add_command(name: str, f: Callable):
     Logic Editor.  Params should be strings.  Defaults and
     docstrings will be used.
     """
-    _chandler.rootContext.commands[name] = f
+    _scenes.rootContext.commands[name] = f
 
 
 def trigger_event(event: str, value: Any = None):
     "Trigger an event in all scenes"
-    _chandler.event(event, value)
+    _scenes.event(event, value)
 
 
 def shortcut(s: str):
     """Trigger a shortcut code.  All matching cues will be jumped to."""
-    _chandler.shortcutCode(s)
+    _scenes.shortcutCode(s)
