@@ -17,6 +17,7 @@ Change Log
             boot.  This is part of the ongoing effort to enable creating content
             outside the web UI.
 
+
 ### 0.79.0
 
 Development is advanced enough on the new overhaul that it makes sense

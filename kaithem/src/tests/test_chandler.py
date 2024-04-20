@@ -536,3 +536,64 @@ def test_tag_io():
     s.close()
     board.rmScene(s)
     board.check_autosave()
+
+
+def test_cue_logic_plugin():
+    # foo_command is from conftest.py written into dev shm plugins
+    # folder
+
+    s = scenes.Scene(name="TestingScene5", id="TEST")
+    s2 = scenes.Scene(name="TestingScene6", id="TEST2")
+    board.addScene(s)
+    board.addScene(s2)
+
+    s.go()
+    s2.go()
+
+    assert s.active
+    assert s in scenes.active_scenes
+    assert s.cue.name == "default"
+
+    # Foo command just triggers it's arg
+    # as both an event and shortcut code
+    s.add_cue(
+        "cue2",
+        rules=[
+            ["cue.enter", [["foo_command", "test_val"]]],
+        ],
+    )
+
+    s2.add_cue("cue2", shortcut="test_val")
+    s.goto_cue("cue2")
+
+    time.sleep(0.5)
+    assert s2.cue.name == "cue2"
+
+    s2.stop()
+    s.stop()
+    assert s2.cue.name == "default"
+    assert s2.entered_cue == 0
+
+    s.cues["default"].setRules(
+        [
+            ["cue.enter", [["foo_command", "test_val"]]],
+        ],
+    )
+
+    time.sleep(0.2)
+    assert s2.cue.name == "default"
+    assert s2.entered_cue == 0
+
+    s.go()
+    time.sleep(0.2)
+    time.sleep(0.2)
+
+    assert s2.cue.name == "cue2"
+
+    s.close()
+    s2.close()
+    board.rmScene(s)
+    board.rmScene(s2)
+
+    assert "TestingScene5" not in scenes.scenes_by_name
+    assert "TestingScene6" not in scenes.scenes_by_name
