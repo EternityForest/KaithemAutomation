@@ -20,6 +20,13 @@
 // See boardapi update_countdowns function to actually make it work
 
 formatInterval = function (seconds) {
+
+    var sign = ''
+
+    if (seconds< 0){
+        seconds = -seconds;
+        sign = "-"
+    }
     var hours = Math.floor(seconds / 3600);
     var minutes = Math.floor((seconds - (hours * 3600)) /
         60);
@@ -31,7 +38,7 @@ formatInterval = function (seconds) {
     var time = "";
 
     time = ("" + hours).padStart(2, '0') + ":" + ("" + minutes).padStart(2, '0') + ":" + ("" + seconds).padStart(2, '0')
-    return time;
+    return sign+time;
 }
 
 
