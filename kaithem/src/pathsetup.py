@@ -38,16 +38,9 @@ def setupPath(linuxpackage=None, force_local=False):
     if not os.path.normpath(__file__).startswith("/snap"):
         sys.path = [os.path.join(x, "thirdparty")] + sys.path
 
-        # Low priority modules will default to using the version installed on the user's computer.
-        sys.path = sys.path + [os.path.join(x, "thirdparty", "lowpriority")]
-
     else:
         # Still a few old things we need in Thirdparty
         sys.path = sys.path + [os.path.join(x, "thirdparty")]
-
-        # Low priority modules will default to using the version installed on the user's computer.
-        sys.path = sys.path + [os.path.join(x, "thirdparty", "lowpriority")]
-
     # Truly an awefullehaccken
     # Break out of venv to get to gstreamer
 
