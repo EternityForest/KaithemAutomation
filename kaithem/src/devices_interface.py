@@ -167,8 +167,6 @@ class WebDevices:
             merged = {}
 
             obj = devices.remote_devices[name]
-            if name in devices.device_data:
-                merged.update(devices.device_data[name])
 
             if obj.parent_module:
                 merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])

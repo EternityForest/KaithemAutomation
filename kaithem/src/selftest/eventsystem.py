@@ -40,7 +40,7 @@ def _eventSystemTest():
     # Set y to 1
     x.pymodule.y = 1
 
-    time.sleep(2)
+    time.sleep(0.5)
 
     try:
         # y should immediately be set back to 0 at the next polling cycle
@@ -145,7 +145,7 @@ def _eventSystemTest():
     x.unregister()
     # y should immediately be set back to 0 at the next polling cycle
     if not hasattr(x.pymodule, "y"):
-        time.sleep(5)
+        time.sleep(1)
         if not hasattr(x.pymodule, "y"):
             raise RuntimeError("Message Event did nothing or took longer than 5s")
         else:

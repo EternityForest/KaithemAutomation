@@ -6,6 +6,7 @@
 
 def stateMachinesTest():
     import time
+
     from scullery import statemachines
 
     class m(dict):
@@ -18,9 +19,9 @@ def stateMachinesTest():
     on = blink.add_state("on")
     off = blink.add_state("off")
 
-    blink.set_timer("on", 1, "off")
+    blink.set_timer("on", 0.5, "off")
 
-    blink.set_timer("off", 1, "on")
+    blink.set_timer("off", 0.5, "on")
     blink.add_rule("off", "begin", "on")
     blink("begin")
     module["Oscillating State Machine"] = blink
@@ -38,28 +39,20 @@ def stateMachinesTest():
     on = sm.add_state("on", enter=on)
     off = sm.add_state("off", enter=off)
 
-    sm.set_timer("on", 1, "off")
+    sm.set_timer("on", 0.5, "off")
 
     sm.add_rule("off", "motion", "on")
 
     if module.sm_lamp:
         raise RuntimeError("state machine imaginary lamp is on too soon")
     sm.event("motion")
-    time.sleep(0.3)
+    time.sleep(0.2)
     if not module.sm_lamp:
         raise RuntimeError("state machine imaginary lamp is not on")
-    time.sleep(2)
+    time.sleep(1)
 
     if module.sm_lamp:
-        time.sleep(8)
-        if module.sm_lamp:
-            raise RuntimeError(
-                "state machine imaginary lamp didn't turn itself off within 10s"
-            )
-        else:
-            raise RuntimeError(
-                "state machine imaginary lamp didn't turn itself off within 2s"
-            )
+        raise RuntimeError("state machine imaginary lamp didn't turn itself off within 1s")
 
     # Turn it on before deleting so we can make sure the timer won't trigger after it's gone
     sm.event("motion")

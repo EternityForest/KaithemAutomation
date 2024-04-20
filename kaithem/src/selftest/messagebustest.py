@@ -1,5 +1,5 @@
-import time
 import logging
+import time
 import weakref
 
 
@@ -30,7 +30,7 @@ def test():
     time.sleep(1)
 
     messagebus.post_message("/system/selftest", "Test")
-    time.sleep(3)
+    time.sleep(1)
     if succeed[0]:
         if f2():
             logging.error("selftest: f still exists " + str(f2()))

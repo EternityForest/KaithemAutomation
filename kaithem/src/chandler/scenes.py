@@ -684,7 +684,7 @@ class Scene:
         self.display_tag_meta: dict[str, dict[str, Any]] = {}
         self.set_display_tags(display_tags)
 
-        self.refresh_ules()
+        self.refresh_rules()
 
         self.mqtt_server = mqtt_server
         self.activeMqttServer = None
@@ -1282,7 +1282,7 @@ class Scene:
                     # Take rules from new cue, don't actually set this as the cue we are in
                     # Until we succeed in running all the rules that happen as we enter
                     # We do set the local variables for the incoming cue though.
-                    self.refresh_ules(cobj)
+                    self.refresh_rules(cobj)
                 except Exception:
                     core.rl_log_exc("Error handling script")
                     print(traceback.format_exc(6))
@@ -1846,7 +1846,7 @@ class Scene:
         scriptContext.commands["sendMQTT"] = sendMQTT
         return scriptContext
 
-    def refresh_ules(self, rulesFrom: Cue | None = None):
+    def refresh_rules(self, rulesFrom: Cue | None = None):
         with core.lock:
             # We copy over the event recursion depth so that we can detct infinite loops
             if not self.script_context:
@@ -2433,6 +2433,8 @@ class Scene:
                 print(traceback.format_exc())
             # fALLBACK
             self.cue = self.cues.get("default", list(self.cues.values())[0])
+            # the real thing that means we aren't really in a cue
+            self.entered_cue = 0
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
             self.doMqttSubscriptions(keepUnused=0)
 

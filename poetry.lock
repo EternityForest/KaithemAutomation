@@ -2538,6 +2538,26 @@ files = [
 ]
 
 [[package]]
+name = "stamina"
+version = "24.2.0"
+description = "Production-grade retries made easy."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "stamina-24.2.0-py3-none-any.whl", hash = "sha256:4dbd8076d2cb4e228046833e4507af3406cc31b9b6046e8a6729ffde934b2526"},
+    {file = "stamina-24.2.0.tar.gz", hash = "sha256:8db72126f2342e428b153cbcf837f8a90f89b783aa55e19d4a17193116ee35ee"},
+]
+
+[package.dependencies]
+tenacity = "*"
+
+[package.extras]
+dev = ["nox", "prometheus-client", "stamina[tests,typing]", "structlog", "tomli", "trio"]
+docs = ["furo", "myst-parser", "prometheus-client", "sphinx (>=7.2.2)", "sphinx-copybutton", "sphinx-notfound-page", "structlog"]
+tests = ["anyio", "pytest"]
+typing = ["mypy (>=1.4)"]
+
+[[package]]
 name = "tempora"
 version = "5.5.1"
 description = "Objects and routines pertaining to date and time (tempora)"
@@ -2555,6 +2575,20 @@ pytz = "*"
 [package.extras]
 docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
 testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-freezer", "pytest-mypy", "pytest-ruff (>=0.2.1)", "types-pytz"]
+
+[[package]]
+name = "tenacity"
+version = "8.2.3"
+description = "Retry code until it succeeds"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "tenacity-8.2.3-py3-none-any.whl", hash = "sha256:ce510e327a630c9e1beaf17d42e6ffacc88185044ad85cf74c0a8887c6a0f88c"},
+    {file = "tenacity-8.2.3.tar.gz", hash = "sha256:5398ef0d78e63f40007c1fb4c0bff96e1911394d2fa8d194f77619c05ff6cc8a"},
+]
+
+[package.extras]
+doc = ["reno", "sphinx", "tornado (>=4.5)"]
 
 [[package]]
 name = "terminado"
@@ -3141,4 +3175,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "d366b5eadb91b8c014a3d6d6cec51aa41ed3c31cea00a189fbbb3ec0c323d600"
+content-hash = "b66f6a49b907c250fcee584522935ddecacec1ee1c050b02e423f910ddca6ff7"

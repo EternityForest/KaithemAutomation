@@ -301,11 +301,11 @@ class Cue:
 
     def setRules(self, r: list[list[str | list[list[str]]]]):
         self.rules = r or []
-        self.getScene().refresh_ules()
+        self.getScene().refresh_rules()
 
     def setInheritRules(self, r):
         self.inherit_rules = r
-        self.getScene().refresh_ules()
+        self.getScene().refresh_rules()
 
     def setShortcut(self, code: str, push: bool = True):
         code = normalize_shortcut(code)

@@ -409,7 +409,9 @@ def test_lighting_value_set_tag():
     # Set values and check that tags change
     s.cues["default"].set_value("/test1", "value", 50)
     s.cues["default"].set_value("/test2", "value", 60)
-    time.sleep(0.25)
+    time.sleep(0.3)
+    time.sleep(0.3)
+
     assert tagpoints.Tag("/test1").value == 50
     assert tagpoints.Tag("/test2").value == 60
 
@@ -417,6 +419,22 @@ def test_lighting_value_set_tag():
     s.setAlpha(0.50)
     # Give backround rerender time
     time.sleep(0.25)
+    time.sleep(0.1)
+
+    assert tagpoints.Tag("/test1").value == 25
+    assert tagpoints.Tag("/test2").value == 30
+
+    s.stop()
+    time.sleep(0.2)
+    time.sleep(0.1)
+
+    assert tagpoints.Tag("/test1").value == 0
+    assert tagpoints.Tag("/test2").value == 0
+
+    s.default_alpha = 0.5
+    s.go()
+    time.sleep(0.2)
+    time.sleep(0.1)
     assert tagpoints.Tag("/test1").value == 25
     assert tagpoints.Tag("/test2").value == 30
 
@@ -429,6 +447,25 @@ def test_lighting_value_set_tag():
     s2.cues["default"].set_value("/test2", "value", 255)
 
     # Ensure the values are changing
+    t1 = tagpoints.Tag("/test1").value
+    t2 = tagpoints.Tag("/test2").value
+    time.sleep(0.5)
+
+    assert t1 != tagpoints.Tag("/test1").value
+    assert t2 != tagpoints.Tag("/test2").value
+
+    # Stop flickering, should be back to normal
+    s2.stop()
+    time.sleep(0.2)
+    assert t1 == tagpoints.Tag("/test1").value
+    assert t2 == tagpoints.Tag("/test2").value
+
+    s2.go()
+    time.sleep(0.2)
+
+    # Flicker starts again
+    assert t1 != tagpoints.Tag("/test1").value
+    assert t2 != tagpoints.Tag("/test2").value
     t1 = tagpoints.Tag("/test1").value
     t2 = tagpoints.Tag("/test2").value
     time.sleep(0.5)

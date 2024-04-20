@@ -18,7 +18,7 @@ def test_events():
     # Set y to 1
     x.pymodule.y = 1
 
-    time.sleep(2)
+    time.sleep(1)
 
     try:
         # y should immediately be set back to 0 at the next polling cycle
@@ -66,7 +66,7 @@ def test_events():
         raise RuntimeError("Time delay event did not trigger")
 
     blah[0] = True
-    time.sleep(2)
+    time.sleep(1)
     if not blah[0]:
         raise RuntimeError("Time delay event did not delete itself properly")
 

@@ -1126,6 +1126,7 @@ class OneTagpoint(Universe):
         self.number = number
         self.statusChanged = {}
         self.tagpoint = kaithem.tags[name]
+        self.claim = None
 
         self.count = 3
         self.hidden = True
@@ -1151,10 +1152,11 @@ class OneTagpoint(Universe):
             # settings.
             if self.prev != t:
                 if (x > -1) and (a > 0):
-                    self.prev = t
-                    self.tagpoint.claim(x, "ChandlerUniverse", 50)
+                    self.claim = self.tagpoint.claim(x, "ChandlerUniverse", 50)
                 else:
                     self.tagpoint.release("ChandlerUniverse")
+
+            self.prev = t
 
         except Exception:
             core.rl_log_exc("Error in tagpoint universe")
