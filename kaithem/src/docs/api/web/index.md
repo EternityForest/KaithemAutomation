@@ -5,14 +5,23 @@
 > Auto-generated documentation for [web](../../../../api/web/__init__.py) module.
 
 - [Web](#web)
-  - [add_simple_cherrypy_handler](#add_simple_cherrypy_handler)
-  - [add_tornado_app](#add_tornado_app)
-  - [add_wsgi_app](#add_wsgi_app)
+  - [add\_simple\_cherrypy\_handler](#add_simple_cherrypy_handler)
+      - [Signature](#signature)
+  - [add\_tornado\_app](#add_tornado_app)
+      - [Signature](#signature-1)
+  - [add\_wsgi\_app](#add_wsgi_app)
+      - [Signature](#signature-2)
   - [goto](#goto)
-  - [has_permission](#has_permission)
-  - [render_jinja_template](#render_jinja_template)
-  - [serve_file](#serve_file)
+      - [Signature](#signature-3)
+  - [has\_permission](#has_permission)
+      - [Signature](#signature-4)
+  - [render\_jinja\_template](#render_jinja_template)
+      - [Signature](#signature-5)
+  - [serve\_file](#serve_file)
+      - [Signature](#signature-6)
   - [user](#user)
+      - [Returns](#returns)
+      - [Signature](#signature-7)
   - [Modules](#modules)
 
 ## add_simple_cherrypy_handler
@@ -32,7 +41,7 @@ This function is alpha.
 ```python
 @_beartype.beartype
 def add_simple_cherrypy_handler(
-    prefix: str, permissions: str, handler: Callable[..., str]
+    prefix: str, permission: str, handler: Callable[..., str]
 ): ...
 ```
 

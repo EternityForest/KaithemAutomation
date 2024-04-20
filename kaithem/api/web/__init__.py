@@ -62,7 +62,7 @@ def add_tornado_app(pattern: str, app, args, permission="system_admin"):
 
 
 @_beartype.beartype
-def add_simple_cherrypy_handler(prefix: str, permissions: str, handler: Callable[..., str]):
+def add_simple_cherrypy_handler(prefix: str, permission: str, handler: Callable[..., str]):
     """
     Register handler for all requests that look like /prefix.
     handler must look like:
@@ -74,7 +74,7 @@ def add_simple_cherrypy_handler(prefix: str, permissions: str, handler: Callable
 
     """
 
-    _simple_handlers[prefix] = (permissions, handler)
+    _simple_handlers[prefix] = (permission, handler)
 
 
 def goto(url):

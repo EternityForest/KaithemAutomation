@@ -150,7 +150,8 @@ class webapproot:
     @cherrypy.expose
     def default(self, *path, **data):
         if path[0] in webapi._simple_handlers:
-            pages.require(webapi._simple_handlers[path[0]][0])
+            if webapi._simple_handlers[path[0]][0]:
+                pages.require(webapi._simple_handlers[path[0]][0])
 
             return webapi._simple_handlers[path[0]][1](*path, **data)
         raise ValueError("No builtin or plugin handler")
