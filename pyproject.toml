@@ -93,6 +93,7 @@ scipy = ">=1.11.0"
 # Maybe just removing addr was enough?
 attrs = ">=23.2.0"
 beartype = "^0.18.2"
+types-jsonschema = "^4.21.0.20240331"
 
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"

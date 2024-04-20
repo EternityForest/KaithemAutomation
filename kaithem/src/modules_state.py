@@ -166,7 +166,8 @@ def writeResource(obj: dict, dir: str, resource_name: str):
             return fn
 
 
-def saveResource(module: str, resource: str, resourceData, name=None):
+@beartype.beartype
+def saveResource(module: str, resource: str, resourceData: ResourceDictType, name: str | None = None):
     if "__do__not__save__to__disk__:" in module:
         return
 
@@ -190,9 +191,13 @@ def saveResource(module: str, resource: str, resourceData, name=None):
         if not d:
             return
 
-    # Allow non-saved virtual resources
-    if not hasattr(resourceData, "ephemeral") or resourceData.ephemeral is False:
-        writeResource(resourceData, dir, resource)
+    writeResource(resourceData, dir, resource)
+
+
+@beartype.beartype
+def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
+    ActiveModules[module][resource] = resourceData
+    saveResource(module, resource, resourceData)
 
 
 @beartype.beartype

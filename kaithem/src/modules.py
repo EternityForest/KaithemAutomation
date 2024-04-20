@@ -88,7 +88,7 @@ def new_module_container():
     return {}
 
 
-def loadAllCustomResourceTypes():
+def loadAllCustomResourceTypes() -> None:
     # TODO this is O(m * n) time. Is that bad?
 
     types: list[tuple[float, str]] = []
@@ -151,7 +151,7 @@ class ModuleObject:
 
     def __getitem__(self, name: str):
         "When someone acesses a key, return an interface to that module."
-        x = modules_state.ActiveModules[self.__kaithem_modulename__][name]
+        x: Any = modules_state.ActiveModules[self.__kaithem_modulename__][name]
 
         module = self.__kaithem_modulename__
 
@@ -170,8 +170,6 @@ class ModuleObject:
             x = InternalFileRef(module, name, x)
 
         return x
-
-        raise KeyError(name)
 
     def __setitem__(self, name, value):
         "When someone sets an item, validate it, then do any required bookkeeping"

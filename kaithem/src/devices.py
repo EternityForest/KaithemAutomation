@@ -25,7 +25,6 @@ from . import (
     messagebus,
     modules_state,
     pages,
-    persist,
     tagpoints,
     unitsofmeasure,
     widgets,
@@ -43,14 +42,12 @@ log = logging.getLogger("system.devices")
 remote_devices: dict[str, Device] = {}
 remote_devices_atomic: dict[str, weakref.ref[Device]] = {}
 
-device_data = {}
-
 # Data awaiting someone to use it for making a subevice
-subdevice_data_cache = {}
+subdevice_data_cache: dict[str, dict[str, Any]] = {}
 
 # Stores the (module, resource) or subdevices that might not yet exist but have config
 # Since it needs to work
-device_location_cache = {}
+device_location_cache: dict[str, tuple[str, str]] = {}
 
 saveLocation = os.path.join(directories.vardir, "devices")
 
@@ -83,10 +80,6 @@ def delete_bookkeep(name, confdir=False):
                 del remote_devices[i]
             except KeyError:
                 pass
-            try:
-                del device_data[i]
-            except KeyError:
-                pass
 
             try:
                 del subdevice_data_cache[i]
@@ -98,11 +91,6 @@ def delete_bookkeep(name, confdir=False):
                 pass
         try:
             del remote_devices[name]
-        except KeyError:
-            pass
-
-        try:
-            del device_data[name]
         except KeyError:
             pass
 
@@ -145,17 +133,9 @@ def log_scanned_tag(v: str, *args):
         recent_scanned_tags.pop(next(iter(recent_scanned_tags)))
 
 
-if os.path.isdir(saveLocation):
-    for i in os.listdir(saveLocation):
-        fn = os.path.join(saveLocation, i)
-        if os.path.isfile(fn) and fn.endswith(".yaml"):
-            d = persist.load(fn)
-            d = {i: d[i] for i in d if not i.startswith("temp.")}
-            device_data[i[: -len(".yaml")]] = d
-
 syslogger = logging.getLogger("system.devices")
 
-dbgd = weakref.WeakValueDictionary()
+dbgd: weakref.WeakValueDictionary[str, Device] = weakref.WeakValueDictionary()
 
 
 def closeAll(*a):
@@ -396,7 +376,7 @@ class Device(iot_devices.device.Device):
 
         return f
 
-    def __init__(self, name, data):
+    def __init__(self, name: str, data: dict[str, Any]):
         if not data["type"] == self.device_type_name and not self.device_type_name == "unsupported":
             raise ValueError(
                 "Incorrect device type in info dict," + data["type"] + " does not match device_type_name " + self.device_type_name
@@ -414,7 +394,7 @@ class Device(iot_devices.device.Device):
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
-        self._tagBookKeepers = {}
+        self._tagBookKeepers: dict[str, Callable[[Any, float, Any], None]] = {}
 
         # The single shared broadcast data channel the spec suggests we have
         self._admin_ws_channel = widgets.APIWidget()
@@ -450,7 +430,7 @@ class Device(iot_devices.device.Device):
         self.parent_resource: str | None = None
 
         # Time, title, text tuples for any "messages" a device might "print"
-        self.messages = []
+        self.messages: list[tuple[float, str, str]] = []
 
         # This data dict represents all persistent configuration
         # for the alert object.
@@ -468,13 +448,14 @@ class Device(iot_devices.device.Device):
         # Where we stash our claims on the tags
         self.tagClaims: dict[str, tagpoints.Claim] = {}
 
-        self._deviceSpecIntegrationHandlers = {}
+        self._deviceSpecIntegrationHandlers: dict[str, Callable[[Any, float, Any], None]] = {}
 
         # The new devices spec has a way more limited idea of what a data point is.
         self.datapoints = {}
 
         self.name = data.get("name", None) or name
-        self.errors = []
+        # Time, msg
+        self.errors: list[tuple[float, str]] = []
 
         with modules_state.modulesLock:
             remote_devices[name] = self
@@ -509,7 +490,7 @@ class Device(iot_devices.device.Device):
     #     self.set_claim_val("default", v, t or time.monotonic(), a)
 
     def handle_error(self, s):
-        self.errors.append([time.time(), str(s)])
+        self.errors.append((time.time(), str(s)))
 
         if self.errors:
             if time.time() > self.errors[-1][0] + 15:
@@ -596,15 +577,15 @@ class Device(iot_devices.device.Device):
 
         with modules_state.modulesLock:
             if name in remote_devices_atomic:
-                n = remote_devices_atomic.get(name, None)
-                if n:
-                    n = n()
-                if n:
-                    if n.device_type_name not in ["UnusedSubdevice", "unsupported"]:
-                        raise RuntimeError("Subdevice name is already in use")
-                    remote_devices.pop(name)
+                tmp = remote_devices_atomic.get(name, None)
+                if tmp:
+                    n = tmp()
+                    if n:
+                        if n.device_type_name not in ["UnusedSubdevice", "unsupported"]:
+                            raise RuntimeError("Subdevice name is already in use")
+                        remote_devices.pop(name)
 
-                    remote_devices_atomic = wrcopy(remote_devices)
+                        remote_devices_atomic = wrcopy(remote_devices)
 
             # Mix in user config
             if name in subdevice_data_cache:
@@ -613,10 +594,11 @@ class Device(iot_devices.device.Device):
         if name not in device_location_cache:
             # TODO what happens with more than two layers?
             # Get rid of the module name part in the resource
-            device_location_cache[name] = (
-                self.parent_module,
-                ".d/".join(name.split("/")[1 if self.parent_module else 0 :]),
-            )
+            if self.parent_module:
+                device_location_cache[name] = (
+                    self.parent_module,
+                    ".d/".join(name.split("/")[1 if self.parent_module else 0 :]),
+                )
 
         m = makeDevice(name=name, data=config, cls=cls)
 
@@ -628,7 +610,6 @@ class Device(iot_devices.device.Device):
         with modules_state.modulesLock:
             c2 = copy.deepcopy(config)
             c2.pop("type", cls.device_type)
-            device_data[name] = config
             self.subdevices[originalName] = m
             remote_devices[name] = m
             remote_devices_atomic = wrcopy(remote_devices)
@@ -678,10 +659,10 @@ class Device(iot_devices.device.Device):
         max: float | None = None,
         hi: float | None = None,
         lo: float | None = None,
+        default: float | None = None,
         description: str = "",
         unit: str = "",
         handler: Callable[[float, float, Any], Any] | None = None,
-        default: float | None = None,
         interval: float = 0,
         writable: bool = True,
         subtype: str = "",
@@ -987,9 +968,8 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
     if name not in kwargs:
         kwargs["name"] = name
 
-    old_read_perms = {}
-    old_write_perms = {}
-
+    old_read_perms = ""
+    old_write_perms = ""
     subdevice = False
 
     with modules_state.modulesLock:
@@ -1027,11 +1007,9 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         new_dev_conf_folder = get_config_folder_from_info(newparent_module, newparent_resource, name, create=False, always_return=True)
 
-        if not parent_module:
-            dt = device_data[devname]
-        else:
-            assert parent_resource
-            dt = modules_state.ActiveModules[parent_module][parent_resource]["device"]
+        assert parent_module
+        assert parent_resource
+        dt = modules_state.ActiveModules[parent_module][parent_resource]["device"]
 
         assert isinstance(dt, dict)
 
@@ -1047,9 +1025,9 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         )
         configuredAsSubdevice = configuredAsSubdevice or dt.get("parent_device", "").strip()  # type: ignore
 
-        old_read_perms = remote_devices[devname].config.get("kaithem.read_perms", [])
+        old_read_perms = remote_devices[devname].config.get("kaithem.read_perms", "")
 
-        old_write_perms = remote_devices[devname].config.get("kaithem.write_perms", [])
+        old_write_perms = remote_devices[devname].config.get("kaithem.write_perms", "")
 
         if not subdevice:
             remote_devices[devname].close()
@@ -1141,8 +1119,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         if newparent_module:
             storeDeviceInModule(savable_data, newparent_module, newparent_resource or name)
         else:
-            # Allow name changing via data, we save under new, not the old name
-            device_data[name] = savable_data
+            raise ValueError("Must choose module")
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
@@ -1309,20 +1286,15 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
             dir = "/".join(resource.split("/")[:-1])
             for i in range(256):
                 if dir not in modules_state.ActiveModules[module]:
-                    r = {
+                    r: modules_state.ResourceDictType = {
                         "resource-type": "directory",
                         "resource-timestamp": int(time.time() * 1000000),
                     }
-                    modules_state.ActiveModules[module][dir] = r
-                    modules_state.saveResource(module, dir, r)
+
+                    modules_state.rawInsertResource(module, dir, r)
                 if not dir.count("/"):
                     break
                 dir = "/".join(dir.split("/")[:-1])
-
-        # Move it out of main area
-        if "name" in d:
-            if d["name"] in device_data:
-                device_data.pop(d["name"])
 
         modules_state.ActiveModules[module][resource] = {
             "resource-type": "device",
@@ -1354,74 +1326,7 @@ class TemplateGetter:
         return lambda: pages.get_vardir_template(self.fn).render(data=instance.config, obj=instance, name=instance.name)
 
 
-def setupSubdeviceData():
-    """Prepare all the data from VARDIR/devices for when something tries to make a subdevice.
-    Only does the data from devices, not the data in modules.
-    """
-    for i in list(device_data.keys()):
-        sd = False
-
-        # Force it to be a placeholder subdevice
-        if device_data[i].get("is_subdevice", False) in (
-            "true",
-            True,
-            "True",
-            "yes",
-            "Yes",
-            1,
-            "1",
-        ):
-            sd = True
-        if device_data[i].get("parent_device", "").strip():
-            sd = True
-        if sd:
-            subdevice_data_cache[i] = device_data[i]
-            device_location_cache[i] = None, None
-
-
-def createDevicesFromData():
-    global remote_devices_atomic
-
-    for i in list(device_data.keys()):
-        cls = None
-        name = i
-
-        # Force it to be a placeholder subdevice
-        if device_data[i].get("is_subdevice", False) in (
-            "true",
-            True,
-            "True",
-            "yes",
-            "Yes",
-            1,
-            "1",
-        ):
-            cls = UnusedSubdevice
-        if device_data[i].get("parent_device", "").strip():
-            cls = UnusedSubdevice
-
-        # We can call this again to reload unsupported devices.
-        if name in remote_devices and not remote_devices[name].device_type_name == "unsupported":
-            continue
-
-        try:
-            # Don't overwrite subdevice with placeholder
-            if name not in remote_devices:
-                # No module or resource here
-                device_location_cache[name] = (None, None)
-                remote_devices[name] = makeDevice(name, device_data[i], cls=cls)
-            syslogger.info(f"Created device from config: {i}")
-        except Exception:
-            messagebus.post_message(
-                "/system/notifications/errors",
-                f"Error creating device: {name}\n{traceback.format_exc()}",
-            )
-            syslogger.exception(f"Error initializing device {str(name)}")
-
-    remote_devices_atomic = wrcopy(remote_devices)
-
-
-unsupportedDevices = weakref.WeakValueDictionary()
+unsupportedDevices: weakref.WeakValueDictionary[str, UnsupportedDevice] = weakref.WeakValueDictionary()
 
 
 def warnAboutUnsupportedDevices():
@@ -1446,7 +1351,6 @@ def warnAboutUnsupportedDevices():
 
 
 def init_devices():
-    setupSubdeviceData()
     # Load all the stuff from the modules
     while deferred_loaders:
         try:
@@ -1454,8 +1358,6 @@ def init_devices():
         except Exception:
             logging.exception("Err with device")
             messagebus.post_message("/system/notifications/errors", "Err with device")
-
-    createDevicesFromData()
 
 
 importedDeviceTypes = iot_devices.host.discover()

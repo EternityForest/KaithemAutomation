@@ -89,7 +89,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.linkSend(["refreshPage", self.fixture_assignments])
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.id = uuid.uuid4().hex
@@ -118,9 +118,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.universe_objects: Dict[str, universes.Universe] = {}
         self.fixture_classes: Dict[str, Any] = copy.deepcopy(fixtureslib.genericFixtureClasses)
 
-        self.load_project()
-
-        self.refresh_fixtures()
+        self.initialized = False
 
         def f(self: ChandlerConsole, *dummy: tuple[Any]):
             self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
@@ -137,6 +135,12 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.last_logged_gui_send_error = 0
 
         self.autosave_checker = scheduling.scheduler.every(self.check_autosave, 10 * 60)
+
+    def setup(self):
+        console_abc.Console_ABC.setup(self)
+        self.load_project()
+        self.refresh_fixtures()
+        self.initialized = True
 
     def refresh_fixtures(self):
         with core.lock:
@@ -514,9 +518,10 @@ class ChandlerConsole(console_abc.Console_ABC):
             return sd
 
     def check_autosave(self):
-        # Both can already do their own checking for unneeded saves
-        self.save_scenes()
-        self.save_setup(force=False)
+        if self.initialized:
+            # Both can already do their own checking for unneeded saves
+            self.save_scenes()
+            self.save_setup(force=False)
 
     def save_scenes(self, force=False):
         changed = force

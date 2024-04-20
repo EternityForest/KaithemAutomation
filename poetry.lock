@@ -2702,6 +2702,20 @@ doc = ["Sphinx (>=7)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)"]
 test = ["coverage[toml] (>=7)", "mypy (>=1.2.0)", "pytest (>=7)"]
 
 [[package]]
+name = "types-jsonschema"
+version = "4.21.0.20240331"
+description = "Typing stubs for jsonschema"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-jsonschema-4.21.0.20240331.tar.gz", hash = "sha256:3a5ed0a72ab7bc304ca4accbb709272c620f396abf2fb19570b80d949e357eb6"},
+    {file = "types_jsonschema-4.21.0.20240331-py3-none-any.whl", hash = "sha256:78dec1d88c5aec77e46e6bddce2a082157ce3059ec7aab19169b13b2ee553a51"},
+]
+
+[package.dependencies]
+referencing = "*"
+
+[[package]]
 name = "types-pyyaml"
 version = "6.0.12.20240311"
 description = "Typing stubs for PyYAML"
@@ -3127,4 +3141,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "e82bada357f9efbeae5b56f170901524b5a9cc7378c69880438a799aa604fe84"
+content-hash = "d366b5eadb91b8c014a3d6d6cec51aa41ed3c31cea00a189fbbb3ec0c323d600"

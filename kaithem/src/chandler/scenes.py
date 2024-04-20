@@ -1834,7 +1834,7 @@ class Scene:
                         self.rerenderOnVarChange = True
 
     def make_script_context(self):
-        scriptContext = DebugScriptContext(self, rootContext, variables=self.chandler_vars, gil=core.lock)
+        scriptContext = DebugScriptContext(self, parentContext=rootContext, variables=self.chandler_vars, gil=core.lock)
 
         scriptContext.addNamespace("pagevars")
 
@@ -2172,6 +2172,9 @@ class Scene:
                 if i not in self.blend_args:
                     self.blend_args[i] = self.blendClass.parameters[i][3]
 
+    def __repr__(self):
+        return f"<Scene {self.name}>"
+
     def go(self, nohandoff=False):
         global active_scenes, _active_scenes
         self.set_display_tags(self.display_tags)
@@ -2191,7 +2194,7 @@ class Scene:
                 self.goto_cue("__setup__", sendSync=False, cause="start")
             else:
                 self.goto_cue("__checkpoint__", sendSync=False, cause="start")
-                if not self.cue:
+                if not self.entered_cue:
                     self.goto_cue("default", sendSync=False, cause="start")
 
             # Bug workaround for bug where scenes do nothing when first activated

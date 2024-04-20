@@ -4,6 +4,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 class Console_ABC:
     "Abstract base class for console to make typing easier"
 
+    def setup(self):
+        pass
+
     def linkSend(self, data: List[Any]):
         pass
 
