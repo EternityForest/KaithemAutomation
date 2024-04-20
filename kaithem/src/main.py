@@ -167,6 +167,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         sys.exit()
 
     plugin_system.load_plugins()
+    plugin_system.load_user_plugins()
 
     # Load all modules from the active modules directory
     modules.initModules()

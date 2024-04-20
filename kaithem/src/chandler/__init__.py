@@ -2,14 +2,15 @@ import threading
 import time
 import traceback
 import weakref
-from typing import Dict
 
 import cherrypy
+import icemedia.sound_player
 import numpy
+from scullery import messagebus
 
-from ..kaithemobj import kaithem
-from . import blendmodes, core, scenes, universes
-from .scenes import Scene, event, rootContext, shortcutCode
+import kaithem.api.web as webapi
+
+from . import core, scenes, universes
 from .universes import getUniverses
 from .WebChandlerConsole import WebConsole
 
@@ -44,7 +45,7 @@ def refresh_scenes(t, v):
             i.entered_cue = y
 
 
-kaithem.message.subscribe("/chandler/command/refreshScenes", refresh_scenes)
+messagebus.subscribe("/chandler/command/refreshScenes", refresh_scenes)
 
 
 def refreshFixtures(topic, val):
@@ -64,7 +65,7 @@ def refreshFixtures(topic, val):
             time.sleep(0.1)
 
 
-kaithem.message.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
+messagebus.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
 
 
 def pollsounds():
@@ -76,7 +77,7 @@ def pollsounds():
             if (time.time() - i.entered_cue) > 1 / 5:
                 if i.cue.sound and i.cue.rel_length:
                     if not i.media_ended_at:
-                        if not kaithem.sound.is_playing(str(i.id)):
+                        if not icemedia.sound_player.is_playing(str(i.id)):
                             i.media_ended_at = time.time()
                     if i.media_ended_at and (time.time() - i.media_ended_at > (i.cue.length * i.bpm)):
                         i.next_cue(cause="sound")
@@ -144,7 +145,7 @@ def applyLayer(universe, uvalues, scene, uobj):
     return uvalues
 
 
-def pre_render(universes: Dict[str, universes.Universe]):
+def pre_render(universes: dict[str, universes.Universe]):
     "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
     # Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
     changedUniverses = {}
@@ -253,40 +254,12 @@ def render(t=None, u=None):
     changedUniverses = {}
 
 
-def getAllDeviceTagPoints():
-    o = {}
-    for i in kaithem.devices:
-        o[i] = {}
-        for j in kaithem.devices[i].tagpoints:
-            o[i][j] = [
-                kaithem.devices[i].tagpoints[j].name,
-                kaithem.devices[i].tagpoints[j].subtype,
-            ]
-
-
 lastrendered = 0
 
 
 board = WebConsole()
 core.boards.append(weakref.ref(board))
 core.board = board
-
-
-class ObjPlugin:
-    board = board
-    Scene = Scene
-    scenes_by_uuid = scenes.scenes
-    scenes = scenes.scenes_by_name
-    Universe = universes.Universe
-    blendmodes = blendmodes.blendmodes
-    fixture = universes.Fixture
-    shortcut = shortcutCode
-    commands = rootContext.commands
-    event = event
-
-
-k_interface = ObjPlugin()
-kaithem.chandler = k_interface
 
 
 def _nbr():
@@ -296,14 +269,14 @@ def _nbr():
     )
 
 
-kaithem.web.nav_bar_plugins["chandler"] = _nbr
+webapi.nav_bar_plugins["chandler"] = _nbr
 
 
 def _nbr2():
     return (50, '<a href="/chandler/editor"><i class="mdi mdi-pencil"></i>Editor</a>')
 
 
-kaithem.web.nav_bar_plugins["chandler2"] = _nbr2
+webapi.nav_bar_plugins["chandler2"] = _nbr2
 
 
 controluniverse = universes.Universe("control")

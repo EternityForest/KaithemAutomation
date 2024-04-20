@@ -38,15 +38,15 @@ def render_jinja_template(template_filename: str, **kw):
 
     Example template that uses the standard kaithem template everything else does.
 
-    {{% extends "pagetemplate.j2.html" %}}
+    {% extends "pagetemplate.j2.html" %}
 
-    {{% block title %}}Title Here{{% endblock %}}
+    {% block title %}Title Here{% endblock %}
 
-    {{% block body %}}
+    {% block body %}
     <main>
         Content here
     </main>
-    {{% endblock %}}
+    {% endblock %}
     """
     return _jl.load(_env, template_filename, _env.globals).render(imp0rt=_importlib.import_module, **kw)
 

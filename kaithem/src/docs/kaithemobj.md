@@ -9,23 +9,6 @@ code. It has the following properties:
 
 ### General Utilities
 
-### kaithem.chandler
-
-This object is the API for interacting with the Chandler lightboard and visual scripting system.
-
-####  kaithem.chandler.shortcut(sc: str)
-Trigger a shortcut, causing scenes to jump to any cue that has that shortcut.
-
-#### kaithem.chandler.commands
-A dict of commands accessible from the chandler visual script editor. Keys are command names, values are simply functions. Every parameter must be a string. Use docstrings
-to add a description.
-
-#### kaithem.chandler.event(event: str, value=None)
-
-Trigger a global event.
-
-
-
 ### kaithem.units
 
 It is recommended that you use [Scullery](https://github.com/EternityForest/scullery) unit conversions directly.

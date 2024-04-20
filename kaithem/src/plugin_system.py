@@ -60,11 +60,7 @@ def load_plugins():
                 # or it would not know that it was the same module we might
                 # import elsewhere
                 import_in_thread("kaithem.src.plugins." + i)
-        usr = os.path.join(directories.vardir, "plugins")
-        try:
-            os.makedirs(usr, exist_ok=True)
-        except Exception:
-            pass
+
         # core before user plugins
         for i in range(240000):
             time.sleep(0.001)
@@ -78,6 +74,19 @@ def load_plugins():
 
             if all_true:
                 break
+
+    except Exception:
+        messagebus.post_message("/system/notifications/errors", "Error loading plugins")
+        logger.exception("Error loading plugins")
+
+
+def load_user_plugins():
+    try:
+        usr = os.path.join(directories.vardir, "plugins")
+        try:
+            os.makedirs(usr, exist_ok=True)
+        except Exception:
+            pass
 
         if os.path.isdir(usr):
             for i in os.listdir(usr):
