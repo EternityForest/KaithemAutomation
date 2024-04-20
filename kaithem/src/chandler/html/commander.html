@@ -165,7 +165,7 @@
                                 ><i
                                     class="mdi mdi-script-text-outline"></i></span>
                         </button></h3>
-                        <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                        <cue-countdown :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
 
                 </header>
                 <div class="flex-col nogaps" style="text-align: center;">
@@ -197,7 +197,7 @@
                     <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0"
                         :src="i[1].infoDisplay"></iframe>
 
-                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime" :cue="cuemeta[i[1].cue]"></scene-ui>
+                        <scene-ui :unixtime="unixtime" v-bind:scene-data="i[1]" :cue="cuemeta[i[1].cue]"></scene-ui>
 
 
                     </table>
@@ -261,7 +261,7 @@
 
 
                         <div :class="{'success': cuemeta[editingScene.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}" >
-                            <cue-countdown v-if="cuemeta[editingScene.cue].name==i[1].name" :unixtime="unixtime" :scene="editingScene" :cue="cuemeta[editingScene.cue]"></cue-countdown>
+                            <cue-countdown v-if="cuemeta[editingScene.cue].name==i[1].name" :scene="editingScene" :cue="cuemeta[editingScene.cue]"></cue-countdown>
                             <div v-if="i[1].notes.length>0" style="max-width: 10em;">({{i[1].notes}})</div>
                         </div>
 

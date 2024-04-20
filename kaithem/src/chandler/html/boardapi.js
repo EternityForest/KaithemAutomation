@@ -1533,10 +1533,29 @@ init_api_link = function () {
         vueapp.$data.clock = new Date(api_link.now()).toLocaleTimeString()
         vueapp.$data.unixtime = api_link.now() / 1000
         setTimeout(unix_time_upd,
-            250-(api_link.now()%250) )
+            1000-(api_link.now()%1000) )
     }
 
     unix_time_upd()
+
+    var update_meters = function () {
+        var u = api_link.now() / 1000
+
+        for (i of document.querySelectorAll('[data-meter-ref]'))
+        {
+            i.value = u - parseFloat(i.dataset.meterRef)
+        }
+
+        for (i of document.querySelectorAll('[data-count-ref]'))
+        {
+            l = parseFloat(i.dataset.countLen)
+            e = parseFloat(i.dataset.countRef) + l
+
+            i.innerHTML = formatInterval(e -u)
+        }
+
+    }
+    setInterval(update_meters, 200)
 }
 
 var shortcut = function (sc) {

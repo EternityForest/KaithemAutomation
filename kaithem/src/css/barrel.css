@@ -2580,8 +2580,22 @@ input[type="radio"] {
 }
 
 
+input[type='checkbox'].led{
+    border-radius: 50%;
+    margin: 0px 0px;
+    width: var(--line-height);
+    height: var(--line-height);
+    
+    background-color: rgb(6, 65, 3);
+    box-shadow:#0000 0 -1px 7px 1px, inset #d5d5d5 0 -1px 9px, rgb(94 94 94 / 0%) 0 2px 12px;
 
-input[type='checkbox']:not(.toggle) {
+    &.led-green:checked {
+        background-color: rgb(0 255 0);
+        box-shadow: inset #3f7d3e 0 -1px 9px, rgb(0 243 46 / 74%) 0 2px 12px;
+    }
+}
+
+input[type='checkbox']:not(.toggle, .led) {
     border-radius: calc(var(--control-border-radius) / 2);
 
     &:checked {

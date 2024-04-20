@@ -260,11 +260,11 @@ ${lists}
                             v-on:change="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);" :value="alphas[i[0]]"
                             v-on:blur="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);">
 
-                        <scene-ui v-bind:scene-data="i[1]" :unixtime="unixtime" :cue="cuemeta[i[1].cue]"></scene-ui>
+                        <scene-ui :unixtime="unixtime" v-bind:scene-data="i[1]" :cue="cuemeta[i[1].cue]"></scene-ui>
 
 
                         <div class="w-full flex">
-                            <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                            <cue-countdown :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                             <small><span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
                                         class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
                         </div>
