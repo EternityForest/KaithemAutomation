@@ -20,7 +20,7 @@ import beartype
 import cherrypy
 import yaml
 
-from . import auth, directories, kaithemobj, messagebus, modules_state, pages, schemas, util
+from . import auth, directories, kaithemobj, messagebus, modules_state, pages, util
 from .modules_state import (
     ResourceDictType,
     additionalTypes,
@@ -245,7 +245,7 @@ def readResourceFromFile(
     x = readResourceFromData(d, relative_name, ver, filename=fn)
     # logger.debug("Loaded resource from file "+fn)
     original = copy.deepcopy(x[0])
-    validate(x[0])
+
     if not (x[0] == original):
         logger.info(f"Resource {x[1]} is in an older format and should be migrated to the new file type")
     # For now don't break anything by actually changing the data.
@@ -413,19 +413,6 @@ def reloadOneResource(module, resource):
         load_one_yaml_resource(mfolder, os.path.relpath(x, mfolder), module)
 
 
-def validate(r):
-    "Clean up any old dict keys"
-    try:
-        if r["resource-type"] == "page":
-            schemas.get_validator("resources/page").validate(r)
-            schemas.clean_data_inplace("resources/page", r)
-
-    except Exception:
-        print("Ignoring invalid resource and loading anyway for now")
-        print(traceback.format_exc())
-        print(str(r)[:1024])
-
-
 @beartype.beartype
 def load_one_yaml_resource(folder: str, relpath: str, module: str):
     if not relpath.endswith(".yaml") or relpath.endswith(".json"):
@@ -452,7 +439,6 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
         logger.warning(f"No resource type found for {str(resourcename)}")
         return
 
-    validate(r)
     handleResourceChange(module, resourcename)
 
     if r["resource-type"] == "internal-fileref":

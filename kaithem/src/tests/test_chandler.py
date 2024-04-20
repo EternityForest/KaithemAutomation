@@ -450,6 +450,7 @@ def test_lighting_value_set_tag():
     t1 = tagpoints.Tag("/test1").value
     t2 = tagpoints.Tag("/test2").value
     time.sleep(0.5)
+    time.sleep(0.2)
 
     assert t1 != tagpoints.Tag("/test1").value
     assert t2 != tagpoints.Tag("/test2").value
@@ -457,10 +458,13 @@ def test_lighting_value_set_tag():
     # Stop flickering, should be back to normal
     s2.stop()
     time.sleep(0.2)
+    time.sleep(0.2)
+
     assert t1 == tagpoints.Tag("/test1").value
     assert t2 == tagpoints.Tag("/test2").value
 
     s2.go()
+    time.sleep(0.2)
     time.sleep(0.2)
 
     # Flicker starts again
@@ -469,6 +473,7 @@ def test_lighting_value_set_tag():
     t1 = tagpoints.Tag("/test1").value
     t2 = tagpoints.Tag("/test2").value
     time.sleep(0.5)
+    time.sleep(0.2)
 
     assert t1 != tagpoints.Tag("/test1").value
     assert t2 != tagpoints.Tag("/test2").value
@@ -597,3 +602,28 @@ def test_cue_logic_plugin():
 
     assert "TestingScene5" not in scenes.scenes_by_name
     assert "TestingScene6" not in scenes.scenes_by_name
+
+
+def test_scene_loaded_from_yaml():
+    # Conftest.py writes this scene as YAML
+    # to the dev/shm
+
+    # It has 2 cues.  It should go to the second
+    # then stop there because there's no next
+
+    s = scenes.scenes_by_name["unit_testing"]
+
+    assert s.active
+    assert s in scenes.active_scenes
+
+    if not s.cue.name == "c1":
+        time.sleep(1)
+
+    assert s.cue.name == "c1"
+
+    # This was set in default. But c1 is not a tracking scene so it should
+    # not carry over
+    assert tagpoints.Tag("/unit_testing/t1").value == 0
+
+    # But c1 does set this tag so that should be working.
+    assert tagpoints.Tag("/unit_testing/t2").value == 183.0
