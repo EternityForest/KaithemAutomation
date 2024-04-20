@@ -1174,6 +1174,9 @@ class Scene:
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
 
+        # Not really in a cue, reentrancy doesn't apply
+        skip_reentrant_check = self.entered_cue == 0
+
         if self.cue:
             oldSoundOut = self.cue.sound_output
         else:
@@ -1244,7 +1247,7 @@ class Scene:
 
                 if self.cue:
                     if cobj == self.cue:
-                        if not cobj.reentrant:
+                        if not (cobj.reentrant or skip_reentrant_check):
                             return
                 else:
                     # Act like we actually we in the default cue, but allow reenter no matter what since
