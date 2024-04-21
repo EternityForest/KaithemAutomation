@@ -17,6 +17,7 @@ Change Log
             boot.  This is part of the ongoing effort to enable creating content
             outside the web UI.
 
+- :sparkles: Configurable tag points are back! This time much simpler, as a resource plugin.
 
 ### 0.79.0
 

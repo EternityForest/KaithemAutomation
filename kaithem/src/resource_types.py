@@ -1,3 +1,5 @@
+import html
+import traceback
 import weakref
 from urllib.parse import quote
 
@@ -59,27 +61,29 @@ class ResourceType:
     def _validate(self, d: ResourceDictType):
         "Strip the resource- keys before giving it to the validator"
         d = {i: d[i] for i in d if not i.startswith("resource-")}
+        if self.schema:
+            validate(d, self.schema)
         self.validate(d)
 
     @beartype.beartype
     def validate(self, d: ResourceDictType):
         """Raise an error if the provided data is bad.
-        By default uses the type's schema if one was provided, or else does
-        nothing.
 
         Will not be passed any internal resource-* keys,
         just the resource specific stuff.
         """
-        d = {i: d[i] for i in d if not i.startswith("resource-")}
-
-        if self.schema:
-            validate(d, self.schema)
 
     def get_create_target(self, module, folder):
         return f"/modules/module/{module}/addresourcetarget/{self.type}/{quote(folder,safe='')}"
 
     def get_update_target(self, module, resource):
         return f"/modules/module/{quote(module)}/updateresource/{quote(resource,safe='')}"
+
+    def _blurb(self, module, resource, object):
+        try:
+            return self.blurb(module, resource, object)
+        except Exception:
+            return f'<div class="scroll max-h-12rem">{html.escape(traceback.format_exc())}</div>'
 
     def blurb(self, module, resource, object):
         """Empty or a single overview div"""
