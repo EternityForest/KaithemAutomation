@@ -717,13 +717,13 @@ def addResourceTarget(module, type, name, kwargs, path):
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         else:
+            rt = modules_state.additionalTypes[type]
             # If create returns None, assume it doesn't want to insert a module or handles it by itself
-            r = modules_state.additionalTypes[type].oncreaterequest(module, name, kwargs)
+            r = rt.oncreaterequest(module, name, kwargs)
+            rt._validate(r)
             if r:
                 insertResource(r)
-                f = modules_state.additionalTypes[type].onload
-                if f:
-                    f(module, name_with_path, r)
+                rt.onload(module, name_with_path, r)
 
         messagebus.post_message(
             "/system/notifications",
@@ -821,6 +821,8 @@ def resourceUpdateTarget(module, resource, kwargs):
 
         if t in modules_state.additionalTypes:
             n = modules_state.additionalTypes[t].onupdaterequest(module, resource, old_resource, kwargs)
+            modules_state.additionalTypes[t].validate(n)
+
             if n:
                 resourceobj = n
                 modules_state.ActiveModules[module][resource] = n

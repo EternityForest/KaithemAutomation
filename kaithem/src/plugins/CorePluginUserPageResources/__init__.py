@@ -718,13 +718,19 @@ def rsc_from_html(fn: str):
     return data
 
 
+with open(os.path.join(os.path.dirname(__file__), "page_schema.yaml")) as f:
+    schema = yaml.load(f, yaml.SafeLoader)
+
+
 class PageType(modules_state.ResourceType):
     def to_files(
         self,
         name: str,
-        resource: dict[str, str | list | int | float | bool | dict[str, dict | list | int | float | str | bool | None] | None],
+        resource: modules_state.ResourceDictType,
     ) -> dict[str, str]:
         resource = copy.copy(resource)
+
+        d: str
 
         name = name.split("/")[-1]
 
@@ -865,5 +871,5 @@ class PageType(modules_state.ResourceType):
         )
 
 
-p = PageType("page", mdi_icon="web")
+p = PageType("page", mdi_icon="web", schema=schema)
 modules_state.additionalTypes["page"] = p

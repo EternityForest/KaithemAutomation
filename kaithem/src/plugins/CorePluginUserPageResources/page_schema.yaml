@@ -1,5 +1,5 @@
 $schema: http://json-schema.org/draft-07/schema#
-title: Generated schema for Root
+title: User Page Resource
 type: object
 properties:
   allow-origins:
@@ -42,13 +42,6 @@ properties:
     type: array
     items: {}
 
-  resource-timestamp:
-    type: number
-
-  resource-type:
-    type: string
-    pattern: page
-
   alt-top-banner:
     type: string
 
@@ -59,9 +52,6 @@ properties:
     type: string
 
   theme-css-url:
-    type: string
-
-  resource-loadedfrom:
     type: string
 
   body:
@@ -82,6 +72,6 @@ properties:
     description: Used to store old versions of the file.  Should not actually be saved.
 
 required:
-  - resource-type
   - body
+
 additionalProperties: false

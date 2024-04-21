@@ -110,7 +110,7 @@ def loadAllCustomResourceTypes() -> None:
                         try:
                             rt = r["resource-type"]
                             assert isinstance(rt, str)
-
+                            additionalTypes[rt]._validate(r)
                             additionalTypes[rt].onload(i, j, r)
                         except Exception:
                             messagebus.post_message(

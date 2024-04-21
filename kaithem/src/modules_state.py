@@ -312,11 +312,19 @@ class ResourceType:
         """
         return {f"{name}.yaml": yaml.dump(resource)}
 
+    def _validate(self, d: ResourceDictType):
+        "Strip the resource- keys before giving it to the validator"
+        d = {i: d[i] for i in d if not i.startswith("resource-")}
+        self.validate(d)
+
     @beartype.beartype
-    def validate(self, d: dict[str, dict[str, Any] | list | str | int | float | bool | None]):
+    def validate(self, d: ResourceDictType):
         """Raise an error if the provided data is bad.
         By default uses the type's schema if one was provided, or else does
         nothing.
+
+        Will not be passed any internal resource-* keys,
+        just the resource specific stuff.
         """
         d = {i: d[i] for i in d if not i.startswith("resource-")}
 
@@ -348,7 +356,7 @@ class ResourceType:
         </form>
         """
 
-    def oncreaterequest(self, module, name, kwargs):
+    def oncreaterequest(self, module, name, kwargs) -> ResourceDictType:
         """Must return a resource object given kwargs from createpage.
         Called on submitting create form
         """
