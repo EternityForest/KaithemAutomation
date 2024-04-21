@@ -479,7 +479,7 @@ class BaseChandlerScriptContext:
         # Vars that have changed since last time we
         # Cleared the list. Used for telling the GUI
         # client about the current set of variables
-        self.changedVariables = {}
+        self.changedVariables: dict[str, Any] = {}
 
         def setter(Variable, Value):
             if not isinstance(Variable, str):
