@@ -14,15 +14,14 @@ config_tags: dict[tuple[str, str], tagsapi.GenericTagPointClass] = {}
 
 class TagType(modules_state.ResourceType):
     def blurb(self, m, r, value):
-        tl = tagsapi.all_tags_raw()
-        if value["tag"] in tl:
-            t = tl[value["tag"]]()
-            if t:
-                return f"""
-                <div>
-                    <a href="/tagpoints/{quote(value['tag'])}>Tag</a> Value: {str(t.value)[:64] }
-                </div>
-                """
+        t = tagsapi.existing_tag(value["tag"])
+        if t:
+            return f"""
+            <div>
+                <a href="/tagpoints/{quote(value['tag'])}">{value['tag']}</a><br>
+                Value: {str(t.value)[:64] }
+            </div>
+            """
 
         return ""
 

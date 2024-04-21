@@ -351,6 +351,21 @@ def all_tags_raw():
     return tagpoints.allTagsAtomic
 
 
+def existing_tag(s) -> tagpoints.GenericTagPointClass | None:
+    "Return tag by that name, of any type, if it exists"
+    s = normalize_tag_name(s)
+    try:
+        return tagpoints.allTagsAtomic[s]()
+    except KeyError:
+        return None
+
+
+def normalize_tag_name(s: str):
+    """Add the leading / if needed"""
+
+    return tagpoints.normalize_tag_name(s)
+
+
 def NumericTag(k: str) -> tagpoints.NumericTagPointClass:
     t = tagpoints.Tag(k)
     return t

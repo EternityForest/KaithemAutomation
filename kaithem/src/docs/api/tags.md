@@ -10,6 +10,8 @@
   - [ObjectTag](#objecttag)
   - [StringTag](#stringtag)
   - [all_tags_raw](#all_tags_raw)
+  - [existing_tag](#existing_tag)
+  - [normalize_tag_name](#normalize_tag_name)
   - [tags_docstring](#tags_docstring)
   - [Tag Points](#tag-points)
     - [The TagPoint object](#the-tagpoint-object)
@@ -26,7 +28,7 @@
 
 ## BinaryTag
 
-[Show source in tags.py:369](../../../api/tags.py#L369)
+[Show source in tags.py:384](../../../api/tags.py#L384)
 
 #### Signature
 
@@ -38,7 +40,7 @@ def BinaryTag(k: str) -> tagpoints.BinaryTagPointClass: ...
 
 ## NumericTag
 
-[Show source in tags.py:354](../../../api/tags.py#L354)
+[Show source in tags.py:369](../../../api/tags.py#L369)
 
 #### Signature
 
@@ -50,7 +52,7 @@ def NumericTag(k: str) -> tagpoints.NumericTagPointClass: ...
 
 ## ObjectTag
 
-[Show source in tags.py:364](../../../api/tags.py#L364)
+[Show source in tags.py:379](../../../api/tags.py#L379)
 
 #### Signature
 
@@ -62,7 +64,7 @@ def ObjectTag(k: str) -> tagpoints.ObjectTagPointClass: ...
 
 ## StringTag
 
-[Show source in tags.py:359](../../../api/tags.py#L359)
+[Show source in tags.py:374](../../../api/tags.py#L374)
 
 #### Signature
 
@@ -80,6 +82,34 @@ def StringTag(k: str) -> tagpoints.StringTagPointClass: ...
 
 ```python
 def all_tags_raw(): ...
+```
+
+
+
+## existing_tag
+
+[Show source in tags.py:354](../../../api/tags.py#L354)
+
+Return tag by that name, of any type, if it exists
+
+#### Signature
+
+```python
+def existing_tag(s) -> tagpoints.GenericTagPointClass | None: ...
+```
+
+
+
+## normalize_tag_name
+
+[Show source in tags.py:363](../../../api/tags.py#L363)
+
+Add the leading / if needed
+
+#### Signature
+
+```python
+def normalize_tag_name(s: str): ...
 ```
 
 

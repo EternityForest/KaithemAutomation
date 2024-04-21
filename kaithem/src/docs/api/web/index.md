@@ -5,23 +5,14 @@
 > Auto-generated documentation for [web](../../../../api/web/__init__.py) module.
 
 - [Web](#web)
-  - [add\_simple\_cherrypy\_handler](#add_simple_cherrypy_handler)
-      - [Signature](#signature)
-  - [add\_tornado\_app](#add_tornado_app)
-      - [Signature](#signature-1)
-  - [add\_wsgi\_app](#add_wsgi_app)
-      - [Signature](#signature-2)
+  - [add_simple_cherrypy_handler](#add_simple_cherrypy_handler)
+  - [add_tornado_app](#add_tornado_app)
+  - [add_wsgi_app](#add_wsgi_app)
   - [goto](#goto)
-      - [Signature](#signature-3)
-  - [has\_permission](#has_permission)
-      - [Signature](#signature-4)
-  - [render\_jinja\_template](#render_jinja_template)
-      - [Signature](#signature-5)
-  - [serve\_file](#serve_file)
-      - [Signature](#signature-6)
+  - [has_permission](#has_permission)
+  - [render_jinja_template](#render_jinja_template)
+  - [serve_file](#serve_file)
   - [user](#user)
-      - [Returns](#returns)
-      - [Signature](#signature-7)
   - [Modules](#modules)
 
 ## add_simple_cherrypy_handler
@@ -113,15 +104,15 @@ access to certain Kaithm standard templates
 
 Example template that uses the standard kaithem template everything else does.
 
-{{% extends "pagetemplate.j2.html" %}}
+{% extends "pagetemplate.j2.html" %}
 
-{{% block title %}}Title Here{{% endblock %}}
+{% block title %}Title Here{% endblock %}
 
-{{% block body %}}
+{% block body %}
 <main>
     Content here
 </main>
-{{% endblock %}}
+{% endblock %}
 
 #### Signature
 
