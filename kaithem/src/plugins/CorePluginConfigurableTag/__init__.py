@@ -11,6 +11,8 @@ from kaithem.src import modules_state
 
 config_tags: dict[tuple[str, str], tagsapi.GenericTagPointClass] = {}
 
+data_cache: dict[tuple[str, str], modules_state.ResourceDictType] = {}
+
 
 class TagType(modules_state.ResourceType):
     def blurb(self, m, r, value):
@@ -26,22 +28,35 @@ class TagType(modules_state.ResourceType):
         return ""
 
     def onload(self, module, resourcename, value):
+        data_cache[module, resourcename] = value
+
         t = value["tag-type"]
 
         if t == "numeric":
             tg = tagsapi.NumericTag(value["tag"])
             for i in ["min", "max", "hi", "lo", "default"]:
-                if value.get(i, "").strip():
-                    setattr(tg, i, float(value[i].strip()))
+                if value.get(i, ""):
+                    setattr(tg, i, float(value[i]))
 
         elif t == "string":
             tg = tagsapi.NumericTag(value["tag"])
-            if value.get("default", "").strip():
-                tg.default = float(value["default"].strip())
+            if value.get("default", ""):
+                tg.default = float(value["default"])
         else:
             raise ValueError(f"Bad tag type {t}")
-        if value.get("interval", "").strip():
-            tg.interval = float(value.get("interval", "0").strip())
+        if value.get("interval", ""):
+            tg.interval = float(value.get("interval", "0"))
+
+        alias = str(value.get("alias", "")).strip()
+
+        if alias:
+            if (module, resourcename) in data_cache:
+                old = data_cache[module, resourcename]
+                old_alias = str(old.get("alias", "")).strip()
+                if old_alias and old_alias != alias:
+                    tg.remove_alias(alias)
+
+            tg.add_alias(value["alias"])
 
         config_tags[module, resourcename] = tg
 
@@ -49,6 +64,10 @@ class TagType(modules_state.ResourceType):
         x = config_tags.pop((module, resource), None)
         if x:
             config_tags[toModule, toResource] = x
+
+        x2 = data_cache.pop((module, resource), None)
+        if x2:
+            data_cache[toModule, toResource] = x2
 
     def onupdate(self, module, resource, obj):
         self.onload(module, resource, obj)
@@ -59,7 +78,7 @@ class TagType(modules_state.ResourceType):
             gc.collect()
             time.sleep(0.05)
 
-    def oncreaterequest(self, module, name, kwargs):
+    def oncreaterequest(self, module: str, name: str, kwargs: dict):
         d: modules_state.ResourceDictType = {"resource-type": self.type}
         d.update(kwargs)
         for i in ["hi", "lo", "min", "max", "interval"]:
@@ -85,7 +104,7 @@ class TagType(modules_state.ResourceType):
     def validate(self, d: dict):
         if d["tag-type"] != "numeric":
             for i in ["hi", "lo", "min", "max"]:
-                if d[i].strip():
+                if str(d[i]).strip():
                     raise ValueError(f"Option {i} is only valid for numeric types")
 
         for i in ["hi", "lo", "min", "max", "interval"]:
@@ -105,6 +124,9 @@ class TagType(modules_state.ResourceType):
 
         d.text_input("default", default=value.get("default", ""), title="Default Value")
         d.text_input("interval", default=value.get("interval", ""))
+
+        d.text("Adding an alias lets you access it by a more convenient, shorter name")
+        d.text_input("alias", default=value.get("alias", ""))
 
         d.text("Options for numeric tags only")
 

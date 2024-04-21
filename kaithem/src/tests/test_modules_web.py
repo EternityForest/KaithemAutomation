@@ -1,8 +1,10 @@
 import os
 import time
+import weakref
 
 import cherrypy
 
+from kaithem.api import tags
 from kaithem.src import modules_state, webapproot
 from kaithem.src.plugins import CorePluginEventResources
 
@@ -66,6 +68,33 @@ def test_make_module_web():
 
     x = CorePluginEventResources._events_by_module_resource[(n, "testevt")]
 
+    x.pymodule.__dict__["test_obj"] = testobj()
+    ref = weakref.ref(x.pymodule.__dict__["test_obj"])
+
     # Ensure the event actually worked
     time.sleep(1)
     assert x.pymodule.__dict__["x"] == 5
+
+    try:
+        webapproot.root.modules.module(n, "deleteresourcetarget", name="testevt")
+    except cherrypy.HTTPRedirect:
+        pass
+
+    assert (n, "testevt") not in CorePluginEventResources._events_by_module_resource
+
+    # The scope of the dynamically generated module should be gone now
+    assert ref() is None
+
+    try:
+        webapproot.root.modules.module(
+            n,
+            "addresourcetarget",
+            "tagpoint",
+            name="testtag",
+            **{"tag": "test_tag_foo", "min": "", "max": "", "hi": "", "lo": "", "interval": "", "default": 99, "tag-type": "numeric"},
+        )
+        raise RuntimeError("Newmoduletarget should redirect")
+    except cherrypy.HTTPRedirect:
+        pass
+
+    assert tags.existing_tag("test_tag_foo").value == 99

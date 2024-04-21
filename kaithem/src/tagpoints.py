@@ -194,6 +194,8 @@ class GenericTagPointClass(Generic[T]):
         # Used for the fake buttons in the device page
         self._k_ui_fake: Claim[T]
 
+        self.aliases: set[str] = set()
+
         # Where we store a ref for the widget
         self._gui_updateSubscriber: Callable[[T, float, Any], Any]
 
@@ -1358,6 +1360,39 @@ class GenericTagPointClass(Generic[T]):
                 self.onSourceChanged(name)
             except Exception:
                 logging.exception("Error handling changed source")
+
+    def add_alias(self, alias: str):
+        """Adds an alias of this tag, allowing access by another name."""
+        global allTagsAtomic
+        if "/" in alias[0:]:
+            raise RuntimeError("Alias cannot contain /")
+
+        for i in ILLEGAL_NAME_CHARS:
+            if i in alias:
+                raise RuntimeError(f"Alias cannot contain {i}")
+
+        alias = normalize_tag_name(alias)
+        with lock:
+            self.aliases.add(alias)
+            if alias in allTags:
+                if allTags[alias]() is not self:
+                    raise RuntimeError(f"Another tag exists with name {alias}")
+
+            allTags[alias] = weakref.ref(self)
+            allTagsAtomic = allTags.copy()
+
+    def remove_alias(self, alias: str):
+        """Removes an alias of this tag"""
+        global allTagsAtomic
+
+        alias = normalize_tag_name(alias)
+        with lock:
+            if alias in self.aliases:
+                self.aliases.remove(alias)
+            if alias in allTags:
+                if allTags[alias]() is self:
+                    del allTags[alias]
+                    allTagsAtomic = allTags.copy()
 
     def claim(
         self: GenericTagPointClass[T],
