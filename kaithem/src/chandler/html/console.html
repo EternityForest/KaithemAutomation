@@ -136,7 +136,7 @@ ${lists}
     <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
         <div class="menubar tool-bar">
-            <p>{{clock}}</p>
+            <p>{{clock}} </p><p><b>${boardname}</b></p>
             <button v-on:click="saveToDisk()"  :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
                     class="mdi mdi-content-save"></i>Save</button>
@@ -1703,7 +1703,7 @@ ${lists}
 ${core.boards[boardname].link.render('api_link')}
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
-<script src="dyn_js/boardapi.js"></script>
+<script src="../dyn_js/boardapi.js"></script>
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 <script>

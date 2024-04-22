@@ -74,6 +74,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         # For logging ratelimiting
         self.last_logged_gui_send_error = 0
+        self.ferrs = ""
 
         self.autosave_checker = scheduling.scheduler.every(self.check_autosave, 10 * 60)
 
@@ -100,23 +101,25 @@ class ChandlerConsole(console_abc.Console_ABC):
         for i in self.configured_universes:
             self.configured_universes[i].close()
 
-        data2 = data["setup"]
+        if "setup" in data:
+            data2 = data["setup"]
 
-        self.configured_universes = data2["configured_universes"]
-        self.fixture_classes = data2["fixture_types"]
-        self.fixture_assignments = data2["fixture_assignments"]
+            self.configured_universes = data2["configured_universes"]
+            self.fixture_classes = data2["fixture_types"]
+            self.fixture_assignments = data2["fixture_assignments"]
 
-        try:
-            self.create_universes(self.configured_universes)
-        except Exception:
-            logger.exception("Error creating universes")
-            print(traceback.format_exc(6))
+            try:
+                self.create_universes(self.configured_universes)
+            except Exception:
+                logger.exception("Error creating universes")
+                print(traceback.format_exc(6))
 
-        d = data["scenes"]
+        if "scenes" in data:
+            d = data["scenes"]
 
-        self.loadDict(d)
+            self.loadDict(d)
 
-        self.linkSend(["refreshPage", self.fixture_assignments])
+            self.linkSend(["refreshPage", self.fixture_assignments])
 
     def setup(self, project: dict[str, Any]):
         console_abc.Console_ABC.setup(self, project)
@@ -474,6 +477,8 @@ class ChandlerConsole(console_abc.Console_ABC):
             return
 
         self.last_saved_version = sd
+
+        self.save_callback(project_file)
 
     def pushChannelNames(self, u):
         "This has expanded to push more data than names"

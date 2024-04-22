@@ -388,8 +388,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.presets[msg[1]] = msg[2]
 
         elif cmd_name == "saveState":
-            self.save_scenes(force=True)
-            self.save_setup()
+            self.check_autosave()
 
         elif cmd_name == "loadShow":
             self.load_show(msg[1])

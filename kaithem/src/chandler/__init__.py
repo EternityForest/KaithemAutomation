@@ -7,8 +7,6 @@ import icemedia.sound_player
 import numpy
 from scullery import messagebus
 
-import kaithem.api.web as webapi
-
 from . import ChandlerConsole, core, universes
 from .universes import getUniverses
 
@@ -255,23 +253,6 @@ def render(board: ChandlerConsole.ChandlerConsole, t=None, u=None):
 
 
 lastrendered = 0
-
-
-def _nbr():
-    return (
-        50,
-        '<a href="/chandler/commander"><i class="mdi mdi-dance-ballroom"></i>Chandler</a>',
-    )
-
-
-webapi.nav_bar_plugins["chandler"] = _nbr
-
-
-def _nbr2():
-    return (50, '<a href="/chandler/editor"><i class="mdi mdi-pencil"></i>Editor</a>')
-
-
-webapi.nav_bar_plugins["chandler2"] = _nbr2
 
 
 controluniverse = universes.Universe("control")
