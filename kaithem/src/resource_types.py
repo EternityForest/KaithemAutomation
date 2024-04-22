@@ -13,15 +13,21 @@ ResourceDictType = dict[str, str | list | int | float | bool | None | dict[str, 
 
 class ResourceType:
     """Allows creating new resource types.
-    Data keys starting with resource- are reserved.
+    Data keys starting with resource_ are reserved.
 
-    Types with lower priority will load first.
+    ALL top level keys must be snake_case.
+    In fact, when loading modules,
+    things will be automatically converted,
+    for legacy reason.
+
+    Types with lower priority will load first
+    .
     """
 
     def __init__(self, type: str, mdi_icon="", schema=None, priority=50.0):
         """ "Schema may be a JSON schema, representing a dict,
         which must validate the resource, but should not include any
-        key beginning with resource- as those are internal and reserved.
+        key beginning with resource_ as those are internal and reserved.
 
         mdi must be an icon name from:
         https://pictogrammers.com/library/mdi/
@@ -59,8 +65,8 @@ class ResourceType:
         return {f"{name}.yaml": yaml.dump(resource)}
 
     def _validate(self, d: ResourceDictType):
-        "Strip the resource- keys before giving it to the validator"
-        d = {i: d[i] for i in d if not i.startswith("resource-")}
+        "Strip the resource_ keys before giving it to the validator"
+        d = {i: d[i] for i in d if not i.startswith("resource_")}
         if self.schema:
             validate(d, self.schema)
         self.validate(d)
@@ -69,7 +75,7 @@ class ResourceType:
     def validate(self, d: ResourceDictType):
         """Raise an error if the provided data is bad.
 
-        Will not be passed any internal resource-* keys,
+        Will not be passed any internal resource_* keys,
         just the resource specific stuff.
         """
 
@@ -108,7 +114,7 @@ class ResourceType:
         """Must return a resource object given kwargs from createpage.
         Called on submitting create form
         """
-        return {"resource-type": "example"}
+        return {"resource_type": "example"}
 
     def editpage(self, module, resource, resourceobj):
         """Given current resource data, return a manager page.

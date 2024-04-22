@@ -147,7 +147,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushUniverses()
             self.pushfixtures()
             self.linkSend(["alerts", getAlertState()])
-            self.linkSend(["soundfolders", core.config.get("soundFolders")])
+            self.linkSend(["soundfolders", core.config.get("sound_folders")])
 
             for i in self.scenememory:
                 s = self.scenememory[i]
@@ -937,7 +937,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setsoundfolders":
             # Set the global sound folders list
-            core.config["soundFolders"] = [i.strip().replace("\r", "").replace("\t", " ") for i in msg[1].split("\n") if i]
+            core.config["sound_folders"] = [i.strip().replace("\r", "").replace("\t", " ") for i in msg[1].split("\n") if i]
 
         else:
             raise ValueError("Unrecognized Command " + str(cmd_name))

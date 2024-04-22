@@ -213,7 +213,7 @@ class LoggingHandler(logging.Handler):
                 self.logbuffer = []
                 return
 
-            if config["log-format"] == "none":
+            if config["log_format"] == "none":
                 self.logbuffer = []
                 return
 
@@ -359,10 +359,10 @@ syslogger = LoggingHandler(
     fn="system",
     folder=os.path.join(directories.logdir, "dumps"),
     level=logging.INFO,
-    entries_per_file=config["log-dump-size"],
-    bufferlen=config["log-buffer"],
-    keep=unitsofmeasure.str_to_int_si_multipliers(config["keep-log-files"]),
-    compress=config["log-compress"],
+    entries_per_file=config["log_dump_size"],
+    bufferlen=config["log_buffer"],
+    keep=unitsofmeasure.str_to_int_si_multipliers(config["keep_log_files"]),
+    compress=config["log_compress"],
     doprint=False,
 )
 logging.getLogger("system").addHandler(syslogger)

@@ -30,7 +30,7 @@ import beartype
 import cherrypy
 import pytz
 import yaml
-from scullery import scheduling
+from scullery import scheduling, snake_compat
 from scullery.scheduling import scheduler
 
 from kaithem.api.web import has_permission, render_jinja_template
@@ -434,7 +434,7 @@ class PersistentData:
     "Used to persist small amounts of data that remain when an event is re-saved"
 
 
-fps = config["max-frame-rate"]
+fps = config["max_frame_rate"]
 
 
 def makeBackgroundPrintFunction(p, t, title, self):
@@ -502,14 +502,14 @@ class BaseEvent:
 
         # try to look up the numeric priority from the symbolic
         try:
-            self.poll_interval = config["priority-response"][priority]
+            self.poll_interval = config["priority_response"][priority]
         except KeyError:
             # Should that fail, attempt to use the priority directly
             try:
                 self.poll_interval = fps / int(priority)
             # If even that fails, use interactive priority.
             except ValueError:
-                self.poll_interval = config["priority-response"]["interactive"]
+                self.poll_interval = config["priority_response"]["interactive"]
         self.runTimes = []
         self.module = m if m else "<unknown>"
         self.resource = r if r else str(util.unique_number())
@@ -638,12 +638,12 @@ class BaseEvent:
 
         # Catch legacy number based priorities that are realtime
         if self.symbolicpriority == 1:
-            backoff = config["error-backoff"]["realtime"]
+            backoff = config["error_backoff"]["realtime"]
         else:
             try:
-                backoff = config["error-backoff"][self.symbolicpriority]
+                backoff = config["error_backoff"][self.symbolicpriority]
             except KeyError:
-                backoff = config["error-backoff"]["interactive"]
+                backoff = config["error_backoff"]["interactive"]
 
         # Randomize backoff intervals in case there's an error that can
         # Be fixed by changing the order of events
@@ -684,7 +684,7 @@ class BaseEvent:
 
         self.schedulerobj = EventSchedulerObject(
             self.check,
-            config["priority-response"].get(self.symbolicpriority, 0.08) + (insert_phase * 0.03) - 0.015,
+            config["priority_response"].get(self.symbolicpriority, 0.08) + (insert_phase * 0.03) - 0.015,
         )
         try:
             self.schedulerobj.module = self.module
@@ -1049,7 +1049,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
         self.pauseflag.set()
 
         def f():
-            d = config["priority-response"].get(self.symbolicpriority, 1 / 60.0)
+            d = config["priority_response"].get(self.symbolicpriority, 1 / 60.0)
             # Run is the global run flag used to shutdown
             while run and self.runthread:
                 # The sleep comes before the check of the condition because
@@ -1071,7 +1071,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
                             return
                         logger.exception(f"Error in event {self.resource} of {self.module}")
                         self._handle_exception(e)
-                        time.sleep(config["error-backoff"].get(self.symbolicpriority, 5))
+                        time.sleep(config["error_backoff"].get(self.symbolicpriority, 5))
 
         self.loop = f
 
@@ -1542,7 +1542,7 @@ def getEventsFromModules(only: str | None = None):
                 # now we loop over all the resources of the module to see which ones are events
                 if only is None or (module in only):
                     x = event_resources[module, resource]
-                    if x["resource-type"] == "event":
+                    if x["resource_type"] == "event":
                         # For every resource that is an event, we make an event object based on it
                         # And put it in the event referenced thing.
                         # However, we do this indirectly, for each event we create a function representing
@@ -1562,7 +1562,7 @@ def getEventsFromModules(only: str | None = None):
             # retry immediately, but only after trying the remaining list of events.
             # This is because inter-event dependancies are the most common reason for failure.
 
-            attempts = max(1, config["max-load-attempts"])
+            attempts = max(1, config["max_load_attempts"])
             for baz in range(attempts):
                 if not toLoad:
                     break
@@ -1651,7 +1651,7 @@ def make_event_from_resource(module: str, resource: str, subst: modules_state.Re
         setupcode = "pass"
 
     if "rate-limit" in r:
-        ratelimit = float(r["rate-limit"])
+        ratelimit = float(r["rate_limit"])
     else:
         ratelimit = 0
 
@@ -1872,6 +1872,8 @@ def rsc_from_py_file(fn: str):
         yaml_data,
         Loader=yaml.SafeLoader,
     )
+    data = snake_compat.snakify_dict_keys(data)
+
     data["trigger"] = readStringFromSource(restofthecode, "__trigger__")
     data["setup"] = setup.strip()
     data["action"] = action.strip()
@@ -1947,7 +1949,7 @@ class EventType(modules_state.ResourceType):
 
     def oncreaterequest(self, module, name, kwargs):
         d = {
-            "resource-type": "event",
+            "resource_type": "event",
             "setup": "# This code runs once when the event loads.\n__doc__=''",
             "trigger": "False",
             "action": "pass",
@@ -1978,7 +1980,7 @@ class EventType(modules_state.ResourceType):
                     r2["setup"] = setupcode
                     r2["priority"] = kwargs["priority"]
                     r2["continual"] = "continual" in kwargs
-                    r2["rate-limit"] = float(kwargs["ratelimit"])
+                    r2["rate_limit"] = float(kwargs["ratelimit"])
                     r2["enable"] = "enable" in kwargs
 
                     # Test for syntax errors at least, before we do anything more
@@ -2009,7 +2011,7 @@ class EventType(modules_state.ResourceType):
                 r2["setup"] = setupcode
                 r2["priority"] = kwargs["priority"]
                 r2["continual"] = "continual" in kwargs
-                r2["rate-limit"] = float(kwargs["ratelimit"])
+                r2["rate_limit"] = float(kwargs["ratelimit"])
                 r2["enable"] = False
 
                 # Remove the old event even before we do a test compile.

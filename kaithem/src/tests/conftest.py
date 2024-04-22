@@ -17,11 +17,11 @@ if os.path.exists("/dev/shm/kaithem_tests"):
 os.makedirs("/dev/shm/kaithem_tests/plugins/Test")
 
 cfg = {
-    "ssl-dir": "/dev/shm/kaithem_tests/ssl",
-    "site-data-dir": "/dev/shm/kaithem_tests",
+    "ssl_dir": "/dev/shm/kaithem_tests/ssl",
+    "site_data_dir": "/dev/shm/kaithem_tests",
     # Prevent it from getting IP geolocation every time
     "location": "0,0",
-    "log-format": "normal",
+    "log_format": "normal",
 }
 
 

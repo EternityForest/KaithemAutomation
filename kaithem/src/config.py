@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 
 import jsonschema
 import yaml
+from scullery import snake_compat
 
 logger = logging.getLogger("system")
 config = {}
@@ -66,8 +67,9 @@ def load(cfg: Dict[str, Any]):
     config = _defconfig.copy()
 
     config.update(cfg or {})
+    config = snake_compat.snakify_dict_keys(config)
 
-    vardir = os.path.expanduser(config["site-data-dir"])
+    vardir = os.path.expanduser(config["site_data_dir"])
     default_conf_location = os.path.join(vardir, "config.yaml")
 
     # Attempt to open any manually specified config file
@@ -89,7 +91,7 @@ def load(cfg: Dict[str, Any]):
         config[i] = _usr_config[i]
 
     if argcmd.p:
-        config["https-port"] = int(argcmd.p)
+        config["https_port"] = int(argcmd.p)
     return config
 
 

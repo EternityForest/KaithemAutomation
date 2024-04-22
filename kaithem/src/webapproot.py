@@ -333,7 +333,7 @@ def startServer():
     if not config["host"] == "default":
         bindto = config["host"]
     else:
-        if config["local-access-only"]:
+        if config["local_access_only"]:
             bindto = "127.0.0.1"
         else:
             bindto = "::"
@@ -343,12 +343,12 @@ def startServer():
     sys.modules["kaithem"] = sys.modules["__main__"]
 
     def save():
-        if config["save-before-shutdown"]:
+        if config["save_before_shutdown"]:
             messagebus.post_message("/system/notifications/important/", "System saving before shutting down")
             util.SaveAllState()
 
     # let the user choose to have the server save everything before a shutdown
-    if config["save-before-shutdown"]:
+    if config["save_before_shutdown"]:
         atexit.register(save)
         cherrypy.engine.subscribe("exit", save)
 
@@ -358,7 +358,7 @@ def startServer():
         "tools.decode.on": True,
         "tools.decode.encoding": "utf-8",
         "request.error_response": cpexception,
-        "log.screen": config["cherrypy-log-stdout"],
+        "log.screen": config["cherrypy_log_stdout"],
         "engine.autoreload.on": False,
     }
 
@@ -467,9 +467,9 @@ def startServer():
 
     http_server = tornado.httpserver.HTTPServer(router)
     # Legacy config comptibility
-    http_server.listen(config["http-port"], bindto if not bindto == "::" else None)
+    http_server.listen(config["http_port"], bindto if not bindto == "::" else None)
 
-    if config["https-port"]:
+    if config["https_port"]:
         if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
             cherrypy.server.unsubscribe()
             messagebus.post_message(
@@ -484,7 +484,7 @@ def startServer():
                     "keyfile": os.path.join(directories.ssldir, "certificate.key"),
                 },
             )
-            https_server.listen(config["https-port"], bindto)
+            https_server.listen(config["https_port"], bindto)
 
     # Publish to the CherryPy engine as if
     # we were using its mainloop

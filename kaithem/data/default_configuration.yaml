@@ -1,56 +1,54 @@
 #Don't edit this file, it is just the system defaults. User config files can overrride any setting.
 ######################CORE#####################################################
 #The port on which web pages will be served
-https-port : 8001
+https_port: 8001
 
 #The port on which unencrypted web pages will be served
-http-port : 8002
-
+http_port: 8002
 
 # GPS coords default
-location: ''
+location: ""
 
-#What host to bind to. Default is determined by local-access-only
+#What host to bind to. Default is determined by ["local_access-only
 host: "default"
 
 #The directory in which certificate.cert and certificate.key, used for the SSL, are to be found.
-#Relative to the site-data-dir(or use an absolute path)
-ssl-dir : ssl
+#Relative to the ["site_data-dir(or use an absolute path)
+ssl_dir: ssl
 
 #The directory in which to store persistant state such as users,groups,modules,settings,etc
-site-data-dir: ~/kaithem
+site_data_dir: ~/kaithem
 
 #Max how many threads to allocate for the worker thread pool
-worker-threads: 12
+worker_threads: 12
 
 #How many tasks can be queued up in the thread pool before inserts start to block until old tasks finish
 #should not really affect much as the task queue should not get even close to full unless you have
 #tons of events
-task-queue-size: 500
+task_queue_size: 500
 
 #The maximum polling cycles per second to run at
-max-frame-rate: 60
-
+max_frame_rate: 60
 
 #If yes, don't allow acess from any computer except this one.
-local-access-only: no
+local_access_only: no
 
 #How often to automatically save the entire server state. Does not dump log files to avoid tons of short files
 #must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
 #can also be "never"
-autosave-state: 30 minutes
+autosave_state: 30 minutes
 
 #When the system shuts down, this is how many seconds to wait for the worker threads to finish before
-#Just quitting anyway. This will let any tasks that were semi-atomic finish so you don't have
+#Just quitting anyway. This will let any tasks that were ["semi_atomic"] finish so you don't have
 #Sprinklers that never shut down or something.
-wait-for-workers : 60
+wait_for-workers: 60
 
 #If this is yes, the server will try to save all unsaved persistant state it can before it shuts down.
 #This includes dumping logs to file.
-save-before-shutdown: no
+save_before_shutdown: no
 
 #How fast to poll for events of specific priorities. Times in seconds
-priority-response:
+priority_response:
     realtime: 0.0166
     interactive: 0.085
     high: 0.8
@@ -60,7 +58,7 @@ priority-response:
 
 #should an error occur while polling or running an event,
 #how long to wait before polling that event again in seconds
-error-backoff:
+error_backoff:
     realtime: 1 #Assume realtime really does need to be fast
     interactive: 5
     high: 7
@@ -70,99 +68,94 @@ error-backoff:
     verylow: 120
 
 #List of possible audio backend players in order of preference. Support sox and mpg123.
-audio-backends:
+audio_backends:
     - mpv
 
 #How many times to retry loading an event before marking it as a failure and moving on
-max-load-attempts: 3
+max_load_attempts: 3
 
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface
 
 #By default, log these topics unless the user changes the settings via the web interface.
-log-topics:
+log_topics:
     - /system/notifications/
 
 #How many log entries per file, before we start a new file
-log-dump-size: 25000
+log_dump_size: 25000
 
 #How many log entries to buffer before dumping all at once to reduce SD wear.
-#Note that log files can also get dumped manually or on the autosave-logs times
+#Note that log files can also get dumped manually or on the ["autosave_logs"] times
 #If using an HDD, you almost certainly want this to be exactly 1
-log-buffer: 25000
+log_buffer: 25000
 
 #How many bytes of log files to keep before deleting the oldest until the total filesize is under the limit
 #Size is in bytes but you can use k,m,g for thousand million and billion
-keep-log-files: 8m
+keep_log_files: 8m
 
 #Level of prettyprinting vs filsize for logs. Can be: tiny, normal, pretty, none
 #Everything but normal and none is now deprecated
-log-format: none
+log_format: none
 
 #Type of data compression for log files. Can be: bz2, gzip, or none
-log-compress: none
+log_compress: none
 
 #How many old system notifications to show on front page(does not affect logging)
-notifications-to-keep: 250
+notifications_to_keep: 250
 
 #How often to automatically dump the log file. must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
 #can also be "never"
-autosave-logs: never
+autosave_logs: never
 
 #Set to no to turn off most of cherrypy's access logging.
 #It normally prints a line to stdout for every single page access.
-cherrypy-log-stdout: no
+cherrypy_log_stdout: no
 
 #List of topic that will be printed to stdout if anything is published to them
-print-topics:
+print_topics:
     - /system/notifications/
 
 #Log Requests to /system/http/access
-log-http: yes
+log_http: yes
 
 #Fraction of memory that can be used by all processes o unix before kaithem makes a warning in the log.
-mem-use-warn: 0.85
+mem_use-warn: 0.85
 
 #How many messages to keep on topics that are not being logged
-non-logged-topic-limit: 100
-
+non_logged_topic_limit: 100
 
 #Where to look for audio files that are specified with relative paths. Earlier entries used first.
 #Default refers to the sounds kaithem ships with.
-audio-paths:
+audio_paths:
     - __default__
 
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.
-front-page-banner: |
+front_page_banner: |
     Kaithem is free software licensed under the GPLv3.<br>
     Any and all activities on this server may be monitored and logged by the machine's admin.  You can configure this homepage
     to redirect to a different page in the Settings.
 
 #This HTML is used as the top banner for deployment branding, in pages without a nav bar
-top-banner-html: |
-    <div class="tool-bar"><h1 align="center"><a href="/index" style="text-decoration:none;color:inherit; background-color:transparent;">Kaithem@HOSTNAME</a></h1></div>
+top_banner_html: |
+    <div class="["tool_bar"]"><h1 align="center"><a href="/index" style="["text_decorationnone;color:inherit; ["background_colortransparent;">Kaithem@HOSTNAME</a></h1></div>
 
 #This text shows up in the about box. Good for misc info like copyrights of site specific data, lega stuff, etc
-about-box-banner: "This space can be customized with site specific data in the config file."
+about_box_banner: "This space can be customized with site specific data in the config file."
 
 #The URL from which to retrieve the CSS theme file
 #Classic
-#theme-url: /static/css/kaithem_scrapbook.css
-theme-url: /static/css/kaithem_minimal.css
-
+#["theme_url /static/css/kaithem_scrapbook.css
+theme_url: /static/css/kaithem_minimal.css
 
 #If yes, is 1 Minute 29 Seconds instead of 1m 29s
-full-time-intervals: no
-
-
+full_time_intervals: no
 
 #This is the file which contains a list of strings for kaithem.lorem and a few other places.
 #Used for the quotes in the login screen
 #Must be a YAML file containing a list of strings.
-quotes-file: default
-
+quotes_file: default
 
 ### Dynamically overridable in a module
 
@@ -172,7 +165,6 @@ core/favicon_ico: img/favicon.ico
 #How to format times and dates
 core/strftime_string: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 
-
 #####################MISC#######################################################
 
-get-public-ip: no
+get_public_ip: no

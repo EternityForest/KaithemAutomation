@@ -1,15 +1,16 @@
 # This file implements a simple sever that CLI tools can use to interact with
 # a running kaithem instance.
 
-import os
 import base64
 import getpass
-import weakref
-import logging
 import hmac
-from . import config
+import logging
+import os
+import weakref
 
 import cherrypy
+
+from . import config
 
 
 class Command:
@@ -39,7 +40,7 @@ os.chmod(f"/dev/shm/kaithem-api-key-{getpass.getuser()}", 0o500)
 
 
 with open(f"/dev/shm/kaithem-api-port-{getpass.getuser()}", "w") as f:
-    f.write(str(config.config["http-port"]))
+    f.write(str(config.config["http_port"]))
 
 
 class WebDevices:

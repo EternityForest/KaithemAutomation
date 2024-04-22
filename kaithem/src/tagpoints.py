@@ -33,6 +33,18 @@ from . import alerts, messagebus, widgets, workers
 from .unitsofmeasure import convert, unit_types
 
 
+def to_sk(s: str):
+    s2 = ""
+    last = "a"
+    for i in s:
+        if last.isalpha() and not last.isupper():
+            if i.isupper():
+                s2 += "_" + i.lower()
+                continue
+        s2 += i
+    return s2
+
+
 def _make_tag_info_helper(t: GenericTagPointClass[Any]):
     def f():
         x = t.current_source
@@ -115,7 +127,7 @@ class _Alert(alerts.Alert):
         )
 
 
-@functools.lru_cache(500, False)
+@functools.lru_cache(4096, False)
 def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
     "Normalize hte name, and raise errors on anything just plain invalid, unless a replacement char is supplied"
     name = name.strip()
@@ -135,6 +147,7 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
                     raise ValueError(f"Illegal char in tag point name: {i} in {name}")
         if not name.startswith("/"):
             name = f"/{name}"
+        name = to_sk(name).replace("-", "_")
     else:
         if name.startswith("/="):
             name = name[1:]

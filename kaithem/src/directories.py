@@ -40,7 +40,7 @@ if "ANDROID_ARGUMENT" in environ:
     logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
 else:
     vardir = os.path.normpath(os.path.join(dn, ".."))
-    vardir = os.path.join(vardir, os.path.expanduser(config["site-data-dir"]))
+    vardir = os.path.join(vardir, os.path.expanduser(config["site_data_dir"]))
 
     datadir = os.path.normpath(os.path.join(dn, "../data"))
     logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
@@ -54,7 +54,7 @@ mixerdir = os.path.join(vardir, "system.mixer")
 moduledir = os.path.join(vardir, "modules")
 htmldir = os.path.join(dn, "html")
 
-ssldir = os.path.expanduser(config["ssl-dir"])
+ssldir = os.path.expanduser(config["ssl_dir"])
 if not ssldir.startswith("/"):
     ssldir = os.path.join(vardir, ssldir)
 else:
@@ -69,7 +69,7 @@ def recreate():
         vardir = getRootAndroidDir()
     else:
         vd = os.path.normpath(os.path.join(dn, ".."))
-        vardir = os.path.join(vd, os.path.expanduser(config["site-data-dir"]))
+        vardir = os.path.join(vd, os.path.expanduser(config["site_data_dir"]))
 
     usersdir = os.path.join(vardir, "users")
     logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
@@ -77,7 +77,7 @@ def recreate():
     datadir = os.path.normpath(os.path.join(dn, "../data"))
     htmldir = os.path.join(dn, "html")
 
-    ssldir = os.path.expanduser(config["ssl-dir"])
+    ssldir = os.path.expanduser(config["ssl_dir"])
     if not ssldir.startswith("/"):
         ssldir = os.path.join(vardir, ssldir)
     else:

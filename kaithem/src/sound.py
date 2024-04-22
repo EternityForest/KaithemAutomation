@@ -29,7 +29,7 @@ def init():
     sound.media_paths.append(os.path.join(directories.vardir, "assets"))
     sound.select_backend("mpv")
 
-    p = config.config["audio-paths"]
+    p = config.config["audio_paths"]
     for i in p:
         if i == "__default__":
             sound.media_paths.append(os.path.join(directories.datadir, "sounds"))

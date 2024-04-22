@@ -403,7 +403,7 @@ class Kaithem:
         test = sound.test
         ogg_test = sound.test
 
-        directories = config.config["audio-paths"]
+        directories = config.config["audio_paths"]
 
         @staticmethod
         def outputs():
@@ -574,7 +574,7 @@ kaithem.sky = kaithem.time
 
 sentences: List[str] = []
 
-if config.config["quotes-file"] == "default":
+if config.config["quotes_file"] == "default":
     sentences = kaithem.persist.load(os.path.join(directories.datadir, "quotes.yaml"))
 else:
-    sentences = kaithem.persist.load(config.config["quotes-file"])
+    sentences = kaithem.persist.load(config.config["quotes_file"])

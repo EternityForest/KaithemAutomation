@@ -176,7 +176,7 @@ except Exception:
     Includes external open-source libraries by third parties. <a href="https://github.com/EternityForest/KaithemAutomation/tree/master/kaithem">Get the full source code or join the conversation at GitHub.</a>
     </section>
 
-    <div class="window paper margin">${config['about-box-banner']}</div>
+    <div class="window paper margin">${config['about_box_banner']}</div>
     <section class="window paper margin">
     <b>Version:</b> ${kaithemobj.kaithem.misc.version|h}
     </section>
@@ -184,7 +184,7 @@ except Exception:
         <b>LAN access QR(${lanip[1]}):</b><br>
         <div id="lanqr"></div>
         <script>
-        new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https-port']}");
+        new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https_port']}");
         </script>
     </section>
     <br>
@@ -292,11 +292,11 @@ except Exception:
     <table border=1 class="w-full">
         <tr>
             <td>HTTPS(Secure) Port</td>
-            <td>${config['https-port']}</td>
+            <td>${config['https_port']}</td>
         </tr>
         <tr>
             <td>HTTP(Unsecure) Port</td>
-            <td>${config['http-port']}</td>
+            <td>${config['http_port']}</td>
         </tr>
     </table>
 

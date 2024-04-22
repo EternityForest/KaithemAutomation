@@ -18,6 +18,7 @@ Change Log
             outside the web UI.
 
 - :sparkles: Configurable tag points are back! This time much simpler, as a resource plugin.
+- :sparkles: Config files, resource top level keys, and tag points snake_case, enforced by auto conversion.
 
 ### 0.79.0
 

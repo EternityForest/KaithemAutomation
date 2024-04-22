@@ -91,7 +91,14 @@ def test_make_module_web():
             "addresourcetarget",
             "tagpoint",
             name="testtag",
-            **{"tag": "test_tag_foo", "min": "", "max": "", "hi": "", "lo": "", "interval": "", "default": 99, "tag-type": "numeric"},
+            tag="test_tag_foo",
+            min="",
+            max="",
+            hi="",
+            lo="",
+            interval="",
+            default=99,
+            tag_type="numeric",
         )
         raise RuntimeError("Newmoduletarget should redirect")
     except cherrypy.HTTPRedirect:

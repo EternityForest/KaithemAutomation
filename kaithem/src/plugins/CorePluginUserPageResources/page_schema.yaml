@@ -2,24 +2,24 @@ $schema: http://json-schema.org/draft-07/schema#
 title: User Page Resource
 type: object
 properties:
-  allow-origins:
+  allow_origins:
     type: array
     items:
       type: string
     description: These origins will be allowed to XSS the page
 
-  allow-xss:
+  allow_xss:
     type: boolean
     description: whether to allow XSS at all.
 
-  auto-reload:
+  auto_reload:
     type: boolean
     description: Inserts a header causing auto-refresh
 
-  auto-reload-interval:
+  auto_reload_interval:
     type: number
 
-  dont-show-in-index:
+  dont_show_in_index:
     type: boolean
     description: Legacy, no longer used
     deprecated: true
@@ -27,31 +27,31 @@ properties:
   mimetype:
     type: string
 
-  no-header:
+  no_header:
     type: boolean
 
-  no-navheader:
+  no_navheader:
     type: boolean
 
-  require-method:
+  require_method:
     type: array
     items:
       type: string
 
-  require-permissions:
+  require_permissions:
     type: array
     items: {}
 
-  alt-top-banner:
+  alt_top_banner:
     type: string
 
-  streaming-response:
+  streaming_response:
     type: boolean
 
-  template-engine:
+  template_engine:
     type: string
 
-  theme-css-url:
+  theme_css_url:
     type: string
 
   body:

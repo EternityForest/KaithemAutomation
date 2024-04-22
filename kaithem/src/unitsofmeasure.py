@@ -1,13 +1,22 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import time
-import pytz
 import datetime
 import re
-from .config import config
+import time
+
+import pytz
+from scullery.units import *  # noqa
+
 from . import auth, pages
-from scullery.units import *
+from .config import config
+
+try:
+    from zoneinfo import ZoneInfo
+except Exception:
+    ZoneInfo = None
+
+import functools
 
 
 class DayOfWeek(str):
@@ -106,7 +115,7 @@ class Month(str):
 
     def __init__(self, month=None):
         # If no day supplied, default to today
-        if month == None:
+        if month is None:
             self.value = time.localtime().tm_mon
 
         self.namestonumbers = {
@@ -351,7 +360,7 @@ def format_time_interval_abbr(t, max_units, clock=False):
     return s[:-1]
 
 
-if not config["full-time-intervals"]:
+if not config["full_time_intervals"]:
     format_time_interval = format_time_interval_abbr
 else:
     format_time_interval = format_time_interval_long
@@ -377,14 +386,6 @@ def iround(number, digits):
         return int(number)
     else:
         return round(number, digits)
-
-
-try:
-    from zoneinfo import ZoneInfo
-except Exception:
-    ZoneInfo = None
-
-import functools
 
 
 # Thanks OP and fdemmer
@@ -426,10 +427,6 @@ def strftime(*arg):
     else:
         d = datetime.datetime.utcfromtimestamp(time.time()).replace(tzinfo=pytz.utc)
     if not ZoneInfo:
-        return tz.normalize(d.astimezone(tz)).strftime(
-            auth.getUserSetting(pages.getAcessingUser(), "strftime")
-        )
+        return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(), "strftime"))
     else:
-        return d.astimezone(tz).strftime(
-            auth.getUserSetting(pages.getAcessingUser(), "strftime")
-        )
+        return d.astimezone(tz).strftime(auth.getUserSetting(pages.getAcessingUser(), "strftime"))

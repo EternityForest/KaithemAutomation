@@ -58,11 +58,11 @@ vueApp = r"""
 def default(basename, **kw):
     return {
         "template-engine": "jinja2",
-        "resource-type": "page",
+        "resource_type": "page",
         "body": defaulthtml.format(basename=basename),
         "require-method": ["GET", "POST"],
         "require-permissions": [],
-        "resource-timestamp": int(time.time() * 1000000),
+        "resource_timestamp": int(time.time() * 1000000),
         "no-navheader": True,
         "no-header": True,
     }
@@ -70,11 +70,11 @@ def default(basename, **kw):
 
 def vue(basename, **kw):
     return {
-        "resource-type": "page",
+        "resource_type": "page",
         "body": vueApp.replace("{basename}", basename),
         "require-method": ["GET", "POST"],
         "require-permissions": [],
-        "resource-timestamp": int(time.time() * 1000000),
+        "resource_timestamp": int(time.time() * 1000000),
         "no-navheader": True,
         "no-header": True,
     }
@@ -83,13 +83,13 @@ def vue(basename, **kw):
 # For making a web API call
 def service(basename, **kw):
     return {
-        "resource-type": "page",
+        "resource_type": "page",
         "body": servicehtml,
         "no-navheader": True,
         "no-header": True,
         "require-method": ["GET", "POST"],
         "require-permissions": [],
-        "resource-timestamp": int(time.time() * 1000000),
+        "resource_timestamp": int(time.time() * 1000000),
         "template-engine": "mako",
     }
 

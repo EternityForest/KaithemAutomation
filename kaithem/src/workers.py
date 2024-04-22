@@ -44,9 +44,9 @@ def workersErrorHandler(f):
 workers.backgroundFunctionErrorHandlers = [workersErrorHandler]
 # Get the relevant config
 
-qsize = cfg.config["task-queue-size"]
-count = cfg.config["worker-threads"]
-wait = cfg.config["wait-for-workers"]
+qsize = cfg.config["task_queue_size"]
+count = cfg.config["worker_threads"]
+wait = cfg.config["wait_for_workers"]
 
 # Start
 workers.start(count, qsize, wait)

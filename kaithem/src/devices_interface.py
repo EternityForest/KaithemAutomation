@@ -263,7 +263,7 @@ class WebDevices:
                 kwargs["kaithem.write_perms"] = "write_devices"
 
                 modules_state.ActiveModules[m][r] = {
-                    "resource-type": "device",
+                    "resource_type": "device",
                     "device": d,
                 }
                 modules_state.modulesHaveChanged()

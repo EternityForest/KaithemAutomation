@@ -981,7 +981,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             r = kwargs["temp.kaithem.store_in_resource"] or ".d/".join(name.split("/"))
 
             if r in modules_state.ActiveModules[m]:
-                if not modules_state.ActiveModules[m][r]["resource-type"] == "device":
+                if not modules_state.ActiveModules[m][r]["resource_type"] == "device":
                     raise ValueError("A resource in the module with that name exists and is not a device.")
 
             # Make sure we don't corrupt state by putting a folder where a file already is
@@ -1273,7 +1273,7 @@ def ensure_module_path_ok(module, resource):
         dir = "/".join(resource.split("/")[:-1])
         for i in range(256):
             if dir in modules_state.ActiveModules[module]:
-                if not modules_state.ActiveModules[module][dir]["resource-type"] == "directory":
+                if not modules_state.ActiveModules[module][dir]["resource_type"] == "directory":
                     raise RuntimeError(f"File exists blocking creation of: {module}")
             if not dir.count("/"):
                 break
@@ -1287,8 +1287,8 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
             for i in range(256):
                 if dir not in modules_state.ActiveModules[module]:
                     r: modules_state.ResourceDictType = {
-                        "resource-type": "directory",
-                        "resource-timestamp": int(time.time() * 1000000),
+                        "resource_type": "directory",
+                        "resource_timestamp": int(time.time() * 1000000),
                     }
 
                     modules_state.rawInsertResource(module, dir, r)
@@ -1297,11 +1297,11 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                 dir = "/".join(dir.split("/")[:-1])
 
         modules_state.ActiveModules[module][resource] = {
-            "resource-type": "device",
+            "resource_type": "device",
             "device": d,
         }
 
-        modules_state.saveResource(module, resource, {"resource-type": "device", "device": d})
+        modules_state.saveResource(module, resource, {"resource_type": "device", "device": d})
 
         modules_state.modulesHaveChanged()
 

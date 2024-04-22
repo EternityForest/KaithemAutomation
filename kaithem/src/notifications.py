@@ -116,7 +116,7 @@ def subscriber(topic, message):
     global notificationslog
     notificationslog.append((time.time(), topic, message))
     # Delete all but the most recent N notifications, where N is from the config file.
-    notificationslog = notificationslog[-config["notifications-to-keep"] :]
+    notificationslog = notificationslog[-config["notifications_to_keep"] :]
 
     # TODO:
     # Not threadsafe. But it is still better than the old polling based system.
@@ -190,5 +190,5 @@ def mprinter(t, m):
         mlogger.info(f"{t}:{m}")
 
 
-for i in config["print-topics"]:
+for i in config["print_topics"]:
     messagebus.subscribe(i, mprinter)

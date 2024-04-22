@@ -51,8 +51,8 @@ class ConfigType(modules_state.ResourceType):
 
     def oncreaterequest(self, module, name, kwargs):
         pr = kwargs.pop("config-priority")
-        d = {"resource-type": self.type, "data": {kwargs["key"]: kwargs["value"]}}
-        d["config-priority"] = float(pr.strip())
+        d = {"resource_type": self.type, "data": {kwargs["key"]: kwargs["value"]}}
+        d["config_priority"] = float(pr.strip())
 
         return d
 
@@ -79,7 +79,7 @@ class ConfigType(modules_state.ResourceType):
         d["data"].update(kwargs)
         d["data"] = {i.strip(): d["data"][i].strip() for i in d["data"] if d["data"][i].strip()}
 
-        d["config-priority"] = float(pr.strip())
+        d["config_priority"] = float(pr.strip())
         return d
 
     def createpage(self, module, path):

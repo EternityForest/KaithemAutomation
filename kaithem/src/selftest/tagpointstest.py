@@ -1,7 +1,8 @@
 def testTags():
-    from kaithem.src import tagpoints
-    import time
     import gc
+    import time
+
+    from kaithem.src import tagpoints
 
     t = tagpoints.Tag("/system/selftest")
 
@@ -42,9 +43,7 @@ def testTags():
 
     c.release()
     if not t.value == 5:
-        raise RuntimeError(
-            "Lower priority tag not taking over when higher priority released"
-        )
+        raise RuntimeError("Lower priority tag not taking over when higher priority released")
 
     # Now test the StringTags
     t = tagpoints.StringTag("/system/selftest2")
@@ -80,18 +79,14 @@ def testTags():
     if not t.value == "8":
         raise RuntimeError("Unexpected Tag Value")
 
-    c2 = t.claim("5", "TestClaim2", 55)
+    c2 = t.claim("5", "TestClaim2", 55)  # noqa
 
     if not t.value == "8":
         raise RuntimeError("Tag value being affected by lower priority claim")
 
     c.release()
     if not t.value == "5":
-        raise RuntimeError(
-            "Lower priority tag not taking over when higher priority released"
-        )
-
-    x = []
+        raise RuntimeError("Lower priority tag not taking over when higher priority released")
 
     def f(v, t, a):
         c.append(v)
@@ -103,23 +98,19 @@ def testTags():
 
     c3 = t1.claim(1, "testClaim3", 80)
     if not t2.value == 1 + 7:
-        raise RuntimeError(
-            "Subscriber to expression tag did not trigger when dependancy updated"
-        )
+        raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
 
     c3.set(2)
     if not t2.value == 2 + 7:
-        raise RuntimeError(
-            "Subscriber to expression tag did not trigger when dependancy updated"
-        )
+        raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
 
     # Test tag point values derived from other values
-    t = tagpoints.Tag("TestTagPointSelftestA")
+    t = tagpoints.Tag("testTagPointSelftestA")
     t.value = 90
 
-    t2 = tagpoints.Tag("=tv('/TestTagPointSelftestA')+10")
+    t2 = tagpoints.Tag("=tv('/testTagPointSelftestA')+10")
 
-    if not t2.value == 100:
+    if not t == 100:
         raise RuntimeError("Expression tagpoint didn't work")
 
     t.value = 40
@@ -131,19 +122,12 @@ def testTags():
 
     time.sleep(0.5)
     if not t2.alarms["TestTagAlarm"].sm.state == "active":
-        raise RuntimeError(
-            "Alarm not activated, state:" + t2.alarms["TestTagAlarm"].sm.state
-        )
+        raise RuntimeError("Alarm not activated, state:" + t2.alarms["TestTagAlarm"].sm.state)
 
     t.value = 0
     time.sleep(3)
     if not t2.alarms["TestTagAlarm"].sm.state == "cleared":
-        raise RuntimeError(
-            "Alarm not cleared, state:"
-            + t2.alarms["TestTagAlarm"].sm.state
-            + " value:"
-            + str(t2.value)
-        )
+        raise RuntimeError("Alarm not cleared, state:" + t2.alarms["TestTagAlarm"].sm.state + " value:" + str(t2.value))
 
     t2.alarms["TestTagAlarm"].acknowledge()
 
@@ -153,7 +137,7 @@ def testTags():
     gc.collect()
     gc.collect()
 
-    t1 = tagpoints.Tag("/system/selftest/ExpireTest")
+    t1 = tagpoints.Tag("/system/selftest/expireTest")
     t1.value = 0
 
     c1 = t1.claim(5, priority=70)
@@ -168,8 +152,8 @@ def testTags():
     if not t1.value == 30:
         raise RuntimeError("Claim expiration did not un-expire correctly")
 
-    t1 = tagpoints.StringTag("/system/selftest/Sync1Str")
-    t2 = tagpoints.StringTag("/system/selftest/Sync2Str")
+    t1 = tagpoints.StringTag("/system/selftest/sync1str")
+    t2 = tagpoints.StringTag("/system/selftest/sync2str")
 
     # Make sure the old tag is gone
     gc.collect()

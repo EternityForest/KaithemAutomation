@@ -19,6 +19,7 @@ from typing import Any
 import beartype
 import cherrypy
 import yaml
+from scullery import snake_compat
 
 from . import auth, directories, kaithemobj, messagebus, modules_state, pages, util
 from .modules_state import (
@@ -81,7 +82,7 @@ def unlockFile(f):
 
 
 def new_empty_module():
-    return {"__description": {"resource-type": "module-description", "text": ""}}
+    return {"__description": {"resource_type": "module-description", "text": ""}}
 
 
 def new_module_container():
@@ -106,9 +107,9 @@ def loadAllCustomResourceTypes() -> None:
             ):
                 r = modules_state.ActiveModules[i][j]
                 if hasattr(r, "get"):
-                    if r.get("resource-type", "") == loading_rt:
+                    if r.get("resource_type", "") == loading_rt:
                         try:
-                            rt = r["resource-type"]
+                            rt = r["resource_type"]
                             assert isinstance(rt, str)
                             additionalTypes[rt]._validate(r)
                             additionalTypes[rt].onload(i, j, r)
@@ -155,7 +156,7 @@ class ModuleObject:
 
         module = self.__kaithem_modulename__
 
-        resourcetype = x["resource-type"]
+        resourcetype = x["resource_type"]
 
         if resourcetype == "page":
             x = Page(module, name, x)
@@ -185,11 +186,11 @@ class ModuleObject:
                     )
                     return
 
-                if "resource-type" not in value:
-                    raise ValueError("Supplied dict has no resource-type")
+                if "resource_type" not in value:
+                    raise ValueError("Supplied dict has no resource_type")
 
-                resourcetype = value["resource-type"]
-                # Raise an exception on anything non-serializable or without a resource-type,
+                resourcetype = value["resource_type"]
+                # Raise an exception on anything non-serializable or without a resource_type,
                 # As those could break something.
                 json.dumps({name: value})
 
@@ -198,9 +199,9 @@ class ModuleObject:
 
                 modules_state.modulesHaveChanged()
 
-                # Make sure we recognize the resource-type, or else we can't load it.
+                # Make sure we recognize the resource_type, or else we can't load it.
                 if (resourcetype not in ["permission", "directory"]) and (resourcetype not in additionalTypes):
-                    raise ValueError("Unknown resource-type")
+                    raise ValueError("Unknown resource_type")
 
                 elif resourcetype == "permission":
                     auth.importPermissionsFromModules()
@@ -277,10 +278,11 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
 
         if not isSpecialEncoded:
             r = yaml.load(sections[0], Loader=yaml.SafeLoader)
+            r = snake_compat.snakify_dict_keys(r)
 
             # Catch new style save files
             if len(sections) > 1:
-                if r["resource-type"] == "page":
+                if r["resource_type"] == "page":
                     r["body"] = sections[1]
 
         if wasProblem:
@@ -296,7 +298,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
             return (None, None)
         else:
             raise
-    if not r or "resource-type" not in r:
+    if not r or "resource_type" not in r:
         if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
             return None, None
         else:
@@ -305,13 +307,13 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
     assert r
 
     # If no resource timestamp use the one from the file time.
-    if "resource-timestamp" not in r:
+    if "resource_timestamp" not in r:
         if filename:
-            r["resource-timestamp"] = int(os.stat(filename).st_mtime * 1000000)
+            r["resource_timestamp"] = int(os.stat(filename).st_mtime * 1000000)
         else:
-            r["resource-timestamp"] = int(time.time() * 1000000)
+            r["resource_timestamp"] = int(time.time() * 1000000)
     # Set the loaded from. we strip this before saving
-    r["resource-loadedfrom"] = fn
+    r["resource_loadedfrom"] = fn
 
     resourcename = util.unurl(fn)
     if shouldRemoveExtension:
@@ -406,9 +408,9 @@ def _detect_ignorable(path: str):
 
 def reloadOneResource(module, resource):
     r = modules_state.ActiveModules[module][resource]
-    if "resource-loadedfrom" in r:
+    if "resource_loadedfrom" in r:
         mfolder = getModuleDir(module)
-        x = r["resource-loadedfrom"]
+        x = r["resource_loadedfrom"]
         assert isinstance(x, str)
         load_one_yaml_resource(mfolder, os.path.relpath(x, mfolder), module)
 
@@ -422,7 +424,7 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
         r, resourcename = readResourceFromFile(os.path.join(folder, relpath), relpath, modulename=module)
         assert isinstance(r, dict)
         assert isinstance(resourcename, str)
-        assert "resource-type" in r
+        assert "resource_type" in r
     except Exception:
         messagebus.post_message(
             "/system/notifications/errors",
@@ -435,13 +437,13 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
 
     modules_state.ActiveModules[module][resourcename] = r
 
-    if "resource-type" not in r:
+    if "resource_type" not in r:
         logger.warning(f"No resource type found for {str(resourcename)}")
         return
 
     handleResourceChange(module, resourcename)
 
-    if r["resource-type"] == "internal-fileref":
+    if r["resource_type"] == "internal-fileref":
         # Handle two separate ways of handling these file resources.
         # One is to store them directly in the module data in a special folder.
         # That's what we do if we are using an external folder
@@ -550,10 +552,10 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                             continue
 
                         module[resourcename] = r
-                        if "resource-type" not in r:
+                        if "resource_type" not in r:
                             logger.warning(f"No resource type found for {resourcename}")
                             continue
-                        if r["resource-type"] == "internal-fileref":
+                        if r["resource_type"] == "internal-fileref":
                             fileResourceAbsPaths[modulename, resourcename] = os.path.join(
                                 folder, "__filedata__", url(resourcename, safeFnChars)
                             )
@@ -581,7 +583,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                     continue
 
                 # Create a directory resource for the dirrctory
-                module[util.unurl(relfn)] = {"resource-type": "directory"}
+                module[util.unurl(relfn)] = {"resource_type": "directory"}
 
         # Make resource objects for anything missing one
         # Don't save to disk since there's nothing we can't generate.
@@ -629,7 +631,7 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
                 if f not in s:
                     rt = True
                     module[util.unurl(data_basename)] = {
-                        "resource-type": "internal-fileref",
+                        "resource_type": "internal-fileref",
                         "target": f"$MODULERESOURCES/{data_basename}",
                         "ephemeral": True,
                     }
@@ -645,8 +647,8 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
                 if data_basename not in module:
                     rt = True
                     r = {
-                        "resource-type": "directory",
-                        "resource-timestamp": int(time.time() * 1000000),
+                        "resource_type": "directory",
+                        "resource_timestamp": int(time.time() * 1000000),
                         "ephemeral": True,
                     }
                     module[data_basename] = r
@@ -670,7 +672,7 @@ def getModuleAsYamlZip(module, noFiles=True):
             # AFAIK Zip files fake the directories with naming conventions
             s, ext = serializeResource(resource, modules_state.ActiveModules[module][resource])
             z.writestr(f"{url(module, ' ')}/{url(resource, safeFnChars)}{ext}", s)
-            if modules_state.ActiveModules[module][resource]["resource-type"] == "internal-fileref":
+            if modules_state.ActiveModules[module][resource]["resource_type"] == "internal-fileref":
                 if noFiles:
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
 
@@ -714,7 +716,7 @@ def load_modules_from_zip(f, replace=False):
                         raise RuntimeError("Attempting to decode file " + str(i) + " resulted in a name of None")
 
                     new_modules[p][n] = r
-                    if r["resource-type"] == "internal-fileref":
+                    if r["resource_type"] == "internal-fileref":
                         newfrpaths[p, n] = os.path.join(
                             directories.vardir,
                             "modules",
@@ -829,7 +831,7 @@ def bookkeeponemodule(module, update=False):
 
     for i in modules_state.ActiveModules[module]:
         # Handle events separately due to dependency resolution logic
-        rt = modules_state.ActiveModules[module][i]["resource-type"]
+        rt = modules_state.ActiveModules[module][i]["resource_type"]
         assert isinstance("rt", str)
 
         if rt not in ("event",):
@@ -857,11 +859,11 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
         raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
     # If something by the name of the directory we are moving to exists but it is not a directory.
     # short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
-    if not (len(new) < 2 or modules_state.ActiveModules[toModule]["/".join(new[:-1])]["resource-type"] == "directory"):
+    if not (len(new) < 2 or modules_state.ActiveModules[toModule]["/".join(new[:-1])]["resource_type"] == "directory"):
         raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
 
     obj: modules_state.ResourceDictType = modules_state.ActiveModules[module][resource]
-    rt = obj["resource-type"]
+    rt = obj["resource_type"]
 
     assert isinstance(rt, str)
 
@@ -909,7 +911,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         r = modules_state.ActiveModules[module].pop(resource)
         modules_state.modulesHaveChanged()
     try:
-        rt = r["resource-type"]
+        rt = r["resource_type"]
         assert isinstance(rt, str)
 
         # Filerefs also handled by the pages object
@@ -971,9 +973,9 @@ def newModule(name: str, location: str | None = None):
             if os.path.isdir(location):
                 loadModule(location, name)
             else:
-                modules_state.ActiveModules[name] = {"__description": {"resource-type": "module-description", "text": ""}}
+                modules_state.ActiveModules[name] = {"__description": {"resource_type": "module-description", "text": ""}}
         else:
-            modules_state.ActiveModules[name] = {"__description": {"resource-type": "module-description", "text": ""}}
+            modules_state.ActiveModules[name] = {"__description": {"resource_type": "module-description", "text": ""}}
 
         bookkeeponemodule(name)
         # Go directly to the newly created module
@@ -998,9 +1000,9 @@ def rmModule(module, message="deleted"):
 
     # Delete any custom resource types hanging around.
     for k in j:
-        if j[k].get("resource-type", None) in additionalTypes:
+        if j[k].get("resource_type", None) in additionalTypes:
             try:
-                rt = j[k]["resource-type"]
+                rt = j[k]["resource_type"]
                 assert isinstance(rt, str)
                 additionalTypes[rt].ondelete(module, k, j[k])
             except Exception:
@@ -1037,7 +1039,7 @@ def handleResourceChange(module, resource, obj=None, newly_added=False):
     modules_state.modulesHaveChanged()
 
     with modules_state.modulesLock:
-        t = modules_state.ActiveModules[module][resource]["resource-type"]
+        t = modules_state.ActiveModules[module][resource]["resource_type"]
 
         resourceobj = modules_state.ActiveModules[module][resource]
 

@@ -69,12 +69,12 @@ lastsaved = time.time()
 
 def getcfg():
     global saveinterval, dumplogsinterval, lastdumpedlogs
-    if not config["autosave-state"] == "never":
-        saveinterval = unitsofmeasure.time_interval_from_string(config["autosave-state"])
+    if not config["autosave_state"] == "never":
+        saveinterval = unitsofmeasure.time_interval_from_string(config["autosave_state"])
 
     lastdumpedlogs = time.time()
-    if not config["autosave-logs"] == "never":
-        dumplogsinterval = unitsofmeasure.time_interval_from_string(config["autosave-logs"])
+    if not config["autosave_logs"] == "never":
+        dumplogsinterval = unitsofmeasure.time_interval_from_string(config["autosave_logs"])
 
 
 getcfg()
@@ -102,7 +102,7 @@ def doUPnP():
 
     if p:
         try:
-            lp = config["https-port"]
+            lp = config["https_port"]
             from . import upnpwrapper
 
             upnpMapping = upnpwrapper.addMapping(p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp)
@@ -118,7 +118,7 @@ def doUPnP():
 def aPageJustLoaded():
     global pageviewsthisminute
     pageviewsthisminute = pageviewsthisminute + 1
-    if config["log-http"]:
+    if config["log_http"]:
         messagebus.post_message(
             "/system/http/access",
             {"ip": cherrypy.request.remote.ip, "req": cherrypy.request.request_line},
@@ -190,17 +190,17 @@ def logstats():
                 logger.info(f"Total ram usage: {str(round(usedp * 100, 1))}")
                 lastram = time.time()
 
-            if usedp > config["mem-use-warn"]:
+            if usedp > config["mem_use_warn"]:
                 if not MemUseWasTooHigh:
                     MemUseWasTooHigh = True
                     if time.time() - lastramwarn > 3600:
                         messagebus.post_message(
                             "/system/notifications/warnings",
-                            "Total System Memory Use rose above " + str(int(config["mem-use-warn"] * 100)) + "%",
+                            "Total System Memory Use rose above " + str(int(config["mem_use_warn"] * 100)) + "%",
                         )
                         lastramwarn = time.time()
 
-            if usedp < (config["mem-use-warn"] - 0.08):
+            if usedp < (config["mem_use_warn"] - 0.08):
                 MemUseWasTooHigh = False
         except Exception as e:
             raise e

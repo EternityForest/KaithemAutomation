@@ -1,7 +1,8 @@
 def test_tags():
-    from kaithem.src import tagpoints
-    import time
     import gc
+    import time
+
+    from kaithem.src import tagpoints
 
     t = tagpoints.Tag("/system/unit_test_tag")
 
@@ -66,7 +67,7 @@ def test_tags():
 
     assert t.value == "8"
 
-    c2 = t.claim("5", "TestClaim2", 55)
+    c2 = t.claim("5", "TestClaim2", 55)  # noqa
 
     assert t.value == "8"
 
@@ -90,10 +91,10 @@ def test_tags():
     assert t2.value == 2 + 7
 
     # Test tag point values derived from other values
-    t = tagpoints.Tag("TestTagPointSelftestA")
+    t = tagpoints.Tag("testTagPointSelftestA")
     t.value = 90
 
-    t2 = tagpoints.Tag("=tv('/TestTagPointSelftestA')+10")
+    t2 = tagpoints.Tag("=tv('/testTagPointSelftestA')+10")
 
     assert t2.value == 100
 
@@ -117,7 +118,7 @@ def test_tags():
     gc.collect()
     gc.collect()
 
-    t1 = tagpoints.Tag("/system/unit_test_tag/ExpireTest")
+    t1 = tagpoints.Tag("/system/unit_test_tag/expireTest")
     t1.value = 0
 
     c1 = t1.claim(5, priority=70)
@@ -129,8 +130,8 @@ def test_tags():
     c1.set(30)
     assert t1.value == 30
 
-    t1 = tagpoints.StringTag("/system/unit_test_tag/Sync1Str")
-    t2 = tagpoints.StringTag("/system/unit_test_tag/Sync2Str")
+    t1 = tagpoints.StringTag("/system/unit_test_tag/sync1Str")
+    t2 = tagpoints.StringTag("/system/unit_test_tag/sync2Str")
 
     # Make sure the old tag is gone
     gc.collect()

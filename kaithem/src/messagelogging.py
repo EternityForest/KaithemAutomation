@@ -31,7 +31,7 @@ def messagelistener(topic, message):
 
     # Only keep recent messages.
     try:
-        if len(log[topic]) > config["non-logged-topic-limit"]:
+        if len(log[topic]) > config["non_logged_topic_limit"]:
             log[topic].popleft()
             approxtotallogentries -= 1
     except Exception as e:

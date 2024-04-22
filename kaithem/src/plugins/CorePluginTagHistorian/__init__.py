@@ -489,7 +489,7 @@ class LoggerType(modules_state.ResourceType):
         """
 
     def onload(self, module, resourcename, value):
-        cls = accumTypes[value["logger-type"]]
+        cls = accumTypes[value["logger_type"]]
 
         def f(v=None):
             t = tagpoints.allTagsAtomic.get(value["tag"], None)
@@ -498,7 +498,7 @@ class LoggerType(modules_state.ResourceType):
             t = t()
             if not t:
                 return
-            loggers[module, resourcename] = cls(t, float(value["interval"]), int(value["history-length"]), value["log-target"])
+            loggers[module, resourcename] = cls(t, float(value["interval"]), int(value["history_length"]), value["log_target"])
 
             t.configLoggers[module, resourcename] = loggers[module, resourcename]
 
@@ -525,7 +525,7 @@ class LoggerType(modules_state.ResourceType):
         del loggers[module, name]
 
     def oncreaterequest(self, module, name, kwargs):
-        d = {"resource-type": self.type}
+        d = {"resource_type": self.type}
         d.update(kwargs)
         d.pop("name")
         d.pop("Save", None)
@@ -554,10 +554,10 @@ class LoggerType(modules_state.ResourceType):
     def editpage(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Logger")
         d.text_input("tag", title="Tag Point to Log", default=value["tag"], suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
-        d.selection("logger-type", options=list(accumTypes.keys()), default=value["logger-type"], title="Accumulate Mode")
-        d.selection("log-target", options=["disk", "ram"], default=value["log-target"])
+        d.selection("logger-type", options=list(accumTypes.keys()), default=value["logger_type"], title="Accumulate Mode")
+        d.selection("log-target", options=["disk", "ram"], default=value["log_target"])
         d.text_input("interval", title="Interval(seconds)", default=value["interval"])
-        d.text_input("history-length", title="History Lenth(seconds)", default=value["history-length"])
+        d.text_input("history-length", title="History Lenth(seconds)", default=value["history_length"])
 
         d.submit_button("Save")
         return d.render(self.get_update_target(module, name))

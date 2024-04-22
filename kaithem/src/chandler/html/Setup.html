@@ -2,7 +2,7 @@
 
 <%
 if request.method=="POST" and 'folders' in kwargs:
-    module.config['soundFolders'] =  [i.strip() for i in kwargs['folders'].split('\n') if i]
+    module.config['sound_folders'] =  [i.strip() for i in kwargs['folders'].split('\n') if i]
 
 %>
 <h2>Lighting Setup</h2>
@@ -14,7 +14,7 @@ if request.method=="POST" and 'folders' in kwargs:
     <h3>Sound Folders</h3>
         <p>Enter the sound folders here, as full paths, one per line.
         </p>
-        <textarea class="w-full h-12rem" name="folders">${'\n'.join(module.config['soundFolders'])}</textarea>
+        <textarea class="w-full h-12rem" name="folders">${'\n'.join(module.config['sound_folders'])}</textarea>
         <br>
         Note: Config entries are not made permanent till you save the setup via the console!!
         <input type="submit"></form>

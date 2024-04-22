@@ -63,7 +63,7 @@ def getDesc(module):
 def sorted_module_path_list(name: str, path: list):
     return sorted(
         sorted(modules_state.ls_folder(name, "/".join(path))),
-        key=lambda x: (modules_state.ActiveModules[name][x]["resource-type"], x),
+        key=lambda x: (modules_state.ActiveModules[name][x]["resource_type"], x),
     )
 
 
@@ -123,12 +123,12 @@ def searchModuleResources(modulename, search, max_results=100, start=0):
         if not max_results > 0:
             return (results, pointer)
         pointer += 1
-        if m[i]["resource-type"] in searchable:
+        if m[i]["resource_type"] in searchable:
             if search in i.lower():
                 results.append(i)
                 max_results -= 1
                 continue
-            for j in searchable[m[i]["resource-type"]]:
+            for j in searchable[m[i]["resource_type"]]:
                 x = str(m[i][j]).lower().find(search)
                 if x > 0:
                     results.append(i)
@@ -512,7 +512,7 @@ class WebInterface:
 
                     modules_state.fileResourceAbsPaths[root, escapedName] = dataname
                     d = {
-                        "resource-type": "internal-fileref",
+                        "resource_type": "internal-fileref",
                         "serve": "serve" in kwargs,
                         "target": "$MODULERESOURCES/" + util.url(escapedName, modules.safeFnChars),
                     }
@@ -632,7 +632,7 @@ class WebInterface:
                         modules_state.ActiveModules[root]["__description"]["text"] = kwargs["description"]
                     else:
                         modules_state.ActiveModules[root]["__description"] = {
-                            "resource-type": "module-description",
+                            "resource_type": "module-description",
                             "text": kwargs["description"],
                         }
 
@@ -646,7 +646,7 @@ class WebInterface:
 
                         # Calll the deleter
                         for r, obj in modules_state.ActiveModules[kwargs["name"]].items():
-                            rt = modules_state.ActiveModules[kwargs["name"]]["resource-type"]
+                            rt = modules_state.ActiveModules[kwargs["name"]]["resource_type"]
                             assert isinstance(rt, str)
                             if rt in modules_state.additionalTypes:
                                 modules_state.additionalTypes[rt].ondelete(root, r, obj)
@@ -698,7 +698,7 @@ def addResourceTarget(module, type, name, kwargs, path):
     root = x[0]
 
     def insertResource(r):
-        r["resource-timestamp"] = int(time.time() * 1000000)
+        r["resource_timestamp"] = int(time.time() * 1000000)
         modules_state.ActiveModules[root][name_with_path] = r
         modules.saveResource(root, name_with_path, r)
 
@@ -708,11 +708,11 @@ def addResourceTarget(module, type, name, kwargs, path):
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
         if type == "directory":
-            insertResource({"resource-type": "directory"})
+            insertResource({"resource_type": "directory"})
             raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
 
         elif type == "permission":
-            insertResource({"resource-type": "permission", "description": kwargs["description"]})
+            insertResource({"resource_type": "permission", "description": kwargs["description"]})
             # has its own lock
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
@@ -754,16 +754,16 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 
         assert isinstance(resourceinquestion, dict)
 
-        if "resource-type" not in resourceinquestion:
+        if "resource_type" not in resourceinquestion:
             logging.warning(f"No resource type found for {resource}")
             return
 
-        if resourceinquestion["resource-type"] == "permission":
+        if resourceinquestion["resource_type"] == "permission":
             return permissionEditPage(module, resource)
 
-        if resourceinquestion["resource-type"] == "internal-fileref":
+        if resourceinquestion["resource_type"] == "internal-fileref":
             if "require-permissions" in resourceinquestion:
-                requiredpermissions = resourceinquestion["require-permissions"]
+                requiredpermissions = resourceinquestion["require_permissions"]
             else:
                 requiredpermissions = []
             return pages.get_template("modules/fileresources/fileresource.html").render(
@@ -773,7 +773,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 requiredpermissions=requiredpermissions,
             )
 
-        if resourceinquestion["resource-type"] == "directory":
+        if resourceinquestion["resource_type"] == "directory":
             pages.require("view_admin_info")
 
             return pages.render_jinja_template(
@@ -786,7 +786,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
             )
 
         # This is for the custom resource types interface stuff.
-        return modules_state.additionalTypes[resourceinquestion["resource-type"]].editpage(module, resource, resourceinquestion)
+        return modules_state.additionalTypes[resourceinquestion["resource_type"]].editpage(module, resource, resourceinquestion)
 
 
 def permissionEditPage(module, resource):
@@ -816,8 +816,8 @@ def resourceUpdateTarget(module, resource, kwargs):
 
         old_resource = copy.deepcopy(resourceobj)
 
-        t = resourceobj["resource-type"]
-        resourceobj["resource-timestamp"] = int(time.time() * 1000000)
+        t = resourceobj["resource_type"]
+        resourceobj["resource_timestamp"] = int(time.time() * 1000000)
 
         if t in modules_state.additionalTypes:
             n = modules_state.additionalTypes[t].onupdaterequest(module, resource, old_resource, kwargs)
@@ -839,18 +839,18 @@ def resourceUpdateTarget(module, resource, kwargs):
 
             resourceobj["serve"] = "serve" in kwargs
             # has its own lock
-            resourceobj["allow-xss"] = "allow-xss" in kwargs
-            resourceobj["allow-origins"] = [i.strip() for i in kwargs["allow-origins"].split(",")]
+            resourceobj["allow_xss"] = "allow-xss" in kwargs
+            resourceobj["allow_origins"] = [i.strip() for i in kwargs["allow_origins"].split(",")]
             resourceobj["mimetype"] = kwargs["mimetype"]
 
             # Just like pages, file resources are permissioned
-            resourceobj["require-permissions"] = []
+            resourceobj["require_permissions"] = []
             for i in kwargs:
                 # Since HTTP args don't have namespaces we prefix all the
                 # permission checkboxes with permission
                 if i[:10] == "Permission":
                     if kwargs[i] == "true":
-                        resourceobj["require-permissions"].append(i[10:])
+                        resourceobj["require_permissions"].append(i[10:])
 
             modules.saveResource(module, resource, resourceobj, newname)
 

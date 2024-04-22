@@ -24,6 +24,7 @@ import yaml
 
 # import tornado.exceptions
 from mako.lookup import TemplateLookup
+from scullery import snake_compat
 
 from kaithem.api.web import render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
@@ -211,7 +212,7 @@ class CompiledPage:
             # For compatibility with older versions, we provide defaults
             # In case some attributes are missing
             if "require-permissions" in resource:
-                self.permissions = resource["require-permissions"]
+                self.permissions = resource["require_permissions"]
             else:
                 self.permissions = []
 
@@ -219,16 +220,16 @@ class CompiledPage:
             self.alt_top_banner = resource.get("alt-top-banner", "")
 
             if "allow-xss" in resource:
-                self.xss = resource["allow-xss"]
+                self.xss = resource["allow_xss"]
             else:
                 self.xss = False
 
             if "allow-origins" in resource:
-                self.origins = resource["allow-origins"]
+                self.origins = resource["allow_origins"]
             else:
                 self.origins = []
 
-            if resource["resource-type"] == "page":
+            if resource["resource_type"] == "page":
                 template = resource["body"]
 
                 code_header = ""
@@ -237,13 +238,13 @@ class CompiledPage:
 
                 self.mime = resource.get("mimetype", "text/html") or "text/html"
                 if "require-method" in resource:
-                    self.methods = resource["require-method"]
+                    self.methods = resource["require_method"]
                 else:
                     self.methods = ["POST", "GET"]
 
                 # Yes, I know this logic is ugly.
                 if "no-navheader" in resource:
-                    if resource["no-navheader"]:
+                    if resource["no_navheader"]:
                         header = util.readfile(
                             os.path.join(
                                 directories.htmldir,
@@ -257,14 +258,14 @@ class CompiledPage:
                     header = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pageheader.html"))
 
                 if "no-header" in resource:
-                    if resource["no-header"]:
+                    if resource["no_header"]:
                         header = ""
 
                 if "auto-reload" in resource:
-                    if resource["auto-reload"]:
-                        header += f'<meta http-equiv="refresh" content="{resource["auto-reload-interval"]}">'
+                    if resource["auto_reload"]:
+                        header += f'<meta http-equiv="refresh" content="{resource["auto_reload_interval"]}">'
 
-                if "no-header" not in resource or not (resource["no-header"]):
+                if "no-header" not in resource or not (resource["no_header"]):
                     footer = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pagefooter.html"))
                 else:
                     footer = ""
@@ -279,7 +280,7 @@ class CompiledPage:
                 if m in modules_state.scopes:
                     self.scope["module"] = modules_state.scopes[m]
 
-                if "template-engine" not in resource or resource["template-engine"] == "mako":
+                if "template-engine" not in resource or resource["template_engine"] == "mako":
                     # Add in the separate code
 
                     usejson = False
@@ -333,7 +334,7 @@ class CompiledPage:
                         lookup=component_lookup,
                     )
 
-                elif resource["template-engine"] == "jinja2":
+                elif resource["template_engine"] == "jinja2":
                     if "setupcode" in resource and resource["setupcode"].strip():
                         exec(resource["setupcode"], self.scope, self.scope)
                     if "code" in resource and resource["code"].strip():
@@ -344,7 +345,7 @@ class CompiledPage:
                     self.template = env.from_string(template)
                     self.useJinja = True
 
-                elif resource["template-engine"] == "markdown":
+                elif resource["template_engine"] == "markdown":
                     header = mako.template.Template(header, uri=f"Template{m}_{r}", lookup=component_lookup).render(**self.scope)
                     footer = mako.template.Template(footer, uri=f"Template{m}_{r}", lookup=component_lookup).render(**self.scope)
 
@@ -457,7 +458,7 @@ def makeDummyPage(resource, module):
         _pages_by_module_resource[module] = {}
 
     # Get the page resource in question
-    j = {"resource-type": "page", "body": "Content here", "no-navheader": True}
+    j = {"resource_type": "page", "body": "Content here", "no-navheader": True}
     _pages_by_module_resource[module][resource] = CompiledPage(j, module, resource)
 
 
@@ -473,7 +474,7 @@ def getPagesFromModules():
                 # now we loop over all the resources o the module to see which ones are pages
                 for m in modules_state.ActiveModules[i].copy():
                     j = modules_state.ActiveModules[i][m]
-                    if j["resource-type"] == "page":
+                    if j["resource_type"] == "page":
                         try:
                             _pages_by_module_resource[i][m] = CompiledPage(j, i, m)
                         except Exception:
@@ -574,15 +575,15 @@ class KaithemPage:
             rn = "/".join(args)
             x = modules_state.ActiveModules[module].get(rn, None)
 
-            if x and x["resource-type"] == "internal-fileref":
+            if x and x["resource_type"] == "internal-fileref":
                 fn = modules_state.fileResourceAbsPaths[module, rn]
                 mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
                 if x.get("serve", False):
                     pages.require(x.get("require-permissions", []))
                     if "Origin" in cherrypy.request.headers:
-                        origins: list[str] = x["allow-origins"]  # type: ignore
+                        origins: list[str] = x["allow_origins"]  # type: ignore
 
-                        if not x["allow-xss"]:
+                        if not x["allow_xss"]:
                             raise RuntimeError("Refusing XSS")
 
                         if not (cherrypy.request.headers["Origin"] in origins or "*" in origins):
@@ -714,6 +715,7 @@ def rsc_from_html(fn: str):
     # The first section is YAML and the second is the page body.
     data = yaml.load(sections[1], Loader=yaml.SafeLoader)
     data["body"] = sections[2]
+    data = snake_compat.snakify_dict_keys(data)
 
     return data
 
@@ -807,35 +809,35 @@ class PageType(modules_state.ResourceType):
             setupcode = kwargs["setupcode"]
 
         resourceobj["body"] = body
-        resourceobj["theme-css-url"] = kwargs["themecss"].strip()
+        resourceobj["theme_css_url"] = kwargs["themecss"].strip()
         resourceobj["code"] = code
         resourceobj["setupcode"] = setupcode
-        resourceobj["alt-top-banner"] = kwargs["alttopbanner"]
+        resourceobj["alt_top_banner"] = kwargs["alttopbanner"]
 
         resourceobj["mimetype"] = kwargs["mimetype"]
-        resourceobj["template-engine"] = kwargs["template-engine"]
-        resourceobj["no-navheader"] = "no-navheader" in kwargs
-        resourceobj["streaming-response"] = "streaming-response" in kwargs
+        resourceobj["template_engine"] = kwargs["template_engine"]
+        resourceobj["no_navheader"] = "no-navheader" in kwargs
+        resourceobj["streaming_response"] = "streaming-response" in kwargs
 
-        resourceobj["no-header"] = "no-header" in kwargs
-        resourceobj["auto-reload"] = "autoreload" in kwargs
-        resourceobj["allow-xss"] = "allow-xss" in kwargs
-        resourceobj["allow-origins"] = [i.strip() for i in kwargs["allow-origins"].split(",")]
-        resourceobj["auto-reload-interval"] = float(kwargs["autoreloadinterval"])
+        resourceobj["no_header"] = "no-header" in kwargs
+        resourceobj["auto_reload"] = "autoreload" in kwargs
+        resourceobj["allow_xss"] = "allow-xss" in kwargs
+        resourceobj["allow_origins"] = [i.strip() for i in kwargs["allow_origins"].split(",")]
+        resourceobj["auto_reload_interval"] = float(kwargs["autoreloadinterval"])
         # Method checkboxes
-        resourceobj["require-method"] = []
+        resourceobj["require_method"] = []
         if "allow-GET" in kwargs:
-            resourceobj["require-method"].append("GET")
+            resourceobj["require_method"].append("GET")
         if "allow-POST" in kwargs:
-            resourceobj["require-method"].append("POST")
+            resourceobj["require_method"].append("POST")
         # permission checkboxes
-        resourceobj["require-permissions"] = []
+        resourceobj["require_permissions"] = []
         for i in kwargs:
             # Since HTTP args don't have namespaces we prefix all the permission
             # checkboxes with permission
             if i[:10] == "Permission":
                 if kwargs[i] == "true":
-                    resourceobj["require-permissions"].append(i[10:])
+                    resourceobj["require_permissions"].append(i[10:])
 
         return resourceobj
 
@@ -849,7 +851,7 @@ class PageType(modules_state.ResourceType):
 
     def editpage(self, module, resource, resourceinquestion):
         if "require-permissions" in resourceinquestion:
-            requiredpermissions = resourceinquestion["require-permissions"]
+            requiredpermissions = resourceinquestion["require_permissions"]
         else:
             requiredpermissions = []
 

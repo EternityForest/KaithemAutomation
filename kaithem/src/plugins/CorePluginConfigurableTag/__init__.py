@@ -30,7 +30,7 @@ class TagType(modules_state.ResourceType):
     def onload(self, module, resourcename, value):
         data_cache[module, resourcename] = value
 
-        t = value["tag-type"]
+        t = value["tag_type"]
 
         if t == "numeric":
             tg = tagsapi.NumericTag(value["tag"])
@@ -79,7 +79,7 @@ class TagType(modules_state.ResourceType):
             time.sleep(0.05)
 
     def oncreaterequest(self, module: str, name: str, kwargs: dict):
-        d: modules_state.ResourceDictType = {"resource-type": self.type}
+        d: modules_state.ResourceDictType = {"resource_type": self.type}
         d.update(kwargs)
         for i in ["hi", "lo", "min", "max", "interval"]:
             if d.get(i, ""):
@@ -102,7 +102,7 @@ class TagType(modules_state.ResourceType):
         return d
 
     def validate(self, d: dict):
-        if d["tag-type"] != "numeric":
+        if d["tag_type"] != "numeric":
             for i in ["hi", "lo", "min", "max"]:
                 if str(d[i]).strip():
                     raise ValueError(f"Option {i} is only valid for numeric types")
@@ -120,7 +120,7 @@ class TagType(modules_state.ResourceType):
         d.text_input(
             "tag", title="Tag Point Name", default=value.get("tag", ""), suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()]
         )
-        d.selection("tag-type", title="Tag Type", options=["numeric", "string"], default=value.get("numeric", ""))
+        d.selection("tag_type", title="Tag Type", options=["numeric", "string"], default=value.get("numeric", ""))
 
         d.text_input("default", default=value.get("default", ""), title="Default Value")
         d.text_input("interval", default=value.get("interval", ""))

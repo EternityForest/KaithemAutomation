@@ -1,16 +1,16 @@
-
+import logging
 import os
 import threading
 import time
-import weakref
-import logging
 import traceback
-import textdistance
 import unicodedata
-from tinytag import TinyTag
-from ..kaithemobj import kaithem
-from typing import Optional, Dict, List, Callable, Any
+import weakref
+from typing import Any, Callable, Dict, List, Optional
 
+import textdistance
+from tinytag import TinyTag
+
+from ..kaithemobj import kaithem
 from . import console_abc
 
 # when the last time we logged an error, so we can ratelimit
@@ -18,14 +18,7 @@ lastSysloggedError = 0
 
 
 def is_img_file(path: str):
-    if (path.endswith(".png")
-        or path.endswith(".jpg")
-        or path.endswith(".webp")
-        or path.endswith(".png")
-        or path.endswith(".heif")
-        or path.endswith(".tiff")
-        or path.endswith(".gif")
-            or path.endswith(".svg")):
+    if path.endswith((".png", ".jpg", ".webp", ".png", ".heif", ".tiff", ".gif", ".svg")):
         return True
 
 
@@ -44,7 +37,7 @@ def get_audio_duration(path: str) -> Optional[float]:
 
     try:
         info = ffmpeg.probe(path)
-        return info['format']['duration']
+        return info["format"]["duration"]
     except Exception:
         print(traceback.format_exc())
     return None
@@ -76,26 +69,19 @@ def disallow_special(s: str, allow: str = "", replaceMode: Optional[str] = None)
     for i in "[]{}()!@#$%^&*()<>,./;':\"-=+\\|`~?\r\n\t":
         if i in s and i not in allow:
             if replaceMode is None:
-                raise ValueError(
-                    "Special char "
-                    + i
-                    + " not allowed in this context(full str starts with "
-                    + s[:100]
-                    + ")"
-                )
+                raise ValueError("Special char " + i + " not allowed in this context(full str starts with " + s[:100] + ")")
             else:
                 s = s.replace(i, replaceMode)
     return s
 
 
 config = {
-    'soundFolders': [],
+    "sound_folders": [],
 }
 
 
 if os.path.exists(os.path.join(saveLocation, "config.yaml")):
-    config.update(kaithem.persist.load(
-        os.path.join(saveLocation, "config.yaml")))
+    config.update(kaithem.persist.load(os.path.join(saveLocation, "config.yaml")))
 
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
@@ -126,21 +112,19 @@ if not os.path.exists(musicLocation):
 
 def getSoundFolders() -> Dict[str, str]:
     "path:displayname dict"
-    soundfolders: Dict[str, str] = {
-        i.strip(): i.strip() for i in config['soundFolders']}
+    soundfolders: Dict[str, str] = {i.strip(): i.strip() for i in config["sound_folders"]}
 
-    soundfolders[kaithem.assetpacks.assetlib] = 'Online Assets Library'
+    soundfolders[kaithem.assetpacks.assetlib] = "Online Assets Library"
 
-    soundfolders[os.path.join(kaithem.misc.datadir, "sounds")] = 'Builtin'
+    soundfolders[os.path.join(kaithem.misc.datadir, "sounds")] = "Builtin"
     soundfolders[musicLocation] = "Chandler music folder"
     for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
         soundfolders[i] = i
 
-    modulesdata = os.path.join(kaithem.misc.vardir, "modules", 'data')
+    modulesdata = os.path.join(kaithem.misc.vardir, "modules", "data")
     if os.path.exists(modulesdata):
         for i in os.listdir():
-            soundfolders[os.path.join(kaithem.misc.vardir, "modules", 'data',
-                                      i, "__filedata__", 'media')] = "Module:" + i + "/media"
+            soundfolders[os.path.join(kaithem.misc.vardir, "modules", "data", i, "__filedata__", "media")] = "Module:" + i + "/media"
     return soundfolders
 
 
@@ -167,7 +151,7 @@ def remove_diacritics(s, outliers=str.maketrans(dict(zip(LATIN.split(), ASCII.sp
 def simplify_name(n):
     "Remove fancy chars for the fuzzy matcher to work."
     for i in "_-;:'/+=?! ":
-        n = n.replace(i, '')
+        n = n.replace(i, "")
     n = n.replace("$", "s")
     n = remove_diacritics(n)
 
@@ -200,7 +184,7 @@ def resolve_sound_fuzzy(sound: str) -> str:
     return sound
 
 
-class RateLimiter():
+class RateLimiter:
     def __init__(self) -> None:
         self.t = 0
         self.c = 0

@@ -3,14 +3,14 @@ type:  object
 properties:
 
 
-    http-port:
+    http_port:
         type: integer
         minimum: 0
         maximum: 65536
         default: 8002
         description: "Port for the web server"
 
-    https-port:
+    https_port:
         type: integer
         minimum: 0
         maximum: 65536
@@ -19,43 +19,43 @@ properties:
     host:
         type: string
         default: "default"
-        description: "IP to bind to. Default all interfaces unless local-access-only set"
+        description: "IP to bind to. Default all interfaces unless local_access-only set"
 
     location:
         type: string
         default: ""
         description: "Comma delimited server location default value, can be changed by user"
 
-    ssl-dir:
+    ssl_dir:
         type: string
 
-    site-data-dir:
+    site_data-dir:
         type: string
 
-    worker-threads:
+    worker_threads:
         type: integer
         maximum: 800
         minumum: 1
 
-    task-queue-size:
+    task_queue-size:
         type: integer
         minimum: 1
 
-    local-access-only:
+    local_access-only:
         type: boolean
 
-    autosave-state:
+    autosave_state:
         type: string
         pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
 
-    wait-for-workers:
+    wait_for-workers:
         type: number
         minimum: 0.2
 
-    save-before-shutdown:
+    save_before-shutdown:
         type: boolean
 
-    priority-response:
+    priority_response:
         type: object
         properties:
             realtime:
@@ -75,7 +75,7 @@ properties:
 
         additionalProperties: no
 
-    error-backoff:
+    error_backoff:
         type: object
         properties:
             realtime:
@@ -94,7 +94,7 @@ properties:
         required: ['realtime', 'interactive', 'high', 'medium', 'low', 'verylow']
         additionalProperties: no
 
-    audio-backends:
+    audio_backends:
         type: array
         uniqueItems: yes
         items:
@@ -102,35 +102,35 @@ properties:
                 - mpv
                 - test
 
-    audio-paths:
+    audio_paths:
         type: array
         uniqueItems: yes
 
-    max-load-attempts:
+    max_load-attempts:
         type: integer
         minimum: 1
         maximum: 500
 
-    log-topics:
+    log_topics:
         type: array
         uniqueitems: yes
         items:
             type: string
 
-    log-dump-size:
+    log_dump-size:
         type: integer
         minimum: 1
 
-    log-buffer:
+    log_buffer:
         type: integer
         minimum: 1
 
-    keep-log-files:
+    keep_log_files:
         type: string
         pattern: "[0-9]*(k|m|g|K|M|G)"
 
     #Everything excrpt null and normal is deprecated
-    log-format:
+    log_format:
         type: string
         enum:
             - tiny
@@ -138,62 +138,62 @@ properties:
             - pretty
             - none
 
-    log-compress:
+    log_compress:
         type: string
         enum:
             - none
             - gzip
             - bz2
 
-    errors-to-keep:
+    errors_to_keep:
         type: integer
 
-    notifications-to-keep:
+    notifications_to_keep:
         type: integer
 
-    autosave-logs:
+    autosave_logs:
         type: string
         pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
 
-    cherrypy-log-stdout:
+    cherrypy_log_stdout:
         type: boolean
 
-    log-http:
+    log_http:
         type: boolean
 
-    print-topics:
+    print_topics:
         type: array
         items:
             type: string
 
-    mem-use-warn:
+    mem_use_warn:
         type: number
         minimum : 0
         maximum : 1
 
-    non-logged-topic-limit:
+    non_logged_topic_limit:
         type: integer
         minimum: 0
 
-    front-page-banner:
+    front_page_banner:
         type: string
 
-    top-banner-html:
+    top_banner_html:
         type: string
 
-    about-box-banner:
+    about_box_banner:
         type: string
 
-    theme-url:
+    theme_url:
         type: string
 
-    quotes-file:
+    quotes_file:
         type: string
 
-    full-time-intervals:
+    full_time_intervals:
         type: boolean
 
-    get-public-ip:
+    get_public_ip:
         type: boolean
 
 

@@ -1,12 +1,14 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from .config import config
-from . import directories
+import logging
+import os
+import weakref
+
 from scullery import persist
 
-import os
-import logging
+from . import directories
+from .config import config
 
 fn = os.path.join(directories.vardir, "core.settings", "theming.toml")
 
@@ -32,8 +34,6 @@ def saveTheme(*a, **k):
     persist.unsavedFiles.pop(fn, "")
 
 
-import weakref
-
 cssthemes = weakref.WeakValueDictionary()
 
 
@@ -55,7 +55,7 @@ steam = Theme("steam", "/static/css/steam.css")
 
 
 def getCSSTheme():
-    x = file["web"]["csstheme"] or config["theme-url"]
+    x = file["web"]["csstheme"] or config["theme_url"]
 
     try:
         if x in cssthemes:

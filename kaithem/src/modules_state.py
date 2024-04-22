@@ -78,16 +78,16 @@ def parseTarget(t: str, module: str, in_ext=False):
 
 
 def getExt(r):
-    if r["resource-type"] == "directory":
+    if r["resource_type"] == "directory":
         return ""
 
-    elif r["resource-type"] == "page":
+    elif r["resource_type"] == "page":
         if r.get("template-engine", "") == "markdown":
             return ".md"
         else:
             return ".html"
 
-    elif r["resource-type"] == "event":
+    elif r["resource_type"] == "event":
         return ".py"
 
     else:
@@ -100,11 +100,11 @@ def serializeResource(name, obj) -> dict[str, str]:
     r = copy.deepcopy(obj)
 
     # This is a ram only thing that tells us where it is saved
-    if "resource-loadedfrom" in r:
-        del r["resource-loadedfrom"]
+    if "resource_loadedfrom" in r:
+        del r["resource_loadedfrom"]
 
-    if r["resource-type"] in additionalTypes:
-        return additionalTypes[r["resource-type"]].to_files(name, r)
+    if r["resource_type"] in additionalTypes:
+        return additionalTypes[r["resource_type"]].to_files(name, r)
 
     else:
         return {f"{name}.yaml": yaml.dump(r)}
@@ -118,7 +118,7 @@ def writeResource(obj: dict, dir: str, resource_name: str):
         return
 
     # directories get saved just by writing a literal directory.
-    if obj["resource-type"] == "directory":
+    if obj["resource_type"] == "directory":
         fn = os.path.join(dir, resource_name)
         if os.path.exists(fn):
             if not os.path.isdir(fn):
@@ -144,10 +144,10 @@ def writeResource(obj: dict, dir: str, resource_name: str):
         if os.path.isfile(fn):
             with open(fn, "rb") as f:
                 if f.read() == data:
-                    if "resource-loadedfrom" not in obj:
-                        obj["resource-loadedfrom"] = []
+                    if "resource_loadedfrom" not in obj:
+                        obj["resource_loadedfrom"] = []
 
-                    obj["resource-loadedfrom"].append(fn)
+                    obj["resource_loadedfrom"].append(fn)
                     return fn
 
         os.makedirs(os.path.dirname(fn), exist_ok=True)
@@ -158,10 +158,10 @@ def writeResource(obj: dict, dir: str, resource_name: str):
             f.flush()
             os.fsync(f.fileno())
 
-            if "resource-loadedfrom" not in obj:
-                obj["resource-loadedfrom"] = []
+            if "resource_loadedfrom" not in obj:
+                obj["resource_loadedfrom"] = []
 
-            obj["resource-loadedfrom"].append(fn)
+            obj["resource_loadedfrom"].append(fn)
             return fn
 
 
@@ -181,9 +181,9 @@ def saveResource(module: str, resource: str, resourceData: ResourceDictType, nam
             if i.startswith(name + "."):
                 raise ValueError(f"File appears to exist: {os.path.join(dir, i)}")
 
-    if resourceData["resource-type"] == "directory":
+    if resourceData["resource_type"] == "directory":
         d = copy.deepcopy(resourceData)
-        d.pop("resource-type", None)
+        d.pop("resource_type", None)
 
         # As the folder on disk is enough to create the resource internally, we don't need to clutter
         # the FS with this if there is no extra data
@@ -207,7 +207,7 @@ def rawDeleteResource(m: str, r: str, type: str | None = None):
     were created from the resource, also will not update hashes.
     """
     resourceData = ActiveModules[m].pop(r)
-    rt = resourceData["resource-type"]
+    rt = resourceData["resource_type"]
     assert isinstance(rt, str)
 
     if type and rt != type:

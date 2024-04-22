@@ -297,9 +297,10 @@ class ChandlerConsole(console_abc.Console_ABC):
         if not kaithem.users.check_permission(kaithem.web.user(), "system_admin"):
             raise ValueError("You cannot change the setup without system_admin")
         data = yaml.load(data, Loader=yaml.SafeLoader)
+        data = snake_compat.snakify_dict_keys(data)
 
-        if "fixtureTypes" in data:
-            self.fixture_classes.update(data["fixtureTypes"])
+        if "fixture_types" in data:
+            self.fixture_classes.update(data["fixture_types"])
 
         if "universes" in data:
             self.configured_universes = data["universes"]
@@ -320,7 +321,7 @@ class ChandlerConsole(console_abc.Console_ABC):
     def getSetupFile(self):
         with core.lock:
             return {
-                "fixtureTypes": self.fixture_classes,
+                "fixture_types": self.fixture_classes,
                 "universes": self.configured_universes,
                 "fixtures": self.fixture_assignments,
                 "presets": self.presets,
@@ -353,6 +354,8 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
         data = yaml.load(data, Loader=yaml.SafeLoader)
+
+        data = snake_compat.snakify_dict_keys(data)
 
         # Detect if the user is trying to upload a single scenefile,
         # if so, wrap it in a multi-dict of scenes to keep the reading code
