@@ -1,15 +1,13 @@
-import cherrypy
-from .. import pages
 import os
+
+import cherrypy
 from mako.lookup import TemplateLookup
 
+from kaithem.src import tagpoints
+
+from .. import directories, pages
 from ..kaithemobj import kaithem
-from . import core
-from . import blendmodes
-from . import scenes
-
-
-from .. import directories
+from . import blendmodes, core, scenes
 
 _Lookup = TemplateLookup(
     directories=[
@@ -48,9 +46,6 @@ def listRtmidi():
         return []
 
 
-from kaithem.src import tagpoints
-
-
 def limitedTagsListing():
     # Make a list of all the tags,
     # Unless there's way too many
@@ -80,18 +75,15 @@ def command_tagsListing():
     return v
 
 
-from .. import directories
-
-
 class Web:
-    def header(self, l, v):
-        return get_template("dlmaker.html").render(__datalists__=l, __jsvars__=v)
+    def header(self, datalists, v):
+        return get_template("dlmaker.html").render(__datalists__=datalists, __jsvars__=v)
 
     def scriptheader(self, v):
         return get_template("global_vars_maker.js").render(__jsvars__=v)
 
     @cherrypy.expose
-    def editor(self):
+    def editor(self, board: str):
         """Index page for web interface"""
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         pages.require("system_admin")
@@ -111,13 +103,13 @@ class Web:
 
         return get_template("console.html").render(
             lists=self.header(datalists, {}),
-            boardname="default",
+            boardname=board,
             core=core,
             blendmodes=blendmodes,
         )
 
     @cherrypy.expose
-    def config(self):
+    def config(self, board: str):
         """Config page for web interface"""
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         pages.require("system_admin")
@@ -137,7 +129,7 @@ class Web:
 
         return get_template("config.html").render(
             lists=self.header(datalists, {}),
-            boardname="default",
+            boardname=board,
             core=core,
             blendmodes=blendmodes,
         )
@@ -181,9 +173,7 @@ class Web:
                 return e.f_filepath
             # cherrypy.response.headers['Content-Type'] = e.f_MIME
             # cherrypy.response.headers['Content-Disposition'] = 'attachment ; filename = "' + e.f_name + '"'
-            return cherrypy.lib.static.serve_file(
-                e.f_filepath, content_type=e.f_MIME, name=e.f_name
-            )
+            return cherrypy.lib.static.serve_file(e.f_filepath, content_type=e.f_MIME, name=e.f_name)
 
     # @cherrypy.expose
     # def butterchurn(self, file):

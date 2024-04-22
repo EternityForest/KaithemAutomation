@@ -694,6 +694,7 @@ class BaseChandlerScriptContext:
                                 break
                             self.variables["_"] = x
             except Exception:
+                logging.exception("Error running script command")
                 self.event(
                     "script.error",
                     f"{self.contextName}\n{traceback.format_exc(chain=True)}",

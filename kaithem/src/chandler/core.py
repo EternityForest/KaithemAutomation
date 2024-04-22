@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import threading
@@ -5,13 +7,17 @@ import time
 import traceback
 import unicodedata
 import weakref
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import textdistance
 from tinytag import TinyTag
 
 from ..kaithemobj import kaithem
 from . import console_abc
+
+if TYPE_CHECKING:
+    from . import ChandlerConsole
 
 # when the last time we logged an error, so we can ratelimit
 lastSysloggedError = 0
@@ -22,7 +28,7 @@ def is_img_file(path: str):
         return True
 
 
-def get_audio_duration(path: str) -> Optional[float]:
+def get_audio_duration(path: str) -> float | None:
     "Get duration of media file"
     # Try with tinytag before dragging in ffmpeg
     try:
@@ -65,7 +71,7 @@ fixtureschanged = {}
 controlValues = weakref.WeakValueDictionary()
 
 
-def disallow_special(s: str, allow: str = "", replaceMode: Optional[str] = None) -> str:
+def disallow_special(s: str, allow: str = "", replaceMode: str | None = None) -> str:
     for i in "[]{}()!@#$%^&*()<>,./;':\"-=+\\|`~?\r\n\t":
         if i in s and i not in allow:
             if replaceMode is None:
@@ -85,14 +91,12 @@ if os.path.exists(os.path.join(saveLocation, "config.yaml")):
 
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
-boards: List[weakref.ref[console_abc.Console_ABC]] = []
+boards: dict[str, ChandlerConsole.ChandlerConsole] = {}
 
 
 def iter_boards():
     for i in boards:
-        x = i()
-        if x:
-            yield x
+        yield boards[i]
 
 
 def add_data_pusher_to_all_boards(func: Callable[[console_abc.Console_ABC], Any]):
@@ -110,9 +114,9 @@ if not os.path.exists(musicLocation):
         logger.exception("Could not make music dir")
 
 
-def getSoundFolders() -> Dict[str, str]:
+def getSoundFolders() -> dict[str, str]:
     "path:displayname dict"
-    soundfolders: Dict[str, str] = {i.strip(): i.strip() for i in config["sound_folders"]}
+    soundfolders: dict[str, str] = {i.strip(): i.strip() for i in config["sound_folders"]}
 
     soundfolders[kaithem.assetpacks.assetlib] = "Online Assets Library"
 

@@ -15,7 +15,7 @@ import urllib.parse
 import uuid
 import weakref
 from collections.abc import Callable, Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy
 import numpy.typing
@@ -32,6 +32,9 @@ from .mathutils import dt_to_ts, ease, number_to_note
 from .soundmanager import fadeSound, play_sound, stop_sound
 from .universes import getUniverse, mapChannel, mapUniverse, rerenderUniverse
 
+if TYPE_CHECKING:
+    from . import ChandlerConsole
+
 # Locals for performance... Is this still a thing??
 float = float
 abs = abs
@@ -40,11 +43,8 @@ max = max
 min = min
 
 
+# Indexed by ID
 scenes: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
-scenes_by_name: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
-
-_active_scenes: list[Scene] = []
-active_scenes: list[Scene] = []
 
 
 def is_static_media(s: str):
@@ -99,99 +99,6 @@ def makeWrappedConnectionClass(parent: Scene):
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
 
-def codeCommand(code: str = ""):
-    "Activates any cues with the matching shortcut code in any scene"
-    shortcutCode(code)
-    return True
-
-
-def gotoCommand(scene: str = "=SCENE", cue: str = ""):
-    "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
-
-    # Ignore empty
-    if not cue.strip():
-        return True
-
-    # Track layers of recursion
-    newcause = "script.0"
-    if kaithem.chandlerscript.context_info.event[0] in ("cue.enter", "cue.exit"):
-        cause = kaithem.chandlerscript.context_info.event[1][1]
-        # Nast hack, but i don't thing we need more layers and parsing might be slower.
-        if cause == "script.0":
-            newcause = "script.1"
-
-        elif cause == "script.1":
-            newcause = "script.2"
-
-        elif cause == "script.2":
-            raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
-
-    # We don't want to handle other bindings after a goto, leaving a scene stops execution.
-    scenes_by_name[scene].script_context.stopAfterThisHandler()
-    scenes_by_name[scene].goto_cue(cue, cause=newcause)
-    return True
-
-
-gotoCommand.completionTags = {  # type: ignore
-    "scene": "gotoSceneNamesCompleter",
-    "cue": "gotoSceneCuesCompleter",
-}
-
-
-def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
-    "Set the alpha value of a scene"
-    scenes_by_name[scene].setAlpha(float(alpha))
-    return True
-
-
-def ifCueCommand(scene: str, cue: str):
-    "True if the scene is running that cue"
-    return True if scenes_by_name[scene].active and scenes_by_name[scene].cue.name == cue else None
-
-
-def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
-    "Send an event to a scene, or to all scenes if scene is __global__"
-    if scene == "__global__":
-        event(ev, value)
-    else:
-        scenes_by_name[scene].event(ev, value)
-    return True
-
-
-def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
-    "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
-    if not key.startswith("var"):
-        raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
-    scenes_by_name[scene].set_slideshow_variable(key, value)
-    return True
-
-
-def uiNotificationCommand(text: str):
-    "Send a notification to the operator, on the web editor and console pages"
-    for board in core.iter_boards():
-        if len(board.newDataFunctions) < 100:
-            board.newDataFunctions.append(lambda s: s.linkSend(["ui_alert", text]))
-
-
-rootContext.commands["shortcut"] = codeCommand
-rootContext.commands["goto"] = gotoCommand
-rootContext.commands["set_alpha"] = setAlphaCommand
-rootContext.commands["if_cue"] = ifCueCommand
-rootContext.commands["send_event"] = eventCommand
-rootContext.commands["set_slideshow_variable"] = setWebVarCommand
-rootContext.commands["console_notification"] = uiNotificationCommand
-
-rootContext.commands["set_tag"].completionTags = {"tagName": "tagPointsCompleter"}
-
-
-def sendMqttMessage(topic: str, message: str):
-    "JSON encodes message, and publishes it to the scene's MQTT server"
-    raise RuntimeError("This was supposed to be overridden by a scene specific version")
-
-
-rootContext.commands["sendMQTT"] = sendMqttMessage
-
-
 cueTransitionsLimitCount = 0
 cueTransitionsHorizon = 0
 
@@ -243,8 +150,9 @@ def event(s: str, value: Any = None, info: str = "") -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
     with core.lock:
-        for i in active_scenes:
-            i._event(s, value=value, info=info)
+        for board in core.iter_boards():
+            for i in board.active_scenes:
+                i._event(s, value=value, info=info)
 
 
 class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
@@ -332,6 +240,7 @@ class Scene:
 
     def __init__(
         self,
+        chandler_board: ChandlerConsole.ChandlerConsole,
         name: str,
         cues: dict[str, dict[str, Any]] | None = None,
         active: bool = False,
@@ -397,7 +306,9 @@ class Scene:
             RuntimeError: _description_
             ValueError: _description_
         """
-        if name and name in scenes_by_name:
+        self.board = chandler_board
+
+        if name and name in self.board.scenes_by_name:
             raise RuntimeError("Cannot have 2 scenes sharing a name: " + name)
 
         if not name.strip():
@@ -661,7 +572,7 @@ class Scene:
         self.chandler_vars: dict[str, Any] = {}
 
         if name:
-            scenes_by_name[self.name] = self
+            self.board.scenes_by_name[self.name] = self
         if not name:
             name = self.id
         scenes[self.id] = self
@@ -669,6 +580,8 @@ class Scene:
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
         self.script_context = self.make_script_context()
+
+        self.add_context_commands()
 
         # Holds (tagpoint, subscribe function) tuples whenever we subscribe
         # to a tag to display it
@@ -703,6 +616,95 @@ class Scene:
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
 
         self.subscribe_command_tags()
+
+    def add_context_commands(self):
+        cc = {}
+
+        def gotoCommand(scene: str = "=SCENE", cue: str = ""):
+            "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
+
+            # Ignore empty
+            if not cue.strip():
+                return True
+
+            # Track layers of recursion
+            newcause = "script.0"
+            if kaithem.chandlerscript.context_info.event[0] in ("cue.enter", "cue.exit"):
+                cause = kaithem.chandlerscript.context_info.event[1][1]
+                # Nast hack, but i don't thing we need more layers and parsing might be slower.
+                if cause == "script.0":
+                    newcause = "script.1"
+
+                elif cause == "script.1":
+                    newcause = "script.2"
+
+                elif cause == "script.2":
+                    raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
+
+            # We don't want to handle other bindings after a goto, leaving a scene stops execution.
+            self.board.scenes_by_name[scene].script_context.stopAfterThisHandler()
+            self.board.scenes_by_name[scene].goto_cue(cue, cause=newcause)
+            return True
+
+        def codeCommand(code: str = ""):
+            "Activates any cues with the matching shortcut code in any scene"
+            shortcutCode(code)
+            return True
+
+        gotoCommand.completionTags = {  # type: ignore
+            "scene": "gotoSceneNamesCompleter",
+            "cue": "gotoSceneCuesCompleter",
+        }
+
+        def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
+            "Set the alpha value of a scene"
+            self.board.scenes_by_name[scene].setAlpha(float(alpha))
+            return True
+
+        def ifCueCommand(scene: str, cue: str):
+            "True if the scene is running that cue"
+            return True if self.board.scenes_by_name[scene].active and self.board.scenes_by_name[scene].cue.name == cue else None
+
+        def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
+            "Send an event to a scene, or to all scenes if scene is __global__"
+            if scene == "__global__":
+                event(ev, value)
+            else:
+                self.board.scenes_by_name[scene].event(ev, value)
+            return True
+
+        def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
+            "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
+            if not key.startswith("var"):
+                raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
+            self.board.scenes_by_name[scene].set_slideshow_variable(key, value)
+            return True
+
+        def uiNotificationCommand(text: str):
+            "Send a notification to the operator, on the web editor and console pages"
+            for board in core.iter_boards():
+                if len(board.newDataFunctions) < 100:
+                    board.newDataFunctions.append(lambda s: s.linkSend(["ui_alert", text]))
+
+        cc["shortcut"] = codeCommand
+        cc["goto"] = gotoCommand
+        cc["set_alpha"] = setAlphaCommand
+        cc["if_cue"] = ifCueCommand
+        cc["send_event"] = eventCommand
+        cc["set_slideshow_variable"] = setWebVarCommand
+        cc["console_notification"] = uiNotificationCommand
+
+        # cc["set_tag"].completionTags = {"tagName": "tagPointsCompleter"}
+
+        def sendMqttMessage(topic: str, message: str):
+            "JSON encodes message, and publishes it to the scene's MQTT server"
+            raise RuntimeError("This was supposed to be overridden by a scene specific version")
+
+        cc["send_mqtt"] = sendMqttMessage
+        for i in cc:
+            self.script_context.commands[i] = cc[i]
+
+        self.command_refs = cc
 
     def send_all_media_link_info(self):
         self.media_link_socket.send(["volume", self.alpha])
@@ -772,8 +774,8 @@ class Scene:
             x = self.mqttConnection
             if x:
                 x.disconnect()
-            if scenes_by_name.get(self.name, None) is self:
-                del scenes_by_name[self.name]
+            if self.board.scenes_by_name.get(self.name, None) is self:
+                del self.board.scenes_by_name[self.name]
 
             if scenes.get(self.id, None) is self:
                 del scenes[self.id]
@@ -2179,11 +2181,10 @@ class Scene:
         return f"<Scene {self.name}>"
 
     def go(self, nohandoff=False):
-        global active_scenes, _active_scenes
         self.set_display_tags(self.display_tags)
 
         with core.lock:
-            if self in active_scenes:
+            if self in self.board.active_scenes:
                 return
 
             # Not sure if we need to remake this, keep it for defensive
@@ -2217,10 +2218,10 @@ class Scene:
             self.metadata_already_pushed_by = {}
             self.started = time.time()
 
-            if self not in _active_scenes:
-                _active_scenes.append(self)
-            _active_scenes = sorted(_active_scenes, key=lambda k: (k.priority, k.started))
-            active_scenes = _active_scenes[:]
+            if self not in self.board._active_scenes:
+                self.board._active_scenes.append(self)
+            self.board._active_scenes = sorted(self.board._active_scenes, key=lambda k: (k.priority, k.started))
+            self.board.active_scenes = self.board._active_scenes[:]
 
             self.setMqttServer(self.mqtt_server)
 
@@ -2237,12 +2238,11 @@ class Scene:
 
     @priority.setter
     def priority(self, p: float):
-        global active_scenes, _active_scenes
         self.metadata_already_pushed_by = {}
         self._priority = p
         with core.lock:
-            _active_scenes = sorted(_active_scenes, key=lambda k: (k.priority, k.started))
-            active_scenes = _active_scenes[:]
+            self.board._active_scenes = sorted(self.board._active_scenes, key=lambda k: (k.priority, k.started))
+            self.board.active_scenes = self.board._active_scenes[:]
             try:
                 for i in self.affect:
                     rerenderUniverse(i)
@@ -2279,7 +2279,7 @@ class Scene:
                 self.mqttConnection = None
 
             if mqtt_server:
-                if self in active_scenes:
+                if self in self.board.active_scenes:
                     self.mqttConnection = makeWrappedConnectionClass(self)(
                         server,
                         port,
@@ -2303,12 +2303,12 @@ class Scene:
         if not isinstance(name, str):
             raise TypeError("Name must be str")
         with core.lock:
-            if name in scenes_by_name:
+            if name in self.board.scenes_by_name:
                 raise ValueError("Name in use")
-            if self.name in scenes_by_name:
-                del scenes_by_name[self.name]
+            if self.name in self.board.scenes_by_name:
+                del self.board.scenes_by_name[self.name]
             self.name = name
-            scenes_by_name[name] = self
+            self.board.scenes_by_name[name] = self
             self.metadata_already_pushed_by = {}
             self.script_context.setVar("SCENE", self.name)
 
@@ -2392,7 +2392,6 @@ class Scene:
         self.pushMeta(keys={"bpm"})
 
     def stop(self):
-        global active_scenes, _active_scenes
         with core.lock:
             # No need to set rerender
             if self.script_context:
@@ -2417,9 +2416,9 @@ class Scene:
 
             self.affect = []
             self.on_demand_universes = {}
-            if self in _active_scenes:
-                _active_scenes.remove(self)
-                active_scenes = _active_scenes[:]
+            if self in self.board._active_scenes:
+                self.board._active_scenes.remove(self)
+                self.board.active_scenes = self.board._active_scenes[:]
 
             self.active = False
             self.cue_cached_vals_as_arrays = {}

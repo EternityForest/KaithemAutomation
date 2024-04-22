@@ -168,7 +168,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     plugin_system.load_plugins()
     plugin_system.load_user_plugins()
-    chandler.core.boards[0]().setup()
 
     # Load all modules from the active modules directory
     modules.initModules()

@@ -143,23 +143,22 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def send_everything(self, sessionid):
         with core.lock:
-            self.linkSend(["presets", self.presets])
             self.pushUniverses()
             self.pushfixtures()
             self.linkSend(["alerts", getAlertState()])
             self.linkSend(["soundfolders", core.config.get("sound_folders")])
 
-            for i in self.scenememory:
-                s = self.scenememory[i]
+            for i in self.scenes:
+                s = self.scenes[i]
                 self.pushCueList(s.id)
                 self.pushMeta(i)
-                if self.scenememory[i].cue:
+                if self.scenes[i].cue:
                     try:
-                        self.pushCueMeta(self.scenememory[i].cue.id)
+                        self.pushCueMeta(self.scenes[i].cue.id)
                     except Exception:
                         print(traceback.format_exc())
                 try:
-                    self.pushCueMeta(self.scenememory[i].cues["default"].id)
+                    self.pushCueMeta(self.scenes[i].cues["default"].id)
                 except Exception:
                     print(traceback.format_exc())
 
@@ -174,14 +173,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     print(traceback.format_exc())
 
                 try:
-                    for j in self.scenememory[i].cues:
-                        self.pushCueMeta(self.scenememory[i].cues[j].id)
+                    for j in self.scenes[i].cues:
+                        self.pushCueMeta(self.scenes[i].cues[j].id)
                 except Exception:
                     print(traceback.format_exc())
 
-            for i in scenes.active_scenes:
+            for i in self.active_scenes:
                 # Tell clients about any changed alpha values and stuff.
-                if i.id not in self.scenememory:
+                if i.id not in self.scenes:
                     self.pushMeta(i.id)
             self.pushConfiguredUniverses()
             self.linkSend(["serports", getSerPorts()])
@@ -396,16 +395,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.load_show(msg[1])
 
         elif cmd_name == "saveLibrary":
-            self.saveAsFiles("fixturetypes", self.fixture_classes, "lighting/fixtureclasses")
+            self.save_project_data("fixturetypes", self.fixture_classes, "lighting/fixtureclasses")
 
         elif cmd_name == "addscene":
-            s = Scene(msg[1].strip())
-            self.scenememory[s.id] = s
-            self.pushMeta(s.id)
+            sc = Scene(self, msg[1].strip())
+            self.scenes[sc.id] = sc
+            self.pushMeta(sc.id)
 
         elif cmd_name == "addmonitor":
-            s = Scene(msg[1].strip(), blend="monitor", priority=100, active=True)
-            self.scenememory[s.id] = s
+            sc = Scene(self, msg[1].strip(), blend="monitor", priority=100, active=True)
+            self.scenes[sc.id] = sc
 
         elif cmd_name == "setconfuniverses":
             if kaithem.users.check_permission(user, "system_admin"):

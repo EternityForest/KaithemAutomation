@@ -32,82 +32,23 @@ def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
 class ChandlerConsole(console_abc.Console_ABC):
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
-    def load_project(self):
-        for i in self.scenememory:
-            self.scenememory[i].stop()
-            self.scenememory[i].close()
-        self.scenememory = {}
-
-        for i in self.configured_universes:
-            self.configured_universes[i].close()
-
-        self.configured_universes = {}
-        self.fixture_classes = {}
-        self.fixture_assignments = {}
-
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "universes")
-        if os.path.isdir(saveLocation):
-            for i in os.listdir(saveLocation):
-                fn = os.path.join(saveLocation, i)
-                if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.configured_universes[i[: -len(".yaml")]] = kaithem.persist.load(fn)
-
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "fixturetypes")
-        if os.path.isdir(saveLocation):
-            for i in os.listdir(saveLocation):
-                fn = os.path.join(saveLocation, i)
-                if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixture_classes[i[: -len(".yaml")]] = kaithem.persist.load(fn)
-
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "fixtures")
-        if os.path.isdir(saveLocation):
-            for i in os.listdir(saveLocation):
-                fn = os.path.join(saveLocation, i)
-                if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixture_assignments[i[: -len(".yaml")]] = kaithem.persist.load(fn)
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
-        if os.path.exists(os.path.join(saveLocation, "presets.yaml")):
-            self.presets = kaithem.persist.load(os.path.join(saveLocation, "presets.yaml"))
-
-        try:
-            self.create_universes(self.configured_universes)
-        except Exception:
-            logger.exception("Error creating universes")
-            print(traceback.format_exc(6))
-
-        d = {}
-
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "scenes")
-        if os.path.isdir(saveLocation):
-            for i in os.listdir(saveLocation):
-                fn = os.path.join(saveLocation, i)
-
-                if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
-
-            self.loadDict(d)
-
-        self.linkSend(["refreshPage", self.fixture_assignments])
-
     def __init__(self) -> None:
         super().__init__()
 
         self.id = uuid.uuid4().hex
 
         # mutable and immutable versions of the active scenes list.
-        self._active_scenes = []
-        self.active_scenes = []
+        self.scenes_by_name: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
 
-        self.presets = {}
+        self._active_scenes: list[Scene] = []
+        self.active_scenes: list[Scene] = []
 
         # This light board's scene memory, or the set of scenes 'owned' by this board.
-        self.scenememory: Dict[str, Scene] = {}
+        self.scenes: Dict[str, Scene] = {}
 
         # For change etection in scenes. Tuple is folder, file indicating where it should go,
         # as would be passed to saveasfiles
-        self.last_saved_versions: Dict[tuple[str, str], Dict[str, Any]] = {}
-
-        self.ext_scenes = {}
+        self.last_saved_version: dict[str, Any] = {}
 
         self.lock = threading.RLock()
 
@@ -136,9 +77,50 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.autosave_checker = scheduling.scheduler.every(self.check_autosave, 10 * 60)
 
-    def setup(self):
-        console_abc.Console_ABC.setup(self)
-        self.load_project()
+        def dummy(data: dict[str, Any]):
+            logger.error("No save backend present")
+
+        self.save_callback = dummy
+
+    def close(self):
+        for i in self.scenes:
+            self.scenes[i].stop()
+            self.scenes[i].close()
+        self.scenes = {}
+
+        for i in self.configured_universes:
+            self.configured_universes[i].close()
+
+    def load_project(self, data: dict):
+        for i in self.scenes:
+            self.scenes[i].stop()
+            self.scenes[i].close()
+        self.scenes = {}
+
+        for i in self.configured_universes:
+            self.configured_universes[i].close()
+
+        data2 = data["setup"]
+
+        self.configured_universes = data2["configured_universes"]
+        self.fixture_classes = data2["fixture_types"]
+        self.fixture_assignments = data2["fixture_assignments"]
+
+        try:
+            self.create_universes(self.configured_universes)
+        except Exception:
+            logger.exception("Error creating universes")
+            print(traceback.format_exc(6))
+
+        d = data["scenes"]
+
+        self.loadDict(d)
+
+        self.linkSend(["refreshPage", self.fixture_assignments])
+
+    def setup(self, project: dict[str, Any]):
+        console_abc.Console_ABC.setup(self, project)
+        self.load_project(project)
         self.refresh_fixtures()
         self.initialized = True
 
@@ -182,32 +164,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.ferrs = self.ferrs or "No Errors!"
             self.pushfixtures()
 
-    def save_setup(self, force=True):
-        # These pre-checks are just for performance reasons, saveasfiles already knows how not
-        # to unnecessarily do disk writes
-        # as does persist.save
-        if force or not self.fixture_classes == self.last_saved_versions.get(("__INTERNAL__", "__FIXTURECLASSES__"), None):
-            self.last_saved_versions[("__INTERNAL__", "__FIXTURECLASSES__")] = copy.deepcopy(self.fixture_classes)
-            self.saveAsFiles("fixturetypes", self.fixture_classes, "lighting/fixtureclasses")
-
-        if force or not self.configured_universes == self.last_saved_versions.get(("__INTERNAL__", "__UNIVERSES__"), None):
-            self.last_saved_versions[("__INTERNAL__", "__UNIVERSES__")] = copy.deepcopy(self.configured_universes)
-            self.saveAsFiles("universes", self.configured_universes, "lighting/universes")
-
-        if force or not self.fixture_assignments == self.last_saved_versions.get(("__INTERNAL__", "__ASSG__"), None):
-            self.last_saved_versions[("__INTERNAL__", "__ASSG__")] = copy.deepcopy(self.fixture_assignments)
-
-            self.saveAsFiles("fixtures", self.fixture_assignments, "lighting/fixtures")
-
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
-        if not os.path.exists(saveLocation):
-            os.makedirs(saveLocation, mode=0o755)
-
-        kaithem.persist.save(core.config, os.path.join(saveLocation, "config.yaml"))
-
-        kaithem.persist.save(self.presets, os.path.join(saveLocation, "presets.yaml"))
-
-    def create_universes(self, data):
+    def create_universes(self, data: dict):
         assert isinstance(data, Dict)
         for i in self.universe_objects:
             self.universe_objects[i].close()
@@ -216,7 +173,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         import gc
 
         gc.collect()
-        universeObjects = {}
+        universeObjects: dict[str, universes.Universe] = {}
         u: Dict[str, Dict[Any, Any]] = data
         for i in u:
             if u[i]["type"] == "enttecopen" or u[i]["type"] == "rawdmx":
@@ -266,32 +223,15 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.loadDict(d)
         self.refresh_fixtures()
 
-    def load_setup(self, setupName):
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "setups", setupName, "universes")
-        if os.path.isdir(saveLocation):
-            for i in os.listdir(saveLocation):
-                fn = os.path.join(saveLocation, i)
-                if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.configured_universes[i[: -len(".yaml")]] = kaithem.persist.load(fn)
+    def get_setup_data(self, force=True):
+        d = {
+            "fixture_types": self.fixture_classes,
+            "universes": self.configured_universes,
+            "fixture_assignments": self.fixture_assignments,
+            #'config':
+        }
 
-        self.universe_objects = {}
-        self.fixture_assignments = {}
-        self.fixtures = {}
-
-        self.fixture_assignments = {}
-
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "setups", setupName, "fixtures")
-        if os.path.isdir(saveLocation):
-            for i in os.listdir(saveLocation):
-                fn = os.path.join(saveLocation, i)
-                if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    self.fixture_assignments[i[: -len(".yaml")]] = kaithem.persist.load(fn)
-
-        self.refresh_fixtures()
-        self.create_universes(self.configured_universes)
-
-        if os.path.exists(os.path.join(saveLocation, "presets.yaml")):
-            self.presets = kaithem.persist.load(os.path.join(saveLocation, "presets.yaml"))
+        return copy.deepcopy(d)
 
     def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
         if not kaithem.users.check_permission(kaithem.web.user(), "system_admin"):
@@ -306,25 +246,26 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.configured_universes = data["universes"]
             self.create_universes(self.configured_universes)
 
+        if "configured_universes" in data:
+            self.configured_universes = data["configured_universes"]
+            self.create_universes(self.configured_universes)
+
         # Compatibility with a legacy typo
         if "fixures" in data:
-            data["fixtures"] = data["fixures"]
-
+            data["fixure_assignments"] = data["fixures"]
         if "fixtures" in data:
-            self.fixture_assignments = data["fixtures"]
-            self.refresh_fixtures()
+            data["fixure_assignments"] = data["fixtures"]
 
-        if "presets" in data:
-            self.presets = data["presets"]
-            self.linkSend(["presets", data["presets"]])
+        if "fixure_assignments" in data:
+            self.fixture_assignments = data["fixure_assignments"]
+            self.refresh_fixtures()
 
     def getSetupFile(self):
         with core.lock:
             return {
                 "fixture_types": self.fixture_classes,
-                "universes": self.configured_universes,
-                "fixtures": self.fixture_assignments,
-                "presets": self.presets,
+                "configured_universes": self.configured_universes,
+                "fixture_assignments": self.fixture_assignments,
             }
 
     def loadLibraryFile(
@@ -335,8 +276,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         errs: bool = False,
     ):
         data = yaml.load(data_file_str, Loader=yaml.SafeLoader)
+        data = snake_compat.snakify_dict_keys(data)
 
-        if "fixtureTypes" in data:
+        if "fixture_types" in data:
             assert isinstance(data["fixtureTypes"], Dict)
 
             self.fixture_classes.update(data["fixtureTypes"])
@@ -346,10 +288,9 @@ class ChandlerConsole(console_abc.Console_ABC):
     def getLibraryFile(self):
         with core.lock:
             return {
-                "fixtureTypes": self.fixture_classes,
+                "fixture_types": self.fixture_classes,
                 "universes": self.configured_universes,
-                "fixures": self.fixture_assignments,
-                "presets": self.presets,
+                "fixure_assignments": self.fixture_assignments,
             }
 
     def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
@@ -366,12 +307,12 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         with core.lock:
             if clear_old:
-                for i in self.scenememory:
+                for i in self.scenes:
                     if clear_old or (i in data):
-                        self.scenememory[i].stop()
-                        self.scenememory[i].close()
+                        self.scenes[i].stop()
+                        self.scenes[i].close()
 
-                self.scenememory = {}
+                self.scenes = {}
             self.loadDict(data, errs)
 
     def loadDict(self, data, errs=False):
@@ -402,13 +343,13 @@ class ChandlerConsole(console_abc.Console_ABC):
                 n = data[i]["name"]
 
                 # Delete existing scenes we own
-                if n in scenes.scenes_by_name:
-                    old_id = scenes.scenes_by_name[n].id
-                    if old_id in self.scenememory:
-                        self.scenememory[old_id].stop()
-                        self.scenememory[old_id].close()
+                if n in self.scenes_by_name:
+                    old_id = self.scenes_by_name[n].id
+                    if old_id in self.scenes:
+                        self.scenes[old_id].stop()
+                        self.scenes[old_id].close()
                         try:
-                            del self.scenememory[old_id]
+                            del self.scenes[old_id]
                         except KeyError:
                             pass
                     else:
@@ -433,9 +374,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                     else:
                         uuid = i
 
-                    s = Scene(id=uuid, default_active=x, **data[i])
+                    s = Scene(self, id=uuid, default_active=x, **data[i])
 
-                    self.scenememory[uuid] = s
+                    self.scenes[uuid] = s
                     if x:
                         s.go()
                         s.rerender = True
@@ -449,11 +390,11 @@ class ChandlerConsole(console_abc.Console_ABC):
     def addScene(self, scene):
         if not isinstance(scene, Scene):
             raise ValueError("Arg must be a Scene")
-        self.scenememory[scene.id] = scene
+        self.scenes[scene.id] = scene
 
     def rmScene(self, scene):
         try:
-            del self.scenememory[scene.id]
+            del self.scenes[scene.id]
         except Exception:
             print(traceback.format_exc())
 
@@ -514,60 +455,25 @@ class ChandlerConsole(console_abc.Console_ABC):
         "Return serializable version of scenes list"
         with core.lock:
             sd = {}
-            for i in self.scenememory:
-                x = self.scenememory[i]
+            for i in self.scenes:
+                x = self.scenes[i]
                 sd[x.name] = x.toDict()
 
             return sd
 
     def check_autosave(self):
         if self.initialized:
-            # Both can already do their own checking for unneeded saves
-            self.save_scenes()
-            self.save_setup(force=False)
+            self.save_project_data()
 
-    def save_scenes(self, force=False):
-        changed = force
+    def save_project_data(self):
+        sd = copy.deepcopy(self.getScenes())
 
-        s = self.getScenes()
-        for i in s:
-            if not s[i] == self.last_saved_versions.get(("scenes", i), None):
-                changed = True
-                logger.info("Chandler scenes changed. Autosaving.")
+        project_file = {"scenes": sd, "setup": self.getSetupFile()}
 
-        for category, i in self.last_saved_versions:
-            if not i.startswith("__INTERNAL__:") and category == "scenes":
-                if not s.get(i, None) == self.last_saved_versions[(category, i)]:
-                    changed = True
-                    logger.info("Chandler scenes changed.")
+        if self.last_saved_version == project_file:
+            return
 
-        if changed:
-            self.saveAsFiles("scenes", self.getScenes(), "lighting/scenes")
-
-    def saveAsFiles(self, dirname: str, data: Any, legacyKey: Optional[str] = None):
-        sd = data
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", dirname)
-        if not os.path.exists(saveLocation):
-            os.makedirs(saveLocation, mode=0o755)
-
-        saved = {}
-        # Lock used to prevent conflict, saving over each other with nonsense data.
-        with core.lock:
-            for i in sd:
-                saved[i + ".yaml"] = True
-                self.last_saved_versions[(dirname, i)] = copy.deepcopy(sd[i])
-                kaithem.persist.save(sd[i], os.path.join(saveLocation, i + ".yaml"))
-
-        # Delete everything not in folder
-        for i in os.listdir(saveLocation):
-            fn = os.path.join(saveLocation, i)
-            if os.path.isfile(fn) and i.endswith(".yaml"):
-                if i not in saved:
-                    try:
-                        self.last_saved_versions.pop((dirname, i), None)
-                    except Exception:
-                        pass
-                    os.remove(fn)
+        self.last_saved_version = sd
 
     def pushChannelNames(self, u):
         "This has expanded to push more data than names"
@@ -602,7 +508,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
     ):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
-        scene = scenes.scenes.get(sceneid, None)
+        scene = self.scenes.get(sceneid, None)
         # Race condition of deleted scenes
         if not scene:
             return
@@ -627,7 +533,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "blendParams": scene.blendClass.parameters if hasattr(scene.blendClass, "parameters") else {},
                 "blendDesc": blendmodes.getblenddesc(scene.blend),
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
-                "ext": sceneid not in self.scenememory,
+                "ext": sceneid not in self.scenes,
                 "id": sceneid,
                 "uuid": sceneid,
                 "vars": v,
@@ -732,7 +638,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.linkSend(["confuniverses", self.configured_universes])
 
     def pushCueList(self, scene: str):
-        s = scenes.scenes[scene]
+        s = self.scenes[scene]
         x = list(s.cues.keys())
         # split list into messages of 100 because we don't want to exceed the widget send limit
         while x:
@@ -748,11 +654,11 @@ class ChandlerConsole(console_abc.Console_ABC):
     def delscene(self, sc):
         i = None
         with core.lock:
-            if sc in self.scenememory:
-                i = self.scenememory.pop(sc)
+            if sc in self.scenes:
+                i = self.scenes.pop(sc)
         if i:
             i.stop()
-            scenes.scenes_by_name.pop(i.name)
+            self.scenes_by_name.pop(i.name)
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
 
@@ -775,29 +681,29 @@ class ChandlerConsole(console_abc.Console_ABC):
                     )
                     snapshot[i].statusChanged[self.id] = True
 
-            for i in self.scenememory:
+            for i in self.scenes:
                 # Tell clients about any changed alpha values and stuff.
-                if self.id not in self.scenememory[i].metadata_already_pushed_by:
+                if self.id not in self.scenes[i].metadata_already_pushed_by:
                     self.pushMeta(i, statusOnly=True)
-                    self.scenememory[i].metadata_already_pushed_by[self.id] = False
+                    self.scenes[i].metadata_already_pushed_by[self.id] = False
 
                 # special case the monitor scenes.
                 if (
-                    self.scenememory[i].blend == "monitor"
-                    and self.scenememory[i].is_active()
-                    and self.id not in self.scenememory[i].monitor_values_already_pushed_by
+                    self.scenes[i].blend == "monitor"
+                    and self.scenes[i].is_active()
+                    and self.id not in self.scenes[i].monitor_values_already_pushed_by
                 ):
-                    self.scenememory[i].monitor_values_already_pushed_by[self.id] = True
+                    self.scenes[i].monitor_values_already_pushed_by[self.id] = True
                     # Numpy scalars aren't serializable, so we have to un-numpy them in case
                     self.linkSend(
                         [
                             "cuedata",
-                            self.scenememory[i].cue.id,
-                            self.scenememory[i].cue.values,
+                            self.scenes[i].cue.id,
+                            self.scenes[i].cue.values,
                         ]
                     )
 
-            for i in scenes.active_scenes:
+            for i in self.active_scenes:
                 # Tell clients about any changed alpha values and stuff.
                 if self.id not in i.metadata_already_pushed_by:
                     self.pushMeta(i.id)
