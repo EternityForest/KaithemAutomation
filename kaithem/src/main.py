@@ -116,6 +116,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         workers,
     )
     from . import config as cfg
+    from .chandler import resource_type  # noqa
 
     def handle_error(f):
         # If we can, try to send the exception back whence it came
@@ -168,7 +169,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     plugin_system.load_plugins()
     plugin_system.load_user_plugins()
-    chandler.core.boards[0]().setup()
 
     # Load all modules from the active modules directory
     modules.initModules()

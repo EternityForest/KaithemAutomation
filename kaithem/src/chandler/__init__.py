@@ -1,18 +1,14 @@
 import threading
 import time
 import traceback
-import weakref
 
 import cherrypy
 import icemedia.sound_player
 import numpy
 from scullery import messagebus
 
-import kaithem.api.web as webapi
-
-from . import core, scenes, universes
+from . import ChandlerConsole, core, universes
 from .universes import getUniverses
-from .WebChandlerConsole import WebConsole
 
 logger = core.logger
 soundLock = threading.Lock()
@@ -31,18 +27,19 @@ def refresh_scenes(t, v):
     when a new universes is added
     """
     with core.lock:
-        for i in scenes.active_scenes:
-            # Attempt to restart all scenes.
-            # Try to put them back in the same state
-            # A lot of things are written assuming the list stays constant,
-            # this is needed for refreshing.
-            x = i.started
-            y = i.entered_cue
-            i.stop()
-            i.go()
-            i.render()
-            i.started = x
-            i.entered_cue = y
+        for b in core.iter_boards():
+            for i in b.active_scenes:
+                # Attempt to restart all scenes.
+                # Try to put them back in the same state
+                # A lot of things are written assuming the list stays constant,
+                # this is needed for refreshing.
+                x = i.started
+                y = i.entered_cue
+                i.stop()
+                i.go()
+                i.render()
+                i.started = x
+                i.entered_cue = y
 
 
 messagebus.subscribe("/chandler/command/refreshScenes", refresh_scenes)
@@ -69,18 +66,19 @@ messagebus.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
 
 
 def pollsounds():
-    for i in scenes.active_scenes:
-        # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
-        # We keep this in case we get a sound format we can'r read the length of in advance
-        if i.cuelen == 0:
-            # Forbid any crazy error loopy business with too short sounds
-            if (time.time() - i.entered_cue) > 1 / 5:
-                if i.cue.sound and i.cue.rel_length:
-                    if not i.media_ended_at:
-                        if not icemedia.sound_player.is_playing(str(i.id)):
-                            i.media_ended_at = time.time()
-                    if i.media_ended_at and (time.time() - i.media_ended_at > (i.cue.length * i.bpm)):
-                        i.next_cue(cause="sound")
+    for b in core.iter_boards():
+        for i in b.active_scenes:
+            # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
+            # We keep this in case we get a sound format we can'r read the length of in advance
+            if i.cuelen == 0:
+                # Forbid any crazy error loopy business with too short sounds
+                if (time.time() - i.entered_cue) > 1 / 5:
+                    if i.cue.sound and i.cue.rel_length:
+                        if not i.media_ended_at:
+                            if not icemedia.sound_player.is_playing(str(i.id)):
+                                i.media_ended_at = time.time()
+                        if i.media_ended_at and (time.time() - i.media_ended_at > (i.cue.length * i.bpm)):
+                            i.next_cue(cause="sound")
 
 
 def composite(background, values, alphas, alpha):
@@ -145,14 +143,14 @@ def applyLayer(universe, uvalues, scene, uobj):
     return uvalues
 
 
-def pre_render(universes: dict[str, universes.Universe]):
+def pre_render(board: ChandlerConsole.ChandlerConsole, universes: dict[str, universes.Universe]):
     "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
     # Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
     changedUniverses = {}
     to_reset = {}
 
     # Important to reverse, that way scenes that need a full reset come after and don't get overwritten
-    for i in reversed(scenes.active_scenes):
+    for i in reversed(board.active_scenes):
         for u in i.affect:
             if u in universes:
                 universe = universes[u]
@@ -189,16 +187,16 @@ def pre_render(universes: dict[str, universes.Universe]):
     return changedUniverses
 
 
-def render(t=None, u=None):
+def render(board: ChandlerConsole.ChandlerConsole, t=None, u=None):
     "This is the primary rendering function"
     universesSnapshot = u or getUniverses()
     # Getting list of universes is apparently slow, so we pass it as a param
-    changedUniverses = pre_render(universesSnapshot)
+    changedUniverses = pre_render(board, universesSnapshot)
 
     t = t or time.time()
 
     # Remember that scenes get rendered in ascending priority order here
-    for i in scenes.active_scenes:
+    for i in board.active_scenes:
         # We don't need to call render() if the frame is a static scene and the opacity
         # and all that is the same, we can just re-layer it on top of the values
         if i.rerender or (i.cue.length and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))):
@@ -234,7 +232,7 @@ def render(t=None, u=None):
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                 # or if this is the last one, mark it as the one we should save just before
-                if i.rerender or (i is scenes.active_scenes[-1]):
+                if i.rerender or (i is board.active_scenes[-1]):
                     if universeObject.all_static:
                         # Copy it and set to none as a flag that we already found it
                         universeObject.all_static = False
@@ -249,34 +247,12 @@ def render(t=None, u=None):
         except Exception:
             raise
 
-    for i in universesSnapshot:
-        universesSnapshot[i].full_rerender = False
+    for un in universesSnapshot:
+        universesSnapshot[un].full_rerender = False
     changedUniverses = {}
 
 
 lastrendered = 0
-
-
-board = WebConsole()
-core.boards.append(weakref.ref(board))
-core.board = board
-
-
-def _nbr():
-    return (
-        50,
-        '<a href="/chandler/commander"><i class="mdi mdi-dance-ballroom"></i>Chandler</a>',
-    )
-
-
-webapi.nav_bar_plugins["chandler"] = _nbr
-
-
-def _nbr2():
-    return (50, '<a href="/chandler/editor"><i class="mdi mdi-pencil"></i>Editor</a>')
-
-
-webapi.nav_bar_plugins["chandler2"] = _nbr2
 
 
 controluniverse = universes.Universe("control")
@@ -299,18 +275,16 @@ def loop():
                 u_id = id(u)
 
             with core.lock:
-                render(u=u_cache)
+                for b in core.iter_boards():
+                    render(b, u=u_cache)
 
             global lastrendered
             if time.time() - lastrendered > 1 / 14.0:
                 with core.lock:
                     pollsounds()
+                    for b in core.iter_boards():
+                        b.guiPush(u_cache)
 
-                    for i in core.boards:
-                        b = i()
-                        if b:
-                            b.guiPush(u_cache)
-                        del b
                 lastrendered = time.time()
             time.sleep(1 / 60)
         except Exception:
