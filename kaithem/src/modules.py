@@ -313,7 +313,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
         else:
             r["resource_timestamp"] = int(time.time() * 1000000)
     # Set the loaded from. we strip this before saving
-    r["resource_loadedfrom"] = fn
+    r["resource_loadedfrom"] = [fn]
 
     resourcename = util.unurl(fn)
     if shouldRemoveExtension:

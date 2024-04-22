@@ -10,10 +10,10 @@ import socket
     <link rel="stylesheet" type="text/css" href="/static/css/barrel.css">
     <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?c=33024">
     <link rel="stylesheet" type="text/css" href="${_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}">
-    
-	</head>
+
+  </head>
 
   <body id="page">
-	<header>
-  ${(_k_alt_top_banner or config['top-banner-html']).replace("HOSTNAME",socket.gethostname())}
+  <header>
+  ${(_k_alt_top_banner or config['top_banner_html']).replace("HOSTNAME",socket.gethostname())}
   </header>

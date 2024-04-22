@@ -36,7 +36,7 @@ scolor={
     <div style="flex-basis: 20%; text-align: center;"><div class="decorative-image-main decorative-image" style="height: 16em; width:16em; max-width: 45vw; margin: auto;"></div></div>
 
     <section style="flex-basis: 60%; max-width: 32em;  min-width: 22em;" class="window">
-    <p class="align-center">${config['front-page-banner']}</p>
+    <p class="align-center">${config['front_page_banner']}</p>
     </section>
 
     <div style="flex-basis: 20%; min-width: 12em;"></div>
@@ -78,7 +78,7 @@ ${alertsapi.render("alertapi")}
 }
 
 </style>
-    
+
 
     <div class="window margin">
         <header>
@@ -91,7 +91,7 @@ ${alertsapi.render("alertapi")}
             alerts.all[cherrypy.request.params['ackalarm']].API_ack()
         toshow = {}
         l = []
-  
+
         for i in alerts.unacknowledged.values():
             i = i()
             if not i:

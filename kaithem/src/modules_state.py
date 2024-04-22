@@ -110,6 +110,7 @@ def serializeResource(name, obj) -> dict[str, str]:
         return {f"{name}.yaml": yaml.dump(r)}
 
 
+@beartype.beartype
 def writeResource(obj: dict, dir: str, resource_name: str):
     "Write resource into dir"
     # logger.debug("Saving resource to "+str(fn))

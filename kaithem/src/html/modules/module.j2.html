@@ -86,14 +86,14 @@
             </dt>
             {% endif %}
             {% for i in sorted_module_path_list(name, path) %}
-            {% if not 'resource-type' in module[i] %}
-            <p class=error>OBJECT {{ i| escape }} MISSING resource-type</p>
+            {% if not 'resource_type' in module[i] %}
+            <p class=error>OBJECT {{ i| escape }} MISSING resource_type</p>
             <%
                     continue
                     %>
             {% endif %}
 
-            {% if module[i]['resource-type'] == 'permission' %}
+            {% if module[i]['resource_type'] == 'permission' %}
             <dt>
                 <div class="tool-bar w-full inline">
                     <h3>
@@ -106,7 +106,7 @@
                 </div>
             </dt>
             {% endif %}
-            {% if module[i]['resource-type'] == 'internal-fileref' %}
+            {% if module[i]['resource_type'] == 'internal-fileref' %}
             <dt>
                 <div class="tool-bar w-full inline">
                     <h3>
@@ -127,13 +127,13 @@
             </dt>
             {% endif %}
 
-            {% if module[i]['resource-type'] in modules_state.additionalTypes %}
-            {% if modules.additionalTypes[module[i]['resource-type']].mdi_icon %}
+            {% if module[i]['resource_type'] in modules_state.additionalTypes %}
+            {% if modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
             <dt>
                 <div class="tool-bar w-full inline">
                     <h3>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-{{modules.additionalTypes[module[i]['resource-type']].mdi_icon}}"></i>
-                            {{ i.split("/")[-1] | escape }} ({{module[i]['resource-type']}})</a>
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
+                            {{ i.split("/")[-1] | escape }} ({{module[i]['resource_type']}})</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span class="mdi mdi-folder-move"></span>
                         Move</a>
@@ -142,13 +142,13 @@
                 </div>
             </dt>
             <dd>
-                {{modules.additionalTypes[module[i]['resource-type']]._blurb(name,i,module[i] )}}
+                {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i] )}}
             </dd>
             {% endif %}
             {% endif %}
 
 
-            {% if module[i]['resource-type'] == 'device' %}
+            {% if module[i]['resource_type'] == 'device' %}
             <dt>
                 <div class="tool-bar w-full">
                     <h3>
@@ -162,7 +162,7 @@
             </dt>
             {% endif %}
 
-            {% if module[i]['resource-type'] == 'directory' %}
+            {% if module[i]['resource_type'] == 'directory' %}
             <dt>
                 <div class="tool-bar w-full">
                     <h3>
