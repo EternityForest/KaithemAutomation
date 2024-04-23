@@ -584,7 +584,7 @@ ${lists}
                                         title="Track values from previous cue? If false, values not present are always transparent">
                                 </td>
                                 <td data-label="Goto:">
-                                    <button style="min-width: 90%;" v-on:click="jumptocue(i[1].id)">Go</button>
+                                    <button style="min-width: 90%;" v-on:click="jumptocue(i[1].id,  editingScene.id)">Go</button>
                                 </td>
 
                             </tr>
@@ -1204,7 +1204,7 @@ ${lists}
                                         </div>
                                     </label>
                                     <p>
-                                        <button v-on:click="gotonext(currentcueid)">
+                                        <button v-on:click="gotonext(currentcueid,scenename)">
                                             <i class="mdi mdi-arrow-right"></i>Edit Next</button>
                                         <button
                                             title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
@@ -1286,6 +1286,11 @@ ${lists}
                             </label>
 
                             <p>
+                                <label><span class="mdi mdi-lock-alert"></span>
+                                    Require Confirmation for Cue Jumps
+                                    <input :disabled="no_edit" type="checkbox" v-model="currentcue.requireConfirm"
+                                    v-on:change="setSceneProperty(scenename,'requireConfirm', currentcue.requireConfirm)">
+                                </label>
 
                                 <label>Priority
                                     <input :disabled="no_edit" type='number' min=0 max=100

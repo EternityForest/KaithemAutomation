@@ -201,7 +201,9 @@ appMethods = {
     },
 
     'sceneev': function (evt, where) {
-        api_link.send(['event', evt, '', 'str', where])
+        if (confirm_for_scene(where)) {
+            api_link.send(['event', evt, '', 'str', where])
+        }
     },
 
     'refreshhistory': function (sc) {
@@ -308,11 +310,17 @@ appMethods = {
 
         api_link.send(['setCueTriggerShortcut', sc, v]);
     },
+
     'nextcue': function (sc) {
-        api_link.send(['nextcue', sc]);
+        if (confirm_for_scene(sc)) {
+            api_link.send(['nextcue', sc]);
+        }
     },
+
     'prevcue': function (sc) {
-        api_link.send(['prevcue', sc]);
+        if (confirm_for_scene(sc)) {
+            api_link.send(['prevcue', sc]);
+        }
     },
 
     'add_cue': function (sc, v) {
@@ -343,7 +351,11 @@ appMethods = {
         }, 70)
 
     },
-    'gotonext': function (currentcueid) {
+    'gotonext': function (currentcueid, scene) {
+        if (!confirm_for_scenes(scene))
+        {
+            return
+        }
         nextcue = this.cuemeta[currentcueid].next
 
         cue = nextcue || (this.cuemeta[currentcueid].defaultnext)
@@ -372,8 +384,10 @@ appMethods = {
         this.selectedCues[this.scenename] = 'default'
         api_link.send(['rmcue', cue]);
     },
-    'jumptocue': function (cue) {
-        api_link.send(['jumptocue', cue]);
+    'jumptocue': function (cue, scene) {
+        if (confirm_for_scene(scene)) {
+            api_link.send(['jumptocue', cue]);
+        }
     },
     'getcuedata': function (c) {
 
@@ -1556,6 +1570,18 @@ init_api_link = function () {
 
     }
     setInterval(update_meters, 200)
+}
+
+var confirm_for_scene = function (sc) {
+    if (vueapp.$data.scenemeta[sc].requireConfirm) {
+        if (confirm("Confirm Action for Scene: " + vueapp.$data.scenemeta[sc].name)) {
+            return true
+        }
+    }
+    else
+    {
+        return true
+    }
 }
 
 var shortcut = function (sc) {

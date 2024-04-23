@@ -128,7 +128,7 @@
             >
                 <header><h3>Calculator</h3></header>
                     <p>This calculator supports units! Try "5lb+6oz to kg"</p>
-                    <iframe class="undecorated w-full" src="util-calc"></iframe>
+                    <iframe class="undecorated w-full" src="../util-calc"></iframe>
             </article>
 
             <article v-if="showUtils"
@@ -250,7 +250,7 @@
                     v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
 
                     <header>
-                        <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id)" class="cuebutton">
+                        <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id, editingScene.id)" class="cuebutton">
                             <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
                             {{i[1].name}}
                         </button>
@@ -303,7 +303,7 @@
 </section>
 
 
-${module.board.link.render('api_link')}
+${core.boards[boardname].link.render('api_link')}
 
 
 <script type="text/javascript" src="../dyn_js/boardapi.js"></script>
@@ -356,10 +356,10 @@ ${module.board.link.render('api_link')}
             computed: appComputed,
             methods: appMethods,
             components: {
-                "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
-                'cue-countdown': httpVueLoader('static/cue-countdown.vue'),
+                "combo-box": httpVueLoader('../static/vue/ComboBox.vue'),
+                'cue-countdown': httpVueLoader('../static/cue-countdown.vue'),
                 // Currently contains the timers and the display tags for the scenes overview
-                'scene-ui': httpVueLoader('static/scene-ui-controls.vue')
+                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue')
             }
         }).mount("#app")
     init_api_link()

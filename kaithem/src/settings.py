@@ -146,7 +146,7 @@ class Settings:
     def default(self, plugin: str, *a, **k):
         pages.require(page_plugins[plugin].perms)
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        return page_plugins[plugin].handle()
+        return page_plugins[plugin].handle(*a, **k)
 
     @cherrypy.expose
     def loginfailures(self, **kwargs):

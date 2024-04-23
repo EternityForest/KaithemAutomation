@@ -4,15 +4,20 @@ type: object
 properties:
   active:
     type: boolean
-    
+
   alpha:
     description: The default alpha, called default_alpha in the code
     type: number
 
+  require_confirm:
+    type: boolean
+    default: false
+    description: If true, the user must confirm entering a cue to enter it via UI.
+
   backtrack:
     type: boolean
     description: |
-      When jumping to a cue other than the next one, 
+      When jumping to a cue other than the next one,
       apply values from previous cues as if you got there without jumping.
 
   blend:
@@ -73,7 +78,7 @@ properties:
 
   slide_overlay_url:
     type: string
-  
+
   slideshow_layout:
     type: string
     description: Customize the scene web player view

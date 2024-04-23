@@ -109,6 +109,14 @@ class Web:
         )
 
     @cherrypy.expose
+    def commander(self, board: str):
+        """Index page for web interface"""
+        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        pages.require("chandler_operator")
+
+        return get_template("commander.html").render(boardname=board, core=core)
+
+    @cherrypy.expose
     def config(self, board: str):
         """Config page for web interface"""
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"

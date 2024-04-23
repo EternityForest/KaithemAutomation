@@ -17,7 +17,20 @@ import cherrypy
 from icemedia import iceflow
 from scullery import jacktools, scheduling
 
-from kaithem.src import alerts, directories, gstwrapper, messagebus, pages, persist, settings, tagpoints, util, widgets, workers
+from kaithem.src import (
+    alerts,
+    dialogs,
+    directories,
+    gstwrapper,
+    messagebus,
+    modules_state,
+    pages,
+    settings,
+    tagpoints,
+    util,
+    widgets,
+    workers,
+)
 from kaithem.src.plugins.CorePluginJackMixer import mixerfx
 
 global_api = widgets.APIWidget()
@@ -875,19 +888,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.board.api.send(["mute", self.name, self.mute])
 
 
-class ChannelInterface:
-    def __init__(self, name, effectData={}, mixingboard=None):
-        if not mixingboard:
-            mixingboard = board
-        self.channel = board.createChannel(name, effectData)
-
-    def fader(self):
-        return self.board.getFader()
-
-    def __del__(self):
-        board.deleteChannel(self.name)
-
-
 def checkIfProcessRunning(processName):
     """
     Check if there is any running process that contains the given name processName.
@@ -914,11 +914,17 @@ actionLockout = {}
 
 
 class MixingBoard:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, module: str, resource: str, data=None, *args, **kwargs):
         class WrappedLink(widgets.APIWidget):
             def on_new_subscriber(s, user, cid, **kw):
                 self.sendState()
 
+        self.module = module
+        self.resource = resource
+
+        self.resourcedata: modules_state.ResourceDictType = data or {"presets": {}}
+        if "presets" not in self.resourcedata:
+            self.resourcedata["presets"] = {}
         self.api = WrappedLink()
         self.api.require("system_admin")
         self.api.attach(self.f)
@@ -936,6 +942,10 @@ class MixingBoard:
         messagebus.subscribe("/system/jack/started", f)
         self.reloader = f
         self.loadedPreset = "default"
+
+        if "default" in self.resourcedata["presets"]:
+            self.loadPreset("default")
+
         self.checker = scheduling.scheduler.every_minute(self.poll)
 
     def loadData(self, d):
@@ -1159,7 +1169,8 @@ class MixingBoard:
             raise ValueError("Empty preset name")
         with self.lock:
             util.disallowSpecialChars(presetName)
-            persist.save(self.channels, os.path.join(presetsDir, f"{presetName}.yaml"))
+            self.resourcedata["presets"][presetName] = self.channels
+            modules_state.rawInsertResource(self.module, self.resource, self.resourcedata)
 
             self.loadedPreset = presetName
             self.api.send(["loadedPreset", self.loadedPreset])
@@ -1174,8 +1185,8 @@ class MixingBoard:
             for i in x:
                 self._deleteChannel(i)
 
-            if os.path.isfile(os.path.join(presetsDir, f"{presetName}.yaml")):
-                self._loadData(persist.load(os.path.join(presetsDir, f"{presetName}.yaml")))
+            if presetName in self.resourcedata["presets"]:  # type: ignore
+                self._loadData(self.resourcedata["presets"][presetName])  # type: ignore
             else:
                 log.error(f"No such preset {str(presetName)}")
 
@@ -1315,22 +1326,21 @@ class MixingBoard:
 
         workers.do(f2)
 
-
-board = MixingBoard()
-
-try:
-    board.loadPreset("default")
-except Exception:
-    messagebus.post_message("/system/notifications/errors", "Could not load default preset for JACK mixer")
-    log.exception("Could not load default preset for JACK mixer. Maybe it doesn't exist?")
+    def stop(self):
+        # Shut down in opposite order we started in
+        with self.lock:
+            self.running = False
+            for i in list(self.channelObjects.keys()):
+                self.channelObjects[i].stop(at_exit=True)
 
 
 def STOP():
     # Shut down in opposite order we started in
-    with board.lock:
-        board.running = False
-        for i in board.channelObjects:
-            board.channelObjects[i].stop(at_exit=True)
+    for board in boards.values():
+        with board.lock:
+            board.running = False
+            for i in board.channelObjects:
+                board.channelObjects[i].stop(at_exit=True)
 
 
 cherrypy.engine.subscribe("stop", STOP, priority=30)
@@ -1340,20 +1350,68 @@ td = os.path.join(os.path.dirname(__file__), "html", "mixer.html")
 
 
 class Page(settings.PagePlugin):
-    def handle(self, *a, **k):
+    def handle(self, boardname: str, *a, **k):
         from kaithem.src import directories
 
-        return pages.get_template(td).render(os=os, board=board, global_api=global_api, directories=directories)
+        return pages.get_template(td).render(os=os, board=boards[boardname], global_api=global_api, directories=directories)
 
 
 p = Page("mixer", ("system_admin",), title="Mixing Board")
 
 
-def nbr():
-    return (
-        50,
-        '<a href="/settings/mixer"><i class="mdi mdi-volume-high"></i>Mixer</a>',
-    )
+boards: dict[str, MixingBoard] = {}
 
 
-pages.nav_bar_plugins["mixer"] = nbr
+class MixingBoardType(modules_state.ResourceType):
+    def blurb(self, module, resource, object):
+        return f"""
+        <div class="tool-bar">
+            <a href="/settings/mixer/{module}:{resource}">
+            Mixing Board</a>
+        </div>
+        """
+
+    def onload(self, module, resourcename, value):
+        x = boards.pop(f"{module}:{resourcename}", None)
+        boards[f"{module}:{resourcename}"] = MixingBoard(module, resourcename, value)
+        if x:
+            x.stop()
+
+    def onmove(self, module, resource, toModule, toResource, resourceobj):
+        x = boards.pop(f"{module}:{resource}", None)
+        if x:
+            boards[f"{toModule}:{toResource}"] = x
+
+    def onupdate(self, module, resource, obj):
+        self.onload(module, resource, obj)
+
+    def ondelete(self, module, name, value):
+        boards[f"{module}:{name}"].stop()
+        del boards[f"{module}:{name}"]
+
+    def oncreaterequest(self, module, name, kwargs):
+        d = {"resource_type": self.type}
+        return d
+
+    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+        d = resourceobj
+        kwargs.pop("name", None)
+        kwargs.pop("Save", None)
+        return d
+
+    def createpage(self, module, path):
+        d = dialogs.SimpleDialog("New Config Entries")
+        d.text_input("name", title="Resource Name")
+
+        d.submit_button("Save")
+        return d.render(self.get_create_target(module, path))
+
+    def editpage(self, module, name, value):
+        d = dialogs.SimpleDialog("Editing Config Entries")
+        d.text("Edit the board in the mixer UI")
+
+        return d.render(self.get_update_target(module, name))
+
+
+drt = MixingBoardType("mixing_board", mdi_icon="tune-vertical-variant")
+modules_state.additionalTypes["mixing_board"] = drt

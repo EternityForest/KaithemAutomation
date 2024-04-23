@@ -20,6 +20,9 @@ Change Log
 - :sparkles: Configurable tag points are back! This time much simpler, as a resource plugin.
 - :sparkles: Config files, resource top level keys, and tag points snake_case, enforced by auto conversion.
 
+
+- :sparkles: :boom: Chandler boards and audio mixers are resources now. There's no global, and you can have multiple.  Universes are global so that boards can share DMX interfaces, but resources are not.
+
 ### 0.79.0
 
 Development is advanced enough on the new overhaul that it makes sense

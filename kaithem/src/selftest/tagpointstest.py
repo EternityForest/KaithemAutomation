@@ -110,7 +110,7 @@ def testTags():
 
     t2 = tagpoints.Tag("=tv('/testTagPointSelftestA')+10")
 
-    if not t == 100:
+    if not t2.value == 100:
         raise RuntimeError("Expression tagpoint didn't work")
 
     t.value = 40

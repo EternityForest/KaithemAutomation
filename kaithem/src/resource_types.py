@@ -24,7 +24,7 @@ class ResourceType:
     .
     """
 
-    def __init__(self, type: str, mdi_icon="", schema=None, priority=50.0):
+    def __init__(self, type: str, mdi_icon="", schema=None, priority=50.0, title=""):
         """ "Schema may be a JSON schema, representing a dict,
         which must validate the resource, but should not include any
         key beginning with resource_ as those are internal and reserved.
@@ -39,6 +39,7 @@ class ResourceType:
         self.createButton = None
         self.schema: dict | None = schema
         self.priority = priority
+        self.title = title or type.capitalize()
 
     def scan_dir(self, dir: str) -> dict[str, ResourceDictType]:
         """Given a directory path, scan for any resources stored

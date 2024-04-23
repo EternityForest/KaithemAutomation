@@ -1,6 +1,6 @@
 <%!
 from kaithem.src.config import config
-from kaithem.src import auth,util,notifications,pages,modules,modules_state,theming,devices,persist
+from kaithem.src import auth,util,notifications,pages,modules,modules_state,theming,devices,persist, settings_overrides
 import cherrypy,socket,base64
 %>
 
@@ -118,18 +118,9 @@ import cherrypy,socket,base64
 
 
 
-      <%
-      nbp = []
-      for i in pages.nav_bar_plugins:
-        x = pages.nav_bar_plugins[i]()
-        if x:
-          nbp.append(x)
-        nbp=sorted(nbp)
-      %>
-      %for i in nbp:
-      ${i[1]}
+      %for i in pages.get_bar_plugins():
+      ${i}
       %endfor
-
 
 
       <a href="/modules/"><i class="mdi mdi-briefcase-variant-outline"></i>
@@ -142,7 +133,6 @@ import cherrypy,socket,base64
 
           <a href="/tagpoints"><i class="mdi mdi-chart-bar-stacked"></i>Tags</a>
 
-        <a href="/settings/mixer"><i class="mdi mdi-volume-high"></i>Mixer</a>
 
         <a href="/settings" >
           <i class="mdi mdi-cog-outline"></i>

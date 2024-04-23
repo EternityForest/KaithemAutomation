@@ -267,40 +267,11 @@ class Scene:
         slide_overlay_url: str = "",
         slideshow_layout: str = "",
         music_visualizations: str = "",
+        requre_confirm: bool = False,
         mqtt_sync_features: dict[str, Any] | None = None,
         **ignoredParams,
     ):
         """
-
-
-        Args:
-            name (str): _description_
-            cues (_type_, optional):
-            active (bool, optional):
-            alpha (float, optional):
-            priority (float, optional):
-            blend (str, optional):
-            id (Optional[str], optional):
-            default_active (bool, optional):
-            blend_args (Optional[Dict[str, Any]], optional):
-            backtrack (bool, optional):
-            bpm (float, optional):
-            sound_output (str, optional):
-            event_buttons (List[Iterable[str]], optional): List of ButtonLabel, EventName pairs
-            display_tags (list, optional):
-            info_display (str, optional):
-            utility (bool, optional):
-            hide (bool):
-            notes (str, optional):
-            mqtt_server (str, optional):
-            crossfade (int, optional):
-            midi_source (str, optional):
-            default_next (str, optional):
-            command_tag (str, optional):
-            slide_overlay_url (str, optional):
-            slideshow_layout (str, optional):
-            music_visualizations (str, optional):
-            mqtt_sync_features (_type_, optional):
 
         Raises:
             RuntimeError: _description_
@@ -322,6 +293,8 @@ class Scene:
         self.mqttSubscribed: dict[str, bool]
 
         self.on_demand_universes: dict[str, universes.Universe] = {}
+
+        self.require_confirm = requre_confirm
 
         disallow_special(name)
 

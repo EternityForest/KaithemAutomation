@@ -13,7 +13,7 @@ import cherrypy
 import jinja2
 from mako.lookup import TemplateLookup
 
-from . import auth, directories
+from . import auth, directories, settings_overrides
 
 _Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(directories.htmldir, "makocomponents"), "/"])
 get_template = _Lookup.get_template
@@ -51,6 +51,40 @@ def get_vardir_template(fn):
 
 
 nav_bar_plugins = weakref.WeakValueDictionary()
+
+
+def get_bar_plugins():
+    nbp = []
+    c = settings_overrides.get_by_prefix("/core/navbar_links/")
+    for i in c:
+        v = c[i]
+        v = v.strip()
+
+        icon = ""
+        if v.startswith("mdi-"):
+            icon, v = v.split(" ", 1)
+            # Remove mdi- part
+            icon = icon[4:]
+
+        try:
+            nbp.append(
+                (
+                    i,
+                    f"""<a href="{v.split(':',1)[-1]}" >
+                        <i class="mdi mdi-{icon}"></i>{v.split(':',1)[0]}</a>""",
+                )
+            )
+        except Exception:
+            pass
+
+    for i in nav_bar_plugins:
+        x = nav_bar_plugins[i]()
+        if x:
+            nbp.append((i, x))
+    nbp = sorted(nbp)
+
+    for i in nbp:
+        yield i[1]
 
 
 # There are cases where this may not exactly be perfect,

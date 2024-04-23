@@ -111,8 +111,8 @@
       </a>
       {% endif %}
 
-      {% for i in sorted(list(pages.nav_bar_plugins.keys())) %}
-      {{ pages.nav_bar_plugins[i]()[1] or '' |safe}}
+      {% for i in pages.get_bar_plugins()%}
+      {{ i |safe}}
       {% endfor %}
 
 
@@ -127,7 +127,6 @@
 
       <a href="/tagpoints"><i class="mdi mdi-tag-multiple"></i>Tags</a>
 
-      <a href="/settings/mixer"><i class="mdi mdi-volume-high"></i>Mixer</a>
 
       <a href="/settings">
         <i class="mdi mdi-cog-outline"></i>

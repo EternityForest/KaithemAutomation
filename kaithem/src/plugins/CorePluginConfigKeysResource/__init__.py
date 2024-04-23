@@ -34,7 +34,7 @@ entries: dict[tuple[str, str], Entries] = {}
 class ConfigType(modules_state.ResourceType):
     def onload(self, module, resourcename, value):
         x = entries.pop((module, resourcename), None)
-        entries[module, resourcename] = Entries((module, resourcename), value["data"], float(value.get("config-priority", 50)))
+        entries[module, resourcename] = Entries((module, resourcename), value["data"], float(value.get("config_priority", 50)))
         if x:
             x.close()
 
@@ -50,7 +50,7 @@ class ConfigType(modules_state.ResourceType):
         del entries[module, name]
 
     def oncreaterequest(self, module, name, kwargs):
-        pr = kwargs.pop("config-priority")
+        pr = kwargs.pop("config_priority", "50")
         d = {"resource_type": self.type, "data": {kwargs["key"]: kwargs["value"]}}
         d["config_priority"] = float(pr.strip())
 
@@ -63,7 +63,7 @@ class ConfigType(modules_state.ResourceType):
 
         n = kwargs.pop("_newkey", None)
         v = kwargs.pop("_newv", None)
-        pr = kwargs.pop("config-priority")
+        pr = kwargs.pop("config_priority")
 
         if n and v:
             d["data"][n] = v.strip()
@@ -87,7 +87,7 @@ class ConfigType(modules_state.ResourceType):
         d.text_input("name", title="Resource Name", suggestions=[(i, i) for i in settings_overrides.list_keys()])
         d.text_input("key", title="Config Key")
         d.text_input("value", title="Config Value", multiline=True)
-        d.text_input("priority", title="Config Priority", default="50")
+        d.text_input("config_priority", title="Config Priority", default="50")
 
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
@@ -102,7 +102,7 @@ class ConfigType(modules_state.ResourceType):
         for i in sorted(list(value["data"].keys())):
             d.text_input(i, title=i, default=value["data"][i], multiline=True)
         d.text("")
-        d.text_input("config-priority", title="Config Priority", default=str(value.get("config-priority", "50")))
+        d.text_input("config_priority", title="Config Priority", default=str(value.get("config-priority", "50")))
 
         d.text_input("_newkey", title="Add New Key?", suggestions=suggestions)
         d.text_input("_newv", title="Value For New Key?", multiline=True)

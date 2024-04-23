@@ -1,3 +1,4 @@
+import functools
 import threading
 
 import beartype
@@ -17,6 +18,18 @@ def list_keys() -> list[str]:
         return list(settings.keys())
 
 
+@functools.lru_cache(32)
+def get_by_prefix(prefix: str) -> dict[str, str]:
+    r = {}
+    with lock:
+        lst = list_keys()
+        for i in lst:
+            if i.startswith(prefix):
+                r[i] = get_val(i)
+        return r
+
+
+@functools.lru_cache(256)
 def get_val(key: str) -> str:
     "Returns the highest priority setting for the key"
     with lock:
@@ -51,6 +64,9 @@ def add_val(key: str, value: str, source: str = "<code>", priority: float | int 
                 del settings[key][priority, source]
             except KeyError:
                 pass
+
+        get_val.cache_clear()
+        get_by_prefix.cache_clear()
 
 
 with lock:

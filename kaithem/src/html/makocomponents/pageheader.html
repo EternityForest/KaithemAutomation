@@ -106,21 +106,9 @@ import cherrypy,socket,base64
     %endif
 
 
-
-
-      <%
-      nbp = []
-      for i in pages.nav_bar_plugins:
-        x = pages.nav_bar_plugins[i]()
-        if x:
-          nbp.append(x)
-        nbp=sorted(nbp)
-      %>
-      %for i in nbp:
-      ${i[1]}
+      %for i in pages.get_bar_plugins():
+      ${i}
       %endfor
-
-
 
       <a href="/modules/"><i class="mdi mdi-briefcase-variant-outline"></i>
         Modules</a>

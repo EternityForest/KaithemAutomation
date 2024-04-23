@@ -1,8 +1,8 @@
 import copy
-from kaithem.src import modules_state
-from kaithem.src import dialogs
-from . import WebChandlerConsole
-from . import core
+
+from kaithem.src import dialogs, modules_state
+
+from . import WebChandlerConsole, core
 
 entries: dict[tuple[str, str], WebChandlerConsole.WebConsole] = {}
 
@@ -19,18 +19,18 @@ def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
 
     c.save_callback = save
 
-class ConfigType(modules_state.ResourceType):
 
+class ConfigType(modules_state.ResourceType):
     def blurb(self, module, resource, object):
         return f"""
         <div class="tool-bar">
-            <a href="f"/chandler/editor/{module}:{resource}">
+            <a href="/chandler/editor/{module}:{resource}">
             Editor</a>
 
-            <a href="f"/chandler/commander/{module}:{resource}">
+            <a href="/chandler/commander/{module}:{resource}">
             Commander</a>
 
-            <a href="f"/chandler/editor/config{module}:{resource}">
+            <a href="/chandler/editor/config{module}:{resource}">
             Fixtures Config</a>
         </div>
         """
@@ -44,7 +44,7 @@ class ConfigType(modules_state.ResourceType):
         if x:
             x.close()
 
-        core.boards[f"{module}:{resourcename}"].setup(value.get('project',{}))
+        core.boards[f"{module}:{resourcename}"].setup(value.get("project", {}))
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
         x = entries.pop((module, resource), None)
@@ -91,5 +91,5 @@ class ConfigType(modules_state.ResourceType):
         return d.render(self.get_update_target(module, name))
 
 
-drt = ConfigType("chandler_board", mdi_icon="castle")
+drt = ConfigType("chandler_board", mdi_icon="castle", priority=60, title="Chandler Board")
 modules_state.additionalTypes["chandler_board"] = drt
