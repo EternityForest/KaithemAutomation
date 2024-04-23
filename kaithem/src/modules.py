@@ -132,7 +132,7 @@ class Permission(modules_state.ResourceObject):
 
 
 class InternalFileRef(modules_state.ResourceObject):
-    resourceType = "internal-fileref"
+    resourceType = "internal_fileref"
 
     def getPath(self):
         "Return the actual path on the filesystem of things"
@@ -167,7 +167,7 @@ class ModuleObject:
         elif resourcetype == "permission":
             x = Permission(module, name, x)
 
-        elif resourcetype == "internal-fileref":
+        elif resourcetype == "internal_fileref":
             x = InternalFileRef(module, name, x)
 
         return x
@@ -443,7 +443,7 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
 
     handleResourceChange(module, resourcename)
 
-    if r["resource_type"] == "internal-fileref":
+    if r["resource_type"] == "internal_fileref":
         # Handle two separate ways of handling these file resources.
         # One is to store them directly in the module data in a special folder.
         # That's what we do if we are using an external folder
@@ -555,7 +555,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                         if "resource_type" not in r:
                             logger.warning(f"No resource type found for {resourcename}")
                             continue
-                        if r["resource_type"] == "internal-fileref":
+                        if r["resource_type"] == "internal_fileref":
                             fileResourceAbsPaths[modulename, resourcename] = os.path.join(
                                 folder, "__filedata__", url(resourcename, safeFnChars)
                             )
@@ -631,7 +631,7 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
                 if f not in s:
                     rt = True
                     module[util.unurl(data_basename)] = {
-                        "resource_type": "internal-fileref",
+                        "resource_type": "internal_fileref",
                         "target": f"$MODULERESOURCES/{data_basename}",
                         "ephemeral": True,
                     }
@@ -672,7 +672,7 @@ def getModuleAsYamlZip(module, noFiles=True):
             # AFAIK Zip files fake the directories with naming conventions
             s, ext = serializeResource(resource, modules_state.ActiveModules[module][resource])
             z.writestr(f"{url(module, ' ')}/{url(resource, safeFnChars)}{ext}", s)
-            if modules_state.ActiveModules[module][resource]["resource_type"] == "internal-fileref":
+            if modules_state.ActiveModules[module][resource]["resource_type"] == "internal_fileref":
                 if noFiles:
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
 
@@ -716,7 +716,7 @@ def load_modules_from_zip(f, replace=False):
                         raise RuntimeError("Attempting to decode file " + str(i) + " resulted in a name of None")
 
                     new_modules[p][n] = r
-                    if r["resource_type"] == "internal-fileref":
+                    if r["resource_type"] == "internal_fileref":
                         newfrpaths[p, n] = os.path.join(
                             directories.vardir,
                             "modules",
@@ -867,7 +867,7 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
 
     assert isinstance(rt, str)
 
-    if rt == "internal-fileref":
+    if rt == "internal_fileref":
         old = fileResourceAbsPaths[toModule, toResource]
         m = getModuleDir(toModule)
         m = os.path.join(m, "__filedata__", toResource)
@@ -915,7 +915,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         assert isinstance(rt, str)
 
         # Filerefs also handled by the pages object
-        if rt == "internal-fileref":
+        if rt == "internal_fileref":
             try:
                 os.remove(fileResourceAbsPaths[module, resource])
             except Exception:
@@ -1048,7 +1048,7 @@ def handleResourceChange(module, resource, obj=None, newly_added=False):
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
-        elif t == "internal-fileref":
+        elif t == "internal_fileref":
             pass
         else:
             if not newly_added:

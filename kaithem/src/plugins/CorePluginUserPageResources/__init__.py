@@ -216,15 +216,15 @@ class CompiledPage:
             else:
                 self.permissions = []
 
-            self.theme = resource.get("theme-css-url", "")
-            self.alt_top_banner = resource.get("alt-top-banner", "")
+            self.theme = resource.get("theme_css_url", "")
+            self.alt_top_banner = resource.get("alt_top_banner", "")
 
-            if "allow-xss" in resource:
+            if "allow_xss" in resource:
                 self.xss = resource["allow_xss"]
             else:
                 self.xss = False
 
-            if "allow-origins" in resource:
+            if "allow_origins" in resource:
                 self.origins = resource["allow_origins"]
             else:
                 self.origins = []
@@ -237,7 +237,7 @@ class CompiledPage:
                 self.streaming = resource.get("streaming-response", False)
 
                 self.mime = resource.get("mimetype", "text/html") or "text/html"
-                if "require-method" in resource:
+                if "require_method" in resource:
                     self.methods = resource["require_method"]
                 else:
                     self.methods = ["POST", "GET"]
@@ -261,10 +261,6 @@ class CompiledPage:
                     if resource["no_header"]:
                         header = ""
 
-                if "auto-reload" in resource:
-                    if resource["auto_reload"]:
-                        header += f'<meta http-equiv="refresh" content="{resource["auto_reload_interval"]}">'
-
                 if "no-header" not in resource or not (resource["no_header"]):
                     footer = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pagefooter.html"))
                 else:
@@ -280,7 +276,7 @@ class CompiledPage:
                 if m in modules_state.scopes:
                     self.scope["module"] = modules_state.scopes[m]
 
-                if "template-engine" not in resource or resource["template_engine"] == "mako":
+                if "template_engine" not in resource or resource["template_engine"] == "mako":
                     # Add in the separate code
 
                     usejson = False
@@ -575,7 +571,7 @@ class KaithemPage:
             rn = "/".join(args)
             x = modules_state.ActiveModules[module].get(rn, None)
 
-            if x and x["resource_type"] == "internal-fileref":
+            if x and x["resource_type"] == "internal_fileref":
                 fn = modules_state.fileResourceAbsPaths[module, rn]
                 mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
                 if x.get("serve", False):
@@ -736,7 +732,7 @@ class PageType(modules_state.ResourceType):
 
         name = name.split("/")[-1]
 
-        if resource.get("template-engine", "") == "markdown":
+        if resource.get("template_engine", "") == "markdown":
             b = resource["body"]
             del resource["body"]
             d = "---\n" + yaml.dump(resource) + "\n---\n" + b
@@ -816,14 +812,12 @@ class PageType(modules_state.ResourceType):
 
         resourceobj["mimetype"] = kwargs["mimetype"]
         resourceobj["template_engine"] = kwargs["template_engine"]
-        resourceobj["no_navheader"] = "no-navheader" in kwargs
-        resourceobj["streaming_response"] = "streaming-response" in kwargs
+        resourceobj["no_navheader"] = "nonavheader" in kwargs
+        resourceobj["streaming_response"] = "streaming_response" in kwargs
 
-        resourceobj["no_header"] = "no-header" in kwargs
-        resourceobj["auto_reload"] = "autoreload" in kwargs
-        resourceobj["allow_xss"] = "allow-xss" in kwargs
+        resourceobj["no_header"] = "no_header" in kwargs
+        resourceobj["allow_xss"] = "allow_xss" in kwargs
         resourceobj["allow_origins"] = [i.strip() for i in kwargs["allow_origins"].split(",")]
-        resourceobj["auto_reload_interval"] = float(kwargs["autoreloadinterval"])
         # Method checkboxes
         resourceobj["require_method"] = []
         if "allow-GET" in kwargs:

@@ -8,7 +8,7 @@ code: ''
 mimetype: text/html
 no-header: false
 no-navheader: false
-require-method:
+require_method:
 - GET
 require-permissions:
 - view_nvr
@@ -16,7 +16,7 @@ resource-timestamp: 1675750898769122
 resource-type: page
 setupcode: ''
 streaming-response: false
-template-engine: mako
+template_engine: mako
 
 ---
 <%!
@@ -60,7 +60,7 @@ __doc__= "#Python Code here runs every page load"
                 <div v-if="tab=='multiview'"  style="">
 
                   <div class="tool-bar" style="width:100%">
-                  
+
                     <button v-on:click="goFSWall()"><i class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
 
                   </div>
@@ -70,7 +70,7 @@ __doc__= "#Python Code here runs every page load"
                         <details><summary>Help</summary>
                         Take up to 4 URLs or wall builder codes and assemble them into a display.
                         Note that this does not get saved anywhere, instead, the you just bookmark the generated link to get back.
-                        You can embed *any* page into a wall so long as it fits in the quarter-screen size. 
+                        You can embed *any* page into a wall so long as it fits in the quarter-screen size.
                         </details>
 
                       <table>
@@ -89,13 +89,13 @@ __doc__= "#Python Code here runs every page load"
                       <a :href="'fswall?viewslots='+encodeURIComponent(JSON.stringify(viewSlots))">Just the wall</a>
 
                     </div>
-                    
+
                     <div  id="videowall" style="display: flex; flex-wrap: wrap;min-height:80vh;">
                     <template v-for="v,i in viewSlots">
                     <div v-if="viewSlots[i]" style="min-width:49%; max-width:99%; max-height:49%; flex-grow: 2; background-color: black;">
                         <iframe :src="viewSlots[i]" style="overflow: auto; width: 100%; height:100%;">
                         </iframe>
-                    </div> 
+                    </div>
                     </template>
                     </div>
                   </div>
@@ -137,9 +137,9 @@ __doc__= "#Python Code here runs every page load"
                           <td><input type="number" step="0.1" v-model="rtplayerSepia"></td>
                         </tr>
                       </table>
-                      
+
                       <h4>Embeddable Viewer Code for wall builder</h4>
-                  
+
                       <details><summary>Help</summary>
                         Copy and paste this into a wall builder slot, or anywhere else you'd like to to embed a camera feed.
                         </details>
@@ -147,18 +147,18 @@ __doc__= "#Python Code here runs every page load"
 
                       <h4>Fullscreen Link</h4>
                       <p><a :href="makeFullRtPlaybackUrl()+'&fs=1'">Link</a></p>
-                  
+
                       <h3>JPEG Snapshot</h3>
                       <p><a :href="'serve_jpg?device='+selectedRTCam">Link</a></p>
-                  
+
                     </div>
 
                     <div style="min-width:30vw; flex-grow: 2; background-color: black;" v-if="rtPlaybackUrl">
 
                         <iframe :src="makeFullRtPlaybackUrl()+'&controls=1'" id="playback-iframe" style="overflow: auto">
                         </iframe>
-                  
-                    </div> 
+
+                    </div>
                 </div>
 
 
@@ -194,7 +194,7 @@ __doc__= "#Python Code here runs every page load"
 
                     <iframe :src="playbackURL" scrolling="no" id="playback-iframe" style="overflow: auto">
                     </iframe>
-                  
+
                 </div>
                 </div>
               </div>
@@ -209,7 +209,7 @@ __doc__= "#Python Code here runs every page load"
   {
         message: 'Hello Vue!',
         tab: "${'multiview' if 'viewslots' in kwargs else 'playback'}",
-        
+
         searchcam:'',
         searchtime: "${datetime.datetime.now().strftime('%Y-%m-%d')}",
         fileSet: [],
@@ -238,7 +238,7 @@ __doc__= "#Python Code here runs every page load"
             document.getElementById("app").requestFullscreen()
         },
 
-      
+
 
         goFSWall : function(){
             document.getElementById("videowall").requestFullscreen()

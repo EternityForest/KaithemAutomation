@@ -5,10 +5,9 @@ continual: false
 enable: true
 once: true
 priority: interactive
-rate-limit: 0.0
+rate_limit: 0.0
 resource-timestamp: 1645141613510257
 resource-type: event
-
 """
 
 __trigger__ = "False"

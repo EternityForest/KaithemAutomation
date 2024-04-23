@@ -7,7 +7,7 @@ auto-reload-interval: 5.0
 mimetype: text/html
 no-header: false
 no-navheader: false
-require-method:
+require_method:
 - GET
 - POST
 require-permissions:
@@ -15,7 +15,7 @@ require-permissions:
 resource-timestamp: 1646332981520065
 resource-type: page
 streaming-response: true
-template-engine: mako
+template_engine: mako
 
 ---
 <%!
@@ -37,7 +37,7 @@ dir = os.path.expanduser(device.config['device.storage_dir'])
 for i in path:
     if i.startswith("/"):
         raise RuntimeError("security")
-        
+
 clip = os.path.join(dir,*path[1:])
 
 if (device.segmentDir  and device.segmentDir in clip) or (device.activeSegmentDir and device.activeSegmentDir in clip):

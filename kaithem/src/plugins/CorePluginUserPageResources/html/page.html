@@ -7,7 +7,7 @@ import traceback
 #Detect self self-modifying.
 #I am very usure as to if this detecion is proper or if it should be an option. But self-modifyability is
 #a property of the document itself so it kinda makes sense.
-noCodeEdits= ("32b9dd60-5023-4dbc-b598-473e74d4c88b" in page['body'] or "</freeboard-data>" in page['body']) and not 'editanyway' in kwargs
+noCodeEdits= ("32b9dd60-5023-4dbc-b598-473e74d4c88b" in page['body']) and not 'editanyway' in kwargs
 
 page['setupcode'] = page.get('setupcode','')
 
@@ -192,9 +192,9 @@ window.onbeforeunload = function(){
 </details>
 <div class="max-h-12rem scroll border">
 
-<input type="checkbox"  name="streaming-response" value="true"
-    %if 'streaming-response' in page:
-       %if page['streaming-response'] == True:
+<input type="checkbox"  name="streaming_response" value="true"
+    %if 'streaming_response' in page:
+       %if page['streaming_response'] == True:
        checked="yes"
        %endif
    %endif
@@ -204,9 +204,9 @@ window.onbeforeunload = function(){
   ></input>kaithem.web.serve_file streaming response<br>
 
 
-<input type="checkbox"  name="no-navheader" value="true"
-         %if 'no-navheader' in page:
-            %if page['no-navheader'] == True:
+<input type="checkbox"  name="no_navheader" value="true"
+         %if 'no_navheader' in page:
+            %if page['no_navheader'] == True:
             checked="yes"
             %endif
         %endif
@@ -215,9 +215,9 @@ window.onbeforeunload = function(){
         %endif
        ></input>Don't show the navigation header on this page<br>
 
-<input type="checkbox"  name="no-header" value="true"
-         %if 'no-header' in page:
-            %if page['no-header'] == True:
+<input type="checkbox"  name="no_header" value="true"
+         %if 'no_header' in page:
+            %if page['no_header'] == True:
             checked="yes"
             %endif
          %endif
@@ -227,24 +227,24 @@ window.onbeforeunload = function(){
        ></input>Don't add any additional content(raw plaintext/webservice mode)<br>
 
 
-Preprocess Engine:<select name="template-engine"
+Preprocess Engine:<select name="template_engine"
 
         %if not can_edit:
                     disabled=1\
         %endif
        >
 
-    <option value="jinja2" ${'selected' if page.get('template-engine','mako')== 'jinja2' else ''}>Jinja2</option>
-    % if page.get('template-engine','mako')== 'mako':
-    <option value="mako" ${'selected' if page.get('template-engine','mako')== 'mako' else ''}>Mako</option>
+    <option value="jinja2" ${'selected' if page.get('template_engine','mako')== 'jinja2' else ''}>Jinja2</option>
+    % if page.get('template_engine','mako')== 'mako':
+    <option value="mako" ${'selected' if page.get('template_engine','mako')== 'mako' else ''}>Mako</option>
     % endif
-    <option value="markdown" ${'selected' if  page.get('template-engine','mako')== 'markdown' else ''}>Display markdown</option>
-    <option value="none" ${'selected' if  page.get('template-engine','mako')== 'none' else ''}>Serve text as-is</option>
+    <option value="markdown" ${'selected' if  page.get('template_engine','mako')== 'markdown' else ''}>Display markdown</option>
+    <option value="none" ${'selected' if  page.get('template_engine','mako')== 'none' else ''}>Serve text as-is</option>
     </select><br>
 
 <input type="checkbox"  name="allow-GET" value="true"
-         %if 'require-method' in page:
-            %if 'GET' in page['require-method']:
+         %if 'require_method' in page:
+            %if 'GET' in page['require_method']:
             checked="yes"
             %endif
          %else:
@@ -255,8 +255,8 @@ Preprocess Engine:<select name="template-engine"
        ></input>Make this page acessable by GET requests<br>
 
 <input type="checkbox"  name="allow-POST" value="true"
-         %if 'require-method' in page:
-            %if 'POST' in page['require-method']:
+         %if 'require_method' in page:
+            %if 'POST' in page['require_method']:
             checked="yes"
             %endif
          %else:
@@ -265,29 +265,6 @@ Preprocess Engine:<select name="template-engine"
                     disabled=1\
         %endif
        ></input>Make this page acessable by POST requests<br>
-
-<input type="checkbox"  name="autoreload" value="true"
-         %if 'auto-reload' in page:
-            %if page['auto-reload']:
-                checked="yes"
-            %endif
-         %endif
-        %if not can_edit:
-                    disabled=1\
-        %endif
-       ></input>This page should auto-refresh every
-
-<input type="number" step=0.1 name="autoreloadinterval" size=6em
-        %if 'auto-reload-interval' in page:
-                value= ${page['auto-reload-interval']}
-        %else:
-                value= 5.0
-        %endif
-        %if not can_edit:
-                    disabled=1\
-        %endif
-       ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)<br>
-
 
 MIME type:<input step=0.1 name="mimetype" size=6em
         %if 'mimetype' in page:
@@ -301,9 +278,9 @@ MIME type:<input step=0.1 name="mimetype" size=6em
        ></input><br>
 
 
-<input type="checkbox" name="allow-xss"
-        %if 'allow-xss' in page:
-            %if page['allow-xss']:
+<input type="checkbox" name="allow_xss"
+        %if 'allow_xss' in page:
+            %if page['allow_xss']:
                 checked="yes"
             %endif
         %endif
@@ -313,14 +290,14 @@ MIME type:<input step=0.1 name="mimetype" size=6em
        ></input>Allow cross-origin requests from(comma separated, * means any)
 <%
 origins = ""
-if 'allow-origins' in page:
-    for i in page['allow-origins']:
+if 'allow_origins' in page:
+    for i in page['allow_origins']:
         origins = origins+i+", "
     origins = origins[:-2]
 else:
     origins = "*"
 %>
-<input type="text"  name="allow-origins"
+<input type="text"  name="allow_origins"
         value= "${origins|h}"
         %if not can_edit:
                     disabled=1\
@@ -330,7 +307,7 @@ else:
 
         <label>Theme
             <input type="text"  name="themecss" list="themes"
-                    value= "${page.get('theme-css-url','')|h}"
+                    value= "${page.get('theme_css_url','')|h}"
                     %if not can_edit:
                                 disabled=1\
                     %endif
@@ -339,7 +316,7 @@ else:
             </label>
 
     <label>Alt top banner text(Applies when nav disabled)<input type="text"  name="alttopbanner"
-    value= "${page.get('alt-top-banner','')|h}"
+    value= "${page.get('alt_top_banner','')|h}"
     %if not can_edit:
                 disabled=1\
     %endif

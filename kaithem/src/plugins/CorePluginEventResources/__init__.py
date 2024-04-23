@@ -1650,7 +1650,7 @@ def make_event_from_resource(module: str, resource: str, subst: modules_state.Re
     else:
         setupcode = "pass"
 
-    if "rate-limit" in r:
+    if "rate_limit" in r:
         ratelimit = float(r["rate_limit"])
     else:
         ratelimit = 0
@@ -1792,7 +1792,8 @@ def readToplevelBlock(p, heading):
             state = "inside"
         elif state == "inside":
             if not len(indent) <= len(getInitialWhitespace(i)):
-                state = "outside"
+                if i.split("#")[0].strip():
+                    state = "outside"
             lines.append(i[len(indent) :])
     if not lines:
         if state == "outside":
@@ -1896,7 +1897,11 @@ class EventType(modules_state.ResourceType):
 
         for i in os.listdir(dir):
             if i.split(".", 1)[-1] == "py":
-                r[i[:-3]] = rsc_from_py_file(os.path.join(dir, i))
+                try:
+                    r[i[:-3]] = rsc_from_py_file(os.path.join(dir, i))
+                except Exception:
+                    logger.exception("Error loading resource %s", i)
+                    messagebus.post_message("/system/notifications/errors", f"Error loading resource {i}")
 
         return r
 

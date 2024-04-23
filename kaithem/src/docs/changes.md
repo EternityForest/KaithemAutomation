@@ -22,6 +22,7 @@ Change Log
 
 
 - :sparkles: :boom: Chandler boards and audio mixers are resources now. There's no global, and you can have multiple.  Universes are global so that boards can share DMX interfaces, but resources are not.
+- :bug: Fix loading event after external formatter messes with it.
 
 ### 0.79.0
 

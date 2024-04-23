@@ -147,8 +147,8 @@ ${e}
        ></input>Do the action repeatedly while the trigger is true<br>
        Do the action at most every:
            <input type="number"  name="ratelimit" step=0.01
-         %if 'rate-limit' in event:
-            value="${event['rate-limit']|h}"
+         %if 'rate_limit' in event:
+            value="${event['rate_limit']|h}"
          %else:
             value="0"
          %endif

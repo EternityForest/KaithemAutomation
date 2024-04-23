@@ -12,7 +12,7 @@
     Permissions:
     {% for x in resource['require-permissions'] %}<i class="mdi mdi-key"></i>{{ x| escape }}{% endfor %}
     {% endif %}
-    {% if 'require-method' in resource %}
-    <i class="mdi mdi-unlocked"></i>Access: {{ ','.join(resource['require-method']) }}
+    {% if 'require_method' in resource %}
+    <i class="mdi mdi-unlocked"></i>Access: {{ ','.join(resource['require_method']) }}
     {% endif %}
 </div>

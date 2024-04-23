@@ -13,7 +13,7 @@ code: "device = all_devices[path[1]]\r\nfor i in all_devices[path[1]].config.get
 mimetype: text/html
 no-header: false
 no-navheader: false
-require-method:
+require_method:
 - GET
 - POST
 require-permissions:
@@ -23,7 +23,7 @@ resource-type: page
 setupcode: "import os\r\nfrom kaithem.api.devices import all_devices\r\nfrom kaithem.api.web\
   \ import serve_file"
 streaming-response: false
-template-engine: mako
+template_engine: mako
 theme-css-url: ''
 
 ---

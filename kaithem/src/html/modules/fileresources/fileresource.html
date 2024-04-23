@@ -85,9 +85,9 @@ MIME type:<input step=0.1 name="mimetype" size=6em
        ></input><br>
 
 
-<input type="checkbox" name="allow-xss"
+<input type="checkbox" name="allow_xss"
         %if 'allow-xss' in resourceobj:
-            %if resourceobj['allow-xss']:
+            %if resourceobj['allow_xss']:
                 checked="yes"
             %endif
         %endif

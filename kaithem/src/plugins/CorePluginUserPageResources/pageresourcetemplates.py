@@ -57,10 +57,10 @@ vueApp = r"""
 
 def default(basename, **kw):
     return {
-        "template-engine": "jinja2",
+        "template_engine": "jinja2",
         "resource_type": "page",
         "body": defaulthtml.format(basename=basename),
-        "require-method": ["GET", "POST"],
+        "require_method": ["GET", "POST"],
         "require-permissions": [],
         "resource_timestamp": int(time.time() * 1000000),
         "no-navheader": True,
@@ -72,7 +72,7 @@ def vue(basename, **kw):
     return {
         "resource_type": "page",
         "body": vueApp.replace("{basename}", basename),
-        "require-method": ["GET", "POST"],
+        "require_method": ["GET", "POST"],
         "require-permissions": [],
         "resource_timestamp": int(time.time() * 1000000),
         "no-navheader": True,
@@ -87,10 +87,10 @@ def service(basename, **kw):
         "body": servicehtml,
         "no-navheader": True,
         "no-header": True,
-        "require-method": ["GET", "POST"],
+        "require_method": ["GET", "POST"],
         "require-permissions": [],
         "resource_timestamp": int(time.time() * 1000000),
-        "template-engine": "mako",
+        "template_engine": "mako",
     }
 
 

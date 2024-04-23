@@ -12,18 +12,6 @@ properties:
     type: boolean
     description: whether to allow XSS at all.
 
-  auto_reload:
-    type: boolean
-    description: Inserts a header causing auto-refresh
-
-  auto_reload_interval:
-    type: number
-
-  dont_show_in_index:
-    type: boolean
-    description: Legacy, no longer used
-    deprecated: true
-
   mimetype:
     type: string
 
@@ -74,4 +62,4 @@ properties:
 required:
   - body
 
-additionalProperties: false
+additionalProperties: true

@@ -96,8 +96,8 @@
                     {% if event['continual'] == True %} checked="yes" {% endif %} {% endif %} {% if not can_edit %}
                     disabled=1\ {% endif %}></input>Do the action repeatedly while the trigger is true<br>
                 Do the action at most every:
-                <input type="number" name="ratelimit" step=0.01 {% if 'rate-limit' in event %}
-                    value="{{ event['rate-limit']| escape }}" {% else %} value="0" {% endif %} {% if not can_edit %}
+                <input type="number" name="ratelimit" step=0.01 {% if 'rate_limit' in event %}
+                    value="{{ event['rate_limit']| escape }}" {% else %} value="0" {% endif %} {% if not can_edit %}
                     disabled=1\ {% endif %}></input>seconds. Does not affect poll rate(To avoid missing short events).
                 <br>
 

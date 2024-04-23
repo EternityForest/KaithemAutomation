@@ -6,7 +6,7 @@ disabled: false
 enable: true
 once: true
 priority: interactive
-rate-limit: 2.5
+rate_limit: 2.5
 resource-timestamp: 1610593270905970
 resource-type: event
 

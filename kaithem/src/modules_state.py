@@ -82,7 +82,7 @@ def getExt(r):
         return ""
 
     elif r["resource_type"] == "page":
-        if r.get("template-engine", "") == "markdown":
+        if r.get("template_engine", "") == "markdown":
             return ".md"
         else:
             return ".html"
@@ -272,85 +272,6 @@ def saveModule(module: dict[str, ResourceDictType], modulename: str):
         return saved
     except Exception:
         raise
-
-
-class HierarchyDict:
-    def __init__(self):
-        self.flat = {}
-        # This tree only stores the tree structure, actual elements are referenced by flat.
-        # Names can be both dirs and entries, and no matter what are marked by dicts in the root.
-        # To get the actual item, use root to navigate quickly and use flat to get the actual item
-        self.root = {}
-
-    def parsePath(self, s):
-        return s.split("/")
-
-    def pathJoin(self, *p):
-        return "/".join(p)
-
-    def copy(self):
-        return self.flat.copy()
-
-    def ls(self, k):
-        p = self.parsePath(k)
-        currentLocation = self.root
-        # Navigate to the last dir in the path, making dirs as needed.
-        for i in p:
-            if i in currentLocation:
-                currentLocation = currentLocation[i]
-            else:
-                currentLocation[i] = {}
-                currentLocation = currentLocation[i]
-        return currentLocation.keys()
-
-    def __contains__(self, k):
-        if k in self.flat:
-            return True
-        return False
-
-    def __setitem__(self, k, v):
-        self.flat[k] = v
-        p = self.parsePath(k)
-        currentLocation = self.root
-        # Navigate to the last dir in the path, making dirs as needed.
-        #
-        for i in p:
-            if i in currentLocation:
-                currentLocation = currentLocation[i]
-            else:
-                currentLocation[i] = {}
-                currentLocation = currentLocation[i]
-
-    def __getitem__(self, k):
-        return self.flat[k]
-
-    def __delitem__(self, k):
-        del self.flat[k]
-        p = self.parsePath(k)
-        location = self.root
-        pathTaken = []
-        # Navigate to the last dir in the path, making dirs as needed
-        for i in p[:-1]:
-            if i in location:
-                pathTaken.append((location, location[i], i))
-                location = location[i]
-            else:
-                location[i] = {}
-                pathTaken.append((location, location[i], i))
-                location = location[i]
-        # Now delete the "leaf node"
-        for i in location[p[-1]]:
-            try:
-                del self[self.pathJoin(k, i)]
-            except KeyError:
-                pass
-
-        del location[p[-1]]
-
-        # This deletes the entire chain of empty folders, should such things exist.
-        for i in reversed(pathTaken):
-            if not i[1]:
-                del i[0][2]
 
 
 # Lets just store the entire list of modules as a huge dict for now at least

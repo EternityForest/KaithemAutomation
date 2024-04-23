@@ -8,13 +8,13 @@ dont-show-in-index: false
 mimetype: text/html
 no-header: true
 no-navheader: true
-require-method: [GET, POST]
+require_method: [GET, POST]
 require-permissions: []
 resource-timestamp: 1689719106145103
 resource-type: page
 setupcode: ''
 streaming-response: false
-template-engine: mako
+template_engine: mako
 
 ---
 var t = `
@@ -35,7 +35,7 @@ var t = `
                   <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][1]}}</b>
                 </span>
                 <span v-if="i.v !== null">
-                  <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" 
+                  <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'"
                       v-if="(editingScene.blend!=='monitor')"
                       type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1"
                         :min="getValueRange(chnamelookup(i.u,i.ch),i.v)[0]"
@@ -68,7 +68,7 @@ var t = `
 
                 <span v-if="chnamelookup(i.u,i.ch)==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
                 <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'"><br>
-                  <select :value="getValueRange(chnamelookup(i.u,i.ch),i.v)[2]" v-on:change="setCueVal(currentcueid,i.u,parseInt(i.ch),mapvaluerange(i.v, chnamelookup(i.u,i.ch), $event.target.value))"> 
+                  <select :value="getValueRange(chnamelookup(i.u,i.ch),i.v)[2]" v-on:change="setCueVal(currentcueid,i.u,parseInt(i.ch),mapvaluerange(i.v, chnamelookup(i.u,i.ch), $event.target.value))">
                       <option v-for="i of chnamelookup(i.u,i.ch).slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
                   </select>
                 </span>
