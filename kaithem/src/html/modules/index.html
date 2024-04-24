@@ -36,7 +36,7 @@ def getDesc(m):
 %try:
 <a href="/modules/module/${url(i)}#resources" title="MD5: ${modules_state.getModuleHash(i)}">${i}</a>\
 %if i in modules.external_module_locations:
-[From ${modules.external_module_locations[i]|h}]\
+<small> (${modules.external_module_locations[i]|h})</small>
 %endif
 </dt>\
 %except Exception as e:
