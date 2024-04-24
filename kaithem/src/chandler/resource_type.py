@@ -25,12 +25,15 @@ class ConfigType(modules_state.ResourceType):
         return f"""
         <div class="tool-bar">
             <a href="/chandler/editor/{module}:{resource}">
+            <span class="mdi mdi-pencil-box"></span>
             Editor</a>
 
             <a href="/chandler/commander/{module}:{resource}">
+            <span class="mdi mdi-dance-ballroom"></span>
             Commander</a>
 
-            <a href="/chandler/editor/config{module}:{resource}">
+            <a href="/chandler/config/{module}:{resource}">
+            <span class="mdi mdi-cog-outline"></span>
             Fixtures Config</a>
         </div>
         """
