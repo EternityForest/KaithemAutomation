@@ -1,17 +1,30 @@
 Change Log
 ----------
-### 0.80.0
+
+### 0.80.0 (Apr 24)
+
+Another breaking change heavy beta release.  You can now have multiple Chandler boards
+and JACK mixers.
+
+The good news is that there are now no more major globally-configured objects,
+which was the main issue with these breaking changes.
+
+#### Removed
+- :coffin: Remove ability to create new Mako user pages. Jinja2 all the way!
+- :coffin: Tag point universes are gone
 - :coffin: Remove non-chandler simple video signage
-- :hammer: Pages and Events moved to core plugin(Code refactor, no change for end users)
+- :coffin: Special characters no longer allowed in resource names.
+
+#### Fixed
+- :bug: Fix loading event after external formatter messes with it.
+
+#### Added
 - :sparkles: Checkpoint cues. When a Chandler scene starts, it goes to the last cue it was in with the checkpoint flag.  The checkpoints are saved to disk as soon as you enter.
 
 - :sparkles: \_\_setup\_\_ cues. Chandler scenes go to this cue if it exists at start before going to any checkpoint.
--
-- :coffin: Remove ability to create new Mako user pages. Jinja2 all the way!
+
 - :sparkles: Button to add time to a running cue
 - :sparkles: Print more logs
-- :coffin: Special characters no longer allowed in resource names.
-- :coffin: Tag point universes are gone
 - :sparkles: Now you can add tag points directly to a scene as a value.
 - :sparkles: Any module in your ~/kaithem/plugins folder will be imported at early
             boot.  This is part of the ongoing effort to enable creating content
@@ -22,7 +35,10 @@ Change Log
 
 
 - :sparkles: :boom: Chandler boards and audio mixers are resources now. There's no global, and you can have multiple.  Universes are global so that boards can share DMX interfaces, but resources are not.
-- :bug: Fix loading event after external formatter messes with it.
+
+#### Dev
+- :hammer: Pages and Events moved to core plugin(Code refactor, no change for end users)
+
 
 ### 0.79.0
 
