@@ -99,6 +99,58 @@ def makeWrappedConnectionClass(parent: Scene):
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
 
+# Dummies just for the introspection
+# TODO use the context commands thingy so we don't repeat this
+def gotoCommand(scene: str = "=SCENE", cue: str = ""):
+    "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
+
+
+def codeCommand(code: str = ""):
+    "Activates any cues with the matching shortcut code in any scene"
+
+
+gotoCommand.completionTags = {  # type: ignore
+    "scene": "gotoSceneNamesCompleter",
+    "cue": "gotoSceneCuesCompleter",
+}
+
+
+def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
+    "Set the alpha value of a scene"
+
+
+def ifCueCommand(scene: str, cue: str):
+    "True if the scene is running that cue"
+
+
+def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
+    "Send an event to a scene, or to all scenes if scene is __global__"
+
+
+def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
+    "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
+
+
+def uiNotificationCommand(text: str):
+    "Send a notification to the operator, on the web editor and console pages"
+
+
+rootContext.commands["shortcut"] = codeCommand
+rootContext.commands["goto"] = gotoCommand
+rootContext.commands["set_alpha"] = setAlphaCommand
+rootContext.commands["if_cue"] = ifCueCommand
+rootContext.commands["send_event"] = eventCommand
+rootContext.commands["set_slideshow_variable"] = setWebVarCommand
+rootContext.commands["console_notification"] = uiNotificationCommand
+
+
+def sendMqttMessage(topic: str, message: str):
+    "JSON encodes message, and publishes it to the scene's MQTT server"
+
+
+rootContext.commands["send_mqtt"] = sendMqttMessage
+
+
 cueTransitionsLimitCount = 0
 cueTransitionsHorizon = 0
 

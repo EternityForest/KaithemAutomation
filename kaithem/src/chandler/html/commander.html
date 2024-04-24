@@ -98,7 +98,7 @@
         </div>
     </section>
 
-    <div class="window paper w-full margin" style="overflow: auto; max-width:98vw; flex-grow:1">
+    <div class="window paper w-full margin-top" style="overflow: auto; flex-grow:1">
         <header>
             <div class="tool-bar">
                 <button>{{clock}}</button>
@@ -122,9 +122,9 @@
 
 
 
-        <div class="flex-row gaps padding scroll max-h-48rem">
+        <div class="flex-row gaps scroll max-h-48rem">
             <article v-if="showUtils"
-            class="card w-sm-full nogrow"
+            class="card w-sm-full nogrow margin"
             >
                 <header><h3>Calculator</h3></header>
                     <p>This calculator supports units! Try "5lb+6oz to kg"</p>
@@ -132,7 +132,7 @@
             </article>
 
             <article v-if="showUtils"
-            class="card w-sm-full nogrow max-h-24rem"
+            class="card w-sm-full nogrow max-h-24rem margin"
             >
                 <header><h3>Scratchpad</h3></header>
                     <textarea class="w-full h-60rem" v-model="scratchpad"></textarea>
@@ -144,7 +144,7 @@
 
             <article v-if="i"
                 style="position:relative"
-                v-bind:class="{'card':1, 'w-sm-full': 1,  'scene':1, 'nogrow':1, 'flex-col': 1, 'min-h-18rem':1, 'max-h-24rem':1}"
+                v-bind:class="{'card':1, 'w-sm-full': 1, 'margin': 1,  'scene':1, 'flex-col': 1, 'min-h-18rem':1, 'max-h-24rem':1}"
                 >
 
 
@@ -244,9 +244,9 @@
         </header>
 
         <div id="cuesbox">
-            <div class="flex-row gaps align-left padding">
+            <div class="flex-row align-left">
 
-                <article class="w-sm-full flex-col h-18rem" v-for="i in formatCues"
+                <article class="w-sm-full margin flex-col h-18rem" v-for="i in formatCues"
                     v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
 
                     <header>

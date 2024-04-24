@@ -839,7 +839,7 @@ ${lists}
                     <details class="undecorated">
                         <summary>Cue Sound/Media</summary>
 
-                        <p><a :href="'webmediadisplay?scene='+editingScene.id">Web Media Display</a></p>
+                        <p><a :href="'../webmediadisplay?scene='+editingScene.id">Web Media Display</a></p>
 
                         <div class="flex-row gaps">
 
@@ -1759,11 +1759,11 @@ ${core.boards[boardname].link.render('api_link')}
             methods: appMethods,
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
-                "script-editor": httpVueLoader('static/ScriptEditor.vue'),
-                "h-fader": httpVueLoader('static/hfader.vue'),
-                'cue-countdown': httpVueLoader('static/cue-countdown.vue'),
+                "script-editor": httpVueLoader('../static/ScriptEditor.vue'),
+                "h-fader": httpVueLoader('../static/hfader.vue'),
+                'cue-countdown': httpVueLoader('../static/cue-countdown.vue'),
                 // Currently contains the timers and the display tags for the scenes overview
-                'scene-ui': httpVueLoader('static/scene-ui-controls.vue')
+                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue')
 
             },
             computed: appComputed

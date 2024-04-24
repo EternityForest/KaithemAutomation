@@ -26,11 +26,11 @@ input {
          v-if="sceneData.slideOverlayUrl || (cue && (cue.slide || cue.markdown) ) || sceneData.doSlideshowEmbed || sceneData.soundOutput=='scenewebplayer' || cue.soundOutput=='scenewebplayer'">
             <summary>
                 <a 
-                    :href="'webmediadisplay?scene=' + sceneData.id">(slideshow)</a>
+                    :href="'/chandler/webmediadisplay?scene=' + sceneData.id">(slideshow)</a>
             </summary>
             <div class="preview-frame-wrapper">
             <iframe v-if="sceneData.doSlideshowEmbed" class="preview-frame"
-                    :src="'webmediadisplay?scene=' + sceneData.id"></iframe>
+                    :src="'/chandler/webmediadisplay?scene=' + sceneData.id"></iframe>
             </div>
         </details>
         <table border="1" v-if="sceneData.displayTags.length > 0">

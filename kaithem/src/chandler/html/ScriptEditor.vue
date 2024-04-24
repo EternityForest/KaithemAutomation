@@ -142,22 +142,24 @@ p.small {
 
                         <div class="flex-row gaps w-full padding nogaps">
 
-                            <div v-for="j in i[1]" style="align-self:stretch; display:inline-flex;">
-                                <button v-bind:class="{'w-12rem':1, action: 1, 'flex-row':1, selected: (selectedBinding == i & selectedCommand == j) }"
+                            <div v-for="j in i[1]" style="display:flex;" class="nogrow">
+                                <button  style="align-content: flex-start;" v-bind:class="{action: 1, 'flex-row':1, selected: (selectedBinding == i & selectedCommand == j) }"
                                     v-on:click="selectedCommandIndex = i[1].indexOf(j); selectedBindingIndex = rules.indexOf(i)">
 
                                     <template style="min-width:6em;max-width:12em;overflow:hidden"
                                         v-if="((commands[j[0]]))">
 
                                         <div class="w-full h-min-content"><b>{{ j[0] }}</b></div>
-                                            <div class="border nogrow h-min-content" style="margin: 2px;" v-for="i in commands[j[0]].args.keys()">
+                                            <div class="nogrow h-min-content" style="margin: 2px;" v-for="i in commands[j[0]].args.keys()">
                                                 {{ j[i + 1] }}
                                             </div>
                                     </template>
 
 
                                     <template v-if="(!(j[0] in commands))">
-                                        {{ j }}
+                                        <div class="nogrow h-min-content" style="margin: 2px;" v-for="i in j">
+                                                {{ i }}
+                                            </div>                                    
                                     </template>
                                 </button>
                                 <i class="mdi mdi-arrow-right" style="align-self:center; text-align:center;"></i>

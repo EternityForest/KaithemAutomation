@@ -190,13 +190,12 @@ dd {
         --graphical-fg: grey !important;
         --concave-item-box-shadow: none !important;
         --heading-font: var(--sans-font) !important;
-        --hover-color: transparent  !important;
-        --heading-text-shadow: none  !important;
-        --control-text-shadow: none  !important;
-        --border-color: black  !important;
+        --hover-color: transparent !important;
+        --heading-text-shadow: none !important;
+        --control-text-shadow: none !important;
+        --border-color: black !important;
         --item-box-shadow: none !important;
         --window-box-shadow: none !important
-
     }
 
     * {
@@ -348,10 +347,11 @@ canvas {
 
 
 @media screen {
+
     dl,
     ul,
     ol {
-        &:not(.tool-bar, .nomargin){
+        &:not(.tool-bar, .nomargin) {
             margin: var(--padding);
         }
     }
@@ -360,7 +360,7 @@ canvas {
 dl,
 ul,
 ol {
-    &:is(.tool-bar){
+    &:is(.tool-bar) {
         padding: 0px;
     }
 }
@@ -466,7 +466,8 @@ details {
     border: var(--border);
     padding-left: 0.4em;
     border-radius: var(--border-radius);
-    &>summary{
+
+    &>summary {
         padding-left: calc(var(--border-radius) / 2);
     }
 }
@@ -624,9 +625,10 @@ dd {
 
 /*Headings and lines */
 
-h1{
+h1 {
     text-align: center;
 }
+
 h1,
 h2,
 h3,
@@ -722,6 +724,7 @@ header {
     }
 
     &:not(.undecorated) {
+
         &>:only-child,
         &>:only-child>:only-child,
         & :is(h1, h2, h3, h4, h5, h6)>button {
@@ -996,7 +999,7 @@ table {
 }
 
 /*From the old geocities size*/
-.badge-88{
+.badge-88 {
     width: 88px;
     height: 31px;
     border-radius: 6px;
@@ -1007,7 +1010,8 @@ table {
     background-color: var(--control-bg);
     border-color: var(--graphical-fg);
     vertical-align: center;
-    & p{
+
+    & p {
         margin: 0px;
         padding: 2px;
     }
@@ -1046,7 +1050,8 @@ header:not(.undecorated) .tool-bar {
     break-inside: avoid;
     column-gap: var(--gap);
 }
-.balance-columns{
+
+.balance-columns {
     column-fill: balance;
 }
 
@@ -1103,7 +1108,7 @@ header:not(.undecorated) .tool-bar {
 
     &>:is(p, div, section),
     &>fieldset>:is(p, div, section) {
-        &:not(.tool-bar){
+        &:not(.tool-bar) {
             display: flex;
             flex-direction: row;
             flex-wrap: wrap;
@@ -1205,7 +1210,8 @@ it usable.  Remove when FF fully supports :has()*/
 .flex-col footer,
 .flex-col header {
     flex-grow: 0;
-    &:not(.margin-bottom){
+
+    &:not(.margin-bottom) {
         margin-block-end: 0px;
     }
 }
@@ -1708,7 +1714,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     background: var(--box-bg);
 }
 
-.outline-text{
+.outline-text {
     text-shadow: 0px 0px 1px var(--control-bg);
 }
 
@@ -1802,7 +1808,7 @@ footer.padding {
 }
 
 .margin-top {
-    margin-bottom: var(--gap);
+    margin-top: var(--gap);
 }
 
 .margin-bottom {
@@ -1813,7 +1819,7 @@ footer.padding {
     margin: 0px;
 }
 
-.margin-indent{
+.margin-indent {
     margin-inline-start: var(--gap);
 }
 
@@ -1826,6 +1832,11 @@ footer.padding {
     .card.w-sm-double {
         margin-left: 0px;
         margin-right: 0px;
+
+        &.margin {
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
     }
 }
 
@@ -1960,6 +1971,7 @@ footer.padding {
 .highlight:not(.specificity_hack),
 .success:not(.specificity_hack),
 .warning:not(.specificity_hack) {
+
     &:not(meter),
     & :is(input, button, textarea, select, .button) {
         --control-bg: var(--highlight-tint);
@@ -2006,7 +2018,8 @@ footer.padding {
     width: unset;
 }
 
-.tool-bar, .pagination{
+.tool-bar,
+.pagination {
     --tool-bar-element-border: var(--control-border);
     --header-padding: 0px;
     flex-basis: max-content;
@@ -2025,9 +2038,10 @@ footer.padding {
     gap: 0px;
     line-height: calc(var(--control-height) - calc(var(--control-border-width) * 2 + 1px));
 
-    &>*{
+    &>* {
         text-wrap: nowrap;
     }
+
     /*Undo any effect something else set on convex elements for consistency*/
     & :is(button, .button) {
         box-shadow: none;
@@ -2036,7 +2050,7 @@ footer.padding {
 
 
 
-    & > li{
+    &>li {
         display: inline;
     }
 
@@ -2120,11 +2134,12 @@ footer.padding {
     }
 
     & p {
-        &:not(:has(input)){
+        &:not(:has(input)) {
             padding-inline-start: var(--padding);
             padding-inline-end: var(--padding);
             padding-top: 1px;
         }
+
         min-width: fit-content;
         display: flex;
         flex-grow: 2;
@@ -2192,7 +2207,8 @@ footer.padding {
 
 
 
-    &>label,li {
+    &>label,
+    li {
         margin: 0px;
         padding-top: 0px;
         padding-bottom: 0px;
@@ -2258,7 +2274,7 @@ footer.padding {
 
     }
 
-    &> :is(a, .button,li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
+    &> :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
     & :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i):not(.toggle) {
         border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
         margin-inline-end: 0px;
@@ -2580,14 +2596,14 @@ input[type="radio"] {
 }
 
 
-input[type='checkbox'].led{
+input[type='checkbox'].led {
     border-radius: 50%;
     margin: 0px 0px;
     width: var(--line-height);
     height: var(--line-height);
-    
+
     background-color: rgb(6, 65, 3);
-    box-shadow:#0000 0 -1px 7px 1px, inset #d5d5d5 0 -1px 9px, rgb(94 94 94 / 0%) 0 2px 12px;
+    box-shadow: #0000 0 -1px 7px 1px, inset #d5d5d5 0 -1px 9px, rgb(94 94 94 / 0%) 0 2px 12px;
 
     &.led-green:checked {
         background-color: rgb(0 255 0);
@@ -2740,7 +2756,8 @@ label {
     }
 }
 
-[v-cloak]:before,[x-cloak]:before {
+[v-cloak]:before,
+[x-cloak]:before {
     content: "";
     box-sizing: border-box;
     position: absolute;
@@ -2759,6 +2776,7 @@ label {
     overflow: hidden;
 }
 
-[v-cloak]>*, [x-cloak]>* {
+[v-cloak]>*,
+[x-cloak]>* {
     display: none !important;
 }
