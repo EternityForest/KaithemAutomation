@@ -277,9 +277,11 @@ input[type=range],
     }
 }
 
-@media screen and (max-width: 420px) {
+@media screen and (max-width: 460px) {
     :root {
         --scrollbar-width: 5px;
+        --padding: 5px;
+        --gap: 5px;
     }
 }
 
