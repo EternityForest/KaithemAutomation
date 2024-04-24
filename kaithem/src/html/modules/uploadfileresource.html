@@ -18,11 +18,9 @@
 <section class="window paper">
 
 <script>
-
 lastMsg = ''
-
 let u = document.getElementById("upload");
-let uploadMsg = document.getElementById("name");
+let filename = document.getElementById("name");
 // display file name if file has been selected
 u.onchange = function() {
     let input = this.files[0];
@@ -34,16 +32,14 @@ u.onchange = function() {
         text = "";
     }
 
-    if (uploadMsg.value==lastMsg)
+    if (filename.value==lastMsg)
     {
-        uploadMsg.value = text;
+        filename.value = text;
         lastMsg = text;
     }
     else{
         lastMsg= "hgfdxdfghjkluytfdxcvbnhjkuytgfcv bnmkliouhg"
     }
 };
-
-
 </script>
 <%include file="/pagefooter.html"/>

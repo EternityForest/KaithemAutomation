@@ -59,7 +59,7 @@ def _make_tag_info_helper(t: GenericTagPointClass[Any]):
 # For the tag numbering feature.
 # Maps assigned numbers to names,
 # only for tags where someone has requested a number.
-assigned_unique_numbers: dict[str, int] = {}
+assigned_unique_numbers: dict[int, str] = {}
 
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
@@ -195,14 +195,14 @@ class GenericTagPointClass(Generic[T]):
             return f"<Tag Point: {self.name}>"
 
     @beartype.beartype
-    def __init__(self: GenericTagPointClass[T], name: str):
+    def __init__(self, name: str):
         global allTagsAtomic
         _name: str = normalize_tag_name(name)
         if _name in allTags:
             raise RuntimeError("Tag with this name already exists, use the getter function to get it instead")
 
         # Used to store loggers sey elsewhere.
-        self.configLoggers = weakref.WeakValueDictionary()
+        self.configLoggers: weakref.WeakValueDictionary[str, object] = weakref.WeakValueDictionary()
 
         # Used for the fake buttons in the device page
         self._k_ui_fake: Claim[T]
@@ -354,7 +354,7 @@ class GenericTagPointClass(Generic[T]):
         # read or override this tag, as a tuple of 2 permission strings and an int representing the priority
         # that api clients can use.
         # As always, configured takes priority
-        self.permissions = ["", "", 50]
+        self.permissions = ("", "", 50)
 
         self.apiClaim: None | Claim[T] = None
 
@@ -454,16 +454,18 @@ class GenericTagPointClass(Generic[T]):
 
         with lock:
             with self.lock:
-                self.permissions = d
+                self.permissions = tuple(d)
 
                 d2 = self.get_effective_permissions()
                 if d2[2]:
                     expose_priority = float(d2[2])
 
-                # Be safe, only allow writes if user specifies a permission
-                d2[1] = d2[1] or "__never__"
+                perms_list = list(d2)
 
-                if not d2[0]:
+                # Be safe, only allow writes if user specifies a permission
+                perms_list[1] = perms_list[1] or "__never__"
+
+                if not perms_list[0]:
                     self.data_source_widget = None
                     self.dataSourceAutoControl = None
                     try:
@@ -484,13 +486,13 @@ class GenericTagPointClass(Generic[T]):
                     self.dataSourceAutoControl = widgets.DataSource(id=f"tag.control:{self.name}")
                     self.dataSourceAutoControl.write(None)
                     w.set_permissions(
-                        [i.strip() for i in d2[0].split(",")],
-                        [i.strip() for i in d2[1].split(",")],
+                        [i.strip() for i in perms_list[0].split(",")],
+                        [i.strip() for i in perms_list[1].split(",")],
                     )
 
                     self.dataSourceAutoControl.set_permissions(
-                        [i.strip() for i in d2[0].split(",")],
-                        write=[i.strip() for i in d2[1].split(",")],
+                        [i.strip() for i in perms_list[0].split(",")],
+                        write=[i.strip() for i in perms_list[1].split(",")],
                     )
                     w.value = self.value
 
@@ -552,23 +554,22 @@ class GenericTagPointClass(Generic[T]):
 
         self.dataSourceAutoControl.write(v)
 
-    def get_effective_permissions(self) -> list[str]:
+    def get_effective_permissions(self) -> tuple[str, str, float]:
         """
         Get the permissions that currently apply here. Configured ones override in-code ones
 
         Returns:
             list: [read_perms, write_perms, writePriority]. Priority determines the priority of web API claims.
         """
-        d2 = [
+        d2 = (
             str(self.permissions[0]),
             str(self.permissions[1]),
             float(self.permissions[2]),
-        ]
+        )
 
         # Block exposure at all if the permission is never
-        if "__never__" in d2[0]:
-            d2[0] = ""
-            d2[1] = ""
+        if "__never__" in self.permissions[0]:
+            return ("", "", 0.0)
 
         return d2
 
@@ -1610,8 +1611,8 @@ class GenericTagPointClass(Generic[T]):
         if not x:
             raise RuntimeError(f"Program state is corrupt, tag{self.name} has no claims")
         # Get the top one
-        x = sorted(x, reverse=True)[0]
-        return x
+        x = sorted(x, reverse=True)
+        return x[0]
 
     def release(self, name):
         if not self.lock.acquire(timeout=10):
@@ -2129,7 +2130,7 @@ class Claim(Generic[T]):
         tag: GenericTagPointClass[T],
         value: T,
         name: str = "default",
-        priority: int | float = 50,
+        priority: int | float = 50.0,
         timestamp: int | float | None = None,
         annotation=None,
         expiration: int | float = 0,
@@ -2151,7 +2152,7 @@ class Claim(Generic[T]):
         # it had new data or not.
 
         # It is in monotonic time.
-        self.lastGotValue = 0
+        self.lastGotValue = 0.0
 
         self.priority = priority
 

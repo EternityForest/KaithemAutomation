@@ -78,14 +78,14 @@ class ConfigType(modules_state.ResourceType):
         return d
 
     def createpage(self, module, path):
-        d = dialogs.SimpleDialog("New Config Entries")
+        d = dialogs.SimpleDialog("New Chandler Board")
         d.text_input("name", title="Resource Name")
 
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
     def editpage(self, module, name, value):
-        d = dialogs.SimpleDialog("Editing Config Entries")
+        d = dialogs.SimpleDialog("Editing Config")
         d.text("Edit the board in the chandler UI")
 
         return d.render(self.get_update_target(module, name))

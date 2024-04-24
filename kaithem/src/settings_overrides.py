@@ -25,7 +25,9 @@ def get_by_prefix(prefix: str) -> dict[str, str]:
         lst = list_keys()
         for i in lst:
             if i.startswith(prefix):
-                r[i] = get_val(i)
+                v = get_val(i)
+                if v:
+                    r[i] = v
         return r
 
 

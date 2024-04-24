@@ -11,6 +11,7 @@ import time
 import weakref
 
 import cherrypy
+import yaml
 from cherrypy.lib.static import serve_file
 from scullery import scheduling
 
@@ -332,6 +333,11 @@ class WebInterface:
             )
 
         else:
+            if path[0] == "download_resource":
+                pages.require("view_admin_info")
+                cherrypy.response.headers["Content-Disposition"] = "attachment; filename=" + path[1] + ".yaml"
+                return yaml.dump(modules_state.ActiveModules[root][path[1]])
+
             if path[0] == "scanfiles":
                 pages.require("system_admin")
                 pages.postOnly()
@@ -397,6 +403,43 @@ class WebInterface:
                         obj=followAttributes(obj, kwargs["objpath"]),
                         getGC=kwargs.get("gcinfo", False),
                     )
+
+            if path[0] == "uploadresource":
+                pages.require("system_admin", noautoreturn=True)
+
+                if len(path) > 1:
+                    x = path[1]
+                else:
+                    x = ""
+                d = dialogs.SimpleDialog(f"Upload resource in {root}")
+                d.file_input("file")
+                d.text_input("filename")
+                d.submit_button("Submit")
+                return d.render(f"/modules/module/{url(module)}/uploadresourcetarget", hidden_inputs={"path": x})
+
+            if path[0] == "uploadresourcetarget":
+                pages.require("system_admin", noautoreturn=True)
+                pages.postOnly()
+                inputfile = kwargs["file"]
+                f = b""
+
+                path = kwargs["path"].split("/") + [kwargs["filename"].split(".")[0]]
+                path = "/".join([i for i in path if i])
+
+                while True:
+                    d = inputfile.file.read(8192)
+                    if not d:
+                        break
+                    f = f + d
+
+                d2 = yaml.load(f.decode(), yaml.SafeLoader)
+
+                if path in modules_state.ActiveModules[root]:
+                    raise RuntimeError("Path exists")
+
+                modules_state.rawInsertResource(module, path, d2)
+                modules.handleResourceChange(module, path)
+                raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
             # This gets the interface to add a page
             if path[0] == "addresource":

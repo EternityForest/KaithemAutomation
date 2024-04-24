@@ -12,7 +12,7 @@
         </datalist>
 
         {% endfor %}
-        <form class="stacked-form" action="{{target}}" method="POST">
+        <form class="stacked-form" action="{{target}}" method="POST" enctype="multipart/form-data">
         {% for i in items %}
             {% if i[0] %}
                 <label>{{i[0]}}
@@ -28,5 +28,7 @@
         {% endfor %}
         </form>
     </section>
+
+    {{extracode}}
 </main>
 {% endblock %}

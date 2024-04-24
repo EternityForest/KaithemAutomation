@@ -69,14 +69,14 @@ else:
             </a>
         </h3>
 
-            %if devObj.device_type_name == 'UnusedSubdevice':
-            (Not found)
-            %endif
+        %if devObj.device_type_name == 'UnusedSubdevice':
+        (Not found)
+        %endif
 
 
 
 
-
+        %if hasattr(devObj, 'tagpoints'):
         %if 'switch' in devObj.tagpoints:
             <button onclick="req('toggletarget/${url(i)}')"><i class="mdi mdi-light-bulb"></i>Toggle</button>
         %endif
@@ -122,6 +122,8 @@ else:
 
 
         %endif
+        %endif
+
     <%
     h=devStatString(devObj)
     %>

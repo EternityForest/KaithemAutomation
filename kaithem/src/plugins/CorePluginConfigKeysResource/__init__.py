@@ -12,13 +12,14 @@ class Entries:
         entries[source] = self
         self.data = copy.copy(data)
         self.source = source
+        self.priority = priority
 
         for i in self.data:
-            settings_overrides.add_val(i, self.data[i], str(self.source), priority=priority)
+            settings_overrides.add_val(i, self.data[i], str(self.source) + str(id(self)), priority=priority)
 
     def close(self):
         for i in self.data:
-            settings_overrides.add_val(i, "", str(self.source))
+            settings_overrides.add_val(i, "", str(self.source) + str(id(self)), priority=self.priority)
         try:
             del entries[self.source]
         except KeyError:

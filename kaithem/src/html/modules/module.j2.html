@@ -50,16 +50,13 @@
             {% endif %}
         </div>
         <div class="tool-bar w-full">
-            <p>
-                <i class="mdi mdi-plus"></i>Add:
-            </p>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/permission/{{ url('/'.join(path) ) }}">Permission</a>
+                href="/modules/module/{{ url(name) }}/addresource/permission/{{ url('/'.join(path) ) }}"><i class="mdi mdi-key"></i>Permission</a>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/directory/{{ url('/'.join(path) ) }}">Folder</a>
-            <a class="button" href="/modules/module/{{ url(name) }}/addfileresource/{{ url('/'.join(path) ) }}">File</a>
+                href="/modules/module/{{ url(name) }}/addresource/directory/{{ url('/'.join(path) ) }}"><i class="mdi mdi-folder-outline"></i>Folder</a>
+            <a class="button" href="/modules/module/{{ url(name) }}/addfileresource/{{ url('/'.join(path) ) }}"><i class="mdi mdi-file-document"></i>File</a>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/device/{{ url('/'.join(path) ) }}">Device</a>
+                href="/modules/module/{{ url(name) }}/addresource/device/{{ url('/'.join(path) ) }}"><i class="mdi mdi-chip"></i>Device</a>
             {% for i in modules.additionalTypes %}
             {% if modules.additionalTypes[i].mdi_icon %}
             <a class="button createbutton"
@@ -70,6 +67,9 @@
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
+            <a class="button"
+            href="/modules/module/{{ url(name) }}/uploadresource/{{ url('/'.join(path) ) }}">
+            <i class="mdi mdi-upload-box"></i>Upload</a>
 
             <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}">
                 <input size=8 name="search" placeholder="Search this module" />
@@ -135,6 +135,8 @@
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
                             {{ i.split("/")[-1] | escape }} ({{module[i]['resource_type']}})</a>
                     </h3>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span class="mdi mdi-download-box"></span>
+                        Export</a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span class="mdi mdi-folder-move"></span>
                         Move</a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i

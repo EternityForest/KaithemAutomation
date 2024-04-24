@@ -4,6 +4,36 @@ import beartype
 
 from kaithem.src import pages
 
+_auto_fn = """
+<script>
+lastMsg = ''
+let u = document.getElementsByName("file")[0];
+let filename = document.getElementsByName("filename")[0];
+// display file name if file has been selected
+if(filename){
+u.onchange = function() {
+    let input = this.files[0];
+    let text;
+    if (input) {
+        //process input
+        text = u.value.replace("C:\\\\fakepath\\\\", "");
+    } else {
+        text = "";
+    }
+
+    if (filename.value==lastMsg)
+    {
+        filename.value = text;
+        lastMsg = text;
+    }
+    else{
+        lastMsg= "hgfdxdfghjkluytfdxcvbnhjkuytgfcv bnmkliouhg"
+    }
+};
+};
+</script>
+"""
+
 
 class SimpleDialog:
     """
@@ -18,10 +48,12 @@ class SimpleDialog:
         # List of title, inputhtml pairs
         self.items: list[tuple[str, str]] = []
         self.title = title
-        self.datalists = {}
+        self.datalists: dict[str, list[tuple[str, str]]] = {}
+
+        self.extracode = ""
 
         # The what would be submitted with all the defaults.
-        self.default_return_value = {}
+        self.default_return_value: dict[str, str] = {}
 
     def name_to_title(self, s: str):
         """If title not provided, this will be
@@ -92,6 +124,20 @@ class SimpleDialog:
         self.items.append((title, f'<input type="checkbox" name="{name}" {checked} {disabled}>'))
 
     @beartype.beartype
+    def file_input(self, name: str = "file", *, title: str | None = None, disabled=None):
+        "Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them."
+        title = title or self.name_to_title(name)
+
+        if disabled is None:
+            disabled = self.is_disabled_by_default()
+
+        disabled = " disabled" if disabled else ""
+
+        self.items.append((title, f'<input type="file" name="{name}" {disabled}>'))
+
+        self.extracode += _auto_fn + "\n"
+
+    @beartype.beartype
     def selection(self, name: str, *, options: list[str], default="", title: str | None = None, disabled=None):
         "Add a select element"
         title = title or self.name_to_title(name)
@@ -142,4 +188,5 @@ class SimpleDialog:
             target=target,
             title=self.title,
             datalists=self.datalists,
+            extracode=self.extracode,
         )
