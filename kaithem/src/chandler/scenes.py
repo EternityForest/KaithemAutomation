@@ -2052,6 +2052,9 @@ class Scene:
                     if "type" not in i[2]:
                         i[2]["type"] = "auto"
 
+                    if "width" not in i[2]:
+                        i[2]["width"] = "4"
+
                     if i[2]["type"] == "auto":
                         logging.error("Auto type tag display no longer supported")
                         continue

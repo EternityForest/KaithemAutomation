@@ -1264,6 +1264,12 @@ it usable.  Remove when FF fully supports :has()*/
         flex-basis: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
         width: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
     }
+
+    &.margin {
+        flex-grow: var(--this-col-width-internal);
+        flex-basis: calc(calc(var(--this-col-width-internal) * 8.33%) - calc(var(--gap) * 2));
+        width: calc(calc(var(--this-col-width-internal) * 8.33%) - calc(var(--gap) * 2));
+    }
 }
 
 
@@ -1593,6 +1599,14 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 }
 
 .h-min-content {
+    height: min-content;
+}
+
+.h-max-content {
+    height: min-content;
+}
+
+.h-fit-content {
     height: min-content;
 }
 
@@ -2565,6 +2579,7 @@ input[type='radio'] {
     box-shadow: var(--concave-item-box-shadow);
     border: var(--control-border);
     width: var(--control-height);
+    flex-basis: var(--control-height);
     height: var(--control-height);
     flex-grow: 0 !important;
     --slider-position: 0px;
@@ -2607,26 +2622,36 @@ input[type='checkbox'].led {
     background: rgb(6, 65, 3);
     box-shadow: #55555500 0 -1px 7px 1px, inset #6d6d6d 0 -1px 9px, rgba(44, 44, 44, 0) 0 2px 12px;
 
-    &.led-green:checked {
-        background: rgb(0 255 0);
-        box-shadow: inset #3f7d3e 0 -1px 9px, rgb(0 243 46 / 74%) 0 2px 12px;
-    }
+
+
     &.led-red:checked {
         background: rgb(255, 0, 0);
         box-shadow: inset #7d3e3e 0 -1px 9px, rgba(243, 0, 0, 0.74) 0 2px 12px;
     }
-    &.led-purple:checked {
-        background: rgb(255, 0, 234);
-        box-shadow: inset #7d3e7a 0 -1px 9px, rgba(243, 0, 243, 0.74) 0 2px 12px;
-    }
+
     &.led-yellow:checked {
         background: rgb(251, 255, 0);
         box-shadow: inset #7d7c3e 0 -1px 9px, rgba(243, 239, 0, 0.74) 0 2px 12px;
     }
 
+    &.led-green:checked {
+        background: rgb(0 255 0);
+        box-shadow: inset #3f7d3e 0 -1px 9px, rgb(0 243 46 / 74%) 0 2px 12px;
+    }
+
+    &.led-cyan:checked {
+        background: rgb(0, 247, 255);
+        box-shadow: inset #3e7d78 0 -1px 9px, rgba(0, 227, 243, 0.74) 0 2px 12px;
+    }
+
     &.led-blue:checked {
         background: rgb(0, 4, 255);
         box-shadow: inset #443e7d 0 -1px 9px, rgba(0, 16, 243, 0.74) 0 2px 12px;
+    }
+
+    &.led-purple:checked {
+        background: rgb(255, 0, 234);
+        box-shadow: inset #7d3e7a 0 -1px 9px, rgba(243, 0, 243, 0.74) 0 2px 12px;
     }
 }
 

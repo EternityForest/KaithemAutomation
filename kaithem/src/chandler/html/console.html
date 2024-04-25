@@ -1584,28 +1584,34 @@ ${lists}
                         <table border="1" class="w-full">
                             <tr>
                                 <th>Label</th>
+                                <th>Width</th>
                                 <th>Tag</th>
                                 <th>Type</th>
                                 <th>Action</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.displayTags">
-                                <td><input :disabled="no_edit" v-model="v[0]"
+                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
+
+                                <td><input type="number" :disabled="no_edit" v-model="v[2].width" class="w-4rem"
+                                    v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                </td>
+
                                 <td><input :disabled="no_edit" list="tagslisting" v-model="v[1]"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
 
 
-                                <td><select v-model="v[2].type"
+                                <td><select v-model="v[2].type" class="w-6rem"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
-                                        <option value="meter">Meter Display</option>
-                                        <option value="text">Text Display</option>
-                                        <option value="led">LED Indicator</option>
+                                        <option value="meter">Meter</option>
+                                        <option value="text">Text</option>
+                                        <option value="led">LED</option>
                                         <option value="string_input">Text Input</option>
                                         <option value="numeric_input">Numeric Input</option>
                                         <option value="switch_input">Switch Input</option>
-                                        <option value="auto">auto(no longer supported)/option>
+                                        <option value="auto">Invalid</option>
 
                                     </select>
 

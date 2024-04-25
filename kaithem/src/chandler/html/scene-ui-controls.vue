@@ -35,7 +35,7 @@ input {
         </details>
         <div class="flex-row gaps" v-if="sceneData.displayTags.length > 0">
 
-            <div style="min-width: 4rem;" v-for="v in sceneData.displayTags">
+            <div :style="{ 'min-width': v[2].width + 'rem' }" v-for="v in sceneData.displayTags">
                 <label>{{ v[0] }}</label>
 
                 <template v-if="v[2].type == 'meter'">
