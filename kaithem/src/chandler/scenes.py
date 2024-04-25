@@ -2044,6 +2044,7 @@ class Scene:
 
             try:
                 for i in dt:
+                    i[1] = tagpoints.normalize_tag_name(i[1])
                     # Upgrade legacy format
                     if len(i) == 2:
                         i.append({"type": "auto"})
@@ -2087,6 +2088,8 @@ class Scene:
                 logging.exception("Failed setting up display tags")
                 self.event("board.error", traceback.format_exc())
             self.display_tags = dt
+
+            self.pushMeta(keys=["display_tags"])
 
     def clear_configured_tags(self):
         with core.lock:
