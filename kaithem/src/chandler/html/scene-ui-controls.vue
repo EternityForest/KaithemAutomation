@@ -33,62 +33,62 @@ input {
                     :src="'/chandler/webmediadisplay?scene=' + sceneData.id"></iframe>
             </div>
         </details>
-        <table border="1" v-if="sceneData.displayTags.length > 0">
-            <tbody>
+        <div class="flex-row gaps" v-if="sceneData.displayTags.length > 0">
 
-                <tr v-for="v in sceneData.displayTags">
-                    <td>{{ v[0] }}</td>
+            <div style="min-width: 4rem;" v-for="v in sceneData.displayTags">
+                <label>{{ v[0] }}</label>
 
-                    <template v-if="v[2].type == 'meter'">
-                        <td>
-                            <meter v-if="sceneData.displayTagMeta[v[1]]" :min="sceneData.displayTagMeta[v[1]].min"
-                                :max="sceneData.displayTagMeta[v[1]].max" :high="sceneData.displayTagMeta[v[1]].hi"
-                                :lo="sceneData.displayTagMeta[v[1]].lo" :value="sceneData.displayTagValues[v[1]]"></meter>
+                <template v-if="v[2].type == 'meter'">
+                    <div>
+                        <meter v-if="sceneData.displayTagMeta[v[1]]" :min="sceneData.displayTagMeta[v[1]].min"
+                            :max="sceneData.displayTagMeta[v[1]].max" :high="sceneData.displayTagMeta[v[1]].hi"
+                            :lo="sceneData.displayTagMeta[v[1]].lo" :value="sceneData.displayTagValues[v[1]]"></meter>
 
-                            {{ sceneData.displayTagValues[v[1]] }}
-                        </td>
-                    </template>
+                        {{ sceneData.displayTagValues[v[1]] }}
+                    </div>
+                </template>
 
-                    <template v-if="v[2].type == 'text'">
-                        <td>
-                            {{ sceneData.displayTagValues[v[1]] }}
-                        </td>
-                    </template>
+                <template v-if="v[2].type == 'text'">
+                    <div>
+                        {{ sceneData.displayTagValues[v[1]] }}
+                    </div>
+                </template>
 
-                    <template v-if="v[2].type == 'led'">
-                        <td>
-                            {{ sceneData.displayTagValues[v[1]] }}<input type="checkbox" 
-                            :class="{ 'led': 1, 'led-red':v[2].color=='red', 'led-yellow':v[2].color=='yellow', 'led-green':v[2].color=='green', 'led-blue':v[2].color=='blue',  'led-purple':v[2].color=='purple'}"
-                             v-bind:checked="sceneData.displayTagValues[v[1]]" disabled>
-                        </td>
-                    </template>
+                <template v-if="v[2].type == 'led'">
+                    <div>
+                        {{ sceneData.displayTagValues[v[1]] }}<input type="checkbox" 
+                        :class="{ 'led': 1, 'led-red':v[2].color=='red', 'led-yellow':v[2].color=='yellow', 'led-green':v[2].color=='green', 'led-blue':v[2].color=='blue',  'led-purple':v[2].color=='purple'}"
+                            v-bind:checked="sceneData.displayTagValues[v[1]]" disabled>
+                    </div>
+                </template>
 
-                    <template v-if="v[2].type == 'string_input'">
-                        <td>
-                            <input type="text" v-model="sceneData.displayTagValues[v[1]]"
-                                v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
-                        </td>
-                    </template>
+                <template v-if="v[2].type == 'string_input'">
+                    <div>
+                        <input type="text" v-model="sceneData.displayTagValues[v[1]]"
+                            v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
+                    </div>
+                </template>
 
-                    <template v-if="v[2].type == 'numeric_input'">
-                        <td>
-                            <input type="number" v-model="sceneData.displayTagValues[v[1]]"
-                                v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
-                        </td>
-                    </template>
+                <template v-if="v[2].type == 'numeric_input'">
+                    <div>
+                        <input type="number" v-model="sceneData.displayTagValues[v[1]]"
+                            v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
+                    </div>
+                </template>
 
 
-                    <template v-if="v[2].type == 'switch_input'">
-                        <td>
-                            <input type="checkbox" class="toggle"
-                                v-bind:value="sceneData.displayTagValues[v[1]] ? true : false"
-                                v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
-                        </td>
-                    </template>
+                <template v-if="v[2].type == 'switch_input'">
+                    <div>
+                        <input type="checkbox" class="toggle"
+                            v-bind:value="sceneData.displayTagValues[v[1]] ? true : false"
+                            v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
+                    </div>
+                </template>
 
-                </tr>
-            </tbody>
-        </table>
+                </div>
+            </div>
+        </div>
+
         <table border="0">
             <tbody>
                 <tr v-for="(v, i) in sceneData.timers">
