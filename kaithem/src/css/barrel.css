@@ -2613,6 +2613,10 @@ input[type="radio"] {
 }
 
 
+.numval, input[type="number"] {
+    font-family: Fira Code,monospace;
+
+}
 input[type='checkbox'].led {
     border-radius: 50%;
     margin: 0px 0px;

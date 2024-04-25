@@ -80,6 +80,11 @@
     src: url(/static/fonts/FiraCode-Regular.woff2);
 }
 
+@font-face {
+    font-family: Fira Code;
+    src: url(/static/fonts/FiraCode-Regular.woff2);
+}
+
 
 .event-trigger-edit-box {
     background: rgb(250, 255, 244);

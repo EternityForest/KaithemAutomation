@@ -1089,7 +1089,7 @@ class Meter(Widget):
             string: An HTML and JS string that can be directly added
               as one would add any HTML inline block tag
         """
-        return f"""{label}<span id="{self.uuid}">
+        return f"""{label}<span id="{self.uuid}"  class="numval">
         <script type="text/javascript">
         var upd = function(val)
         {{
@@ -1121,7 +1121,7 @@ class Meter(Widget):
             }}
         }}
         kaithemapi.subscribe('{uuid}',upd);
-        </script>{valuestr}
+        </script><span class="numval">{valuestr}</span>
         </span></br>
         <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
 

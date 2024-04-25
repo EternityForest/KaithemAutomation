@@ -36,7 +36,7 @@ input {
         <div class="flex-row gaps" v-if="sceneData.displayTags.length > 0">
 
             <div :style="{ 'min-width': v[2].width + 'rem' }" v-for="v in sceneData.displayTags">
-                <label>{{ v[0] }}</label>
+                <label><b>{{ v[0] }}</b></label>
 
                 <template v-if="v[2].type == 'meter'">
                     <div>
@@ -44,7 +44,7 @@ input {
                             :max="sceneData.displayTagMeta[v[1]].max" :high="sceneData.displayTagMeta[v[1]].hi"
                             :lo="sceneData.displayTagMeta[v[1]].lo" :value="sceneData.displayTagValues[v[1]]"></meter>
 
-                        {{ sceneData.displayTagValues[v[1]] }}
+                        <span class="numval">{{ sceneData.displayTagValues[v[1]] }}</span>
                     </div>
                 </template>
 
@@ -55,8 +55,8 @@ input {
                 </template>
 
                 <template v-if="v[2].type == 'led'">
-                    <div>
-                        {{ sceneData.displayTagValues[v[1]] }}<input type="checkbox" 
+                    <div style="min-width: 4em">
+                        <span class="numval"><small>{{ sceneData.displayTagValues[v[1]].toFixed(1) }}<small></small></span><input type="checkbox" 
                         :class="{ 'led': 1, 'led-red':v[2].color=='red', 'led-yellow':v[2].color=='yellow', 'led-green':v[2].color=='green', 'led-blue':v[2].color=='blue',  'led-purple':v[2].color=='purple'}"
                             v-bind:checked="sceneData.displayTagValues[v[1]]" disabled>
                     </div>
