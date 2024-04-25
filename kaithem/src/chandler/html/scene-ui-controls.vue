@@ -55,6 +55,13 @@ input {
                         </td>
                     </template>
 
+                    <template v-if="v[2].type == 'led'">
+                        <td>
+                            {{ sceneData.displayTagValues[v[1]] }}<input type="checkbox" 
+                            :class="{ 'led': 1, 'led-red':v[2].color=='red', 'led-yellow':v[2].color=='yellow', 'led-green':v[2].color=='green', 'led-blue':v[2].color=='blue',  'led-purple':v[2].color=='purple'}"
+                             v-bind:checked="sceneData.displayTagValues[v[1]]" disabled>
+                        </td>
+                    </template>
 
                     <template v-if="v[2].type == 'string_input'">
                         <td>
@@ -69,6 +76,7 @@ input {
                                 v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
                         </td>
                     </template>
+
 
                     <template v-if="v[2].type == 'switch_input'">
                         <td>

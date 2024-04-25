@@ -1601,12 +1601,25 @@ ${lists}
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                         <option value="meter">Meter Display</option>
                                         <option value="text">Text Display</option>
+                                        <option value="led">LED Indicator</option>
                                         <option value="string_input">Text Input</option>
                                         <option value="numeric_input">Numeric Input</option>
                                         <option value="switch_input">Switch Input</option>
                                         <option value="auto">auto(no longer supported)/option>
 
                                     </select>
+
+                                    <template v-if="v[2].type == 'led'">
+                                        <select :disabled="no_edit" v-model="v[2].color"
+                                            v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                            <option value="red">Red</option>
+                                            <option value="yellow">Yel</option>
+                                            <option value="green">Grn</option>
+                                            <option value="blue">Blu</option>
+                                            <option value="purple">Purple</option>
+                                        </select>
+                                    </template>
+
                                 </td>
 
                                 <td><button

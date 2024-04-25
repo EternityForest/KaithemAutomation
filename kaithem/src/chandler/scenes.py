@@ -2012,13 +2012,13 @@ class Scene:
         if not self.script_context.canGetTagpoint(tag_name):
             raise ValueError("Not allowed tag " + tag_name)
 
-        sn = tag_name[1]
+        sn = tag_name
         self.display_tag_meta[sn] = {}
         if isinstance(tag, kaithem.tags.NumericTagPointClass):
             self.display_tag_meta[sn]["min"] = tag.min
             self.display_tag_meta[sn]["max"] = tag.max
             self.display_tag_meta[sn]["hi"] = tag.hi
-            self.display_tag_meta[sn]["lo"] = tag.lo
+            self.display_tag_meta[sn]["lodisplayTagValues"] = tag.lo
             self.display_tag_meta[sn]["unit"] = tag.unit
         self.display_tag_meta[sn]["subtype"] = tag.subtype
 
@@ -2057,6 +2057,10 @@ class Scene:
 
                     t = None
 
+                    if not i[2]["type"] == "led":
+                        i[2].pop("color", None)
+                        i[2].pop("pattern", None)
+
                     if i[2]["type"] == "numeric_input":
                         t = kaithem.tags[i[1]]
 
@@ -2067,9 +2071,12 @@ class Scene:
                         t = kaithem.tags.StringTag(i[1])
 
                     elif i[2]["type"] == "text":
-                        t = kaithem.StringTag[i[1]]
+                        t = kaithem.tags.StringTag(i[1])
 
                     elif i[2]["type"] == "meter":
+                        t = kaithem.tags[i[1]]
+
+                    elif i[2]["type"] == "led":
                         t = kaithem.tags[i[1]]
 
                     if t:
