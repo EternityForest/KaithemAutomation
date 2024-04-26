@@ -504,8 +504,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             for i in scenes.scenes[msg[1]].display_tags:
                 # Defensive programming, don't set a tag that wasn't ever actually configured
                 if msg[2] == i[1]:
-                    if not msg[2].startswith("/"):
-                        msg[2] = "/" + msg[2]
                     kaithem.tags.all_tags_raw[msg[2]]().value = msg[3]
                     return
 

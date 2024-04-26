@@ -465,9 +465,9 @@ def test_tag_io():
     # Not as thorough of a test as it maybe should be...
     display_tags = [
         ["Label", "=177", {"type": "meter"}],
-        ["Label", "blah", {"type": "string_input"}],
-        ["Label", "goo", {"type": "switch_input"}],
-        ["Label", "ghjgy", {"type": "numeric_input"}],
+        ["Label", "/blah", {"type": "string_input"}],
+        ["Label", "/goo", {"type": "switch_input"}],
+        ["Label", "/ghjgy", {"type": "numeric_input"}],
     ]
 
     s = scenes.Scene(board, name="TestingScene5", id="TEST")
@@ -478,7 +478,7 @@ def test_tag_io():
     s.go()
 
     # Simulate user input
-    board._onmsg("__admin__", ["inputtagvalue", s.id, "ghjgy", 97], "nonexistantsession")
+    board._onmsg("__admin__", ["inputtagvalue", s.id, "/ghjgy", 97], "nonexistantsession")
 
     # Make sure the input tag thing actually sets the value
     assert tagpoints.Tag("ghjgy").value == 97
