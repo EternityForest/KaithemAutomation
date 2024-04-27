@@ -96,6 +96,7 @@ class WebDevices:
 
     @cherrypy.expose
     def device(self, name, *args, **kwargs):
+        pages.require("enumerate_endpoints")
         # This is a customizable per-device page
         if args and args[0] == "web":
             if kwargs:
@@ -258,6 +259,7 @@ class WebDevices:
 
     @cherrypy.expose
     def toggletarget(self, name, **kwargs):
+        pages.require("enumerate_endpoints")
         pages.postOnly()
         x = devices.remote_devices[name]
 
@@ -271,6 +273,7 @@ class WebDevices:
 
     @cherrypy.expose
     def settarget(self, name, tag, value="", **kwargs):
+        pages.require("enumerate_endpoints")
         pages.postOnly()
         x = devices.remote_devices[name]
 
@@ -285,6 +288,7 @@ class WebDevices:
     @cherrypy.expose
     def dimtarget(self, name, tag, value="", **kwargs):
         "Set a color tagpoint to a dimmed version of it."
+        pages.require("enumerate_endpoints")
         pages.postOnly()
         x = devices.remote_devices[name]
 
@@ -301,6 +305,7 @@ class WebDevices:
 
     @cherrypy.expose
     def triggertarget(self, name, tag, **kwargs):
+        pages.require("enumerate_endpoints")
         pages.postOnly()
         x = devices.remote_devices[name]
 

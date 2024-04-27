@@ -285,111 +285,6 @@ It is recommended that you use the message bus in [Scullery](https://github.com/
 **See Widgets for info on how to use these. Unless otherwise mentioned,
 their API is defined by the Widget base class.**
 
-#### kaithem.widget.DynamicSpan()
-
-Creates a dynamic span widget. When rendered, A dynamic span widget
-looks like a normal HTML span. however, you can change it's contents by
-write()ing strings to it. This widget does not return any data.
-
-#### kaithem.widgets.TimeWidget()
-
-All this does is display the current time in his or her prefered format.
-use like an HTML span or an image. Render takes a parameter type which
-defaults to widget. If type is 'inline', will render as simple text
-without special styling.
-
-Unlike other widgets, the TimeWidget is purely client side and uses the
-system clock of the client, and as such will even work if
-/static/widget.js is not included.
-
-#### kaithem.widgets.Button()
-
-This is a button. Data points from it are in the form of lists of
-states. Normally the value will be \['pushed'\], or \['released'\], but
-if the user quickly taps the button(a common use for buttons), the value
-will be \['pressed','released'\] or some such. Basically, the value
-records what happened during the most recent pollng period in which
-there was activity.
-
-The sugessted pattern for dealing with these is to use
-[attach()](#widgetattach) to set a callback, then use a line like "if
-'pushed' in value:" to detect button presses. Directly reading the value
-is not reccomended.
-
-Mobile devices may not be able to register press-and-hold, but should
-handle normall presses correctly.
-
-render() takes a **required** first argument content which is is usually
-a short string such as "submit" which will appear as the contents of the
-HTML button. render() also takes the optional keyword element type. If
-type is "trigger", it will render as a larger button that is disabled by
-default, with a smaller arm/disarm button above it, that one must use in
-order to enable the button. However, as far as the server knows, it acts
-as a normal button. Good for things you don't want to press
-accidentally.
-
-#### kaithem.widgets.Meter(\*\*kwargs)
-
-Used for display a changing numeric value. By default, renders to a
-simple HTML span that changes color on extreme values if limits are
-defined.
-
-The constructor for meter can take a upper critical value called high, a
-lower crtitcal value called low, an upper warning threshold called
-high\_warn, and a lower warning threshold called low\_warn. These are
-all passes as keyword arguments.
-
-Render takes the optional parameter called unit, that specifies a unit
-to associate, like "Volts" or "Hz" or such, and the optional parameter
-label, which specifies a label such as "CH1 Voltage"
-
-
-The constructor takes an optional "unit" parameter, which is a string like "m" that describes the
-native unit of the meter.
-
-It also takes a parameter display_units, which describe what units should be displayed. It is a pipe-separated
-list without spaces.
-
-#### kaithem.widgets.Slider(\*\*kwargs)
-
-A slider widget, that currently may only be vertical. Optional
-parameters: min, max, and step, must be numbers and control the range
-and step size of the slider.
-
-Slider.render() takes an optional parameter *unit* which specifies a
-unit of measurement to associate. optional parameter label, which
-specifies a label such as "CH1 Voltage, It also takes a parameter type,
-which by default is 'realtime', which causes the value to be sent to the
-server whenever the slider is moved. If this value is "onrelease", data
-will only be sent to the server when you release your mouse or take your
-finger off the touchscreen.
-
-#### kaithem.widgets.Switch(\*\*kwargs)
-
-An on-off toggle widget.
-
-Switch.render() takes an optional parameter label, which provides a
-clickable label.
-
-Switch.read() and Switch.write() return and accept boolean values.
-
-#### kaithem.widgets.TextBox
-
-A text box control. render() takes an optional parameter that provides a
-label for the box.
-
-On the server, you can call read() to get it's contents or write(s) to
-set it's contents
-
-TextBox.render() takes an optional parameter label to provide a label
-for the box.
-
-#### kaithem.widgets.ScrollBox(length=250)
-
-A scrolling widget used for things like logging. Whatever HTML you
-write() will be appended to the end of a log on all the browsers in a
-div tag. The last length entries are kept. Even without websocket
-support, you can refresh to get the most recent entries.
 
 #### kaithem.widgets.APIWidget(echo=True)
 
@@ -399,7 +294,7 @@ returns a script that places an object into a global javascript variable
 of that name. You can use obj.set(x) to set the widget's value to x, and
 retrieve the widget's value with obj.value.
 
-\\
+
 
 You can also use obj.send(x), to ensure that all values and not just the
 latest are transmitted. obj.send is more like a message oriented pipe

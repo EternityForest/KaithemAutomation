@@ -9,6 +9,11 @@ var awaitingDataSource = {}
 function whenSourceAvailable(name, f) {
     var already = [false]
 
+    function make_ds_bg() {
+        getDataSource(name);
+    }
+
+
     function fn() {
         // Make sure we only do this once
         // Since we listen to multiple sources
@@ -25,28 +30,29 @@ function whenSourceAvailable(name, f) {
         return
     }
 
-    // If provider that can handle the source exists
-    if (name.includes(":")) {
-        if (dataSourceProviders[name.split(':')[0]]) {
-            fn()
-            return
-        }
-
-    }
-
 
     if (!awaitingDataSource[name]) {
         awaitingDataSource[name] = []
     }
     awaitingDataSource[name].push(fn)
 
-    // Also look for just the provider
+
+    // If provider that can handle the source exists
+    // Make it, it will do the rest when ready
+    if (name.includes(":")) {
+        if (dataSourceProviders[name.split(':')[0]]) {
+            make_ds_bg()
+        }
+
+    }
+
+    // Provider not found, we'll listen for it later
     if (name.includes(":")) {
         var pname = name.split(':')[0]
         if (!awaitingDataSource[pname + ":*"]) {
             awaitingDataSource[pname + ":*"] = []
         }
-        awaitingDataSource[pname + ":*"].push(fn)
+        awaitingDataSource[pname + ":*"].push(make_ds_bg)
     }
 }
 
@@ -54,8 +60,8 @@ function whenSourceAvailable(name, f) {
 async function addDataSourceProvider(name, cls) {
     dataSourceProviders[name] = cls
     if (awaitingDataSource[name + ":*"]) {
-        for (var i in awaitingDataSource[name + ":*"]) {
-            await awaitingDataSource[name + ":*"][i]()
+        while (awaitingDataSource[name + ":*"].length > 0) {
+            await awaitingDataSource[name + ":*"].pop()()
         }
     }
 }
@@ -72,9 +78,11 @@ function getDataSource(ds_name) {
     return dataSources[ds_name]
 }
 
-function getFilter(filter_name) {
+function getFilter(filter_name, prev_in_chain) {
+    // Previous in chain is optional, and may
+    // Either be a data source or a filter
     filter_name = filter_name.trim()
-    return new filterProviders[filter_name.split(':')[0]](filter_name, {})
+    return new filterProviders[filter_name.split(':')[0]](filter_name, {},  prev_in_chain)
 }
 
 class DataSource {
@@ -88,6 +96,8 @@ class DataSource {
         this.users = []
         this.lastPush = 0
 
+        this.config = config || {}
+
         this.history = []
     }
 
@@ -98,11 +108,11 @@ class DataSource {
         return this.history
     }
 
-    async register() {
+    async ready() {
         dataSources[this.name] = this
         if (awaitingDataSource[this.name]) {
-            for (var i in awaitingDataSource[this.name]) {
-                await awaitingDataSource[this.name][i]()
+            while (awaitingDataSource[this.name].length > 0) {
+                await awaitingDataSource[this.name].pop()()
             }
         }
     }
@@ -157,7 +167,9 @@ class DataSource {
 }
 
 class Filter {
-    constructor(s) {
+    constructor(s, cfg, prev) {
+        this.cfg = cfg
+        this.prev = prev
         s = s.split(":")[1]
 
         while (s.includes("  ")) {
@@ -184,8 +196,8 @@ class Filter {
 
 
 class Mult extends Filter {
-    constructor(s) {
-        super(s)
+    constructor(s, cfg, prev) {
+        super(s, cfg, prev)
         this.m = parseFloat(this.args[0])
     }
 
@@ -204,8 +216,8 @@ filterProviders["mult"] = Mult
 
 
 class FixedPoint extends Filter {
-    constructor(s) {
-        super(s)
+    constructor(s, cfg, prev) {
+        super(s, cfg, prev)
         this.m = parseInt(this.args[0])
     }
 
@@ -223,8 +235,8 @@ class FixedPoint extends Filter {
 filterProviders["fixedpoint"] = FixedPoint
 
 class Offset extends Filter {
-    constructor(s) {
-        super(s)
+    constructor(s, cfg, prev) {
+        super(s, cfg, prev)
         this.m = parseFloat(this.args[0])
     }
 
@@ -249,14 +261,18 @@ class BaseDashWidget extends HTMLElement {
     connectedCallback() {
         this.innerHTML = "Awating Data Source"
         async function f() {
+            this.source = picodash.getDataSource(this.getAttribute("source"))
+
             this.filterStack = []
+            var prev_filter = this.source
+
             if (this.getAttribute("filter")) {
                 var fs = this.getAttribute("filter").split("|")
                 for (var i in fs) {
-                    this.filterStack.push(getFilter(fs[i]))
+                    prev_filter = getFilter(fs[i], prev_filter)
+                    this.filterStack.push(prev_filter)
                 }
             }
-            this.source = picodash.getDataSource(this.getAttribute("source"))
 
             async function f(data) {
                 for (var i in this.filterStack) {
@@ -324,6 +340,11 @@ class SimpleVariableDataSource extends DataSource {
         this.data = data
         super.pushData(data)
     }
+
+    async register() {
+        super.register()
+        super.ready()
+    }
 }
 
 var picodash = {
@@ -342,10 +363,10 @@ class RandomDataSource extends DataSource {
     constructor(name, config) {
         super(name, config);
 
-        this.min = -1
+        this.min = 0
         this.max = 1
-        this.high = 0.5
-        this.low = -0.5
+        thishigh = 0.9
+        this.low = 0.1
 
         function upd() {
             this.pushData(Math.random() * 2 - 1)
@@ -362,6 +383,11 @@ class RandomDataSource extends DataSource {
             clearInterval(this.interval)
         }
     }
+
+    async register() {
+        super.register()
+        super.ready()
+    }
 }
 
 class FixedDataSource extends DataSource {
@@ -373,6 +399,11 @@ class FixedDataSource extends DataSource {
 
     async getData() {
         return this.data
+    }
+
+    async register() {
+        super.register()
+        super.ready()
     }
 }
 
@@ -387,7 +418,7 @@ class SpanDashWidget extends BaseDashWidget {
     }
 
     async onDataReady() {
-        var x = await this.source.getData()
+        var x = await this.refresh()
         await this.onData(x)
     }
 }
@@ -399,10 +430,10 @@ class MeterDashWidget extends BaseDashWidget {
     async onDataReady() {
         var m = document.createElement("meter")
         this.meter = m
-        this.meter.min = this.source.min || this.getAttribute("min") || -1
-        this.meter.max = this.source.max || this.getAttribute("max") || 1
-        this.meter.high = this.source.high || this.getAttribute("high") || 1000000000
-        this.meter.low = this.source.low || this.getAttribute("low") || -1000000000
+        this.meter.min = this.source.config.min || this.getAttribute("min") || -1
+        this.meter.max = this.source.config.max || this.getAttribute("max") || 1
+        this.meter.high = this.source.config.high || this.getAttribute("high") || 1000000000
+        this.meter.low = this.source.config.low || this.getAttribute("low") || -1000000000
         this.meter.style.width = "100%"
         this.innerHTML = ''
         this.appendChild(m)
@@ -495,7 +526,30 @@ class TagDataSource extends DataSource {
         }
         this.sub = upd.bind(this)
         kaithemapi.subscribe(this.name, this.sub)
-        super.register()
+
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/tag_api/info" + this.name.split(":")[1];
+
+
+        var this_ = this
+
+        xmlhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                var myArr = JSON.parse(this.responseText);
+
+                for (var i of ['min', 'max', 'hi', 'lo', 'step', 'unit'])
+            {
+                    if (myArr[i]) {
+                        this_.config[i] = myArr[i]
+                    }
+                }
+
+                this_.data = myArr.lastVal
+                this_.ready()
+            }
+        };
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
     }
 
     async pushData(d) {
@@ -507,6 +561,9 @@ class TagDataSource extends DataSource {
         super.pushData(d)
     }
 
+    async getData() {
+        return this.data
+    }
     async close() {
         kaithemapi.unsubscribe(this.name, this.sub)
     }

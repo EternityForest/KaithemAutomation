@@ -29,7 +29,7 @@ import dateutil
 import dateutil.parser
 from scullery import scheduling
 
-from . import alerts, messagebus, widgets, workers
+from . import alerts, messagebus, pages, widgets, workers
 from .unitsofmeasure import convert, unit_types
 
 
@@ -54,6 +54,34 @@ def _make_tag_info_helper(t: GenericTagPointClass[Any]):
             return f"({x})"
 
     return f
+
+
+def get_tag_meta(t):
+    r = {}
+    t = allTagsAtomic[t]()
+
+    pages.require(t.get_effective_permissions()[0])
+    if not t:
+        raise RuntimeError("Tag not found")
+
+    if t.type == "number":
+        r["min"] = t.min
+        r["max"] = t.max
+        r["high"] = t.hi
+        r["low"] = t.lo
+        r["unit"] = t.unit
+
+        r["lastVal"] = t.value
+
+    elif t.type == "string":
+        r["lastVal"] = t.value
+    elif t.type == "object":
+        r["lastVal"] = t.value
+
+    r["type"] = t.type
+    r["subtype"] = t.subtype
+
+    return r
 
 
 # For the tag numbering feature.
@@ -220,7 +248,6 @@ class GenericTagPointClass(Generic[T]):
         self._default: T
 
         self.data_source_widget: widgets.Widget | None = None
-        self.dataSourceAutoControl: widgets.Widget | None = None
 
         # Used for pushing data to frontend
         self._data_source_ws_lock: threading.Lock
@@ -460,7 +487,6 @@ class GenericTagPointClass(Generic[T]):
 
                 if not perms_list[0]:
                     self.data_source_widget = None
-                    self.dataSourceAutoControl = None
                     try:
                         del exposedTags[self.name]
                     except KeyError:
@@ -515,27 +541,6 @@ class GenericTagPointClass(Generic[T]):
             # They tried to set the value but could not, so inform them of such.
             if not self.current_source == self.apiClaim.name:
                 self._apiPush()
-
-    def controlApiHandler(self, u, v: T | None):
-        assert self.dataSourceAutoControl
-
-        if v is None:
-            if self.apiClaim:
-                self.apiClaim.release()
-        else:
-            # No locking things up if the times are way mismatched and it sets a time way in the future
-            self.apiClaim = self.claim(
-                v,
-                "WebAPIClaim",
-                priority=float((self.get_effective_permissions())[2] or 50),
-                annotation=u,
-            )
-
-            # They tried to set the value but could not, so inform them of such.
-            if not self.current_source == self.apiClaim.name:
-                self._apiPush()
-
-        self.dataSourceAutoControl.write(v)
 
     def get_effective_permissions(self) -> tuple[str, str, float]:
         """

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import atexit
+import json
 import logging
 import mimetypes
 import os
@@ -32,7 +33,6 @@ from . import (
     messagebus,
     messagelogging,
     modules_interface,
-    modules_state,
     notifications,
     pages,
     settings,
@@ -160,7 +160,7 @@ class webapproot:
     @cherrypy.config(**{"response.timeout": 7200})
     def user_static(self, *args, **kwargs):
         "Very simple file server feature!"
-
+        pages.require("enumerate_endpoints")
         if not args:
             if os.path.exists(os.path.join(directories.vardir, "static", "index.html")):
                 return serve_file(os.path.join(directories.vardir, "static", "index.html"))
@@ -236,9 +236,21 @@ class webapproot:
             return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
 
     @cherrypy.expose
-    def pagelisting(self, *path, **data):
-        # Pagelisting knows to only show pages if you have permissions
-        return pages.get_template("pagelisting.html").render_unicode(modules=modules_state.ActiveModules)
+    def tag_api(self, cmd, *path, show_advanced="", **data):
+        # This page could be slow because of the db stuff, so we restrict it more
+        pages.require("enumerate_endpoints")
+
+        if path:
+            tn = "/".join(path)
+            if (not tn.startswith("=")) and not tn.startswith("/"):
+                tn = "/" + tn
+            if tagpoints.normalize_tag_name(tn) not in tagpoints.allTags:
+                raise ValueError("This tag does not exist")
+            if cmd == "info":
+                # Funtion does permissions by itself
+                return json.dumps(tagpoints.get_tag_meta(tn))
+        else:
+            raise RuntimeError("No tag specified")
 
     # docs, helpmenu, and license are just static pages.
     @cherrypy.expose

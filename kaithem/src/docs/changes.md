@@ -1,6 +1,21 @@
 Change Log
 ----------
 
+
+### 0.81.0
+
+#### Changed
+
+- :lock: New enumerate_endpoints permission required for things that could otherwise reveal the existance or nonexistance of an object without actually giving access to it.
+
+#### Removed
+
+- :coffin: Most widgets other than DataSource and APIWidget are finally gone.  That was decade old unmaintained code, one of the last remaining bits of antigue code.
+
+#### Added
+
+- :sparkles: The picodash system replaces widgets with a much easier to use set of custom HTML elements.
+
 ### 0.80.0 (Apr 24)
 
 Another breaking change heavy beta release.  You can now have multiple Chandler boards
@@ -10,6 +25,7 @@ The good news is that there are now no more major globally-configured objects,
 which was the main issue with these breaking changes.
 
 #### Removed
+
 - :coffin: Remove ability to create new Mako user pages. Jinja2 all the way!
 - :coffin: Tag point universes are gone
 - :coffin: Remove non-chandler simple video signage
