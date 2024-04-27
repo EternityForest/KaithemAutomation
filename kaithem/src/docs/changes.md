@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+### 0.80.1 (Apr 27)
+
+#### Fixed
+- :bug: Even more sneaky camelcase and tag name normalization bugs!
+
+#### Added
+- :sparkles: LED element for chandler tag display.
+
 ### 0.80.0 (Apr 24)
 
 Another breaking change heavy beta release.  You can now have multiple Chandler boards
