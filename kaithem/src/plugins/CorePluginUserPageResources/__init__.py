@@ -211,7 +211,7 @@ class CompiledPage:
         def refreshFromResource():
             # For compatibility with older versions, we provide defaults
             # In case some attributes are missing
-            if "require-permissions" in resource:
+            if "require_permissions" in resource:
                 self.permissions = resource["require_permissions"]
             else:
                 self.permissions = []
@@ -575,7 +575,7 @@ class KaithemPage:
                 fn = modules_state.fileResourceAbsPaths[module, rn]
                 mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
                 if x.get("serve", False):
-                    pages.require(x.get("require-permissions", []))
+                    pages.require(x.get("require_permissions", []))
                     if "Origin" in cherrypy.request.headers:
                         origins: list[str] = x["allow_origins"]  # type: ignore
 
@@ -844,7 +844,7 @@ class PageType(modules_state.ResourceType):
         return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}/{url(path)}")
 
     def editpage(self, module, resource, resourceinquestion):
-        if "require-permissions" in resourceinquestion:
+        if "require_permissions" in resourceinquestion:
             requiredpermissions = resourceinquestion["require_permissions"]
         else:
             requiredpermissions = []

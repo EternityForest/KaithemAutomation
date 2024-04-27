@@ -805,7 +805,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
             return permissionEditPage(module, resource)
 
         if resourceinquestion["resource_type"] == "internal_fileref":
-            if "require-permissions" in resourceinquestion:
+            if "require_permissions" in resourceinquestion:
                 requiredpermissions = resourceinquestion["require_permissions"]
             else:
                 requiredpermissions = []

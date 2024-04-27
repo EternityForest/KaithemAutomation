@@ -8,9 +8,9 @@
         <i class="mdi mdi-play"></i>Go to page </a>
 
     <p class="resource-docstring">{{ getPageInfo(modulename,resourcename) | escape }}</p>
-    {% if 'require-permissions' in resource and resource['require-permissions'] %}
+    {% if 'require_permissions' in resource and resource['require_permissions'] %}
     Permissions:
-    {% for x in resource['require-permissions'] %}<i class="mdi mdi-key"></i>{{ x| escape }}{% endfor %}
+    {% for x in resource['require_permissions'] %}<i class="mdi mdi-key"></i>{{ x| escape }}{% endfor %}
     {% endif %}
     {% if 'require_method' in resource %}
     <i class="mdi mdi-unlocked"></i>Access: {{ ','.join(resource['require_method']) }}

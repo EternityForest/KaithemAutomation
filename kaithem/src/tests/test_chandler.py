@@ -479,7 +479,7 @@ def test_tag_io():
 
     # Simulate user input
     board._onmsg("__admin__", ["inputtagvalue", s.id, "/ghjgy", 97], "nonexistantsession")
-
+    time.sleep(0.1)
     # Make sure the input tag thing actually sets the value
     assert tagpoints.Tag("ghjgy").value == 97
 

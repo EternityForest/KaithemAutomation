@@ -16,6 +16,14 @@ Change Log
 
 - :sparkles: The picodash system replaces widgets with a much easier to use set of custom HTML elements.
 
+### 0.80.1 (Apr 27)
+
+#### Fixed
+- :bug: Even more sneaky camelcase and tag name normalization bugs!
+
+#### Added
+- :sparkles: LED element for chandler tag display.
+
 ### 0.80.0 (Apr 24)
 
 Another breaking change heavy beta release.  You can now have multiple Chandler boards
