@@ -223,8 +223,7 @@ class GenericTagPointClass(Generic[T]):
         self.dataSourceAutoControl: widgets.Widget | None = None
 
         # Used for pushing data to frontend
-        self._guiLock: threading.Lock
-        self.spanWidget: widgets.DynamicSpan | None
+        self._data_source_ws_lock: threading.Lock
 
         self.description: str = ""
         # True if there is already a copy of the deadlock diagnostics running
@@ -388,12 +387,6 @@ class GenericTagPointClass(Generic[T]):
 
                 return self.unique_int
 
-    @property
-    def meterWidget(self):
-        """Hack to get around code that calls meterWidget
-        but that should have been able to handle span widgets. Will look bad but not break"""
-        return self.spanWidget
-
     # In reality value, timestamp, annotation are all stored together as a tuple
 
     @property
@@ -411,7 +404,7 @@ class GenericTagPointClass(Generic[T]):
     def expose(
         self,
         read_perms: str | list[str] = "",
-        write_perms: str | list[str] = "__never__",
+        write_perms: str | list[str] = "system_admin",
         expose_priority: str | int | float = 50,
     ):
         """If not r, disable web API.  Otherwise, set read and write permissions."""
@@ -428,7 +421,7 @@ class GenericTagPointClass(Generic[T]):
         if not read_perms:
             read_perms = ""
         if not write_perms:
-            write_perms = "__never__"
+            write_perms = "system_admin"
 
         # Just don't allow numberlike permissions so we can keep
         # pretending any config item that looks like a number, is.
@@ -463,7 +456,7 @@ class GenericTagPointClass(Generic[T]):
                 perms_list = list(d2)
 
                 # Be safe, only allow writes if user specifies a permission
-                perms_list[1] = perms_list[1] or "__never__"
+                perms_list[1] = perms_list[1] or "system_admin"
 
                 if not perms_list[0]:
                     self.data_source_widget = None
@@ -480,20 +473,11 @@ class GenericTagPointClass(Generic[T]):
                     if self.unreliable:
                         w.noOnConnectData = True
 
-                    # The tag.control version is exactly the same but output-only,
-                    #  so you can have a synced UI widget that
-                    # can store the UI setpoint state even when the actual tag is overriden.
-                    self.dataSourceAutoControl = widgets.DataSource(id=f"tag.control:{self.name}")
-                    self.dataSourceAutoControl.write(None)
                     w.set_permissions(
                         [i.strip() for i in perms_list[0].split(",")],
                         [i.strip() for i in perms_list[1].split(",")],
                     )
 
-                    self.dataSourceAutoControl.set_permissions(
-                        [i.strip() for i in perms_list[0].split(",")],
-                        write=[i.strip() for i in perms_list[1].split(",")],
-                    )
                     w.value = self.value
 
                     exposedTags[self.name] = self
@@ -505,7 +489,6 @@ class GenericTagPointClass(Generic[T]):
                     # so don't give it a reference to us
                     self._weakApiHandler = self.makeWeakApiHandler(weakref.ref(self))
                     w.attach(self._weakApiHandler)
-                    self.dataSourceAutoControl.attach(self._weakApiHandler)
 
                     self.data_source_widget = w
 
@@ -583,21 +566,21 @@ class GenericTagPointClass(Generic[T]):
             # Set value immediately, for later page loads
             assert self.data_source_widget
             self.data_source_widget.value = self.value
-            if self._guiLock.acquire(timeout=1):
+            if self._data_source_ws_lock.acquire(timeout=1):
                 try:
                     # Use the new literal computed value, not what we were passed,
                     # Because it could have changed by the time we actually get to push
                     self.data_source_widget.send(self.value)
                 finally:
-                    self._guiLock.release()
+                    self._data_source_ws_lock.release()
 
         # Should there already be a function queued for this exact reason, we just let
         # That one do it's job
-        if self._guiLock.acquire(timeout=0.001):
+        if self._data_source_ws_lock.acquire(timeout=0.001):
             try:
                 workers.do(pushFunction)
             finally:
-                self._guiLock.release()
+                self._data_source_ws_lock.release()
 
     def testForDeadlock(self):
         "Run a check in the background to make sure this lock isn't clogged up"
@@ -697,12 +680,10 @@ class GenericTagPointClass(Generic[T]):
     def _makeTagAlarmHTMLFunc(selfwr):
         def notificationHTML():
             try:
-                if hasattr(selfwr(), "meterWidget"):
-                    return selfwr().meterWidget.render()
-                elif hasattr(selfwr(), "spanWidget"):
-                    return selfwr().spanWidget.render()
+                if selfwr() in ("numeric", "string"):
+                    return f'<ds-span source="tag:{selfwr().name}"></ds-span>'
                 else:
-                    return "Binary Tagpoint"
+                    return "Binary or obj Tagpoint"
             except Exception as e:
                 return str(e)
 
@@ -1076,7 +1057,7 @@ class GenericTagPointClass(Generic[T]):
             return
 
         # Set value immediately, for later page loads
-        if self._guiLock.acquire(timeout=0.3):
+        if self._data_source_ws_lock.acquire(timeout=0.3):
             try:
                 # Use the new literal computed value, not what we were passed,
                 # Because it could have changed by the time we actually get to push
@@ -1085,7 +1066,7 @@ class GenericTagPointClass(Generic[T]):
             except Exception:
                 raise
             finally:
-                self._guiLock.release()
+                self._data_source_ws_lock.release()
         else:
             print("Timed out in the push function")
 
@@ -1178,9 +1159,6 @@ class GenericTagPointClass(Generic[T]):
     @beartype.beartype
     def set_handler(self, f: Callable[[T, float, Any], Any]):
         self.handler = weakref.ref(f)
-
-    def _debugAdminPush(self, value: T, t: float | None, a: Any):
-        pass
 
     def poll(self):
         if self.lock.acquire(timeout=5):
@@ -1365,10 +1343,6 @@ class GenericTagPointClass(Generic[T]):
         raise AttributeError("Push on repeats was causing too much trouble and too much confusion and has been removed")
 
     def handleSourceChanged(self, name):
-        try:
-            self._debugAdminPush(self.value, None, None)
-        except Exception:
-            pass
         if self.onSourceChanged:
             try:
                 self.onSourceChanged(name)
@@ -1672,11 +1646,9 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         # Pipe separated list of how to display value
         self._display_units: str | None = None
         self._unit: str = ""
-        self._guiLock = threading.Lock()
-        self._meterWidget = None
+        self._data_source_ws_lock = threading.Lock()
         self.enum = {}
 
-        self._setupMeter()
         super().__init__(name)
 
     def processValue(self, value: float | int):
@@ -1687,74 +1659,6 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             value = min(self._max, value)
 
         return float(value)
-
-    @property
-    def meterWidget(self):
-        if not self.lock.acquire(timeout=5):
-            raise RuntimeError("Error getting lock")
-        try:
-            if self._meterWidget:
-                x = self._meterWidget
-                if x:
-                    self._debugAdminPush(self.value, None, None)
-                    # Put if back if the function tried to GC it.
-                    self._meterWidget = x
-                    return self._meterWidget
-
-            self._meterWidget = widgets.Meter(extraInfo=_make_tag_info_helper(self))
-
-            def f(v, t, a):
-                self._debugAdminPush(v, t, a)
-
-            self.subscribe(f)
-            self._gui_updateSubscriber = f
-
-            self._meterWidget.defaultLabel = self.name.split(".")[-1][:24]
-
-            self._meterWidget.set_permissions(["view_admin_info"], ["system_admin"])
-            self._setupMeter()
-            # Try to immediately put the correct data in the gui
-            if self._guiLock.acquire():
-                try:
-                    # Note: this in-thread write could be slow
-                    self._meterWidget.write(self.last_value)
-                finally:
-                    self._guiLock.release()
-            return self._meterWidget
-        finally:
-            self.lock.release()
-
-    def _debugAdminPush(self, value, t: float | None, a):
-        if not self._meterWidget:
-            return
-
-        if not self._meterWidget.stillActive():
-            if not self.lock.acquire(timeout=5):
-                raise RuntimeError("Error getting lock")
-            self._meterWidget = None
-            self.lock.release()
-            return
-
-        # Immediate write, don't push yet, do that in a thread because TCP can block
-
-        def pushFunction():
-            if self._meterWidget:
-                self._meterWidget.write(value, push=False)
-                if self._guiLock.acquire(timeout=1):
-                    try:
-                        # Use the cached literal computed value, not what we were passed,
-                        # Because it could have changed by the time we actually get to push
-                        self._meterWidget.write(self.last_value)
-                    finally:
-                        self._guiLock.release()
-
-        # Should there already be a function queued for this exact reason, we just let
-        # That one do it's job
-        if self._guiLock.acquire(timeout=0.001):
-            try:
-                workers.do(pushFunction)
-            finally:
-                self._guiLock.release()
 
     def filterValue(self, v: float) -> float:
         return float(v)
@@ -1779,7 +1683,6 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     def min(self, v: float | int | None):
         self._min = v
         self.pull()
-        self._setupMeter()
 
     @property
     def max(self) -> float | int:
@@ -1790,7 +1693,6 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     def max(self, v: float | int | None):
         self._max = v
         self.pull()
-        self._setupMeter()
 
     @property
     def hi(self) -> float | int:
@@ -1806,7 +1708,6 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         if v is None:
             v = 10**16
         self._hi = v
-        self._setupMeter()
 
     @property
     def lo(self) -> float | int:
@@ -1820,19 +1721,6 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         if v is None:
             v = -(10**16)
         self._lo = v
-        self._setupMeter()
-
-    def _setupMeter(self):
-        if not self._meterWidget:
-            return
-        self._meterWidget.setup(
-            self._min if (self._min is not None) else -100,
-            self._max if (self._max is not None) else 100,
-            self._hi if self._hi is not None else 10**16,
-            self._lo if self._lo is not None else -(10**16),
-            unit=self.unit,
-            display_units=self.display_units,
-        )
 
     def convert_to(self, unit: str):
         "Return the tag's current vakue converted to the given unit"
@@ -1871,9 +1759,6 @@ class NumericTagPointClass(GenericTagPointClass[float]):
                 self._display_units = value
 
         self._unit = value
-        self._setupMeter()
-        if self._meterWidget:
-            self._meterWidget.write(self.value)
 
     @property
     def display_units(self):
@@ -1885,9 +1770,6 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             raise RuntimeError("units must be str")
 
         self._display_units = value
-        self._setupMeter()
-        if self._meterWidget:
-            self._meterWidget.write(self.value)
 
 
 @final
@@ -1900,8 +1782,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
     @beartype.beartype
     def __init__(self, name: str):
         self.vta: tuple[str, float, Any]
-        self._guiLock = threading.Lock()
-        self._spanWidget = None
+        self._data_source_ws_lock = threading.Lock()
         super().__init__(name)
 
     def processValue(self, value):
@@ -1909,79 +1790,6 @@ class StringTagPointClass(GenericTagPointClass[str]):
 
     def filterValue(self, v):
         return str(v)
-
-    def _debugAdminPush(self, value, timestamp, annotation):
-        # Immediate write, don't push yet, do that in a thread because TCP can block
-
-        if not self._spanWidget:
-            if not self.lock.acquire(timeout=5):
-                raise RuntimeError("Error getting lock")
-            self._spanWidget = None
-            self.lock.release()
-            return
-
-        if not self._spanWidget.stillActive():
-            if not self.lock.acquire(timeout=5):
-                raise RuntimeError("Error getting lock")
-            self._spanWidget = None
-            self.lock.release()
-            return
-
-        # Limit the length
-        value = value[:256]
-        self._spanWidget.write(value, push=False)
-
-        def pushFunction():
-            if self._spanWidget:
-                self._spanWidget.value = value
-                if self._guiLock.acquire(timeout=1):
-                    try:
-                        # Use the cached literal computed value, not what we were passed,
-                        # Because it could have changed by the time we actually get to push
-                        self._spanWidget.write(self.last_value)
-                    finally:
-                        self._guiLock.release()
-
-        # Should there already be a function queued for this exact reason, we just let
-        # That one do it's job
-        if self._guiLock.acquire(timeout=0.001):
-            try:
-                workers.do(pushFunction)
-            finally:
-                self._guiLock.release()
-
-    @property
-    def spanWidget(self):
-        if not self.lock.acquire(timeout=5):
-            raise RuntimeError("Error getting lock")
-        try:
-            if self._spanWidget:
-                x = self._spanWidget
-                if x:
-                    self._debugAdminPush(self.value, None, None)
-                    # Put if back if the function tried to GC it.
-                    self._spanWidget = x
-                    return self._spanWidget
-
-            self._spanWidget = widgets.DynamicSpan(extraInfo=_make_tag_info_helper(self))
-
-            def f(v, t, a):
-                self._debugAdminPush(v, t, a)
-
-            self.subscribe(f)
-            self._gui_updateSubscriber = f
-
-            self._spanWidget.set_permissions(["view_admin_info"], ["system_admin"])
-            # Try to immediately put the correct data in the gui
-            if self._guiLock.acquire():
-                try:
-                    # Note: this in-thread write could be slow
-                    self._spanWidget.write(self.last_value)
-                finally:
-                    self._guiLock.release()
-            return self._spanWidget
-        finally:
-            self.lock.release()
 
 
 @final
@@ -1992,10 +1800,9 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
     @beartype.beartype
     def __init__(self, name: str):
         self.vta: tuple[dict[str, Any], float, Any]
-        self._guiLock = threading.Lock()
+        self._data_source_ws_lock = threading.Lock()
 
         self.validate = None
-        self._spanWidget = None
         super().__init__(name)
 
     def processValue(self, value):
@@ -2018,80 +1825,6 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
 
         return v
 
-    def _debugAdminPush(self, value, timestamp, annotation):
-        # Immediate write, don't push yet, do that in a thread because TCP can block
-
-        if not self._spanWidget:
-            if not self.lock.acquire(timeout=5):
-                raise RuntimeError("Error getting lock")
-            self._spanWidget = None
-            self.lock.release()
-            return
-
-        if not self._spanWidget.stillActive():
-            if not self.lock.acquire(timeout=5):
-                raise RuntimeError("Error getting lock")
-            self._spanWidget = None
-            self.lock.release()
-            return
-
-        value = json.dumps(value)
-        # Limit the length
-        value = value[:256]
-        self._spanWidget.write(value, push=False)
-
-        def pushFunction():
-            if self._spanWidget:
-                self._spanWidget.value = value
-                if self._guiLock.acquire(timeout=1):
-                    try:
-                        # Use the cached literal computed value, not what we were passed,
-                        # Because it could have changed by the time we actually get to push
-                        self._spanWidget.write(json.dumps(self.last_value))
-                    finally:
-                        self._guiLock.release()
-
-        # Should there already be a function queued for this exact reason, we just let
-        # That one do it's job
-        if self._guiLock.acquire(timeout=0.001):
-            try:
-                workers.do(pushFunction)
-            finally:
-                self._guiLock.release()
-
-    @property
-    def spanWidget(self):
-        if not self.lock.acquire(timeout=5):
-            raise RuntimeError("Error getting lock")
-        try:
-            if self._spanWidget:
-                x = self._spanWidget
-
-                def f(v, t, a):
-                    self._debugAdminPush(v, t, a)
-
-                self.subscribe(f)
-                self._gui_updateSubscriber = f
-                if x:
-                    self._debugAdminPush(self.value, None, None)
-                    # Put if back if the function tried to GC it.
-                    self._spanWidget = x
-                    return self._spanWidget
-
-            self._spanWidget = widgets.DynamicSpan()
-
-            self._spanWidget.set_permissions(["view_admin_info"], ["system_admin"])
-            # Try to immediately put the correct data in the gui
-            if self._guiLock.acquire():
-                try:
-                    # Note: this in-thread write could be slow
-                    self._spanWidget.write(self.last_value)
-                finally:
-                    self._guiLock.release()
-            return self._spanWidget
-        finally:
-            self.lock.release()
-
 
 @final
 class BinaryTagPointClass(GenericTagPointClass[bytes]):
@@ -2101,7 +1834,7 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
     @beartype.beartype
     def __init__(self, name: str):
         self.vta: tuple[bytes, float, Any]
-        self._guiLock = threading.Lock()
+        self._data_source_ws_lock = threading.Lock()
 
         self.validate = None
         super().__init__(name)

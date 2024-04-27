@@ -15,7 +15,7 @@ import urllib.parse
 
 </style>
 <script src="/static/js/widget.js"></script>
-
+<script type="module" src="/static/js/picodash.js"></script>
 <script src="/static/showdown.min.js"></script>
 
 
@@ -124,12 +124,24 @@ else:
         %endif
         %endif
 
-    <%
-    h=devStatString(devObj)
-    %>
-    %if h:
-    <div class="flex-col gaps padding w-full">${h}</div>
-    %endif
+
+    <div class="stacked-form">
+        %if hasattr(devObj, 'tagPoints') and devObj.tagPoints:
+
+        %for i in devObj.tagPoints:
+        %if devObj.tagPoints[i].type == 'string':
+        <label>${i}<ds-span min="0" max="1" source="tag:${devObj.tagPoints[i].name}"></ds-span></label>
+        %elif devObj.tagPoints[i].type == 'number':
+        <label><b>${i}</b>
+            <div class="flex-row">
+                <ds-span class="col-3" filter="fixedpoint: 3" source="tag:${devObj.tagPoints[i].name}"></ds-span>
+                <ds-meter class="col-9" min="0" max="1" source="tag:${devObj.tagPoints[i].name}"></ds-meter></label>
+            </div>
+        %endif
+        %endfor
+        %endif
+
+    </div>
 
     %if devObj.config.get('description',''):
     <p>

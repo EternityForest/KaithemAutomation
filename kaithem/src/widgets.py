@@ -409,6 +409,8 @@ class websocket_impl:
 
                             # This comes after in case it  sends data
                             widgets[i].on_new_subscriber(user, self.uuid)
+                        else:
+                            pass
             if "unsub" in o:
                 for i in o["unsub"]:
                     if i not in self.subscriptions:

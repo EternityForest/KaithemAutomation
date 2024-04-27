@@ -401,6 +401,9 @@ p {
 /*Stack labels on the form elements*/
 label>:is(input:not(input[type=radio], input[type=checkbox]), select, button, div) {
     display: block;
+    &.flex-row, &.flex-column {
+        display: flex;
+    }
 }
 
 label:has(*) {

@@ -30,6 +30,8 @@ else:
 %>
 <title>${normalizednormalizedTagName|h}</title>
 <script src="/static/js/widget.js"></script>
+<script type="module" src="/static/js/picodash.js"></script>
+
 <h2><a href="/tagpoints/${extraUrlStuff}">(back)</a><a href="/tagpoints/${normalizednormalizedTagName|u}?show_advanced=y">(Advanced View)</a> Tag Point: <small>${normalizednormalizedTagName}</small></h2>
 <div class="window paper">
 
@@ -175,14 +177,12 @@ else:
 
 
 %if tag and isinstance(tag,tagpoints.NumericTagPointClass):
-    %try:
-    <td>${tag.meterWidget.render()}</td>
-    %except Exception as e:
-    ${e|h}</td>
-    %endtry
+<td><ds-span source="tag:${tag.name}"></ds-span>
+</td>
 
 %elif tag and isinstance(tag,(tagpoints.StringTagPointClass, tagpoints.ObjectTagPointClass)):
-    <td>${tag.spanWidget.render()}</td>
+    <td><ds-span source="tag:${tag.name}"></ds-span>
+    </td>
 
 %elif tag and isinstance(tag,(tagpoints.BinaryTagPointClass)):
 <td>${len(tag.value)} bytes at page load</td>

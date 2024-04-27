@@ -35,58 +35,6 @@ def url(u):
     return urllib.parse.quote(u, safe="")
 
 
-def devStatString(d):
-    "Misc status info that we can gather from the device typy"
-    s = []
-
-    try:
-        if "status" in d.tagPoints:
-            s.append(str(d.tagPoints["status"]())[:32])
-
-        if len(d.tagPoints) < 14:
-            for i in d.tagPoints:
-                if hasattr(d.tagPoints[i], "meterWidget"):
-                    if d.tagPoints[i].type == "number":
-                        s.append(d.tagPoints[i].meterWidget.render_oneline(label=i + ": "))
-
-        else:
-            if "rssi" in d.tagPoints:
-                s.append(d.tagPoints["rssi"].meterWidget.render_oneline(label="RSSI: "))
-            if "battery" in d.tagPoints:
-                s.append(d.tagPoints["battery"].meterWidget.render_oneline(label="Battery: "))
-            if "powered" in d.tagPoints:
-                s.append(d.tagPoints["powered"].meterWidget.render_oneline(label="Powered: "))
-
-            if "switch" in d.tagPoints:
-                s.append(d.tagPoints["switch"].meterWidget.render_oneline(label="Switch: "))
-            if "running" in d.tagPoints:
-                s.append(d.tagPoints["running"].meterWidget.render_oneline(label="Running: "))
-            if "record" in d.tagPoints:
-                s.append(d.tagPoints["record"].meterWidget.render_oneline(label="Recording: "))
-            if "temperature" in d.tagPoints:
-                s.append(d.tagPoints["temperature"].meterWidget.render_oneline(label="Temperature: "))
-            if "humidity" in d.tagPoints:
-                s.append(d.tagPoints["humidity"].meterWidget.render_oneline(label="Humidity: "))
-            if "uv_index" in d.tagPoints:
-                s.append(d.tagPoints["uv_index"].meterWidget.render_oneline(label="UV Index: "))
-            if "wind" in d.tagPoints:
-                s.append(d.tagPoints["wind"].meterWidget.render_oneline(label="Wind: "))
-
-            if "open" in d.tagPoints:
-                s.append(d.tagPoints["open"].meterWidget.render_oneline(label="Open: "))
-
-            if "on" in d.tagPoints:
-                s.append(d.tagPoints["on"].meterWidget.render_oneline(label="On: "))
-
-            if "leak" in d.tagPoints:
-                s.append(d.tagPoints["leak"].meterWidget.render_oneline(label="Leak: "))
-
-    except Exception as e:
-        s.append(str(e))
-
-    return "".join([i for i in s])
-
-
 def getshownkeys(obj: Device):
     return sorted(
         [i for i in obj.config.keys() if i not in specialKeys and not i.startswith("kaithem.") and not i.startswith("temp.kaithem")]
@@ -117,7 +65,6 @@ class WebDevices:
 
         return pages.get_template("devices/index.html").render(
             deviceData=devices.remote_devices_atomic,
-            devStatString=devStatString,
             url=url,
         )
 

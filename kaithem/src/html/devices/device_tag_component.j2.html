@@ -1,6 +1,8 @@
 {% set devices = imp0rt('kaithem.src.devices') %}
 {% set util = imp0rt('kaithem.src.util') %}
 
+<script type="module" src="/static/js/picodash.js"></script>
+
 <style>
     .croppr-imageClipped,
     .croppr-image {
@@ -14,13 +16,9 @@
     </header>
 
     <div class="grow">
-        {% if hasattr(obj.tagPoints[i],'meterWidget') %}
+        {% if obj.tagPoints[i].type in ('string','number', 'object') %}
         <h4>Current</h4>
-        {{ obj.tagPoints[i].meterWidget.render_as_span() }}
-
-        {% elif hasattr(obj.tagPoints[i],'spanWidget') %}
-        <h4>Current</h4>
-        {{ obj.tagPoints[i].spanWidget.render() }}
+        <ds-span source="tag:{{obj.tagPoints[i].name}}"></ds-span>
 
         {% elif hasattr(obj.tagPoints[i],"data_source_widget") and obj.tagPoints[i].subtype == 'mpegts' and obj.tagPoints[i].data_source_widget %}
         <video style="width: 100%" muted controls></video>
