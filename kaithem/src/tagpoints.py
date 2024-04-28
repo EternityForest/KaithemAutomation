@@ -64,6 +64,11 @@ def get_tag_meta(t):
     if not t:
         raise RuntimeError("Tag not found")
 
+    if pages.canUserDoThis(t.get_effective_permissions()[1]):
+        r["writePermission"] = True
+    else:
+        r["writePermission"] = False
+
     if t.type == "number":
         r["min"] = t.min
         r["max"] = t.max

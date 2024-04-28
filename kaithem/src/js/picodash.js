@@ -16,16 +16,16 @@ class TagDataSource extends picodash.DataSource {
 
         var this_ = this
 
-        xmlhttp.onreadystatechange = function() {
+        xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
                 var myArr = JSON.parse(this.responseText);
 
-                for (var i of ['min', 'max', 'hi', 'lo', 'step', 'unit'])
-            {
+                for (var i of ['min', 'max', 'hi', 'lo', 'step', 'unit']) {
                     if (myArr[i]) {
                         this_.config[i] = myArr[i]
                     }
                 }
+                this_.config.readonly = !myArr.writePermission
 
                 this_.data = myArr.lastVal
                 this_.ready()
@@ -36,8 +36,7 @@ class TagDataSource extends picodash.DataSource {
     }
 
     async pushData(d) {
-        if (d != this.data)
-        {
+        if (d != this.data) {
             this.data = d
             kaithemapi.sendValue(this.name, d)
         }
