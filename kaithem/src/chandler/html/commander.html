@@ -179,7 +179,7 @@
 
                                 <img style="border:none; height: fit-content;" class="w-4rem"
                                     onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound"
-                                    :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
+                                    :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
 
                                 <span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
                                         class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span>
@@ -267,7 +267,7 @@
 
                             <img style="border:none; height: fit-content;" class="w-2rem grow"
                                 onerror='this.style.display = "none"' v-if="i[1].sound"
-                                :src="'WebMediaServer?albumArt='+encodeURIComponent(i[1].id)"></img>
+                                :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].id)"></img>
 
                             <span v-if="(i[1].active && (''+i[1].length).indexOf('@')>-1)"><i
                                     class="mdi mdi-clock-outline"></i>{{i[1].cue.length.substring(1)}}</span>
