@@ -305,7 +305,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "jumpbyname":
-            scenes.scenes_by_name[msg[1]].goto_cue(msg[2], cause="manual")
+            self.scenes_by_name[msg[1]].goto_cue(msg[2], cause="manual")
             return
 
         elif cmd_name == "nextcue":
@@ -317,7 +317,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "nextcuebyname":
-            scenes.scenes_by_name[msg[1]].next_cue(cause="manual")
+            self.scenes_by_name[msg[1]].next_cue(cause="manual")
             return
 
         elif cmd_name == "shortcut":
@@ -347,12 +347,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "gobyname":
-            scenes.scenes_by_name[msg[1]].go()
-            self.pushMeta(scenes.scenes_by_name[msg[1]].id)
+            self.scenes_by_name[msg[1]].go()
+            self.pushMeta(self.scenes_by_name[msg[1]].id)
             return
 
         elif cmd_name == "stopbyname":
-            scenes.scenes_by_name[msg[1]].stop()
+            self.scenes_by_name[msg[1]].stop()
             self.pushMeta(msg[1], statusOnly=True)
             return
 
@@ -651,7 +651,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             )
 
         elif cmd_name == "mediaLinkCommand":
-            scenes.scenes_by_name[msg[1]].media_link_socket.send_to(msg[3], msg[2])
+            self.scenes_by_name[msg[1]].media_link_socket.send_to(msg[3], msg[2])
             return
 
         elif cmd_name == "newFromSound":

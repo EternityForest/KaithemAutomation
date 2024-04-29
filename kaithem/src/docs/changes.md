@@ -16,6 +16,10 @@ Change Log
 
 - :sparkles: The picodash system replaces widgets with a much easier to use set of custom HTML elements.
 
+#### Fixed
+
+- :bug: Certain commands in chandler like sending a ding to a web player.
+
 ### 0.80.1 (Apr 27)
 
 #### Fixed
