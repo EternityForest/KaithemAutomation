@@ -10,6 +10,11 @@
 <script src="/static/js/thirdparty/butterchurn/milkdrop-preset-converter.min.js"></script> -->
 
 <style>
+
+    * {
+        cursor: none !important;
+    }
+
     body {
         background-color: black;
         overflow: hidden;
@@ -67,6 +72,7 @@
         left: 0px;
         background-color: transparent;
         position: absolute;
+        display: none;
     }
 
     img,![img](http://localhost:8002/static/img/nov23-ai-watercolor-tavern.webp)
@@ -180,6 +186,13 @@ ${scenes.scenes[kwargs['scene']].slideshow_layout}
             if (el) {
                 if (el.src != v[1]) {
                     el.src = v[1]
+
+                    if(el.src){
+                        el.style.display = 'block'
+                    }
+                    else{
+                        el.style.display = 'none'
+                    }
                 }
             }
         }
