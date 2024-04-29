@@ -461,9 +461,11 @@ select {
 }
 
 
-textarea:disabled {
-    background-color: color-mix(in srgb, var(--control-bg) 50%, var(--box-bg) 50%);
-    color: var(--control-fg);
+textarea:disabled, input:disabled, button:disabled{
+    &:not(.specificity_hack){
+        background: color-mix(in srgb, var(--control-fg) 25%, var(--box-bg) 50%);
+        color: var(--control-fg);
+    }
 }
 
 details {

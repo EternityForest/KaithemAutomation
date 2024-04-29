@@ -2,6 +2,15 @@
 {% set time = imp0rt( 'time' ) %}
 
 {% block body %}
+<style>
+    dd{
+        min-height: 3em;
+        margin-left: 1em;
+        border-left: var(--border);
+        border-width: 3px;
+        padding-left: 1em;
+    }
+</style>
 <main>
     <h2>Module {{ name| escape }}</h2>
     <title>Module: {{ name| escape }}</title>
@@ -79,7 +88,7 @@
             </form>
 
         </div>
-        <dl>
+        <dl class="margin-top">
             {% if path and len(path[0].split("/"))>1 %}
             <dt class="specialentry">
                 <a href="urlForPath(module, path)#resources">..</a>
@@ -162,6 +171,9 @@
                     <br>
                 </div>
             </dt>
+            <dd>
+
+            </dd>
             {% endif %}
 
             {% if module[i]['resource_type'] == 'directory' %}
@@ -176,7 +188,11 @@
                         <i class="mdi mdi-delete"></i>Delete</a>
                 </div>
             </dt>
+            <dd>
+
+            </dd>
             {% endif %}
+            <hr>
             {% endfor %}
             </div>
 </main>

@@ -294,6 +294,7 @@ sdn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
 ddn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
 
 conf = {
+    "/": {"tools.gzip.on": True, "tools.gzip.mime_types": ["text/*", "application/*"], "tools.gzip.compress_level": 1},
     "/static": {
         "tools.staticdir.on": True,
         "tools.staticdir.dir": os.path.join(ddn, "static"),
@@ -301,6 +302,8 @@ conf = {
         "tools.addheader.on": True,
         "tools.expires.on": True,
         "tools.expires.secs": 3600 + 48,  # expire in 48 hours
+        "tools.caching.on": True,
+        "tools.caching.delay": 3600,
     },
     "/static/js": {
         "tools.staticdir.on": True,
@@ -324,10 +327,6 @@ conf = {
         "tools.staticdir.on": True,
         "tools.staticdir.dir": os.path.join(sdn, "docs"),
         "tools.sessions.on": False,
-        "tools.addheader.on": True,
-    },
-    "/static/zip": {
-        "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
         "tools.addheader.on": True,
     },
     "/pages": {
