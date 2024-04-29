@@ -1,0 +1,7 @@
+{
+    "imports": {
+        "picodash": "./picodash.js",
+        "picodash-units": "./thirdparty/picodash/picodash-units.js",
+        "convert": "./thirdparty/convert.min.js"
+    }
+}

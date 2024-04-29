@@ -15,6 +15,7 @@ import urllib.parse
 
 </style>
 <script src="/static/js/widget.js"></script>
+
 <script type="module" src="/static/js/picodash.js"></script>
 <script src="/static/showdown.min.js"></script>
 
@@ -215,31 +216,8 @@ del d
     %endfor
 </datalist>
 
-<h2>Create New Device</h2>
-
-<p class="highlight">New devices can only be created in a module.  Please move all old devices into a module.</p>
 </div>
-<h2>Available Device Types</h2>
-<div class="max-h-12rem scroll border">
-<dl>
-    %for i in devices.device_types:
-    <dt><b>${i|h}</b></dt>
-    <dd>${devices.device_types[i].description|h}</dd>
 
-    %endfor
-
-    %for i in  devices.importedDeviceTypes:
-    <dt><b>${i|h} from ${devices.importedDeviceTypes[i].get('importable','unknown module')|h}</b></dt>
-    <dd id="id_${i.replace('"','')}"> ${devices.importedDeviceTypes[i].get("description","No description set") or "No description"|h}</dd>
-    <script>
-        showdown.setFlavor('github');
-        var c= document.getElementById("id_${i.replace('"','')}").innerHTML;
-        var converter = new showdown.Converter();
-        document.getElementById("id_${i.replace('"','')}").innerHTML=converter.makeHtml(c);
-    </script>
-    %endfor
-</dl>
-</div>
 </section>
 <%include file="/pagefooter.html"/>
 

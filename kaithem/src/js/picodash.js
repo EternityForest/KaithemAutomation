@@ -52,3 +52,6 @@ class TagDataSource extends picodash.DataSource {
 }
 
 picodash.addDataSourceProvider("tag", TagDataSource)
+
+
+export default picodash
