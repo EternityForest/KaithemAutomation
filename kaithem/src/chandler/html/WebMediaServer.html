@@ -6,6 +6,8 @@ import os
 import base64
 from tinytag import TinyTag
 import io
+from kaithem.src import directories
+
 try:
     import vignette
 except:
@@ -19,6 +21,7 @@ __doc__= "#Python Code here runs every page load"
 
 
 if 'albumArt' in kwargs:
+
   sound = scenes.cues[kwargs['albumArt']].sound
 
 
@@ -35,7 +38,8 @@ if 'albumArt' in kwargs:
   soundMeta = TinyTag.get(sound,image=True)
   t = soundMeta.get_image()
   if not t:
-    return ""
+    kaithem.web.serve_file(os.path.join(directories.datadir, "static", "img", "ai_default_album_art.jpg"))
+
   kaithem.web.serve_file(io.BytesIO(t),name= kwargs['albumArt']+".jpg", contenttype="image/jpeg")
 
 
