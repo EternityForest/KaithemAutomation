@@ -46,6 +46,10 @@
                 </p>
                 {% endif %}
             </form>
+
+           <details><summary><b>Quick Actions</b></summary>
+                <iframe src="/modules/actions/{{ url(name) }}/{{'/'.join(path)}}"></iframe>
+          </details>
         </section>
     </section>
     <section class="window padding">

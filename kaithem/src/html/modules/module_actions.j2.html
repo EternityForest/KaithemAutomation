@@ -1,0 +1,7 @@
+<div class="scroll h-12rem">
+    <form action="/modules/module/{{name}}/action/"  target="_PARENT">
+    {% for i in module_actions.action_types %}
+    <button type="submit" value="{{i}}" name="action">{{module_actions.action_types[i].title}}</button><br>
+    {% endfor %}
+    </form>
+</div>

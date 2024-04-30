@@ -20,6 +20,7 @@ from . import (
     dialogs,
     directories,
     messagebus,
+    module_actions,
     modules,
     modules_state,
     pages,
@@ -166,6 +167,16 @@ def followAttributes(root, path):
 
 
 class WebInterface:
+    @cherrypy.expose
+    def actions(self, module, **path):
+        pages.require("system_admin")
+        return pages.render_jinja_template(
+            "modules/module_actions.j2.html",
+            name=module,
+            path=path,
+            module_actions=module_actions,
+        )
+
     @cherrypy.expose
     def search(self, module, **kwargs):
         start = mstart = 0
@@ -329,6 +340,7 @@ class WebInterface:
                 name=root,
                 path=modulepath,
                 fullpath=fullpath,
+                module_actions=module_actions,
                 **module_page_context,
             )
 
@@ -497,6 +509,15 @@ class WebInterface:
                         disposition="inline;",
                         name=path[1],
                     )
+
+            if path[0] == "action":
+                if len(path) > 1:
+                    x = path[1]
+                else:
+                    x = ""
+                m = module_actions.get_action(kwargs["action"], {"module": module, "path": x})
+
+                raise cherrypy.HTTPRedirect(f"/action_step/{m.id}")
 
             # This gets the interface to add a page
             if path[0] == "addfileresource":
@@ -825,6 +846,7 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
                 name=module,
                 path=resource.split("/"),
                 fullpath=f"{module}/{resource}",
+                module_actions=module_actions,
                 **module_page_context,
             )
 

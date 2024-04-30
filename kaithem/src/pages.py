@@ -70,8 +70,8 @@ def get_bar_plugins():
             nbp.append(
                 (
                     i,
-                    f"""<a href="{v.split(':',1)[-1]}" >
-                        <i class="mdi mdi-{icon}"></i>{v.split(':',1)[0]}</a>""",
+                    f"""<a href="{v.split(':',1)[-1].strip()}">
+                        <i class="mdi mdi-{icon}"></i>{v.split(':',1)[0].strip()}</a>""",
                 )
             )
         except Exception:

@@ -1035,6 +1035,11 @@ class KaithemEvent(dict):
     pass
 
 
+def createResource(module: str, resource: str, data: ResourceDictType):
+    modules_state.rawInsertResource(module, resource, data)
+    handleResourceChange(module, resource)
+
+
 def handleResourceChange(module, resource, obj=None, newly_added=False):
     modules_state.modulesHaveChanged()
 

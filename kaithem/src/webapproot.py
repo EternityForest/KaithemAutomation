@@ -32,6 +32,7 @@ from . import (
     logviewer,
     messagebus,
     messagelogging,
+    module_actions,
     modules_interface,
     notifications,
     pages,
@@ -234,6 +235,11 @@ class webapproot:
             return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=data, show_advanced=True, module="", resource="")
         else:
             return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
+
+    @cherrypy.expose
+    def action_step(self, id, **k):
+        pages.require("system_admin")
+        return module_actions.actions[id].step(**k)
 
     @cherrypy.expose
     def tag_api(self, cmd, *path, show_advanced="", **data):
