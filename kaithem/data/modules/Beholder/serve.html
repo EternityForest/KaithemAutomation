@@ -11,8 +11,8 @@ code: "device = all_devices[path[1]]\r\nfor i in all_devices[path[1]].config.get
   \nfor i in path:\r\n    if i.startswith(\"/\"):\r\n        raise RuntimeError(\"\
   security\")\r\n        \r\nserve_file(os.path.join(dir,*path[1:]))\r\n"
 mimetype: text/html
-no-header: false
-no-navheader: false
+no_header: false
+no_navheader: false
 require_method:
 - GET
 - POST

@@ -28,23 +28,6 @@
 /************************HTML ELEMENTS***********************************/
 
 
-
-img,
-video,
-canvas {
-    border-image-slice: 20 20 20 20;
-    border-image-width: 20px 20px 20px 20px;
-    border-image-outset: 0px 0px 0px 0px;
-    border-image-repeat: stretch stretch;
-    border-image-source: url('/static/img/frame.webp');
-    box-sizing: border-box;
-    border-style: solid;
-    border-width: 12px;
-    -webkit-box-shadow: 2px 2px 4px 0px #000000;
-    box-shadow: 2px 2px 4px 0px #000000;
-}
-
-
 dl {
     padding: 2px;
     margin: 2px;

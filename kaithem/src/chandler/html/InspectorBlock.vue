@@ -1,5 +1,5 @@
 ---
-{no-navheader: true, resource-timestamp: 1596593489273032, resource-type: page}
+{no_navheader: true, resource-timestamp: 1596593489273032, resource-type: page}
 
 ---
 <%!

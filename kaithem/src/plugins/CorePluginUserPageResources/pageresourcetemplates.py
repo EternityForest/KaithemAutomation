@@ -63,8 +63,8 @@ def default(basename, **kw):
         "require_method": ["GET", "POST"],
         "require_permissions": [],
         "resource_timestamp": int(time.time() * 1000000),
-        "no-navheader": True,
-        "no-header": True,
+        "no_navheader": True,
+        "no_header": True,
     }
 
 
@@ -75,8 +75,8 @@ def vue(basename, **kw):
         "require_method": ["GET", "POST"],
         "require_permissions": [],
         "resource_timestamp": int(time.time() * 1000000),
-        "no-navheader": True,
-        "no-header": True,
+        "no_navheader": True,
+        "no_header": True,
     }
 
 
@@ -85,8 +85,8 @@ def service(basename, **kw):
     return {
         "resource_type": "page",
         "body": servicehtml,
-        "no-navheader": True,
-        "no-header": True,
+        "no_navheader": True,
+        "no_header": True,
         "require_method": ["GET", "POST"],
         "require_permissions": [],
         "resource_timestamp": int(time.time() * 1000000),

@@ -14,11 +14,14 @@ Change Log
 
 #### Added
 
-- :sparkles: The picodash system replaces widgets with a much easier to use set of custom HTML elements.
+- :sparkles: The [picodash](https://github.com/EternityForest/picodash) system replaces widgets with a much easier to use set of custom HTML elements. Documentation coming soon!
+- :sparkles: Nicer error pages
 
 #### Fixed
 
 - :bug: Certain commands in chandler like sending a ding to a web player.
+- :bug: Up/Dowload modules.
+
 
 ### 0.80.1 (Apr 27)
 

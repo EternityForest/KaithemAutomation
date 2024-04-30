@@ -95,7 +95,8 @@ def getExt(r):
 
 
 def serializeResource(name, obj) -> dict[str, str]:
-    "Returns the raw data, plus the proper file extension"
+    """Returns data as a dict of file base names
+    to file contents, to be written in appropriate folder"""
 
     r = copy.deepcopy(obj)
 
@@ -107,7 +108,7 @@ def serializeResource(name, obj) -> dict[str, str]:
         return additionalTypes[r["resource_type"]].to_files(name, r)
 
     else:
-        return {f"{name}.yaml": yaml.dump(r)}
+        return {f"{name.split('/')[-1]}.yaml": yaml.dump(r)}
 
 
 @beartype.beartype
@@ -132,7 +133,7 @@ def writeResource(obj: dict, dir: str, resource_name: str):
     files = serializeResource(resource_name, obj)
 
     for bn in files:
-        if not bn.split(".")[0] == resource_name.split("/")[-1]:
+        if not ".".join(bn.split(".")[:-1]) == resource_name.split("/")[-1]:
             raise RuntimeError(f"Plugin wants to save file {bn} that doesn't match resource {resource_name}")
         if "/" in bn:
             raise RuntimeError(f"Resource saving plugins can't create subfolder. Requested fn {bn}")

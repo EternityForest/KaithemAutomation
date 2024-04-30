@@ -23,7 +23,7 @@ from . import auth, pages
 _logger = logging.getLogger(__name__)
 
 # need for debugging
-cherrypy._cprequest.Request.throw_errors = True
+cherrypy._cprequest.Request.throw_errors = False
 
 # I want %20 to not be decoded with the rest of the percents.
 # As a terrible hack, i encode it to this then decode.

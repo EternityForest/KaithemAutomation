@@ -34,7 +34,6 @@ from .modules_state import (
     saveModule,
     saveResource,
     scopes,
-    serializeResource,
 )
 from .plugins import CorePluginEventResources
 from .util import url
@@ -612,8 +611,9 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
             if not os.path.exists(fileResourceAbsPaths[i]):
                 m, r = i
                 if m == modulename:
-                    if module[r].get("ephemeral", False):
-                        torm.append(i)
+                    if r in module:
+                        if module[r].get("ephemeral", False):
+                            torm.append(i)
 
         for i in torm:
             rt = True
@@ -670,8 +670,10 @@ def getModuleAsYamlZip(module, noFiles=True):
             if not isinstance(modules_state.ActiveModules[module][resource], dict):
                 continue
             # AFAIK Zip files fake the directories with naming conventions
-            s, ext = serializeResource(resource, modules_state.ActiveModules[module][resource])
-            z.writestr(f"{url(module, ' ')}/{url(resource, safeFnChars)}{ext}", s)
+            fd = yaml.dump(modules_state.ActiveModules[module][resource])
+
+            z.writestr(f"{url(module, ' ')}/{url(resource, safeFnChars)}.yaml", fd)
+
             if modules_state.ActiveModules[module][resource]["resource_type"] == "internal_fileref":
                 if noFiles:
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
@@ -795,7 +797,7 @@ def load_modules_from_zip(f, replace=False):
                     "/system/notifications",
                     "User " + pages.getAcessingUser() + " uploaded module" + i + " from a zip file",
                 )
-                bookkeeponemodule(i)
+                bookkeeponemodule(i, include_events=True)
         except Exception:
             # TODO: Do we need more cleanup before revert?
             for i in new_modules:
@@ -822,10 +824,12 @@ def load_modules_from_zip(f, replace=False):
     return new_modules.keys()
 
 
-def bookkeeponemodule(module, update=False):
+def bookkeeponemodule(module, update=False, include_events=False):
     """Given the name of one module that has been copied to
     modules_state.ActiveModules but nothing else,
     let the rest of the system know the module is there."""
+    # TODO why does this normally not do events?
+
     if module not in scopes:
         scopes[module] = ModuleObject(module)
 
@@ -834,7 +838,7 @@ def bookkeeponemodule(module, update=False):
         rt = modules_state.ActiveModules[module][i]["resource_type"]
         assert isinstance("rt", str)
 
-        if rt not in ("event",):
+        if include_events or (rt not in ("event",)):
             try:
                 handleResourceChange(module, i, newly_added=not update)
             except Exception:
@@ -920,6 +924,11 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
                 os.remove(fileResourceAbsPaths[module, resource])
             except Exception:
                 print(traceback.format_exc())
+
+            try:
+                del fileResourceAbsPaths[module, resource]
+            except KeyError:
+                pass
 
         if rt == "directory":
             # Directories are special, they can have the extra data file

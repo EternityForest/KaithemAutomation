@@ -27,7 +27,6 @@ from . import (
     unitsofmeasure,
     util,
 )
-from .config import config
 from .modules import check_forbidden, external_module_locations
 from .modules_state import in_folder
 from .util import url
@@ -202,10 +201,10 @@ class WebInterface:
     @cherrypy.expose
     def yamldownload(self, module):
         pages.require("view_admin_info")
-        if config["downloads-include-md5-in-filename"]:
-            cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % util.url(
-                f"{module[:-4]}_{modules_state.getModuleHash(module[:-4])}.zip"
-            )
+        cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % util.url(
+            f"{module[:-4]}_{modules_state.getModuleHash(module[:-4])}.zip"
+        )
+
         cherrypy.response.headers["Content-Type"] = "application/zip"
         try:
             return modules.getModuleAsYamlZip(

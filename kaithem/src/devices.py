@@ -65,55 +65,71 @@ load_order: list[weakref.ref[Device]] = []
 
 def delete_bookkeep(name, confdir=False):
     with modules_state.modulesLock:
-        x = remote_devices[name]
-        k = []
-        for i in x.subdevices:
-            k.append(x.subdevices[i].name)
-
-        x.close()
-        gc.collect()
-        x.onDelete()
-        gc.collect()
-
-        for i in k:
-            try:
-                del remote_devices[i]
-            except KeyError:
-                pass
-
-            try:
-                del subdevice_data_cache[i]
-            except KeyError:
-                pass
-            try:
-                del device_location_cache[i]
-            except KeyError:
-                pass
         try:
             del remote_devices[name]
         except KeyError:
             pass
 
-        pm = x.parent_module
-        pr = x.parent_resource
+        try:
+            del subdevice_data_cache[name]
+        except KeyError:
+            pass
+        try:
+            del device_location_cache[name]
+        except KeyError:
+            pass
 
-        if confdir:
+        # It sometimes is not there if the parent device got deleted first
+        if name in remote_devices:
+            x = remote_devices[name]
+            k = []
+            for i in x.subdevices:
+                k.append(x.subdevices[i].name)
+
+            x.close()
+            gc.collect()
+            x.onDelete()
+            gc.collect()
+
+            for i in k:
+                try:
+                    del remote_devices[i]
+                except KeyError:
+                    pass
+
+                try:
+                    del subdevice_data_cache[i]
+                except KeyError:
+                    pass
+                try:
+                    del device_location_cache[i]
+                except KeyError:
+                    pass
             try:
-                old_dev_conf_folder = get_config_folder_from_info(pm, pr, name, create=False, always_return=True)
-                if old_dev_conf_folder and os.path.isdir(old_dev_conf_folder):
-                    if not old_dev_conf_folder.count("/") > 3:
-                        # Basically since rmtree is so dangerous we make sure
-                        # it absolutely cannot be any root or nearly root level folder
-                        # in the user's home dir even if some unknown future error happens.
-                        # I have no reason to think this will ever actually be needed.
-                        raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
+                del remote_devices[name]
+            except KeyError:
+                pass
 
-                    shutil.rmtree(old_dev_conf_folder)
-            except Exception:
-                logging.exception("Err deleting conf dir")
+            pm = x.parent_module
+            pr = x.parent_resource
 
-        # no zombie reference
-        del x
+            if confdir:
+                try:
+                    old_dev_conf_folder = get_config_folder_from_info(pm, pr, name, create=False, always_return=True)
+                    if old_dev_conf_folder and os.path.isdir(old_dev_conf_folder):
+                        if not old_dev_conf_folder.count("/") > 3:
+                            # Basically since rmtree is so dangerous we make sure
+                            # it absolutely cannot be any root or nearly root level folder
+                            # in the user's home dir even if some unknown future error happens.
+                            # I have no reason to think this will ever actually be needed.
+                            raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
+
+                        shutil.rmtree(old_dev_conf_folder)
+                except Exception:
+                    logging.exception("Err deleting conf dir")
+
+            # no zombie reference
+            del x
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)

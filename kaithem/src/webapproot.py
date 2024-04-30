@@ -109,13 +109,15 @@ class Errors:
         return pages.get_template("errors/error.html").render(info="An Error Occurred")
 
 
-def cpexception():
+def error_page(status, message, traceback, version):
     cherrypy.response.status = 500
     try:
         cherrypy.response.body = bytes(
             pages.get_template("errors/cperror.html").render(
                 e=_cperror.format_exc(),
-                mk=mako.exceptions.html_error_template().render().decode(),
+                mk=str(
+                    mako.exceptions.html_error_template().render().decode(),
+                ),
             ),
             "utf8",
         )
@@ -126,7 +128,14 @@ def cpexception():
         )
 
 
+@cherrypy.tools.register("before_error_response", priority=90)
+def handle_error():
+    cherrypy.response.status = 500
+    cherrypy.response.body = [pages.get_template("errors/cperror.html").render(e=traceback.format_exc(), mk="").encode()]
+
+
 # This class represents the "/" root of the web app
+@cherrypy.config(**{"request.error_response": handle_error})
 class webapproot:
     login = weblogin.LoginScreen()
     auth = ManageUsers.ManageAuthorization()
@@ -300,7 +309,12 @@ sdn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
 ddn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
 
 conf = {
-    "/": {"tools.gzip.on": True, "tools.gzip.mime_types": ["text/*", "application/*"], "tools.gzip.compress_level": 1},
+    "/": {
+        "tools.gzip.on": True,
+        "tools.gzip.mime_types": ["text/*", "application/*"],
+        "tools.gzip.compress_level": 1,
+        "tools.handle_error.on": True,
+    },
     "/static": {
         "tools.staticdir.on": True,
         "tools.staticdir.dir": os.path.join(ddn, "static"),
@@ -374,7 +388,6 @@ def startServer():
         "tools.encode.encoding": "utf-8",
         "tools.decode.on": True,
         "tools.decode.encoding": "utf-8",
-        "request.error_response": cpexception,
         "log.screen": config["cherrypy_log_stdout"],
         "engine.autoreload.on": False,
     }
@@ -392,6 +405,7 @@ def startServer():
         systasks.aPageJustLoaded()
 
     cherrypy.config.update(site_config)
+    cherrypy.config.update({"error_page.default": error_page})
 
     cherrypy.tools.pageloadnotify = cherrypy.Tool("on_start_resource", pageloadnotify)
     cherrypy.config["tools.pageloadnotify.on"] = True

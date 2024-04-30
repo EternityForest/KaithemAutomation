@@ -243,7 +243,7 @@ class CompiledPage:
                     self.methods = ["POST", "GET"]
 
                 # Yes, I know this logic is ugly.
-                if "no-navheader" in resource:
+                if "no_navheader" in resource:
                     if resource["no_navheader"]:
                         header = util.readfile(
                             os.path.join(
@@ -257,11 +257,11 @@ class CompiledPage:
                 else:
                     header = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pageheader.html"))
 
-                if "no-header" in resource:
+                if "no_header" in resource:
                     if resource["no_header"]:
                         header = ""
 
-                if "no-header" not in resource or not (resource["no_header"]):
+                if "no_header" not in resource or not (resource["no_header"]):
                     footer = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pagefooter.html"))
                 else:
                     footer = ""
@@ -454,7 +454,7 @@ def makeDummyPage(resource, module):
         _pages_by_module_resource[module] = {}
 
     # Get the page resource in question
-    j = {"resource_type": "page", "body": "Content here", "no-navheader": True}
+    j = {"resource_type": "page", "body": "Content here", "no_navheader": True}
     _pages_by_module_resource[module][resource] = CompiledPage(j, module, resource)
 
 
