@@ -1130,7 +1130,7 @@ header:not(.undecorated) .tool-bar {
         }
     }
 
-    & * {
+    &>*, &>label>* {
         width: auto;
     }
 

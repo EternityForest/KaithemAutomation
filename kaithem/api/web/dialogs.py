@@ -34,6 +34,49 @@ u.onchange = function() {
 </script>
 """
 
+_ace_code = """
+<script src="/static/js/thirdparty/src-min-noconflict/ace.js"></script>
+<script src="/static/js/thirdparty/jquery3.js"></script>
+
+<script>
+    // Hook up ACE editor to all textareas with data-editor attribute
+    $(function () {
+        $('textarea[data-editor]').each(function () {
+            var textarea = $(this);
+            var mode = textarea.data('editor');
+            var editDiv = $('<div>', {
+                position: 'absolute',
+                width: textarea.width(),
+                'flex-basis': textarea.height(),
+                height: textarea.height(),
+                'class': textarea.attr('class')
+            }).insertBefore(textarea);
+            textarea.css('display', 'none');
+            var editor = ace.edit(editDiv[0]);
+            editor.renderer.setShowGutter(true);
+            editor.getSession().setValue(textarea.val());
+            editor.getSession().setMode("ace/mode/" + mode);
+            // editor.setTheme("ace/theme/idle_fingers");
+            editor.setOptions({
+             fontFamily: "CodingFont",
+            fontSize: "12pt"
+            });
+
+            editor.getSession().on('change', function() {
+                wasChanged=true;
+            })
+            if(textarea.disabled){
+                editor.setReadOnly(true)
+            }
+            // copy back to textarea on form submit...
+            textarea.closest('form').submit(function () {
+                textarea.val(editor.getSession().getValue());
+            })
+        });
+    });
+</script>
+"""
+
 
 class SimpleDialog:
     """
@@ -49,6 +92,9 @@ class SimpleDialog:
         self.items: list[tuple[str, str]] = []
         self.title = title
         self.datalists: dict[str, list[tuple[str, str]]] = {}
+
+        self.using_uploads = False
+        self.using_ace = False
 
         self.extracode = ""
 
@@ -107,6 +153,22 @@ class SimpleDialog:
         else:
             self.items.append((title, f'<input name="{name}" list="x-{id(suggestions)}"  value="{html.escape(default)}" {disabled}>'))
 
+    def begin_section(self, title: str):
+        self.items_main = self.items
+        self.items = []
+
+        self.section_title = title
+
+    def end_section(self):
+        s = f"<details><summary>{self.section_title}</summary>"
+        s += '<div class="scroll h-12rem stacked-form">'
+        for i in self.items:
+            s += f"<label>{i[0]}\n{i[1]}</label>"
+        s += "</div></details>"
+
+        self.items_main.append(("", s))
+        self.items = self.items_main
+
     @beartype.beartype
     def checkbox(self, name: str, *, title: str | None = None, default=False, disabled=None):
         "Add a checkbox"
@@ -135,7 +197,26 @@ class SimpleDialog:
 
         self.items.append((title, f'<input type="file" name="{name}" {disabled}>'))
 
-        self.extracode += _auto_fn + "\n"
+        if not self.using_uploads:
+            self.extracode += _auto_fn + "\n"
+            self.using_uploads = True
+
+    @beartype.beartype
+    def code_editor(self, name: str = "file", *, language: str, title: str | None = None, disabled=None, default=""):
+        "Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them."
+        title = title or self.name_to_title(name)
+
+        if disabled is None:
+            disabled = self.is_disabled_by_default()
+
+        disabled = " disabled" if disabled else ""
+        self.items.append(
+            (title, f'<textarea data-editor="{language}" rows=25 class="w-full" name="{name}" {disabled}>{html.escape(default)}</textarea>')
+        )
+
+        if not self.using_ace:
+            self.using_ace = True
+            self.extracode += _ace_code + "\n"
 
     @beartype.beartype
     def selection(self, name: str, *, options: list[str], default="", title: str | None = None, disabled=None):

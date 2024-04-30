@@ -29,7 +29,7 @@ from scullery import snake_compat
 from kaithem.api.web import render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
-from kaithem.src.util import split_escape, url
+from kaithem.src.util import url
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
@@ -812,7 +812,7 @@ class PageType(modules_state.ResourceType):
 
         resourceobj["mimetype"] = kwargs["mimetype"]
         resourceobj["template_engine"] = kwargs["template_engine"]
-        resourceobj["no_navheader"] = "nonavheader" in kwargs
+        resourceobj["no_navheader"] = "no_navheader" in kwargs
         resourceobj["streaming_response"] = "streaming_response" in kwargs
 
         resourceobj["no_header"] = "no_header" in kwargs
@@ -843,28 +843,51 @@ class PageType(modules_state.ResourceType):
         d.submit_button("Create")
         return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}/{url(path)}")
 
-    def editpage(self, module, resource, resourceinquestion):
-        if "require_permissions" in resourceinquestion:
-            requiredpermissions = resourceinquestion["require_permissions"]
+    def editpage(self, module, resource, resource_data):
+        if "require_permissions" in resource_data:
+            requiredpermissions = resource_data["require_permissions"]
         else:
             requiredpermissions = []
 
-        return pages.get_template(os.path.join(os.path.dirname(__file__), "html", "page.html")).render(
-            module=module,
-            name=resource,
-            kwargs={},
-            page=resourceinquestion,
-            requiredpermissions=requiredpermissions,
-            split_escape=split_escape,
-            url=util.url,
-            theming=theming,
-            can_edit=pages.canUserDoThis("system_admin"),
-            can_view_admin=pages.canUserDoThis("view_admin_info"),
-            getPageErrors=getPageErrors,
-            getPageOutput=getPageOutput,
-            url_for_resource=url_for_resource,
-            all_perms=auth.Permissions.keys(),
+        d = SimpleDialog(f"{module}: {resource}")
+        d.submit_button("GoNow", title="Save and go to page")
+
+        d.code_editor("code", language="python", default=resource_data["code"])
+        d.code_editor("body", language="html", default=resource_data["body"])
+        d.code_editor("setupcode", language="python", default=resource_data["setupcode"])
+
+        o = ["jinja2", "markdown", "none"]
+        if resource_data.get("template_engine", "jinja2") == "mako":
+            o.append("mako")
+
+        d.selection("template_engine", title="Template Engine", default=resource_data.get("template_engine", "jinja2"), options=o)
+        d.begin_section("Settings")
+        for i in (
+            ("streaming_response", "Stream file downloads"),
+            ("no_navheader", "Hide nav header"),
+            ("no_header", "No extra content at all"),
+            ("allow_xss", "Allow cross site requests"),
+        ):
+            d.checkbox(i[0], title=i[1], default=resource_data.get(i[0], False))
+
+        d.checkbox("allow-GET", title="Allow GET", default="GET" in resource_data.get("require_method"))
+        d.checkbox("allow-POST", title="Allow POST", default="POST" in resource_data.get("require_method"))
+        d.text_input("mimetype", title="MIME", default=resource_data.get("mimetype", "text/html"))
+        d.text_input("allow_origins", title="XSS Origins", default=", ".join(resource_data.get("origins", "*")))
+        d.text_input(
+            "themecss", title="Theme", default=resource_data.get("theme_css_url", ""), suggestions=[(i, i) for i in theming.cssthemes]
         )
+        d.text_input("alttopbanner", title="Alt Top Banner Text", default=resource_data.get("alt_top_banner", ""))
+        d.end_section()
+
+        d.begin_section("Require Permissions")
+        for i in sorted(auth.Permissions.keys()):
+            d.checkbox(f"Permission{i}", title=i, default=i in requiredpermissions)
+        d.end_section()
+
+        d.submit_button("Save Changes", value="Save and Go Back")
+
+        return d.render(self.get_update_target(module, resource))
 
 
 p = PageType("page", mdi_icon="web", schema=schema)

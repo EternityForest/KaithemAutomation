@@ -1,3 +1,9 @@
+/* MIT License by Daniel Dunn
+
+This file requires your import map to say where to find convert.min.js or
+similar: https://www.npmjs.com/package/convert
+*/
+
 import picodash from "picodash"
 import convert from "convert";
 
