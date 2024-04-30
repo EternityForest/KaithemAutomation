@@ -16,6 +16,7 @@ Change Log
 
 - :sparkles: The [picodash](https://github.com/EternityForest/picodash) system replaces widgets with a much easier to use set of custom HTML elements. Documentation coming soon!
 - :sparkles: Nicer error pages
+- :hammer: Unit testing for the YAML upload/download, which used to be buggy.
 
 #### Fixed
 

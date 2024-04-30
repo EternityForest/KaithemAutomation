@@ -1,3 +1,4 @@
+import io
 import os
 import time
 import weakref
@@ -5,7 +6,7 @@ import weakref
 import cherrypy
 
 from kaithem.api import tags
-from kaithem.src import modules_state, webapproot
+from kaithem.src import modules, modules_state, webapproot
 from kaithem.src.plugins import CorePluginEventResources
 
 dir = "/dev/shm/kaithem_tests/"
@@ -105,3 +106,22 @@ def test_make_module_web():
         pass
 
     assert tags.existing_tag("test_tag_foo").value == 99
+
+    # Round trip upload and download with the YAML mechanism
+
+    zf = webapproot.root.modules.yamldownload(n)
+    assert zf
+    zf2 = io.BytesIO(zf)
+
+    try:
+        webapproot.root.modules.deletemoduletarget(name=n)
+        raise RuntimeError("Newmoduletarget should redirect")
+    except cherrypy.HTTPRedirect:
+        pass
+
+    assert "/test_tag_foo" not in tags.all_tags_raw()
+
+    modules.load_modules_from_zip(zf2)
+
+    assert n in modules_state.ActiveModules
+    assert "/test_tag_foo" in tags.all_tags_raw()

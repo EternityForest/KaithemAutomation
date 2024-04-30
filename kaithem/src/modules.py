@@ -655,7 +655,7 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
     return rt
 
 
-def getModuleAsYamlZip(module, noFiles=True):
+def getModuleAsYamlZip(module, noFiles=True) -> bytes:
     incompleteError = False
     with modulesLock:
         # Ensure any manually put therer files are there
