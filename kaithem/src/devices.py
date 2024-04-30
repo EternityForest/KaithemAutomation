@@ -65,20 +65,6 @@ load_order: list[weakref.ref[Device]] = []
 
 def delete_bookkeep(name, confdir=False):
     with modules_state.modulesLock:
-        try:
-            del remote_devices[name]
-        except KeyError:
-            pass
-
-        try:
-            del subdevice_data_cache[name]
-        except KeyError:
-            pass
-        try:
-            del device_location_cache[name]
-        except KeyError:
-            pass
-
         # It sometimes is not there if the parent device got deleted first
         if name in remote_devices:
             x = remote_devices[name]
@@ -130,6 +116,20 @@ def delete_bookkeep(name, confdir=False):
 
             # no zombie reference
             del x
+
+        try:
+            del remote_devices[name]
+        except KeyError:
+            pass
+
+        try:
+            del subdevice_data_cache[name]
+        except KeyError:
+            pass
+        try:
+            del device_location_cache[name]
+        except KeyError:
+            pass
 
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
