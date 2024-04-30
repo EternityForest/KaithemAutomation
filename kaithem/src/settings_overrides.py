@@ -1,5 +1,6 @@
 import functools
 import threading
+from typing import Any
 
 import beartype
 
@@ -10,6 +11,22 @@ from . import config
 # and the values are the actual values
 settings: dict[str, dict[tuple[float, str], str]] = {}
 lock = threading.RLock()
+
+
+settings_meta: dict[str, dict[str, Any]] = {}
+
+
+def set_meta(key: str, metakey: str, val: Any):
+    with lock:
+        settings_meta[key] = settings_meta.get(key, {})
+        settings_meta[key][metakey] = val
+
+
+def get_meta(key: str):
+    try:
+        return settings_meta[key]
+    except KeyError:
+        return {}
 
 
 def list_keys() -> list[str]:

@@ -3,21 +3,25 @@
 from __future__ import annotations
 
 import copy
+import time
 
 from kaithem.src import dialogs, modules_state, settings_overrides
 
 
 class Entries:
     def __init__(self, source: tuple[str, str], data, priority: float = 50) -> None:
-        entries[source] = self
         self.data = copy.copy(data)
         self.source = source
         self.priority = priority
+
+        self.ts = time.time()
+        self.closed = False
 
         for i in self.data:
             settings_overrides.add_val(i, self.data[i], str(self.source) + str(id(self)), priority=priority)
 
     def close(self):
+        self.closed = True
         for i in self.data:
             settings_overrides.add_val(i, "", str(self.source) + str(id(self)), priority=self.priority)
         try:
@@ -26,7 +30,8 @@ class Entries:
             pass
 
     def __del__(self):
-        self.close()
+        if not self.closed:
+            self.close()
 
 
 entries: dict[tuple[str, str], Entries] = {}
@@ -35,9 +40,10 @@ entries: dict[tuple[str, str], Entries] = {}
 class ConfigType(modules_state.ResourceType):
     def onload(self, module, resourcename, value):
         x = entries.pop((module, resourcename), None)
-        entries[module, resourcename] = Entries((module, resourcename), value["data"], float(value.get("config_priority", 50)))
+        x2 = Entries((module, resourcename), value["data"], float(value.get("config_priority", 50)))
         if x:
             x.close()
+        entries[module, resourcename] = x2
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
         x = entries.pop((module, resource), None)
