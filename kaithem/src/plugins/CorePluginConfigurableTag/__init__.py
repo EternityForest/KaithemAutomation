@@ -114,6 +114,8 @@ class TagType(modules_state.ResourceType):
     def tag_dialog(self, value, name=False):
         d = dialogs.SimpleDialog("Editing Tagpoint Resource")
 
+        d.text("""Here you can create a new tag or apply setttings to an existing tag.
+                However, if the same setting is set in multiple places, it is undefined which one 'wins' """)
         if name:
             d.text_input("name", title="Resource Name")
 

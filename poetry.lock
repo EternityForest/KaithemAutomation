@@ -2,18 +2,18 @@
 
 [[package]]
 name = "aioesphomeapi"
-version = "24.1.0"
+version = "24.3.0"
 description = "Python API for interacting with ESPHome devices."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "aioesphomeapi-24.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a98d984a325b34adb055c932f82375f3d8136069ee56621e74792ca3b9e99ca9"},
-    {file = "aioesphomeapi-24.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3cdb067e051a544a3f30008fd61476a9b6d4fa6963a564d29ee4cdc1684374ff"},
-    {file = "aioesphomeapi-24.1.0-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b60ea63ff334040a27cfac8f92d577db62de51804f6916e6f92cf289c884a100"},
-    {file = "aioesphomeapi-24.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb4e07f3a6a7a5060e1d985c51c6e4715da074f9f81ab159ce9e5ea2c25c0be5"},
-    {file = "aioesphomeapi-24.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f7184c4c2cd2b354720f4eca5678784e7054366953c0f30038778fe118f6180a"},
-    {file = "aioesphomeapi-24.1.0-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:16ce34f61e60288fb42ec797a4600010a0f7b39e7d94cafa1b73bce9e837ad3a"},
-    {file = "aioesphomeapi-24.1.0.tar.gz", hash = "sha256:f86fa709c089157fdd896edb5b2711cf6716680d5381c8280705f785d8dafa28"},
+    {file = "aioesphomeapi-24.3.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:db270899b07db266f6e4cfa85cc2b3e243e493da966d88ce8763421078d0714e"},
+    {file = "aioesphomeapi-24.3.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fbce8342648aebea7c9562e83ae38c3156f4016a6a9142316615413bff3b5252"},
+    {file = "aioesphomeapi-24.3.0-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:279085667deafd2d515f233f3cfbd6ac3318aac933f4285cb45ea4bfc7bcf03b"},
+    {file = "aioesphomeapi-24.3.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d59e1372897c8d0b159d99f019df94a2d1b6c4ee8625510ebaf5e63beb1e5465"},
+    {file = "aioesphomeapi-24.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0ddf5ceb098be5fb992a0adc790b323e27dd3db4b41b8a6f7a0a7faecf77acd4"},
+    {file = "aioesphomeapi-24.3.0-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:03498253778b5069f22f5f738c0e6c07e8335a12836bbfcad485bb8d75b64350"},
+    {file = "aioesphomeapi-24.3.0.tar.gz", hash = "sha256:70a341c0a707aa7125a4b679f50b045a10a3c22a1cf90c9e6c81fbeafd082277"},
 ]
 
 [package.dependencies]
@@ -24,7 +24,7 @@ chacha20poly1305-reuseable = ">=0.12.1"
 cryptography = ">=42.0.2"
 noiseprotocol = ">=0.3.1,<1.0"
 protobuf = ">=3.19.0"
-zeroconf = ">=0.128.4,<1.0"
+zeroconf = ">=0.132.2,<1.0"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -124,28 +124,28 @@ files = [
 
 [[package]]
 name = "backports-tarfile"
-version = "1.1.0"
+version = "1.1.1"
 description = "Backport of CPython tarfile module"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "backports.tarfile-1.1.0-py3-none-any.whl", hash = "sha256:b2f4df351db942d094db94588bbf2c6938697a5f190f44c934acc697da56008b"},
-    {file = "backports_tarfile-1.1.0.tar.gz", hash = "sha256:91d59138ea401ee2a95e8b839c1e2f51f3e9ca76bdba8b6a29f8d773564686a8"},
+    {file = "backports.tarfile-1.1.1-py3-none-any.whl", hash = "sha256:73e0179647803d3726d82e76089d01d8549ceca9bace469953fcb4d97cf2d417"},
+    {file = "backports_tarfile-1.1.1.tar.gz", hash = "sha256:9c2ef9696cb73374f7164e17fc761389393ca76777036f5aad42e8b93fcd8009"},
 ]
 
 [package.extras]
 docs = ["furo", "jaraco.packaging (>=9.3)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
-testing = ["jaraco.test", "pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)"]
+testing = ["jaraco.test", "pytest (>=6,!=8.1.*)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)"]
 
 [[package]]
 name = "beartype"
-version = "0.18.2"
+version = "0.18.5"
 description = "Unbearably fast runtime type checking in pure Python."
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "beartype-0.18.2-py3-none-any.whl", hash = "sha256:561aa7858e92289b952a6fc5faf15ea32f9519c07cdc0f4df7a01b59fc4bbeaf"},
-    {file = "beartype-0.18.2.tar.gz", hash = "sha256:a6fbc0be9269889312388bfec6a9ddf41bf8fe31b68bcf9c8239db35cd38f411"},
+    {file = "beartype-0.18.5-py3-none-any.whl", hash = "sha256:5301a14f2a9a5540fe47ec6d34d758e9cd8331d36c4760fc7a5499ab86310089"},
+    {file = "beartype-0.18.5.tar.gz", hash = "sha256:264ddc2f1da9ec94ff639141fbe33d22e12a9f75aa863b83b7046ffff1381927"},
 ]
 
 [package.extras]
@@ -157,13 +157,13 @@ test-tox-coverage = ["coverage (>=5.5)"]
 
 [[package]]
 name = "blinker"
-version = "1.7.0"
+version = "1.8.1"
 description = "Fast, simple object-to-object and broadcast signaling"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "blinker-1.7.0-py3-none-any.whl", hash = "sha256:c3f865d4d54db7abc53758a01601cf343fe55b84c1de4e3fa910e420b438d5b9"},
-    {file = "blinker-1.7.0.tar.gz", hash = "sha256:e6820ff6fa4e4d1d8e2747c2283749c3f547e4fee112b98555cdcdae32996182"},
+    {file = "blinker-1.8.1-py3-none-any.whl", hash = "sha256:5f1cdeff423b77c31b89de0565cd03e5275a03028f44b2b15f912632a58cced6"},
+    {file = "blinker-1.8.1.tar.gz", hash = "sha256:da44ec748222dcd0105ef975eed946da197d5bdf8bafb6aa92f5bc89da63fa25"},
 ]
 
 [[package]]
@@ -416,13 +416,13 @@ files = [
 
 [[package]]
 name = "cheroot"
-version = "10.0.0"
+version = "10.0.1"
 description = "Highly-optimized, pure-python HTTP server"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "cheroot-10.0.0-py3-none-any.whl", hash = "sha256:8f65dd38ad3d56419cfe2d1b5e4b4e3282b1d58758ca2a336231641a80cf0717"},
-    {file = "cheroot-10.0.0.tar.gz", hash = "sha256:59c4a1877fef9969b3c3c080caaaf377e2780919437853fc0d32a9df40b311f0"},
+    {file = "cheroot-10.0.1-py3-none-any.whl", hash = "sha256:6ea332f20bfcede14e66174d112b30e9807492320d737ca628badc924d997595"},
+    {file = "cheroot-10.0.1.tar.gz", hash = "sha256:e0b82f797658d26b8613ec8eb563c3b08e6bd6a7921e9d5089bd1175ad1b1740"},
 ]
 
 [package.dependencies]
@@ -568,13 +568,13 @@ files = [
 
 [[package]]
 name = "exceptiongroup"
-version = "1.2.0"
+version = "1.2.1"
 description = "Backport of PEP 654 (exception groups)"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "exceptiongroup-1.2.0-py3-none-any.whl", hash = "sha256:4bfd3996ac73b41e9b9628b04e079f193850720ea5945fc96a08633c66912f14"},
-    {file = "exceptiongroup-1.2.0.tar.gz", hash = "sha256:91f5c769735f051a4290d52edd0858999b57e5876e9f85937691bd4c9fa3ed68"},
+    {file = "exceptiongroup-1.2.1-py3-none-any.whl", hash = "sha256:5258b9ed329c5bbdd31a309f53cbfb0b155341807f6ff7606a1e801a891b29ad"},
+    {file = "exceptiongroup-1.2.1.tar.gz", hash = "sha256:a4785e48b045528f5bfe627b6ad554ff32def154f42372786903b7abcfe1aa16"},
 ]
 
 [package.extras]
@@ -701,13 +701,13 @@ files = [
 
 [[package]]
 name = "inflect"
-version = "7.2.0"
-description = "Correctly generate plurals, singular nouns, ordinals, indefinite articles; convert numbers to words"
+version = "7.2.1"
+description = "Correctly generate plurals, singular nouns, ordinals, indefinite articles"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "inflect-7.2.0-py3-none-any.whl", hash = "sha256:b41e1677ea799f26f371a5d6d57b9eb966a5f9ba3b341a96464a6cac50aeccf3"},
-    {file = "inflect-7.2.0.tar.gz", hash = "sha256:32feacfacfcae2f22e6fccdea10f0ddf26a638fac434d0dddaafbca0034f3784"},
+    {file = "inflect-7.2.1-py3-none-any.whl", hash = "sha256:f4ecaffaeccbc746251d973c0674c47d63b262fdad63f651fb98e878eee1f449"},
+    {file = "inflect-7.2.1.tar.gz", hash = "sha256:a7ce5e23d6798734f256c1ad9ed52186b8ec276f10b18ce3d3ecb19c21eb6cb6"},
 ]
 
 [package.dependencies]
@@ -829,13 +829,13 @@ testing = ["portend", "pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytes
 
 [[package]]
 name = "jaraco-functools"
-version = "4.0.0"
+version = "4.0.1"
 description = "Functools like those found in stdlib"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jaraco.functools-4.0.0-py3-none-any.whl", hash = "sha256:daf276ddf234bea897ef14f43c4e1bf9eefeac7b7a82a4dd69228ac20acff68d"},
-    {file = "jaraco.functools-4.0.0.tar.gz", hash = "sha256:c279cb24c93d694ef7270f970d499cab4d3813f4e08273f95398651a634f0925"},
+    {file = "jaraco.functools-4.0.1-py3-none-any.whl", hash = "sha256:3b24ccb921d6b593bdceb56ce14799204f473976e2a9d4b15b04d0f2c2326664"},
+    {file = "jaraco_functools-4.0.1.tar.gz", hash = "sha256:d33fa765374c0611b52f8b3a795f8900869aa88c84769d4d1746cd68fb28c3e8"},
 ]
 
 [package.dependencies]
@@ -843,7 +843,7 @@ more-itertools = "*"
 
 [package.extras]
 docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
-testing = ["jaraco.classes", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
+testing = ["jaraco.classes", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy", "pytest-ruff (>=0.2.1)"]
 
 [[package]]
 name = "jaraco-text"
@@ -886,13 +886,13 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "jsonschema"
-version = "4.21.1"
+version = "4.22.0"
 description = "An implementation of JSON Schema validation for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jsonschema-4.21.1-py3-none-any.whl", hash = "sha256:7996507afae316306f9e2290407761157c6f78002dcf7419acb99822143d1c6f"},
-    {file = "jsonschema-4.21.1.tar.gz", hash = "sha256:85727c00279f5fa6bedbe6238d2aa6403bedd8b4864ab11207d07df3cc1b2ee5"},
+    {file = "jsonschema-4.22.0-py3-none-any.whl", hash = "sha256:ff4cfd6b1367a40e7bc6411caec72effadd3db0bbe5017de188f2d6108335802"},
+    {file = "jsonschema-4.22.0.tar.gz", hash = "sha256:5b22d434a45935119af990552c862e5d6d564e8f6601206b305a61fdf661a2b7"},
 ]
 
 [package.dependencies]
@@ -1645,28 +1645,29 @@ xarray = ["xarray"]
 
 [[package]]
 name = "platformdirs"
-version = "4.2.0"
-description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
+version = "4.2.1"
+description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "platformdirs-4.2.0-py3-none-any.whl", hash = "sha256:0614df2a2f37e1a662acbd8e2b25b92ccf8632929bc6d43467e17fe89c75e068"},
-    {file = "platformdirs-4.2.0.tar.gz", hash = "sha256:ef0cc731df711022c174543cb70a9b5bd22e5a9337c8624ef2c2ceb8ddad8768"},
+    {file = "platformdirs-4.2.1-py3-none-any.whl", hash = "sha256:17d5a1161b3fd67b390023cb2d3b026bbd40abde6fdb052dfbd3a29c3ba22ee1"},
+    {file = "platformdirs-4.2.1.tar.gz", hash = "sha256:031cd18d4ec63ec53e82dceaac0417d218a6863f7745dfcc9efe7793b7039bdf"},
 ]
 
 [package.extras]
 docs = ["furo (>=2023.9.10)", "proselint (>=0.13)", "sphinx (>=7.2.6)", "sphinx-autodoc-typehints (>=1.25.2)"]
 test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=7.4.3)", "pytest-cov (>=4.1)", "pytest-mock (>=3.12)"]
+type = ["mypy (>=1.8)"]
 
 [[package]]
 name = "pluggy"
-version = "1.4.0"
+version = "1.5.0"
 description = "plugin and hook calling mechanisms for python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pluggy-1.4.0-py3-none-any.whl", hash = "sha256:7db9f7b503d67d1c5b95f59773ebb58a8c1c288129a88665838012cfb07b8981"},
-    {file = "pluggy-1.4.0.tar.gz", hash = "sha256:8c85c2876142a764e5b7548e7d9a0e0ddb46f5185161049a79b7e974454223be"},
+    {file = "pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669"},
+    {file = "pluggy-1.5.0.tar.gz", hash = "sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1"},
 ]
 
 [package.extras]
@@ -1933,13 +1934,13 @@ cp2110 = ["hidapi"]
 
 [[package]]
 name = "pytest"
-version = "8.1.1"
+version = "8.2.0"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pytest-8.1.1-py3-none-any.whl", hash = "sha256:2a8386cfc11fa9d2c50ee7b2a57e7d898ef90470a7a34c4b949ff59662bb78b7"},
-    {file = "pytest-8.1.1.tar.gz", hash = "sha256:ac978141a75948948817d360297b7aae0fcb9d6ff6bc9ec6d514b85d5a65c044"},
+    {file = "pytest-8.2.0-py3-none-any.whl", hash = "sha256:1733f0620f6cda4095bbf0d9ff8022486e91892245bb9e7d5542c018f612f233"},
+    {file = "pytest-8.2.0.tar.gz", hash = "sha256:d507d4482197eac0ba2bae2e9babf0672eb333017bcedaa5fb1a3d42c1174b3f"},
 ]
 
 [package.dependencies]
@@ -1947,11 +1948,11 @@ colorama = {version = "*", markers = "sys_platform == \"win32\""}
 exceptiongroup = {version = ">=1.0.0rc8", markers = "python_version < \"3.11\""}
 iniconfig = "*"
 packaging = "*"
-pluggy = ">=1.4,<2.0"
+pluggy = ">=1.5,<2.0"
 tomli = {version = ">=1", markers = "python_version < \"3.11\""}
 
 [package.extras]
-testing = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
+dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
 name = "python-dateutil"
@@ -2141,13 +2142,13 @@ parsedatetime = "*"
 
 [[package]]
 name = "referencing"
-version = "0.34.0"
+version = "0.35.1"
 description = "JSON Referencing + Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "referencing-0.34.0-py3-none-any.whl", hash = "sha256:d53ae300ceddd3169f1ffa9caf2cb7b769e92657e4fafb23d34b93679116dfd4"},
-    {file = "referencing-0.34.0.tar.gz", hash = "sha256:5773bd84ef41799a5a8ca72dc34590c041eb01bf9aa02632b4a973fb0181a844"},
+    {file = "referencing-0.35.1-py3-none-any.whl", hash = "sha256:eda6d3234d62814d1c64e305c1331c9a3a6132da475ab6382eaa997b21ee75de"},
+    {file = "referencing-0.35.1.tar.gz", hash = "sha256:25b42124a6c8b632a425174f24087783efb348a6f1e0008e63cd4466fedf703c"},
 ]
 
 [package.dependencies]
@@ -2613,13 +2614,13 @@ typing = ["mypy (>=1.6,<2.0)", "traitlets (>=5.11.1)"]
 
 [[package]]
 name = "textdistance"
-version = "4.6.1"
+version = "4.6.2"
 description = "Compute distance between the two texts."
 optional = false
 python-versions = ">=3.5"
 files = [
-    {file = "textdistance-4.6.1-py3-none-any.whl", hash = "sha256:43a1b5d414f23ab08374bb8f51476235be2eacd414f17638d8c6f91781f9fa46"},
-    {file = "textdistance-4.6.1.tar.gz", hash = "sha256:258965801b1ef85686a69abf6c3cefdc5da21c2fbd88c90c68725f57a7d45f21"},
+    {file = "textdistance-4.6.2-py3-none-any.whl", hash = "sha256:40683a5fa3d9cc32bf8c80ec7d0ac7e96074872409becd3239e24cf673ef8e82"},
+    {file = "textdistance-4.6.2.tar.gz", hash = "sha256:01e1fbcf7b871eb8f41911d94f461b0b99cf8003384ee0e1c34ca5c1a7ab2ed0"},
 ]
 
 [package.extras]
@@ -2737,13 +2738,13 @@ test = ["coverage[toml] (>=7)", "mypy (>=1.2.0)", "pytest (>=7)"]
 
 [[package]]
 name = "types-jsonschema"
-version = "4.21.0.20240331"
+version = "4.22.0.20240501"
 description = "Typing stubs for jsonschema"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-jsonschema-4.21.0.20240331.tar.gz", hash = "sha256:3a5ed0a72ab7bc304ca4accbb709272c620f396abf2fb19570b80d949e357eb6"},
-    {file = "types_jsonschema-4.21.0.20240331-py3-none-any.whl", hash = "sha256:78dec1d88c5aec77e46e6bddce2a082157ce3059ec7aab19169b13b2ee553a51"},
+    {file = "types-jsonschema-4.22.0.20240501.tar.gz", hash = "sha256:51c4ec05640909206551c8f57e630be570c4e0d86abda75d9d947521dffef6db"},
+    {file = "types_jsonschema-4.22.0.20240501-py3-none-any.whl", hash = "sha256:5cacc80cffef3cbbdd928954feb0f3d218d062b47333ca50841c27039efae29d"},
 ]
 
 [package.dependencies]
@@ -2832,13 +2833,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "urwid"
-version = "2.6.10"
+version = "2.6.11"
 description = "A full-featured console (xterm et al.) user interface library"
 optional = false
 python-versions = ">3.7"
 files = [
-    {file = "urwid-2.6.10-py3-none-any.whl", hash = "sha256:f5d290ab01a9cf69a062d5d04ff69111903d41fc14ed03f3ed92cb36f5ef4735"},
-    {file = "urwid-2.6.10.tar.gz", hash = "sha256:ae33355c414c13214e541d3634f3c8a0bfb373914e62ffbcf2fa863527706321"},
+    {file = "urwid-2.6.11-py3-none-any.whl", hash = "sha256:7e18c34d416fffd4e39410450347f4637222bd99cb6fb1523ffa50d77a0e22cf"},
+    {file = "urwid-2.6.11.tar.gz", hash = "sha256:52770007d734d7387ae0421e7b7769c4c5ec67e91a5f4df54e858e314062e475"},
 ]
 
 [package.dependencies]

@@ -69,6 +69,9 @@ def get_tag_meta(t):
     else:
         r["writePermission"] = False
 
+    if not t.writable:
+        r["writePermission"] = False
+
     if t.type == "number":
         r["min"] = t.min
         r["max"] = t.max

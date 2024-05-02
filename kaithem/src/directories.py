@@ -40,6 +40,7 @@ if "ANDROID_ARGUMENT" in environ:
     logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
 else:
     vardir = os.path.normpath(os.path.join(dn, ".."))
+    # Set in config now, not a real config entry
     vardir = os.path.join(vardir, os.path.expanduser(config["site_data_dir"]))
 
     datadir = os.path.normpath(os.path.join(dn, "../data"))

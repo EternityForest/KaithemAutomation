@@ -7,14 +7,14 @@ import argparse
 import logging
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 import jsonschema
 import yaml
 from scullery import snake_compat
 
 logger = logging.getLogger("system")
-config = {}
+config: dict[str, Any] = {}
 
 ##########################################################
 # Modified code from ibt of stackoverflow. Uses literal style for scalars instead of ugly folded.
@@ -57,7 +57,7 @@ _argp.add_argument("--initialpackagesetup")
 argcmd = _argp.parse_args(sys.argv[1:])
 
 
-def load(cfg: Dict[str, Any]):
+def load(cfg: dict[str, Any]):
     "Param overrtides defaults"
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:
@@ -69,14 +69,21 @@ def load(cfg: Dict[str, Any]):
     config.update(cfg or {})
     config = snake_compat.snakify_dict_keys(config)
 
-    vardir = os.path.expanduser(config["site_data_dir"])
-    default_conf_location = os.path.join(vardir, "config.yaml")
+    default_conf_location = os.path.expanduser("~/kaithem/config.yaml")
+    vd = os.path.expanduser("~/kaithem/")
 
     # Attempt to open any manually specified config file
     if argcmd.c:
-        with open(argcmd.c) as f:
+        vd = os.path.expanduser(argcmd.c)
+        with open(os.path.join(vd, "config.yaml")) as f:
             _usr_config = yaml.load(f, yaml.SafeLoader) or {}
-            logger.info("Loaded configuration from " + argcmd.c)
+            logger.info("Loaded configuration from " + os.path.join(vd, "config.yaml"))
+
+    if "site_data_dir" in config:
+        p = os.path.join(config["site_data_dir"], "config.yaml")
+        with open(p) as f:
+            _usr_config = yaml.load(f, yaml.SafeLoader) or {}
+            logger.info("Loaded configuration from " + p)
 
     elif os.path.exists(default_conf_location):
         with open(default_conf_location) as f:
@@ -87,6 +94,8 @@ def load(cfg: Dict[str, Any]):
         _usr_config = {}
         logger.info("No CFG File Specified. Using Defaults.")
 
+    config["site_data_dir"] = vd
+
     for i in _usr_config:
         config[i] = _usr_config[i]
 
@@ -95,16 +104,9 @@ def load(cfg: Dict[str, Any]):
     return config
 
 
-def reload():
-    c = load()
-    with open(os.path.join(_dn, "config-schema.yaml")) as f:
-        jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
-    config.update(c)
-
-
-def initialize(cfg: Optional[Dict[str, Any]] = None):
+def initialize(cfg: dict[str, Any] | None = None):
     "Load the config from defaults and the command line,"
-    c = load(cfg)
+    c = load(cfg or {})
     with open(os.path.join(_dn, "config-schema.yaml")) as f:
         jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
     # Allow code to set config keys before this loads that can override the

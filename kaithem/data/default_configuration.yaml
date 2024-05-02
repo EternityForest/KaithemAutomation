@@ -16,9 +16,6 @@ host: "default"
 #Relative to the ["site_data-dir(or use an absolute path)
 ssl_dir: ssl
 
-#The directory in which to store persistant state such as users,groups,modules,settings,etc
-site_data_dir: ~/kaithem
-
 #Max how many threads to allocate for the worker thread pool
 worker_threads: 12
 

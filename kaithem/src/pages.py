@@ -21,13 +21,27 @@ get_template = _Lookup.get_template
 _varLookup = TemplateLookup(directories=[directories.vardir])
 
 
+class MyCache(jinja2.BytecodeCache):
+    def __init__(self):
+        self.cache = {}
+
+    def load_bytecode(self, bucket):
+        k = bucket.key
+        if k in self.cache:
+            bucket.bytecode_from_string(self.cache[k])
+
+    def dump_bytecode(self, bucket):
+        k = bucket.key
+        self.cache[k] = bucket.bytecode_to_string()
+
+
 #
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates"), "/"], encoding="utf-8", followlinks=False
 )
 
 
-env = jinja2.Environment(loader=_jl, autoescape=False)
+env = jinja2.Environment(loader=_jl, autoescape=False, bytecode_cache=MyCache())
 
 
 env.globals["len"] = len

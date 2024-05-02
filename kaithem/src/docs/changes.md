@@ -2,6 +2,12 @@ Change Log
 ----------
 
 
+### 0.82.0
+
+#### Fixed
+
+- :sparkles: Jinja2 bytecode cache gives a very extreme speedup to certain page lodad
+
 ### 0.81.0
 
 #### Changed

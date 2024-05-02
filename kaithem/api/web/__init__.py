@@ -29,7 +29,22 @@ _jl = _jinja2.FileSystemLoader(
     followlinks=False,
 )
 
-_env = _jinja2.Environment(loader=_jl, autoescape=False)
+
+class MyCache(_jinja2.BytecodeCache):
+    def __init__(self):
+        self.cache = {}
+
+    def load_bytecode(self, bucket):
+        k = bucket.key
+        if k in self.cache:
+            bucket.bytecode_from_string(self.cache[k])
+
+    def dump_bytecode(self, bucket):
+        k = bucket.key
+        self.cache[k] = bucket.bytecode_to_string()
+
+
+_env = _jinja2.Environment(loader=_jl, autoescape=False, bytecode_cache=MyCache())
 
 
 def render_jinja_template(template_filename: str, **kw):

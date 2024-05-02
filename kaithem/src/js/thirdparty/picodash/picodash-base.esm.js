@@ -657,7 +657,14 @@ function getFilter(filterName, prevInChain) {
   // Previous in chain is optional, and may
   // Either be a data source or a filter
   filterName = filterName.trim();
-  return new filterProviders[filterName.split(':')[0]](filterName, {}, prevInChain)
+  let f = new filterProviders[filterName.split(':')[0]](filterName, {}, prevInChain);
+
+  if (prevInChain) {
+    if (prevInChain.config.readonly)
+      f.readonly = true;
+  }
+
+  return f
 }
 
 class DataSource {
@@ -853,7 +860,13 @@ class BaseDashWidget extends HTMLElement {
           return null
         }
 
-        await this.source.pushData(d);
+        try {
+          await this.source.pushData(d);
+        }
+        catch (e) {
+          picodash.snackbar.createSnackbar("Error setting value!", { accent: 'danger', timeout: 5000 });
+          throw e
+        }
         return d
       }
 
@@ -877,8 +890,14 @@ class BaseDashWidget extends HTMLElement {
   }
 
   async runFilterStackReverse(data) {
-    for (const i in this.filterStack) {
-      data = await this.filterStack[this.filterStack.length - 1 - i].set(data);
+    try {
+      for (const i in this.filterStack) {
+        data = await this.filterStack[this.filterStack.length - 1 - i].set(data);
+      }
+    }
+    catch (e) {
+      picodash.snackbar.createSnackbar("Value not set, likely invalid.", { accent: "error", timeout: 3000 });
+      throw e
     }
     return data
   }
@@ -986,7 +1005,8 @@ customElements.define('ds-button', ButtonDashWidget);
 
 class SpanDashWidget extends BaseDashWidget {
     async onData(data) {
-        this.innerText = data;
+        let unit = this.getActiveConfig().unit || '';
+        this.innerText = data + unit;
     }
 
     async onDataReady() {
@@ -1023,7 +1043,27 @@ customElements.define('ds-meter', MeterDashWidget);
 
 class InputDashWidget extends picodash.BaseDashWidget {
     async onData(data) {
-        this.input.value = data;
+        if (this.input.type == 'checkbox') {
+            if (data == true) {
+                data = true;
+            }
+            else if (data == false) {
+                data = false;
+            }
+            else {
+                data = parseFloat(data) > 0;
+            }
+            this.input.checked = data;
+        }
+        else {
+            if (data == true) {
+                data = 1;
+            }
+            if (data == false) {
+                data = 0;
+            }
+            this.input.value = data;
+        }
         this.lastVal = data;
     }
 
@@ -1043,17 +1083,59 @@ class InputDashWidget extends picodash.BaseDashWidget {
             }
         }
 
+        this.input.className = this.className || '';
+        this.className = '';
+
         this.input.type = this.getAttribute('type') || 'text';
+        this.input.disabled = this.input.disabled || this.getAttribute('disabled') || false;
+        this.input.placeholder = this.getAttribute('placeholder') || '';
+
+        if (this.getAttribute('list')) {
+            this.input.list = this.getAttribute('list') || '';
+        }
+
         this.innerHTML = '';
         this.appendChild(this.input);
         this.style.display = 'contents';
 
         async function f(e) {
-            let rc = await this.pushData(this.input.value);
+            let v = null;
+
+            if (this.input.type == 'checkbox') {
+                v = this.input.checked;
+            }
+            else {
+                v = this.input.value;
+            }
+
+            if (this.input.type == 'number') {
+                v = parseFloat(v);
+            }
+
+            if (this.input.type == 'checkbox') {
+                if (v == true) {
+                    v = true;
+                }
+                else if (v == false) {
+                    v = false;
+                }
+                else {
+                    v = parseFloat(v) > 0;
+                }
+            }
+
+            // Get before set, some filters need to know the latest value
+            await this.refresh();
+            let rc = await this.pushData(v);
 
             // Setting failed, return to the last good value
             if (rc == null) {
-                this.input.value = this.lastVal;
+                if (this.input.type == 'checkbox') {
+                    this.input.checked = this.lastVal;
+                }
+                else {
+                    this.input.value = this.lastVal;
+                }
             }
         }
         this.input.onchange = f.bind(this);
@@ -1443,9 +1525,52 @@ class Offset extends picodash.Filter {
   }
 }
 
+
+class Nav extends picodash.Filter {
+  constructor(s, cfg, prev) {
+    super(s, cfg, prev);
+    this.k = parseFloat(this.args[0]) || this.args[0];
+    this.lastFullData = null;
+  }
+
+  async get(unfiltered) {
+    // Convert from unfiltered to filtered
+    this.lastFullData = unfiltered;
+    return unfiltered[this.k]
+  }
+
+  async set(val) {
+    // Convert from filtered to unfiltered
+    if (this.lastFullData == null) {
+      throw new Error("Filter does not have a cached value to set.")
+    }
+    let v = structuredClone(this.lastFullData);
+    v[this.k] = val;
+    return v
+  }
+}
+
+class JsonStringify extends picodash.Filter {
+  constructor(s, cfg, prev) {
+    super(s, cfg, prev);
+  }
+
+  async get(unfiltered) {
+    // Convert from unfiltered to filtered
+    return JSON.stringify(unfiltered)
+  }
+
+  async set(val) {
+    // Convert from filtered to unfiltered
+    return JSON.parse(val)
+  }
+}
+
 picodash.addFilterProvider('fixedpoint', FixedPoint);
 picodash.addFilterProvider('offset', Offset);
 picodash.addFilterProvider('mult', Mult);
+picodash.addFilterProvider('nav', Nav);
+picodash.addFilterProvider('json', JsonStringify);
 
 /*
 @copyright

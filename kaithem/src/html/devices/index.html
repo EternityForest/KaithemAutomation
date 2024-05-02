@@ -129,18 +129,27 @@ else:
     <div class="stacked-form">
         %if hasattr(devObj, 'tagPoints') and devObj.tagPoints:
 
-        %for i in devObj.tagPoints:
-        %if devObj.tagPoints[i].type == 'string':
-        <label>${i}<ds-span min="0" max="1" source="tag:${devObj.tagPoints[i].name}"></ds-span></label>
-        %elif devObj.tagPoints[i].type == 'number':
-        <label><b>${i}</b>
-            <div class="flex-row">
-                <ds-span class="col-3" filter="fixedpoint: 3" source="tag:${devObj.tagPoints[i].name}"></ds-span>
-                <ds-meter class="col-9" min="0" max="1" source="tag:${devObj.tagPoints[i].name}"></ds-meter></label>
-            </div>
+            %for i in devObj.tagPoints:
+            %if devObj.tagPoints[i].type == 'string':
+            <div class="flex-row"><label><ds-span min="0" max="1" source="tag:${devObj.tagPoints[i].name}"></ds-span>${i}</label></div>
+            %elif devObj.tagPoints[i].type == 'number':
+                %if devObj.tagPoints[i].subtype in ('bool', 'boolean'):
+                    <label>
+                        <ds-input type="checkbox" class="toggle" source="tag:${devObj.tagPoints[i].name}" filter="confirm: Confirm?"></ds-input>
+                        <b>${i}</b>
+                    </label>
+                %else:
+                    <label><b>${i}</b>
+                        <div class="flex-row">
+                            <ds-input type="number" class="col-4" filter="fixedpoint: 3" source="tag:${devObj.tagPoints[i].name}"  filter="confirm: Confirm?"></ds-input>
+                            <ds-meter class="col-8" source="tag:${devObj.tagPoints[i].name}"></ds-meter>
+                        </div>
+                    </label>
+                %endif
+            %endif
+            %endfor
         %endif
-        %endfor
-        %endif
+
 
     </div>
 
