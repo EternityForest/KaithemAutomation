@@ -26,7 +26,7 @@ from .modules_state import (
     ResourceDictType,
     additionalTypes,
     external_module_locations,
-    fileResourceAbsPaths,
+    file_resource_paths,
     getModuleFn,
     modulesLock,
     parseTarget,
@@ -135,7 +135,7 @@ class InternalFileRef(modules_state.ResourceObject):
 
     def getPath(self):
         "Return the actual path on the filesystem of things"
-        return fileResourceAbsPaths[self.module, self.resource]
+        return file_resource_paths[self.module, self.resource]
 
 
 class ModuleObject:
@@ -481,7 +481,7 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
             except Exception:
                 logger.exception("Error cleaning up old file ref")
         else:
-            fileResourceAbsPaths[module, resourcename] = target
+            file_resource_paths[module, resourcename] = target
 
 
 def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=None):
@@ -555,15 +555,15 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                             logger.warning(f"No resource type found for {resourcename}")
                             continue
                         if r["resource_type"] == "internal_fileref":
-                            fileResourceAbsPaths[modulename, resourcename] = os.path.join(
+                            file_resource_paths[modulename, resourcename] = os.path.join(
                                 folder, "__filedata__", url(resourcename, safeFnChars)
                             )
 
-                            if not os.path.exists(fileResourceAbsPaths[modulename, resourcename]):
-                                logger.error("Missing file resource: " + fileResourceAbsPaths[modulename, resourcename])
+                            if not os.path.exists(file_resource_paths[modulename, resourcename]):
+                                logger.error("Missing file resource: " + file_resource_paths[modulename, resourcename])
                                 messagebus.post_message(
                                     "/system/notifications/errors",
-                                    "Missing file resource: " + fileResourceAbsPaths[modulename, resourcename],
+                                    "Missing file resource: " + file_resource_paths[modulename, resourcename],
                                 )
 
                     except Exception:
@@ -607,8 +607,8 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
             return
 
         torm = []
-        for i in fileResourceAbsPaths:
-            if not os.path.exists(fileResourceAbsPaths[i]):
+        for i in file_resource_paths:
+            if not os.path.exists(file_resource_paths[i]):
                 m, r = i
                 if m == modulename:
                     if r in module:
@@ -617,9 +617,9 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
 
         for i in torm:
             rt = True
-            fileResourceAbsPaths.pop(i)
+            file_resource_paths.pop(i)
 
-        s = set(fileResourceAbsPaths.values())
+        s = set(file_resource_paths.values())
         for root, dirs, files in os.walk(resource_folder):
             for i in files:
                 f = os.path.join(root, i)
@@ -635,7 +635,7 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
                         "target": f"$MODULERESOURCES/{data_basename}",
                         "ephemeral": True,
                     }
-                fileResourceAbsPaths[modulename, data_basename] = f
+                file_resource_paths[modulename, data_basename] = f
 
             for i in dirs:
                 f = os.path.join(root, i)
@@ -678,7 +678,7 @@ def getModuleAsYamlZip(module, noFiles=True) -> bytes:
                 if noFiles:
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
 
-                target = fileResourceAbsPaths[module, resource]
+                target = file_resource_paths[module, resource]
                 if os.path.exists(target):
                     z.write(target, f"{module}/__filedata__/{url(resource, safeFnChars)}")
 
@@ -814,7 +814,7 @@ def load_modules_from_zip(f, replace=False):
                     )
                     bookkeeponemodule(i)
             raise
-        fileResourceAbsPaths.update(newfrpaths)
+        file_resource_paths.update(newfrpaths)
 
         modules_state.modulesHaveChanged()
         for i in new_modules:
@@ -872,7 +872,7 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
     assert isinstance(rt, str)
 
     if rt == "internal_fileref":
-        old = fileResourceAbsPaths[toModule, toResource]
+        old = file_resource_paths[toModule, toResource]
         m = getModuleDir(toModule)
         m = os.path.join(m, "__filedata__", toResource)
         if not os.path.exists(m):
@@ -882,8 +882,8 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
 
         modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
         del modules_state.ActiveModules[module][resource]
-        fileResourceAbsPaths[toModule, toResource] = m
-        del fileResourceAbsPaths[module, resource]
+        file_resource_paths[toModule, toResource] = m
+        del file_resource_paths[module, resource]
         return
 
     mp = []
@@ -921,12 +921,12 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         # Filerefs also handled by the pages object
         if rt == "internal_fileref":
             try:
-                os.remove(fileResourceAbsPaths[module, resource])
+                os.remove(file_resource_paths[module, resource])
             except Exception:
                 print(traceback.format_exc())
 
             try:
-                del fileResourceAbsPaths[module, resource]
+                del file_resource_paths[module, resource]
             except KeyError:
                 pass
 

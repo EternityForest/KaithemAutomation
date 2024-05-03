@@ -2,7 +2,7 @@
     from kaithem.src.util import url
     from kaithem.src import unitsofmeasure,pages,auth
     from kaithem.src.plugins.CorePluginUserPageResources import url_for_resource
-    from kaithem.src.modules import fileResourceAbsPaths
+    from kaithem.src.modules import file_resource_paths
     import os
 %>
 
@@ -23,11 +23,11 @@
 
     <tr>
         <td>
-            ${fileResourceAbsPaths[module,resource]|h}
+            ${file_resource_paths[module,resource]|h}
     </td>
     <td>
     %try:
-    ${unitsofmeasure.si_format_number(os.path.getsize(fileResourceAbsPaths[module,resource]))}
+    ${unitsofmeasure.si_format_number(os.path.getsize(file_resource_paths[module,resource]))}
     %except:
     File not acessible or does not exist
     %endtry

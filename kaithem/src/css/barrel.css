@@ -2804,7 +2804,7 @@ label {
 
 [v-cloak], [x-cloak] {
     display: block;
-    padding: 50px 0;
+    padding: 50px 0;    
 }
 
 @keyframes spinner {

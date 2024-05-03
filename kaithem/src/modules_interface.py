@@ -40,7 +40,7 @@ prev_versions: dict[tuple, dict] = {}
 
 def get_f_size(name, i):
     try:
-        return unitsofmeasure.si_format_number(os.path.getsize(modules_state.fileResourceAbsPaths[name, i]))
+        return unitsofmeasure.si_format_number(os.path.getsize(modules_state.file_resource_paths[name, i]))
     except Exception:
         return "Could not get size"
 
@@ -78,7 +78,7 @@ def breadcrumbs(path):
 module_page_context = {
     "si_format_number": unitsofmeasure.si_format_number,
     "url": util.url,
-    "fileResourceAbsPaths": modules.fileResourceAbsPaths,
+    "file_resource_paths": modules.file_resource_paths,
     "external_module_locations": modules.external_module_locations,
     "getModuleHash": modules_state.getModuleHash,
     "getModuleWordHash": modules_state.getModuleWordHash,
@@ -288,7 +288,6 @@ class WebInterface:
 
     @cherrypy.expose
     def newmoduletarget(self, **kwargs):
-        global scopes
         pages.require("system_admin")
         pages.postOnly()
 
@@ -382,10 +381,12 @@ class WebInterface:
                     raise ValueError("No object specified")
 
                 if path[1] == "module":
-                    obj = scopes[root]
+                    obj = modules_state.scopes[root]
                     objname = f"Module Obj: {root}"
 
                 if path[1] == "event":
+                    from .plugins import CorePluginEventResources
+
                     obj = CorePluginEventResources._events_by_module_resource[root, path[2]].pymodule
                     objname = f"Event: {path[2]}"
 
@@ -499,7 +500,7 @@ class WebInterface:
                 pages.require("system_admin")
                 d = modules.getModuleDir(module)
                 folder = os.path.join(d, "__filedata__")
-                data_basename = modules_state.fileResourceAbsPaths[module, path[1]]
+                data_basename = modules_state.file_resource_paths[module, path[1]]
                 dataname = os.path.join(folder, data_basename)
                 if os.path.isfile(dataname):
                     return serve_file(
@@ -573,7 +574,7 @@ class WebInterface:
 
                     # END BLOCK OF COPY PASTED CODE.
 
-                    modules_state.fileResourceAbsPaths[root, escapedName] = dataname
+                    modules_state.file_resource_paths[root, escapedName] = dataname
                     d = {
                         "resource_type": "internal_fileref",
                         "serve": "serve" in kwargs,

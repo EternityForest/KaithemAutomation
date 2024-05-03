@@ -572,7 +572,7 @@ class KaithemPage:
             x = modules_state.ActiveModules[module].get(rn, None)
 
             if x and x["resource_type"] == "internal_fileref":
-                fn = modules_state.fileResourceAbsPaths[module, rn]
+                fn = modules_state.file_resource_paths[module, rn]
                 mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
                 if x.get("serve", False):
                     pages.require(x.get("require_permissions", []))

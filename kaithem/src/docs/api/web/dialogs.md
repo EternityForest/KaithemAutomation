@@ -6,7 +6,11 @@
 
 - [Dialogs](#dialogs)
   - [SimpleDialog](#simpledialog)
+    - [SimpleDialog().begin_section](#simpledialog()begin_section)
     - [SimpleDialog().checkbox](#simpledialog()checkbox)
+    - [SimpleDialog().code_editor](#simpledialog()code_editor)
+    - [SimpleDialog().end_section](#simpledialog()end_section)
+    - [SimpleDialog().file_input](#simpledialog()file_input)
     - [SimpleDialog().is_disabled_by_default](#simpledialog()is_disabled_by_default)
     - [SimpleDialog().name_to_title](#simpledialog()name_to_title)
     - [SimpleDialog().render](#simpledialog()render)
@@ -17,7 +21,7 @@
 
 ## SimpleDialog
 
-[Show source in dialogs.py:8](../../../../api/web/dialogs.py#L8)
+[Show source in dialogs.py:81](../../../../api/web/dialogs.py#L81)
 
 Class that generates a dialog.
 
@@ -32,9 +36,19 @@ class SimpleDialog:
     def __init__(self, title: str) -> None: ...
 ```
 
+### SimpleDialog().begin_section
+
+[Show source in dialogs.py:156](../../../../api/web/dialogs.py#L156)
+
+#### Signature
+
+```python
+def begin_section(self, title: str): ...
+```
+
 ### SimpleDialog().checkbox
 
-[Show source in dialogs.py:73](../../../../api/web/dialogs.py#L73)
+[Show source in dialogs.py:172](../../../../api/web/dialogs.py#L172)
 
 Add a checkbox
 
@@ -47,9 +61,52 @@ def checkbox(
 ): ...
 ```
 
+### SimpleDialog().code_editor
+
+[Show source in dialogs.py:204](../../../../api/web/dialogs.py#L204)
+
+Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
+
+#### Signature
+
+```python
+@beartype.beartype
+def code_editor(
+    self,
+    name: str = "file",
+    language: str,
+    title: str | None = None,
+    disabled=None,
+    default="",
+): ...
+```
+
+### SimpleDialog().end_section
+
+[Show source in dialogs.py:162](../../../../api/web/dialogs.py#L162)
+
+#### Signature
+
+```python
+def end_section(self): ...
+```
+
+### SimpleDialog().file_input
+
+[Show source in dialogs.py:188](../../../../api/web/dialogs.py#L188)
+
+Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
+
+#### Signature
+
+```python
+@beartype.beartype
+def file_input(self, name: str = "file", title: str | None = None, disabled=None): ...
+```
+
 ### SimpleDialog().is_disabled_by_default
 
-[Show source in dialogs.py:32](../../../../api/web/dialogs.py#L32)
+[Show source in dialogs.py:113](../../../../api/web/dialogs.py#L113)
 
 If an element does not specify whether it is disabled, this is called.
 You can subclass it, by default it checks system_admin.
@@ -62,7 +119,7 @@ def is_disabled_by_default(self): ...
 
 ### SimpleDialog().name_to_title
 
-[Show source in dialogs.py:23](../../../../api/web/dialogs.py#L23)
+[Show source in dialogs.py:104](../../../../api/web/dialogs.py#L104)
 
 If title not provided, this will be
 called to create one fron the control's name
@@ -75,7 +132,7 @@ def name_to_title(self, s: str): ...
 
 ### SimpleDialog().render
 
-[Show source in dialogs.py:124](../../../../api/web/dialogs.py#L124)
+[Show source in dialogs.py:262](../../../../api/web/dialogs.py#L262)
 
 The form will target the given URL and have all the keys and values in hidden inputs
 
@@ -90,7 +147,7 @@ def render(
 
 ### SimpleDialog().selection
 
-[Show source in dialogs.py:86](../../../../api/web/dialogs.py#L86)
+[Show source in dialogs.py:221](../../../../api/web/dialogs.py#L221)
 
 Add a select element
 
@@ -110,7 +167,7 @@ def selection(
 
 ### SimpleDialog().submit_button
 
-[Show source in dialogs.py:114](../../../../api/web/dialogs.py#L114)
+[Show source in dialogs.py:250](../../../../api/web/dialogs.py#L250)
 
 Add a submit button
 
@@ -125,7 +182,7 @@ def submit_button(
 
 ### SimpleDialog().text
 
-[Show source in dialogs.py:38](../../../../api/web/dialogs.py#L38)
+[Show source in dialogs.py:119](../../../../api/web/dialogs.py#L119)
 
 Add some help text
 
@@ -137,9 +194,7 @@ def text(self, s: str): ...
 
 ### SimpleDialog().text_input
 
-[Show source in dialogs.py:42](../../../../api/web/dialogs.py#L42)
-
-Add a text input. Datalist can be value, title pairs
+[Show source in dialogs.py:123](../../../../api/web/dialogs.py#L123)
 
 #### Signature
 

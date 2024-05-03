@@ -65,7 +65,7 @@ external_module_locations: dict[str, str] = {}
 
 # This is a dict indexed by module/resource tuples that contains the absolute path to what
 # The system considers the current "loaded" version.
-fileResourceAbsPaths: dict[tuple, str] = {}
+file_resource_paths: dict[tuple, str] = {}
 
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
