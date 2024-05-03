@@ -1413,5 +1413,5 @@ class MixingBoardType(modules_state.ResourceType):
         return d.render(self.get_update_target(module, name))
 
 
-drt = MixingBoardType("mixing_board", mdi_icon="tune-vertical-variant")
+drt = MixingBoardType("mixing_board", mdi_icon="tune-vertical-variant", title="Mixing Board", priority=10)
 modules_state.additionalTypes["mixing_board"] = drt

@@ -327,7 +327,7 @@ def wordHashModule(module: str):
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode("utf-8"),
-                num=12,
+                num=4,
                 separator=" ",
             )
     except Exception:

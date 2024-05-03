@@ -9,6 +9,11 @@ Change Log
 - :sparkles: Jinja2 bytecode cache gives a very extreme speedup to certain page lodad
 - :sparkles: Minor visual glitches
 
+
+#### Changed
+
+- :sparkles: -d now sets the kaithem data dir, -c removed.  config.yaml now always in root of dir.
+
 ### 0.81.0
 
 #### Changed

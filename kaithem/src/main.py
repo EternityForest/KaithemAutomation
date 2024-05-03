@@ -5,7 +5,6 @@
 import importlib
 import logging
 import os
-import sys
 import threading
 import time
 from typing import Any, Dict, Optional
@@ -158,14 +157,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     auth.initializeAuthentication()
     logger.info("Loaded auth data")
-
-    if cfg.argcmd.initialpackagesetup:
-        auth.dumpDatabase()
-        logger.info("Kaithem users set up. Now exiting.")
-        import cherrypy
-
-        cherrypy.engine.exit()
-        sys.exit()
 
     plugin_system.load_plugins()
     plugin_system.load_user_plugins()

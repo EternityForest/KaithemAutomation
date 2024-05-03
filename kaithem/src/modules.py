@@ -891,11 +891,11 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
 
     for i in os.listdir(dir):
         if i.split(".", 1)[0] == resource:
-            new = os.path.join(dir, i.replace(resource, toResource))
-            old = os.path.join(dir, i)
-            mp.append((old, new))
-            if os.path.exists(new):
-                raise FileExistsError(new)
+            newfn = os.path.join(dir, i.replace(resource, toResource))
+            oldfn = os.path.join(dir, i)
+            mp.append((oldfn, newfn))
+            if os.path.exists(newfn):
+                raise FileExistsError(newfn)
 
     modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
     del modules_state.ActiveModules[module][resource]

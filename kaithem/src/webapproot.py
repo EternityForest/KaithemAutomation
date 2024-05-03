@@ -134,6 +134,10 @@ def handle_error():
     cherrypy.response.body = [pages.get_template("errors/cperror.html").render(e=traceback.format_exc(), mk="").encode()]
 
 
+def error_page_404(status, message, traceback, version):
+    return pages.get_template("errors/e404.html").render()
+
+
 # This class represents the "/" root of the web app
 @cherrypy.config(**{"request.error_response": handle_error})
 class webapproot:
@@ -164,7 +168,7 @@ class webapproot:
                 pages.require(webapi._simple_handlers[path[0]][0])
 
             return webapi._simple_handlers[path[0]][1](*path, **data)
-        raise ValueError("No builtin or plugin handler")
+        raise cherrypy.HTTPError(404, "No builtin or plugin handler")
 
     @cherrypy.expose
     @cherrypy.config(**{"response.timeout": 7200})
@@ -406,6 +410,7 @@ def startServer():
 
     cherrypy.config.update(site_config)
     cherrypy.config.update({"error_page.default": error_page})
+    cherrypy.config.update({"error_page.404": error_page_404})
 
     cherrypy.tools.pageloadnotify = cherrypy.Tool("on_start_resource", pageloadnotify)
     cherrypy.config["tools.pageloadnotify.on"] = True

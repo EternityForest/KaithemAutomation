@@ -32,7 +32,7 @@ def get_meta(key: str):
 def list_keys() -> list[str]:
     """List all known setting keys"""
     with lock:
-        return list(settings.keys())
+        return [i[0] for i in settings.items() if i[1]]
 
 
 @functools.lru_cache(32)
@@ -76,13 +76,12 @@ def add_val(key: str, value: str, source: str = "<code>", priority: float | int 
         if key not in settings:
             settings[key] = {}
 
+        for i in list(settings[key]):
+            if i[1] == source:
+                settings[key].pop(i, None)
+
         if value:
             settings[key][priority, source] = value
-        else:
-            try:
-                del settings[key][priority, source]
-            except KeyError:
-                pass
 
         get_val.cache_clear()
         get_by_prefix.cache_clear()

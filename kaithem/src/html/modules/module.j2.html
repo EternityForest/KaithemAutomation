@@ -16,10 +16,10 @@
     <title>Module: {{ name| escape }}</title>
     <section class="flex-row gaps margin">
         <section class="window col-6 padding">
-            MD5 Sum: {{ getModuleHash(name) }}
+            {{ getModuleHash(name) }}
             </br>
-            WordHash: {{ getModuleWordHash(name) }}
-            </br>
+            <b>{{ getModuleWordHash(name) }}</b>
+            </br><br>
             <a href="/modules/yamldownload/{{ url(name) }}.zip">Download this module as a zip file</a>
             <br>
             <form action="/modules/module/{{ url(name) }}/obj/module" method="post">
@@ -74,7 +74,7 @@
             {% if modules.additionalTypes[i].mdi_icon %}
             <a class="button createbutton"
                 href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}">
-                <i class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{i.capitalize()| escape }}</a>
+                <i class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
             {% endif %}
             {% endfor %}
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">

@@ -1,0 +1,19 @@
+<%include file="/pageheader.html"/>
+<%
+import traceback
+%>
+<h2>404 Not Found</h2>
+
+<img class="h-center h-24rem round-feathered" src="/static/img/ai_detective_in_field.avif">
+
+<div class="window paper">
+    <p class="danger">
+    The page you were looking for does not exist.
+    </p>
+
+<details>
+<summary>Traceback</summary>
+<pre>${traceback.format_exc()}</pre>
+</details>
+</div>
+<%include file="/pagefooter.html"/>
