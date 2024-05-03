@@ -136,7 +136,7 @@ front_page_banner: |
 
 #This HTML is used as the top banner for deployment branding, in pages without a nav bar
 top_banner_html: |
-    <div class="["tool_bar"]"><h1 align="center"><a href="/index" style="["text_decorationnone;color:inherit; ["background_colortransparent;">Kaithem@HOSTNAME</a></h1></div>
+    <div class="tool-bar"><h1 align="center"><a href="/index" style="text-decoration:none;color:inherit; background-color:transparent;">Kaithem@HOSTNAME</a></h1></div>
 
 #This text shows up in the about box. Good for misc info like copyrights of site specific data, lega stuff, etc
 about_box_banner: "This space can be customized with site specific data in the config file."

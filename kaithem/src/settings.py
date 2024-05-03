@@ -17,7 +17,6 @@ from cherrypy.lib.static import serve_file
 
 from . import (
     auth,
-    config,
     directories,
     kaithemobj,
     messagebus,
@@ -154,14 +153,6 @@ class Settings:
         with weblogin.recordslock:
             fr = weblogin.failureRecords.items()
         return pages.get_template("settings/security.html").render(history=fr)
-
-    @cherrypy.expose
-    def reloadcfg(self):
-        """ "Used to reload the config file"""
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        config.reload()
-        raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
     def threads(self, *a, **k):

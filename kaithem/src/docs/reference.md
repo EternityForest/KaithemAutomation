@@ -800,7 +800,6 @@ Most were collected by by William Safire
 * Write all adverbial forms correct.
 * Don't use contractions in formal writing.
 * Writing carefully, dangling participles must be avoided.
-* It is incumbent on us to avoid archaisms.
 * If any word is improper at the end of a sentence, a linking verb is.
 * Steer clear of incorrect forms of verbs that have snuck in the language.
 * Take the bull by the hand and avoid mixed metaphors.
@@ -813,4 +812,11 @@ Most were collected by by William Safire
 * Always pick on the correct idiom.
 "Avoid overuse of 'quotation "marks."'"
 * The adverb always follows the verb.
+* Ending a sentence with a preposition is one thing that I will not put up with.
+* Its important to use apostrophes right in everybodys writing.
+* In letters essays and reports use commas to separate items in series.
+* In my opinion, I think that an author when he is writing should definitely not
+get into the habit of making use of too many unnecessary words that he does not
+really need in order to put his message across.
+* Consult the dictionery to avoid mispelings.
 * Last but not least, avoid cliches like the plague; seek viable alternatives.

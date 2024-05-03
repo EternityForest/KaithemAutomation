@@ -17,14 +17,7 @@ location = geolocation.getLocation('default')
 
 <title>Options</title>
 <div class="window paper">
-    <details>
-        <summary>Saving info</summary>
-        Most changes are saved temporarily to RAM until either a configured autosave, or a manual save of the server state.
-
-    </details>
-
-<a href="/settings/save">Save server state to disk(Flushes logs, users, and groups)</a><br>
-<a href="/settings/reloadcfg">Reload the configuration file(Not all options take effect without restart)</a>
+<a href="/settings/save">Flush Logs</a><br>
 
 </div>
 
@@ -56,7 +49,7 @@ location = geolocation.getLocation('default')
 
 <dl>
     %for i in settings_overrides.list_keys():
-    <dt>${i|h}</dt>
+    <dt><b>${i|h}</b></dt>
     <dd>${settings_overrides.get_val(i)|h}</dd>
     %endfor
 </dl>
@@ -229,9 +222,13 @@ Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
 Because some of these settings could cause instabilty if set incorrectly, they can currently only be
 changed by actually changing the configuration file and resetting the server.</details>
 
-<pre>
-${yaml.dump(config.config,width=120,indent=4,default_flow_style=False)|h}
-</pre>
+<details>
+    <summary>Open</summary>
+
+        <pre>
+        ${yaml.dump(config.config,width=120,indent=4,default_flow_style=False)|h}
+        </pre>
+</details>
 
 </div>
 <%include file="/pagefooter.html"/>
