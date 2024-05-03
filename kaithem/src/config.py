@@ -50,9 +50,8 @@ _dn = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 _argp = argparse.ArgumentParser()
 
 # Manually specify a confifuration file, or else there must be one in /etc/kaithem
-_argp.add_argument("-c")
+_argp.add_argument("-d")
 _argp.add_argument("-p")
-_argp.add_argument("--initialpackagesetup")
 
 argcmd = _argp.parse_args(sys.argv[1:])
 
@@ -72,18 +71,22 @@ def load(cfg: dict[str, Any]):
     default_conf_location = os.path.expanduser("~/kaithem/config.yaml")
     vd = os.path.expanduser("~/kaithem/")
 
+    _usr_config = {}
+
     # Attempt to open any manually specified config file
-    if argcmd.c:
-        vd = os.path.expanduser(argcmd.c)
+    if argcmd.d:
+        vd = os.path.expanduser(argcmd.d)
         with open(os.path.join(vd, "config.yaml")) as f:
             _usr_config = yaml.load(f, yaml.SafeLoader) or {}
             logger.info("Loaded configuration from " + os.path.join(vd, "config.yaml"))
 
-    if "site_data_dir" in config:
-        p = os.path.join(config["site_data_dir"], "config.yaml")
-        with open(p) as f:
-            _usr_config = yaml.load(f, yaml.SafeLoader) or {}
-            logger.info("Loaded configuration from " + p)
+    if "site_data_dir" in cfg:
+        p = os.path.join(cfg["site_data_dir"], "config.yaml")
+        vd = cfg["site_data_dir"]
+        if os.path.exists(p):
+            with open(p) as f:
+                _usr_config = yaml.load(f, yaml.SafeLoader) or {}
+                logger.info("Loaded configuration from " + p)
 
     elif os.path.exists(default_conf_location):
         with open(default_conf_location) as f:
