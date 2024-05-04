@@ -26,6 +26,7 @@ from kaithem.api import web as webapi
 from . import (
     ManageUsers,
     alerts,
+    cliserver,
     devices,
     devices_interface,
     directories,
@@ -152,6 +153,7 @@ class webapproot:
     syslog = logviewer.WebInterface()
     devices = devices_interface.WebDevices()
     chandler = cweb.Web()
+    cli = cliserver.WebAPI()
 
     @cherrypy.expose
     def favicon_ico(self):

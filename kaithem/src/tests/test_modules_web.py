@@ -67,10 +67,16 @@ def test_make_module_web():
 
     assert (n, "testevt") in CorePluginEventResources._events_by_module_resource
 
+    # Object browser thingy
+    assert webapproot.webapproot().modules.module(n, "obj", "module")
+
     x = CorePluginEventResources._events_by_module_resource[(n, "testevt")]
 
     x.pymodule.__dict__["test_obj"] = testobj()
     ref = weakref.ref(x.pymodule.__dict__["test_obj"])
+
+    # Event scope browser
+    assert webapproot.webapproot().modules.module(n, "obj", "event", "testevt")
 
     # Ensure the event actually worked
     time.sleep(1)

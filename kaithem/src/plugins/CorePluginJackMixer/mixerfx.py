@@ -419,6 +419,17 @@ effectTemplates_data = {
             {"gstElement": "fakesink", "gstSetup": {}},
         ],
     },
+    "webrtcdsp": {
+        "type": "webrtcdsp",
+        "displayType": "Voice DSP",
+        "help": "Noise reduction",
+        "monoGstElement": "webrtcdsp",
+        "params": {},
+        "gstSetup": {"voice-detection": True, "voice-detection-likelihood": 3},
+        "sidechain": False,
+        "preSupportElements": [],
+        "postSupportElements": [{"gstElement": "webrtcechoprobe", "gstSetup": {}}],
+    },
     "cabinet3": {
         "type": "cabinet3",
         "displayType": "Cabinet III",

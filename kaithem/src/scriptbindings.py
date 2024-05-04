@@ -59,6 +59,7 @@ import inspect
 import logging
 import math
 import random
+import subprocess
 import threading
 import time
 import traceback
@@ -1002,6 +1003,12 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         self.setTag = setTag
         self.commands["set_tag"] = setTag
 
+        def shell(cmd: str):
+            """Run a system shell command line and return the output as the next command's _"""
+            return subprocess.check_output(cmd, shell=True, timeout=10).decode("utf-8").strip()
+
+        self.shell = shell
+        self.commands["shell"] = shell
         self.tagpoints = {}
         self.tagHandlers = {}
         self.tagClaims = {}

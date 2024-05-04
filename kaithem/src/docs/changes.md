@@ -14,6 +14,12 @@ Change Log
 
 - :sparkles: -d now sets the kaithem data dir, -c removed.  config.yaml now always in root of dir.
 
+#### Added
+
+- :sparkles: Chandler "shell" command lets you run stuff in the system shell. Use with care!
+
+
+
 ### 0.81.0
 
 #### Changed
