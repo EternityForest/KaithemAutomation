@@ -8,7 +8,8 @@ Change Log
 
 - :sparkles: Jinja2 bytecode cache gives a very extreme speedup to certain page lodad
 - :sparkles: Minor visual glitches
-
+- :bug: Fix deleting motion detection regions
+- :bug: Object tags didn't disply right
 
 #### Changed
 

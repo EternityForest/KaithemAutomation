@@ -195,9 +195,12 @@ ${global_api.render("gapi")}
                       <p v-bind:title="effect.id">
                         <b>{{effect.displayType}}</b>
                       </p>
-                      <button v-on:click="moveEffectUp(channelname, index)">Up</button>
-                      <button v-on:click="moveEffectDown(channelname, index)">Down</button>
-                      <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
+                      <button v-on:click="moveEffectUp(channelname, index)"><span class="mdi mdi-arrow-up"></span>
+                      </button>
+                      <button v-on:click="moveEffectDown(channelname, index)"><span class="mdi mdi-arrow-down"></span>
+                      </button>
+                      <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)"><span class="mdi mdi-trash-can"></span>
+                      </button>
                     </div>
                   </summary>
 

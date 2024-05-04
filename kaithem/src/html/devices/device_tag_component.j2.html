@@ -18,7 +18,13 @@
     <div class="grow">
         {% if obj.tagPoints[i].type in ('string','number', 'object') %}
         <h4>Current</h4>
+        {% if obj.tagPoints[i].type in ('string', 'object') %}
+        <ds-span source="tag:{{obj.tagPoints[i].name}}" filter="json: "></ds-span>
+
+        {% else %}
         <ds-span source="tag:{{obj.tagPoints[i].name}}" filter="fixedpoint: 4"></ds-span>
+
+        {% endif %}
 
         {% elif hasattr(obj.tagPoints[i],"data_source_widget") and obj.tagPoints[i].subtype == 'mpegts' and obj.tagPoints[i].data_source_widget %}
         <video style="width: 100%" muted controls></video>
@@ -174,6 +180,7 @@
                 selectedRegion = '';
                 deselectInactiveRegions();
                 redrawRegionBar()
+                setRegions()
             }
 
             function setRegion() {

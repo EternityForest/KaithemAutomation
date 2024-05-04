@@ -98,7 +98,7 @@ dd {
     --control-font: var(--main-font);
 
     /*Spacing*/
-    --padding: 12px;
+    --padding: 8px;
     --gap: 18px;
 
     /*Borders*/
