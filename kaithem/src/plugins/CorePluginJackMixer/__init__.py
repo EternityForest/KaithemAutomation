@@ -584,6 +584,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def loadData(self, d):
         self.mute = d.get("mute", False)
 
+        end_chain = []
+
         for i in d["effects"]:
             if d.get("bypass", False):
                 continue
@@ -621,7 +623,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     for j in i["preSupportElements"]:
                         linkTo = self.add_element(
                             j["gstElement"],
-                            **j["gstSetup"],
+                            **j["gstSetup"] or {},
+                            auto_insert_audio_convert=True,
                             sidechain=sidechain,
                             connect_to_output=linkTo if (not j.get("noConnectInput", False)) else False,
                         )
@@ -631,16 +634,18 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 if self.channels == 1 and "monoGstElement" in i:
                     linkTo = self.effectsById[i["id"]] = self.add_element(
                         i["monoGstElement"],
-                        **i["gstSetup"],
+                        **i["gstSetup"] or {},
                         sidechain=sidechain,
+                        auto_insert_audio_convert=True,
                         connect_to_output=linkTo if (not i.get("noConnectInput", False)) else False,
                         connect_when_available=i.get("connect_when_available", None),
                     )
                 elif self.channels == 2 and "stereoGstElement" in i:
                     linkTo = self.effectsById[i["id"]] = self.add_element(
                         i["stereoGstElement"],
-                        **i["gstSetup"],
+                        **i["gstSetup"] or {},
                         sidechain=sidechain,
+                        auto_insert_audio_convert=True,
                         connect_to_output=linkTo if (not i.get("noConnectInput", False)) else False,
                         connect_when_available=i.get("connect_when_available", None),
                     )
@@ -649,6 +654,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         i["gstElement"],
                         **i["gstSetup"],
                         sidechain=sidechain,
+                        auto_insert_audio_convert=True,
                         connect_to_output=linkTo if (not i.get("noConnectInput", False)) else False,
                         connect_when_available=i.get("connect_when_available", None),
                     )
@@ -664,10 +670,16 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         linkTo = self.add_element(
                             j["gstElement"],
                             **j["gstSetup"],
+                            auto_insert_audio_convert=True,
                             sidechain=sidechain,
                             connect_to_output=linkTo if (not j.get("noConnectInput", False)) else False,
                         )
                         supports.append(linkTo)
+
+                if "endChainSupportElements" in i:
+                    for j in i["endChainSupportElements"]:
+                        end_chain.append(j)
+
                 elmt.postSupports = supports
 
                 for j in i["params"]:
@@ -684,6 +696,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 # That with a hack.  Basically sidechains only exist to let us to alternative outputs anyway.
                 if i.get("silenceMainChain", False):
                     self.add_element("volume", volume=0)
+        for j in end_chain:
+            self.add_element(
+                j["gstElement"],
+                **j["gstSetup"],
+                auto_insert_audio_convert=True,
+            )
 
         self.setInput(d["input"])
         self.setOutputs(d["output"].split(","))
