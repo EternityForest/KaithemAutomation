@@ -665,135 +665,62 @@ def getModuleAsYamlZip(module):
 
 
 def load_modules_from_zip(f, replace=False):
-    "Given a zip file, import all modules found therin."
-    new_modules = {}
+    """Given a zip file, import all modules found therin.
+    On failure, revert to existing module if replacing"""
     z = zipfile.ZipFile(f)
-    newfrpaths = {}
+    tmp = os.path.join(directories.vardir, "modules", "__upload__")
+    bu = os.path.join(directories.vardir, "modules", "__backup__")
 
-    for i in z.namelist():
-        if i.endswith("/"):
-            continue
-        # get just the folder, ie the module
-        p = util.unurl(i.split("/", 1)[0])
+    if os.path.exists(bu):
+        shutil.rmtree(bu)
+    if os.path.exists(tmp):
+        shutil.rmtree(tmp)
 
-        relative_name = (i.split("/", 1))[1]
-        if p not in new_modules:
-            new_modules[p] = {}
-        try:
-            if "/__filedata__/" not in i:
-                try:
-                    f = z.open(i)
-                    r, n = readResourceFromData(f.read().decode(), relative_name)
-                    if r is None:
-                        raise RuntimeError("Attempting to decode file " + str(i) + " resulted in a value of None")
-                    if n is None:
-                        raise RuntimeError("Attempting to decode file " + str(i) + " resulted in a name of None")
+    os.makedirs(bu)
 
-                    new_modules[p][n] = r
-                    if r["resource_type"] == "internal_fileref":
-                        newfrpaths[p, n] = os.path.join(
-                            directories.vardir,
-                            "modules",
-                            "data",
-                            p,
-                            "__filedata__",
-                            url(n, safeFnChars),
-                        )
-                except Exception:
-                    raise ValueError(f"{i} in zip makes no sense")
-                finally:
-                    f.close()
-            else:
-                try:
-                    inputfile = z.open(i)
-                    folder = os.path.join(directories.vardir, "modules", "data", p, "__filedata__")
-                    os.makedirs(folder, exist_ok=True)
+    try:
+        with modulesLock:
+            z.extractall(tmp)
 
-                    # Assumimg format is MODULE/__filedata__/file.png, we get just
-                    # file.png
-                    data_basename = util.unurl(i.split("/", 2)[2])
+            for i in os.listdir(tmp):
+                temp_module_folder = os.path.join(tmp, i)
+                if os.path.isdir(temp_module_folder):
+                    old_module_dir = None
+                    m_backup = None
+                    if i in modules_state.ActiveModules:
+                        old_module_dir = getModuleDir(i)
+                        if not replace:
+                            raise RuntimeError(f"Module {i} already loaded")
+                        if i in external_module_locations:
+                            raise RuntimeError(f"Module {i} is an external module")
 
-                    # We are saving it in vardir/module/__filedata__/file.png
-                    dataname = os.path.join(folder, data_basename)
+                        shutil.move(old_module_dir, bu)
+                        m_backup = os.path.join(bu, i)
+                        rmModule(i)
+                    try:
+                        loadModule(temp_module_folder, i)
+                        bookkeeponemodule(i, include_events=True)
+                        shutil.move(temp_module_folder, os.path.join(directories.vardir, "modules", "data"))
+                    except Exception:
+                        if old_module_dir and m_backup:
+                            try:
+                                if i in modules_state.ActiveModules:
+                                    rmModule(i)
+                            except Exception:
+                                pass
 
-                    os.makedirs(os.path.dirname(dataname), exist_ok=True)
+                            shutil.move(m_backup, os.path.dirname(old_module_dir))
+                            loadModule(old_module_dir, i)
+                            bookkeeponemodule(i, include_events=True)
+                        raise
 
-                    total = 0
-                    with open(dataname, "wb") as f:
-                        while True:
-                            d = inputfile.read(8192)
-                            total += len(d)
-                            if total > 8 * 1024 * 1024 * 1024:
-                                raise RuntimeError("Cannot upload resource file bigger than 8GB")
-                            if not d:
-                                break
-                            f.write(d)
-                        f.flush()
-                        os.fsync(f.fileno())
-                finally:
-                    inputfile.close()
-                newfrpaths[p, n] = dataname
-        except Exception:
-            raise RuntimeError(f"Could not correctly process {str(i)}")
-
-    with modulesLock:
-        backup = {}
-        # Precheck if anything is being overwritten
-        replaced_count = 0
-        for i in new_modules:
-            if i in modules_state.ActiveModules:
-                if not replace:
-                    raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-                replaced_count += 1
-
-        for i in new_modules:
-            if i in modules_state.ActiveModules:
-                backup[i] = modules_state.ActiveModules[i].copy()
-                rmModule(
-                    i,
-                    "Module Deleted by " + pages.getAcessingUser() + " during process of update",
-                )
-
-                messagebus.post_message(
-                    "/system/notifications",
-                    "User " + pages.getAcessingUser() + " Deleted old module " + i + " for auto upgrade",
-                )
-                messagebus.post_message("/system/modules/unloaded", i)
-                messagebus.post_message("/system/modules/deleted", {"user": pages.getAcessingUser()})
-
-        try:
-            for i in new_modules:
-                modules_state.ActiveModules[i] = new_modules[i]
-
-                messagebus.post_message(
-                    "/system/notifications",
-                    "User " + pages.getAcessingUser() + " uploaded module" + i + " from a zip file",
-                )
-                bookkeeponemodule(i, include_events=True)
-        except Exception:
-            # TODO: Do we need more cleanup before revert?
-            for i in new_modules:
-                if i in backup:
-                    modules_state.ActiveModules[i] = backup[i]
-
-                    messagebus.post_message(
-                        "/system/notifications",
-                        "User "
-                        + pages.getAcessingUser()
-                        + " uploaded module"
-                        + i
-                        + " from a zip file, but initializing failed. Reverting to old version.",
-                    )
-                    bookkeeponemodule(i)
-            raise
-        file_resource_paths.update(newfrpaths)
-
-        modules_state.modulesHaveChanged()
-        for i in new_modules:
-            saveModule(modules_state.ActiveModules[i], i)
+    finally:
+        if os.path.exists(bu):
+            shutil.rmtree(bu)
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
 
     z.close()
-    return new_modules.keys()
 
 
 def bookkeeponemodule(module, update=False, include_events=False):

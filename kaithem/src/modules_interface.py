@@ -226,8 +226,7 @@ class WebInterface:
         pages.require("system_admin")
         pages.postOnly()
         modules_state.modulesHaveChanged()
-        for i in modules.load_modules_from_zip(modulesfile.file, replace="replace" in kwargs):
-            pass
+        modules.load_modules_from_zip(modulesfile.file, replace="replace" in kwargs)
 
         messagebus.post_message("/system/modules/uploaded", {"user": pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/")
