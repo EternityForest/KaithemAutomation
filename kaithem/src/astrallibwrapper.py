@@ -4,12 +4,13 @@
 """This file is an wrapper around some of the astral library, a pure python
 library providing all of kaithem's astronomical functions"""
 
+import calendar
 import datetime
 import time
-import calendar
-from astral import LocationInfo
-import astral.sun
+
 import astral.moon
+import astral.sun
+from astral import LocationInfo
 
 
 def getLocationInfo(lat, lon):
@@ -18,47 +19,37 @@ def getLocationInfo(lat, lon):
 
 def dawn(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return civil dawn time for any given date object as a unix timestamp(default to today)"
-    if date == None:
+    if date is None:
         date = datetime.datetime.utcnow().date()
 
-    return calendar.timegm(
-        astral.sun.sun(astral.Observer(lat, lon, elevation), date)["dawn"].timetuple()
-    )
+    return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["dawn"].timetuple())
 
 
 def dusk(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return civil dusk time for any given date object as a unix timestamp(default to today)"
-    if date == None:
+    if date is None:
         date = datetime.datetime.utcnow().date()
 
-    return calendar.timegm(
-        astral.sun.sun(astral.Observer(lat, lon, elevation), date)["dusk"].timetuple()
-    )
+    return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["dusk"].timetuple())
 
 
 def sunrise(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return sunrise time for any given date object as a unix timestamp(default to today)"
-    if date == None:
+    if date is None:
         date = datetime.datetime.utcnow().date()
 
-    return calendar.timegm(
-        astral.sun.sun(astral.Observer(lat, lon, elevation), date)[
-            "sunrise"
-        ].timetuple()
-    )
+    return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["sunrise"].timetuple())
 
 
 def sunset(lat, lon, date=None, elevation=0):
-    if date == None:
+    if date is None:
         date = datetime.datetime.utcnow().date()
-    return calendar.timegm(
-        astral.sun.sun(astral.Observer(lat, lon, elevation), date)["sunset"].timetuple()
-    )
+    return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["sunset"].timetuple())
 
 
 def rahu(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return a tuple of the start and end timestamps of the given date's rahukalaam period"
-    if date == None:
+    if date is None:
         date = datetime.datetime.utcnow().date()
     r = astral.rahukaalam(astral.Observer(lat, lon, elevation), date)
     return (
@@ -95,54 +86,4 @@ def moon():
             | 14 = Full moon
             | 21 = Last quarter
     """
-    return astral.moon.phase(datetime.datetime.utcnow())
-
-
-seasons = {
-    "spring": 0,
-    "summer": 1,
-    "fall": 2,
-    "autumn": 2,
-    "winter": 3,
-    1: 1,
-    2: 2,
-    3: 3,
-    4: 4,
-    5: 5,
-}
-seasonnames = ["spring", "summer", "autumn", "winter"]
-
-
-class Season:
-    def init(self, season):
-        self.season = seasons[season]
-
-    def __str__(self):
-        return seasonnames[self.season]
-
-    def __int__(self):
-        return self.season
-
-    def __eq__(self, other):
-        if self.season == seasons[other]:
-            return True
-        return False
-
-
-def season(self, lat, long):
-    HEMISPHERE = "north" if lat > 0 else "south"
-    date = self.now()
-    md = date.month * 100 + date.day
-
-    if (md > 320) and (md < 621):
-        s = 0  # spring
-    elif (md > 620) and (md < 923):
-        s = 1  # summer
-    elif (md > 922) and (md < 1223):
-        s = 2  # fall
-    else:
-        s = 3  # winter
-
-    if not HEMISPHERE == "north":
-        s = (s + 2) % 3
-    return Season(s)
+    return astral.moon.phase(datetime.datetime.now(datetime.timezone.utc))

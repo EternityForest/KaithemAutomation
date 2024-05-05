@@ -1,3 +1,5 @@
+# mypy: import-untyped=False
+# pyright: reportIncompatibleMethodOverride=false
 from __future__ import annotations
 
 import copy
@@ -177,10 +179,14 @@ class DeviceResourceType(ResourceType):
             global finished_reading_resources
             finished_reading_resources = True
 
-    def onload(self, module, resourcename, value):
+    def onload(self, module, resource, resourceobj):
         cls = None
+
+        dev_data = resourceobj["device"]
+        assert isinstance(dev_data, dict)
+
         # It's a subdevice, we don't actually make the real thing
-        if value["device"].get("is_subdevice", False) in (
+        if dev_data.get("is_subdevice", False) in (
             "true",
             True,
             "True",
@@ -190,34 +196,41 @@ class DeviceResourceType(ResourceType):
             "1",
         ):
             cls = UnusedSubdevice
-        if value["device"].get("parent_device", "").strip():
+
+        if dev_data.get("parent_device", ""):
             cls = UnusedSubdevice
+
+        assert isinstance(dev_data, dict)
 
         # We may want to store a device in a shortened resource name
         # because of / issues.
-        if "name" in value["device"]:
-            devname = value["device"]["name"]
+        if "name" in dev_data:
+            devname = dev_data["name"]
+            assert isinstance(devname, str)
+        else:
+            raise ValueError("No name in device")
 
         if cls:
-            subdevice_data_cache[devname] = value["device"]
+            subdevice_data_cache[devname] = dev_data
 
-        device_location_cache[devname] = (module, resourcename)
+        device_location_cache[devname] = (module, resource)
 
         def load_closure():
             with modules_state.modulesLock:
                 if devname in remote_devices:
+                    assert isinstance(dev_data, dict)
                     # This is a subdevice which already exists as the real thing, not the placeholder.
                     if cls:
                         return
                     else:
-                        if not value["device"]["type"] == remote_devices[devname].device_type_name:
+                        if not dev_data["type"] == remote_devices[devname].device_type_name:
                             raise RuntimeError("Name in user, can't overwrite this device name with a different type")
                         remote_devices[devname].close()
 
-                d = makeDevice(devname, value["device"], cls)
+                d = makeDevice(devname, dev_data, cls)
                 remote_devices[devname] = d
                 d.parent_module = module
-                d.parent_resource = resourcename
+                d.parent_resource = resource
 
                 global remote_devices_atomic
                 remote_devices_atomic = wrcopy(remote_devices)
@@ -229,11 +242,11 @@ class DeviceResourceType(ResourceType):
         else:
             deferred_loaders.append(load_closure)
 
-    def ondelete(self, module, name, value):
+    def ondelete(self, module, resource, obj):
         with modules_state.modulesLock:
-            n = name.split(SUBDEVICE_SEPARATOR)[-1]
-            if "name" in value["device"]:
-                n = value["device"]["name"]
+            n = resource.split(SUBDEVICE_SEPARATOR)[-1]
+            if "name" in obj["device"]:
+                n = obj["device"]["name"]
 
             delete_bookkeep(n, True)
 
@@ -343,9 +356,6 @@ class Device(iot_devices.device.Device):
     readme = ""
     device_type_name = "device"
 
-    # Placeholder not meant to be used as the kaithem specific device api is deprecated
-    subdevices = {}
-
     # We are renaming data to config for clarity.
     # This is the legacy alias.
     @property
@@ -404,9 +414,6 @@ class Device(iot_devices.device.Device):
             self.title: str = data.get("title", "").strip() or name
         except Exception:
             self.title = name
-
-        if not hasattr(self, "config_properties"):
-            self.config_properties = {}
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
@@ -467,7 +474,7 @@ class Device(iot_devices.device.Device):
         self._deviceSpecIntegrationHandlers: dict[str, Callable[[Any, float, Any], None]] = {}
 
         # The new devices spec has a way more limited idea of what a data point is.
-        self.datapoints = {}
+        self.datapoints: dict[str, Any] = {}
 
         self.name = data.get("name", None) or name
         # Time, msg
@@ -639,8 +646,10 @@ class Device(iot_devices.device.Device):
         if cherrypy.request.method in ("post", "put"):
             perms = self.config.get("kaithem.write_perms", "").strip() or "system_admin"
 
-        if cherrypy.request.method == "get":
+        elif cherrypy.request.method == "get":
             perms = self.config.get("kaithem.write_perms", "").strip() or "system_admin"
+        else:
+            raise Exception("Unsupported method: " + cherrypy.request.method)
 
         for i in perms.split(","):
             pages.require(i)

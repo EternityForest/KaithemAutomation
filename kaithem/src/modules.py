@@ -3,6 +3,7 @@
 
 # File for keeping track of and editing kaithem modules(not python modules)
 import copy
+import datetime
 import gc
 import json
 import logging
@@ -13,13 +14,13 @@ import time
 import traceback
 import weakref
 import zipfile
-from io import BytesIO as StringIO
 from typing import Any
 
 import beartype
 import cherrypy
 import yaml
 from scullery import snake_compat
+from stream_zip import ZIP_64, stream_zip
 
 from . import auth, directories, kaithemobj, messagebus, modules_state, pages, util
 from .modules_state import (
@@ -54,30 +55,6 @@ def check_forbidden(s):
     for i in s:
         if i in FORBID_CHARS:
             raise ValueError(f"{s} contains {i}")
-
-
-try:
-    import fcntl
-except Exception:
-    print(traceback.format_exc())
-
-
-def lockFile(f):
-    t = time.time()
-    while time.time() - t > 5:
-        try:
-            fcntl.lockf(f, fcntl.LOCK_SH)
-        except OSError:
-            time.sleep(0.01)
-        except Exception:
-            return
-
-
-def unlockFile(f):
-    try:
-        fcntl.lockf(f, fcntl.LOCK_SH)
-    except Exception:
-        pass
 
 
 def new_empty_module():
@@ -655,41 +632,36 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
     return rt
 
 
-def getModuleAsYamlZip(module, noFiles=True) -> bytes:
-    incompleteError = False
-    with modulesLock:
-        # Ensure any manually put therer files are there
-        autoGenerateFileRefResources(modules_state.ActiveModules[module], module)
-        # We use a stringIO so we can avoid using a real file.
-        ram_file = StringIO()
-        z = zipfile.ZipFile(ram_file, "w")
-        # Dump each resource to JSON in the ZIP
-        for resource in modules_state.ActiveModules[module]:
-            if not resource.strip():
-                raise RuntimeError("WTF?")
-            if not isinstance(modules_state.ActiveModules[module][resource], dict):
-                continue
-            # AFAIK Zip files fake the directories with naming conventions
-            fd = yaml.dump(modules_state.ActiveModules[module][resource])
+def iter_fc(f):
+    with open(f, "rb") as fd:
+        for i in range(100000):
+            d = fd.read(128 * 1024)
+            if d:
+                yield d
+            else:
+                return
+    raise RuntimeError("File size limit")
 
-            z.writestr(f"{url(module, ' ')}/{url(resource, safeFnChars)}.yaml", fd)
 
-            if modules_state.ActiveModules[module][resource]["resource_type"] == "internal_fileref":
-                if noFiles:
-                    raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
+def getModuleAsYamlZip(module):
+    def member_files():
+        dir = getModuleDir(module)
+        for i in os.walk(dir):
+            for root, dirs, files in os.walk(i[0]):
+                for i in files:
+                    x = os.path.join(root, i)
+                    if "./" in x or ".\\" in x:
+                        continue
 
-                target = file_resource_paths[module, resource]
-                if os.path.exists(target):
-                    z.write(target, f"{module}/__filedata__/{url(resource, safeFnChars)}")
+                    fd = os.open(x, os.O_RDONLY)
+                    mode = os.fstat(fd).st_mode
+                    mtime = datetime.datetime.fromtimestamp(os.fstat(fd).st_mtime)
+                    os.close(fd)
 
-                else:
-                    if not incompleteError:
-                        logger.error(f"Missing file(s) in module including: {target}")
-                        incompleteError = True
-        z.close()
-        s = ram_file.getvalue()
-        ram_file.close()
-        return s
+                    fn = os.path.relpath(x, dir)
+                    yield (f"{module}/{fn}", mtime, mode, ZIP_64, iter_fc(x))
+
+    return stream_zip(member_files())
 
 
 def load_modules_from_zip(f, replace=False):

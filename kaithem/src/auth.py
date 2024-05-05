@@ -138,7 +138,7 @@ def importPermissionsFromModules():
     list of modules that can be assigned, and delete any that are no loger defined
     in modules."""
 
-    p2 = {i: {"description": BasePermissions[i]} for i in BasePermissions}
+    p2: dict[str, modules_state.ResourceDictType] = {i: {"description": BasePermissions[i]} for i in BasePermissions}
     with modules_state.modulesLock:
         for module in modules_state.ActiveModules.copy():  # Iterate over all modules
             # for every resource of type permission
@@ -265,11 +265,8 @@ def removeUserFromGroup(username, group):
 
 def tryToLoadFrom(d):
     with lock:
-        try:
-            f = open(os.path.join(d, "users.json"))
+        with open(os.path.join(d, "users.json")) as f:
             temp = json.load(f)
-        finally:
-            f.close()
 
         loadFromData(temp)
         return True
@@ -514,13 +511,10 @@ def dumpDatabase():
 
         os.makedirs(p, exist_ok=True)
         util.chmod_private_try(p)
-        try:
-            f = open(os.path.join(p, "users.json~"), "w")
+        with open(os.path.join(p, "users.json~"), "w") as f:
             util.chmod_private_try(os.path.join(p, "users.json~"), execute=False)
             # pretty print
             json.dump(temp, f, sort_keys=True, indent=4, separators=(",", ": "))
-        finally:
-            f.close()
 
         shutil.move(os.path.join(p, "users.json~"), os.path.join(p, "users.json"))
 

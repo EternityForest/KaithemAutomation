@@ -209,7 +209,6 @@ class WebInterface:
         try:
             return modules.getModuleAsYamlZip(
                 module[:-4] if module.endswith(".zip") else module,
-                noFiles=not pages.canUserDoThis("system_admin"),
             )
         except Exception:
             logging.exception("Failed to handle zip download request")

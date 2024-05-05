@@ -117,7 +117,10 @@ def test_make_module_web():
 
     zf = webapproot.root.modules.yamldownload(n)
     assert zf
-    zf2 = io.BytesIO(zf)
+    zf2 = io.BytesIO()
+
+    for i in zf:
+        zf2.write(i)
 
     try:
         webapproot.root.modules.deletemoduletarget(name=n)

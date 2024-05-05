@@ -59,6 +59,7 @@ def _make_tag_info_helper(t: GenericTagPointClass[Any]):
 def get_tag_meta(t):
     r = {}
     t = allTagsAtomic[t]()
+    assert t
 
     pages.require(t.get_effective_permissions()[0])
     if not t:
@@ -72,7 +73,7 @@ def get_tag_meta(t):
     if not t.writable:
         r["writePermission"] = False
 
-    if t.type == "number":
+    if isinstance(t, NumericTagPointClass):
         r["min"] = t.min
         r["max"] = t.max
         r["high"] = t.hi
@@ -489,6 +490,9 @@ class GenericTagPointClass(Generic[T]):
                     expose_priority = float(d2[2])
 
                 perms_list = list(d2)
+
+                assert isinstance(perms_list[0], str)
+                assert isinstance(perms_list[1], str)
 
                 # Be safe, only allow writes if user specifies a permission
                 perms_list[1] = perms_list[1] or "system_admin"
@@ -1648,7 +1652,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
     @beartype.beartype
     def __init__(self, name: str, min: float | None = None, max: float | None = None):
-        self.vta: tuple[float, float, Any]
+        self.vta: tuple[float, float, Any]  # type: ignore
 
         # Real backing vars for props
 
@@ -1794,7 +1798,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
 
     @beartype.beartype
     def __init__(self, name: str):
-        self.vta: tuple[str, float, Any]
+        self.vta: tuple[str, float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
         super().__init__(name)
 
@@ -1812,7 +1816,7 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
 
     @beartype.beartype
     def __init__(self, name: str):
-        self.vta: tuple[dict[str, Any], float, Any]
+        self.vta: tuple[dict[str, Any], float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
 
         self.validate = None
@@ -1846,7 +1850,7 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
 
     @beartype.beartype
     def __init__(self, name: str):
-        self.vta: tuple[bytes, float, Any]
+        self.vta: tuple[bytes, float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
 
         self.validate = None

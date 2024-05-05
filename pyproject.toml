@@ -95,6 +95,7 @@ attrs = ">=23.2.0"
 beartype = "^0.18.2"
 types-jsonschema = "^4.21.0.20240331"
 stamina = "^24.2.0"
+stream-zip = "^0.0.71"
 
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
