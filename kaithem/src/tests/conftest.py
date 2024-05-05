@@ -5,6 +5,7 @@
 # It starts the whole app, pointed at a ram sandbox, to run things.
 
 
+import builtins
 import os
 import shutil
 
@@ -15,6 +16,19 @@ if os.path.exists("/dev/shm/kaithem_tests"):
     shutil.rmtree("/dev/shm/kaithem_tests")
 
 os.makedirs("/dev/shm/kaithem_tests/plugins/Test")
+
+old_open = open
+
+
+def open2(path, mode="r", *args, **kwargs):
+    if not (str(path).startswith("/dev/shm/")):
+        if "w" in mode or "a" in mode:
+            raise RuntimeError("Unit testing is not allowed to write outside of /dev/shm")
+
+    return old_open(path, mode, *args, **kwargs)
+
+
+builtins.open = open2
 
 cfg = {
     "ssl_dir": "/dev/shm/kaithem_tests/ssl",
