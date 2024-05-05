@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 # This file is just for keeping track of state info that would otherwise cause circular issues.
+import base64
 import copy
+import datetime
 import hashlib
-import json
 import logging
 import os
 import time
@@ -15,6 +16,7 @@ from typing import Any
 
 import beartype
 import yaml
+from stream_zip import ZIP_64, stream_zip
 
 from . import directories, util
 from .resource_types import ResourceDictType, ResourceType, additionalTypes
@@ -31,6 +33,14 @@ logger = logging.getLogger("system")
 
 # This lets us have some modules saved outside the var dir.
 external_module_locations: dict[str, str] = {}
+
+
+def getModuleDir(module: str):
+    if module in external_module_locations:
+        return external_module_locations[module]
+
+    else:
+        return os.path.join(directories.moduledir, "data", module)
 
 
 # Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
@@ -100,10 +110,6 @@ def serializeResource(name, obj) -> dict[str, str]:
 
     r = copy.deepcopy(obj)
 
-    # This is a ram only thing that tells us where it is saved
-    if "resource_loadedfrom" in r:
-        del r["resource_loadedfrom"]
-
     if r["resource_type"] in additionalTypes:
         return additionalTypes[r["resource_type"]].to_files(name, r)
 
@@ -146,10 +152,6 @@ def writeResource(obj: dict, dir: str, resource_name: str):
         if os.path.isfile(fn):
             with open(fn, "rb") as f:
                 if f.read() == data:
-                    if "resource_loadedfrom" not in obj:
-                        obj["resource_loadedfrom"] = []
-
-                    obj["resource_loadedfrom"].append(fn)
                     return fn
 
         os.makedirs(os.path.dirname(fn), exist_ok=True)
@@ -160,10 +162,6 @@ def writeResource(obj: dict, dir: str, resource_name: str):
             f.flush()
             os.fsync(f.fileno())
 
-            if "resource_loadedfrom" not in obj:
-                obj["resource_loadedfrom"] = []
-
-            obj["resource_loadedfrom"].append(fn)
             return fn
 
 
@@ -284,49 +282,23 @@ modulewordhashes = {}
 
 
 def hashModules():
-    """For some unknown lagacy reason, the hash of the entire module state is different from the hash of individual modules
-    hashed together
-    """
     try:
-        m = hashlib.md5()
+        m = hashlib.sha256()
         with modulesLock:
             for i in sorted(ActiveModules.keys()):
-                m.update(i.encode("utf-8"))
-                for j in sorted(ActiveModules[i].keys()):
-                    m.update(j.encode("utf-8"))
-                    m.update(json.dumps(ActiveModules[i][j], sort_keys=True, separators=(",", ":")).encode("utf-8"))
-        return m.hexdigest().upper()
+                m.update(i.encode())
+                m.update(hashModule(i).encode())
+        return base64.b32encode(m.digest()[:16]).decode().upper().replace("=", "")
     except Exception:
         logger.exception("Could not hash modules")
         return "ERRORHASHINGMODULES"
 
 
-def hashModule(module: str):
-    try:
-        m = hashlib.md5()
-        with modulesLock:
-            m.update(
-                json.dumps(
-                    {i: ActiveModules[module][i] for i in ActiveModules[module]},
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-            )
-        return m.hexdigest()
-    except Exception:
-        logger.exception("Could not hash module")
-        return "ERRORHASHINGMODULE"
-
-
 def wordHashModule(module: str):
     try:
         with modulesLock:
-            return util.blakeMemorable(
-                json.dumps(
-                    {i: ActiveModules[module][i] for i in ActiveModules[module]},
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ).encode("utf-8"),
+            return util.memorableHash(
+                hashModule(module).encode("utf-8"),
                 num=4,
                 separator=" ",
             )
@@ -352,6 +324,68 @@ def modulesHaveChanged():
     moduleshash = hashModules()
     modulehashes = {}
     modulewordhashes = {}
+
+
+def deterministic_walk(d):
+    dirs = []
+    files = []
+
+    sld = sorted(os.listdir(d))
+
+    for i in sld:
+        if os.path.isdir(os.path.join(d, i)):
+            dirs.append(i)
+        else:
+            files.append(i)
+
+    dirs = sorted(dirs)
+    yield d, dirs, sorted(files)
+
+    for i in dirs:
+        yield from deterministic_walk(os.path.join(d, i))
+
+
+def iter_fc(f):
+    with open(f, "rb") as fd:
+        for i in range(100000):
+            d = fd.read(128 * 1024)
+            if d:
+                yield d
+            else:
+                return
+    raise RuntimeError("File size limit")
+
+
+def member_files(module):
+    dir = getModuleDir(module)
+    for root, dirs, files in deterministic_walk(dir):
+        for i in files:
+            x = os.path.join(root, i)
+            if "./" in x or ".\\" in x:
+                continue
+
+            fd = os.open(x, os.O_RDONLY)
+            mode = os.fstat(fd).st_mode
+            mtime = datetime.datetime.fromtimestamp(os.fstat(fd).st_mtime)
+            os.close(fd)
+
+            fn = os.path.relpath(x, dir)
+            yield (f"{module}/{fn}", mtime, mode, ZIP_64, iter_fc(x))
+
+
+def getModuleAsYamlZip(module):
+    return stream_zip(member_files(module))
+
+
+def hashModule(module: str):
+    x = hashlib.sha256()
+    x.update(module.encode())
+    for i in member_files(module):
+        x.update(b"\0" * 32)
+        x.update(i[0].encode())
+        for d in i[4]:
+            x.update(d)
+    return base64.b32encode(x.digest()[:16]).decode().upper().replace("=", "")
 
 
 def in_folder(n: str, folder_name: str):

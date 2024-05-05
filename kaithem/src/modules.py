@@ -3,7 +3,6 @@
 
 # File for keeping track of and editing kaithem modules(not python modules)
 import copy
-import datetime
 import gc
 import json
 import logging
@@ -20,7 +19,6 @@ import beartype
 import cherrypy
 import yaml
 from scullery import snake_compat
-from stream_zip import ZIP_64, stream_zip
 
 from . import auth, directories, kaithemobj, messagebus, modules_state, pages, util
 from .modules_state import (
@@ -28,6 +26,7 @@ from .modules_state import (
     additionalTypes,
     external_module_locations,
     file_resource_paths,
+    getModuleDir,
     getModuleFn,
     modulesLock,
     parseTarget,
@@ -288,8 +287,6 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> 
             r["resource_timestamp"] = int(os.stat(filename).st_mtime * 1000000)
         else:
             r["resource_timestamp"] = int(time.time() * 1000000)
-    # Set the loaded from. we strip this before saving
-    r["resource_loadedfrom"] = [fn]
 
     resourcename = util.unurl(fn)
     if shouldRemoveExtension:
@@ -380,15 +377,6 @@ def _detect_ignorable(path: str):
         return True
     if os.path.basename(path) in [".gitignore", ".gitconfig"]:
         return True
-
-
-def reloadOneResource(module, resource):
-    r = modules_state.ActiveModules[module][resource]
-    if "resource_loadedfrom" in r:
-        mfolder = getModuleDir(module)
-        x = r["resource_loadedfrom"]
-        assert isinstance(x, str)
-        load_one_yaml_resource(mfolder, os.path.relpath(x, mfolder), module)
 
 
 @beartype.beartype
@@ -570,7 +558,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
         modules_state.ActiveModules[modulename] = module
         messagebus.post_message("/system/modules/loaded", modulename)
 
-        logger.info("Loaded module " + modulename + " with md5 " + modules_state.getModuleHash(modulename))
+        logger.info("Loaded module " + modulename)
         # bookkeeponemodule(name)
 
 
@@ -630,38 +618,6 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
                     }
                     module[data_basename] = r
     return rt
-
-
-def iter_fc(f):
-    with open(f, "rb") as fd:
-        for i in range(100000):
-            d = fd.read(128 * 1024)
-            if d:
-                yield d
-            else:
-                return
-    raise RuntimeError("File size limit")
-
-
-def getModuleAsYamlZip(module):
-    def member_files():
-        dir = getModuleDir(module)
-        for i in os.walk(dir):
-            for root, dirs, files in os.walk(i[0]):
-                for i in files:
-                    x = os.path.join(root, i)
-                    if "./" in x or ".\\" in x:
-                        continue
-
-                    fd = os.open(x, os.O_RDONLY)
-                    mode = os.fstat(fd).st_mode
-                    mtime = datetime.datetime.fromtimestamp(os.fstat(fd).st_mtime)
-                    os.close(fd)
-
-                    fn = os.path.relpath(x, dir)
-                    yield (f"{module}/{fn}", mtime, mode, ZIP_64, iter_fc(x))
-
-    return stream_zip(member_files())
 
 
 def load_modules_from_zip(f, replace=False):
@@ -855,14 +811,6 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         )
 
 
-def getModuleDir(module: str):
-    if module in external_module_locations:
-        return external_module_locations[module]
-
-    else:
-        return os.path.join(directories.moduledir, "data", module)
-
-
 def newModule(name: str, location: str | None = None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
 
@@ -881,9 +829,13 @@ def newModule(name: str, location: str | None = None):
             if os.path.isdir(location):
                 loadModule(location, name)
             else:
-                modules_state.ActiveModules[name] = {"__description": {"resource_type": "module-description", "text": ""}}
+                modules_state.ActiveModules[name] = {
+                    "__description": {"resource_type": "module-description", "text": "", "resource_timestamp": int(time.time() * 1000000)}
+                }
         else:
-            modules_state.ActiveModules[name] = {"__description": {"resource_type": "module-description", "text": ""}}
+            modules_state.ActiveModules[name] = {
+                "__description": {"resource_type": "module-description", "text": "", "resource_timestamp": int(time.time() * 1000000)}
+            }
 
         bookkeeponemodule(name)
         # Go directly to the newly created module

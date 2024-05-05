@@ -202,8 +202,6 @@ class Kaithem:
         def breakpoint():
             breakpoint.breakpoint()
 
-        effwords = util.eff_wordlist
-
         vardir = directories.vardir
         datadir = directories.datadir
 

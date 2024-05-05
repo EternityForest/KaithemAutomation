@@ -15,6 +15,7 @@ Change Log
 #### Changed
 
 - :sparkles: -d now sets the kaithem data dir, -c removed.  config.yaml now always in root of dir.
+- :sparkles: Module hashes use a different algorithm, the BIP0039 wordlist, and base32 instead of hex for display.
 
 #### Added
 

@@ -1,4 +1,6 @@
+import difflib
 import io
+import json
 import os
 import time
 import weakref
@@ -115,6 +117,10 @@ def test_make_module_web():
 
     # Round trip upload and download with the YAML mechanism
 
+    old_hash = modules_state.getModuleHash(n)
+
+    old_json = json.dumps(modules_state.ActiveModules[n], sort_keys=True, indent=4)
+
     zf = webapproot.root.modules.yamldownload(n)
     assert zf
     zf2 = io.BytesIO()
@@ -132,5 +138,13 @@ def test_make_module_web():
 
     modules.load_modules_from_zip(zf2)
 
+    new_json = json.dumps(modules_state.ActiveModules[n], sort_keys=True, indent=4)
+
+    diff = difflib.unified_diff(old_json.splitlines(), new_json.splitlines())
+
+    assert "\n".join(diff) == ""
+
     assert n in modules_state.ActiveModules
     assert "/test_tag_foo" in tags.all_tags_raw()
+    assert old_hash == modules_state.hashModule(n)
+    assert old_hash == modules_state.getModuleHash(n)

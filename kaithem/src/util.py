@@ -91,46 +91,24 @@ if "/usr/lib" in dn:
 else:
     datadir = os.path.join(dn, "../data")
 
-eff_wordlist = [s.split()[1] for s in open(os.path.join(datadir, "words_eff.txt"))]
-mnemonic_wordlist = [s.strip() for s in open(os.path.join(datadir, "words_mnemonic.txt"))]
+bip39 = [s.strip() for s in open(os.path.join(datadir, "bip39.txt"))]
+
+assert len(bip39) == 2048
 
 
 def memorableHash(x, num=3, separator=""):
-    "Use the diceware list to encode a hash. Not meant to be secure."
-    o = ""
-
-    if isinstance(x, str):
-        x = x.encode("utf8")
-    for i in range(num):
-        while 1:
-            x = hashlib.sha256(x).digest()
-            n = struct.unpack("<Q", x[:8])[0] % len(eff_wordlist)
-            e = eff_wordlist[n]
-            # Don't have a word that starts with the letter the last one ends with
-            # So it's easier to read
-            if o:
-                if e[0] == o[-1]:
-                    continue
-                o += separator + e
-            else:
-                o = e
-            break
-    return o
-
-
-def blakeMemorable(x, num=3, separator=""):
     "Use the diceware list to encode a hash. This IS meant to be secure"
     o = ""
 
     if isinstance(x, str):
         x = x.encode("utf8")
 
-    x = hashlib.blake2b(x).digest()
+    x = hashlib.sha256(x).digest()
 
     for i in range(num):
         # 4096 is an even divisor of 2**16
-        n = struct.unpack("<H", x[:2])[0] % 4096
-        o += eff_wordlist[n] + separator
+        n = struct.unpack("<H", x[:2])[0] % 2048
+        o += bip39[n] + separator
         x = x[2:]
     return o[: -len(separator)] if separator else o
 

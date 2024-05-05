@@ -202,12 +202,12 @@ class WebInterface:
     def yamldownload(self, module):
         pages.require("view_admin_info")
         cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % util.url(
-            f"{module[:-4]}_{modules_state.getModuleHash(module[:-4])}.zip"
+            f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip"
         )
 
         cherrypy.response.headers["Content-Type"] = "application/zip"
         try:
-            return modules.getModuleAsYamlZip(
+            return modules_state.getModuleAsYamlZip(
                 module[:-4] if module.endswith(".zip") else module,
             )
         except Exception:
@@ -696,6 +696,7 @@ class WebInterface:
                         modules_state.ActiveModules[root]["__description"] = {
                             "resource_type": "module-description",
                             "text": kwargs["description"],
+                            "resource_timestamp": int(time.time() * 1000000),
                         }
 
                     # Renaming reloads the entire module.
