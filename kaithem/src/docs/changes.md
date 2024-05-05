@@ -10,6 +10,7 @@ Change Log
 - :sparkles: Minor visual glitches
 - :bug: Fix deleting motion detection regions
 - :bug: Object tags didn't disply right
+- :bug: Module search pages
 
 #### Changed
 
@@ -19,6 +20,9 @@ Change Log
 
 - :sparkles: Chandler "shell" command lets you run stuff in the system shell. Use with care!
 
+#### Removed
+
+- :coffin: Video filters removed from Beholder
 
 
 ### 0.81.0
