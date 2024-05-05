@@ -14,12 +14,9 @@
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
 ![Poetry](badges/poetry.png)
-> Amidst the mists and fiercest frosts,
->
-> with stoutest wrists and loudest boasts,
->
-> He thrusts his fists against the posts,
->
+> Amidst the mists and fiercest frosts,\
+> with stoutest wrists and loudest boasts,\
+> He thrusts his fists against the posts,\
 > And still insists he sees the ghosts.
 
 Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
@@ -28,12 +25,9 @@ You automate things by directly writing python and HTML via a web IDE, or by usi
 
 Installation 🌲
 ============
->The careful text-books measure
->
->  (Let all who build beware!)
->
-> The load, the shock, the pressure
->
+>The careful text-books measure\
+>  (Let all who build beware!)\
+> The load, the shock, the pressure\
 >  Material can bear.
 
 
@@ -130,14 +124,10 @@ kept the defaults when installing.
 
 Tips and Troubleshooting ⁉️
 ========================
-> So, when the buckled girder
->
->  Lets down the grinding span,
->
-> The blame of loss, or murder,
->
->  Is laid upon the man.
->
+> So, when the buckled girder\
+>  Lets down the grinding span,\
+> The blame of loss, or murder,\
+>  Is laid upon the man.\
 >    Not on the Stuff — the Man!
 
 ### Access from Anywhere 🌍
@@ -221,10 +211,8 @@ Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomat
 
 Recent Changes 🕗
 ============
-> Good men, the last wave by, crying how bright
->
-> Their frail deeds might have danced in a green bay,
->
+> Good men, the last wave by, crying how bright\
+> Their frail deeds might have danced in a green bay,\
 > Rage, rage against the dying of the light.
 
 (See [Full Changelog](kaithem/src/docs/changes.md))
