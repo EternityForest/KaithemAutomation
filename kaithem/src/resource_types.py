@@ -66,7 +66,7 @@ class ResourceType:
 
         Must not have side effects.
         """
-        return {f"{name}.yaml": yaml.dump(resource)}
+        return {f"{name.split('/')[-1]}.yaml": yaml.dump(resource)}
 
     def _validate(self, d: ResourceDictType):
         "Strip the resource_ keys before giving it to the validator"

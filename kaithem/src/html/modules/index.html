@@ -1,5 +1,5 @@
 <%!
-from kaithem.src.util import url
+from kaithem.src.util import url, memorableHash
 from kaithem.src import modules, modules_state
 
 def getDesc(m):
@@ -25,8 +25,8 @@ def getDesc(m):
     <a class="button" href="/modules/deletemodule"><i class="mdi mdi-delete"></i>Delete</a>
     <a class="button" href="/modules/upload"><i class="mdi mdi-upload"></i>Upload</a>
     <a class="button" href="/modules/library"><i class="mdi mdi-library"></i>Library</a>
-    <p>${modules_state.moduleshash}</p>
     <form style="display:inline-flex;" action="/modules/search/__all__"><input name="search" size="4" placeholder="Search all modules"/><input type=submit value="search"/></form>
+    <p title="${modules_state.moduleshash}">${memorableHash(modules_state.moduleshash, 3, separator=' ').upper()}</p>
     </header>
 
 <div class="padding">
