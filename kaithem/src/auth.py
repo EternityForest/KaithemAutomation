@@ -25,6 +25,7 @@ import threading
 import time
 
 import yaml
+from argon2 import PasswordHasher
 
 from . import directories, messagebus, modules_state, util
 
@@ -175,20 +176,11 @@ def changePassword(user, newpassword, useSystem=False):
             dumpDatabase()
             return
 
-        salt = os.urandom(16)
-        salt64 = base64.b64encode(salt)
-        # Python is a great language. But sometimes I'm like WTF???
-        # Base64 should never return a byte string. The point of base64 is to store binary data
-        # as normal strings. So why would I ever want a base64 value stores as bytes()?
-        # Anyway, python2 doesn't do that, so we just decode it if its new python.
-        salt64 = salt64.decode("utf8")
-        Users[user]["salt"] = salt64
-        m = hashlib.sha256()
-        m.update(usr_bytes(newpassword, "utf8"))
-        m.update(salt)
-        p = base64.b64encode(m.digest())
-        p = p.decode("utf8")
-        Users[user]["password"] = p
+        Users[user].pop("salt", None)
+        Users[user]["algorithm"] = "argon2id"
+        ph = PasswordHasher(memory_cost=8192, time_cost=1, parallelism=4, hash_len=32)
+        m = ph.hash(newpassword)
+        Users[user]["password"] = m
         dumpDatabase()
 
 
@@ -447,16 +439,25 @@ def userLogin(username, password):
 
     with lock:
         if username in Users and ("password" in Users[username]):
-            m = hashlib.sha256()
-            m.update(usr_bytes(password, "utf8"))
-            m.update(base64.b64decode(Users[username]["salt"].encode("utf8")))
-            m = m.digest()
-            if hmac.compare_digest(base64.b64decode(Users[username]["password"].encode("utf8")), m):
-                # We can't just always assign a new token because that would break multiple
-                # Logins as same user
-                if not Users[username].token:
-                    assignNewToken(username)
-                return Users[username].token
+            if Users[username].get("algorithm", "sha256") == "sha256":
+                m = hashlib.sha256()
+                m.update(usr_bytes(password, "utf8"))
+                m.update(base64.b64decode(Users[username]["salt"].encode("utf8")))
+                m = m.digest()
+                if hmac.compare_digest(base64.b64decode(Users[username]["password"].encode("utf8")), m):
+                    # We can't just always assign a new token because that would break multiple
+                    # Logins as same user
+                    if not Users[username].token:
+                        assignNewToken(username)
+                    return Users[username].token
+            else:
+                ph = PasswordHasher()
+                if ph.verify(Users[username]["password"], password):
+                    # We can't just always assign a new token because that would break multiple
+                    # Logins as same user
+                    if not Users[username].token:
+                        assignNewToken(username)
+                    return Users[username].token
         return "failure"
 
 

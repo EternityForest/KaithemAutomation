@@ -4,7 +4,6 @@
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
 import os
-import random
 import subprocess
 import threading
 import time
@@ -16,6 +15,7 @@ from icemedia import sound_player as sound
 from scullery import persist as sculleryPersist
 
 from kaithem import __version__
+from kaithem.api import util as apiutil
 from kaithem.api import web as webapi
 
 from . import (
@@ -173,7 +173,7 @@ class Kaithem:
 
         @staticmethod
         def lorem() -> str:
-            return random.choice(sentences)
+            return apiutil.lorem()
 
         @staticmethod
         def do(f: Callable[..., Any]) -> None:
@@ -569,10 +569,3 @@ kaithem = Kaithem()
 
 # Moving away from the thin time wrapper stuff to just astro stuff
 kaithem.sky = kaithem.time
-
-sentences: List[str] = []
-
-if config.config["quotes_file"] == "default":
-    sentences = kaithem.persist.load(os.path.join(directories.datadir, "quotes.yaml"))
-else:
-    sentences = kaithem.persist.load(config.config["quotes_file"])

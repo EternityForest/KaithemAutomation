@@ -51,7 +51,7 @@ class WebAPI:
             raise PermissionError("Correct API key is needed")
 
         o = commands[cmd]
-        o.run(*args, *kw)
+        return o.run(*args, *kw)
 
 
 class CallAribitraryFunctionCommand(Command):
@@ -61,4 +61,6 @@ class CallAribitraryFunctionCommand(Command):
         return getattr(mo, f)(*args, **kw)
 
 
-commands["from"] = CallAribitraryFunctionCommand()
+c = CallAribitraryFunctionCommand()
+
+commands["from"] = c

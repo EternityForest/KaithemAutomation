@@ -3,7 +3,7 @@ name = "kaithem"
 version = "0.81.0"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
-packages = [{ include = "kaithem" }]
+packages = [{ include = "kaithem" }, { include = "kaithem_cli" }]
 authors = ["Daniel Dunn"]
 readme = "README.md"
 
@@ -96,9 +96,11 @@ beartype = "^0.18.2"
 types-jsonschema = "^4.21.0.20240331"
 stamina = "^24.2.0"
 stream-zip = "^0.0.71"
+argon2-cffi = "^23.1.0"
 
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
+"kaithem-cli" = "kaithem_cli.cli:main"
 "kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
 "kaithem._iceflow_server" = "icemedia.iceflow_server:main"
 
