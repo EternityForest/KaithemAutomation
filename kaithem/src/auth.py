@@ -25,6 +25,7 @@ import threading
 import time
 from typing import Any
 
+import beartype
 import yaml
 from argon2 import PasswordHasher
 
@@ -55,8 +56,8 @@ class User(dict):
     def __init__(self, *a, **k) -> None:
         dict.__init__(self, *a, **k)
 
-        self.permissions: dict | set = {}
-        self.limits = {}
+        self.permissions: dict[str, bool] | set[str] = {}
+        self.limits: dict[str, int | float] = {}
         self.token: str | None = None
 
 
@@ -256,7 +257,7 @@ def removeUserFromGroup(username, group) -> None:
         dumpDatabase()
 
 
-def tryToLoadFrom(d) -> bool:
+def tryToLoadFrom(d: str) -> bool:
     with lock:
         with open(os.path.join(d, "users.json")) as f:
             temp = json.load(f)
@@ -265,7 +266,16 @@ def tryToLoadFrom(d) -> bool:
         return True
 
 
-def loadFromData(d) -> bool:
+@beartype.beartype
+def loadFromData(
+    d: dict[
+        str,
+        dict[
+            str,
+            dict[str, list[str]] | dict[str, dict[str, int] | list[str]] | dict[str, list[str] | str | dict[str, bool]] | dict[str, str],
+        ],
+    ],
+) -> bool:
     global tokenHashes
     with lock:
         temp = copy.deepcopy(d)
@@ -332,7 +342,7 @@ def initializeAuthentication() -> None:
             addFloatingUser()
 
 
-def generateUserPermissions(username=None) -> None:
+def generateUserPermissions(username: None = None) -> None:
     """Generate the list of permissions for each user from their groups plus __guest__"""
     with lock:
         # TODO let you do one user at a time
@@ -543,7 +553,7 @@ def setGroupLimit(group, limit, val) -> None:
         dumpDatabase()
 
 
-def addGroupPermission(group, permission) -> None:
+def addGroupPermission(group: str, permission: str) -> None:
     """Add a permission to a group"""
     with lock:
         global authchanged
@@ -572,7 +582,7 @@ def removeGroupPermission(group, permission) -> None:
 # TODO: Someone who knows more about crypto should look this over.
 
 
-def whoHasToken(token):
+def whoHasToken(token: str) -> str:
     global tokenHashes
     return tokenHashes[hashToken(token)]["username"]
 
@@ -580,11 +590,11 @@ def whoHasToken(token):
 tokenHashSecret = os.urandom(24)
 
 
-def hashToken(token) -> bytes:
+def hashToken(token: str) -> bytes:
     return hashlib.sha256(usr_bytes(token, "utf8") + tokenHashSecret).digest()
 
 
-def assignNewToken(user) -> None:
+def assignNewToken(user: str) -> None:
     """Log user out by defining a new token"""
     global tokenHashes
     with lock:
@@ -628,13 +638,14 @@ def setUserSetting(user, setting, value) -> None:
         dumpDatabase()
 
 
-def getUserSetting(user: str, setting: str) -> Any:
+def getUserSetting(username: str, setting: str) -> Any:
     # I suppose this doesnt need a lock?
-    if user == "__guest__":
+    if username == "__guest__":
         return defaultusersettings[setting]
-    if user == "__no_request__":
+    if username == "__no_request__":
         return defaultusersettings[setting]
-    user = Users[user]
+
+    user = Users[username]
     if "settings" not in user:
         return defaultusersettings[setting]
 
@@ -644,7 +655,7 @@ def getUserSetting(user: str, setting: str) -> Any:
         return defaultusersettings[setting]
 
 
-def getUserLimit(user, limit, maximum=2**64) -> int:
+def getUserLimit(user: str, limit: str, maximum: int | float = 2**64) -> float | int:
     """Return the user's limit for any limit category, or 0 if not set.
     Limit to maximum.
     If user has __all_permissions__, limit _is_ maximum.
