@@ -7,6 +7,10 @@ packages = [{ include = "kaithem" }, { include = "kaithem_cli" }]
 authors = ["Daniel Dunn"]
 readme = "README.md"
 
+[tool.poetry.group.dev.dependencies]
+infer-types = "^1.0.0"
+monkeytype = "^23.3.0"
+
 [tool.ruff]
 line-length = 140
 
@@ -97,6 +101,7 @@ types-jsonschema = "^4.21.0.20240331"
 stamina = "^24.2.0"
 stream-zip = "^0.0.71"
 argon2-cffi = "^23.1.0"
+msgpack-types = "^0.2.0"
 
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"

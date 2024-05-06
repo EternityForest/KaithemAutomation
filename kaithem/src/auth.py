@@ -23,6 +23,7 @@ import shutil
 import struct
 import threading
 import time
+from typing import Any
 
 import yaml
 from argon2 import PasswordHasher
@@ -51,7 +52,7 @@ default_data = {
 
 
 class User(dict):
-    def __init__(self, *a, **k):
+    def __init__(self, *a, **k) -> None:
         dict.__init__(self, *a, **k)
 
         self.permissions: dict | set = {}
@@ -122,7 +123,7 @@ authchanged = False
 __local_secret = os.urandom(24)
 
 
-def resist_timing_attack(data, maxdelay=0.0001):
+def resist_timing_attack(data, maxdelay=0.0001) -> None:
     """Input dependant deterministic pseudorandom delay. Use to make sure delay
     is constant for a given user input, so that averaging won't work.
     Theory: http://blog.ircmaxell.com/2014/11/its-all-about-time.html
@@ -134,7 +135,7 @@ def resist_timing_attack(data, maxdelay=0.0001):
     time.sleep(maxdelay * (t / 2**64))
 
 
-def importPermissionsFromModules():
+def importPermissionsFromModules() -> None:
     """Import all user defined permissions that are module resources into the global
     list of modules that can be assigned, and delete any that are no loger defined
     in modules."""
@@ -151,7 +152,7 @@ def importPermissionsFromModules():
     Permissions = p2
 
 
-def changeUsername(old, new):
+def changeUsername(old, new) -> None:
     "Change a user's username"
     global authchanged
     with lock:
@@ -163,7 +164,7 @@ def changeUsername(old, new):
         dumpDatabase()
 
 
-def changePassword(user, newpassword, useSystem=False):
+def changePassword(user, newpassword, useSystem=False) -> None:
     "Change a user's password"
     global authchanged
     if len(newpassword) > 256:
@@ -184,7 +185,7 @@ def changePassword(user, newpassword, useSystem=False):
         dumpDatabase()
 
 
-def addUser(username, password, useSystem=False):
+def addUser(username, password, useSystem=False) -> None:
     global authchanged
     with lock:
         authchanged = True
@@ -195,7 +196,7 @@ def addUser(username, password, useSystem=False):
         dumpDatabase()
 
 
-def removeUser(user):
+def removeUser(user) -> None:
     global authchanged, tokenHashes
     with lock:
         authchanged = True
@@ -211,7 +212,7 @@ def removeUser(user):
         dumpDatabase()
 
 
-def removeGroup(group):
+def removeGroup(group) -> None:
     global authchanged
     with lock:
         authchanged = True
@@ -224,7 +225,7 @@ def removeGroup(group):
         dumpDatabase()
 
 
-def addGroup(groupname):
+def addGroup(groupname) -> None:
     global authchanged
     with lock:
         authchanged = True
@@ -233,7 +234,7 @@ def addGroup(groupname):
         dumpDatabase()
 
 
-def addUserToGroup(username, group):
+def addUserToGroup(username, group) -> None:
     global authchanged
     with lock:
         authchanged = True
@@ -245,7 +246,7 @@ def addUserToGroup(username, group):
         dumpDatabase()
 
 
-def removeUserFromGroup(username, group):
+def removeUserFromGroup(username, group) -> None:
     global authchanged
     with lock:
         authchanged = True
@@ -255,7 +256,7 @@ def removeUserFromGroup(username, group):
         dumpDatabase()
 
 
-def tryToLoadFrom(d):
+def tryToLoadFrom(d) -> bool:
     with lock:
         with open(os.path.join(d, "users.json")) as f:
             temp = json.load(f)
@@ -264,7 +265,7 @@ def tryToLoadFrom(d):
         return True
 
 
-def loadFromData(d):
+def loadFromData(d) -> bool:
     global tokenHashes
     with lock:
         temp = copy.deepcopy(d)
@@ -287,7 +288,7 @@ def loadFromData(d):
 data_bad = False
 
 
-def initializeAuthentication():
+def initializeAuthentication() -> None:
     with lock:
         "Load the saved users and groups, but not the permissions from the modules. "
         # If no file use default but set filename anyway so the dump function will work
@@ -331,7 +332,7 @@ def initializeAuthentication():
             addFloatingUser()
 
 
-def generateUserPermissions(username=None):
+def generateUserPermissions(username=None) -> None:
     """Generate the list of permissions for each user from their groups plus __guest__"""
     with lock:
         # TODO let you do one user at a time
@@ -370,7 +371,7 @@ def generateUserPermissions(username=None):
             Users[i].permissions = set(newp)
 
 
-def addFloatingUser():
+def addFloatingUser() -> None:
     """
     Add a "floating" admin user, representing the Linux system user actually running the process, using the system
     login mechanism.
@@ -400,7 +401,7 @@ def addFloatingUser():
         dumpDatabase()
 
 
-def userLogin(username, password):
+def userLogin(username, password) -> str:
     """return a base64 authentication token on sucess or return False on failure"""
 
     # The user that we are running as
@@ -461,7 +462,7 @@ def userLogin(username, password):
         return "failure"
 
 
-def checkTokenPermission(token, permission):
+def checkTokenPermission(token, permission) -> bool:
     """return true if the user associated with token has the permission"""
     global tokenHashes
 
@@ -483,7 +484,7 @@ def checkTokenPermission(token, permission):
 # NO-OP, Lets just let user manually uncheck them.
 
 
-def destroyUnusedPermissions():
+def destroyUnusedPermissions() -> None:
     pass
     # for i in Groups:
     #    for j in Groups[i]['permissions']:
@@ -494,7 +495,7 @@ def destroyUnusedPermissions():
 # Save the state of the entire users/groups/permissions system
 
 
-def dumpDatabase():
+def dumpDatabase() -> bool:
     """Save the state of the users and groups to a file."""
     with lock:
         global authchanged
@@ -523,7 +524,7 @@ def dumpDatabase():
         return True
 
 
-def setGroupLimit(group, limit, val):
+def setGroupLimit(group, limit, val) -> None:
     with lock:
         global authchanged
         authchanged = True
@@ -542,7 +543,7 @@ def setGroupLimit(group, limit, val):
         dumpDatabase()
 
 
-def addGroupPermission(group, permission):
+def addGroupPermission(group, permission) -> None:
     """Add a permission to a group"""
     with lock:
         global authchanged
@@ -552,7 +553,7 @@ def addGroupPermission(group, permission):
         dumpDatabase()
 
 
-def removeGroupPermission(group, permission):
+def removeGroupPermission(group, permission) -> None:
     global authchanged
     with lock:
         authchanged = True
@@ -583,7 +584,7 @@ def hashToken(token) -> bytes:
     return hashlib.sha256(usr_bytes(token, "utf8") + tokenHashSecret).digest()
 
 
-def assignNewToken(user):
+def assignNewToken(user) -> None:
     """Log user out by defining a new token"""
     global tokenHashes
     with lock:
@@ -610,7 +611,7 @@ class UnsetSettingException:
     pass
 
 
-def setUserSetting(user, setting, value):
+def setUserSetting(user, setting, value) -> None:
     with lock:
         global authchanged
         authchanged = True
@@ -627,7 +628,7 @@ def setUserSetting(user, setting, value):
         dumpDatabase()
 
 
-def getUserSetting(user, setting):
+def getUserSetting(user: str, setting: str) -> Any:
     # I suppose this doesnt need a lock?
     if user == "__guest__":
         return defaultusersettings[setting]
@@ -643,7 +644,7 @@ def getUserSetting(user, setting):
         return defaultusersettings[setting]
 
 
-def getUserLimit(user, limit, maximum=2**64):
+def getUserLimit(user, limit, maximum=2**64) -> int:
     """Return the user's limit for any limit category, or 0 if not set.
     Limit to maximum.
     If user has __all_permissions__, limit _is_ maximum.
@@ -666,7 +667,7 @@ def getUserLimit(user, limit, maximum=2**64):
     return 0
 
 
-def canUserDoThis(user, permission):
+def canUserDoThis(user, permission) -> bool:
     """Return True if given user(by username) has access to the given permission"""
 
     if permission == "__never__":

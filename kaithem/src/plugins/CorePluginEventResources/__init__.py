@@ -533,11 +533,11 @@ class BaseEvent:
         # going and how long it took
         self.lastcompleted = 0
 
-        self.history: list[tuple] = []
+        self.history: list[tuple[float, float]] = []
         self.backoff_until = 0
 
         # A place to put errors
-        self.errors = []
+        self.errors: list[tuple[float, str]] = []
 
         from kaithem.src import widgets
 
@@ -613,11 +613,11 @@ class BaseEvent:
                 except Exception as e:
                     # This is not a child of system
                     logger.exception(f"Error running event {self.resource} of {self.module}")
-                    self._handle_exception(e)
+                    self.handle_exception(e)
         finally:
             kaithemobj.kaithem.context.event = None
 
-    def _handle_exception(self, e=None, tb=None):
+    def handle_exception(self, e: Exception = None, tb: str = None) -> None:
         global _lastGC
         if tb is None:
             tb = traceback.format_exc(chain=True)
@@ -746,7 +746,7 @@ class BaseEvent:
             except Exception as e:
                 try:
                     logger.exception(f"Error in event {self.resource} of {self.module}")
-                    self._handle_exception(e)
+                    self.handle_exception(e)
                 except Exception:
                     logging.exception("Error handling exception in event")
         finally:
@@ -1070,7 +1070,7 @@ class ThreadPolledEvalEvent(CompileCodeStringsMixin):
                         if not (run and self.runthread):
                             return
                         logger.exception(f"Error in event {self.resource} of {self.module}")
-                        self._handle_exception(e)
+                        self.handle_exception(e)
                         time.sleep(config["error_backoff"].get(self.symbolicpriority, 5))
 
         self.loop = f
@@ -1470,7 +1470,7 @@ def updateOneEvent(module: str, resource: str, o=None):
 
         except Exception as e:
             d = makeDummyEvent(module, resource)
-            d._handle_exception(e)
+            d.handle_exception(e)
 
         from kaithem.src import codechecks
 
@@ -1607,7 +1607,7 @@ def getEventsFromModules(only: str | None = None):
             # and make the dummy events and notifications
             for i in toLoad:
                 d = makeDummyEvent(i.module, i.resource)
-                d._handle_exception(tb=i.error)
+                d.handle_exception(tb=i.error)
                 # Add the reason for the error to the actual object so it shows up on the page.
                 _events_by_module_resource[i.module, i.resource].errors.append(
                     [time.strftime(settings_overrides.get_val("core/strftime_string")), str(i.error)]
@@ -1702,7 +1702,7 @@ def make_event_from_resource(module: str, resource: str, subst: modules_state.Re
     except Exception as e:
         if (module, resource) not in _events_by_module_resource:
             d = makeDummyEvent(module, resource)
-            d._handle_exception(e)
+            d.handle_exception(e)
         raise
 
     # findCapitalizationIssues(setupcode+" \n "+r['trigger']+ "\n "+r['action'], x)
@@ -1748,7 +1748,7 @@ class EventAPI(modules_state.ResourceObject):
 
     def report_exception(self):
         """Call in an exception handler to handle the exception as if it came from the given event"""
-        _events_by_module_resource[self.module, self.resource]._handle_exception()
+        _events_by_module_resource[self.module, self.resource].handle_exception()
 
 
 init_done = False

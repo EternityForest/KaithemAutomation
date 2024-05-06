@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-
 import importlib
 import logging
 import os
@@ -125,7 +124,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
             from .plugins import CorePluginEventResources
 
             if f.__module__ in CorePluginEventResources.eventsByModuleName:
-                CorePluginEventResources.eventsByModuleName[f.__module__]._handle_exception()
+                CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
             else:
                 print(traceback.format_exc())
 

@@ -23,7 +23,7 @@ def handleMsgbusError(f, topic, message):
         from .plugins import CorePluginEventResources
 
         if f.__module__ in CorePluginEventResources.eventsByModuleName:
-            CorePluginEventResources.eventsByModuleName[f.__module__]._handle_exception()
+            CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
 
         # If we can't handle it whence it came
         else:

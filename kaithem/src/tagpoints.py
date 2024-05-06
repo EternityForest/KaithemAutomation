@@ -1345,7 +1345,7 @@ class GenericTagPointClass(Generic[T]):
 
                         if hasattr(active_claim_value, "__module__"):
                             if active_claim_value.__module__ in CorePluginEventResources.eventsByModuleName:
-                                CorePluginEventResources.eventsByModuleName[active_claim_value.__module__]._handle_exception()
+                                CorePluginEventResources.eventsByModuleName[active_claim_value.__module__].handle_exception()
                     except Exception:
                         print(traceback.format_exc())
 

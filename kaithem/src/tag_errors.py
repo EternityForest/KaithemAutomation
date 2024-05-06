@@ -15,7 +15,7 @@ def tagErrorHandler(tag, f, val):
         from .plugins import CorePluginEventResources
 
         if f.__module__ in CorePluginEventResources.eventsByModuleName:
-            CorePluginEventResources.eventsByModuleName[f.__module__]._handle_exception()
+            CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
         else:
             if isinstance(f, MethodType):
                 # Better than nothing to have this global limit instead of no posted errors at all.

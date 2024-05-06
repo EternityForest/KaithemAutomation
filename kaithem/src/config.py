@@ -47,17 +47,17 @@ _dn = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")
 
 #################################################################
 
-_argp = argparse.ArgumentParser()
-
-# Manually specify a confifuration file, or else there must be one in /etc/kaithem
-_argp.add_argument("-d")
-_argp.add_argument("-p")
-
-argcmd = _argp.parse_args(sys.argv[1:])
-
 
 def load(cfg: dict[str, Any]):
     "Param overrtides defaults"
+    _argp = argparse.ArgumentParser()
+
+    # Manually specify a confifuration file, or else there must be one in /etc/kaithem
+    _argp.add_argument("-d")
+    _argp.add_argument("-p")
+
+    argcmd = _argp.parse_args(sys.argv[1:])
+
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:
         _defconfig = yaml.load(f, Loader=yaml.SafeLoader)

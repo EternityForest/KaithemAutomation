@@ -18,26 +18,27 @@ import time
 import traceback
 import weakref
 from collections.abc import Callable
-from typing import Any
+from typing import Optional, Any
 
+import msgpack
 import tornado.websocket
 from tornado.httputil import HTTPServerRequest
 from tornado.web import Application
 from beartype import beartype
 
-from . import auth, messagebus, pages, unitsofmeasure, util, workers
-from .unitsofmeasure import convert, unit_types
+from . import auth, messagebus, pages, workers
+from http.cookies import SimpleCookie
 
 logger = logging.getLogger("system.widgets")
 
 # Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()
-widgets = weakref.WeakValueDictionary()
+widgets: weakref.WeakValueDictionary[str | int, Widget] = weakref.WeakValueDictionary()
 n = 0
 
 # We can keep track of how many. If more than 10, we stop making new ones for every
 # connection.
-wsrunners = weakref.WeakValueDictionary()
+wsrunners: weakref.WeakValueDictionary[int, WSActionRunner] = weakref.WeakValueDictionary()
 
 
 class WSActionRunner:
@@ -45,12 +46,12 @@ class WSActionRunner:
 
     def __init__(self) -> None:
         self.wsActionSerializer = threading.Lock()
-        self.wsActionQueue: list[Callable] = []
+        self.wsActionQueue: list[Callable[[], Any]] = []
         wsrunners[id(self)] = self
 
     # We must serialize  actions to avoid out of order,
     # but for performance we really need to do them in the background
-    def dowsAction(self, g):
+    def dowsAction(self, g: Callable[[], Any]) -> None:
         if len(self.wsActionQueue) > 10:
             time.sleep(0.1)
 
@@ -86,13 +87,13 @@ class WSActionRunner:
 guestWSRunner = WSActionRunner()
 
 
-def eventErrorHandler(f):
+def eventErrorHandler(f: Callable[[], Any]):
     # If we can, try to send the exception back whence it came
     try:
         from .plugins import CorePluginEventResources
 
         if f.__module__ in CorePluginEventResources.eventsByModuleName:
-            CorePluginEventResources.eventsByModuleName[f.__module__]._handle_exception()
+            CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
     except Exception:
         print(traceback.format_exc())
 
@@ -119,7 +120,7 @@ def mkid():
 
 
 class ClientInfo:
-    def __init__(self, user, cookie=None):
+    def __init__(self, user: str, cookie: Optional[SimpleCookie] = None) -> None:
         self.user = user
         self.cookie = cookie
 
@@ -129,8 +130,8 @@ lastLoggedUserError = 0
 lastPrintedUserError = 0
 
 
-def subsc_closure(self, i, widget):
-    def f(msg, raw):
+def subsc_closure(self: websocket_impl, widgetid: str, widget: Widget):
+    def f(msg: bytes | str, raw: Any = None):
         try:
             self.send(msg)
         except OSError:
@@ -151,8 +152,8 @@ def subsc_closure(self, i, widget):
     return f
 
 
-def raw_subsc_closure(self, i, widget):
-    def f(msg, raw):
+def raw_subsc_closure(self: rawwebsocket_impl, widgetid: str, widget: Widget):
+    def f(msg: Any, raw: Any):
         try:
             if isinstance(raw, bytes):
                 self.send(raw)
@@ -181,23 +182,14 @@ def raw_subsc_closure(self, i, widget):
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections: weakref.WeakValueDictionary[str, websocket_impl] = weakref.WeakValueDictionary()
+ws_connections: weakref.WeakValueDictionary[str, websocket_impl | rawwebsocket_impl] = weakref.WeakValueDictionary()
 
 
-def get_connectionRefForID(id, deleteCallback=None):
+def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[websocket_impl | rawwebsocket_impl]], None] = None):
     try:
         return weakref.ref(ws_connections[id], deleteCallback)
     except KeyError:
         return None
-
-
-usingmp = False
-try:
-    import msgpack
-
-    usingmp = True
-except Exception:
-    logging.exception("No msgpack support, using JSON fallback")
 
 
 # Message, start time, duration
@@ -228,12 +220,10 @@ def sendGlobalAlert(msg, duration=60.0):
     send_toAll([["__SHOWSNACKBAR__", [msg, float(duration)]]])
 
 
-def send_to(topic, value, target):
+def send_to(topic: str, value: Any, target: str):
     "Send a value to one subscriber by the connection ID"
-    if usingmp:
-        d = msgpack.packb([[topic, value]])
-    else:
-        d = json.dumps([[topic, value]])
+    d = msgpack.packb([[topic, value]])
+
     if len(d) > 32 * 1024 * 1024:
         raise ValueError("Data is too large, refusing to send")
     ws_connections[target].send(d)
@@ -243,17 +233,17 @@ userBatteryAlerts = {}
 
 
 class websocket_impl:
-    def __init__(self, parent, user, *args, **kwargs):
+    def __init__(self, parent: tornado.websocket.WebSocketHandler, user: str, *args, **kwargs):
         self.subscriptions = []
         self.lastPushedNewData = 0
-        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
+        self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
         self.parent = parent
         self.user = user
         self.widget_wslock = threading.Lock()
         self.subCount = 0
         self.peer_address = ""
         self.batteryStatus = None
-        ws_connections[self.uuid] = self
+        ws_connections[self.connection_id] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
 
         self.pageURL = "UNKNOWN"
@@ -280,19 +270,17 @@ class websocket_impl:
         if v[0] == self.user and v[1] in self.usedPermissions:
             self.closeUnderLock()
 
-    def send(self, b, *a, **k):
+    def send(self, b: bytes | str):
         with self.widget_wslock:
             self.parent.send_data(b, binary=isinstance(b, bytes))
 
-    def closed(self, *a):
+    def closed(self, *a: Any) -> None:
         with subscriptionLock:
             for i in self.subscriptions:
                 try:
-                    widgets[i].subscriptions.pop(self.uuid)
+                    widgets[i].subscriptions.pop(self.connection_id)
                     widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
-
-                    if not widgets[i].subscriptions:
-                        widgets[i].lastSubscribedTo = time.monotonic()
+                    widgets[i].on_subscriber_disconnected(self.user, self.connection_id)
                 except Exception:
                     pass
 
@@ -301,7 +289,7 @@ class websocket_impl:
             with self.widget_wslock:
                 self.close()
 
-    def received_message(self, message):
+    def received_message(self, message: bytes | str):
         global lastLoggedUserError
         global lastPrintedUserError
         try:
@@ -317,7 +305,7 @@ class websocket_impl:
             upd = o["upd"]
             for i in upd:
                 if i[0] in widgets:
-                    widgets[i[0]]._on_update(user, i[1], self.uuid)
+                    widgets[i[0]]._on_update(user, i[1], self.connection_id)
                 elif i[0] == "__url__":
                     self.pageURL = i[1]
 
@@ -395,20 +383,18 @@ class websocket_impl:
                                     raise PermissionError(user + " missing permission: " + str(p))
                                 self.usedPermissions[p] += 1
 
-                            widgets[i].subscriptions[self.uuid] = subsc_closure(self, i, widgets[i])
+                            widgets[i].subscriptions[self.connection_id] = subsc_closure(self, i, widgets[i])
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
-
-                            widgets[i].lastSubscribedTo = time.monotonic()
 
                             self.subscriptions.append(i)
                             if not widgets[i].noOnConnectData:
-                                x = widgets[i]._on_request(user, self.uuid)
+                                x = widgets[i]._on_request(user, self.connection_id)
                                 if x is not None:
                                     widgets[i].send(x)
                             self.subCount += 1
 
                             # This comes after in case it  sends data
-                            widgets[i].on_new_subscriber(user, self.uuid)
+                            widgets[i].on_new_subscriber(user, self.connection_id)
                         else:
                             pass
             if "unsub" in o:
@@ -419,7 +405,7 @@ class websocket_impl:
                     # TODO: DoS by filling memory with subscriptions??
                     with subscriptionLock:
                         if i in widgets:
-                            if widgets[i].subscriptions.pop(self.uuid, None):
+                            if widgets[i].subscriptions.pop(self.connection_id, None):
                                 self.subCount -= 1
 
                                 for p in widgets[i].permissions:
@@ -444,7 +430,7 @@ def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandl
             self.is_closed = False
             super().__init__(application, request, **kwargs)
 
-        def open(self):
+        def open(self, *args, **kwargs):
             x = self.request.remote_ip
 
             try:
@@ -466,7 +452,7 @@ def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandl
             impl.user_agent = user_agent
 
             impl.clientinfo = ClientInfo(impl.user, impl.cookie)
-            clients_info[impl.uuid] = impl.clientinfo
+            clients_info[impl.connection_id] = impl.clientinfo
             self.impl = impl
 
             impl.peer_address = x
@@ -498,7 +484,7 @@ def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandl
 
 class rawwebsocket_impl:
     def __init__(self, parent, user, *args, **kwargs):
-        self.subscriptions = []
+        self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
         self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
         self.widget_wslock = threading.Lock()
@@ -510,8 +496,8 @@ class rawwebsocket_impl:
 
         self.usedPermissions = collections.defaultdict(int)
 
-        widgetName = kwargs["widgetid"]
-
+        widgetName: str = kwargs["widgetid"]
+        assert isinstance(widgetName, str)
         with subscriptionLock:
             if widgetName in widgets:
                 for p in widgets[widgetName]._read_perms:
@@ -521,8 +507,6 @@ class rawwebsocket_impl:
 
                 widgets[widgetName].subscriptions[self.uuid] = raw_subsc_closure(self, widgetName, widgets[widgetName])
                 widgets[widgetName].subscriptions_atomic = widgets[widgetName].subscriptions.copy()
-
-                widgets[widgetName].lastSubscribedTo = time.monotonic()
 
                 self.subscriptions.append(widgetName)
                 self.subCount += 1
@@ -542,7 +526,7 @@ class rawwebsocket_impl:
 
         workers.do(f)
 
-    def send(self, b):
+    def send(self, b: bytes | str):
         with self.widget_wslock:
             self.parent.send_data(b, binary=isinstance(b, bytes))
 
@@ -552,9 +536,6 @@ class rawwebsocket_impl:
                 try:
                     widgets[i].subscriptions.pop(self.uuid)
                     widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
-
-                    if not widgets[i].subscriptions:
-                        widgets[i].lastSubscribedTo = time.monotonic()
                 except Exception:
                     pass
 
@@ -563,7 +544,7 @@ def makeRawTornadoSocket():
     return makeTornadoSocket(rawwebsocket_impl)
 
 
-def randID():
+def randID() -> str:
     "Generate a base64 id"
     return base64.b64encode(os.urandom(8))[:-1].decode().replace("+", "").replace("/", "").replace("-", "")
 
@@ -572,30 +553,26 @@ idlock = threading.RLock()
 
 
 class Widget:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.value = None
         self._read_perms: list[str] = []
         self._write_perms: list[str] = []
         self.errored_function = None
         self.errored_getter = None
         self.errored_send = None
-        self.subscriptions = {}
-        self.subscriptions_atomic = {}
+        self.subscriptions: dict[str, Callable[[Any, Any], None]] = {}
+        self.subscriptions_atomic: dict[str, Callable[[Any, Any], None]] = {}
         self.echo: bool = True
         self.noOnConnectData: bool = False
 
+        self.uuid: int | str
+
         self.metadata: dict[str, str | int | float | bool] = {}
 
-        # Used for GC, we have a fake subscriber right away so we can do a grace
-        # Period before trashing it.
-        # Also tracks unsubscribe, you need to combine this with
-        # if there are any subscribers
-        self.lastSubscribedTo = time.monotonic()
-
-        def f(u, v):
+        def f(u: str, v: Any):
             pass
 
-        def f2(u, v, id):
+        def f2(u: str, v: Any, id: str):
             pass
 
         self._callback = f
@@ -617,11 +594,10 @@ class Widget:
             # Insert self into the widgets list
             widgets[self.uuid] = self
 
-    def stillActive(self):
-        if self.subscriptions or (self.lastSubscribedTo > (time.monotonic() - 30)):
-            return True
-
     def on_new_subscriber(self, user, connection_id, **kw):
+        pass
+
+    def on_subscriber_disconnected(self, user: str, connection_id: str, **kw) -> None:
         pass
 
     def forEach(self, callback):
@@ -662,7 +638,7 @@ class Widget:
                 self.errored_getter = id(self._callback)
 
     # This function is meant to be overridden or used as is
-    def on_request(self, user: str, uuid):
+    def on_request(self, user: str, uuid: int | str):
         """This function is called after permissions have been verified when a client
           requests the current value. Usually just returns self.value
 
@@ -686,7 +662,7 @@ class Widget:
 
         self.on_update(user, value, uuid)
 
-    def doCallback(self, user, value, uuid):
+    def doCallback(self, user: str, value: Any, uuid: str):
         "Run the callback, and if said callback fails, post a message about it."
         try:
             self._callback(user, value)
@@ -723,17 +699,17 @@ class Widget:
 
     # Set a callback if it ever changes
     @beartype
-    def attach(self, f: Callable):
+    def attach(self, f: Callable[[str, Any], None]) -> None:
         self._callback = f
 
     # Set a callback if it ever changes.
     # This version also gives you the connection ID
     @beartype
-    def attach2(self, f: Callable):
+    def attach2(self, f: Callable[[str, Any, str], None]) -> None:
         self._callback2 = f
 
     # meant to be overridden or used as is
-    def on_update(self, user, value, uuid):
+    def on_update(self, user: str, value: Any, uuid: str):
         self.value = value
         self.doCallback(user, value, uuid)
         if self.echo:
@@ -749,17 +725,14 @@ class Widget:
         if push:
             self.send(value)
 
-    def send(self, value: Any):
+    def send(self, value: Any) -> None:
         "Send a value to all subscribers without invoking the local callback or setting the value"
         x = self.subscriptions_atomic
 
         if not x:
             return
 
-        if usingmp:
-            d = msgpack.packb([[self.uuid, value]], use_bin_type=True)
-        else:
-            d = json.dumps([[self.uuid, value]])
+        d = msgpack.packb([[self.uuid, value]], use_bin_type=True)
 
         # Very basic saniy check here
         if len(d) > 32 * 1024 * 1024:
@@ -774,7 +747,7 @@ class Widget:
             except Exception:
                 print("WS Send Error ", traceback.format_exc())
 
-    def __del__(self):
+    def __del__(self) -> None:
         try:
             d = json.dumps([[self.uuid]])
 
@@ -792,25 +765,23 @@ class Widget:
             if traceback:
                 print(traceback.format_exc())
 
-    def send_to(self, value, target):
+    def send_to(self, value: Any, target: str):
         "Send a value to one subscriber by the connection ID"
-        if usingmp:
-            d = msgpack.packb([[self.uuid, value]])
-        else:
-            d = json.dumps([[self.uuid, value]])
+        d = msgpack.packb([[self.uuid, value]])
+
         if len(d) > 32 * 1024 * 1024:
             raise ValueError("Data is too large, refusing to send")
         if target in self.subscriptions_atomic:
             self.subscriptions_atomic[target](d, value)
 
     # Lets you add permissions that are required to read or write the widget.
-    def require(self, permission: str):
+    def require(self, permission: str) -> None:
         self._read_perms.append(permission)
 
-    def require_to_write(self, permission: str):
+    def require_to_write(self, permission: str) -> None:
         self._write_perms.append(permission)
 
-    def set_permissions(self, read: list[str], write: list[str]):
+    def set_permissions(self, read: list[str], write: list[str]) -> None:
         self._read_perms = copy.copy(read)
         self._write_perms = copy.copy(write)
 
@@ -830,13 +801,13 @@ class ScrollingWindow(Widget):
     use the length param to decide
     how many to keep"""
 
-    def __init__(self, length=250, *args, **kwargs):
+    def __init__(self, length: int = 250, *args, **kwargs) -> None:
         Widget.__init__(self, *args, **kwargs)
         self.value = []
         self.maxlen = length
         self.lock = threading.Lock()
 
-    def write(self, value):
+    def write(self, value: str) -> None:
         with self.lock:
             self.value.append(str(value))
             self.value = self.value[-self.maxlen :]
@@ -885,19 +856,19 @@ class ScrollingWindow(Widget):
 
 
 class APIWidget(Widget):
-    def __init__(self, echo=True, *args, **kwargs):
+    def __init__(self, echo: bool = True, *args, **kwargs) -> None:
         Widget.__init__(self, *args, **kwargs)
         self.value = None
         self.echo = echo
 
-    def write(self, value, push=True):
+    def write(self, value: Any, push: bool = True):
         # Don't set the value, because we don't have a value just a pipe of messages
         # self.value = value
         self.doCallback("__SERVER__", value, "__SERVER__")
         if push:
             self.send(value)
 
-    def render(self, htmlid):
+    def render(self, htmlid: str) -> str:
         return f"""
             <script>
                 {htmlid} = {{}};
@@ -982,7 +953,7 @@ class APIWidget(Widget):
 t = APIWidget(echo=False, id="_ws_timesync_channel")
 
 
-def f(s, v, id):
+def f(s: str, v: Any, id: str):
     t.send_to([v, time.time() * 1000], id)
 
 
