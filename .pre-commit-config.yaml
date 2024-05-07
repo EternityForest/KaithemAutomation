@@ -118,4 +118,4 @@ repos:
     hooks:
     -   id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
-        exclude: default\.nix|kaithem/data/static/OpenFixtureLibrary/OPZFormatFixtures\.json|kaithem/src/js/thirdparty/.*
+        exclude: default\.nix|kaithem/src/js/thirdparty/.*

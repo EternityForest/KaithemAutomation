@@ -8,7 +8,6 @@ import datetime
 import hashlib
 import logging
 import os
-import time
 import urllib
 import urllib.parse
 from collections.abc import Iterator
@@ -105,7 +104,7 @@ def getExt(r: ResourceDictType):
         return ".yaml"
 
 
-def serializeResource(name: str, obj: dict[str, str | int | bool | float | dict[str, str]]) -> dict[str, str]:
+def serializeResource(name: str, obj: ResourceDictType) -> dict[str, str]:
     """Returns data as a dict of file base names
     to file contents, to be written in appropriate folder"""
 
@@ -185,7 +184,7 @@ def saveResource(module: str, resource: str, resourceData: ResourceDictType, nam
                 raise ValueError(f"File appears to exist: {os.path.join(dir, i)}")
 
     if resourceData["resource_type"] == "directory":
-        d = copy.deepcopy(resourceData)
+        d = dict(copy.deepcopy(resourceData))
         d.pop("resource_type", None)
 
         # As the folder on disk is enough to create the resource internally, we don't need to clutter
@@ -436,57 +435,6 @@ modulesLock = RLock()
 
 # For passing thigs to that owning thread
 mlockFunctionQueue: list[Callable[[], Any]] = []
-
-# Allows the owner f the lock to let other threads run things in it,
-# By overriding this, them setting it back.
-
-# This is because USER code may want to use this lock, q=while it is taken by the page handler compiling it.
-# As the user init code is a different thread, they have to pass requests to us
-
-
-def runWithModulesLock(g: Callable[[], Any]) -> Any:
-    return g()
-
-
-# TODO: Whatever this is should probably go away
-
-
-def listenForMlockRequests() -> None:
-    global runWithModulesLock
-
-    def f(g):
-        g._ret = None
-        g._err = None
-        mlockFunctionQueue.append(g)
-        while mlockFunctionQueue:
-            time.sleep(0.01)
-        if g._err:
-            # No clue whats happening here
-            raise g._err  # type: ignore
-        return g._ret
-
-    runWithModulesLock = f
-
-
-def stopMlockRequests() -> None:
-    "ALWAYS call this before you stop polling for requests"
-    global runWithModulesLock
-
-    def f(g):
-        return g()
-
-    runWithModulesLock = f
-
-
-def pollMlockRequests() -> None:
-    while mlockFunctionQueue:
-        f = mlockFunctionQueue[-1]
-
-        try:
-            f._ret = f()
-        except Exception as e:
-            f._err = e
-        mlockFunctionQueue.pop()
 
 
 # Define a place to keep the module private scope obects.

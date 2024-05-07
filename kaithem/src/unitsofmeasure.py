@@ -420,7 +420,7 @@ def getZone(s):
     return tz
 
 
-def strftime(*arg):
+def strftime(*arg) -> str:
     tz = getZone(auth.getUserSetting(pages.getAcessingUser(), "timezone"))
     if arg:
         d = datetime.datetime.utcfromtimestamp(*arg).replace(tzinfo=pytz.utc)

@@ -78,7 +78,7 @@ def get_time(ev):
         return -1
 
 
-def get_next_run(name, i):
+def get_next_run(name: str, i) -> str:
     xyz = get_time((name, i))
     unitsofmeasure.strftime()
     if xyz == 0:
@@ -470,8 +470,8 @@ class BaseEvent:
         ratelimit=0,
         setup: str | None = None,
         priority=2,
-        m=None,
-        r=None,
+        m: str | None = None,
+        r: str | None = None,
     ):
         # Later we can use this to store performance info
         self.timeTakenToLoad = 0.0
@@ -801,8 +801,8 @@ class CompileCodeStringsMixin(BaseEvent):
         except KeyError as e:
             raise e
         fooLock = threading.Lock()
-        flag = []
-        err = []
+        flag: list[int] = []
+        err: list[Exception] = []
 
         def runInit():
             with fooLock:
@@ -817,7 +817,6 @@ class CompileCodeStringsMixin(BaseEvent):
                 finally:
                     kaithemobj.kaithem.context.event = None
 
-        modules_state.listenForMlockRequests()
         # For reasons I don't yet understand, this blocked for a long time
         # when it used workers.do.
         # TODO what happened?
@@ -831,15 +830,10 @@ class CompileCodeStringsMixin(BaseEvent):
             t = time.monotonic()
             # Now wait for it to release it
             while not fooLock.acquire(timeout=0.1):
-                # The function in RunInit might want to do something involving the moduleslock.
-                # It can't, because we have it, so we let it delegate some things to us.
-                modules_state.pollMlockRequests()
-
                 if time.monotonic() - t > 15:
                     raise UnrecoverableEventInitError("event initializer stuck in loop, and may still be running. Undefined behavior? ")
         finally:
-            modules_state.stopMlockRequests()
-            modules_state.pollMlockRequests()
+            pass
 
         if err:
             raise err[0]
