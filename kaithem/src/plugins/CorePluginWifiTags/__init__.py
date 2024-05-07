@@ -17,6 +17,8 @@ wifi = tagpoints.Tag("/system/network/wifi_strength")
 wifi.min = -1
 wifi.max = 100
 wifi.writable = False
+wifi.expose("view_status")
+
 
 wifi.description = "The strongest current WiFi connection, excluding AP mode. 1 to 100, -1 is never connected"
 wifiClaim = wifi.claim(-1, "NetworkManager", 70)
@@ -34,6 +36,8 @@ ethernet = tagpoints.Tag("/system/network/ethernet")
 ethernet.min = -1
 ethernet.max = 1
 ethernet.writable = False
+ethernet.expose("view_status")
+
 ethernet.description = "Whether ethernet is connected, -1 is never connected"
 ethernetClaim = ethernet.claim(-1, "NetworkManager", 70)
 # if the value has ever been set, the signal is weak, and we don't have a WiFi connection.

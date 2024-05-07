@@ -274,6 +274,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.levelTag.hi = -3
             self.levelTag.unit = "dB"
             self.levelTag.writable = False
+            self.levelTag.expose("view_status")
 
             # When it changes the thread exits
             self.stopMPVThread = 1
@@ -335,6 +336,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.faderTag.lo = -59
             self.faderTag.hi = 3
             self.faderTag.unit = "dB"
+            self.faderTag.expose("view_status")
 
             self.mute = False
 

@@ -45,6 +45,7 @@ def create():
     twilightTag.interval = 60
     twilightTag.description = "Unless overridden, 1 if dark, else 0, -1 if no location is set"
     twilightTag.value = civil_twilight
+    twilightTag.expose("view_status")
     refs.append(twilightTag)
 
     alertTag = tagpoints.Tag("/system/alerts.level")
@@ -52,6 +53,7 @@ def create():
     alertTag.writable = False
     alertTag.min = 0
     alertTag.max = alerts.priorities["critical"]
+    alertTag.expose("view_status")
     refs.append(alertTag)
 
     def atm(t, v):
@@ -77,6 +79,8 @@ def create():
     nTag.interval = 60
     nTag.description = "Unless overridden, 1 if night, else 0, -1 if no location is set"
     nTag.value = night
+    nTag.expose("view_status")
+
     refs.append(night)
     refs.append(nTag)
 
@@ -122,6 +126,7 @@ def create():
           Default interval is dynamic, 1 hour once succeeded."""
 
     ipTag.value = publicIP
+    ipTag.expose("system_admin")
 
 
 # Probably best not to automatically do anything that could cause IP traffic?

@@ -61,6 +61,7 @@ if battery:
     batteryTag.min = 0
     batteryTag.max = 100
     batteryTag.lo = 25
+    batteryTag.expose("view_status")
 
     battery_time = tagpoints.Tag("/system/power/battery_time")
     battery_time.unit = "s"
@@ -68,6 +69,7 @@ if battery:
     battery_time.lo = 40 * 60
     battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
     battery_time.set_alarm("lowbattery_timeRemaining", "value < 60*15", priority="error")
+    battery_time.expose("view_status")
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
     acPowerTag.value = battery.power_plugged or 0
@@ -77,6 +79,7 @@ if battery:
         "(not value) and (tv('/system/power/battery_level')< 80)",
         priority="warning",
     )
+    acPowerTag.expose("view_status")
 
 
 sdhealth = getSDHealth()
@@ -89,6 +92,7 @@ if sdhealth is not None:
     sdTag.max = 100
     sdTag.unit = "%"
     sdTag.lo = 50
+    sdTag.expose("view_status")
 
     sdTag.set_alarm("SDCardWear", "value < 70", priority="info")
     sdTag.set_alarm("SDCardCloseToFailure", "value < 10", priority="error")
@@ -171,6 +175,7 @@ if psutil:
                     priority="warning",
                 )
                 tempTags[i].set_alarm("lowtemperature", "value<5")
+                tempTags[i].expose("view_status")
 
                 tempTags[i].unit = "degC"
                 tempTags[i].max = 150
@@ -192,10 +197,14 @@ if psutil:
 if util.which("vcgencmd"):
     undervoltageTag = tagpoints.Tag("/system/pi/undervoltage")
     undervoltageTag.set_alarm("undervoltage", "value>0.5")
+    undervoltageTag.expose("view_status")
+
     undervoltageTagClaim = undervoltageTag.claim(0, "HWSensor")
 
     overtemperatureTag = tagpoints.Tag("/system/pi/overtemperature")
     overtemperatureTag.set_alarm("temp", "value>0.5", priority="error")
+    overtemperatureTag.expose("view_status")
+
     overtemperatureTagClaim = overtemperatureTag.claim(0, "HWSensor")
 
     @scheduling.scheduler.every_minute
@@ -270,6 +279,8 @@ def makeLedTagIfNonexistant(f, n):
         with open(f) as f2:
             ledDefaults[n] = f2.read()
         t = tagpoints.Tag(n)
+        t.expose("view_status")
+
         t.default = -1
         t.min = -1
         t.max = 1
@@ -299,6 +310,7 @@ errtag.set_alarm(
 errtag.min = 0
 errtag.max = 1
 errtag.subtype = "bool"
+errtag.expose("view_status")
 
 
 @scheduling.scheduler.every_hour
