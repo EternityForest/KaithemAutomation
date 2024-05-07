@@ -11,8 +11,9 @@ import os
 import time
 import urllib
 import urllib.parse
+from collections.abc import Iterator
 from threading import RLock
-from typing import Any
+from typing import Any, Callable
 
 import beartype
 import yaml
@@ -35,7 +36,7 @@ logger = logging.getLogger("system")
 external_module_locations: dict[str, str] = {}
 
 
-def getModuleDir(module: str):
+def getModuleDir(module: str) -> str:
     if module in external_module_locations:
         return external_module_locations[module]
 
@@ -104,7 +105,7 @@ def getExt(r):
         return ".yaml"
 
 
-def serializeResource(name, obj) -> dict[str, str]:
+def serializeResource(name: str, obj: dict[str, str | int | bool | float | dict[str, str]]) -> dict[str, str]:
     """Returns data as a dict of file base names
     to file contents, to be written in appropriate folder"""
 
@@ -118,7 +119,7 @@ def serializeResource(name, obj) -> dict[str, str]:
 
 
 @beartype.beartype
-def writeResource(obj: dict, dir: str, resource_name: str):
+def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str:
     "Write resource into dir"
     # logger.debug("Saving resource to "+str(fn))
 
@@ -166,7 +167,7 @@ def writeResource(obj: dict, dir: str, resource_name: str):
 
 
 @beartype.beartype
-def saveResource(module: str, resource: str, resourceData: ResourceDictType, name: str | None = None):
+def saveResource(module: str, resource: str, resourceData: ResourceDictType, name: str | None = None) -> None:
     if "__do__not__save__to__disk__:" in module:
         return
 
@@ -200,7 +201,7 @@ def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType
 
 
 @beartype.beartype
-def rawDeleteResource(m: str, r: str, type: str | None = None):
+def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     """
     Delete a resource from the module, but don't do
     any bookkeeping. Will not remove whatever runtime objectes
@@ -219,7 +220,7 @@ def rawDeleteResource(m: str, r: str, type: str | None = None):
             os.remove(os.path.join(dir, i))
 
 
-def getModuleFn(modulename: str):
+def getModuleFn(modulename: str) -> str:
     if modulename not in external_module_locations:
         dir = os.path.join(directories.moduledir, "data", modulename)
     else:
@@ -228,13 +229,13 @@ def getModuleFn(modulename: str):
     return dir
 
 
-def get_resource_save_location(m, r):
+def get_resource_save_location(m: str, r: str) -> str:
     dir = getModuleFn(m)
     return os.path.dirname(os.path.join(dir, urllib.parse.quote(r, safe=" /")))
 
 
 @beartype.beartype
-def saveModule(module: dict[str, ResourceDictType], modulename: str):
+def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str]:
     """Returns a list of saved module,resource tuples and the saved resource.
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
@@ -281,7 +282,7 @@ modulehashes = {}
 modulewordhashes = {}
 
 
-def hashModules():
+def hashModules() -> str:
     try:
         m = hashlib.sha256()
         with modulesLock:
@@ -294,7 +295,7 @@ def hashModules():
         return "ERRORHASHINGMODULES"
 
 
-def wordHashModule(module: str):
+def wordHashModule(module: str) -> str:
     try:
         with modulesLock:
             return util.memorableHash(
@@ -307,26 +308,33 @@ def wordHashModule(module: str):
         return "ERRORHASHINGMODULE"
 
 
-def getModuleHash(m: str):
+def getModuleHash(m: str) -> str:
     if m not in modulehashes:
         modulehashes[m] = hashModule(m)
     return modulehashes[m].upper()
 
 
-def getModuleWordHash(m: str):
+def getModuleWordHash(m: str) -> str:
     if m not in modulewordhashes:
         modulewordhashes[m] = wordHashModule(m)
     return modulewordhashes[m].upper()
 
 
-def modulesHaveChanged():
+def modulesHaveChanged() -> None:
     global moduleshash, modulehashes, modulewordhashes
     moduleshash = hashModules()
     modulehashes = {}
     modulewordhashes = {}
 
 
-def deterministic_walk(d):
+def deterministic_walk(
+    d: str,
+) -> Iterator[
+    tuple[str, list[str], list[Any]]
+    | tuple[str, list[Any], list[str]]
+    | tuple[str, list[str], list[str]]
+    | tuple[str, list[Any], list[Any]]
+]:
     dirs = []
     files = []
 
@@ -345,7 +353,7 @@ def deterministic_walk(d):
         yield from deterministic_walk(os.path.join(d, i))
 
 
-def iter_fc(f):
+def iter_fc(f: str) -> Iterator[bytes]:
     with open(f, "rb") as fd:
         for i in range(100000):
             d = fd.read(128 * 1024)
@@ -356,7 +364,9 @@ def iter_fc(f):
     raise RuntimeError("File size limit")
 
 
-def member_files(module):
+def member_files(
+    module: str,
+) -> Iterator[tuple[str, datetime.datetime, int, Callable[[Any, Any], tuple[object, object, Any, None, None]], Iterator[Any]]]:
     dir = getModuleDir(module)
     for root, dirs, files in deterministic_walk(dir):
         for i in files:
@@ -373,11 +383,11 @@ def member_files(module):
             yield (f"{module}/{fn}", mtime, mode, ZIP_64, iter_fc(x))
 
 
-def getModuleAsYamlZip(module):
+def getModuleAsYamlZip(module: str) -> Iterator[Any]:
     return stream_zip(member_files(module))
 
 
-def hashModule(module: str):
+def hashModule(module: str) -> str:
     x = hashlib.sha256()
     x.update(module.encode())
     for i in member_files(module):
@@ -388,7 +398,7 @@ def hashModule(module: str):
     return base64.b32encode(x.digest()[:16]).decode().upper().replace("=", "")
 
 
-def in_folder(n: str, folder_name: str):
+def in_folder(n: str, folder_name: str) -> bool:
     """Return true if name r represents a kaihem resource in folder f"""
     # Note: this is about kaithem resources and folders, not actual filesystem dirs.
     if not n.startswith(folder_name):
@@ -436,7 +446,7 @@ def runWithModulesLock(g):
 # TODO: Whatever this is should probably go away
 
 
-def listenForMlockRequests():
+def listenForMlockRequests() -> None:
     global runWithModulesLock
 
     def f(g):
@@ -453,7 +463,7 @@ def listenForMlockRequests():
     runWithModulesLock = f
 
 
-def stopMlockRequests():
+def stopMlockRequests() -> None:
     "ALWAYS call this before you stop polling for requests"
     global runWithModulesLock
 
@@ -463,7 +473,7 @@ def stopMlockRequests():
     runWithModulesLock = f
 
 
-def pollMlockRequests():
+def pollMlockRequests() -> None:
     while mlockFunctionQueue:
         f = mlockFunctionQueue[-1]
 

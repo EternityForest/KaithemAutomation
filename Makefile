@@ -110,6 +110,10 @@ user-kaithem-status: # Get the status of the running kaithem instance
 dev-build-docs:
 	@handsdown -i kaithem/api/ -o kaithem/src/docs/api
 
+# todo Escape undercores in md files, handsdown doesn't escape them ye
+.PHONY: dev-count-lines
+dev-count-lines:
+	@poetry run pygount --format=summary  --folders-to-skip="thirdparty,data,__pycache__" kaithem/
 
 
 .PHONY: root-install-system-dependencies

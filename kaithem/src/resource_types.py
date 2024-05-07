@@ -4,6 +4,7 @@
 import html
 import traceback
 import weakref
+from typing import Any
 from urllib.parse import quote
 
 import beartype
@@ -11,7 +12,7 @@ import yaml
 from jsonschema import validate
 
 # Approximately type JSON, could be better
-ResourceDictType = dict[str, str | list | int | float | bool | None | dict[str, dict | list | int | float | str | bool | None]]
+ResourceDictType = dict[str, Any]
 
 
 class ResourceType:
