@@ -438,6 +438,7 @@ def userLogin(username, password) -> str:
                         with lock:
                             if not Users[username].token:
                                 assignNewToken(username)
+                            assert Users[username].token
                             return Users[username].token
 
             return "failure"
@@ -460,6 +461,7 @@ def userLogin(username, password) -> str:
                     # Logins as same user
                     if not Users[username].token:
                         assignNewToken(username)
+                    assert Users[username].token
                     return Users[username].token
             else:
                 ph = PasswordHasher()
@@ -468,6 +470,7 @@ def userLogin(username, password) -> str:
                     # Logins as same user
                     if not Users[username].token:
                         assignNewToken(username)
+                    assert Users[username].token
                     return Users[username].token
         return "failure"
 

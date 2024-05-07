@@ -381,7 +381,7 @@ class Device(iot_devices.device.Device):
                     assert isinstance(devdata, dict)
                     devdata[key] = v
 
-                    modules_state.saveResource(
+                    modules_state.save_resource(
                         self.parent_module,
                         self.parent_resource,
                         modules_state.ActiveModules[self.parent_module][self.parent_resource],
@@ -1326,7 +1326,7 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
             "device": d,
         }
 
-        modules_state.saveResource(module, resource, {"resource_type": "device", "device": d})
+        modules_state.save_resource(module, resource, {"resource_type": "device", "device": d})
 
         modules_state.modulesHaveChanged()
 

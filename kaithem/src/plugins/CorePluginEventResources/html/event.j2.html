@@ -68,7 +68,7 @@
                 {% endif %}>{{ event.get('setup','pass')| escape }}</textarea>
 
 
-            <h3>Trigger\
+            <h3>Trigger
                 (Currently {{ prevstate| escape }})
             </h3>
             <details class="help">
@@ -162,56 +162,58 @@
                 {% else %}
                 <b>This event has not ran since it loaded.</b>
                 {% endif %}
-                <a onclick="document.getElementById('history').style.display='block'">Show history</button>
-                    <a onclick="document.getElementById('history').style.display='none'">Hide history</button>
+                <button type="button" onclick="document.getElementById('history').style.display='block'">Show
+                    history</button>
+                <button type="button" onclick="document.getElementById('history').style.display='none'">Hide
+                    history</button>
 
-                        <div id="history" style="display:none">
-                            <table border=1>
-                                {% if module,name in EventReferences %}
-                                <tr>
-                                    <th>Started at</th>
-                                    <th>Completed in</th>
-                                </tr>
-                                {% for i in EventReferences[module,name].history %}
-                                <tr>
-                                    <td>{{ strftime(i[0]) }}</td>
-                                    <td>{{ (format_time_interval(i[1]-i[0],2)) }}</td>
-                                </tr>
-                                {% endfor %}
-                                {% endif %}
-                            </table>
-                        </div>
+            <div id="history" style="display:none">
+                <table border=1>
+                    {% if module,name in EventReferences %}
+                    <tr>
+                        <th>Started at</th>
+                        <th>Completed in</th>
+                    </tr>
+                    {% for i in EventReferences[module,name].history %}
+                    <tr>
+                        <td>{{ strftime(i[0]) }}</td>
+                        <td>{{ (format_time_interval(i[1]-i[0],2)) }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </table>
+            </div>
 
-                        {% if getEventErrors(module,name) %}
-                        <h3 class="danger">Errors[{{ len(getEventErrors(module,name)) }}]</h3>
-                        <p class="help">
-                            This section the most recent errors that ocurred while executing the event or trigger.
-                        </p>
-                        <div class="max-h-12rem scroll border">
-                            {% for i in getEventErrors(module,name) %}
-                            <h4>{{ i[0]| escape }}</h4>
-                            <pre>{{ i[1]| escape }}</pre>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
+            {% if getEventErrors(module,name) %}
+            <h3 class="danger">Errors[{{ len(getEventErrors(module,name)) }}]</h3>
+            <p class="help">
+                This section the most recent errors that ocurred while executing the event or trigger.
+            </p>
+            <div class="max-h-12rem scroll border">
+                {% for i in getEventErrors(module,name) %}
+                <h4>{{ i[0]| escape }}</h4>
+                <pre>{{ i[1]| escape }}</pre>
+                {% endfor %}
+            </div>
+            {% endif %}
 
-                        {% endif %}
+            {% endif %}
 
 
-                        <hr>
-                        <details class="help">
-                            <summary><i class="mdi mdi-help-circle-outline"></i></summary>
-                            Saving this module will case it to completely reload, including its local scope. Other
-                            resources will not be affected.
-                        </details>
-                        {% if can_edit %}
-                        <input type="submit" value="Save Changes"
-                            onclick="wasChanged=false; kaithemapi.enableWidgetGoneAlert=false"></input>
-                        <label><input type="checkbox" name="tabtospace" checked="yes"></input>Convert tabs to spaces on
-                            saving</label>
-                        {% else %}
-                        <p>You must have the "system_admin" permission to make changes. Are you logged in?</p>
-                        {% endif %}
+            <hr>
+            <details class="help">
+                <summary><i class="mdi mdi-help-circle-outline"></i></summary>
+                Saving this module will case it to completely reload, including its local scope. Other
+                resources will not be affected.
+            </details>
+            {% if can_edit %}
+            <input type="submit" value="Save Changes"
+                onclick="wasChanged=false; kaithemapi.enableWidgetGoneAlert=false"></input>
+            <label><input type="checkbox" name="tabtospace" checked="yes"></input>Convert tabs to spaces on
+                saving</label>
+            {% else %}
+            <p>You must have the "system_admin" permission to make changes. Are you logged in?</p>
+            {% endif %}
         </form>
         <form method="post" action="/modules/module/{{ url(module) }}/obj/event/{{ url(name) }}"><button>Go to the
                 event's namespace(requires edit permission, beware shoulder surfers)</button></form>
@@ -262,9 +264,9 @@
 <script>
     // Fix going back after a change and seeing old data
     const perfEntries = performance.getEntriesByType('navigation');
-if (perfEntries.length && perfEntries[0].type === 'back_forward') {
-  window.location.reload()
-}
+    if (perfEntries.length && perfEntries[0].type === 'back_forward') {
+        window.location.reload()
+    }
 </script>
 
 {% endblock %}

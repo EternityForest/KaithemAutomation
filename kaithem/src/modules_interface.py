@@ -103,6 +103,7 @@ module_page_context = {
 def searchModules(search, max_results=100, start=0, mstart=0):
     pointer = mstart
     results = []
+    x = [None, None]
     for i in sorted(modules_state.ActiveModules.keys(), reverse=True)[mstart:]:
         x = searchModuleResources(i, search, max_results, start)
         if x[0]:
@@ -342,6 +343,7 @@ class WebInterface:
 
         else:
             if path[0] == "download_resource":
+                assert len(path) == 2
                 pages.require("view_admin_info")
                 cherrypy.response.headers["Content-Disposition"] = "attachment; filename=" + path[1] + ".yaml"
                 return yaml.dump(modules_state.ActiveModules[root][path[1]])
@@ -362,6 +364,7 @@ class WebInterface:
 
             if path[0] == "runeventdialog":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
+                assert len(path) == 2
                 pages.require("system_admin")
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
 
@@ -378,11 +381,14 @@ class WebInterface:
                 if not len(path) > 1:
                     raise ValueError("No object specified")
 
+                obj = objname = None
+
                 if path[1] == "module":
                     obj = modules_state.scopes[root]
                     objname = f"Module Obj: {root}"
 
                 if path[1] == "event":
+                    assert len(path) == 3
                     from .plugins import CorePluginEventResources
 
                     obj = CorePluginEventResources._events_by_module_resource[root, path[2]].pymodule
@@ -405,8 +411,10 @@ class WebInterface:
                     objname = kwargs["objname"]
 
                 if "objpath" not in kwargs:
+                    assert objname
                     return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name=root, obj=obj, objname=objname)
                 else:
+                    assert objname
                     return pages.get_template("obj_insp.html").render(
                         objpath=kwargs["objpath"],
                         objname=objname,
@@ -454,6 +462,7 @@ class WebInterface:
             # This gets the interface to add a page
             if path[0] == "addresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
+                assert len(path) > 1
                 if len(path) > 2:
                     x = path[2]
                 else:
@@ -478,6 +487,7 @@ class WebInterface:
             # This case shows the information and editing page for one resource
             if path[0] == "resource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
+                assert len(path) > 1
                 version = "__default__"
                 if len(path) > 2:
                     version = path[2]
@@ -485,17 +495,13 @@ class WebInterface:
 
             # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == "updateresource":
+                assert len(path) == 2
                 return resourceUpdateTarget(module, path[1], kwargs)
-
-            # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
-            if path[0] == "reloadresource":
-                pages.require("system_admin")
-                pages.postOnly()
-                modules.reloadOneResource(module, path[1])
-                return resourceEditPage(module, path[1], kwargs=kwargs)
 
             if path[0] == "getfileresource":
                 pages.require("system_admin")
+                assert len(path) == 2
+
                 d = modules.getModuleDir(module)
                 folder = os.path.join(d, "__filedata__")
                 data_basename = modules_state.file_resource_paths[module, path[1]]
@@ -568,7 +574,7 @@ class WebInterface:
 
                     def insertResource(r):
                         modules_state.ActiveModules[root][escapedName] = r
-                        modules.saveResource(root, escapedName, r)
+                        modules_state.save_resource(root, escapedName, r)
 
                     # END BLOCK OF COPY PASTED CODE.
 
@@ -596,6 +602,7 @@ class WebInterface:
             # This returns a page to delete any resource by name
             if path[0] == "deleteresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
+                assert len(path) == 2
                 pages.require("system_admin", noautoreturn=True)
 
                 d = dialogs.SimpleDialog(f"Delete resource in {root}")
@@ -605,6 +612,7 @@ class WebInterface:
 
             if path[0] == "moveresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
+                assert len(path) == 2
                 pages.require("system_admin", noautoreturn=True)
 
                 d = dialogs.SimpleDialog(f"Move resource in {root}")
@@ -691,7 +699,9 @@ class WebInterface:
                             external_module_locations.pop(root)
                     # Missing descriptions have caused a lot of bugs
                     if "__description" in modules_state.ActiveModules[root]:
-                        modules_state.ActiveModules[root]["__description"]["text"] = kwargs["description"]
+                        dsc = dict(copy.deepcopy(modules_state.ActiveModules[root]["__description"]["text"]))
+                        dsc["text"] = kwargs["description"]
+                        modules_state.ActiveModules[root]["__description"] = dsc
                     else:
                         modules_state.ActiveModules[root]["__description"] = {
                             "resource_type": "module-description",
@@ -763,7 +773,7 @@ def addResourceTarget(module, type, name, kwargs, path):
     def insertResource(r):
         r["resource_timestamp"] = int(time.time() * 1000000)
         modules_state.ActiveModules[root][name_with_path] = r
-        modules.saveResource(root, name_with_path, r)
+        modules_state.save_resource(root, name_with_path, r)
 
     with modules_state.modulesLock:
         # Check if a resource by that name is already there
@@ -876,7 +886,7 @@ def resourceUpdateTarget(module, resource, kwargs):
     compiled_object = None
 
     with modules_state.modulesLock:
-        resourceobj = modules_state.ActiveModules[module][resource]
+        resourceobj = dict(copy.deepcopy(modules_state.ActiveModules[module][resource]))
 
         old_resource = copy.deepcopy(resourceobj)
 
@@ -890,12 +900,12 @@ def resourceUpdateTarget(module, resource, kwargs):
             if n:
                 resourceobj = n
                 modules_state.ActiveModules[module][resource] = n
-                modules.saveResource(module, resource, n, resource)
+                modules_state.save_resource(module, resource, n, resource)
 
         elif t == "permission":
             resourceobj["description"] = kwargs["description"]
             # has its own lock
-            modules.saveResource(module, resource, resourceobj, newname)
+            modules_state.save_resource(module, resource, resourceobj, newname)
 
         elif t == "internal_fileref":
             # If this was autogenerated make sure it actually gets saved now
@@ -916,10 +926,10 @@ def resourceUpdateTarget(module, resource, kwargs):
                     if kwargs[i] == "true":
                         resourceobj["require_permissions"].append(i[10:])
 
-            modules.saveResource(module, resource, resourceobj, newname)
+            modules_state.save_resource(module, resource, resourceobj, newname)
 
         else:
-            modules.saveResource(module, resource, resourceobj, newname)
+            modules_state.save_resource(module, resource, resourceobj, newname)
 
         # We can pass a compiled object for things like events that would otherwise
         # have to have a test compile then the real compile

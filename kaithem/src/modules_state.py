@@ -168,7 +168,7 @@ def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | 
 
 
 @beartype.beartype
-def saveResource(module: str, resource: str, resourceData: ResourceDictType, name: str | None = None) -> None:
+def save_resource(module: str, resource: str, resourceData: ResourceDictType, name: str | None = None) -> None:
     if "__do__not__save__to__disk__:" in module:
         return
 
@@ -198,7 +198,7 @@ def saveResource(module: str, resource: str, resourceData: ResourceDictType, nam
 @beartype.beartype
 def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
     ActiveModules[module][resource] = resourceData
-    saveResource(module, resource, resourceData)
+    save_resource(module, resource, resourceData)
 
 
 @beartype.beartype
@@ -267,7 +267,7 @@ def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str
         util.chmod_private_try(dir)
         for resource in module:
             r = module[resource]
-            saveResource(modulename, resource, resourceData=r)
+            save_resource(modulename, resource, resourceData=r)
 
         saved.append(modulename)
         return saved

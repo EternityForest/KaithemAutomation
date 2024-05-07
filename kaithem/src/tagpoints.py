@@ -722,7 +722,9 @@ class GenericTagPointClass(Generic[T]):
         #
 
         def recalc2(*a: Any, **k: Any):
-            recalc()()
+            f = recalc()
+            if f:
+                f()
 
         def _context_get_numeric_tag_value(n):
             """Since an alarm can use values from other tags, we must track those values, and from there

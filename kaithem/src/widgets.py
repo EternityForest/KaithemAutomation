@@ -185,7 +185,7 @@ clients_info = weakref.WeakValueDictionary()
 ws_connections: weakref.WeakValueDictionary[str, websocket_impl | rawwebsocket_impl] = weakref.WeakValueDictionary()
 
 
-def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[websocket_impl | rawwebsocket_impl]], None] = None):
+def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[websocket_impl | rawwebsocket_impl]], None] | None = None):
     try:
         return weakref.ref(ws_connections[id], deleteCallback)
     except KeyError:
@@ -212,7 +212,7 @@ def send_toAll(d):
             logging.exception("Error in global broadcast")
 
 
-def sendGlobalAlert(msg, duration=60.0):
+def sendGlobalAlert(msg: str, duration=60.0):
     lastGlobalAlertMessage[0] = msg
     lastGlobalAlertMessage[1] = time.monotonic()
     lastGlobalAlertMessage[2] = duration
@@ -233,8 +233,8 @@ userBatteryAlerts = {}
 
 
 class websocket_impl:
-    def __init__(self, parent: tornado.websocket.WebSocketHandler, user: str, *args, **kwargs):
-        self.subscriptions = []
+    def __init__(self, parent: tornado.websocket.WebSocketHandler, user: str, *args: Any, **kwargs: Any):
+        self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
         self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
         self.parent = parent
@@ -265,7 +265,7 @@ class websocket_impl:
             except KeyError:
                 pass
 
-    def onPermissionRemoved(self, t, v):
+    def onPermissionRemoved(self, t: str, v):
         "Close the socket if the user no longer has the permission"
         if v[0] == self.user and v[1] in self.usedPermissions:
             self.closeUnderLock()
@@ -276,7 +276,8 @@ class websocket_impl:
 
     def closed(self, *a: Any) -> None:
         with subscriptionLock:
-            for i in self.subscriptions:
+            while self.subscriptions:
+                i = self.subscriptions.pop(0)
                 try:
                     widgets[i].subscriptions.pop(self.connection_id)
                     widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
@@ -462,16 +463,19 @@ def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandl
             else:
                 self.runner = WSActionRunner()
 
-        def on_message(self, message):
+        def on_message(self, message: str | bytes):
             def doFunction():
                 self.impl.received_message(message)
 
             self.runner.dowsAction(doFunction)
 
-        def send_data(self, message, binary=False):
+        def send_data(self, message: str | bytes, binary: bool = False):
             def f():
                 if not self.is_closed:
-                    self.write_message(message, binary=binary)
+                    try:
+                        self.write_message(message, binary=binary)
+                    except tornado.websocket.WebSocketClosedError:
+                        self.on_close()
 
             self.io_loop.add_callback(f)
 
@@ -486,10 +490,10 @@ class rawwebsocket_impl:
     def __init__(self, parent, user, *args, **kwargs):
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
-        self.uuid = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
+        self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
         self.widget_wslock = threading.Lock()
         self.subCount = 0
-        ws_connections[self.uuid] = self
+        ws_connections[self.connection_id] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
         self.user = user
         self.parent = parent
@@ -505,7 +509,7 @@ class rawwebsocket_impl:
                         raise RuntimeError(self.user + " missing permission: " + str(p))
                     self.usedPermissions[p] += 1
 
-                widgets[widgetName].subscriptions[self.uuid] = raw_subsc_closure(self, widgetName, widgets[widgetName])
+                widgets[widgetName].subscriptions[self.connection_id] = raw_subsc_closure(self, widgetName, widgets[widgetName])
                 widgets[widgetName].subscriptions_atomic = widgets[widgetName].subscriptions.copy()
 
                 self.subscriptions.append(widgetName)
@@ -559,7 +563,7 @@ class Widget:
         self._write_perms: list[str] = []
         self.errored_function = None
         self.errored_getter = None
-        self.errored_send = None
+        self.errored_send = False
         self.subscriptions: dict[str, Callable[[Any, Any], None]] = {}
         self.subscriptions_atomic: dict[str, Callable[[Any, Any], None]] = {}
         self.echo: bool = True
@@ -597,7 +601,7 @@ class Widget:
     def on_new_subscriber(self, user, connection_id, **kw):
         pass
 
-    def on_subscriber_disconnected(self, user: str, connection_id: str, **kw) -> None:
+    def on_subscriber_disconnected(self, user: str, connection_id: str, **kw: Any) -> None:
         pass
 
     def forEach(self, callback):

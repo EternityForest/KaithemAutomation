@@ -259,7 +259,7 @@ def loadModules(modulesdir: str) -> None:
             )
 
 
-def detect_ignorable(path: str) -> None:
+def detect_ignorable(path: str) -> bool:
     "Recursive detect paths that should be ignored and left alone when loading and saving"
     # Safety counter, this seems like it might need it.
     for i in range(64):
@@ -268,10 +268,11 @@ def detect_ignorable(path: str) -> None:
         path = os.path.dirname(path)
         # Detect end of path
         if not os.path.split(path)[1]:
-            return
+            return False
+    return False
 
 
-def _detect_ignorable(path: str) -> None:
+def _detect_ignorable(path: str) -> bool:
     "Detect paths that should be ignored when loading a module"
     # Detect .git
     if os.path.basename(path) == ".git":
@@ -283,6 +284,7 @@ def _detect_ignorable(path: str) -> None:
         return True
     if os.path.basename(path) in [".gitignore", ".gitconfig"]:
         return True
+    return False
 
 
 @beartype.beartype
@@ -774,7 +776,7 @@ def rmModule(module: str, message: str = "deleted") -> None:
             except Exception:
                 messagebus.post_message(
                     "/system/modules/errors/unloading",
-                    f"Error deleting resource: {str(module, k)}",
+                    f"Error deleting resource: {module},{k}",
                 )
 
     # Get rid of any permissions defined in the modules.
