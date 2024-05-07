@@ -2,7 +2,6 @@
 <%!
 from kaithem.src.kaithemobj import kaithem
 %>
-<%block name="title">Chandler Editor</%block>
 
 ${lists}
 
@@ -133,43 +132,42 @@ ${lists}
 
 
 <div id="app" v-cloak class="flex-row gaps">
-    <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
+    <section id="optionsblock" class="multibar undecorated w-full">
 
         <div class="menubar tool-bar">
-            <p>{{clock}} </p><p><b>${boardname}</b></p>
-            <button v-on:click="saveToDisk()"  :disabled="no_edit"
+            <p>{{clock}} </p><p><b>{{boardname}}</b></p>
+            <button type="button" v-on:click="saveToDisk()"  :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
                     class="mdi mdi-content-save"></i>Save</button>
-            <button v-on:click="showimportexport=!showimportexport"><i
+            <button type="button" v-on:click="showimportexport=!showimportexport"><i
                         class="mdi mdi-folder-open"></i>Import/Export</button>
         </div>
 
 
         <div class="menubar tool-bar">
-            <button v-on:click="showPresets=!showPresets"><i class="mdi mdi-palette"></i>Presets</button>
-            <button v-on:click="showevents=!showevents"><i class="mdi mdi-flag"></i>Events</button>
+            <button type="button" v-on:click="showPresets=!showPresets"><i class="mdi mdi-palette"></i>Presets</button>
+            <button type="button" v-on:click="showevents=!showevents"><i class="mdi mdi-flag"></i>Events</button>
 
-            <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
+            <button type="button" v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
                         class="mdi mdi-monitor"></i>Displays</button>
             <a class="button" href="/chandler/config/${boardname}"><i class="mdi mdi-cog-outline"></i>Settings</a><label>
             <i class="mdi mdi-volume-medium"></i><input type="checkbox" class="toggle" v-model="uiAlertSounds">
             </label>
-            <button onclick="document.documentElement.requestFullscreen()"><i
+            <button type="button" onclick="document.documentElement.requestFullscreen()"><i
                 class="mdi mdi-arrow-expand-all"></i></button>
         </div>
 
         <div class="menubar tool-bar">
             <p><b>Keys:</b></p>
-            <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><i
+            <button type="button" v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><i
                     class="mdi mdi-pencil"></i>Edit Mode</button>
-            <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><i
+            <button type="button" v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><i
                     class="mdi mdi-flag"></i>Send Events</button>
         </div>
 
     </section>
 
-    <main style="display:flex; flex-wrap:wrap; justify-content: center;" class="w-full">
-
+    <main class="w-full flex-row">
         <section class="window w-full max-h-12rem" v-if="Object.keys(sys_alerts).length">
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
@@ -190,13 +188,13 @@ ${lists}
                         aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code"
                         v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();"
                         v-on:blur="keyboardJS.resume();"></input>
-                    <button v-on:click="shortcut()">Go!</button>
+                    <button type="button" v-on:click="shortcut()">Go!</button>
                 </div>
                 <div class="tool-bar">
                     <input v-model="scenefilter" placeholder="Search" list="tracks" /><button
                         v-on:click="scenefilter=''"><i class="mdi mdi-backspace"></i>
                     </button>
-                    <button v-on:click="showPages=!showPages">Compact</button>
+                    <button type="button" v-on:click="showPages=!showPages">Compact</button>
 
                 </div>
             </header>
@@ -209,7 +207,7 @@ ${lists}
                         <header>
                             <div>
                                 <h4>
-                                    <button v-bind:class="{highlight:i[0]==scenename}"
+                                    <button type="button" v-bind:class="{highlight:i[0]==scenename}"
                                         v-on:click="selectscene(i[1],i[0])" style="width: 100%">
 
                                         <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext"
@@ -241,17 +239,17 @@ ${lists}
 
 
                         <div class="tool-bar" v-if="!i[1].utility">
-                            <button :class="{'success':i[1].active, 'warning':i[1].status}" v-on:click="go(i[0])"><i
+                            <button type="button" :class="{'success':i[1].active, 'warning':i[1].status}" v-on:click="go(i[0])"><i
                                     class="mdi mdi-play"></i>Go!</button>
-                            <button v-on:click="prevcue(i[0])"><i class="mdi mdi-skip-previous"></i>Prev</button>
-                            <button v-on:click="nextcue(i[0])">Next<i class="mdi mdi-skip-next"></i></button>
-                            <button class="stopbutton" v-on:click="stop(i[0])"><i
+                            <button type="button" v-on:click="prevcue(i[0])"><i class="mdi mdi-skip-previous"></i>Prev</button>
+                            <button type="button" v-on:click="nextcue(i[0])">Next<i class="mdi mdi-skip-next"></i></button>
+                            <button type="button" class="stopbutton" v-on:click="stop(i[0])"><i
                                     class="mdi mdi-stop-circle-outline"></i>Stop</button>
                         </div>
                         <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
                         <div class="tool-bar" v-if="i[1].eventButtons.length > 0">
-                            <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
+                            <button type="button" v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </div>
 
 
@@ -286,8 +284,8 @@ ${lists}
             <footer class="padding">
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
-                    <button v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
-                    <button v-on:click="addMonitorScene()"><i class="mdi mdi-binoculars"></i>Add Monitor</button>
+                    <button type="button" v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
+                    <button type="button" v-on:click="addMonitorScene()"><i class="mdi mdi-binoculars"></i>Add Monitor</button>
                 </div>
             </footer>
 
@@ -295,7 +293,7 @@ ${lists}
 
         <section class="window margin" v-if="showevents" class="flex-item"
             style="position:fixed; z-index:99; bottom:0px; width:78%;">
-            <h2> <button v-on:click="showevents=0"><i class="mdi mdi-close"></i>Close</button>Event
+            <h2> <button type="button" v-on:click="showevents=0"><i class="mdi mdi-close"></i>Close</button>Event
                 Log
             </h2>
             <input v-model="evfilt" placeholder="Filter events"><br>
@@ -324,7 +322,7 @@ ${lists}
                 <option value="str">Text</option>
             </select>
 
-            <button v-on:click="sendev('__global__')">Send</button>
+            <button type="button" v-on:click="sendev('__global__')">Send</button>
         </section>
 
 
@@ -335,7 +333,7 @@ ${lists}
             <header>
                 <div class="tool-bar">
                     <h3>Slideshow Players</h3>
-                    <button v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i class="mdi mdi-close"></i>Close</button>
+                    <button type="button" v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i class="mdi mdi-close"></i>Close</button>
                 </div>
             </header>
                 <p>This table shows the slideshow displays that are active or seen recently.</p>
@@ -363,9 +361,9 @@ ${lists}
                     <td>{{formatTime(v.ts)}}</td>
                     <td :class="{'error': (v.battery||{}).charging == false}">{{v.battery || ''}}</td>
                     <td>
-                        <button @click="mediaLinkCommand(v.scene, v.id, ['testAudio'])">Ding</button>
-                        <button @click="promptRenameDisplay(v.scene, v.id)">Rename</button>
-                        <button @click="mediaLinkCommand(v.scene, v.id, ['refresh'])">Refresh</button>
+                        <button type="button" @click="mediaLinkCommand(v.scene, v.id, ['testAudio'])">Ding</button>
+                        <button type="button" @click="promptRenameDisplay(v.scene, v.id)">Rename</button>
+                        <button type="button" @click="mediaLinkCommand(v.scene, v.id, ['refresh'])">Refresh</button>
                     </td>
 
                 </tr>
@@ -376,7 +374,7 @@ ${lists}
             <header>
                 <div class="tool-bar">
                     <h3>Import/Export controls</h3>
-                    <button v-on:click="showimportexport=!showimportexport"><i class="mdi mdi-close"></i>Close</button>
+                    <button type="button" v-on:click="showimportexport=!showimportexport"><i class="mdi mdi-close"></i>Close</button>
 
                 </div>
             </header>
@@ -403,7 +401,7 @@ ${lists}
         </section>
 
         <section v-if="showPresets" class="flex-item window paper" style="width: 32em;">
-            <h3>Presets<button v-on:click="showPresets=0">
+            <h3>Presets<button type="button" v-on:click="showPresets=0">
                     <i class="mdi mdi-close"></i>Close</button>
             </h3>
             <details class="help">
@@ -418,8 +416,8 @@ ${lists}
                     <dt>
                         <div class="tool-bar">
                             <h4>{{ps[0]}}</h4>
-                            <button v-on:click="deletePreset(ps[0])"><i class="mdi mdi-delete"></i>Delete</button>
-                            <button v-on:click="renamePreset(ps[0])"><i class="mdi mdi-pencil"></i>Rename</button>
+                            <button type="button" v-on:click="deletePreset(ps[0])"><i class="mdi mdi-delete"></i>Delete</button>
+                            <button type="button" v-on:click="renamePreset(ps[0])"><i class="mdi mdi-pencil"></i>Rename</button>
                         </div>
                     </dt>
                     <dd style="display: flex; flex-wrap: wrap;">
@@ -439,7 +437,7 @@ ${lists}
         <dialog id='soundpreviewdialog'>
             <iframe id="textpreview" style="height:24em; width: 24em;"></iframe>
             <audio controls id="soundpreview"></audio>
-            <button v-on:click="closePreview">OK</button>
+            <button type="button" v-on:click="closePreview">OK</button>
         </dialog>
 
 
@@ -461,14 +459,14 @@ ${lists}
 
 
                     </h3>
-                    <button v-if="editingScene.cuelen" v-on:click="addTimeToScene(editingScene.id)"><i class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
+                    <button type="button" v-if="editingScene.cuelen" v-on:click="addTimeToScene(editingScene.id)"><i class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
 
                     <p>
                         <input v-model="cuefilter" placeholder="Search Cues" />
-                        <button v-on:click="cuefilter=''"><i class="mdi mdi-backspace"></i></button>
+                        <button type="button" v-on:click="cuefilter=''"><i class="mdi mdi-backspace"></i></button>
                     </p>
 
-                    <button v-on:click="delscene(scenename)"><i class="mdi mdi-delete"></i>Delete Scene</button>
+                    <button type="button" v-on:click="delscene(scenename)"><i class="mdi mdi-delete"></i>Delete Scene</button>
 
 
                 </div>
@@ -538,7 +536,7 @@ ${lists}
                                         <input :disabled="no_edit" title="Shortcut code" style="max-width: 4.5em;"
                                             v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
                                             step=0.1 v-model="i[1].shortcut">
-                                        <button style="opacity:0.3"
+                                        <button type="button" style="opacity:0.3"
                                             title="Generate a shortcut code from the cue's number"
                                             v-on:click="apiCommand(i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
                                     </div>
@@ -584,7 +582,7 @@ ${lists}
                                         title="Track values from previous cue? If false, values not present are always transparent">
                                 </td>
                                 <td data-label="Goto:">
-                                    <button style="min-width: 90%;" v-on:click="jumptocue(i[1].id,  editingScene.id)">Go</button>
+                                    <button type="button" style="min-width: 90%;" v-on:click="jumptocue(i[1].id,  editingScene.id)">Go</button>
                                 </td>
 
                             </tr>
@@ -595,11 +593,11 @@ ${lists}
 
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newcuename" placeholder="New cue name" list="specialcues">
-                    <button v-on:click="add_cue(scenename,newcuename)">
+                    <button type="button" v-on:click="add_cue(scenename,newcuename)">
                         <i class="mdi mdi-plus"></i>Add Cue</button>
-                    <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
+                    <button type="button" v-on:click="clonecue(scenename,currentcueid,newcuename)">
                         <i class="mdi mdi-content-copy"></i>Clone Cue</button>
-                    <button v-on:click="rmcue(currentcueid)">
+                    <button type="button" v-on:click="rmcue(currentcueid)">
                         <i class="mdi mdi-delete"></i>Delete Current</button>
                 </div>
             </div>
@@ -621,9 +619,9 @@ ${lists}
                 <details open class="undecorated">
                     <summary>Cue Channel Values</summary>
                     <div class="tool-bar">
-                        <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
+                        <button type="button" v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
                                 class="mdi mdi-cog-outline"></i>Normal View</button>
-                        <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
+                        <button type="button" v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
                                 class="mdi mdi-list-box-outline"></i>Channels</button>
                     </div>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox">
@@ -653,9 +651,9 @@ ${lists}
                                                 v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
                                                 :value="ps[0]">{{ps[0]}}</option>
                                         </select>
-                                        <button v-on:click="savePreset(h)">Save</button>
+                                        <button type="button" v-on:click="savePreset(h)">Save</button>
                                     </div>
-                                    <button v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
+                                    <button type="button" v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
                                         <i class="mdi mdi-delete"></i>
                                     </button>
                                 </header>
@@ -686,7 +684,7 @@ ${lists}
                                         </combo-box>
                                     </label>
 
-                                    <button  :disabled="no_edit" v-on:click="addValToCue()"><i class="mdi mdi-plus"></i>Add Channel to
+                                    <button type="button"  :disabled="no_edit" v-on:click="addValToCue()"><i class="mdi mdi-plus"></i>Add Channel to
                                         Cue</button>
                                 </div>
 
@@ -704,7 +702,7 @@ ${lists}
                                     </label>
 
 
-                                    <button  :disabled="no_edit" v-on:click="addTagToCue()"><i class="mdi mdi-plus"></i>Add Channel to
+                                    <button type="button"  :disabled="no_edit" v-on:click="addTagToCue()"><i class="mdi mdi-plus"></i>Add Channel to
                                         Cue</button>
                                 </div>
 
@@ -719,10 +717,10 @@ ${lists}
                                     <table>
                                         <tr v-for="(v,i) in fixtureAssignments">
                                             <td>{{v.universe}}:{{i}} at {{v.channel}}</td>
-                                            <td><button v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
+                                            <td><button type="button" v-on:click="addThisFixToCurrentCue(i,1,1,0)"><i
                                                         class="mdi mdi-plus"></i>Add</button>
                                             </td>
-                                            <td><button v-on:click="addRangeEffect(i)"><i
+                                            <td><button type="button" v-on:click="addRangeEffect(i)"><i
                                                         class="mdi mdi-plus"></i>Range
                                                     Effect</button>
                                             </td>
@@ -956,8 +954,8 @@ ${lists}
                                         <input :disabled="no_edit" v-model="soundsearch" v-on:change="soundsearchresults=[]"
                                             v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
                                             style="width:60%;">
-                                        <button v-on:click="doSoundSearch(soundsearch)">Search</button>
-                                        <button v-on:click="soundsearch=''">Clear Search</button>
+                                        <button type="button" v-on:click="doSoundSearch(soundsearch)">Search</button>
+                                        <button type="button" v-on:click="soundsearch=''">Clear Search</button>
                                     </div>
                                     <div class="scroll h-24rem w-full padding">
 
@@ -1070,12 +1068,12 @@ ${lists}
                                                 <dt>{{i || "UNSET" }}</dt>
                                                 <dd>
                                                     <div class="tool-bar">
-                                                        <button v-on:click="setSoundOutput(currentcueid,i)">Set for
+                                                        <button type="button" v-on:click="setSoundOutput(currentcueid,i)">Set for
                                                             Cue</button>
-                                                        <button v-on:click="setSceneSoundOutput(scenename,i)">Set as
+                                                        <button type="button" v-on:click="setSceneSoundOutput(scenename,i)">Set as
                                                             Scene
                                                             Default</button>
-                                                        <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                                        <button type="button" v-on:click="testSoundCard(i,0,48000)">Test</button>
                                                     </div>
                                                 </dd>
                                             </template>
@@ -1106,7 +1104,7 @@ ${lists}
                                     <legend>Basic</legend>
                                     <label>Action</label>
                                     <div class="tool-bar">
-                                        <button v-on:click="promptRenameCue(scenename,currentcue.name)"><i class="mdi mdi-rename-box-outline"></i>Rename
+                                        <button type="button" v-on:click="promptRenameCue(scenename,currentcue.name)"><i class="mdi mdi-rename-box-outline"></i>Rename
                                             Cue</button>
 
                                     </div>
@@ -1204,7 +1202,7 @@ ${lists}
                                         </div>
                                     </label>
                                     <p>
-                                        <button v-on:click="gotonext(currentcueid,scenename)">
+                                        <button type="button" v-on:click="gotonext(currentcueid,scenename)">
                                             <i class="mdi mdi-arrow-right"></i>Edit Next</button>
                                         <button
                                             title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
@@ -1302,7 +1300,7 @@ ${lists}
                                         v-on:change="setbpm(scenename,parseFloat($event.target.value))"
                                         v-model="editingScene.bpm">
                                 </label>
-                                <button v-on:click="tap(scenename)" class="grow">
+                                <button type="button" v-on:click="tap(scenename)" class="grow">
                                     <i class="mdi mdi-gesture-tap"></i>Tap
                                 </button>
                             </p>
@@ -1377,7 +1375,7 @@ ${lists}
                                 <dt>Web Player</dt>
                                 <dd>
                                     <div class="tool-bar">
-                                        <button v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
+                                        <button type="button" v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
                                             as
                                             Scene
                                             Default</button>
@@ -1388,9 +1386,9 @@ ${lists}
                                     <dt>{{i || "UNSET"}}</dt>
                                     <dd>
                                         <div class="tool-bar">
-                                            <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
+                                            <button type="button" v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
                                                 Default</button>
-                                            <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                            <button type="button" v-on:click="testSoundCard(i,0,48000)">Test</button>
                                         </div>
                                     </dd>
                                 </template>
@@ -1479,7 +1477,7 @@ ${lists}
                                 </select>
                             </label>
 
-                            <button v-on:click="sendev(scenename)">Send</button>
+                            <button type="button" v-on:click="sendev(scenename)">Send</button>
                             </label>
                         </div>
                     </div>
@@ -1693,7 +1691,7 @@ ${lists}
             <details class="undecorated">
                 <summary>Cue History</summary>
                 <div>
-                    <button v-on:click="refreshhistory(scenename)">Refresh</button>
+                    <button type="button" v-on:click="refreshhistory(scenename)">Refresh</button>
                     <h3>Cue History</h3>
                     <table border="1" v-if="scenemeta[scenename].history">
                         <tr>
@@ -1732,11 +1730,17 @@ ${core.boards[boardname].link.render('api_link')}
 
 <script>
 
+
+
     // Add console specific stuff to the appdata
     appData.formatTime = function (t) {
         var date = new Date(t * 1000);
         return date.strftime("%I:%M:%S%p")
     }
+
+    appData.boardname = window.location.pathname.split('/')[3]
+
+    document.title = appData.boardname
 
     appData.keyboardJS = keyboardJS
 
