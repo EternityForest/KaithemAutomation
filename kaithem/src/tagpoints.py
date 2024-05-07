@@ -134,16 +134,16 @@ class _Alert(alerts.Alert):
         self,
         name: str,
         priority: str = "info",
-        zone=None,
+        zone: str | None = None,
         trip_delay: int | float = 0,
         auto_ack: bool | float | int = False,
-        permissions: list = [],
-        ackPermissions: list = [],
-        id=None,
+        permissions: list[str] = [],
+        ackPermissions: list[str] = [],
+        id: str | None = None,
         description: str = "",
         silent: bool = False,
     ):
-        self.source_tags: dict[str, weakref.ref[GenericTagPointClass]] = {}
+        self.source_tags: dict[str, weakref.ref[GenericTagPointClass[Any]]] = {}
         self.recalcFunction: Callable[[Any, float, Any], Any]
         self.notificationHTML: Callable[[], str]
 
@@ -525,14 +525,14 @@ class GenericTagPointClass(Generic[T]):
 
                     # We don't want the web connection to be able to keep the tag alive
                     # so don't give it a reference to us
-                    self._weakApiHandler = self.makeWeakApiHandler(weakref.ref(self))
+                    self._weakApiHandler: Callable[[str, T | None], None] = self.makeWeakApiHandler(weakref.ref(self))
                     w.attach(self._weakApiHandler)
 
                     self.data_source_widget = w
 
     @staticmethod
-    def makeWeakApiHandler(wr):
-        def f(u, v):
+    def makeWeakApiHandler(wr) -> Callable[[str, T | None], None]:
+        def f(u: str, v: T | None):
             wr().apiHandler(u, v)
 
         return f
@@ -623,7 +623,7 @@ class GenericTagPointClass(Generic[T]):
 
         workers.do(f)
 
-    def recalc(self, *a):
+    def recalc(self, *a: Any, **k: Any):
         "Just re-get the value as needed"
         # It's a getter, ignore the mypy unused thing.
         self.poll()
@@ -672,7 +672,7 @@ class GenericTagPointClass(Generic[T]):
 
             trip_delay = str(trip_delay)
 
-            d = {
+            d: dict[str, str | int | bool | float | None] = {
                 "condition": condition,
                 "priority": priority,
                 "auto_ack": auto_ack,
@@ -694,11 +694,13 @@ class GenericTagPointClass(Generic[T]):
         return None
 
     @staticmethod
-    def _makeTagAlarmHTMLFunc(selfwr):
+    def _makeTagAlarmHTMLFunc(selfwr: weakref.ref[GenericTagPointClass[T]]):
         def notificationHTML():
+            s = selfwr()
+            assert s
             try:
-                if selfwr() in ("numeric", "string"):
-                    return f'<ds-span source="tag:{selfwr().name}"></ds-span>'
+                if s.type in ("number", "string"):
+                    return f'<ds-span source="tag:{s.name}"></ds-span>'
                 else:
                     return "Binary or obj Tagpoint"
             except Exception as e:
@@ -707,7 +709,7 @@ class GenericTagPointClass(Generic[T]):
         return notificationHTML
 
     @staticmethod
-    def _getAlarmContextGetters(obj, context: dict, recalc: Callable):
+    def _getAlarmContextGetters(obj: _Alert, context: dict[str, Any], recalc: weakref.ref[Callable[..., None]]):
         # Note that it these go to an alarm which is held if active, or another tag that could be held elsewhere
         # It cannot reference any tag directly or preserve any references, we would not want that.
 
@@ -719,7 +721,7 @@ class GenericTagPointClass(Generic[T]):
 
         #
 
-        def recalc2(*a, **k):
+        def recalc2(*a: Any, **k: Any):
             recalc()()
 
         def _context_get_numeric_tag_value(n):
@@ -758,7 +760,7 @@ class GenericTagPointClass(Generic[T]):
         return recalc2
 
     @beartype.beartype
-    def _alarm_from_data(self, name: str, d: dict):
+    def _alarm_from_data(self, name: str, d: dict[str, str | None | int | bool | float]) -> Callable[..., None]:
         if not d.get("condition", ""):
             return
 
@@ -766,10 +768,10 @@ class GenericTagPointClass(Generic[T]):
             return
         tripCondition = d["condition"]
 
-        release_condition = d.get("release_condition", None)
+        release_condition: str | None = d.get("release_condition", None)
 
-        priority = d.get("priority", "warning") or "warning"
-        auto_ack = d.get("auto_ack", "").lower() in ("yes", "true", "y", "auto")
+        priority: str = d.get("priority", "warning") or "warning"
+        auto_ack: bool = d.get("auto_ack", "").lower() in ("yes", "true", "y", "auto")
         trip_delay = float(d.get("trip_delay", 0) or 0)
 
         # Shallow copy, because we are going to override the tag getter
@@ -821,7 +823,7 @@ class GenericTagPointClass(Generic[T]):
         # We don't need to weakref-ify this directly, as it just goes to the poller and the poller doesn't
         # keep strong references.
 
-        def alarm_recalc_function(*a):
+        def alarm_recalc_function(*a: Any, **k: Any) -> None:
             """Recalc with same val vor this tag, but perhaps
             a new value for
             other tags that may be fetched in the expression eval"""
@@ -848,7 +850,7 @@ class GenericTagPointClass(Generic[T]):
                 obj.error(str(e))
                 raise
 
-        def alarmPollFunction(value, timestamp, annotation):
+        def alarmPollFunction(value: T, timestamp: float, annotation: Any):
             "Given a new tag value, recalc the alarm expression"
             context["value"] = value
             context["timestamp"] = timestamp
@@ -869,7 +871,7 @@ class GenericTagPointClass(Generic[T]):
 
         # Do it with this indirection so that it doesn't do anything
         # bad with some kind of race when we delete things, and so that it doesn't hold references
-        def recalcPoll(*a):
+        def recalcPoll(*a: Any, **k: Any) -> None:
             if name in self._alarmGCRefs:
                 try:
                     x = self._alarmGCRefs[name][0]
@@ -896,7 +898,7 @@ class GenericTagPointClass(Generic[T]):
 
         return alarmPollFunction
 
-    def createGetterFromExpression(self: GenericTagPointClass[T], e: str, priority=98) -> Claim[T]:
+    def createGetterFromExpression(self: GenericTagPointClass[T], e: str, priority: int | float = 98) -> Claim[T]:
         "Create a getter for tag self using expression e"
         try:
             for i in self.source_tags:
@@ -944,7 +946,7 @@ class GenericTagPointClass(Generic[T]):
         return self._subtype
 
     @subtype.setter
-    def subtype(self, val):
+    def subtype(self, val: str):
         self._subtype = val
         if val == "bool":
             self.min = 0
@@ -1151,7 +1153,7 @@ class GenericTagPointClass(Generic[T]):
             raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
 
     @beartype.beartype
-    def unsubscribe(self, f: Callable):
+    def unsubscribe(self, f: Callable[[T, float, Any], Any]):
         if self.lock.acquire(timeout=20):
             try:
                 x = None
@@ -1605,7 +1607,7 @@ class GenericTagPointClass(Generic[T]):
         x = sorted(x, reverse=True)
         return x[0]
 
-    def release(self, name):
+    def release(self, name: str):
         if not self.lock.acquire(timeout=10):
             raise RuntimeError("Could not get lock!")
 

@@ -12,6 +12,7 @@ from scullery import snake_compat
 from tinytag import TinyTag
 
 from ..alerts import getAlertState
+from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
 from . import ChandlerConsole, core, scenes, universes
 from .core import disallow_special
@@ -103,8 +104,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def setup_link(self):
         class WrappedLink(kaithem.widget.APIWidget):
-            def on_new_subscriber(s, user, connection_id, **kw):
+            def on_new_subscriber(s, user: str, connection_id: str, **kw: Any):
                 self.send_everything(connection_id)
+
+            def on_subscriber_disconnected(s, user: str, connection_id: str, **kw: Any) -> None:
+                if canUserDoThis(user, "system_admin"):
+                    self.check_autosave()
+                return super().on_subscriber_disconnected(user, connection_id, **kw)
 
         self.link = WrappedLink(id=f"WebChandlerConsole:{self.name}", echo=False)
         self.link.require("chandler_operator")
@@ -141,7 +147,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         if self.link:
             return self.link.send_to(data, target)
 
-    def send_everything(self, sessionid):
+    def send_everything(self, sessionid: str):
         with core.lock:
             self.pushUniverses()
             self.pushfixtures()

@@ -5,16 +5,89 @@
 > Auto-generated documentation for [modules](../../../api/modules.py) module.
 
 - [Modules](#modules)
+  - [delete_resource](#delete_resource)
   - [filename_for_resource](#filename_for_resource)
+  - [get_resource_data](#get_resource_data)
+  - [insert_resource](#insert_resource)
+  - [list_resources](#list_resources)
+  - [update_resource](#update_resource)
+
+## delete_resource
+
+[Show source in modules.py:44](../../../api/modules.py#L44)
+
+#### Signature
+
+```python
+def delete_resource(module: str, resource: str): ...
+```
+
+
 
 ## filename_for_resource
 
-[Show source in modules.py:3](../../../api/modules.py#L3)
+[Show source in modules.py:7](../../../api/modules.py#L7)
 
-Given the module and resource, return the actual file for a file resource
+Given the module and resource, return the actual file for a file resource, or
+file data dir for directory resource
 
 #### Signature
 
 ```python
 def filename_for_resource(module: str, resource: str) -> str: ...
+```
+
+
+
+## get_resource_data
+
+[Show source in modules.py:17](../../../api/modules.py#L17)
+
+Get the dict data for a resource
+
+#### Signature
+
+```python
+def get_resource_data(module: str, resource: str) -> ResourceDictType: ...
+```
+
+
+
+## insert_resource
+
+[Show source in modules.py:22](../../../api/modules.py#L22)
+
+Create a new resource, if it doesn't already exist,
+and initializing it as appropriate for it's resource type
+
+#### Signature
+
+```python
+def insert_resource(module: str, resource: str, resourceData: ResourceDictType): ...
+```
+
+
+
+## list_resources
+
+[Show source in modules.py:48](../../../api/modules.py#L48)
+
+#### Signature
+
+```python
+def list_resources(module: str) -> list[str]: ...
+```
+
+
+
+## update_resource
+
+[Show source in modules.py:34](../../../api/modules.py#L34)
+
+Update an existing resource
+
+#### Signature
+
+```python
+def update_resource(module: str, resource: str, resourceData: ResourceDictType): ...
 ```

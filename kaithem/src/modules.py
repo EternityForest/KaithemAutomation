@@ -73,7 +73,10 @@ def loadAllCustomResourceTypes() -> None:
                 key=lambda n: len(n),
                 reverse=True,
             ):
-                r = modules_state.ActiveModules[i][j]
+                orig = modules_state.ActiveModules[i][j]
+                # Be defensive in case something on loader code
+                # Tries to modify something
+                r = copy.deepcopy(orig)
                 if hasattr(r, "get"):
                     if r.get("resource_type", "") == loading_rt:
                         try:
@@ -87,6 +90,9 @@ def loadAllCustomResourceTypes() -> None:
                                 f"Error loading resource:{str((i, j))}",
                             )
                             logger.exception(f"Error loading resource: {str((i, j))}")
+                if not r == orig:
+                    logger.warning("Loader tried to modify resource object %s during load", str((i, j)))
+
     for i in additionalTypes:
         additionalTypes[i].onfinishedloading(None)
 

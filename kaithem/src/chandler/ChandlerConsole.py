@@ -320,7 +320,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                 self.scenes = {}
             self.loadDict(data, errs)
 
-    def loadDict(self, data, errs=False):
+    def loadDict(self, data: dict[str, Any], errs: bool = False):
+        data = copy.deepcopy(data)
         data = from_legacy(data)
         data = snake_compat.snakify_dict_keys(data)
 
@@ -473,12 +474,12 @@ class ChandlerConsole(console_abc.Console_ABC):
     def save_project_data(self):
         sd = copy.deepcopy(self.getScenes())
 
-        project_file = {"scenes": sd, "setup": self.getSetupFile()}
+        project_file: dict[str, Any] = {"scenes": sd, "setup": self.getSetupFile()}
 
         if self.last_saved_version == project_file:
             return
 
-        self.last_saved_version = sd
+        self.last_saved_version = project_file
 
         self.save_callback(project_file)
 

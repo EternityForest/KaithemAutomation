@@ -1,4 +1,5 @@
 import copy
+from typing import Any
 
 from kaithem.src import dialogs, modules_state
 
@@ -8,14 +9,13 @@ entries: dict[tuple[str, str], WebChandlerConsole.WebConsole] = {}
 
 
 def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
-    def save(data: dict):
+    def save(data: dict[str, Any]):
         x = modules_state.ActiveModules[module][resource]
 
         x = copy.deepcopy(x)
-
-        x["project"] = data
-
-        modules_state.rawInsertResource(module, resource, x)
+        if not data == x.get("project", {}):
+            x["project"] = data
+            modules_state.rawInsertResource(module, resource, x)
 
     c.save_callback = save
 

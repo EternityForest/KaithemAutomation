@@ -11,7 +11,9 @@
 
 ## add_val
 
-[Show source in settings.py:13](../../../api/settings.py#L13)
+[Show source in settings.py:14](../../../api/settings.py#L14)
+
+Add a config option.   If value is empty string, remove it instead.
 
 #### Signature
 
@@ -23,7 +25,7 @@ def add_val(key: str, value: str, source: str = "<code>", priority: float | int 
 
 ## get_val
 
-[Show source in settings.py:8](../../../api/settings.py#L8)
+[Show source in settings.py:9](../../../api/settings.py#L9)
 
 Returns the highest priority setting for the key
 
@@ -38,6 +40,8 @@ def get_val(key: str) -> str: ...
 ## list_keys
 
 [Show source in settings.py:4](../../../api/settings.py#L4)
+
+List all known setting keys
 
 #### Signature
 

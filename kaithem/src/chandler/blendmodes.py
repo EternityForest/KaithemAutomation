@@ -1,9 +1,11 @@
-import numpy
-import time
-import random
 import math
+import random
+import time
 import weakref
 from typing import Any, Dict, Tuple
+
+import numpy
+
 from . import universes
 
 
@@ -36,6 +38,7 @@ def getblenddesc(mode: str):
 
 
 class BlendMode:
+    default_channel_value = 0
     parameters: Dict[str, Tuple[str, str, str, str | bool | float]] = {}
     autoStop = True
 
@@ -225,9 +228,7 @@ class vary_blendmode_np(BlendMode):
             avg = self.scene.blend_args["mode"]
             nv = numpy.random.triangular(0, max(min(1, 1 - avg), 0), 1, values.shape)
             self.vals[u] = 1 - (nv * (values / 255.0))
-            self.ntt = time.time() + random.triangular(
-                interval - rnd, interval + rnd, interval
-            )
+            self.ntt = time.time() + random.triangular(interval - rnd, interval + rnd, interval)
 
         lp = t60 * self.scene.blend_args["speed"]
         if uobj:
@@ -236,9 +237,7 @@ class vary_blendmode_np(BlendMode):
                 uobj.interpolationTime = (1 / 60) / self.scene.blend_args["speed"]
 
         self.vals_lp[u] = self.vals_lp[u] * (1 - lp) + self.vals[u] * lp
-        old *= numpy.minimum(
-            (self.scene.alpha * self.vals_lp[u]) + 1 - self.scene.alpha, 255
-        )
+        old *= numpy.minimum((self.scene.alpha * self.vals_lp[u]) + 1 - self.scene.alpha, 255)
         return old
 
 
@@ -257,9 +256,7 @@ class exp_blendmode_np(BlendMode):
         self.last = time.time()
 
     def frame(self, u, below, values, alphas, alpha):
-        return (((below ** (values / 100.0)) / 255.0 ** (values / 100.0)) * 255) * (
-            alphas * alpha
-        ) + below * (1 - alphas * alpha)
+        return (((below ** (values / 100.0)) / 255.0 ** (values / 100.0)) * 255) * (alphas * alpha) + below * (1 - alphas * alpha)
 
 
 blendmodes["gamma"] = exp_blendmode_np
@@ -337,9 +334,7 @@ class sparks_blendmode(BlendMode):
 
         # The vals_lp are actually alphas that spark up and then fade out and control how much of the scene shows up
         # in that channel
-        return values * (self.vals_lp[u] * alpha * alphas) + old * (
-            1 - (self.vals_lp[u] * alpha * alphas)
-        )
+        return values * (self.vals_lp[u] * alpha * alphas) + old * (1 - (self.vals_lp[u] * alpha * alphas))
 
 
 blendmodes["sparks"] = sparks_blendmode

@@ -678,7 +678,7 @@ def getUserLimit(user: str, limit: str, maximum: int | float = 2**64) -> float |
     return 0
 
 
-def canUserDoThis(user, permission) -> bool:
+def canUserDoThis(user: str, permission: str) -> bool:
     """Return True if given user(by username) has access to the given permission"""
 
     if permission == "__never__":
