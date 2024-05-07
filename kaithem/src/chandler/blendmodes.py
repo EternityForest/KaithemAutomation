@@ -9,7 +9,7 @@ import numpy
 from . import universes
 
 
-def getUniverse(u):
+def getUniverse(u: str):
     "Get strong ref to universe if it exists, else get none."
     try:
         oldUniverseObj = universes.universes[u]()
@@ -73,8 +73,10 @@ class flicker_blendmode(BlendMode):
             3,
         ),
     }
-    description = """Effects layer that simulate a natural flame-like flickering effect. Channel value determines how much flicker to apply to that channel.
-To use this, add a layer below containing the base colors. The flicker layer will randomly darken them according to it's simulation algorithm."""
+    description = """Effects layer that simulate a natural flame-like flickering effect.
+    Channel value determines how much flicker to apply to that channel.
+    To use this, add a layer below containing the base colors.
+    The flicker layer will randomly darken them according to it's simulation algorithm."""
 
     def __init__(self, scene):
         self.scene = scene
