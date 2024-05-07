@@ -14,6 +14,7 @@ Change Log
 - :bug: Module search pages
 - :bug: Certain custom resource types could not be created in folders.
 - :bug: Page editor robustness against missing keys
+- :bug: Dashboard correctly shows the default value even if it hasn't been set yet.
 
 #### Changed
 

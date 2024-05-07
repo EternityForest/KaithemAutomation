@@ -1584,6 +1584,18 @@ class GenericTagPointClass(Generic[T]):
                 if self.subscribers or self.handler:
                     if timestamp:
                         self._push()
+                    else:
+                        # Even when it's the default, the dashboard
+                        # Needs to know.
+                        if self.data_source_widget:
+                            self.data_source_widget.value = self.value
+                            self.data_source_widget.send(self.value)
+                else:
+                    # Even when no subscribers yet, the dashboard
+                    # Needs to know.
+                    if self.data_source_widget:
+                        self.data_source_widget.value = self.value
+                        self.data_source_widget.send(self.value)
         finally:
             self.lock.release()
 
