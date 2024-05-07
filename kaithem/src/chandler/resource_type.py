@@ -40,7 +40,7 @@ class ConfigType(modules_state.ResourceType):
 
     def onload(self, module, resourcename, value):
         x = entries.pop((module, resourcename), None)
-        entries[module, resourcename] = WebChandlerConsole.WebConsole()
+        entries[module, resourcename] = WebChandlerConsole.WebConsole(f"{module}:{resourcename}")
         set_save_cb(entries[module, resourcename], module, resourcename)
         core.boards[f"{module}:{resourcename}"] = entries[module, resourcename]
 

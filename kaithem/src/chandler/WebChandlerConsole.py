@@ -96,9 +96,9 @@ def getSerPorts():
 
 
 class WebConsole(ChandlerConsole.ChandlerConsole):
-    def __init__(self):
+    def __init__(self, name: str = "WebConsole"):
         self.link = None
-        super().__init__()
+        super().__init__(name)
         self.setup_link()
 
     def setup_link(self):
@@ -106,7 +106,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             def on_new_subscriber(s, user, connection_id, **kw):
                 self.send_everything(connection_id)
 
-        self.link = WrappedLink()
+        self.link = WrappedLink(id=f"WebChandlerConsole:{self.name}", echo=False)
         self.link.require("chandler_operator")
         self.link.echo = False
         # Bound method weakref nonsense prevention

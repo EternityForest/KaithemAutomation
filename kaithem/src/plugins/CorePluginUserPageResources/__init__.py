@@ -852,9 +852,9 @@ class PageType(modules_state.ResourceType):
         d = SimpleDialog(f"{module}: {resource}")
         d.submit_button("GoNow", title="Save and go to page")
 
-        d.code_editor("code", language="python", default=resource_data["code"])
+        d.code_editor("code", language="python", default=resource_data.get("code", ""))
         d.code_editor("body", language="html", default=resource_data["body"])
-        d.code_editor("setupcode", language="python", default=resource_data["setupcode"])
+        d.code_editor("setupcode", language="python", default=resource_data.get("setupcode", ""))
 
         o = ["jinja2", "markdown", "none"]
         if resource_data.get("template_engine", "jinja2") == "mako":

@@ -164,6 +164,11 @@ class webapproot:
         return serve_file(fn)
 
     @cherrypy.expose
+    def apiwidget(self, widgetid, js_name):
+        pages.require("enumerate_endpoints")
+        return widgets.widgets[widgetid]._render(js_name)
+
+    @cherrypy.expose
     def default(self, *path, **data):
         if path[0] in webapi._simple_handlers:
             if webapi._simple_handlers[path[0]][0]:

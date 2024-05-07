@@ -869,8 +869,10 @@ class APIWidget(Widget):
             self.send(value)
 
     def render(self, htmlid: str) -> str:
+        return f"<script>{self._render(htmlid)}</script>"
+
+    def _render(self, htmlid: str) -> str:
         return f"""
-            <script>
                 {htmlid} = {{}};
                 {htmlid}.value = "Waiting..."
                 {htmlid}.clean = 0;
@@ -946,7 +948,6 @@ class APIWidget(Widget):
                     kaithemapi.subscribe("_ws_timesync_channel",onTimeResponse)
                     kaithemapi.subscribe("{self.uuid}",_upd);
                     setTimeout({htmlid}.getTime,500)
-            </script>
             """
 
 

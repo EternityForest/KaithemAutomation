@@ -32,10 +32,12 @@ def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
 class ChandlerConsole(console_abc.Console_ABC):
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
-    def __init__(self) -> None:
+    def __init__(self, name: str = "ChandlerConsole") -> None:
         super().__init__()
 
         self.id = uuid.uuid4().hex
+
+        self.name = name
 
         # mutable and immutable versions of the active scenes list.
         self.scenes_by_name: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()

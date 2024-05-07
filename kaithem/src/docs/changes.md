@@ -12,6 +12,7 @@ Change Log
 - :bug: Object tags didn't disply right
 - :bug: Module search pages
 - :bug: Certain custom resource types could not be created in folders.
+- :bug: Page editor robustness against missing keys
 
 #### Changed
 
