@@ -1710,47 +1710,6 @@ def make_event_from_resource(module: str, resource: str, subst: modules_state.Re
     return x
 
 
-class EventAPI(modules_state.ResourceObject):
-    resourceType = "event"
-
-    def __init__(self, m, r, o):
-        modules_state.ResourceObject.__init__(self, m, r, o)
-
-    def run(self):
-        _events_by_module_resource[self.module, self.resource].manualRun()
-
-    @property
-    def scope(self):
-        return _events_by_module_resource[self.module, self.resource].pymodule
-
-    @property
-    def data(self):
-        return _events_by_module_resource[self.module, self.resource].data
-
-    # Allow people to start and stop events at runtime.
-    # Some events support a separate new pause/unpause api, otherwise use register
-    # and unregister. It might not be safe to re-register events that
-    # have a pause api.
-
-    def start(self):
-        ev = _events_by_module_resource[self.module, self.resource]
-        if hasattr(ev, "unpause"):
-            ev.unpause()
-        else:
-            ev.register()
-
-    def stop(self):
-        ev = _events_by_module_resource[self.module, self.resource]
-        if hasattr(ev, "pause"):
-            ev.pause()
-        else:
-            ev.unregister()
-
-    def report_exception(self):
-        """Call in an exception handler to handle the exception as if it came from the given event"""
-        _events_by_module_resource[self.module, self.resource].handle_exception()
-
-
 init_done = False
 
 

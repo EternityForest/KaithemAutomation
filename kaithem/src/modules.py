@@ -4,7 +4,6 @@
 # File for keeping track of and editing kaithem modules(not python modules)
 import copy
 import gc
-import json
 import logging
 import os
 import re
@@ -13,6 +12,8 @@ import time
 import traceback
 import weakref
 import zipfile
+from collections.abc import Callable
+from io import BytesIO
 from typing import Any
 
 import beartype
@@ -20,7 +21,7 @@ import cherrypy
 import yaml
 from scullery import snake_compat
 
-from . import auth, directories, kaithemobj, messagebus, modules_state, pages, util
+from . import auth, directories, messagebus, modules_state, pages, util
 from .modules_state import (
     ResourceDictType,
     additionalTypes,
@@ -32,10 +33,8 @@ from .modules_state import (
     parseTarget,
     safeFnChars,
     saveModule,
-    saveResource,
     scopes,
 )
-from .plugins import CorePluginEventResources
 from .util import url
 
 logger = logging.getLogger("system")
@@ -44,10 +43,8 @@ logger = logging.getLogger("system")
 FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
 
 
-def check_forbidden(s):
-    if not isinstance(s, str):
-        raise RuntimeError("{s} is not even a string")
-
+@beartype.beartype
+def check_forbidden(s: str) -> None:
     if len(s) > 255:
         raise ValueError(f"Excessively long name {s[:128]}...")
 
@@ -58,10 +55,6 @@ def check_forbidden(s):
 
 def new_empty_module():
     return {"__description": {"resource_type": "module-description", "text": ""}}
-
-
-def new_module_container():
-    return {}
 
 
 def loadAllCustomResourceTypes() -> None:
@@ -98,22 +91,6 @@ def loadAllCustomResourceTypes() -> None:
         additionalTypes[i].onfinishedloading(None)
 
 
-class Page(modules_state.ResourceObject):
-    resourceType = "page"
-
-
-class Permission(modules_state.ResourceObject):
-    resourceType = "permission"
-
-
-class InternalFileRef(modules_state.ResourceObject):
-    resourceType = "internal_fileref"
-
-    def getPath(self):
-        "Return the actual path on the filesystem of things"
-        return file_resource_paths[self.module, self.resource]
-
-
 class ModuleObject:
     """
     These are the objects acessible as 'module' within pages, events, etc.
@@ -122,87 +99,8 @@ class ModuleObject:
     dynamically create resources, or more likely just acess file resource contents or metadata about the module.
     """
 
-    def __init__(self, modulename: str):
+    def __init__(self, modulename: str) -> None:
         self.__kaithem_modulename__ = modulename
-
-    def __getitem__(self, name: str):
-        "When someone acesses a key, return an interface to that module."
-        x: Any = modules_state.ActiveModules[self.__kaithem_modulename__][name]
-
-        module = self.__kaithem_modulename__
-
-        resourcetype = x["resource_type"]
-
-        if resourcetype == "page":
-            x = Page(module, name, x)
-
-        elif resourcetype == "event":
-            x = CorePluginEventResources.EventAPI(module, name, x)
-
-        elif resourcetype == "permission":
-            x = Permission(module, name, x)
-
-        elif resourcetype == "internal_fileref":
-            x = InternalFileRef(module, name, x)
-
-        return x
-
-    def __setitem__(self, name, value):
-        "When someone sets an item, validate it, then do any required bookkeeping"
-
-        module = self.__kaithem_modulename__
-
-        def f():
-            with modulesLock:
-                if not isinstance(value, dict):
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        f"VirtualResource is removed. Can't add {name} to {module}",
-                    )
-                    return
-
-                if "resource_type" not in value:
-                    raise ValueError("Supplied dict has no resource_type")
-
-                resourcetype = value["resource_type"]
-                # Raise an exception on anything non-serializable or without a resource_type,
-                # As those could break something.
-                json.dumps({name: value})
-
-                # Insert the new item into the global modules thing
-                modules_state.ActiveModules[module][name] = value
-
-                modules_state.modulesHaveChanged()
-
-                # Make sure we recognize the resource_type, or else we can't load it.
-                if (resourcetype not in ["permission", "directory"]) and (resourcetype not in additionalTypes):
-                    raise ValueError("Unknown resource_type")
-
-                elif resourcetype == "permission":
-                    auth.importPermissionsFromModules()
-
-                else:
-                    additionalTypes[resourcetype].onload(module, name, value)
-
-                saveResource(module, name, value)
-
-        modules_state.runWithModulesLock(f)
-
-
-# This is used for the kaithem object.
-
-
-class ResourceAPI:
-    def __getitem__(self, name: str):
-        if isinstance(name, tuple):
-            x = modules_state.ActiveModules[name[0]][name[1]]
-            if isinstance(x, weakref.ref):
-                return x
-            else:
-                raise ValueError("Name refers to a non-virtual resource")
-
-
-kaithemobj.kaithem.resource = ResourceAPI()
 
 
 @beartype.beartype
@@ -229,7 +127,9 @@ def readResourceFromFile(
 
 
 # Backwards compatible resource loader.
-def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None) -> tuple[ResourceDictType | None, str | None]:
+def readResourceFromData(
+    d: str, relative_name: str, ver: int = 1, filename: str | None = None
+) -> tuple[ResourceDictType | None, str | None]:
     """Returns (datadict, ResourceName)
     Should be pure except logging
     """
@@ -299,7 +199,7 @@ def indent(s, prefix="    "):
     return "\n".join(s)
 
 
-def initModules():
+def initModules() -> None:
     global external_module_locations
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
     Then start with an empty list of modules. Should normally be called once at startup."""
@@ -326,7 +226,7 @@ def initModules():
     logger.info("Initialized modules")
 
 
-def loadModules(modulesdir: str):
+def loadModules(modulesdir: str) -> None:
     "Load all modules in the given folder to RAM."
     logger.debug(f"Loading modules from {modulesdir}")
     for i in util.get_immediate_subdirectories(modulesdir):
@@ -353,7 +253,7 @@ def loadModules(modulesdir: str):
             )
 
 
-def detect_ignorable(path: str):
+def detect_ignorable(path: str) -> None:
     "Recursive detect paths that should be ignored and left alone when loading and saving"
     # Safety counter, this seems like it might need it.
     for i in range(64):
@@ -365,7 +265,7 @@ def detect_ignorable(path: str):
             return
 
 
-def _detect_ignorable(path: str):
+def _detect_ignorable(path: str) -> None:
     "Detect paths that should be ignored when loading a module"
     # Detect .git
     if os.path.basename(path) == ".git":
@@ -449,7 +349,7 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
             file_resource_paths[module, resourcename] = target
 
 
-def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=None):
+def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] | None = None, resource_folder: str | None = None) -> None:
     "Load a single module but don't bookkeep it . Used by loadModules"
     logger.debug(f"Attempting to load module {modulename}")
 
@@ -458,7 +358,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
 
     with modulesLock:
         # Make an empty dict to hold the module resources
-        module = {}
+        module: dict[str, ResourceDictType] = {}
 
         for t in additionalTypes:
             found = additionalTypes[t].scan_dir(folder)
@@ -563,7 +463,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
 
 
 @beartype.beartype
-def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
+def autoGenerateFileRefResources(module: dict[str, Any], modulename: str) -> bool | None:
     "Return true if anything generared"
     rt = False
     with modulesLock:
@@ -620,7 +520,7 @@ def autoGenerateFileRefResources(module: dict[str, Any], modulename: str):
     return rt
 
 
-def load_modules_from_zip(f, replace=False):
+def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
     """Given a zip file, import all modules found therin.
     On failure, revert to existing module if replacing"""
     z = zipfile.ZipFile(f)
@@ -679,7 +579,7 @@ def load_modules_from_zip(f, replace=False):
     z.close()
 
 
-def bookkeeponemodule(module, update=False, include_events=False):
+def bookkeeponemodule(module: str, update: bool = False, include_events: bool = False) -> None:
     """Given the name of one module that has been copied to
     modules_state.ActiveModules but nothing else,
     let the rest of the system know the module is there."""
@@ -764,7 +664,7 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
             shutil.move(i[0], i[1])
 
 
-def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
+def rmResource(module: str, resource: str, message: str = "Resource Deleted") -> None:
     "Delete one resource by name, message is an optional message explaining the change"
     with modulesLock:
         r = modules_state.ActiveModules[module].pop(resource)
@@ -811,7 +711,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted"):
         )
 
 
-def newModule(name: str, location: str | None = None):
+def newModule(name: str, location: str | None = None) -> None:
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
 
     check_forbidden(name)
@@ -849,7 +749,7 @@ def newModule(name: str, location: str | None = None):
         saveModule(modules_state.ActiveModules[name], name)
 
 
-def rmModule(module, message="deleted"):
+def rmModule(module: str, message: str = "deleted") -> None:
     with modulesLock:
         x = modules_state.ActiveModules.pop(module)
         j = {i: copy.deepcopy(x[i]) for i in x if not (isinstance(x[i], weakref.ref))}
@@ -900,7 +800,7 @@ def createResource(module: str, resource: str, data: ResourceDictType):
     handleResourceChange(module, resource)
 
 
-def handleResourceChange(module, resource, obj=None, newly_added=False):
+def handleResourceChange(module: str, resource: str, obj: None = None, newly_added: bool = False) -> None:
     modules_state.modulesHaveChanged()
 
     with modules_state.modulesLock:

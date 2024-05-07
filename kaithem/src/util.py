@@ -91,14 +91,14 @@ if "/usr/lib" in dn:
 else:
     datadir = os.path.join(dn, "../data")
 
-bip39 = [s.strip() for s in open(os.path.join(datadir, "bip39.txt"))]
+bip39: List[str] = [s.strip() for s in open(os.path.join(datadir, "bip39.txt"))]
 
 assert len(bip39) == 2048
 
 
-def memorableHash(x, num=3, separator=""):
+def memorableHash(x: bytes | str, num: int = 3, separator: str = "") -> str:
     "Use the diceware list to encode a hash. This IS meant to be secure"
-    o = ""
+    o: str = ""
 
     if isinstance(x, str):
         x = x.encode("utf8")
@@ -120,7 +120,7 @@ def universal_weakref(f, cb=None):
         return weakref.ref(f, cb)
 
 
-def chmod_private_try(p, execute=True):
+def chmod_private_try(p: str, execute: bool = True) -> None:
     try:
         if execute:
             os.chmod(
@@ -171,7 +171,7 @@ def SaveAllState():
 # It looks like a lot of people might have contributed to this little bit of code.
 
 
-def in_directory(file, directory):
+def in_directory(file: str, directory: str) -> bool:
     # make both absolute
     directory = os.path.join(os.path.realpath(directory), "")
     file = os.path.realpath(file)

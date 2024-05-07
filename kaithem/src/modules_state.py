@@ -76,19 +76,19 @@ def getModuleDir(module: str) -> str:
 
 # This is a dict indexed by module/resource tuples that contains the absolute path to what
 # The system considers the current "loaded" version.
-file_resource_paths: dict[tuple, str] = {}
+file_resource_paths: dict[tuple[str, str], str] = {}
 
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
 
 
-def parseTarget(t: str, module: str, in_ext=False):
+def parseTarget(t: str, module: str, in_ext: bool = False):
     if t.startswith("$MODULERESOURCES/"):
         t = t[len("$MODULERESOURCES/") :]
     return t
 
 
-def getExt(r):
+def getExt(r: ResourceDictType):
     if r["resource_type"] == "directory":
         return ""
 
@@ -110,16 +110,18 @@ def serializeResource(name: str, obj: dict[str, str | int | bool | float | dict[
     to file contents, to be written in appropriate folder"""
 
     r = copy.deepcopy(obj)
+    rt = r["resource_type"]
+    assert isinstance(rt, str)
 
-    if r["resource_type"] in additionalTypes:
-        return additionalTypes[r["resource_type"]].to_files(name, r)
+    if rt in additionalTypes:
+        return additionalTypes[rt].to_files(name, r)
 
     else:
         return {f"{name.split('/')[-1]}.yaml": yaml.dump(r)}
 
 
 @beartype.beartype
-def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str:
+def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | None:
     "Write resource into dir"
     # logger.debug("Saving resource to "+str(fn))
 
@@ -235,7 +237,7 @@ def get_resource_save_location(m: str, r: str) -> str:
 
 
 @beartype.beartype
-def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str]:
+def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str] | None:
     """Returns a list of saved module,resource tuples and the saved resource.
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
@@ -252,7 +254,7 @@ def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str
     # Iterate over all of the resources in a module and save them as json files
     # under the URL url module name for the filename.
     logger.debug("Saving module " + str(modulename))
-    saved = []
+    saved: list[str] = []
 
     # do the saving
     dir = getModuleFn(modulename)
@@ -278,8 +280,8 @@ def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str
 ActiveModules: dict[str, dict[str, ResourceDictType]] = {}
 
 moduleshash = "000000000000000000000000"
-modulehashes = {}
-modulewordhashes = {}
+modulehashes: dict[str, str] = {}
+modulewordhashes: dict[str, str] = {}
 
 
 def hashModules() -> str:
@@ -309,12 +311,15 @@ def wordHashModule(module: str) -> str:
 
 
 def getModuleHash(m: str) -> str:
+    global modulehashes
+
     if m not in modulehashes:
         modulehashes[m] = hashModule(m)
     return modulehashes[m].upper()
 
 
 def getModuleWordHash(m: str) -> str:
+    global modulewordhashes
     if m not in modulewordhashes:
         modulewordhashes[m] = wordHashModule(m)
     return modulewordhashes[m].upper()
@@ -335,8 +340,8 @@ def deterministic_walk(
     | tuple[str, list[str], list[str]]
     | tuple[str, list[Any], list[Any]]
 ]:
-    dirs = []
-    files = []
+    dirs: list[str] = []
+    files: list[str] = []
 
     sld = sorted(os.listdir(d))
 
@@ -417,7 +422,7 @@ def in_folder(n: str, folder_name: str) -> bool:
 
 def ls_folder(m: str, d: str) -> list[str]:
     "List a kaithem resource folder's direct children"
-    o = []
+    o: list[str] = []
     x = ActiveModules[m]
     for i in x:
         if in_folder(i, d):
@@ -430,7 +435,7 @@ modulesLock = RLock()
 
 
 # For passing thigs to that owning thread
-mlockFunctionQueue = []
+mlockFunctionQueue: list[Callable[[], Any]] = []
 
 # Allows the owner f the lock to let other threads run things in it,
 # By overriding this, them setting it back.
@@ -439,7 +444,7 @@ mlockFunctionQueue = []
 # As the user init code is a different thread, they have to pass requests to us
 
 
-def runWithModulesLock(g):
+def runWithModulesLock(g: Callable[[], Any]) -> Any:
     return g()
 
 
@@ -488,10 +493,3 @@ def pollMlockRequests() -> None:
 # Every module has a object of class object that is used so user code can share state between resources in
 # a module
 scopes: dict[str, Any] = {}
-
-
-class ResourceObject:
-    def __init__(self, m: str | None = None, r: str | None = None, o=None):
-        self.resource = r
-        self.module = m
-        self._object = o

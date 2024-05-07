@@ -27,6 +27,7 @@ Change Log
 #### Removed
 
 - :coffin: Video filters removed from Beholder
+- :coffin: The module[resource] APIs are removed. Use kaithem.api.modules instead.
 
 
 ### 0.81.0
