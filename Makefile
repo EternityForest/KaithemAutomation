@@ -113,12 +113,12 @@ dev-build-docs:
 
 .PHONY: dev-count-lines
 dev-count-lines: # Line count summary
-	@poetry run pygount --format=summary --names-to-skip="*.min.js" --folders-to-skip="thirdparty,data,__pycache__" kaithem/
+	@poetry run pygount --format=summary --names-to-skip="*.min.js,OPZFormatFixtures.json,bip39.txt" --folders-to-skip="thirdparty,__pycache__" kaithem/ scripts/
 
 
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
-	@poetry run pygount --names-to-skip="*.min.js" --folders-to-skip="thirdparty,data,__pycache__" kaithem/ | sort -nr -
+	@poetry run pygount --names-to-skip="*.min.js,OPZFormatFixtures.json,bip39.txt" --folders-to-skip="thirdparty,__pycache__" kaithem/ scripts/ | sort -nr -
 
 
 .PHONY: root-install-system-dependencies

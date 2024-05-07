@@ -24,9 +24,9 @@ Change Log
 #### Added
 
 - :sparkles: Chandler "shell" command lets you run stuff in the system shell. Use with care!
-
 - :sparkles: `make dev-count-lines` command to roughly track codebase changes.
--
+- :sparkles: Leaving the chandler editor page triggers autosave if there were changes.
+
 #### Removed
 
 - :coffin: Video filters removed from Beholder
