@@ -1,10 +1,12 @@
-import os
-import requests
-import time
-import threading
 import json
-from . import directories
+import os
+import threading
+import time
 from typing import List
+
+import niquests
+
+from . import directories
 
 fetchlock = threading.RLock()
 
@@ -31,9 +33,7 @@ class AssetPacks:
             url = i
             i = i.replace("https://", "").replace("github.com/", "")
             i = i.split("/")
-            self.assetPackFolders[
-                os.path.join(directories.vardir, "assets", i[0] + ":" + i[1])
-            ] = i
+            self.assetPackFolders[os.path.join(directories.vardir, "assets", i[0] + ":" + i[1])] = i
             self.assetPackNames[url] = i[0] + ":" + i[1]
 
     def ls(self, f: str) -> List[str]:
@@ -51,9 +51,7 @@ class AssetPacks:
                 break
             d = os.path.dirname(d)
 
-        x = [
-            (i + "/" if os.path.isdir(os.path.join(f, i)) else i) for i in os.listdir(f)
-        ]
+        x = [(i + "/" if os.path.isdir(os.path.join(f, i)) else i) for i in os.listdir(f)]
 
         if os.path.normpath(f) == self.assetlib:
             for i in self.assetPackFolders.keys():
@@ -61,10 +59,8 @@ class AssetPacks:
                 if n + "/" not in x:
                     x.append(n + "/")
         if ap:
-            l = fetch_list(
-                self.assetPackFolders[ap][0], self.assetPackFolders[ap][1], ap
-            )
-            t = l["tree"]
+            assetlist = fetch_list(self.assetPackFolders[ap][0], self.assetPackFolders[ap][1], ap)
+            t = assetlist["tree"]
             for i in t:
                 current = os.path.relpath(f, ap)
                 if current == ".":
@@ -117,7 +113,7 @@ def fetch_meta(owner, repo, folder, cachetime=30 * 24 * 3600):
     try:
         url = "https://api.github.com/repos/" + owner + "/" + repo
 
-        d = requests.get(url, timeout=5)
+        d = niquests.get(url, timeout=5)
         d.raise_for_status()
 
         with open(fn, "w") as f:
@@ -145,17 +141,9 @@ def fetch_list(owner, repo, folder, cachetime=7 * 24 * 3600):
     try:
         branch = fetch_meta(owner, repo, folder)["default_branch"]
 
-        url = (
-            "https://api.github.com/repos/"
-            + owner
-            + "/"
-            + repo
-            + "/git/trees/"
-            + branch
-            + "?recursive=1"
-        )
+        url = "https://api.github.com/repos/" + owner + "/" + repo + "/git/trees/" + branch + "?recursive=1"
 
-        d = requests.get(url, timeout=5)
+        d = niquests.get(url, timeout=5)
         d.raise_for_status()
 
         with open(fn, "w") as f:
@@ -176,20 +164,11 @@ def fetch_file(owner, repo, folder, path):
         return
 
     branch = fetch_meta(owner, repo, folder)["default_branch"]
-    url = (
-        "https://raw.githubusercontent.com/"
-        + owner
-        + "/"
-        + repo
-        + "/"
-        + branch
-        + "/"
-        + path
-    )
+    url = "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/" + path
 
     # Connection cose to try and speed things up as per
     # https://github.com/psf/requests/issues/4023
-    d = requests.get(url, timeout=5, headers={"Connection": "close"})
+    d = niquests.get(url, timeout=5, headers={"Connection": "close"})
     d.raise_for_status()
 
     with open(fn, "wb") as f:

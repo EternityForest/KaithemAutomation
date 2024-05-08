@@ -21,6 +21,7 @@ Change Log
 - :sparkles: -d now sets the kaithem data dir, -c removed.  config.yaml now always in root of dir.
 - :sparkles: Module hashes use a different algorithm, the BIP0039 wordlist, and base32 instead of hex for display.
 - :sparkles: Use Argon2id for user passwords.
+- :sparkles: Use [niquests](https://pypi.org/project/niquests/) instead of requests.
 
 #### Added
 
@@ -39,24 +40,26 @@ Change Log
 ┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━━┳━━━━━━┓
 ┃ Language               ┃ Files ┃     % ┃  Code ┃     % ┃ Comment ┃    % ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━━╇━━━━━━┩
-│ Python                 │   119 │  37.5 │ 22476 │  62.2 │    3956 │ 10.9 │
-│ RHTML                  │    59 │  18.6 │  5031 │  75.0 │      27 │  0.4 │
-│ Markdown               │    29 │   9.1 │  3983 │  70.1 │      19 │  0.3 │
-│ CSS+Lasso              │    16 │   5.0 │  3114 │  56.6 │     267 │  4.8 │
-│ HTML+Django/Jinja      │    14 │   4.4 │  1684 │  76.2 │      24 │  1.1 │
-│ HTML+Genshi            │    11 │   3.5 │  1602 │  69.5 │      39 │  1.7 │
-│ HTML                   │    21 │   6.6 │  1341 │  77.4 │      55 │  3.2 │
-│ JavaScript+Genshi Text │     3 │   0.9 │  1078 │  50.2 │     134 │  6.2 │
-│ JavaScript             │     2 │   0.6 │   300 │  56.3 │       8 │  1.5 │
-│ YAML                   │     3 │   0.9 │   281 │  76.2 │       2 │  0.5 │
-│ JavaScript+Ruby        │     1 │   0.3 │     8 │ 100.0 │       0 │  0.0 │
-│ JSON                   │     1 │   0.3 │     4 │  57.1 │       0 │  0.0 │
-│ __unknown__            │    14 │   4.4 │     0 │   0.0 │       0 │  0.0 │
-│ __empty__              │     1 │   0.3 │     0 │   0.0 │       0 │  0.0 │
-│ __duplicate__          │     7 │   2.2 │     0 │   0.0 │       0 │  0.0 │
-│ __binary__             │    16 │   5.0 │     0 │   0.0 │       0 │  0.0 │
+│ Python                 │   122 │  29.4 │ 22517 │  62.1 │    3993 │ 11.0 │
+│ RHTML                  │    62 │  14.9 │  5078 │  74.4 │      27 │  0.4 │
+│ Markdown               │    33 │   8.0 │  4040 │  69.4 │      19 │  0.3 │
+│ CSS+Lasso              │    17 │   4.1 │  3115 │  56.5 │     268 │  4.9 │
+│ HTML+Django/Jinja      │    18 │   4.3 │  1997 │  77.3 │      24 │  0.9 │
+│ HTML+Genshi            │    13 │   3.1 │  1843 │  69.1 │      62 │  2.3 │
+│ HTML                   │    23 │   5.5 │  1387 │  77.9 │      55 │  3.1 │
+│ JavaScript+Genshi Text │     3 │   0.7 │  1078 │  50.2 │     134 │  6.2 │
+│ YAML                   │    11 │   2.7 │   822 │  74.7 │      83 │  7.5 │
+│ Bash                   │    12 │   2.9 │   328 │  29.2 │     147 │ 13.1 │
+│ JavaScript             │     2 │   0.5 │   300 │  56.3 │       8 │  1.5 │
+│ Text only              │     1 │   0.2 │   109 │  90.1 │       0 │  0.0 │
+│ JavaScript+Ruby        │     1 │   0.2 │     8 │ 100.0 │       0 │  0.0 │
+│ JSON                   │     1 │   0.2 │     4 │  57.1 │       0 │  0.0 │
+│ __unknown__            │    18 │   4.3 │     0 │   0.0 │       0 │  0.0 │
+│ __empty__              │     1 │   0.2 │     0 │   0.0 │       0 │  0.0 │
+│ __duplicate__          │    12 │   2.9 │     0 │   0.0 │       0 │  0.0 │
+│ __binary__             │    65 │  15.7 │     0 │   0.0 │       0 │  0.0 │
 ├────────────────────────┼───────┼───────┼───────┼───────┼─────────┼──────┤
-│ Sum                    │   317 │ 100.0 │ 40902 │  64.6 │    4531 │  7.2 │
+│ Sum                    │   415 │ 100.0 │ 42626 │  64.1 │    4820 │  7.3 │
 └────────────────────────┴───────┴───────┴───────┴───────┴─────────┴──────┘
 ```
 

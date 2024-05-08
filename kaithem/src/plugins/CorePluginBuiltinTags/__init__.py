@@ -1,8 +1,4 @@
-import json
 import logging
-import os
-import time
-import traceback
 
 from kaithem.src import alerts, geolocation, messagebus, tagpoints
 from kaithem.src import astrallibwrapper as sky
@@ -84,50 +80,51 @@ def create():
     refs.append(night)
     refs.append(nTag)
 
-    ipTag = tagpoints.StringTag("/system/network/public_ip")
-    refs.append(ipTag)
+    # ipTag = tagpoints.StringTag("/system/network/public_ip")
+    # refs.append(ipTag)
 
-    def publicIP():
-        try:
-            # This is here for development, where one might be rapidly starting and stopping
-            try:
-                if os.path.exists("/dev/shm/KaithemCachedPublicIP.json"):
-                    with open("/dev/shm/KaithemCachedPublicIP.json") as f:
-                        j = json.load(f)
-                        if j["time_monotonic"] > time.monotonic() - 1800:
-                            return j["ip"]
-            except Exception:
-                log.exception("Err loading cache file")
+    # def publicIP():
+    #     try:
+    #         # This is here for development, where one might be rapidly starting and stopping
+    #         try:
+    #             if os.path.exists("/dev/shm/KaithemCachedPublicIP.json"):
+    #                 with open("/dev/shm/KaithemCachedPublicIP.json") as f:
+    #                     j = json.load(f)
+    #                     if j["time_monotonic"] > time.monotonic() - 1800:
+    #                         return j["ip"]
+    #         except Exception:
+    #             log.exception("Err loading cache file")
 
-            import requests
+    #         import niquests
 
-            r = requests.get("http://api.ipify.org/", timeout=15)
-            r.raise_for_status()
+    #         r = niquests.get("http://api.ipify.org/", timeout=15)
+    #         r.raise_for_status()
 
-            try:
-                with open("/dev/shm/KaithemCachedPublicIP.json", "w") as f:
-                    json.dump({"ip": r.text, "time_monotonic": time.monotonic()}, f)
-            except Exception:
-                log.exception("Err saving cache file")
+    #         try:
+    #             with open("/dev/shm/KaithemCachedPublicIP.json", "w") as f:
+    #                 json.dump({"ip": r.text, "time_monotonic": time.monotonic()}, f)
+    #         except Exception:
+    #             log.exception("Err saving cache file")
 
-            ipTag.interval = 3600
-            return r.text
+    #         ipTag.interval = 3600
+    #         return r.text
 
-        except Exception:
-            ipTag.interval = 300
-            print(traceback.format_exc())
-            return ""
+    #     except Exception:
+    #         ipTag.interval = 300
+    #         print(traceback.format_exc())
+    #         return ""
 
-    refs.append(publicIP)
+    # refs.append(publicIP)
 
-    ipTag.interval = 3600
-    ipTag.description = """The current public IP address, as seen by http://api.ipify.org.
-        If the server is unreachable, will be the empty string.
-          Default interval is dynamic, 1 hour once succeeded."""
+    # ipTag.interval = 3600
+    # ipTag.description = """The current public IP address, as seen by http://api.ipify.org.
+    #     If the server is unreachable, will be the empty string.
+    #       Default interval is dynamic, 1 hour once succeeded."""
 
-    ipTag.value = publicIP
-    ipTag.expose("system_admin")
+    # ipTag.value = publicIP
+    # ipTag.expose("system_admin")
 
 
+create()
 # Probably best not to automatically do anything that could cause IP traffic?
 # ipTag.set_alarm("NoInternetAccess", condition="not value")

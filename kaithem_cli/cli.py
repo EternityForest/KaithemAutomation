@@ -4,7 +4,7 @@ import sys
 import urllib
 import urllib.parse
 
-import requests
+import niquests
 
 args = []
 kwargs = {}
@@ -33,7 +33,7 @@ kwargs["api_key"] = key
 
 
 def main():
-    r = requests.post(url, data=kwargs, timeout=float(kwargs.get("timeout", 15)))
+    r = niquests.post(url, data=kwargs, timeout=float(kwargs.get("timeout", 15)))
 
     with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as stdout:
         stdout.write(r.content)
