@@ -415,6 +415,9 @@ class Device(iot_devices.device.Device):
         except Exception:
             self.title = name
 
+        # Which points to show in overview
+        self.dashboard_datapoints = {}
+
         self.logWindow = widgets.ScrollingWindow(2500)
 
         self._tagBookKeepers: dict[str, Callable[[Any, float, Any], None]] = {}
@@ -691,6 +694,7 @@ class Device(iot_devices.device.Device):
         interval: float = 0,
         writable: bool = True,
         subtype: str = "",
+        dashboard: bool = True,
         **kwargs,
     ):
         with modules_state.modulesLock:
@@ -708,6 +712,8 @@ class Device(iot_devices.device.Device):
             t.interval = interval
             t.subtype = subtype
             t.writable = writable
+
+            self.dashboard_datapoints[name] = dashboard
 
             def f(v, t, a):
                 self.datapoints[name] = v
@@ -737,6 +743,7 @@ class Device(iot_devices.device.Device):
         interval: float = 0,
         writable: bool = True,
         subtype: str = "",
+        dashboard: bool = True,
         **kwargs,
     ):
         with modules_state.modulesLock:
@@ -751,6 +758,7 @@ class Device(iot_devices.device.Device):
             t.interval = interval
             t.subtype = subtype
             t.writable = writable
+            self.dashboard_datapoints[name] = dashboard
 
             def f(v, t, a):
                 self.datapoints[name] = v

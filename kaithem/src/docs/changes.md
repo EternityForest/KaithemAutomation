@@ -4,6 +4,7 @@ Change Log
 
 ### 0.82.0
 
+This release brings compatibility with Python 3.12 and Ubuntu 24.04
 
 #### Fixed
 
@@ -15,6 +16,7 @@ Change Log
 - :bug: Certain custom resource types could not be created in folders.
 - :bug: Page editor robustness against missing keys
 - :bug: Dashboard correctly shows the default value even if it hasn't been set yet.
+- :bug: Message log page
 
 #### Changed
 
@@ -22,6 +24,8 @@ Change Log
 - :sparkles: Module hashes use a different algorithm, the BIP0039 wordlist, and base32 instead of hex for display.
 - :sparkles: Use Argon2id for user passwords.
 - :sparkles: Use [niquests](https://pypi.org/project/niquests/) instead of requests.
+
+- :sparkles: NVRChannel uses cv2.dnn for Py3.12 compatibility.
 
 #### Added
 

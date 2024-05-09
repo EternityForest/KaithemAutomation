@@ -15,7 +15,7 @@ import uuid
 
 import cherrypy
 from icemedia import iceflow
-from scullery import jacktools, scheduling
+from scullery import jacktools, scheduling, workers
 
 from kaithem.src import (
     alerts,
@@ -29,7 +29,6 @@ from kaithem.src import (
     tagpoints,
     util,
     widgets,
-    workers,
 )
 from kaithem.src.plugins.CorePluginJackMixer import mixerfx
 
@@ -964,7 +963,7 @@ class MixingBoard:
         self.loadedPreset = "default"
 
         if "default" in self.resourcedata["presets"]:
-            self.loadPreset("default")
+            workers.do(lambda: self.loadPreset("default"))
 
         self.checker = scheduling.scheduler.every_minute(self.poll)
 

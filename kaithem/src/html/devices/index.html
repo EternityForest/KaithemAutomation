@@ -119,20 +119,22 @@ else:
         %if hasattr(devObj, 'tagPoints') and devObj.tagPoints:
 
             %for i in devObj.tagPoints:
-            %if devObj.tagPoints[i].type == 'string':
-            <div class="flex-row"><label><ds-span min="0" max="1" source="tag:${devObj.tagPoints[i].name}"></ds-span>${i}</label></div>
-            %elif devObj.tagPoints[i].type == 'number':
-                %if devObj.tagPoints[i].subtype in ('bool', 'boolean'):
-                    <label><div class="grow"><b>${i}</b></div>
-                        <ds-input type="checkbox" class="toggle" source="tag:${devObj.tagPoints[i].name}" filter="confirm: Confirm?"></ds-input>
-                    </label>
-                %else:
-                    <label><b>${i}</b>
-                        <div class="flex-col w-6rem">
-                            <ds-input class="w-full" type="number" filter="fixedpoint: 3" source="tag:${devObj.tagPoints[i].name}"  filter="confirm: Confirm?"></ds-input>
-                            <ds-meter class="w-full" source="tag:${devObj.tagPoints[i].name}"></ds-meter>
-                        </div>
-                    </label>
+            %if devObj.dashboard_datapoints.get(i,True):
+                %if devObj.tagPoints[i].type == 'string':
+                <div class="flex-row"><label><ds-span min="0" max="1" source="tag:${devObj.tagPoints[i].name}"></ds-span>${i}</label></div>
+                %elif devObj.tagPoints[i].type == 'number':
+                    %if devObj.tagPoints[i].subtype in ('bool', 'boolean'):
+                        <label><div class="grow"><b>${i}</b></div>
+                            <ds-input type="checkbox" class="toggle" source="tag:${devObj.tagPoints[i].name}" filter="confirm: Confirm?"></ds-input>
+                        </label>
+                    %else:
+                        <label><b>${i}</b>
+                            <div class="flex-col w-6rem">
+                                <ds-input class="w-full" type="number" filter="fixedpoint: 3" source="tag:${devObj.tagPoints[i].name}"  filter="confirm: Confirm?"></ds-input>
+                                <ds-meter class="w-full" source="tag:${devObj.tagPoints[i].name}"></ds-meter>
+                            </div>
+                        </label>
+                    %endif
                 %endif
             %endif
             %endfor

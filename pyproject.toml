@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kaithem"
-version = "0.81.0"
+version = "0.82.0"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
 packages = [{ include = "kaithem" }, { include = "kaithem_cli" }]
@@ -21,11 +21,9 @@ python = "^3.10.0"
 # First party
 scullery = ">=0.1.17"
 iot-devices = "*"
-icemedia = ">=0.1.3"
-NVRChannel = "*"
+icemedia = ">=0.1.4"
+NVRChannel = ">=0.1.7"
 
-# NVRChannel didn't bring this in 0.15.0
-opencv-python = "*"
 
 numpy = ">1.26.1"
 cherrypy = "*"
@@ -65,7 +63,6 @@ websockets = "*"
 zeep = "*"
 passlib = "*"
 Pillow = "*"
-tflite-runtime = "*"
 evdev = "*"
 markupsafe = "*"
 upnpclient = "*"
@@ -81,7 +78,7 @@ yeelight = "*"
 
 pyserial = "*"
 pygrep = "*"
-python-rtmidi = "1.5.0"
+python-rtmidi = "1.5.8"
 paho-mqtt = "<=1.6.0"
 setproctitle = "*"
 psutil = "*"
