@@ -1,6 +1,10 @@
 Change Log
 ----------
+### 0.83.0
 
+#### Removed
+
+- :coffin: Experimental sqlite browser that didn't get much interest.
 
 ### 0.82.0
 
