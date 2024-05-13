@@ -301,7 +301,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.src = self.add_element(
                     "pipewiresrc",
                     client_name=f"{name}_in",
-                    do_timestamp=False,
+                    do_timestamp=True,
                     always_copy=True,
                 )
 
@@ -423,6 +423,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 "pipewiresink",
                 client_name=f"{self.name}_out",
                 mode=2,
+                max_lateness=5_000_000,
                 **{"async": False},
             )
 
@@ -717,7 +718,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         with self.lock:
             paramData = self.effectDataById[effectId]["params"][param]
             paramData["value"] = value
-            t = self.effectDataById[effectId]["type"]
+            t = paramData["type"]
 
             if t == "float":
                 value = float(value)
@@ -726,7 +727,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 value = value > 0.5
 
             if t == "enum":
-                value = int(value)
+                value = float(value)
+                if value % 1 == 0:
+                    value = int(value)
 
             if t == "int":
                 value = int(value)

@@ -829,7 +829,7 @@ effectTemplates_data = {
             "close": {
                 "type": "float",
                 "displayName": "Close",
-                "value": -41.25,
+                "value": -60,
                 "min": -80,
                 "max": 0,
                 "step": 0.25,
@@ -843,6 +843,16 @@ effectTemplates_data = {
                 "max": 5,
                 "step": 1,
                 "sort": 0,
+            },
+            "mains": {
+                "displayName": "Mains Freq",
+                "type": "enum",
+                "value": 60,
+                "options": [
+                    ["50hz", 50],
+                    ["60hz", 60],
+                ],
+                "sort": 2,
             },
         },
         "gstSetup": {},
@@ -1366,6 +1376,7 @@ effectTemplates_data = {
                 "type": "enum",
                 "value": 10,
                 "options": [
+                    ["2.5ms", 2.5],
                     ["5ms", 5],
                     ["10ms", 10],
                     ["20ms", 20],
@@ -1409,7 +1420,7 @@ effectTemplates_data = {
             {"gstElement": "queue", "gstSetup": {"max-size-time": 100 * 1000 * 1000, "leaky": 2}},
         ],
         "postSupportElements": [
-            {"gstElement": "rtpopuspay", "gstSetup": {"pt": 123}},
+            {"gstElement": "rtpopuspay", "gstSetup": {"pt": 123, "dtx": True}},
             {"gstElement": "udpsink", "gstSetup": {"sync": False}},
         ],
     },
@@ -1434,7 +1445,7 @@ effectTemplates_data = {
             "preSupport.3.latency": {
                 "displayName": "Latency",
                 "type": "string.int",
-                "value": 30,
+                "value": 50,
                 "sort": 0,
             },
         },
@@ -1443,7 +1454,7 @@ effectTemplates_data = {
         "silenceMainChain": False,
         "preSupportElements": [
             {"gstElement": "fakesink", "gstSetup": {"sync": False}},
-            {"gstElement": "udpsrc", "gstSetup": {}},
+            {"gstElement": "udpsrc", "gstSetup": {"do-timestamp": True}},
             {
                 "gstElement": "capsfilter",
                 "gstSetup": {"caps": "application/x-rtp,media=audio,payload=123,clock-rate=48000,encoding-name=OPUS"},
