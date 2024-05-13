@@ -309,6 +309,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     "capsfilter",
                     caps=f"audio/x-raw,channels={str(channels)}",
                 )
+
+                self.add_element("audiorate")
             else:
                 self.src = self.add_element("udpsrc", port=int(input.split("://")[1]))
                 self.capsfilter = self.add_element(
@@ -421,6 +423,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 "pipewiresink",
                 client_name=f"{self.name}_out",
                 mode=2,
+                **{"async": False},
             )
 
             # I think It doesn't like it if you start without jack
@@ -610,8 +613,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 # feed the main chain, such as fir the speech recognition effect
                 if i.get("sidechain", 0):
                     linkTo = self.add_element("tee")
-                    self.add_element("queue")
-                    linkTo = self.add_element("queue", sidechain=True, connect_to_output=linkTo)
+                    self.add_element("queue", leaky=2, max_size_time=100_0000_0000, name=f"mainchainq_{i['id']}", connect_to_output=linkTo)
+                    linkTo = self.add_element(
+                        "queue", leaky=2, sidechain=True, connect_to_output=linkTo, max_size_buffers=1, name=f"sidechainq_{i['id']}"
+                    )
                     sidechain = True
 
                 else:

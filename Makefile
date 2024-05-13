@@ -113,12 +113,12 @@ dev-build-docs:
 
 .PHONY: dev-count-lines
 dev-count-lines: # Line count summary
-	@poetry run pygount --format=summary --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__" kaithem/ scripts/
+	@poetry run pygount --merge-embedded-languages --format=summary --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__" kaithem/ scripts/
 
 
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
-	@poetry run pygount --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__" kaithem/ scripts/ | sort -nr -
+	@poetry run pygount --merge-embedded-languages --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__" kaithem/ scripts/ | sort -nr -
 
 
 .PHONY: root-install-system-dependencies

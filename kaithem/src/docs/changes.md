@@ -7,6 +7,10 @@ Change Log
 - :coffin: Experimental sqlite browser that didn't get much interest.
 - :coffin: yt-dlp integration removed.
 
+#### Added
+- :sparkles: Usable RTP Opus listener to stream over network.
+
+
 ```
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
 ┃ Language      ┃ Files ┃     % ┃  Code ┃    % ┃ Comment ┃    % ┃
