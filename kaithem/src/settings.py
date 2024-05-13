@@ -22,7 +22,6 @@ from . import (
     messagebus,
     pages,
     persist,
-    util,
     weblogin,
 )
 
@@ -231,19 +230,6 @@ class Settings:
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
-    def updateytdl(self, *args, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-
-        if util.which("yt-dlp"):
-            try:
-                subprocess.check_call(["yt-dlp", "-U"])
-            except Exception:
-                subprocess.check_call(["pip3", "install", "--upgrade", "yt-dlp"])
-
-        raise cherrypy.HTTPRedirect("/settings")
-
-    @cherrypy.expose
     @cherrypy.config(**{"response.timeout": 7200})
     def files(self, *args, **kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
@@ -285,34 +271,6 @@ class Settings:
                                     break
                                 outf.write(data)
                             f.close()
-
-            if util.which("yt-dlp"):
-                ytdl = "yt-dlp"
-            else:
-                ytdl = "youtube-dl"
-
-            if "youtubedl" in kwargs:
-                pages.postOnly()
-                subprocess.check_call(
-                    [
-                        ytdl,
-                        "--format",
-                        "bestaudio",
-                        "--extract-audio",
-                        "--audio-format",
-                        "mp3",
-                        "--audio-quality",
-                        "2",
-                        "--embed-thumbnail",
-                        "--add-metadata",
-                        kwargs["youtubedl"],
-                    ],
-                    cwd=dir,
-                )
-
-            if "youtubedlvid" in kwargs:
-                pages.postOnly()
-                subprocess.check_call([ytdl, kwargs["youtubedlvid"]], cwd=dir)
 
             if os.path.isdir(dir):
                 return pages.get_template("settings/files.html").render(dir=dir)
