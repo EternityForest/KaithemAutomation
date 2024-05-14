@@ -99,7 +99,7 @@ dd {
 
     /*Spacing*/
     --padding: 8px;
-    --gap: 18px;
+    --gap: 12px;
 
     /*Borders*/
     --border-color: color-mix(in srgb, var(--graphical-fg) 50%, rgb(0 0 0 / 0%));
@@ -402,7 +402,9 @@ p {
 /*Stack labels on the form elements*/
 label>:is(input:not(input[type=radio], input[type=checkbox]), select, button, div) {
     display: block;
-    &.flex-row, &.flex-column {
+
+    &.flex-row,
+    &.flex-column {
         display: flex;
     }
 }
@@ -462,8 +464,10 @@ select {
 }
 
 
-textarea:disabled, input:disabled, button:disabled{
-    &:not(.specificity_hack){
+textarea:disabled,
+input:disabled,
+button:disabled {
+    &:not(.specificity_hack) {
         background: color-mix(in srgb, var(--control-fg) 25%, var(--box-bg) 50%);
         color: var(--control-fg);
     }
@@ -1130,7 +1134,8 @@ header:not(.undecorated) .tool-bar {
         }
     }
 
-    &>*, &>label>* {
+    &>*,
+    &>label>* {
         width: auto;
     }
 
@@ -1339,12 +1344,20 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     flex-basis: 300px;
     flex-shrink: 1;
     flex-grow: 1;
+
+    &:is(.margin) {
+        max-width: calc(calc(min(430px, 100vw)) - calc(var(--gap) * 2));
+    }
 }
 
 .w-sm-quarter {
     width: 80px;
     max-width: calc(min(160px, 25vw));
     flex-basis: 70px;
+
+    &:is(.margin) {
+        max-width: calc(calc(min(160, 25vw)) - calc(var(--gap) * 2));
+    }
 }
 
 .w-sm-half {
@@ -1352,7 +1365,8 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     max-width: calc(min(215px, 50vw));
     flex-basis: 160px;
     flex-grow: 1;
-    &:is(.margin){
+
+    &:is(.margin) {
         max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
     }
 }
@@ -1363,7 +1377,8 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     flex-basis: 16cm;
     flex-shrink: 1;
     flex-grow: 1;
-    &:is(.margin){
+
+    &:is(.margin) {
         max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
     }
 }
@@ -1749,6 +1764,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 pre {
     width: fit-content;
 }
+
 /*Don't let people use non-pre elements or they
 will get a nasty surprise later when the auto formatter
 ruins it*/
@@ -1790,6 +1806,10 @@ iframe.h-center {
 .border {
     border: var(--border);
     border-radius: var(--border-radius);
+}
+
+.noselect {
+    user-select: none;
 }
 
 .nogaps {
@@ -2628,10 +2648,12 @@ input[type="radio"] {
 }
 
 
-.numval, input[type="number"] {
-    font-family: Fira Code,monospace;
+.numval,
+input[type="number"] {
+    font-family: Fira Code, monospace;
 
 }
+
 input[type='checkbox'].led {
     border-radius: 50%;
     margin: 0px 0px;
@@ -2808,9 +2830,10 @@ label {
 
 /* Loading spinner */
 
-[v-cloak], [x-cloak] {
+[v-cloak],
+[x-cloak] {
     display: block;
-    padding: 50px 0;    
+    padding: 50px 0;
 }
 
 @keyframes spinner {
