@@ -14,14 +14,13 @@
 
   .chain {
     border-style: none;
-    margin: 0.4em;
     max-height: 30em;
     overflow: auto;
   }
 
-  .effect {
-
-    margin: 0.5em;
+  details{
+    padding: 0px;
+    margin: 0px;
   }
 
   button.bold {
@@ -171,14 +170,16 @@ ${global_api.render("gapi")}
             <header>
               <div v-if="channel.type=='audio' || !channel.type">
                 <div>
-                  <h3 style="display: inline-block;">{{channelname}}({{channel.channels}})
-                  </h3>
-                  <small>{{channelStatus[channelname]}}</small>
+
                 </div>
                 <div class="menubar tool-bar">
-                  <button v-on:click="confirmDelete(channelname)">Delete</button>
-                  <button v-on:click="ding(channelname)">Ding</button>
-                  <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
+                  <h3 style="display: inline-block;">{{channelname}}({{channel.channels}})
+                  </h3>
+                  <p :class="{'error': channelStatus[channelname] != 'running', 'success': channelStatus[channelname] == 'running'}"><small>{{channelStatus[channelname]}}</small></p>
+                  <button v-on:click="ding(channelname)"><i class="mdi mdi-bell"></i></button>
+                  <button v-on:click="api.send(['refreshChannel', channelname])"><i class="mdi mdi-refresh"></i></button>
+                  <button v-on:click="confirmDelete(channelname)"><i class="mdi mdi-trash-can"></i></button>
+
                 </div>
 
                 <div class="tool-bar">

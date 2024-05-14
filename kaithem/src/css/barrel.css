@@ -279,9 +279,9 @@ input[type=range],
 
 @media screen and (max-width: 460px) {
     :root {
-        --scrollbar-width: 5px;
-        --padding: 5px;
-        --gap: 5px;
+        --scrollbar-width: 3px;
+        --padding: 4px;
+        --gap: 1px;
     }
 }
 
@@ -1352,6 +1352,9 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     max-width: calc(min(215px, 50vw));
     flex-basis: 160px;
     flex-grow: 1;
+    &:is(.margin){
+        max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
+    }
 }
 
 .w-sm-double {
@@ -1360,6 +1363,9 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     flex-basis: 16cm;
     flex-shrink: 1;
     flex-grow: 1;
+    &:is(.margin){
+        max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
+    }
 }
 
 @media screen and (max-width: 600px) {
