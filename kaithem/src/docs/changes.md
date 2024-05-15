@@ -2,6 +2,9 @@ Change Log
 ----------
 ### 0.83.0
 
+#### Changed
+- :boom: Schema for tag history changed for daasette compatibility.
+
 #### Removed
 
 - :coffin: Experimental sqlite browser that didn't get much interest.

@@ -227,7 +227,7 @@ class TagLogger:
 
             c = conn.cursor()
             c.execute(
-                "SELECT rowid,tagName,unit,accumulate from channel WHERE tagName=?",
+                "SELECT id,name,unit,accumulate from channel WHERE name=?",
                 (tag.name,),
             )
             self.chID = None
@@ -239,19 +239,19 @@ class TagLogger:
                 raise ValueError("bad tag accum " + str(self.accumType))
 
             for i in c:
-                if i["tagName"] == tag.name and i["unit"] == tag.unit and i["accumulate"] == self.accumType:
-                    self.chID = i["rowid"]
+                if i["name"] == tag.name and i["unit"] == tag.unit and i["accumulate"] == self.accumType:
+                    self.chID = i["id"]
 
             if not self.chID:
                 conn.execute(
-                    "INSERT INTO channel VALUES (?,?,?,?)",
-                    (tag.name, tag.unit, self.accumType, "{}"),
+                    "INSERT INTO channel VALUES (?,?,?,?,?)",
+                    (None, tag.name, tag.unit, self.accumType, "{}"),
                 )
                 conn.commit()
 
             c = conn.cursor()
             c.execute(
-                "SELECT rowid from channel WHERE tagName=? AND unit=? AND accumulate=?",
+                "SELECT id from channel WHERE name=? AND unit=? AND accumulate=?",
                 (tag.name, tag.unit, self.accumType),
             )
             self.chID = c.fetchone()[0]
@@ -365,7 +365,9 @@ class TagHistorian:
         self.history = sqlite3.Connection(file)
 
         try:
-            self.history.execute("CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
+            self.history.execute(
+                "CREATE TABLE IF NOT EXISTS channel  (id INTEGER PRIMARY KEY AUTOINCREMENT, name text, unit text, accumulate text, metadata text)"
+            )
         except Exception:
             shutil.move(file, file + ".error_archived")
             newfile = True
@@ -379,15 +381,28 @@ class TagHistorian:
         self.lock = threading.RLock()
         self.children = {}
 
-        self.history.execute("CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
-        self.history.execute("CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)")
+        self.history.execute(
+            "CREATE TABLE IF NOT EXISTS channel  (id INTEGER PRIMARY KEY AUTOINCREMENT, name text, unit text, accumulate text, metadata text)"
+        )
+        self.history.execute(
+            "CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL, FOREIGN KEY(channel) REFERENCES channel(id))"
+        )
 
         self.history.execute(
-            "CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.tagName as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"  # noqa
+            "CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.name as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.id = record.channel;"  # noqa
         )
         self.history.execute(
-            "CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.tagName as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;"  # noqa
+            "CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.name as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.id = record.channel;"  # noqa
         )
+
+        # TODO: Legacy compatibility
+        try:
+            self.history.execute("""ALTER TABLE record
+                RENAME COLUMN tagName TO name;""")
+            self.history.execute("""ALTER TABLE channel
+                    RENAME COLUMN tagName TO name;""")
+        except Exception:
+            pass
 
         self.pending = []
 
