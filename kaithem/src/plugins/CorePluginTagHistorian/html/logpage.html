@@ -15,8 +15,10 @@ def combineLogs(a):
 
     for i in a:
         for j in a[i]:
-            op.append((j[0],unitsofmeasure.strftime(j[0]),i,j[1]))
-
+            if isinstance(j[0],str):
+                op.append((j[0],unitsofmeasure.strftime(datetime.datetime.fromisoformat(j[0]).timestamp()),i,j[1]))
+            else:
+                op.append((j[0],unitsofmeasure.strftime(j[0]),i,j[1]))
     return sorted(op)
 
 %>

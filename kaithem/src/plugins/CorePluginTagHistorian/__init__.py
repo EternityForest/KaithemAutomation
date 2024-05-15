@@ -27,7 +27,7 @@ from kaithem.src import dialogs, directories, messagebus, modules_state, pages, 
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
-ramdbfile = "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.ldb"
+ramdbfile = "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
 
 
 syslogger = logging.getLogger("system")
@@ -42,9 +42,17 @@ if not os.path.exists(logdir):
 # For that reason, should someone get the bright idea to sync a kaithem vardir, we must keep the history databases single-writer.
 
 # Plus, there is nothing in the DB itself to tell us who wrote it, so this is very convenient.
-historyFilemame = socket.gethostname() + "-" + getpass.getuser() + "-taghistory.ldb"
+historyFilemame = socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
 
 newHistoryDBFile = os.path.join(logdir, historyFilemame)
+
+
+def iso_now():
+    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+def ts_to_iso(t):
+    return datetime.datetime.fromtimestamp(t, datetime.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class TagLogger:
@@ -109,16 +117,22 @@ class TagLogger:
 
             c = conn.cursor()
             c.execute(
-                "SELECT count(*) FROM record WHERE channel=? AND timestamp<?",
-                (self.chID, time.time() - self.history_length),
+                "SELECT count(*) FROM record WHERE channel=? AND time<?",
+                (
+                    self.chID,
+                    ts_to_iso(time.time() - self.history_length),
+                ),
             )
             count = c.fetchone()[0]
 
             # Only delete records in large blocks. To do otherwise would create too much disk wear
             if count > 8192 if not force else 1024:
                 c.execute(
-                    "DELETE FROM record WHERE channel=? AND timestamp<?",
-                    (self.chID, time.time() - self.history_length),
+                    "DELETE FROM record WHERE channel=? AND time<?",
+                    (
+                        self.chID,
+                        ts_to_iso(time.time() - self.history_length),
+                    ),
                 )
             conn.close()
 
@@ -129,8 +143,8 @@ class TagLogger:
 
             c = conn.cursor()
             c.execute(
-                "SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",
-                (minTime, maxTime, self.chID, maxRecords),
+                "SELECT time,value FROM record WHERE time>? AND time<? AND channel=? ORDER BY time ASC LIMIT ?",
+                (ts_to_iso(minTime), ts_to_iso(maxTime), self.chID, maxRecords),
             )
             for i in c:
                 d.append(i)
@@ -161,8 +175,8 @@ class TagLogger:
 
             c = conn.cursor()
             c.execute(
-                "SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",
-                (minTime, maxTime, self.chID, maxRecords),
+                "SELECT time,value FROM record WHERE time>? AND time<? AND channel=? ORDER BY time DESC LIMIT ?",
+                (ts_to_iso(minTime), ts_to_iso(maxTime), self.chID, maxRecords),
             )
             for i in c:
                 d.append(i)
@@ -189,10 +203,10 @@ class TagLogger:
         with historian.lock:
             del historian.children[id(self)]
 
-    def accumulate(self, value, timestamp, annotation):
+    def accumulate(self, value, time, annotation):
         "Only ever called by the tag"
         self.accumVal = value
-        self.accumTime = timestamp
+        self.accumTime = time
         self.accumCount = 1
         if isinstance(value, (int, float, bytes)):
             pass
@@ -262,10 +276,10 @@ class TagLogger:
 class AverageLogger(TagLogger):
     accumType = "mean"
 
-    def accumulate(self, value, timestamp, annotation):
+    def accumulate(self, value, time, annotation):
         "Only ever called by the tag"
         self.accumVal += value
-        self.accumTime += timestamp
+        self.accumTime += time
         self.accumCount += 1
         self.flush()
 
@@ -294,10 +308,10 @@ class MinLogger(TagLogger):
     accumType = "min"
     defaultAccum = 10**18
 
-    def accumulate(self, value, timestamp, annotation):
+    def accumulate(self, value, time, annotation):
         "Only ever called by the tag"
         self.accumVal = min(self.accumVal, value)
-        self.accumTime += timestamp
+        self.accumTime += time
         self.accumCount += 1
 
         self.flush()
@@ -321,10 +335,10 @@ class MaxLogger(MinLogger):
     accumType = "max"
     defaultAccum = -(10**18)
 
-    def accumulate(self, value, timestamp, annotation):
+    def accumulate(self, value, time, annotation):
         "Only ever called by the tag"
         self.accumVal = max(self.accumVal, value)
-        self.accumTime += timestamp
+        self.accumTime += time
         self.accumCount += 1
 
         self.flush()
@@ -366,7 +380,8 @@ class TagHistorian:
 
         try:
             self.history.execute(
-                "CREATE TABLE IF NOT EXISTS channel  (id INTEGER PRIMARY KEY AUTOINCREMENT, name text, unit text, accumulate text, metadata text)"
+                """CREATE TABLE IF NOT EXISTS channel  (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  name text, unit text, accumulate text, metadata text)"""
             )
         except Exception:
             shutil.move(file, file + ".error_archived")
@@ -382,17 +397,29 @@ class TagHistorian:
         self.children = {}
 
         self.history.execute(
-            "CREATE TABLE IF NOT EXISTS channel  (id INTEGER PRIMARY KEY AUTOINCREMENT, name text, unit text, accumulate text, metadata text)"
+            """CREATE TABLE IF NOT EXISTS channel  (id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name text, unit text, accumulate text, metadata text)"""
         )
         self.history.execute(
-            "CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL, FOREIGN KEY(channel) REFERENCES channel(id))"
+            """CREATE TABLE IF NOT EXISTS record  (channel INTEGER,
+            time TEXT, value REAL, FOREIGN KEY(channel) REFERENCES channel(id))"""
         )
 
         self.history.execute(
-            "CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.name as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.id = record.channel;"  # noqa
+            """CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT
+            channel.name as Channel,
+            channel.accumulate as Type,
+            record.time as LocalTime,
+              record.value as Value,
+              channel.unit as Unit FROM record INNER JOIN channel ON channel.id = record.channel;"""
         )
         self.history.execute(
-            "CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.name as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.id = record.channel;"  # noqa
+            """CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT
+              channel.name as Channel,
+              channel.accumulate as Type,
+              record.time as UTCTime,
+              record.value as Value,
+              channel.unit as Unit FROM record INNER JOIN channel ON channel.id = record.channel;"""
         )
 
         # TODO: Legacy compatibility
@@ -473,7 +500,7 @@ class TagHistorian:
                                 x.clearOldData(force)
 
                 for i in pending:
-                    self.history.execute("INSERT INTO record VALUES (?,?,?)", i)
+                    self.history.execute("INSERT INTO record VALUES (?,?,?)", (i[0], ts_to_iso(i[1]), i[2]))
             self.history.close()
 
 
@@ -615,8 +642,7 @@ def logpage(*path: str, **data) -> str:
                     cherrypy.response.headers["Content-Type"] = "text/csv"
                     d = ["Time(ISO), " + path[0].replace(",", "") + " <accum " + data["exportType"] + ">"]
                     for i in raw:
-                        dt = datetime.datetime.fromtimestamp(i[0])
-                        d.append(dt.isoformat() + "," + str(i[1])[:128])
+                        d.append(str(i[0]) + "," + str(i[1])[:128])
                     return "\r\n".join(d) + "\r\n"
 
         raise RuntimeError("Logger not found")
