@@ -15,7 +15,7 @@ theming = theming
 
 nav_bar_plugins = _pages.nav_bar_plugins
 
-
+_asgi_apps = []
 _wsgi_apps = []
 _tornado_apps = []
 
@@ -64,6 +64,11 @@ def render_jinja_template(template_filename: str, **kw):
     {% endblock %}
     """
     return _jl.load(_env, template_filename, _env.globals).render(imp0rt=_importlib.import_module, **kw)
+
+
+def add_asgi_app(pattern: str, app, permission="system_admin"):
+    "Mount an ASGI application to handle all URLs matching the pattern regex"
+    _asgi_apps.append((pattern, app, permission))
 
 
 def add_wsgi_app(pattern: str, app, permission="system_admin"):

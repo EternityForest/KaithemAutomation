@@ -8,6 +8,7 @@
   - [MyCache](#mycache)
     - [MyCache().dump_bytecode](#mycache()dump_bytecode)
     - [MyCache().load_bytecode](#mycache()load_bytecode)
+  - [add_asgi_app](#add_asgi_app)
   - [add_simple_cherrypy_handler](#add_simple_cherrypy_handler)
   - [add_tornado_app](#add_tornado_app)
   - [add_wsgi_app](#add_wsgi_app)
@@ -51,9 +52,23 @@ def load_bytecode(self, bucket): ...
 
 
 
+## add_asgi_app
+
+[Show source in __init__.py:69](../../../../api/web/__init__.py#L69)
+
+Mount an ASGI application to handle all URLs matching the pattern regex
+
+#### Signature
+
+```python
+def add_asgi_app(pattern: str, app, permission="system_admin"): ...
+```
+
+
+
 ## add_simple_cherrypy_handler
 
-[Show source in __init__.py:79](../../../../api/web/__init__.py#L79)
+[Show source in __init__.py:84](../../../../api/web/__init__.py#L84)
 
 Register handler for all requests that look like /prefix.
 handler must look like:
@@ -76,7 +91,7 @@ def add_simple_cherrypy_handler(
 
 ## add_tornado_app
 
-[Show source in __init__.py:74](../../../../api/web/__init__.py#L74)
+[Show source in __init__.py:79](../../../../api/web/__init__.py#L79)
 
 Mount a Tornado application to handle all URLs matching the pattern regex
 
@@ -90,7 +105,7 @@ def add_tornado_app(pattern: str, app, args, permission="system_admin"): ...
 
 ## add_wsgi_app
 
-[Show source in __init__.py:69](../../../../api/web/__init__.py#L69)
+[Show source in __init__.py:74](../../../../api/web/__init__.py#L74)
 
 Mount a WSGI application to handle all URLs matching the pattern regex
 
@@ -104,7 +119,7 @@ def add_wsgi_app(pattern: str, app, permission="system_admin"): ...
 
 ## goto
 
-[Show source in __init__.py:95](../../../../api/web/__init__.py#L95)
+[Show source in __init__.py:100](../../../../api/web/__init__.py#L100)
 
 Call from within a CherryPy handler to raise an exception to go to another URL
 
@@ -118,7 +133,7 @@ def goto(url): ...
 
 ## has_permission
 
-[Show source in __init__.py:118](../../../../api/web/__init__.py#L118)
+[Show source in __init__.py:123](../../../../api/web/__init__.py#L123)
 
 Return True if the user accessing the current web request
 has the permssion specified
@@ -160,7 +175,7 @@ def render_jinja_template(template_filename: str, **kw): ...
 
 ## serve_file
 
-[Show source in __init__.py:100](../../../../api/web/__init__.py#L100)
+[Show source in __init__.py:105](../../../../api/web/__init__.py#L105)
 
 Call from within a CherryPy handler to server a file.
 
@@ -174,7 +189,7 @@ def serve_file(path, contenttype="", name=None): ...
 
 ## user
 
-[Show source in __init__.py:105](../../../../api/web/__init__.py#L105)
+[Show source in __init__.py:110](../../../../api/web/__init__.py#L110)
 
 #### Returns
 

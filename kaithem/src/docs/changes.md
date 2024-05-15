@@ -12,6 +12,7 @@ Change Log
 
 #### Added
 - :sparkles: Usable RTP Opus listener to stream over network.
+- :sparkles: kaithem.api.web.add_asgi_app
 
 
 ```

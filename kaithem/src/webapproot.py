@@ -22,6 +22,7 @@ from cherrypy.lib.static import serve_file
 from tornado.routing import AnyMatches, Matcher, PathMatches, Rule, RuleRouter
 
 from kaithem.api import web as webapi
+from kaithem.src.thirdparty import tornado_asgi_handler
 
 from . import (
     ManageUsers,
@@ -470,6 +471,20 @@ def startServer():
                 KAuthMatcher(i[0], i[2]),
                 wsgi_adapter.WSGIHandler,
                 {"wsgi_application": i[1]},
+            ),
+            (
+                PathMatches(i[0]),
+                tornado.web.RedirectHandler,
+                {"url": "/login", "permanent": False},
+            ),
+        ]
+
+    for i in webapi._asgi_apps:
+        x += [
+            (
+                KAuthMatcher(i[0], i[2]),
+                tornado_asgi_handler.AsgiHandler,
+                {"asgi_app": i[1]},
             ),
             (
                 PathMatches(i[0]),
