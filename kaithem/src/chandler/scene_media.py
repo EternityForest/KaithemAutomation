@@ -55,7 +55,7 @@ class SceneMediaPlayer:
                 else:
                     stop_sound(str(self.scene.id))
 
-            self.scene.allowed_remote_media_url = None
+            self.scene.media_link.allowed_remote_media_url = None
 
             out: str | None = cue.sound_output
 
@@ -142,7 +142,7 @@ class SceneMediaPlayer:
                             )
 
                     else:
-                        self.scene.allowed_remote_media_url = sound
+                        self.scene.media_link.allowed_remote_media_url = sound
                         self.scene.media_link_socket.send(["volume", self.scene.alpha])
                         self.scene.media_link_socket.send(
                             [

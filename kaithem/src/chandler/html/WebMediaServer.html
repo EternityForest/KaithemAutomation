@@ -65,7 +65,7 @@ if 'slideAlbumArt' in kwargs:
 
 
 else:
-  if 'scene' in kwargs and scenes.scenes[kwargs['scene']].allowed_remote_media_url == kwargs['file']:
+  if 'scene' in kwargs and scenes.scenes[kwargs['scene']].media_link.allowed_remote_media_url == kwargs['file']:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
   elif 'scene' in kwargs and scenes.scenes[kwargs['scene']].cue.slide == kwargs['file']:
     kaithem.web.serve_file(scenes.scenes[kwargs['scene']].resolve_sound(kwargs['file']),name= os.path.basename(kwargs['file']))

@@ -540,7 +540,9 @@ class ChandlerConsole(console_abc.Console_ABC):
             data: Dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
                 "status": scene.getStatusString(),
-                "blendParams": scene.blendClass.parameters if hasattr(scene.blendClass, "parameters") else {},
+                "blendParams": scene.lighting_manager.blendClass.parameters
+                if hasattr(scene.lighting_manager.blendClass, "parameters")
+                else {},
                 "blendDesc": blendmodes.getblenddesc(scene.blend),
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
                 "ext": sceneid not in self.scenes,

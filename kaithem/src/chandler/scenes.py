@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 from beartype import beartype
 from tinytag import TinyTag
 
-from .. import schemas, tagpoints, util, widgets
+from .. import schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, mqtt, persistance, scene_media
 from .core import disallow_special
@@ -29,6 +29,7 @@ from .global_actions import shortcutCode
 from .mathutils import dt_to_ts, ease, number_to_note
 from .scene_context_commands import add_context_commands, rootContext
 from .scene_lighting import SceneLightingManager
+from .signage import MediaLinkManager
 
 if TYPE_CHECKING:
     from . import ChandlerConsole
@@ -248,10 +249,6 @@ class Scene:
         self.media_player = scene_media.SceneMediaPlayer(self)
         self.lighting_manager = SceneLightingManager(self)
 
-        # Variables to send to the slideshow.  They are UI only and
-        # we don't have any reactive features
-        self.web_variables: dict[str, Any] = {}
-
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]
 
@@ -268,16 +265,8 @@ class Scene:
 
         self.id: str = id or uuid.uuid4().hex
 
-        class APIWidget(widgets.APIWidget):
-            # Ignore badly named s param because it need to not conflic with outer self
-            def on_new_subscriber(s, user, cid, **kw):  # type: ignore
-                self.send_all_media_link_info()
-
-        # This is used for the remote media triggers feature.
-        # We must explicitly give it an ID so that it stays consistent
-        # between runs and we can auto-reconnect
-        self.media_link_socket = APIWidget(id=self.id + "_media_link")
-        self.media_link_socket.echo = False
+        self.media_link = MediaLinkManager(self)
+        self.media_link_socket = self.media_link.media_link_socket
 
         self.slide_overlay_url: str = slide_overlay_url
 
@@ -287,65 +276,8 @@ class Scene:
         # Audio visualizations
         self.music_visualizations = music_visualizations
 
-        # The active media file being played through the remote playback mechanism.
-        self.allowed_remote_media_url: str | None = None
-
         self.hide = hide
 
-        self.slideshow_telemetry: collections.OrderedDict[str, dict[str, Any]] = collections.OrderedDict()
-
-        self.slideshow_telemetry_ratelimit = (time.monotonic(), 200)
-
-        def handleMediaLink(u, v, id):
-            if v[0] == "telemetry":
-                ts, remain = self.slideshow_telemetry_ratelimit
-                remain = max(0, min(200, (time.monotonic() - ts) * 3 + remain - 1))
-
-                if remain:
-                    ip = kaithem.widget.ws_connections[id].peer_address
-                    n = ip + "@" + self.name
-
-                    if v[1]["status"] == "disconnect":
-                        self.slideshow_telemetry.pop(n, None)
-                        for board in core.iter_boards():
-                            board.linkSend(["slideshow_telemetry", n, None])
-                        return
-
-                    self.slideshow_telemetry[n] = {
-                        "status": str(v[1]["status"])[:128],
-                        "name": str(v[1].get("name", ""))[:128],
-                        "ip": ip,
-                        "id": id,
-                        "ts": time.time(),
-                        "battery": kaithem.widget.ws_connections[id].batteryStatus,
-                        "scene": self.name,
-                    }
-                    self.slideshow_telemetry.move_to_end(n)
-
-                    if len(self.slideshow_telemetry) > 256:
-                        k, x = self.slideshow_telemetry.popitem(False)
-                        for board in core.iter_boards():
-                            board.linkSend(["slideshow_telemetry", k, None])
-
-                    try:
-                        for board in core.iter_boards():
-                            board.linkSend(["slideshow_telemetry", n, self.slideshow_telemetry[n]])
-                    except Exception:
-                        pass
-
-            elif v[0] == "initial":
-                self.sendVisualizations()
-
-            elif v[0] == "ask":
-                self.send_all_media_link_info()
-
-            elif v[0] == "error":
-                self.event(
-                    "system.error",
-                    "Web media playback error in remote browser: " + v[1],
-                )
-
-        self.media_link_socket.attach2(handleMediaLink)
         self.lock = threading.RLock()
         self.randomizeModifier = 0
 
@@ -535,33 +467,6 @@ class Scene:
 
         self.subscribe_command_tags()
 
-    def send_all_media_link_info(self):
-        self.media_link_socket.send(["volume", self.alpha])
-
-        self.media_link_socket.send(["text", self.cue.markdown])
-
-        self.media_link_socket.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
-
-        self.media_link_socket.send(["all_variables", self.web_variables])
-
-        self.media_link_socket.send(
-            [
-                "mediaURL",
-                self.allowed_remote_media_url,
-                self.entered_cue,
-                max(0, self.cue.fade_in or self.cue.sound_fade_in or self.crossfade),
-            ]
-        )
-        self.media_link_socket.send(
-            [
-                "slide",
-                self.cue.slide,
-                self.entered_cue,
-                max(0, self.cue.fade_in or self.crossfade),
-            ]
-        )
-        self.media_link_socket.send(["overlay", self.slide_overlay_url])
-
     def toDict(self) -> dict[str, Any]:
         # These are the properties that aren't just straight 1 to 1 copies
         # of props, but still get saved
@@ -589,11 +494,6 @@ class Scene:
             if not self.mqttConnection.is_connected:
                 x += "MQTT Dis_connected "
         return x
-
-    def set_slideshow_variable(self, k: str, v: Any):
-        self.media_link_socket.send(["web_var", k, v])
-
-        self.web_variables[k] = v
 
     def close(self):
         "Unregister the scene and delete it from the lists"
@@ -1136,30 +1036,12 @@ class Scene:
                         print(traceback.format_exc())
                         core.rl_log_exc("Error with cue variable " + str(var_name))
 
-                self.media_link_socket.send(
-                    [
-                        "slide",
-                        self.cues[cue].slide,
-                        self.entered_cue,
-                        max(0, self.cues[cue].fade_in or self.crossfade),
-                    ]
-                )
-
-                self.media_link_socket.send(
-                    [
-                        "text",
-                        self.cues[cue].markdown,
-                    ]
-                )
-
                 # optimization, try to se if we can just increment if we are going to the next cue, else
                 # we have to actually find the index of the new cue
                 if self.cuePointer < (len(self.cues_ordered) - 1) and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]:
                     self.cuePointer += 1
                 else:
                     self.cuePointer = self.cues_ordered.index(self.cues[cue])
-
-                self.media_player.next(self.cues[cue])
 
                 sc = self.cues[cue].trigger_shortcut.strip()
                 if sc:
@@ -1186,8 +1068,7 @@ class Scene:
                 self.pushMeta(statusOnly=True)
 
                 self.preload_next_cue_sound()
-
-                self.media_link_socket.send(["cue_ends", self.cuelen + self.entered_cue, self.cuelen])
+                self.media_player.next(self.cues[cue])
 
             if self.cue.name == "__setup__":
                 self.goto_cue("__checkpoint__")
@@ -1906,10 +1787,7 @@ class Scene:
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
             self.doMqttSubscriptions(keepUnused=0)
 
-            self.media_link_socket.send(["text", ""])
-
-            self.media_link_socket.send(["mediaURL", "", 0, 0])
-            self.media_link_socket.send(["slide", "", 0, 0])
+            self.media_link.stop()
 
             gc.collect()
             time.sleep(0.002)
@@ -1971,16 +1849,8 @@ class Scene:
                 s2 += i.strip() + "\n"
 
         self.music_visualizations = s2
-        self.sendVisualizations()
+        self.media_link.sendVisualizations()
         self.pushMeta(keys={"music_visualizations"})
-
-    def sendVisualizations(self):
-        self.media_link_socket.send(
-            [
-                "butterchurnfiles",
-                [i.split("milkdrop:")[-1] for i in self.music_visualizations.split("\n") if i],
-            ]
-        )
 
     def setAlpha(self, val: float, sd: bool = False):
         val = min(1, max(0, val))

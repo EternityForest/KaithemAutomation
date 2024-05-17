@@ -120,7 +120,7 @@ def add_context_commands(context_scene):
         "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
         if not key.startswith("var"):
             raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
-        context_scene.board.scenes_by_name[scene].set_slideshow_variable(key, value)
+        context_scene.board.scenes_by_name[scene].media_link.set_slideshow_variable(key, value)
         return True
 
     def uiNotificationCommand(text: str):
