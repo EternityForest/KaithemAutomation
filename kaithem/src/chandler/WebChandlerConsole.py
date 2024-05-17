@@ -170,10 +170,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     print(traceback.format_exc())
 
                 try:
-                    for j in s.slideshow_telemetry:
+                    for j in s.media_link.slideshow_telemetry:
                         # TODO send more stuff to just the target
                         self.linkSendTo(
-                            ["slideshow_telemetry", j, s.slideshow_telemetry[j]],
+                            ["slideshow_telemetry", j, s.media_link.slideshow_telemetry[j]],
                             sessionid,
                         )
                 except Exception:
@@ -305,10 +305,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         # User level runtime stuff that can't change config
 
         if cmd_name == "jumptocue":
-            if not cues[msg[1]].scene().active:
-                cues[msg[1]].scene().go()
+            sc = cues[msg[1]].scene()
+            assert sc
 
-            cues[msg[1]].scene().goto_cue(cues[msg[1]].name, cause="manual")
+            if not sc.active:
+                sc.go()
+
+            sc.goto_cue(cues[msg[1]].name, cause="manual")
             return
 
         elif cmd_name == "jumpbyname":
@@ -519,17 +522,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 scenes.scenes[msg[1]].setMqttServer(msg[2])
                 self.pushMeta(msg[1], keys={"mqtt_server"})
 
-        elif cmd_name == "namechannel":
-            if msg[3]:
-                u = universes.universes[msg[1]]()
-                if u:
-                    u.channels[msg[2]] = msg[3]
-            else:
-                del universes.universes[msg[1]]().channels[msg[2]]
-
         elif cmd_name == "add_cueval":
-            if hasattr(cues[msg[1]].scene().blendClass, "default_channel_value"):
-                val = cues[msg[1]].scene().blendClass.default_channel_value
+            sc = cues[msg[1]].scene()
+            assert sc
+
+            if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
+                val = sc.lighting_manager.blendClass.default_channel_value
             else:
                 val = 0
 
@@ -556,8 +554,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Channels are stored by name and not by number.
             for i in x.channels:
                 if i[1] not in ("unused", "fixed"):
-                    if hasattr(cue.scene().blendClass, "default_channel_value"):
-                        val = cue.scene().blendClass.default_channel_value
+                    sc = cue.scene()
+                    assert sc
+                    if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
+                        val = sc.lighting_manager.blendClass.default_channel_value
                     else:
                         val = 0
                     # i[0] is the name of the channel
@@ -571,8 +571,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 # The __dest__ channels represet the color at the end of the channel
                 for i in x.channels:
                     if i[1] not in ("unused", "fixed"):
-                        if hasattr(cue.scene().blendClass, "default_channel_value"):
-                            val = cue.scene().blendClass.default_channel_value
+                        sc = cue.scene()
+                        assert sc
+                        if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
+                            val = sc.lighting_manager.blendClass.default_channel_value
                         else:
                             val = 0
                         # i[0] is the name of the channel
@@ -751,7 +753,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = msg[2]
             cues[msg[1]].sound_volume = v
             self.pushCueMeta(msg[1])
-            cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.setAlpha(sc.alpha)
 
         elif cmd_name == "setCueLoops":
             try:
@@ -761,7 +765,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].sound_loops = v if (not v == -1) else 99999999999999999
 
             self.pushCueMeta(msg[1])
-            cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.setAlpha(sc.alpha)
 
         elif cmd_name == "setSoundFadeIn":
             try:
@@ -898,7 +904,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length = v
-            cues[msg[1]].scene().recalc_cue_len()
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.recalc_cue_len()
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setrandomize":
@@ -907,7 +915,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length_randomize = v
-            cues[msg[1]].scene().recalc_randomize_modifier()
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.recalc_randomize_modifier()
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setnext":

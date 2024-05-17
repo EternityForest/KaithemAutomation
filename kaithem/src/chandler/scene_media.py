@@ -188,6 +188,17 @@ class SceneMediaPlayer:
 
                 else:
                     self.scene.event("error", "File does not exist: " + sound)
+            else:
+                if oldSoundOut == "scenewebplayer" or out == "scenewebplayer":
+                    self.scene.media_link.allowed_remote_media_url = None
+                    self.scene.media_link_socket.send(
+                        [
+                            "mediaURL",
+                            None,
+                            self.scene.entered_cue,
+                            max(0, cue.fade_in or self.scene.crossfade),
+                        ]
+                    )
 
     def stop(self):
         stop_sound(str(self.scene.id))

@@ -1069,6 +1069,7 @@ class Scene:
 
                 self.preload_next_cue_sound()
                 self.media_player.next(self.cues[cue])
+                self.media_link.next(self.cues[cue])
 
             if self.cue.name == "__setup__":
                 self.goto_cue("__checkpoint__")
