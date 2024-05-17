@@ -192,10 +192,6 @@ appMethods = {
         api_link.send(['saveState'])
     },
 
-    'saveLibrary': function () {
-
-        api_link.send(['saveLibrary'])
-    },
     'sendev': function (where) {
         api_link.send(['event', this.evtosend, this.evval, this.evtypetosend, where])
     },
@@ -1532,7 +1528,7 @@ function f(v) {
         }
     }
 
-    else if (c == 'presets') {
+    else if (c == 'fixturePresets') {
         vueapp.$data.presets = v[1]
     }
 }

@@ -57,6 +57,8 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.configured_universes: Dict[str, Any] = {}
         self.fixture_assignments: Dict[str, Any] = {}
+        self.fixture_presets: Dict[str, dict[int | str, float | int | str]] = {}
+
         self.fixtures = {}
 
         self.universe_objects: Dict[str, universes.Universe] = {}
@@ -110,6 +112,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.configured_universes = data2["configured_universes"]
             self.fixture_classes = data2["fixture_types"]
             self.fixture_assignments = data2["fixture_assignments"]
+            self.fixture_presets = data2.get("fixture_presets", {})
 
             try:
                 self.create_universes(self.configured_universes)
@@ -121,7 +124,6 @@ class ChandlerConsole(console_abc.Console_ABC):
             d = data["scenes"]
 
             self.loadDict(d)
-
             self.linkSend(["refreshPage", self.fixture_assignments])
 
     def setup(self, project: dict[str, Any]):
@@ -234,6 +236,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             "fixture_types": self.fixture_classes,
             "universes": self.configured_universes,
             "fixture_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
             #'config':
         }
 
@@ -266,12 +269,16 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.fixture_assignments = data["fixure_assignments"]
             self.refresh_fixtures()
 
+        if "fixture_presets" in data:
+            self.fixture_presets = data["fixure_presets"]
+
     def getSetupFile(self):
         with core.lock:
             return {
                 "fixture_types": self.fixture_classes,
                 "configured_universes": self.configured_universes,
                 "fixture_assignments": self.fixture_assignments,
+                "fixture_presets": self.fixture_presets,
             }
 
     def loadLibraryFile(
@@ -297,6 +304,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "fixture_types": self.fixture_classes,
                 "universes": self.configured_universes,
                 "fixure_assignments": self.fixture_assignments,
+                "fixture_presets": self.fixture_presets,
             }
 
     def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
@@ -440,6 +448,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         "Errors in fixture list"
         self.linkSend(["ferrs", self.ferrs])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
+        self.linkSend(["fixturePresets", self.fixture_presets])
 
     def pushUniverses(self):
         snapshot = getUniverses()

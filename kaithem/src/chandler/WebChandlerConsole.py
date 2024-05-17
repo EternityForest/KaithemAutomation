@@ -16,6 +16,7 @@ from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
 from . import ChandlerConsole, core, scenes, universes
 from .core import disallow_special
+from .cue import fnToCueName
 from .global_actions import event
 from .scenes import Scene, cues
 
@@ -393,18 +394,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         if cmd_name == "preset":
             if msg[2] is None:
-                self.presets.pop(msg[2], None)
+                self.fixture_presets.pop(msg[2], None)
             else:
-                self.presets[msg[1]] = msg[2]
+                self.fixture_presets[msg[1]] = msg[2]
+            self.linkSend(["fixturePresets", self.fixture_presets])
 
         elif cmd_name == "saveState":
             self.check_autosave()
 
         elif cmd_name == "loadShow":
             self.load_show(msg[1])
-
-        elif cmd_name == "saveLibrary":
-            self.save_project_data("fixturetypes", self.fixture_classes, "lighting/fixtureclasses")
 
         elif cmd_name == "addscene":
             sc = Scene(self, msg[1].strip())
@@ -665,7 +664,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "newFromSound":
             bn = os.path.basename(msg[2])
-            bn = scenes.fnToCueName(bn)
+            bn = fnToCueName(bn)
             try:
                 tags = TinyTag.get(msg[2])
                 if tags.artist and tags.title:
@@ -698,13 +697,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "newFromSlide":
             bn = os.path.basename(msg[2])
-            bn = scenes.fnToCueName(bn)
+            bn = fnToCueName(bn)
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in scenes.scenes[msg[1]].cues:
                 scenes.scenes[msg[1]].add_cue(bn)
                 soundfolders = core.getSoundFolders()
-
+                assert soundfolders
+                s = ""
                 for i in soundfolders:
                     s = msg[2]
                     # Make paths relative.
@@ -713,6 +713,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     if s.startswith(i):
                         s = s[len(i) :]
                         break
+                assert s
                 scenes.scenes[msg[1]].cues[bn].slide = s
 
                 if not scenes.is_static_media(s):
@@ -796,7 +797,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             kaithem.assetpacks.ensure_file(msg[2])
 
             soundfolders = core.getSoundFolders()
-
+            s = ""
             for i in soundfolders:
                 s = msg[2]
                 # Make paths relative.
@@ -805,6 +806,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 if s.startswith(i):
                     s = s[len(i) :]
                     break
+            assert s
 
             if s.strip() and cues[msg[1]].sound and cues[msg[1]].named_for_sound:
                 self.pushCueMeta(msg[1])

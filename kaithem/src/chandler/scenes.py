@@ -18,13 +18,12 @@ from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 from beartype import beartype
-from tinytag import TinyTag
 
 from .. import schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, mqtt, persistance, scene_media
 from .core import disallow_special
-from .cue import Cue, allowedCueNameSpecials, cues, fnToCueName
+from .cue import Cue, allowedCueNameSpecials, cues
 from .global_actions import shortcutCode
 from .mathutils import dt_to_ts, ease, number_to_note
 from .scene_context_commands import add_context_commands, rootContext
@@ -1943,34 +1942,3 @@ class Scene:
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
             self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
-
-    def new_cue_from_sound(self, snd, name=None):
-        bn = os.path.basename(snd)
-        bn = fnToCueName(bn)
-        try:
-            tags = TinyTag.get(snd)
-            if tags.artist and tags.title:
-                bn = tags.title + " ~ " + tags.artist
-        except Exception:
-            print(traceback.format_exc())
-
-        bn = disallow_special(bn, "_~", replaceMode=" ")
-        if bn not in self.cues:
-            self.add_cue(bn)
-            self.cues[bn].rel_length = True
-            self.cues[bn].length = 0.01
-
-            soundfolders = core.getSoundFolders()
-            s = None
-            for i in soundfolders:
-                s = snd
-                # Make paths relative to a sound folder
-                if not i.endswith("/"):
-                    i = i + "/"
-                if s.startswith(i):
-                    s = s[len(i) :]
-                    break
-            if not s:
-                raise RuntimeError("Unknown, linter said was possible")
-            self.cues[bn].sound = s
-            self.cues[bn].named_for_sound = True
