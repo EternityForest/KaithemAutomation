@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import numpy
 import numpy.typing
 
-from . import universes
+from . import blendmodes, universes
 
 if TYPE_CHECKING:
     from .ChandlerConsole import ChandlerConsole
@@ -33,6 +33,13 @@ class SceneLightingManager:
         self.on_demand_universes: dict[str, universes.Universe] = {}
 
         self.cue: Cue | None = None
+
+        # Place to stash a blend object for new blending mode
+        # Hardcoded indicates that applyLayer reads the blend name and we
+        # have hardcoded logic there
+        self._blend: blendmodes.BlendMode = blendmodes.HardcodedBlendMode(self)
+        self.blendClass: type[blendmodes.BlendMode] = blendmodes.HardcodedBlendMode
+        self.blend_args: dict[str, float | int | bool | str] = scene.blend_args or {}
 
     def refresh(self):
         "Rerender all universes this affects"
@@ -86,6 +93,9 @@ class SceneLightingManager:
 
         self.affect = []
         self.on_demand_universes = {}
+
+        # Just using this to get rid of prev value
+        self._blend = blendmodes.HardcodedBlendMode(self)
 
     def cue_vals_to_numpy_cache(self, cuex: Cue, clearBefore=False):
         """Apply everything from the cue to the fade canvas"""
@@ -217,7 +227,7 @@ class SceneLightingManager:
 
     def updateMonitorValues(self):
         assert self.cue
-        if self.scene.blend == "monitor":
+        if self.blend == "monitor":
             data = self.cue.values
             for i in data:
                 for j in data[i]:
@@ -283,14 +293,52 @@ class SceneLightingManager:
 
         return vars
 
+    def setup_blend_args(self):
+        # Fill in defaults
+        for i in self._blend.blend_args:
+            if i not in self.blend_args:
+                self.blend_args[i] = self._blend.blend_args[i]
 
-def composite(background, values, alphas, alpha):
+        # Set the val
+        self._blend.blend_args.update(self.blend_args)
+
+    def setBlend(self, blend: str):
+        blend = str(blend)[:256]
+        self.blend = blend
+        if blend in blendmodes.blendmodes:
+            if self.scene.is_active():
+                self._blend = blendmodes.blendmodes[blend](self)
+            self.blendClass = blendmodes.blendmodes[blend]
+            self.setup_blend_args()
+        else:
+            self.blend_args = self.blend_args or {}
+            self._blend = blendmodes.HardcodedBlendMode(self)
+            self.blendClass = blendmodes.HardcodedBlendMode
+        self.should_rerender = True
+
+    def setBlendArg(self, key: str, val: float | bool | str):
+        if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
+            raise KeyError("No such param")
+
+        if val is None:
+            del self.blend_args[key]
+        else:
+            try:
+                val = float(val)
+            except Exception:
+                pass
+            self.blend_args[key] = val
+            self._blend.blend_args[key] = val
+        self.should_rerender = True
+
+
+def _composite(background, values, alphas, alpha):
     "In place compositing of one universe as a numpy array on a background.  Returns background."
     background = background * (1 - (alphas * alpha)) + values * alphas * alpha
     return background
 
 
-def applyLayer(universe, uvalues, scene, uobj):
+def composite_rendered_layer_onto_universe(universe, uvalues, scene, uobj):
     "May happen in place, or not, but always returns the new version"
 
     if universe not in scene.lighting_manager.canvas.v2:
@@ -307,24 +355,26 @@ def applyLayer(universe, uvalues, scene, uobj):
 
     ualphas = uobj.alphas
 
-    if scene.blend == "normal":
+    bm = scene.lighting_manager.blend
+
+    if bm == "normal":
         # todo: is it bad to multiply by bool?
         unsetVals = ualphas == 0.0
         fade = numpy.maximum(scene.alpha, unsetVals & uobj.hueBlendMask)
 
-        uvalues = composite(uvalues, vals, alphas, fade)
+        uvalues = _composite(uvalues, vals, alphas, fade)
         # Essetially calculate remaining light percent, then multiply layers and convert back to alpha
         ualphas = 1 - ((1 - (alphas * fade)) * (1 - (ualphas)))
 
-    elif scene.blend == "HTP":
+    elif bm == "HTP":
         uvalues = numpy.maximum(uvalues, vals * (alphas * scene.alpha))
         ualphas = (alphas * scene.alpha) > 0
 
-    elif scene.blend == "inhibit":
+    elif bm == "inhibit":
         uvalues = numpy.minimum(uvalues, vals * (alphas * scene.alpha))
         ualphas = (alphas * scene.alpha) > 0
 
-    elif scene.blend == "gel" or scene.blend == "multiply":
+    elif bm == "gel" or bm == "multiply":
         if scene.alpha:
             # precompute constants
             c = 255 / scene.alpha
@@ -334,9 +384,9 @@ def applyLayer(universe, uvalues, scene, uobj):
             # Is compliccated. #TODO
             ualphas = (alphas * scene.alpha) > 0
 
-    elif scene._blend:
+    elif scene.lighting_manager._blend:
         try:
-            uvalues = scene._blend.frame(universe, uvalues, vals, alphas, scene.alpha)
+            uvalues = scene.lighting_manager._blend.frame(universe, uvalues, vals, alphas, scene.alpha)
             # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
             ualphas = (alphas * scene.alpha) > 0
         except Exception:
@@ -358,7 +408,7 @@ def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe])
             if u in universes:
                 universe = universes[u]
                 universe.all_static = True
-                if i.lighting_manager.should_rerender or i.blendClass.always_rerender:
+                if i.lighting_manager.should_rerender or i.lighting_manager.blendClass.always_rerender:
                     changedUniverses[u] = (0, 0)
 
                     # We are below the cached layer, we need to fully reset
@@ -390,7 +440,7 @@ def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe])
     return changedUniverses
 
 
-def render(board: ChandlerConsole, t=None, u=None):
+def composite_layers_and_do_output(board: ChandlerConsole, t=None, u=None):
     "This is the primary rendering function"
     universesSnapshot = u or universes.getUniverses()
     # Getting list of universes is apparently slow, so we pass it as a param
@@ -424,7 +474,7 @@ def render(board: ChandlerConsole, t=None, u=None):
                     universeObject.save_prerendered(universeObject.top_layer[0], universeObject.top_layer[1])
 
                 changedUniverses[u] = (i.priority, i.started)
-                universeObject.values = applyLayer(u, universeObject.values, i, universeObject)
+                universeObject.values = composite_rendered_layer_onto_universe(u, universeObject.values, i, universeObject)
                 universeObject.top_layer = (i.priority, i.started)
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame

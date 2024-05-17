@@ -22,12 +22,12 @@ from tinytag import TinyTag
 
 from .. import schemas, tagpoints, util, widgets
 from ..kaithemobj import kaithem
-from . import blendmodes, core, mqtt, persistance, scene_media
+from . import core, mqtt, persistance, scene_media
 from .core import disallow_special
 from .cue import Cue, allowedCueNameSpecials, cues, fnToCueName
 from .global_actions import shortcutCode
 from .mathutils import dt_to_ts, ease, number_to_note
-from .scene_context_commands import add_context_commands
+from .scene_context_commands import add_context_commands, rootContext
 from .scene_lighting import SceneLightingManager
 
 if TYPE_CHECKING:
@@ -94,61 +94,6 @@ def makeWrappedConnectionClass(parent: Scene):
     return Connection
 
 
-rootContext = kaithem.chandlerscript.ChandlerScriptContext()
-
-
-# Dummies just for the introspection
-# TODO use the context commands thingy so we don't repeat this
-def gotoCommand(scene: str = "=SCENE", cue: str = ""):
-    "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
-
-
-def codeCommand(code: str = ""):
-    "Activates any cues with the matching shortcut code in any scene"
-
-
-gotoCommand.completionTags = {  # type: ignore
-    "scene": "gotoSceneNamesCompleter",
-    "cue": "gotoSceneCuesCompleter",
-}
-
-
-def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
-    "Set the alpha value of a scene"
-
-
-def ifCueCommand(scene: str, cue: str):
-    "True if the scene is running that cue"
-
-
-def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
-    "Send an event to a scene, or to all scenes if scene is __global__"
-
-
-def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
-    "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
-
-
-def uiNotificationCommand(text: str):
-    "Send a notification to the operator, on the web editor and console pages"
-
-
-rootContext.commands["shortcut"] = codeCommand
-rootContext.commands["goto"] = gotoCommand
-rootContext.commands["set_alpha"] = setAlphaCommand
-rootContext.commands["if_cue"] = ifCueCommand
-rootContext.commands["send_event"] = eventCommand
-rootContext.commands["set_slideshow_variable"] = setWebVarCommand
-rootContext.commands["console_notification"] = uiNotificationCommand
-
-
-def sendMqttMessage(topic: str, message: str):
-    "JSON encodes message, and publishes it to the scene's MQTT server"
-
-
-rootContext.commands["send_mqtt"] = sendMqttMessage
-
-
 cueTransitionsLimitCount = 0
 cueTransitionsHorizon = 0
 
@@ -202,19 +147,19 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
 
-    def event(self, e: str, v: str | float | int | bool | None = None):
-        kaithem.chandlerscript.ChandlerScriptContext.event(self, e, v)
+    def event(self, evt: str, val: str | float | int | bool | None = None):
+        kaithem.chandlerscript.ChandlerScriptContext.event(self, evt, val)
         try:
             for board in core.iter_boards():
-                board.pushEv(e, self.sceneName, time.time(), value=v)
+                board.pushEv(evt, self.sceneName, time.time(), value=val)
         except Exception:
             core.rl_log_exc("error handling event")
             print(traceback.format_exc())
 
-    def onTimerChange(self, timer, run):
+    def onTimerChange(self, timer, nextRunTime):
         scene = self.sceneObj()
         if scene:
-            scene.runningTimers[timer] = run
+            scene.runningTimers[timer] = nextRunTime
             try:
                 for board in core.iter_boards():
                     board.linkSend(["scenetimers", scene.id, scene.runningTimers])
@@ -296,6 +241,9 @@ class Scene:
 
         if not name.strip():
             raise ValueError("Invalid Name")
+
+        # Used by blend modes
+        self.blend_args: dict[str, float | int | bool | str] = blend_args or {}
 
         self.media_player = scene_media.SceneMediaPlayer(self)
         self.lighting_manager = SceneLightingManager(self)
@@ -447,11 +395,7 @@ class Scene:
         # If an entry here it means the monitor scene with that ID
         # already sent data to web
         self.monitor_values_already_pushed_by: dict[str, bool] = {}
-        # Place to stash a blend object for new blending mode
-        # Hardcoded indicates that applyLayer reads the blend name and we
-        # have hardcoded logic there
-        self._blend: blendmodes.BlendMode = blendmodes.HardcodedBlendMode(self)
-        self.blendClass: type[blendmodes.BlendMode] = blendmodes.HardcodedBlendMode
+
         self.alpha = alpha
         self.crossfade = crossfade
 
@@ -525,8 +469,6 @@ class Scene:
 
         self._priority = priority
 
-        # Used by blend modes
-        self.blend_args: dict[str, float | int | bool | str] = blend_args or {}
         self.setBlend(blend)
         self.default_active = default_active
 
@@ -1729,12 +1671,6 @@ class Scene:
                 c = c[0]
                 self.goto_cue(c, cause=cause)
 
-    def setup_blend_args(self):
-        if hasattr(self.blendClass, "parameters"):
-            for i in self.blendClass.parameters:
-                if i not in self.blend_args:
-                    self.blend_args[i] = self.blendClass.parameters[i][3]
-
     def __repr__(self):
         return f"<Scene {self.name}>"
 
@@ -1756,9 +1692,7 @@ class Scene:
 
             self.entered_cue = time.time()
 
-            if self.blend in blendmodes.blendmodes:
-                self._blend = blendmodes.blendmodes[self.blend](self)
-
+            self.setBlend(self.blend)
             self.metadata_already_pushed_by = {}
             self.started = time.time()
 
@@ -1947,8 +1881,6 @@ class Scene:
             if not self.cue:
                 return
 
-            # Just using this to get rid of prev value
-            self._blend = blendmodes.HardcodedBlendMode(self)
             self.metadata_already_pushed_by = {}
 
             self.lighting_manager.stop()
@@ -2084,35 +2016,26 @@ class Scene:
         disallow_special(blend)
         blend = str(blend)[:256]
         self.blend = blend
-        if blend in blendmodes.blendmodes:
-            if self.is_active():
-                self._blend = blendmodes.blendmodes[blend](self)
-            self.blendClass = blendmodes.blendmodes[blend]
-            self.setup_blend_args()
-        else:
-            self.blend_args = self.blend_args or {}
-            self._blend = blendmodes.HardcodedBlendMode(self)
-            self.blendClass = blendmodes.HardcodedBlendMode
+        self.lighting_manager.setBlend(blend)
         self.poll_again_flag = True
-        self.lighting_manager.should_rerender = True
-
         self.metadata_already_pushed_by = {}
 
     def setBlendArg(self, key: str, val: float | bool | str):
         disallow_special(key, "_")
         # serializableness check
         json.dumps(val)
-        if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
-            raise KeyError("No such param")
+        self.lighting_manager.setBlendArg(key, val)
 
         if val is None:
             del self.blend_args[key]
         else:
-            if self.blendClass.parameters[key][1] == "number":
+            try:
                 val = float(val)
+            except Exception:
+                pass
             self.blend_args[key] = val
+
         self.poll_again_flag = True
-        self.lighting_manager.should_rerender = True
         self.metadata_already_pushed_by = {}
 
     def poll(self, force_repaint: bool = False):

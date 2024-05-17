@@ -276,7 +276,7 @@ class Universe:
 
         # Used for the caching. It's the layer we want to save as the background state before we apply.
         # Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
-        self.save_before_layer = (0, 0)
+        self.save_before_layer = (0.0, 0.0)
         # Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
         # so far in this frame
         self.all_static = True

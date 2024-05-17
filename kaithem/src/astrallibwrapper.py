@@ -20,7 +20,7 @@ def getLocationInfo(lat, lon):
 def dawn(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return civil dawn time for any given date object as a unix timestamp(default to today)"
     if date is None:
-        date = datetime.datetime.utcnow().date()
+        date = datetime.datetime.now(datetime.UTC).date()
 
     return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["dawn"].timetuple())
 
@@ -28,7 +28,7 @@ def dawn(lat, lon, date=None, elevation=0):
 def dusk(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return civil dusk time for any given date object as a unix timestamp(default to today)"
     if date is None:
-        date = datetime.datetime.utcnow().date()
+        date = datetime.datetime.now(datetime.UTC).date()
 
     return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["dusk"].timetuple())
 
@@ -36,21 +36,21 @@ def dusk(lat, lon, date=None, elevation=0):
 def sunrise(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return sunrise time for any given date object as a unix timestamp(default to today)"
     if date is None:
-        date = datetime.datetime.utcnow().date()
+        date = datetime.datetime.now(datetime.UTC).date()
 
     return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["sunrise"].timetuple())
 
 
 def sunset(lat, lon, date=None, elevation=0):
     if date is None:
-        date = datetime.datetime.utcnow().date()
+        date = datetime.datetime.now(datetime.UTC).date()
     return calendar.timegm(astral.sun.sun(astral.Observer(lat, lon, elevation), date)["sunset"].timetuple())
 
 
 def rahu(lat, lon, date=None, elevation=0):
     "Given a latitude and longitude, return a tuple of the start and end timestamps of the given date's rahukalaam period"
     if date is None:
-        date = datetime.datetime.utcnow().date()
+        date = datetime.datetime.now(datetime.UTC).date()
     r = astral.rahukaalam(astral.Observer(lat, lon, elevation), date)
     return (
         calendar.timegm(r["start"].timetuple()),

@@ -92,7 +92,7 @@ def logReport():
             log.error("Gstreamer or python bindings not installed properly. Mixing will not work")
     except Exception:
         log.exception("Gstreamer or python bindings not installed properly. Mixing will not work")
-    if not gstwrapper.does_element_exist("jackaudiosrc"):
+    if not gstwrapper.does_element_exist("pipewiresrc"):
         log.error("Gstreamer JACK plugin not found. Mixing will not work")
 
     for i in effectTemplates:
@@ -235,7 +235,7 @@ class Recorder(gstwrapper.Pipeline):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
         self.src = self.add_element(
-            "jackaudiosrc",
+            "pipewiresrc",
             port_pattern="fgfcghfhftyrtw5ew453xvrt",
             client_name="krecorder",
             connect=0,
@@ -440,13 +440,19 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # We unfortunately can't suppress auto connect in this version
         # use this hack.  Wait till ports show up then disconnect.
         for i in range(25):
-            if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_in:")]:
-                break
+            try:
+                if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_in:")]:
+                    break
+            except Exception:
+                print(traceback.format_exc())
             time.sleep(0.1)
 
         for i in range(25):
-            if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_out:")]:
-                break
+            try:
+                if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_out:")]:
+                    break
+            except Exception:
+                print(traceback.format_exc())
             time.sleep(0.1)
 
         self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
@@ -1075,7 +1081,7 @@ class MixingBoard:
 
         for i in range(3):
             try:
-                self._createChannelAttempt(name, data, wait=(3**i + 6))
+                self._createChannelAttempt(name, data, wait=(10))
                 self.channelAlerts[name].release()
                 self.pushStatus(name, "running")
                 break

@@ -116,7 +116,7 @@ def loop():
             with core.lock:
                 for b in core.iter_boards():
                     poll_board_scenes(b)
-                    scene_lighting.render(b)
+                    scene_lighting.composite_layers_and_do_output(b)
 
             global lastrendered
             if time.time() - lastrendered > 1 / 14.0:

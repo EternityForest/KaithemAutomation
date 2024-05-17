@@ -243,6 +243,8 @@ class websocket_impl:
         self.subCount = 0
         self.peer_address = ""
         self.batteryStatus = None
+        self.cookie = dict[str, Any] | None
+
         ws_connections[self.connection_id] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
 
@@ -448,7 +450,7 @@ def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandl
 
             self.io_loop = tornado.ioloop.IOLoop.current()
             q = self.request.arguments
-            impl = wsimpl(self, user, **{i: q[i][0].decode() for i in q})
+            impl: websocket_impl = wsimpl(self, user, **{i: q[i][0].decode() for i in q})
             impl.cookie = cookie
             impl.user_agent = user_agent
 
@@ -456,6 +458,7 @@ def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandl
             clients_info[impl.connection_id] = impl.clientinfo
             self.impl = impl
 
+            assert isinstance(x, str)
             impl.peer_address = x
 
             if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
@@ -497,6 +500,7 @@ class rawwebsocket_impl:
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
         self.user = user
         self.parent = parent
+        self.peer_address = ""
 
         self.usedPermissions = collections.defaultdict(int)
 
