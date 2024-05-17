@@ -1,6 +1,6 @@
 import os
-from . import core
-from . import scenes
+
+from . import core, global_actions, scenes
 
 
 def import_m3u(scene: scenes.Scene, d):
@@ -24,9 +24,9 @@ def import_m3u(scene: scenes.Scene, d):
                     if os.path.exists(i2):
                         scene.new_cue_from_sound(i2, name=info)
                     else:
-                        scenes.event("board.error", "Error locating " + str(i))
+                        global_actions.event("board.error", "Error locating " + str(i))
             except Exception:
-                scenes.event("board.error", "Error locating " + str(i))
+                global_actions.event("board.error", "Error locating " + str(i))
 
             info = None
 

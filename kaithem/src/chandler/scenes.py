@@ -17,20 +17,18 @@ import weakref
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
-import numpy
-import numpy.typing
 from beartype import beartype
 from tinytag import TinyTag
 
 from .. import schemas, tagpoints, util, widgets
 from ..kaithemobj import kaithem
-from . import blendmodes, core, mqtt, persistance, universes
+from . import blendmodes, core, mqtt, persistance, scene_media
 from .core import disallow_special
-from .cue import Cue, allowedCueNameSpecials, cues, fnToCueName, normalize_shortcut, shortcut_codes
-from .fadecanvas import FadeCanvas
+from .cue import Cue, allowedCueNameSpecials, cues, fnToCueName
+from .global_actions import shortcutCode
 from .mathutils import dt_to_ts, ease, number_to_note
-from .soundmanager import fadeSound, play_sound, stop_sound
-from .universes import getUniverse, mapChannel, mapUniverse, rerenderUniverse
+from .scene_context_commands import add_context_commands
+from .scene_lighting import SceneLightingManager
 
 if TYPE_CHECKING:
     from . import ChandlerConsole
@@ -168,45 +166,6 @@ def doTransitionRateLimit():
     cueTransitionsLimitCount += 2
 
 
-def shortcutCode(code: str, limitScene: Scene | None = None, exclude: Scene | None = None):
-    "API to activate a cue by it's shortcut code"
-
-    code = normalize_shortcut(code)
-
-    if not limitScene:
-        event("shortcut." + str(code)[:64], None)
-
-    with core.lock:
-        if code in shortcut_codes:
-            for i in shortcut_codes[code]:
-                try:
-                    x = i.scene()
-                    if not x:
-                        continue
-
-                    if limitScene:
-                        if (x is not limitScene) and not (x.name == limitScene):
-                            print("skip " + x.name, limitScene)
-                            continue
-                        if x is not exclude:
-                            x.event("shortcut." + str(code)[:64])
-                    else:
-                        if x and x is not exclude:
-                            x.go()
-                            x.goto_cue(i.name, cause="manual")
-                except Exception:
-                    print(traceback.format_exc())
-
-
-def event(s: str, value: Any = None, info: str = "") -> None:
-    "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
-    # disallow_special(s, allow=".")
-    with core.lock:
-        for board in core.iter_boards():
-            for i in board.active_scenes:
-                i._event(s, value=value, info=info)
-
-
 class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
     def __init__(self, sceneObj: Scene, *a, **k):
         self.sceneObj = weakref.ref(sceneObj)
@@ -219,8 +178,9 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         if scene:
             try:
                 if not k == "_" and scene.rerenderOnVarChange:
-                    scene.recalc_cue_vals()
-                    scene.rerender = True
+                    scene.lighting_manager.recalc_cue_vals()
+                    scene.poll_again_flag = True
+                    scene.lighting_manager.should_rerender = True
 
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
@@ -337,14 +297,15 @@ class Scene:
         if not name.strip():
             raise ValueError("Invalid Name")
 
+        self.media_player = scene_media.SceneMediaPlayer(self)
+        self.lighting_manager = SceneLightingManager(self)
+
         # Variables to send to the slideshow.  They are UI only and
         # we don't have any reactive features
         self.web_variables: dict[str, Any] = {}
 
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]
-
-        self.on_demand_universes: dict[str, universes.Universe] = {}
 
         self.require_confirm = requre_confirm
 
@@ -379,7 +340,7 @@ class Scene:
         self.music_visualizations = music_visualizations
 
         # The active media file being played through the remote playback mechanism.
-        self.allowed_remote_media_url = None
+        self.allowed_remote_media_url: str | None = None
 
         self.hide = hide
 
@@ -518,7 +479,6 @@ class Scene:
         self.default_alpha = alpha
         self.name = name
 
-        self.canvas = FadeCanvas()
         self._backtrack = backtrack
         self.bpm = bpm
         self.sound_output = sound_output
@@ -556,15 +516,6 @@ class Scene:
         # Used to avoid an excessive number of repeats in random cues
         self.cueHistory: list[tuple[str, float]] = []
 
-        # List of universes we should be affecting right now
-        # Based on what values are in the cue and what values are inherited
-        self.affect: list[str] = []
-
-        # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
-        # which are faster that dicts for some operations
-        self.cue_cached_vals_as_arrays: dict[str, numpy.typing.NDArray[Any]] = {}
-        self.cue_cached_alphas_as_arrays: dict[str, numpy.typing.NDArray[Any]] = {}
-
         self.rerenderOnVarChange = False
 
         self.entered_cue: float = 0
@@ -588,7 +539,7 @@ class Scene:
 
         # Set to true every time the alpha value changes or a scene value changes
         # set to false at end of rendering
-        self.rerender = False
+        self.poll_again_flag = False
 
         # Last time the scene was started. Not reset when stopped
         self.started = 0.0
@@ -606,7 +557,7 @@ class Scene:
         # Used to be made on demand, now we just always have it
         self.script_context = self.make_script_context()
 
-        self.add_context_commands()
+        add_context_commands(self)
 
         # Holds (tagpoint, subscribe function) tuples whenever we subscribe
         # to a tag to display it
@@ -641,95 +592,6 @@ class Scene:
             self.cueTagClaim.set("__stopped__", annotation="SceneObject")
 
         self.subscribe_command_tags()
-
-    def add_context_commands(self):
-        cc = {}
-
-        def gotoCommand(scene: str = "=SCENE", cue: str = ""):
-            "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
-
-            # Ignore empty
-            if not cue.strip():
-                return True
-
-            # Track layers of recursion
-            newcause = "script.0"
-            if kaithem.chandlerscript.context_info.event[0] in ("cue.enter", "cue.exit"):
-                cause = kaithem.chandlerscript.context_info.event[1][1]
-                # Nast hack, but i don't thing we need more layers and parsing might be slower.
-                if cause == "script.0":
-                    newcause = "script.1"
-
-                elif cause == "script.1":
-                    newcause = "script.2"
-
-                elif cause == "script.2":
-                    raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
-
-            # We don't want to handle other bindings after a goto, leaving a scene stops execution.
-            self.board.scenes_by_name[scene].script_context.stopAfterThisHandler()
-            self.board.scenes_by_name[scene].goto_cue(cue, cause=newcause)
-            return True
-
-        def codeCommand(code: str = ""):
-            "Activates any cues with the matching shortcut code in any scene"
-            shortcutCode(code)
-            return True
-
-        gotoCommand.completionTags = {  # type: ignore
-            "scene": "gotoSceneNamesCompleter",
-            "cue": "gotoSceneCuesCompleter",
-        }
-
-        def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
-            "Set the alpha value of a scene"
-            self.board.scenes_by_name[scene].setAlpha(float(alpha))
-            return True
-
-        def ifCueCommand(scene: str, cue: str):
-            "True if the scene is running that cue"
-            return True if self.board.scenes_by_name[scene].active and self.board.scenes_by_name[scene].cue.name == cue else None
-
-        def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
-            "Send an event to a scene, or to all scenes if scene is __global__"
-            if scene == "__global__":
-                event(ev, value)
-            else:
-                self.board.scenes_by_name[scene].event(ev, value)
-            return True
-
-        def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
-            "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
-            if not key.startswith("var"):
-                raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
-            self.board.scenes_by_name[scene].set_slideshow_variable(key, value)
-            return True
-
-        def uiNotificationCommand(text: str):
-            "Send a notification to the operator, on the web editor and console pages"
-            for board in core.iter_boards():
-                if len(board.newDataFunctions) < 100:
-                    board.newDataFunctions.append(lambda s: s.linkSend(["ui_alert", text]))
-
-        cc["shortcut"] = codeCommand
-        cc["goto"] = gotoCommand
-        cc["set_alpha"] = setAlphaCommand
-        cc["if_cue"] = ifCueCommand
-        cc["send_event"] = eventCommand
-        cc["set_slideshow_variable"] = setWebVarCommand
-        cc["console_notification"] = uiNotificationCommand
-
-        # cc["set_tag"].completionTags = {"tagName": "tagPointsCompleter"}
-
-        def sendMqttMessage(topic: str, message: str):
-            "JSON encodes message, and publishes it to the scene's MQTT server"
-            raise RuntimeError("This was supposed to be overridden by a scene specific version")
-
-        cc["send_mqtt"] = sendMqttMessage
-        for i in cc:
-            self.script_context.commands[i] = cc[i]
-
-        self.command_refs = cc
 
     def send_all_media_link_info(self):
         self.media_link_socket.send(["volume", self.alpha])
@@ -1204,13 +1066,6 @@ class Scene:
         # Not really in a cue, reentrancy doesn't apply
         skip_reentrant_check = self.entered_cue == 0
 
-        if self.cue:
-            oldSoundOut = self.cue.sound_output
-        else:
-            oldSoundOut = None
-        if not oldSoundOut:
-            oldSoundOut = self.sound_output
-
         cue = str(self.evalExpr(cue))
 
         if "?" in cue:
@@ -1248,16 +1103,6 @@ class Scene:
             with self.lock:
                 if not self.active:
                     return
-
-                if self.canvas:
-                    self.canvas.save()
-
-                # There might be universes we affect that we don't anymore,
-                # We need to rerender those because otherwise the system might think absolutely nothing has changed.
-                # A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
-                # since most frames don't have a cue change in them
-                for i in self.affect:
-                    rerenderUniverse(i)
 
                 if cue == "__stop__":
                     self.stop()
@@ -1349,9 +1194,6 @@ class Scene:
                         print(traceback.format_exc())
                         core.rl_log_exc("Error with cue variable " + str(var_name))
 
-                if self.cues[cue].track:
-                    self.apply_tracked_values(cue)
-
                 self.media_link_socket.send(
                     [
                         "slide",
@@ -1375,166 +1217,8 @@ class Scene:
                 else:
                     self.cuePointer = self.cues_ordered.index(self.cues[cue])
 
-                if not self.cues[cue].sound == "__keep__":
-                    # Don't stop audio of we're about to crossfade to the next track
-                    if not (self.crossfade and self.cues[cue].sound):
-                        if self.cue.sound_fade_out or self.cue.media_wind_down:
-                            fadeSound(
-                                None,
-                                length=self.cue.sound_fade_out,
-                                handle=str(self.id),
-                                winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
-                            )
-                        else:
-                            stop_sound(str(self.id))
-                    # There is no next sound so crossfade to silence
-                    if self.crossfade and (not self.cues[cue].sound):
-                        if self.cue.sound_fade_out or self.cue.media_wind_down:
-                            fadeSound(
-                                None,
-                                length=self.cue.sound_fade_out,
-                                handle=str(self.id),
-                                winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
-                            )
-                        else:
-                            stop_sound(str(self.id))
+                self.media_player.next(self.cues[cue])
 
-                    self.allowed_remote_media_url = None
-
-                    out: str | None = self.cues[cue].sound_output
-
-                    if not out:
-                        out = self.sound_output
-                    if not out:
-                        out = None
-
-                    if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
-                        self.media_link_socket.send(["volume", self.alpha])
-                        self.media_link_socket.send(
-                            [
-                                "mediaURL",
-                                None,
-                                self.entered_cue,
-                                max(0, self.cues[cue].fade_in or self.crossfade),
-                            ]
-                        )
-
-                    if self.cues[cue].sound and self.active:
-                        sound = self.cues[cue].sound
-                        try:
-                            self.cueVolume = min(
-                                5,
-                                max(
-                                    0,
-                                    self.evalExprFloat(self.cues[cue].sound_volume or 1),
-                                ),
-                            )
-                        except Exception:
-                            self.event(
-                                "script.error",
-                                self.name + " in cueVolume eval:\n" + traceback.format_exc(),
-                            )
-                            self.cueVolume = 1
-                        try:
-                            sound = self.resolve_sound(sound)
-                        except Exception:
-                            print(traceback.format_exc())
-
-                        if os.path.isfile(sound):
-                            if not out == "scenewebplayer":
-                                # Always fade in if the face in time set.
-                                # Also fade in for crossfade,
-                                # but in that case we only do it if there is something to fade in from.
-
-                                spd = self.script_context.preprocessArgument(self.cues[cue].media_speed)
-                                spd = spd or 1
-                                spd = float(spd)
-
-                                if not (
-                                    (
-                                        ((self.crossfade > 0) and not (self.cues[cue].sound_fade_in < 0))
-                                        and kaithem.sound.is_playing(str(self.id))
-                                    )
-                                    or (self.cues[cue].fade_in > 0)
-                                    or (self.cues[cue].sound_fade_in > 0)
-                                    or self.cues[cue].media_wind_up
-                                    or self.cue.media_wind_down
-                                ):
-                                    play_sound(
-                                        sound,
-                                        handle=str(self.id),
-                                        volume=self.alpha * self.cueVolume,
-                                        output=out,
-                                        loop=self.cues[cue].sound_loops,
-                                        start=self.evalExprFloat(self.cues[cue].sound_start_position or 0),
-                                        speed=spd,
-                                    )
-                                else:
-                                    fade = self.cues[cue].fade_in or self.cues[cue].sound_fade_in or self.crossfade
-                                    # Odd cases where there's a wind up but specifically disabled fade
-                                    if self.cues[cue].sound_fade_in < 0:
-                                        fade = 0.1
-
-                                    fadeSound(
-                                        sound,
-                                        length=max(fade, 0.1),
-                                        handle=str(self.id),
-                                        volume=self.alpha * self.cueVolume,
-                                        output=out,
-                                        loop=self.cues[cue].sound_loops,
-                                        start=self.evalExprFloat(self.cues[cue].sound_start_position or 0),
-                                        windup=self.evalExprFloat(self.cues[cue].media_wind_up or 0),
-                                        winddown=self.evalExprFloat(self.cue.media_wind_down or 0),
-                                        speed=spd,
-                                    )
-
-                            else:
-                                self.allowed_remote_media_url = sound
-                                self.media_link_socket.send(["volume", self.alpha])
-                                self.media_link_socket.send(
-                                    [
-                                        "mediaURL",
-                                        sound,
-                                        self.entered_cue,
-                                        max(0, self.cues[cue].fade_in or self.crossfade),
-                                    ]
-                                )
-
-                            try:
-                                soundMeta = TinyTag.get(sound, image=True)
-
-                                currentAudioMetadata = {
-                                    "title": soundMeta.title or "Unknown",
-                                    "artist": soundMeta.artist or "Unknown",
-                                    "album": soundMeta.album or "Unknown",
-                                    "year": soundMeta.year or "Unknown",
-                                }
-                                album_art = soundMeta.get_image()
-                            except Exception:
-                                # Not support, but it might just be an unsupported type.
-                                # if mp3, its a real error, we should alert
-                                if sound.endswith(".mp3"):
-                                    self.event(
-                                        "error",
-                                        "Reading metadata for: " + sound + traceback.format_exc(),
-                                    )
-                                album_art = None
-                                currentAudioMetadata = {
-                                    "title": "",
-                                    "artist": "",
-                                    "album": "",
-                                    "year": "",
-                                }
-
-                            self.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
-
-                            if album_art and len(album_art) < 3 * 10**6:
-                                self.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(album_art).decode()
-                            else:
-                                self.albumArtTag.value = ""
-
-                        else:
-                            self.event("error", "File does not exist: " + sound)
                 sc = self.cues[cue].trigger_shortcut.strip()
                 if sc:
                     shortcutCode(sc, exclude=self)
@@ -1549,25 +1233,14 @@ class Scene:
                 self.recalc_randomize_modifier()
                 self.recalc_cue_len()
 
-                # Recalc what universes are affected by this scene.
-                # We don't clear the old universes, we do that when we're done fading in.
-                for i in self.cues[cue].values:
-                    i = mapUniverse(i)
-                    if i and i in universes.universes:
-                        if i not in self.affect:
-                            self.affect.append(i)
-
-                    if i and i.startswith("/"):
-                        self.on_demand_universes[i] = universes.get_on_demand_universe(i)
-
-                self.cue_vals_to_numpy_cache(self.cue, not self.cue.track)
-                self.fade_in_completed = False
+                self.lighting_manager.next(self.cues[cue])
 
                 # We don't render here. Very short cues coupt create loops of rerendering and goto
                 # self.render(force_repaint=True)
 
                 # Instead we set the flag
-                self.rerender = True
+                self.poll_again_flag = True
+                self.lighting_manager.should_rerender = True
                 self.pushMeta(statusOnly=True)
 
                 self.preload_next_cue_sound()
@@ -1579,59 +1252,6 @@ class Scene:
 
             if self.cue.name == "__setup__":
                 self.goto_cue("default", sendSync=False)
-
-    def apply_tracked_values(self, cue) -> dict[str, Any]:
-        # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
-        # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
-        # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
-        # references this cue.
-
-        # Returns a dict of backtracked variables for
-        # the script context that should be set when entering
-        # this cue, but that is nit supported yet
-        cobj = self.cues[cue]
-
-        vars: dict[str, Any] = {}
-
-        if (
-            self.backtrack
-            # Track whenever the cue we are going to is not the next one in the numbering sequence
-            and not cue == (self.getDefaultNext())
-            and cobj.track
-        ):
-            to_apply = []
-            seen = {}
-            safety = 10000
-            x = self.getParent(cue)
-            while x:
-                # No l00ps
-                if x in seen:
-                    break
-
-                # Don't backtrack past the current cue for no reason
-                if x is self.cue:
-                    break
-
-                to_apply.append(self.cues[x])
-                seen[x] = True
-                x = self.getParent(x)
-                safety -= 1
-                if not safety:
-                    break
-
-            # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
-            for cuex in reversed(to_apply):
-                self.cue_vals_to_numpy_cache(cuex)
-
-                # cuevars = self.cues[cue].values.get("__variables__", {})
-                # for i in cuevars:
-                #     try:
-                #         vars[i] = (i, self.evalExpr(cuevars[i]))
-                #     except Exception:
-                #         print(traceback.format_exc())
-                #         core.rl_log_exc("Error with cue variable " + i)
-
-        return vars
 
     def preload_next_cue_sound(self):
         # Preload the next cue's sound if we know what it is
@@ -1762,106 +1382,6 @@ class Scene:
         else:
             # never go below 0.1*the setting or else you could go to zero and get a never ending cue
             self.cuelen = max(0, float(v * 0.1), self.randomizeModifier + float(v))
-
-    def recalc_cue_vals(self):
-        self.cue_vals_to_numpy_cache(self.cue, not self.cue.track)
-
-    def cue_vals_to_numpy_cache(self, cuex: Cue, clearBefore=False):
-        """Apply everything from the cue to the fade canvas"""
-        # Loop over universes in the cue
-        if clearBefore:
-            self.cue_cached_vals_as_arrays = {}
-            self.cue_cached_alphas_as_arrays = {}
-
-        for i in cuex.values:
-            universe = mapUniverse(i)
-            if not universe:
-                continue
-
-            fixture = None
-            try:
-                if i[1:] in universes.fixtures:
-                    f = universes.fixtures[i[1:]]()
-                    if f:
-                        fixture = f
-            except KeyError:
-                print(traceback.format_exc())
-
-            chCount = 0
-
-            if fixture:
-                chCount = len(fixture.channels)
-
-            if "__length__" in cuex.values[i]:
-                s = cuex.values[i]["__length__"]
-                assert s
-                repeats = int(self.evalExprFloat(s))
-            else:
-                repeats = 1
-
-            if "__spacing__" in cuex.values[i]:
-                s = cuex.values[i]["__spacing__"]
-                assert s
-                chCount = int(self.evalExprFloat(s))
-
-            uobj = getUniverse(universe)
-
-            if universe.startswith("/"):
-                self.on_demand_universes[i] = universes.get_on_demand_universe(universe)
-                uobj = self.on_demand_universes[i]
-
-            if not uobj:
-                continue
-
-            if universe not in self.cue_cached_vals_as_arrays:
-                size = len(uobj.values)
-                self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * size, dtype="f4")
-                self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * size, dtype="f4")
-
-            if universe not in self.affect:
-                self.affect.append(universe)
-
-            self.rerenderOnVarChange = False
-
-            # TODO stronger type
-            dest: dict[str | int, Any] = {}
-
-            for j in cuex.values[i]:
-                if isinstance(j, str) and j.startswith("__dest__."):
-                    dest[j[9:]] = self.evalExpr(cuex.values[i][j] if cuex.values[i][j] is not None else 0)
-
-            for idx in range(repeats):
-                for j in cuex.values[i]:
-                    if isinstance(j, str) and j.startswith("__"):
-                        continue
-
-                    cuev = cuex.values[i][j]
-
-                    evaled = self.evalExpr(cuev if cuev is not None else 0)
-                    # This should always be a float
-                    evaled = float(evaled)
-
-                    # Do the blend thing
-                    if j in dest:
-                        # Repeats is a count, idx is zero based, we want diveder to be 1 on the last index of the set
-                        divider = idx / (max(repeats - 1, 1))
-                        evaled = (evaled * (1 - divider)) + (dest[j] * divider)
-
-                    x = mapChannel(i, j)
-                    if x:
-                        universe, channel = x[0], x[1]
-                        try:
-                            self.cue_cached_alphas_as_arrays[universe][channel + (idx * chCount)] = 1.0 if cuev is not None else 0
-                            self.cue_cached_vals_as_arrays[universe][channel + (idx * chCount)] = evaled
-                        except Exception:
-                            print("err", traceback.format_exc())
-                            self.event(
-                                "script.error",
-                                self.name + " cue " + cuex.name + " Val " + str((universe, channel)) + "\n" + traceback.format_exc(),
-                            )
-
-                    if isinstance(cuev, str) and cuev.startswith("="):
-                        self.rerenderOnVarChange = True
 
     def make_script_context(self):
         scriptContext = DebugScriptContext(self, parentContext=rootContext, variables=self.chandler_vars, gil=core.lock)
@@ -2225,11 +1745,6 @@ class Scene:
             if self in self.board.active_scenes:
                 return
 
-            # Not sure if we need to remake this, keep it for defensive
-            # reasons, TODO
-            self.canvas = FadeCanvas()
-
-            self.manualAlpha = False
             self.active = True
 
             if "__setup__" in self.cues:
@@ -2239,19 +1754,10 @@ class Scene:
                 if not self.entered_cue:
                     self.goto_cue("default", sendSync=False, cause="start")
 
-            # Bug workaround for bug where scenes do nothing when first activated
-            self.canvas.paint(
-                0,
-                vals=self.cue_cached_vals_as_arrays,
-                alphas=self.cue_cached_alphas_as_arrays,
-            )
-
             self.entered_cue = time.time()
 
             if self.blend in blendmodes.blendmodes:
                 self._blend = blendmodes.blendmodes[self.blend](self)
-
-            self.effectiveValues = None
 
             self.metadata_already_pushed_by = {}
             self.started = time.time()
@@ -2264,7 +1770,8 @@ class Scene:
             self.setMqttServer(self.mqtt_server)
 
             # Minor inefficiency rendering twice the first frame
-            self.rerender = True
+            self.poll_again_flag = True
+            self.lighting_manager.should_rerender = True
             # self.render()
 
     def is_active(self):
@@ -2281,11 +1788,7 @@ class Scene:
         with core.lock:
             self.board._active_scenes = sorted(self.board._active_scenes, key=lambda k: (k.priority, k.started))
             self.board.active_scenes = self.board._active_scenes[:]
-            try:
-                for i in self.affect:
-                    rerenderUniverse(i)
-            except Exception:
-                print(traceback.format_exc())
+            self.lighting_manager.refresh()
 
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":
@@ -2372,7 +1875,9 @@ class Scene:
             x = self.entered_cue
             self.goto_cue(self.cue.name)
             self.entered_cue = x
-            self.rerender = True
+            self.poll_again_flag = True
+            self.lighting_manager.should_rerender = True
+
         self.metadata_already_pushed_by = {}
 
     def setBPM(self, b):
@@ -2381,7 +1886,7 @@ class Scene:
             return
         else:
             self.bpm = b
-            self.rerender = True
+            self.poll_again_flag = True
         self.metadata_already_pushed_by = {}
 
     def tap(self, t: float | None = None):
@@ -2446,23 +1951,14 @@ class Scene:
             self._blend = blendmodes.HardcodedBlendMode(self)
             self.metadata_already_pushed_by = {}
 
-            try:
-                for i in self.affect:
-                    rerenderUniverse(i)
-            except Exception:
-                print(traceback.format_exc())
-
-            self.affect = []
-            self.on_demand_universes = {}
+            self.lighting_manager.stop()
             if self in self.board._active_scenes:
                 self.board._active_scenes.remove(self)
                 self.board.active_scenes = self.board._active_scenes[:]
 
             self.active = False
-            self.cue_cached_vals_as_arrays = {}
-            self.cue_cached_alphas_as_arrays = {}
-            kaithem.sound.stop(str(self.id))
 
+            self.media_player.stop()
             self.runningTimers.clear()
 
             try:
@@ -2569,7 +2065,6 @@ class Scene:
 
         if not self.is_active() and val > 0:
             self.go()
-        self.manualAlpha = True
         self.alpha = val
         self.alphaTagClaim.set(val, annotation="SceneObject")
         if sd:
@@ -2577,7 +2072,8 @@ class Scene:
             self.pushMeta(keys={"alpha", "default_alpha"})
         else:
             self.pushMeta(keys={"alpha", "default_alpha"})
-        self.rerender = True
+        self.poll_again_flag = True
+        self.lighting_manager.should_rerender = True
 
         self.media_link_socket.send(["volume", val])
 
@@ -2597,7 +2093,9 @@ class Scene:
             self.blend_args = self.blend_args or {}
             self._blend = blendmodes.HardcodedBlendMode(self)
             self.blendClass = blendmodes.HardcodedBlendMode
-        self.rerender = True
+        self.poll_again_flag = True
+        self.lighting_manager.should_rerender = True
+
         self.metadata_already_pushed_by = {}
 
     def setBlendArg(self, key: str, val: float | bool | str):
@@ -2613,11 +2111,18 @@ class Scene:
             if self.blendClass.parameters[key][1] == "number":
                 val = float(val)
             self.blend_args[key] = val
-        self.rerender = True
+        self.poll_again_flag = True
+        self.lighting_manager.should_rerender = True
         self.metadata_already_pushed_by = {}
 
-    def render(self, force_repaint: bool = False):
-        "Calculate the current alpha value, handle stopping the scene and spawning the next one"
+    def poll(self, force_repaint: bool = False):
+        """
+        Periodically called if poll_again_flag is set
+        Handles misc tasks.
+        Calculate the current alpha value, handle stopping the cue and going to the next one
+        """
+        assert self.cue
+
         if self.cue.fade_in:
             fadePosition: float = min(
                 (time.time() - self.entered_cue) / (self.cue.fade_in * (60.0 / self.bpm)),
@@ -2628,7 +2133,8 @@ class Scene:
             fadePosition = 1
 
         if fadePosition < 1:
-            self.rerender = True
+            self.poll_again_flag = True
+            self.lighting_manager.should_rerender = True
 
         # TODO: We absolutely should not have to do this every time we rerender.
         # Bugfix is in order!
@@ -2636,52 +2142,13 @@ class Scene:
 
         # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
         if force_repaint or (not self.fade_in_completed):
-            self.canvas.paint(
-                fadePosition,
-                vals=self.cue_cached_vals_as_arrays,
-                alphas=self.cue_cached_alphas_as_arrays,
-            )
-            if fadePosition >= 1:
-                # We no longer affect universes from the previous cue we are fading from
-
-                # But we *do* still keep tracked and backtracked values.
-                self.affect = []
-                odu = {}
-
-                for i in self.cue_cached_vals_as_arrays:
-                    u = mapUniverse(i)
-                    if u and u in universes.universes:
-                        if u not in self.affect:
-                            self.affect.append(u)
-
-                    if u and u.startswith("/"):
-                        odu[u] = universes.get_on_demand_universe(u)
-
-                self.on_demand_universes = odu
-
-                # Remove unused universes from the cue
-                self.canvas.clean(self.cue_cached_vals_as_arrays)
-                self.fade_in_completed = True
-                self.rerender = True
+            self.lighting_manager.paint_canvas(fadePosition)
 
         if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
             # rel_length cues end after the sound in a totally different part of code
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
             self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
-
-    def updateMonitorValues(self):
-        if self.blend == "monitor":
-            data = self.cue.values
-            for i in data:
-                for j in data[i]:
-                    x = mapChannel(i, j)
-                    if x:
-                        u = getUniverse(x[0])
-                        if u:
-                            v = u.values[x[1]]
-                            self.cue.values[i][j] = float(v)
-            self.monitor_values_already_pushed_by = {}
 
     def new_cue_from_sound(self, snd, name=None):
         bn = os.path.basename(snd)

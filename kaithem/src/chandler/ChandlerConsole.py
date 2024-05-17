@@ -15,7 +15,8 @@ from .. import schemas
 from ..kaithemobj import kaithem
 from . import blendmodes, console_abc, core, fixtureslib, persistance, scenes, universes
 from .core import logger
-from .scenes import Scene, cues, event
+from .global_actions import event
+from .scenes import Scene, cues
 from .universes import getUniverse, getUniverses
 
 
@@ -141,7 +142,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 print(traceback.format_exc())
 
             try:
-                del i
+                del i  # type: ignore
             except Exception:
                 pass
 
@@ -385,7 +386,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                     self.scenes[uuid] = s
                     if x:
                         s.go()
-                        s.rerender = True
+                        s.poll_again_flag = True
+                        s.lighting_manager.should_rerender = True
                 except Exception:
                     if not errs:
                         logger.exception("Failed to load scene " + str(i) + " " + str(data[i].get("name", "")))

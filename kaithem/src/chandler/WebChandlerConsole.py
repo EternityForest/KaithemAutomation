@@ -16,7 +16,8 @@ from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
 from . import ChandlerConsole, core, scenes, universes
 from .core import disallow_special
-from .scenes import Scene, cues, event
+from .global_actions import event
+from .scenes import Scene, cues
 
 
 def listsoundfolder(path: str):

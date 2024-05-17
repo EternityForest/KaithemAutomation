@@ -426,6 +426,7 @@ def test_lighting_value_set_tag():
     s2.go()
     time.sleep(0.2)
     time.sleep(0.2)
+    time.sleep(0.2)
 
     # Flicker starts again
     assert t1 != tagpoints.Tag("/test1").value

@@ -39,6 +39,7 @@ def getblenddesc(mode: str):
 
 class BlendMode:
     default_channel_value = 0
+    always_rerender = False
     parameters: Dict[str, Tuple[str, str, str, str | bool | float]] = {}
     autoStop = True
 
@@ -47,20 +48,23 @@ class BlendMode:
 
 
 class HardcodedBlendMode(BlendMode):
+    # True of blend mode is dynamic
+    always_rerender = False
     "Indicates that the blend mode is hardcoded in applyLayer"
 
 
 blendmodes: weakref.WeakValueDictionary[str, Any] = weakref.WeakValueDictionary()
 
 
-def makeBlankArray(l, v=0):
-    x = [v] * l
+def makeBlankArray(count, v=0):
+    x = [v] * count
     return numpy.array(x, dtype="f4")
 
 
 class flicker_blendmode(BlendMode):
     "Blend mode based on physical model flickering"
 
+    always_rerender = True
     parameters = {
         "gustiness": ("Gustiness", "number", "", 0.2),
         "lowpass": ("Lowpass", "number", "", 0.06),
@@ -94,9 +98,6 @@ class flicker_blendmode(BlendMode):
         self.heights_lp = {}
 
     def frame(self, u, old, values, alphas, alpha):
-        # It's always changing so always rerender
-        self.scene.rerender = True
-
         uobj = getUniverse(u)
 
         if u not in self.heights:
@@ -140,6 +141,14 @@ class flicker_blendmode(BlendMode):
         heights_lp = self.heights_lp[u]
 
         group = int(self.scene.blend_args["group"])
+
+        # These are here to make linter happy,
+        # it doesn't know there will always be at least
+        # one group found.  Or maybe it knows something i don't.
+        t = random.random()
+        nv = random.triangular(0, 1, 0.35)
+        rise = random.random() * self.riserate * t60
+
         for k in numpy.nonzero(values)[0]:
             k = int(k)
             # Detect RGB groups of N, put them all together.
@@ -174,6 +183,8 @@ blendmodes["flicker"] = flicker_blendmode
 
 class vary_blendmode_np(BlendMode):
     "Ads random variation, basically a random time varying gel"
+
+    always_rerender = True
 
     parameters = {
         "interval": (
@@ -217,13 +228,12 @@ class vary_blendmode_np(BlendMode):
             else:
                 return old
 
-        # Time in 60ths of a second since last frame, so we can keep a consistant frame rate
+        # Time in 60ths of a second since last frame, so
+        # we can keep a consistant frame rate
         t60 = (time.time() - self.last_per[u]) * 60
         self.last = time.time()
         self.last_per[u] = time.time()
 
-        # It's always changing so always rerender
-        self.scene.rerender = True
         if time.time() > self.ntt:
             interval = self.scene.blend_args["interval"]
             rnd = self.scene.blend_args["rinterval"]
@@ -247,8 +257,6 @@ blendmodes["vary"] = vary_blendmode_np
 
 
 class exp_blendmode_np(BlendMode):
-    "Ads random variation, basically a random time varying gel"
-
     default_channel_value = 165
 
     def __init__(self, scene):
@@ -258,14 +266,18 @@ class exp_blendmode_np(BlendMode):
         self.last = time.time()
 
     def frame(self, u, below, values, alphas, alpha):
-        return (((below ** (values / 100.0)) / 255.0 ** (values / 100.0)) * 255) * (alphas * alpha) + below * (1 - alphas * alpha)
+        return (((below ** (values / 100.0)) / 255.0 ** 
+                 (values / 100.0)) * 255) * (alphas * alpha) + below * (1 - alphas * alpha)
 
 
 blendmodes["gamma"] = exp_blendmode_np
 
 
 class sparks_blendmode(BlendMode):
-    "Randomly jump to some of the values in this scene then fade back to what they were. Works in groups of 3 channels"
+    """Randomly jump to some of the values in this scene then fade 
+    back to what they were. Works in groups of 3 channels"""
+
+    always_rerender = True
 
     parameters = {
         "fadetime": ("Fade Time", "number", "How fast to fade out again.", 1),
@@ -301,9 +313,6 @@ class sparks_blendmode(BlendMode):
 
             else:
                 return old
-
-        # It's always changing so always rerender
-        self.scene.rerender = True
 
         lastk = ctr = 0
         x = False
