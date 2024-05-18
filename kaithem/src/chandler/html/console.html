@@ -379,24 +379,21 @@ ${lists}
                 </div>
             </header>
 
+            <p>Setup files include all fixture types,
+                fixture assignments, configured universes,
+                and color presets.</p>
+
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
                 <p>Download:</p>
-                <a class="button" href="download" title="Download your scenes as a file"><i
-                        class="mdi mdi-content-save"></i>Scenes</a>
-                <a class="button" href="downloadSetup" title="Download your scenes as a file"><i
-                        class="mdi mdi-content-save"></i>Setup</a>
-                <a class="button" href="downloadLibrary" title="Download your scenes as a file"><i
-                        class="mdi mdi-content-save"></i>Fixture Lib</a>
+                <button type="button" @click="downloadSetup()" title="Download your scenes as a file"><i
+                        class="mdi mdi-content-save"></i>Setup</button>
             </div>
 
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
-                <p>Upload:</p>
-                <a class="button" href="upload" title="Upload a scenes file"><i
-                        class="mdi mdi-folder-open"></i>Scenes</a>
-                <a class="button" href="uploadSetup" title="Upload a scenes file"><i
-                        class="mdi mdi-folder-open"></i>Setup</a>
-                <a class="button" href="uploadLibrary" title="Upload a scenes file"><i
-                        class="mdi mdi-folder-open"></i>Fixture Lib</a>
+                <p>Load Setup:</p>
+                <input type="file" id="setupfile">
+                <button type="button" @click="uploadFileFromElement('setupfile', 'setup')" title="Upload a scenes file"><i
+                        class="mdi mdi-folder-open"></i>Go</button>
             </div>
         </section>
 

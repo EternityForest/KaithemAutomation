@@ -346,6 +346,8 @@ class WebInterface:
                 assert len(path) == 2
                 pages.require("view_admin_info")
                 cherrypy.response.headers["Content-Disposition"] = "attachment; filename=" + path[1] + ".yaml"
+                if modules_state.ActiveModules[root][path[1]]["resource_type"] in modules_state.additionalTypes:
+                    modules_state.additionalTypes[modules_state.ActiveModules[root][path[1]]["resource_type"]].flush_unsaved(root, path[1])
                 return yaml.dump(modules_state.ActiveModules[root][path[1]])
 
             if path[0] == "scanfiles":

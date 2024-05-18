@@ -22,20 +22,20 @@ ${ vars }
 function playAlert(m) {
     if (vueapp.$data.uiAlertSounds) {
         var mp3_url = '/static/freeboardsounds/Information_Bell.opus';
-        (new Audio(mp3_url)).play().catch(() =>{})
+        (new Audio(mp3_url)).play().catch(() => { })
     }
     if (m) {
-        KaithemWidgetApiSnackbar(m,60)
+        KaithemWidgetApiSnackbar(m, 60)
     }
 }
 
 function errorTone(m) {
     if (vueapp.$data.uiAlertSounds) {
         var mp3_url = '/static/freeboardsounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
-        (new Audio(mp3_url)).play().catch(() =>{})
+        (new Audio(mp3_url)).play().catch(() => { })
     }
     if (m) {
-        KaithemWidgetApiSnackbar(m,60)
+        KaithemWidgetApiSnackbar(m, 60)
     }
 }
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -135,8 +135,7 @@ appMethods = {
     // Slowly we want to migrate to these two generic setters
     'setSceneProperty': function (scene, property, value) {
         var x = cueSetData[scene + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
             delete cueSetData[scene + property]
         }
@@ -145,8 +144,7 @@ appMethods = {
     },
     'setCueProperty': function (cue, property, value) {
         var x = cueSetData[cue + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
             delete cueSetData[cue + property]
         }
@@ -159,8 +157,7 @@ appMethods = {
         //Set the property in 5 seconds, unless we get another command to set
         //it to something else
         var x = cueSetData[cue + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
         }
 
@@ -175,8 +172,7 @@ appMethods = {
         //Set the property in 5 seconds, unless we get another command to set
         //it to something else
         var x = cueSetData[scene + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
         }
 
@@ -348,8 +344,7 @@ appMethods = {
 
     },
     'gotonext': function (currentcueid, scene) {
-        if (!confirm_for_scenes(scene))
-        {
+        if (!confirm_for_scenes(scene)) {
             return
         }
         nextcue = this.cuemeta[currentcueid].next
@@ -379,6 +374,24 @@ appMethods = {
         }
         this.selectedCues[this.scenename] = 'default'
         api_link.send(['rmcue', cue]);
+    },
+
+    'uploadFileFromElement': function (e, type) {
+        // Type says what to do with it
+        let t = document.getElementById(e)
+
+        async function readText(target) {
+            const file = target.files.item(0)
+            const text = await file.text();
+
+            api_link.send(['fileUpload', text, type]);
+        }
+
+        readText(t)
+    },
+    'downloadSetup': function () {
+        appData.downloadReqId = Math.random().toString();
+        api_link.send(['downloadSetup', appData.downloadReqId]);
     },
     'jumptocue': function (cue, scene) {
         if (confirm_for_scene(scene)) {
@@ -785,7 +798,7 @@ appComputed = {
 appData = {
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'formatInterval': formatInterval,
-    'clock':'time_should_be_here',
+    'clock': 'time_should_be_here',
     'console': console,
     'sc_code': "",
     'unixtime': 0,
@@ -803,7 +816,7 @@ appData = {
     'newcuetag': '',
     'newcuevnumber': '',
     'newscenename': '',
-    'nuisianceRateLimit': [10,Date.now()],
+    'nuisianceRateLimit': [10, Date.now()],
     'specialvars': [
         ["_", "Output of the previous action"]
     ],
@@ -982,8 +995,7 @@ appData = {
     'doRateLimit': function () {
         this.nuisianceRateLimit[0] += (Date.now() - this.nuisianceRateLimit[1]) / 180000
         this.nuisianceRateLimit[0] = Math.min(12, this.nuisianceRateLimit[0])
-        if (this.nuisianceRateLimit[0] > 0)
-        {
+        if (this.nuisianceRateLimit[0] > 0) {
             this.nuisianceRateLimit[0] -= 1
             return true;
         }
@@ -1180,7 +1192,7 @@ appData = {
     'deletePreset': function (p) {
         if (confirm("Really Delete")) {
             delete this.presets[p];
-            api_link.send(['preset', p, None]);
+            api_link.send(['preset', p, null]);
 
         }
     },
@@ -1200,7 +1212,7 @@ appData = {
             var b = this.presets[p]
             if (b) {
                 delete this.presets[p];
-                api_link.send(['preset', p, None]);
+                api_link.send(['preset', p, null]);
 
                 this.presets[n] = b;
                 api_link.send(['preset', n, b]);
@@ -1270,7 +1282,7 @@ function f(v) {
                 }
             }
 
-            vueapp.$data.slideshow_telemetry[v[1]] =v[2]
+            vueapp.$data.slideshow_telemetry[v[1]] = v[2]
         }
     }
 
@@ -1283,7 +1295,7 @@ function f(v) {
     else if (c == "scenemeta") {
         if (v[2].cue) {
             if (vueapp.$data.cuemeta[v[2].cue] == undefined) {
-               appMethods.getcuemeta(v[2].cue)
+                appMethods.getcuemeta(v[2].cue)
             }
         }
 
@@ -1332,7 +1344,7 @@ function f(v) {
 
         vueapp.$data.evlog.unshift(v[1])
         if (vueapp.$data.evlog.length > 250) {
-            vueapp.$data.evlog = vueapp.$data.evlog.slice(0,250)
+            vueapp.$data.evlog = vueapp.$data.evlog.slice(0, 250)
         }
 
         if (v[1][0].includes("error")) {
@@ -1345,8 +1357,7 @@ function f(v) {
     }
 
     else if (c == 'alerts') {
-        if (JSON.stringify(vueapp.$data.sys_alerts) != JSON.stringify(v[1]))
-        {
+        if (JSON.stringify(vueapp.$data.sys_alerts) != JSON.stringify(v[1])) {
             if (v[1]) {
                 errorTone()
             }
@@ -1531,6 +1542,26 @@ function f(v) {
     else if (c == 'fixturePresets') {
         vueapp.$data.presets = v[1]
     }
+
+    else if (c == 'fileDownload') {
+
+        if (v[1] == vueapp.$data.downloadReqId) {
+            const file = new File([v[2]], v[3], {
+                type: 'text/plain',
+            })
+
+            const link = document.createElement('a')
+            const url = URL.createObjectURL(file)
+
+            link.href = url
+            link.download = file.name
+            document.body.appendChild(link)
+            link.click()
+
+            document.body.removeChild(link)
+            window.URL.revokeObjectURL(url)
+        }
+    }
 }
 
 
@@ -1543,7 +1574,7 @@ init_api_link = function () {
         vueapp.$data.clock = new Date(api_link.now()).toLocaleTimeString()
         vueapp.$data.unixtime = api_link.now() / 1000
         setTimeout(unix_time_upd,
-            1000-(api_link.now()%1000) )
+            1000 - (api_link.now() % 1000))
     }
 
     unix_time_upd()
@@ -1551,17 +1582,15 @@ init_api_link = function () {
     var update_meters = function () {
         var u = api_link.now() / 1000
 
-        for (i of document.querySelectorAll('[data-meter-ref]'))
-        {
+        for (i of document.querySelectorAll('[data-meter-ref]')) {
             i.value = u - parseFloat(i.dataset.meterRef)
         }
 
-        for (i of document.querySelectorAll('[data-count-ref]'))
-        {
+        for (i of document.querySelectorAll('[data-count-ref]')) {
             l = parseFloat(i.dataset.countLen)
             e = parseFloat(i.dataset.countRef) + l
 
-            i.innerHTML = formatInterval(e -u)
+            i.innerHTML = formatInterval(e - u)
         }
 
     }
@@ -1574,8 +1603,7 @@ var confirm_for_scene = function (sc) {
             return true
         }
     }
-    else
-    {
+    else {
         return true
     }
 }

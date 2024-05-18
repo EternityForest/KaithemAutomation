@@ -170,7 +170,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                         self.pushChannelNames("@" + f)
 
             self.ferrs = self.ferrs or "No Errors!"
-            self.pushfixtures()
+            self.push_setup()
 
     def create_universes(self, data: dict):
         assert isinstance(data, Dict)
@@ -216,7 +216,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             event("system.error", traceback.format_exc())
             print(traceback.format_exc())
 
-        self.pushUniverses()
+        self.push_setup()
 
     def load_show(self, showName):
         saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "shows", showName)
@@ -242,9 +242,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         return copy.deepcopy(d)
 
-    def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
-        if not kaithem.users.check_permission(kaithem.web.user(), "system_admin"):
-            raise ValueError("You cannot change the setup without system_admin")
+    def loadSetupFile(self, data):
         data = yaml.load(data, Loader=yaml.SafeLoader)
         data = snake_compat.snakify_dict_keys(data)
 
@@ -270,7 +268,9 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.refresh_fixtures()
 
         if "fixture_presets" in data:
-            self.fixture_presets = data["fixure_presets"]
+            self.fixture_presets = data["fixture_presets"]
+
+        self.push_setup()
 
     def getSetupFile(self):
         with core.lock:
@@ -444,13 +444,12 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         kaithem.misc.do(f)
 
-    def pushfixtures(self):
+    def push_setup(self):
         "Errors in fixture list"
         self.linkSend(["ferrs", self.ferrs])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
         self.linkSend(["fixturePresets", self.fixture_presets])
 
-    def pushUniverses(self):
         snapshot = getUniverses()
 
         self.linkSend(

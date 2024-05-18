@@ -156,5 +156,8 @@ class ResourceType:
     def onupdate(self, module, resource, obj):
         """Called when something has updated the data.  Usually the web UI but could be anything."""
 
+    def flush_unsaved(self, module, resource):
+        """Called when the resource should save any unsaved data it has back to the resource."""
+
 
 additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()

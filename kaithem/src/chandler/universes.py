@@ -321,7 +321,7 @@ class Universe:
             for i in core.boards:
                 x = i()
                 if x:
-                    x.pushUniverses()
+                    x.push_setup()
         except Exception as e:
             print(e)
 

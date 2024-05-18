@@ -93,6 +93,10 @@ class ConfigType(modules_state.ResourceType):
 
         return d.render(self.get_update_target(module, name))
 
+    def flush_unsaved(self, module, resource):
+        entries[module, resource].check_autosave()
+        return super().flush_unsaved(module, resource)
+
 
 drt = ConfigType("chandler_board", mdi_icon="castle", priority=60, title="Chandler Board")
 modules_state.additionalTypes["chandler_board"] = drt

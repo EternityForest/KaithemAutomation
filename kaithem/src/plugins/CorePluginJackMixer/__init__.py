@@ -235,11 +235,7 @@ class Recorder(gstwrapper.Pipeline):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
         self.src = self.add_element(
-            "pipewiresrc",
-            port_pattern="fgfcghfhftyrtw5ew453xvrt",
-            client_name="krecorder",
-            connect=0,
-            slave_method=0,
+            "pipewiresrc", port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name="krecorder", connect=0, slave_method=0
         )
         self.capsfilter = self.add_element("capsfilter", caps=f"audio/x-raw,channels={str(channels)}")
 
@@ -472,8 +468,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         # wait till it exists for real
         for i in range(8):
-            p = [i.name for i in jacktools.get_ports()]
-            p2 = [i.clientName for i in jacktools.get_ports()]
+            pt = jacktools.get_ports()
+            p = [i.name for i in pt]
+            p2 = [i.clientName for i in pt]
             p = p + p2
             if (f"{self.name}_out" in p) and (f"{self.name}_in") in p:
                 break

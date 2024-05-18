@@ -1417,11 +1417,12 @@ effectTemplates_data = {
         "silenceMainChain": False,
         "preSupportElements": [
             {"gstElement": "audioconvert", "gstSetup": {}},
+            {"gstElement": "audiorate", "gstSetup": {}},
             {"gstElement": "queue", "gstSetup": {"max-size-time": 100 * 1000 * 1000, "leaky": 2}},
         ],
         "postSupportElements": [
             {"gstElement": "rtpopuspay", "gstSetup": {"pt": 123, "dtx": True}},
-            {"gstElement": "udpsink", "gstSetup": {"sync": False}},
+            {"gstElement": "udpsink", "gstSetup": {"sync": False, "async": False}},
         ],
     },
     "opusrtcsrc": {

@@ -8,6 +8,7 @@ import time
 import traceback
 from typing import Any
 
+import yaml
 from scullery import snake_compat
 from tinytag import TinyTag
 
@@ -151,8 +152,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def send_everything(self, sessionid: str):
         with core.lock:
-            self.pushUniverses()
-            self.pushfixtures()
+            self.push_setup()
+            self.push_setup()
             self.linkSend(["alerts", getAlertState()])
             self.linkSend(["soundfolders", core.config.get("sound_folders")])
 
@@ -225,7 +226,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 s = scenes.scenes[msg[1]]
                 self.pushCueList(s.id)
                 self.pushMeta(msg[1])
-                self.pushfixtures()
+                self.push_setup()
 
             kaithem.misc.do(f)
             return
@@ -267,7 +268,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         # There's such a possibility for an iteration error if universes changes.
         # I'm not going to worry about it, this is only for the GUI list of universes.
         elif cmd_name == "getuniverses":
-            self.pushUniverses()
+            self.push_setup()
             return
 
         elif cmd_name == "getserports":
@@ -293,7 +294,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "getfixtureassg":
             self.linkSend(["fixtureAssignments", self.fixture_assignments])
-            self.pushfixtures()
+            self.push_setup()
             return
 
         else:
@@ -394,7 +395,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         if cmd_name == "preset":
             if msg[2] is None:
-                self.fixture_presets.pop(msg[2], None)
+                self.fixture_presets.pop(msg[1], None)
             else:
                 self.fixture_presets[msg[1]] = msg[2]
             self.linkSend(["fixturePresets", self.fixture_presets])
@@ -404,6 +405,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "loadShow":
             self.load_show(msg[1])
+
+        elif cmd_name == "downloadSetup":
+            self.linkSendTo(["fileDownload", msg[1], yaml.dump(self.getLibraryFile())], sessionid)
+
+        elif cmd_name == "fileUpload":
+            if msg[2] == "setup":
+                self.loadSetupFile(msg[1])
 
         elif cmd_name == "addscene":
             sc = Scene(self, msg[1].strip())

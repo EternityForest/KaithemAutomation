@@ -68,10 +68,11 @@ def command_tagsListing():
     t = tagpoints.allTagsAtomic
     for i in t:
         x = t[i]()
-        if x.subtype == "event":
-            if len(v) > 250:
-                break
-            v.append(i)
+        if x:
+            if x.subtype == "event":
+                if len(v) > 250:
+                    break
+                v.append(i)
     return v
 
 
