@@ -5,12 +5,54 @@ import datetime
 import time
 
 from kaithem.src import tagpoints
-from kaithem.src.chandler import WebChandlerConsole, core, scenes, web
+from kaithem.src.chandler import WebChandlerConsole, core, scenes, universes, web
 from kaithem.src.sound import play_logs
 
 core.boards["test_board"] = WebChandlerConsole.WebConsole()
 
 board = core.boards["test_board"]
+
+
+def test_fixtures():
+    """Create a universe, a fixture type, and a fixture,
+    add the fixture to a scene, check the universe vals
+    """
+    u = {"dmx": {"channels": 512, "framerate": 44, "number": 1, "type": "enttecopen"}}
+    fixtypes = {"3ch RGB": [["red", "red"], ["green", "green"], ["blue", "blue"]]}
+    # fixps = {"tst": {"blue": 42, "dim": 0, "green": 0, "red": 0}}
+    fixas = {"testFixture": {"addr": 1, "name": "testFixture", "type": "3ch RGB", "universe": "dmx"}}
+
+    board._onmsg("__admin__", ["setconfuniverses", u], "test")
+    board.check_autosave()
+
+    assert board.get_project_data()["setup"]["configured_universes"]["dmx"]
+
+    board._onmsg("__admin__", ["setfixtureclass", "3ch RGB", fixtypes["3ch RGB"]], "test")
+    assert board.get_project_data()["setup"]["fixture_types"]["3ch RGB"][0][0] == "red"
+    board._onmsg("__admin__", ["setFixtureAssignment", "testFixture", fixas["testFixture"]], "test")
+
+    s = scenes.Scene(board, "TestingScene1", id="TEST")
+    # Must add scenes to the board so we can save them and test the saving
+    board.addScene(s)
+    s.go()
+    cid = s.cue.id
+    ## 0s are the pattern spacing
+
+    board._onmsg("__admin__", ["add_cuef", cid, "testFixture", 0, 0, 0], "test")
+
+    board._onmsg("__admin__", ["scv", cid, "@testFixture", "red", 39], "test")
+
+    time.sleep(0.1)
+    time.sleep(0.1)
+
+    assert universes.universes["dmx"]().values[0] == 0
+    assert universes.universes["dmx"]().values[1] == 39
+
+    assert board.get_project_data()["setup"]["fixture_assignments"]["testFixture"]
+
+    s.close()
+    board.rmScene(s)
+    assert "TestingScene1" not in board.scenes_by_name
 
 
 def test_make_scene():
@@ -335,29 +377,6 @@ def test_commands():
 
 
 def test_lighting_value_set_tag():
-    # old code, now we just can set tags directly
-    # Use the same API that the web would, to create a tagpoint universe
-    # Which maps the first two channels to tag points
-    # universes = {
-    #     "tags": {
-    #         "channelConfig": {"2": "test2", "1:test1": "test1"},
-    #         "channels": 512,
-    #         "framerate": 44,
-    #         "number": 1,
-    #         "type": "tagpoints",
-    #     }
-    # }
-
-    # board._onmsg("__admin__", ["setconfuniverses", universes], "nonexistantsession")
-    # board.check_autosave()
-
-    # # Make sure universe settings saved
-    # p = os.path.join(directories.vardir, "chandler", "universes", "tags.yaml")
-    # with open(p) as f:
-    #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
-
-    # assert f2 == universes["tags"]
-
     s = scenes.Scene(board, name="TestingScene5", id="TEST")
     s2 = scenes.Scene(board, name="TestingScene6", id="TEST2")
     board.addScene(s)

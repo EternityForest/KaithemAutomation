@@ -149,9 +149,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                 pass
 
             self.fixtures = {}
-
-            for i in self.fixture_assignments.values():
+            for key, i in self.fixture_assignments.items():
                 try:
+                    if not i["name"] == key:
+                        raise RuntimeError("Name does not match key?")
                     x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
                     self.fixtures[i["name"]] = x
                     self.fixtures[i["name"]].assign(i["universe"], int(i["addr"]))
@@ -481,10 +482,14 @@ class ChandlerConsole(console_abc.Console_ABC):
         if self.initialized:
             self.save_project_data()
 
-    def save_project_data(self):
+    def get_project_data(self):
         sd = copy.deepcopy(self.getScenes())
 
         project_file: dict[str, Any] = {"scenes": sd, "setup": self.getSetupFile()}
+        return project_file
+
+    def save_project_data(self):
+        project_file = self.get_project_data()
 
         if self.last_saved_version == project_file:
             return
