@@ -2,6 +2,7 @@ Change Log
 ----------
 ### 0.83.0
 
+
 #### Changed
 - :boom: Schema for tag history changed for daasette compatibility.
 
@@ -14,6 +15,10 @@ Change Log
 - :sparkles: Usable RTP Opus listener to stream over network.
 - :sparkles: kaithem.api.web.add_asgi_app
 
+
+#### Dev Info
+
+New unit tests: 1
 
 ```
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓

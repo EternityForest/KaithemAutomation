@@ -33,4 +33,4 @@ def exit_pytest_first_failure():
 
 
 if __name__ == "__main__":
-    sys.exit(pytest.main(["-qq", "-x"], plugins=[MyPlugin()]))
+    sys.exit(pytest.main(["-qq", "-x", "--cov=kaithem"], plugins=[MyPlugin()]))
