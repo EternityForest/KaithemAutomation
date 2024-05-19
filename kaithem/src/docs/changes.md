@@ -2,6 +2,9 @@ Change Log
 ----------
 ### 0.83.0
 
+#### Fixed
+- :bug: Bring back displaying errors on page editing UI
+- :bug: Fix moving a page resource
 
 #### Changed
 - :boom: Schema for tag history changed for daasette compatibility.

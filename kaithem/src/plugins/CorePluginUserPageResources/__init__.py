@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-
+from __future__ import annotations
 
 # This file handles the display of user-created pages
 import copy
@@ -42,7 +42,7 @@ env = jinja2.Environment(loader=_jl, autoescape=False)
 
 errors = {}
 
-_pages_by_module_resource = {}
+_pages_by_module_resource: dict[str, dict[str, CompiledPage]] = {}
 _page_list_lock = threading.Lock()
 
 # Used for including builtin components
@@ -179,7 +179,6 @@ class CompiledPageAPIObject:
 
 class CompiledPage:
     def __init__(self, resource, m="unknown", r="unknown"):
-        self.errors = []
         self.printoutput = ""
 
         self.resource = resource
@@ -199,6 +198,7 @@ class CompiledPage:
         self.origins: list[str]
         self.methods: list[str]
         self.theme: str
+        self.errors: list[tuple[float, str, str]] = []
 
         # This API is available as 'page' from within
         # Mako template code.   It's main use is for self modifying pages
@@ -367,11 +367,13 @@ def getPageErrors(module, resource):
     try:
         return _pages_by_module_resource[module][resource].errors
     except KeyError:
-        return (
-            0,
-            "No Error list available for page that was not compiled or loaded",
-            "Page has not been compiled or loaded and does not exist in compiled page list",
-        )
+        return [
+            (
+                0,
+                "No Error list available for page that was not compiled or loaded",
+                "Page has not been compiled or loaded and does not exist in compiled page list",
+            )
+        ]
 
 
 def getPageOutput(module, resource):
@@ -772,9 +774,12 @@ class PageType(modules_state.ResourceType):
         updateOnePage(resourcename, module, value)
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
-        x = _pages_by_module_resource.pop((module, resource), None)
+        if module not in _pages_by_module_resource:
+            _pages_by_module_resource[toModule] = {}
+
+        x = _pages_by_module_resource[module].pop(resource, None)
         if x:
-            _pages_by_module_resource[toModule, toResource] = x
+            _pages_by_module_resource[toModule][toResource] = x
 
     def onupdate(self, module, resource, obj):
         self.onload(module, resource, obj)
@@ -884,6 +889,12 @@ class PageType(modules_state.ResourceType):
         for i in sorted(auth.Permissions.keys()):
             d.checkbox(f"Permission{i}", title=i, default=i in requiredpermissions)
         d.end_section()
+
+        if getPageErrors(module, resource):
+            d.begin_section("Errors")
+            for i in getPageErrors(module, resource):
+                d.text(i)
+            d.end_section()
 
         d.submit_button("Save Changes", value="Save and Go Back")
 
