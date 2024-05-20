@@ -284,7 +284,7 @@ ${lists}
             <footer class="padding">
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
-                    <button type="button" v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
+                    <button type="button" data-testid="add-scene-button" v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
                     <button type="button" v-on:click="addMonitorScene()"><i class="mdi mdi-binoculars"></i>Add Monitor</button>
                 </div>
             </footer>

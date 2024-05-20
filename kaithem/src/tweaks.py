@@ -7,10 +7,13 @@ import faulthandler
 # TODO this is a yucky hack
 import importlib.metadata
 import logging
+import mimetypes
 import os
 import re
 import sys
 import threading
+
+mimetypes.add_type("text/html", ".vue", strict=False)
 
 try:
     import typeguard  # noqa

@@ -97,6 +97,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         for i in self.configured_universes:
             self.configured_universes[i].close()
 
+        try:
+            self.autosave_checker.unregister()
+        except Exception:
+            print(traceback.format_exc())
+
     def load_project(self, data: dict):
         for i in self.scenes:
             self.scenes[i].stop()

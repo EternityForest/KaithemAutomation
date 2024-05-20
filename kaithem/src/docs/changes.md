@@ -2,12 +2,16 @@ Change Log
 ----------
 ### 0.83.0
 
+
 #### Fixed
 - :bug: Bring back displaying errors on page editing UI
 - :bug: Fix moving a page resource
+- :bug: Static .vue files served with bad MIME tyoe breaking tests
+
 
 #### Changed
 - :boom: Schema for tag history changed for daasette compatibility.
+- :lipstick: LoC count excludes tests.
 
 #### Removed
 
@@ -17,32 +21,34 @@ Change Log
 #### Added
 - :sparkles: Usable RTP Opus listener to stream over network.
 - :sparkles: kaithem.api.web.add_asgi_app
+- :sparkles: e2e tests with [Playwright](https://playwright.dev/docs/intro)
 
 
 #### Dev Info
 
-New unit tests: 1
+New pytest tests: 1
+New Playwright tests: 4
 
 ```
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
 ┃ Language      ┃ Files ┃     % ┃  Code ┃    % ┃ Comment ┃    % ┃
 ┡━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━┩
-│ Python        │   121 │  29.2 │ 22471 │ 62.1 │    3988 │ 11.0 │
-│ HTML          │    54 │  13.0 │  5227 │ 74.4 │     141 │  2.0 │
-│ RHTML         │    62 │  15.0 │  5077 │ 74.4 │      27 │  0.4 │
-│ Markdown      │    33 │   8.0 │  4046 │ 69.4 │      19 │  0.3 │
-│ CSS           │    17 │   4.1 │  3115 │ 56.5 │     268 │  4.9 │
-│ JavaScript    │     6 │   1.4 │  1386 │ 51.5 │     142 │  5.3 │
-│ YAML          │    11 │   2.7 │   822 │ 74.7 │      83 │  7.5 │
-│ Bash          │    12 │   2.9 │   328 │ 29.2 │     147 │ 13.1 │
-│ Text only     │     1 │   0.2 │   109 │ 90.1 │       0 │  0.0 │
-│ JSON          │     1 │   0.2 │     4 │ 57.1 │       0 │  0.0 │
-│ __unknown__   │    18 │   4.3 │     0 │  0.0 │       0 │  0.0 │
-│ __empty__     │     1 │   0.2 │     0 │  0.0 │       0 │  0.0 │
-│ __duplicate__ │    12 │   2.9 │     0 │  0.0 │       0 │  0.0 │
-│ __binary__    │    65 │  15.7 │     0 │  0.0 │       0 │  0.0 │
+│ Python        │   118 │  29.8 │ 21947 │ 62.6 │    3870 │ 11.0 │
+│ HTML          │    54 │  13.6 │  5225 │ 74.4 │     141 │  2.0 │
+│ RHTML         │    61 │  15.4 │  5036 │ 74.4 │      27 │  0.4 │
+│ Markdown      │    33 │   8.3 │  4060 │ 69.0 │      19 │  0.3 │
+│ CSS           │    14 │   3.5 │  2578 │ 57.0 │     222 │  4.9 │
+│ JavaScript    │     6 │   1.5 │  1406 │ 51.8 │     143 │  5.3 │
+│ YAML          │    11 │   2.8 │   822 │ 74.7 │      83 │  7.5 │
+│ Bash          │    12 │   3.0 │   328 │ 29.2 │     147 │ 13.1 │
+│ Text only     │     1 │   0.3 │   109 │ 90.1 │       0 │  0.0 │
+│ JSON          │     1 │   0.3 │     4 │ 57.1 │       0 │  0.0 │
+│ __unknown__   │    18 │   4.5 │     0 │  0.0 │       0 │  0.0 │
+│ __empty__     │     1 │   0.3 │     0 │  0.0 │       0 │  0.0 │
+│ __duplicate__ │    10 │   2.5 │     0 │  0.0 │       0 │  0.0 │
+│ __binary__    │    56 │  14.1 │     0 │  0.0 │       0 │  0.0 │
 ├───────────────┼───────┼───────┼───────┼──────┼─────────┼──────┤
-│ Sum           │   414 │ 100.0 │ 42585 │ 64.1 │    4815 │  7.3 │
+│ Sum           │   396 │ 100.0 │ 41515 │ 64.5 │    4652 │  7.2 │
 └───────────────┴───────┴───────┴───────┴──────┴─────────┴──────┘
 ```
 
