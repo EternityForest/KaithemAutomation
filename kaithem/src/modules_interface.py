@@ -226,7 +226,7 @@ class WebInterface:
     def uploadtarget(self, modulesfile, **kwargs):
         pages.require("system_admin")
         pages.postOnly()
-        modules_state.modulesHaveChanged()
+        modules_state.recalcModuleHashes()
         modules.load_modules_from_zip(modulesfile.file, replace="replace" in kwargs)
 
         messagebus.post_message("/system/modules/uploaded", {"user": pages.getAcessingUser()})
@@ -311,7 +311,7 @@ class WebInterface:
 
         modules.loadModule(os.path.join(directories.datadir, "modules", module), name)
 
-        modules_state.modulesHaveChanged()
+        modules_state.recalcModuleHashes()
 
         modules.bookkeeponemodule(name)
         auth.importPermissionsFromModules()
@@ -575,8 +575,7 @@ class WebInterface:
                     root = x[0]
 
                     def insertResource(r):
-                        modules_state.ActiveModules[root][escapedName] = r
-                        modules_state.save_resource(root, escapedName, r)
+                        modules_state.rawInsertResource(root, escapedName, r)
 
                     # END BLOCK OF COPY PASTED CODE.
 
@@ -595,7 +594,7 @@ class WebInterface:
 
                     insertResource(d)
                     modules.handleResourceChange(root, escapedName)
-                    modules_state.modulesHaveChanged()
+                    modules_state.recalcModuleHashes()
                 if len(path) > 1:
                     raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}/resource/{util.url(path[1])}")
                 else:
@@ -668,7 +667,7 @@ class WebInterface:
             if path[0] == "update":
                 pages.require("system_admin")
                 pages.postOnly()
-                modules_state.modulesHaveChanged()
+                modules_state.recalcModuleHashes()
                 if not kwargs["name"] == root:
                     if "." in kwargs:
                         raise ValueError("No . in resource name")
@@ -761,7 +760,7 @@ def addResourceDispatcher(module, type, path):
 def addResourceTarget(module, type, name, kwargs, path):
     pages.require("system_admin")
     pages.postOnly()
-    modules_state.modulesHaveChanged()
+    modules_state.recalcModuleHashes()
 
     check_forbidden(kwargs["name"])
 
@@ -774,8 +773,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 
     def insertResource(r):
         r["resource_timestamp"] = int(time.time() * 1000000)
-        modules_state.ActiveModules[root][name_with_path] = r
-        modules_state.save_resource(root, name_with_path, r)
+        modules_state.rawInsertResource(root, name_with_path, r)
 
     with modules_state.modulesLock:
         # Check if a resource by that name is already there
@@ -883,7 +881,7 @@ def resourceUpdateTarget(module, resource, kwargs):
 
     pages.require("system_admin", noautoreturn=True)
     pages.postOnly()
-    modules_state.modulesHaveChanged()
+    modules_state.recalcModuleHashes()
 
     compiled_object = None
 

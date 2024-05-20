@@ -150,32 +150,6 @@ class CompiledPageAPIObject:
         self.page = p
         self.url = url_for_resource(p.module, p.resourceName)
 
-    # def setContent(self, c):
-    #     """This allows self-modifying pages, as many things
-    #       are best edited directly.  The intended use is for
-    #       replacing the contents of custom html-elements with
-    #       a simple regex.
-
-    #     One must be careful to use elements that actually
-    #     can be replaced like that, which only have one instance.
-
-    #     """
-
-    #     pages.require("system_admin")
-    #     pages.postOnly()
-
-    #     if not isinstance(c, str):
-    #         raise RuntimeError("Content must be a string")
-    #     modules_state.modulesHaveChanged()
-
-    #     self.page.resource["body"] = c
-    #     self.page.refreshFromResource()
-
-    #     modules_state.saveResource(self.page.module, self.page.resourceName, self.page.resource)
-
-    # def getContent(self):
-    #     return self.page.resource["body"]
-
 
 class CompiledPage:
     def __init__(self, resource, m="unknown", r="unknown"):

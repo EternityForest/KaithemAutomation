@@ -117,6 +117,7 @@ class WebDevices:
             obj = devices.remote_devices[name]
 
             if obj.parent_module:
+                assert obj.parent_resource
                 merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])
 
             # I think stored data is enough, this is just defensive
@@ -210,11 +211,10 @@ class WebDevices:
                 kwargs["kaithem.read_perms"] = "view_devices"
                 kwargs["kaithem.write_perms"] = "write_devices"
 
-                modules_state.ActiveModules[m][r] = {
-                    "resource_type": "device",
-                    "device": d,
-                }
-                modules_state.modulesHaveChanged()
+                dt = {"resource_type": "device", "device": d}
+
+                modules_state.rawInsertResource(m, r, dt)
+                modules_state.recalcModuleHashes()
             else:
                 raise RuntimeError("Creating devices outside of modules is no longer supported.")
                 if not name:
@@ -256,20 +256,6 @@ class WebDevices:
 
         name = name or kwargs["name"]
         return pages.get_template("devices/confirmdelete.html").render(name=name)
-
-    @cherrypy.expose
-    def toggletarget(self, name, **kwargs):
-        pages.require("enumerate_endpoints")
-        pages.postOnly()
-        x = devices.remote_devices[name]
-
-        perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
-
-        for i in perms.split(","):
-            pages.require(i)
-
-        if "switch" in x.tagpoints:
-            x.tagpoints["switch"].value = 1 if not x.tagpoints["switch"].value else 0
 
     @cherrypy.expose
     def settarget(self, name, tag, value="", **kwargs):
@@ -329,7 +315,7 @@ class WebDevices:
 
             if x.parent_module:
                 modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
-                modules_state.modulesHaveChanged()
+                modules_state.recalcModuleHashes()
 
             # no zombie reference
             del x

@@ -215,6 +215,15 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
 @beartype.beartype
 def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
     check_forbidden(resource)
+    assert resource[0] != "/"
+
+    # todo maybe we don't need os indepedence
+    d = os.path.dirname(resource.replace("/", os.path.pathsep))
+    while d:
+        if d not in ActiveModules[module]:
+            ActiveModules[module][d.replace(os.path.pathsep, "/")] = {"resource_type": "directory"}
+        d = os.path.dirname(d)
+
     ActiveModules[module][resource] = resourceData
     save_resource(module, resource, resourceData)
 
@@ -342,7 +351,7 @@ def getModuleWordHash(m: str) -> str:
     return modulewordhashes[m].upper()
 
 
-def modulesHaveChanged() -> None:
+def recalcModuleHashes() -> None:
     global moduleshash, modulehashes, modulewordhashes
     moduleshash = hashModules()
     modulehashes = {}

@@ -386,7 +386,7 @@ class Device(iot_devices.device.Device):
                         self.parent_resource,
                         modules_state.ActiveModules[self.parent_module][self.parent_resource],
                     )
-                    modules_state.modulesHaveChanged()
+                    modules_state.recalcModuleHashes()
 
     @staticmethod
     def makeUIMsgHandler(wr):
@@ -1336,7 +1336,7 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
 
         modules_state.save_resource(module, resource, {"resource_type": "device", "device": d})
 
-        modules_state.modulesHaveChanged()
+        modules_state.recalcModuleHashes()
 
 
 def getDeviceType(t):

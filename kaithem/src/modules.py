@@ -664,7 +664,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted") ->
     "Delete one resource by name, message is an optional message explaining the change"
     with modulesLock:
         r = modules_state.ActiveModules[module].pop(resource)
-        modules_state.modulesHaveChanged()
+        modules_state.recalcModuleHashes()
     try:
         rt = r["resource_type"]
         assert isinstance(rt, str)
@@ -742,7 +742,7 @@ def newModule(name: str, location: str | None = None) -> None:
         )
         messagebus.post_message("/system/modules/new", {"user": pages.getAcessingUser(), "module": name})
 
-        modules_state.modulesHaveChanged()
+        modules_state.recalcModuleHashes()
 
 
 def rmModule(module: str, message: str = "deleted") -> None:
@@ -780,7 +780,7 @@ def rmModule(module: str, message: str = "deleted") -> None:
         if os.path.exists(fn):
             shutil.rmtree(fn)
 
-    modules_state.modulesHaveChanged()
+    modules_state.recalcModuleHashes()
     # Get rid of any garbage cycles associated with the event.
     gc.collect()
     messagebus.post_message("/system/modules/unloaded", module)
@@ -797,7 +797,7 @@ def createResource(module: str, resource: str, data: ResourceDictType):
 
 
 def handleResourceChange(module: str, resource: str, obj: None = None, newly_added: bool = False) -> None:
-    modules_state.modulesHaveChanged()
+    modules_state.recalcModuleHashes()
 
     with modules_state.modulesLock:
         t = modules_state.ActiveModules[module][resource]["resource_type"]
