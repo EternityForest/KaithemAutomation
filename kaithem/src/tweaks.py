@@ -14,6 +14,8 @@ import sys
 import threading
 
 mimetypes.add_type("text/html", ".vue", strict=False)
+# ??????????
+mimetypes.add_type("application/javascript", ".js", strict=True)
 
 try:
     import typeguard  # noqa

@@ -28,11 +28,28 @@ ResourceType = ResourceType
 # / is there because we just forbid use of that char for anything but dirs,
 # So there is no confusion
 safeFnChars = "~@*&()-_=+/ '"
+FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
 
 logger = logging.getLogger("system")
 
 # This lets us have some modules saved outside the var dir.
 external_module_locations: dict[str, str] = {}
+
+
+@beartype.beartype
+def check_forbidden(s: str) -> None:
+    if not s:
+        raise ValueError("Resource or module name cannot be empty")
+
+    if len(s) > 255:
+        raise ValueError(f"Excessively long name {s[:128]}...")
+
+    for i in s:
+        if i in FORBID_CHARS:
+            raise ValueError(f"{s} contains {i}")
+
+    if s[0] == "/":
+        raise ValueError("Resource or module name cannot start with /")
 
 
 def getModuleDir(module: str) -> str:
@@ -197,6 +214,7 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
 
 @beartype.beartype
 def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
+    check_forbidden(resource)
     ActiveModules[module][resource] = resourceData
     save_resource(module, resource, resourceData)
 

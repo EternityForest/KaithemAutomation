@@ -6,7 +6,9 @@ Change Log
 #### Fixed
 - :bug: Bring back displaying errors on page editing UI
 - :bug: Fix moving a page resource
-- :bug: Static .vue files served with bad MIME tyoe breaking tests
+- :bug: Static .vue files served with bad MIME type breaking tests
+- :bug: Guard against module or resource starting with /
+- :bug: Fix hashing new modules
 
 
 #### Changed

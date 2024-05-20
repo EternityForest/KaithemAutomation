@@ -25,6 +25,7 @@ from . import auth, directories, messagebus, modules_state, pages, util
 from .modules_state import (
     ResourceDictType,
     additionalTypes,
+    check_forbidden,
     external_module_locations,
     file_resource_paths,
     getModuleDir,
@@ -38,19 +39,6 @@ from .modules_state import (
 from .util import url
 
 logger = logging.getLogger("system")
-
-
-FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
-
-
-@beartype.beartype
-def check_forbidden(s: str) -> None:
-    if len(s) > 255:
-        raise ValueError(f"Excessively long name {s[:128]}...")
-
-    for i in s:
-        if i in FORBID_CHARS:
-            raise ValueError(f"{s} contains {i}")
 
 
 def new_empty_module():
@@ -744,6 +732,7 @@ def newModule(name: str, location: str | None = None) -> None:
             modules_state.ActiveModules[name] = {
                 "__description": {"resource_type": "module-description", "text": "", "resource_timestamp": int(time.time() * 1000000)}
             }
+        saveModule(modules_state.ActiveModules[name], name)
 
         bookkeeponemodule(name)
         # Go directly to the newly created module
@@ -754,7 +743,6 @@ def newModule(name: str, location: str | None = None) -> None:
         messagebus.post_message("/system/modules/new", {"user": pages.getAcessingUser(), "module": name})
 
         modules_state.modulesHaveChanged()
-        saveModule(modules_state.ActiveModules[name], name)
 
 
 def rmModule(module: str, message: str = "deleted") -> None:

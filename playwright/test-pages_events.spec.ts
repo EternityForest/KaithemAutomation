@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login, logout } from './util';
 
 test('test', async ({ page }) => {
     /*
@@ -6,13 +7,8 @@ test('test', async ({ page }) => {
     Tests basic fuctions, then renames them both and confirms they still work.
     Delete module then log out.
     */
-    await page.goto('http://localhost:8002/');
-    await page.getByRole('link', { name: 'Login' }).click();
-    await page.getByLabel('Username:').click();
-    await page.getByLabel('Username:').fill('admin');
-    await page.getByLabel('Username:').press('Tab');
-    await page.getByLabel('Password:').fill('test-admin-password');
-    await page.getByRole('button', { name: 'Login as Registered User' }).click();
+    test.setTimeout(2400000);
+    await login(page);
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: 'Add' }).click();
     await page.getByLabel('Name of New Module').click();
@@ -72,5 +68,5 @@ test('test', async ({ page }) => {
     await page.getByLabel('Name').fill('PlaywrightBasicModuleFeatures');
     await page.getByRole('button', { name: 'Submit' }).click();
     await expect(page.getByRole('heading')).toContainText('Modules');
-    await page.getByRole('button', { name: 'Logout(admin)' }).click();
+    await logout(page);
 });
