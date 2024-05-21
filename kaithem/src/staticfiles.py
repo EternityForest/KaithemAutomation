@@ -68,4 +68,4 @@ def add_apps():
     web.add_asgi_app("/static/css/.*", src, "__guest__")
     web.add_asgi_app("/static/docs/.*", src, "__guest__")
     web.add_asgi_app("/static/vue/.*", src, "__guest__")
-    web.add_asgi_app("/static/.*", TrivialCache(StaticFiles(directory=ddn)), "__guest__")
+    web.add_asgi_app("/static/.*", TrivialCache(GZipMiddleware(StaticFiles(directory=ddn))), "__guest__")
