@@ -381,12 +381,11 @@ class Device(iot_devices.device.Device):
                     assert isinstance(devdata, dict)
                     devdata[key] = v
 
-                    modules_state.save_resource(
+                    modules_state.rawInsertResource(
                         self.parent_module,
                         self.parent_resource,
                         modules_state.ActiveModules[self.parent_module][self.parent_resource],
                     )
-                    modules_state.recalcModuleHashes()
 
     @staticmethod
     def makeUIMsgHandler(wr):
@@ -1329,14 +1328,7 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                     break
                 dir = "/".join(dir.split("/")[:-1])
 
-        modules_state.ActiveModules[module][resource] = {
-            "resource_type": "device",
-            "device": d,
-        }
-
-        modules_state.save_resource(module, resource, {"resource_type": "device", "device": d})
-
-        modules_state.recalcModuleHashes()
+        modules_state.rawInsertResource(module, resource, {"resource_type": "device", "device": d})
 
 
 def getDeviceType(t):

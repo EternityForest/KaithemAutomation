@@ -226,6 +226,7 @@ def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType
 
     ActiveModules[module][resource] = resourceData
     save_resource(module, resource, resourceData)
+    recalcModuleHashes()
 
 
 @beartype.beartype
@@ -246,6 +247,8 @@ def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     for i in os.listdir(dir):
         if i.startswith(r + "."):
             os.remove(os.path.join(dir, i))
+
+    recalcModuleHashes()
 
 
 def getModuleFn(modulename: str) -> str:
