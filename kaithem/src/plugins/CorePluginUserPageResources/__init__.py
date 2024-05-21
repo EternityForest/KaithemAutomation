@@ -813,7 +813,7 @@ class PageType(modules_state.ResourceType):
             # Since HTTP args don't have namespaces we prefix all the permission
             # checkboxes with permission
             if i[:10] == "Permission":
-                if kwargs[i] == "true":
+                if kwargs[i] in ("true", "on"):
                     resourceobj["require_permissions"].append(i[10:])
 
         return resourceobj

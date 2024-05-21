@@ -9,6 +9,8 @@ Change Log
 - :bug: Static .vue files served with bad MIME type breaking tests
 - :bug: Guard against module or resource starting with /
 - :bug: Fix hashing new modules
+- :bug: :security: User page permissions were being removed on re-save.
+- :bug: :security: Because of this, please update to the new version of the Beholder module
 
 
 #### Changed
