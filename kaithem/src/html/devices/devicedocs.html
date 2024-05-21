@@ -2,13 +2,13 @@
     h2 {
         background-color: rgba(235, 255, 235, 0.4);
     }
-    
+
     h3 {
         margin-top: 1em !important;
         margin-bottom: 1em !important;
         background-color: rgba(255, 255, 255, 0.3);
     }
-    
+
     h4 {
         margin-top: 0.5em !important;
         margin-bottom: 0.5em !important;
@@ -24,7 +24,7 @@
     <title>Help</title>
     <link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
     <script src="/static/js/thirdparty/highlight.pack.js"></script>
-    <script src="/static/showdown.min.js"></script>
+    <script src="/static/js/thirdparty/showdown.min.js"></script>
     <script>
     var url = new URL(window.location.href);
     var dl = url.searchParams.get("detectlanguages");
@@ -36,7 +36,7 @@
     {
         dl=false
     }
-    
+
     showdown.extension('codehighlight', function() {
       function htmlunencode(text) {
         return (
@@ -71,7 +71,7 @@
                         {
                             return left+match+right
                         }
-                    }            
+                    }
                 };
             return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
           }
@@ -80,11 +80,10 @@
     });
     </script>
     <div class="window paper" id="help">${docs}</div>
-    
+
     <script>
     var conv = new showdown.Converter({metadata: true,extensions:['codehighlight']});
     var html = conv.makeHtml(document.getElementById("help").innerHTML);
     document.getElementById("help").innerHTML=html;
     </script>
     <%include file="/pagefooter.html"/>
-    
