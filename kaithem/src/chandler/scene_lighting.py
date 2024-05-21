@@ -225,20 +225,6 @@ class SceneLightingManager:
             self.fade_in_completed = True
             self.should_rerender = True
 
-    def updateMonitorValues(self):
-        assert self.cue
-        if self.blend == "monitor":
-            data = self.cue.values
-            for i in data:
-                for j in data[i]:
-                    x = universes.mapChannel(i, j)
-                    if x:
-                        u = universes.getUniverse(x[0])
-                        if u:
-                            v = u.values[x[1]]
-                            self.cue.values[i][j] = float(v)
-            self.monitor_values_already_pushed_by = {}
-
     def apply_tracked_values(self, cobj: Cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
         # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
@@ -451,7 +437,6 @@ def composite_layers_and_do_output(board: ChandlerConsole, t=None, u=None):
     # Remember that scenes get rendered in ascending priority order here
     for i in board.active_scenes:
         if i.blend == "monitor":
-            i.lighting_manager.updateMonitorValues()
             continue
 
         data = i.lighting_manager.affect

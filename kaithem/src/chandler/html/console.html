@@ -285,7 +285,6 @@ ${lists}
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
                     <button type="button" data-testid="add-scene-button" v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
-                    <button type="button" v-on:click="addMonitorScene()"><i class="mdi mdi-binoculars"></i>Add Monitor</button>
                 </div>
             </footer>
 
@@ -450,7 +449,6 @@ ${lists}
                 <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
                 <div class="tool-bar">
                     <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
-                            <span v-if="editingScene.blend=='monitor'">Monitor</span>
                             {{editingScene.name}}</span>
                         <small class="success" v-if="editingScene.active"> (running)</small>
 
@@ -629,7 +627,7 @@ ${lists}
                                 </header>
                                 <div class="scroll nomargin h-24rem">
                                     <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                        :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
+                                        :currentcueid="currentcueid"
                                         :showdelete="scenetab=='channels'" v-for="i in h">
                                     </h-fader>
                                 </div>
@@ -639,7 +637,7 @@ ${lists}
 
                             <article class="fixture card flex-col gaps" v-if="fname[0]=='@'">
                                 <header>
-                                    <div class="tool-bar" v-if="editingScene.blend!='monitor'">
+                                    <div class="tool-bar">
                                         <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
                                         <select  :disabled="no_edit"
                                             v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
@@ -656,7 +654,7 @@ ${lists}
                                 </header>
                                 <div class="scroll nomargin h-24rem padding-bottom">
                                     <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                        :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
+                                        :currentcueid="currentcueid"
                                         :showdelete="scenetab=='channels'" v-for="i in h">
                                     </h-fader>
                                 </div>
@@ -1272,7 +1270,6 @@ ${lists}
                                         title="Highest Takes Priority, only affect lights if the value is higher than the others">
                                         HTP</option>
                                     <option title="Limit maximum level">inhibit</option>
-                                    <option title="Transparently monitor values">monitor</option>
 
                                     <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}
                                     </option>

@@ -325,10 +325,6 @@ class Scene:
         self.topCueNumber = 0
         # Only used for monitor scenes
 
-        # If an entry here it means the monitor scene with that ID
-        # already sent data to web
-        self.monitor_values_already_pushed_by: dict[str, bool] = {}
-
         self.alpha = alpha
         self.crossfade = crossfade
 

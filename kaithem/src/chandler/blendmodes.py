@@ -21,12 +21,10 @@ def getUniverse(u: str):
 def getblenddesc(mode: str):
     if mode == "gel" or mode == "multiply":
         return "Values in this scene act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
-    if mode == "inhibit":
+    elif mode == "inhibit":
         return "Values in this scene act to limit the max value, the final value is the lower of the value in this scene and the rendered value below it"
-    if mode == "HTP":
+    elif mode == "HTP":
         return "The highest of the this scene's values and the values below it take effect, as in a traditional HTP lighting console"
-    if mode == "monitor":
-        return "This scene's values are set to the value just below it, to assist with debugging."
 
     try:
         return blendmodes[mode].description
