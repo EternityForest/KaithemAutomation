@@ -4,6 +4,7 @@ import random
 import subprocess
 import threading
 
+import structlog
 from scullery import scheduling
 
 from kaithem.src import alerts, messagebus, tagpoints, util

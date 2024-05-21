@@ -13,6 +13,7 @@ import traceback
 import zipfile
 
 import cherrypy
+import structlog
 from cherrypy.lib.static import serve_file
 
 from . import (
@@ -117,7 +118,7 @@ def ctype_async_raise(thread_obj, exception):
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
-syslogger = logging.getLogger("system")
+syslogger = structlog.get_logger("system")
 
 
 page_plugins: dict[str, PagePlugin] = {}

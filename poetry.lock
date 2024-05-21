@@ -3228,6 +3228,23 @@ ci = ["coverage (==6.2)", "pycryptodome (==3.10.1)", "pytest (==7.0.1)", "pytest
 dev = ["coverage (>=6.2)", "pytest (>=7.0.1)", "pytest-cov (>=3.0.0)", "pyzipper (>=0.3.6)", "stream-unzip (>=0.0.86)"]
 
 [[package]]
+name = "structlog"
+version = "24.1.0"
+description = "Structured Logging for Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "structlog-24.1.0-py3-none-any.whl", hash = "sha256:3f6efe7d25fab6e86f277713c218044669906537bb717c1807a09d46bca0714d"},
+    {file = "structlog-24.1.0.tar.gz", hash = "sha256:41a09886e4d55df25bdcb9b5c9674bccfab723ff43e0a86a1b7b236be8e57b16"},
+]
+
+[package.extras]
+dev = ["structlog[tests,typing]"]
+docs = ["furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-mermaid", "sphinxext-opengraph", "twisted"]
+tests = ["freezegun (>=0.2.8)", "pretend", "pytest (>=6.0)", "pytest-asyncio (>=0.17)", "simplejson"]
+typing = ["mypy (>=1.4)", "rich", "twisted"]
+
+[[package]]
 name = "tempora"
 version = "5.5.1"
 description = "Objects and routines pertaining to date and time (tempora)"
@@ -3979,4 +3996,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "3a86ec16a0a2f861ef460c3351486b70c6e4fab5096c50f81a703db97059cf6c"
+content-hash = "16950310a56c86a3e06d1632e1717a73f25e3c3d42c0eadf6c5499c5e2e0278f"

@@ -11,7 +11,7 @@ import base64
 import collections
 import copy
 import json
-import logging
+import logging, structlog
 import os
 import threading
 import time
@@ -29,7 +29,7 @@ from beartype import beartype
 from . import auth, messagebus, pages, workers
 from http.cookies import SimpleCookie
 
-logger = logging.getLogger("system.widgets")
+logger = structlog.get_logger("system.widgets")
 
 # Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()

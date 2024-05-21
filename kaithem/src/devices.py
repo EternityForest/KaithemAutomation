@@ -18,6 +18,7 @@ import cherrypy
 import cherrypy.lib.static
 import iot_devices.device
 import iot_devices.host
+import structlog
 
 # SPDX-FileCopyrightText: Copyright 2018 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
@@ -38,7 +39,7 @@ SUBDEVICE_SEPARATOR = "/"
 
 # Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
 # edit the state because self modifying devices exist and can be saved in a module
-log = logging.getLogger("system.devices")
+log = structlog.get_logger("system.devices")
 
 
 remote_devices: dict[str, Device] = {}
@@ -151,7 +152,7 @@ def log_scanned_tag(v: str, *args):
         recent_scanned_tags.pop(next(iter(recent_scanned_tags)))
 
 
-syslogger = logging.getLogger("system.devices")
+syslogger = structlog.get_logger("system.devices")
 
 dbgd: weakref.WeakValueDictionary[str, Device] = weakref.WeakValueDictionary()
 

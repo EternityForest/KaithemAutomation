@@ -4,16 +4,16 @@
 """This file handles the big configuration file, provides access to it, and handles default settings"""
 
 import argparse
-import logging
 import os
 import sys
 from typing import Any
 
 import jsonschema
+import structlog
 import yaml
 from scullery import snake_compat
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 config: dict[str, Any] = {}
 
 ##########################################################

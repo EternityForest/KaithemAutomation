@@ -11,6 +11,7 @@ import threading
 import time
 import traceback
 
+import structlog
 from scullery import messagebus
 
 

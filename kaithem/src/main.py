@@ -8,6 +8,8 @@ import threading
 import time
 from typing import Any, Dict, Optional
 
+import structlog
+
 from kaithem import __version__
 
 from . import config
@@ -149,7 +151,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     scheduling.function_error_hooks.append(handle_error)
 
-    logger = logging.getLogger("system")
+    logger = structlog.get_logger("system")
     logger.setLevel(logging.INFO)
 
     os.makedirs(os.path.join(directories.vardir, "static"), exist_ok=True)

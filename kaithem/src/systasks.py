@@ -12,6 +12,7 @@ import threading
 import time
 
 import cherrypy
+import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
 
@@ -62,7 +63,7 @@ browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_servi
 # Can't think of anywhere else to put this thing.
 systemStarted = time.time()
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 
 lastsaved = time.time()
 
@@ -90,7 +91,7 @@ nminutepagecount = 0
 
 
 upnpMapping = None
-syslogger = logging.getLogger("system")
+syslogger = structlog.get_logger("system")
 
 
 def doUPnP():

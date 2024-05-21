@@ -17,7 +17,6 @@ import copy
 import hashlib
 import hmac
 import json
-import logging
 import os
 import shutil
 import struct
@@ -26,6 +25,7 @@ import time
 from typing import Any
 
 import beartype
+import structlog
 import yaml
 from argon2 import PasswordHasher
 
@@ -61,7 +61,7 @@ class User(dict):
         self.token: str | None = None
 
 
-logger = logging.getLogger("system.auth")
+logger = structlog.get_logger("system.auth")
 # This maps raw tokens to users
 Tokens: dict[str, User] = {}
 

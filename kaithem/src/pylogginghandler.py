@@ -18,6 +18,8 @@ import time
 import traceback
 import weakref
 
+import structlog
+
 from . import directories, messagebus, unitsofmeasure, util
 from .config import config
 
@@ -26,6 +28,14 @@ configuredHandlers = {}
 all_handlers = weakref.WeakValueDictionary()
 
 logging.basicConfig(level=logging.INFO)
+
+structlog.stdlib.recreate_defaults()
+
+import structlog
+
+cr = structlog.dev.ConsoleRenderer()
+
+structlog.configure(processors=structlog.get_config()["processors"][:-1] + [cr])
 
 
 def at_exit():
@@ -91,7 +101,7 @@ class LoggingHandler(logging.Handler):
         entries_per_file=25000,
         keep=10,
         compress="none",
-        doprint=True,
+        doprint=False,
         exclude_print="",
     ):
         """Implements a memory-buffered context logger with automatic log rotation.
@@ -420,8 +430,7 @@ if os.path.exists("/dev/shm"):
         bufferlen=0,
         keep=10**6,
         compress="none",
-        doprint=True,
-        exclude_print="system",
+        doprint=False,
     )
     shmhandler.isShmHandler = True
     logging.getLogger().addHandler(shmhandler)

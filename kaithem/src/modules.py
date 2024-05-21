@@ -18,6 +18,7 @@ from typing import Any
 
 import beartype
 import cherrypy
+import structlog
 import yaml
 from scullery import snake_compat
 
@@ -38,7 +39,7 @@ from .modules_state import (
 )
 from .util import url
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 
 
 def new_empty_module():
@@ -79,7 +80,7 @@ def loadAllCustomResourceTypes() -> None:
                             )
                             logger.exception(f"Error loading resource: {str((i, j))}")
                 if not r == orig:
-                    logger.warning("Loader tried to modify resource object %s during load", str((i, j)))
+                    logger.warning(f"Loader tried to modify resource object {i}:{j} during load")
 
     for i in additionalTypes:
         additionalTypes[i].onfinishedloading(None)

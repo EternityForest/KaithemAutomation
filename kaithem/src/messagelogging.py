@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-import logging
 import time
 from collections import deque
 
 import cherrypy
+import structlog
 
 from . import messagebus, pages
 from .config import config
@@ -16,7 +16,7 @@ approxtotallogentries = 0
 log = {}
 
 
-logger = logging.getLogger("system.msgbus")
+logger = structlog.get_logger("system.msgbus")
 
 
 def messagelistener(topic, message):

@@ -1,15 +1,17 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-import cherrypy
-import time
-import collections
-import threading
-import logging
 import base64
-from . import pages, auth, util, messagebus, kaithemobj
+import collections
+import logging
+import threading
+import time
 
+import cherrypy
+import structlog
 
-logger = logging.getLogger("system.auth")
+from . import auth, kaithemobj, messagebus, pages, util
+
+logger = structlog.get_logger("system.auth")
 failureRecords = collections.OrderedDict()
 recordslock = threading.RLock()
 
@@ -62,9 +64,7 @@ class LoginScreen:
             x = cherrypy.request.remote.ip
             if not pages.isHTTPAllowed(x):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
-        return pages.get_template("login.html").render(
-            target=kwargs.get("go", "/"), kaithemobj=kaithemobj
-        )
+        return pages.get_template("login.html").render(target=kwargs.get("go", "/"), kaithemobj=kaithemobj)
 
     @cherrypy.expose
     def login(self, **kwargs):
@@ -74,9 +74,7 @@ class LoginScreen:
             raise cherrypy.HTTPRedirect("/index")
 
         if "__nologin__" in pages.getSubdomain():
-            raise RuntimeError(
-                "To prevent XSS attacks, login is forbidden from any subdomain containing __nologin__"
-            )
+            raise RuntimeError("To prevent XSS attacks, login is forbidden from any subdomain containing __nologin__")
 
         # Not exactly needed but it could prevent attackers from making nuisiance log errors to scare you
         pages.postOnly()
@@ -100,9 +98,7 @@ class LoginScreen:
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
         # query
-        auth.resist_timing_attack(
-            kwargs["username"].encode("utf8") + kwargs["password"].encode("utf8")
-        )
+        auth.resist_timing_attack(kwargs["username"].encode("utf8") + kwargs["password"].encode("utf8"))
         x = auth.userLogin(kwargs["username"], kwargs["password"])
         # Don't ratelimit very long passwords, we'll just assume they are secure
         # Someone might still make a very long insecure password, but
@@ -110,9 +106,7 @@ class LoginScreen:
         if len(kwargs["password"]) < 32:
             if kwargs["username"] in lockouts:
                 if time.time() < lockouts[kwargs["username"]]:
-                    raise RuntimeError(
-                        "Maximum 1 login attempt per 3 seconds per account."
-                    )
+                    raise RuntimeError("Maximum 1 login attempt per 3 seconds per account.")
         if not x == "failure":
             # Give the user the security token.
             # AFAIK this is and should at least for now be the
@@ -144,9 +138,7 @@ class LoginScreen:
                 x["loginhistory"].append((time.time(), cherrypy.request.remote.ip))
                 x["loginhistory"] = x["loginhistory"][:100]
 
-            messagebus.post_message(
-                "/system/auth/login", [kwargs["username"], cherrypy.request.remote.ip]
-            )
+            messagebus.post_message("/system/auth/login", [kwargs["username"], cherrypy.request.remote.ip])
 
             if "maxgotime" in kwargs:
                 if time.time() > float(kwargs["maxgotime"]):
@@ -180,7 +172,5 @@ class LoginScreen:
                     cherrypy.request.remote.ip,
                 ],
             )
-            auth.assignNewToken(
-                auth.whoHasToken(cherrypy.request.cookie["kaithem_auth"].value)
-            )
+            auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie["kaithem_auth"].value))
         raise cherrypy.HTTPRedirect("/index")

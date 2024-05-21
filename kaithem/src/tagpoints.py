@@ -27,6 +27,7 @@ from typing import (
 import beartype
 import dateutil
 import dateutil.parser
+import structlog
 from scullery import scheduling
 
 from . import alerts, messagebus, pages, widgets, workers
@@ -98,8 +99,8 @@ def get_tag_meta(t):
 # only for tags where someone has requested a number.
 assigned_unique_numbers: dict[int, str] = {}
 
-logger = logging.getLogger("tagpoints")
-syslogger = logging.getLogger("system")
+logger = structlog.get_logger("tagpoints")
+syslogger = structlog.get_logger("system")
 
 exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = weakref.WeakValueDictionary()
 

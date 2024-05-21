@@ -14,6 +14,7 @@ from typing import Any
 
 import colorzero
 import numpy
+import structlog
 
 from kaithem.src import alerts
 
@@ -21,7 +22,7 @@ from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 
-logger = logging.getLogger("system.chandler")
+logger = structlog.get_logger("system.chandler")
 
 # Locals for performance... Is this still a thing??
 float = float

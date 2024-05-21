@@ -16,6 +16,7 @@ import cherrypy._cpreqbody
 import iot_devices
 import mako
 import mako.exceptions
+import structlog
 import tornado
 from cherrypy import _cperror
 from cherrypy.lib.static import serve_file
@@ -52,7 +53,7 @@ from .chandler import web as cweb
 from .config import config
 from .plugins import CorePluginUserPageResources
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 logger.setLevel(logging.INFO)
 
 

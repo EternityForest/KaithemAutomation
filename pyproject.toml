@@ -101,6 +101,9 @@ argon2-cffi = "^23.1.0"
 msgpack-types = "^0.2.0"
 niquests = "^3.6.3"
 
+structlog = "^24.1.0"
+rich = "^13.7.1"
+colorama = "^0.4.6"
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"

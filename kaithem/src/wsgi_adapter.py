@@ -14,13 +14,14 @@ from concurrent import futures
 from io import BytesIO
 
 import cherrypy
+import structlog
 from tornado import escape, gen, web
 from tornado.iostream import StreamClosedError
 from tornado.wsgi import to_wsgi_str
 
 from . import auth, pages
 
-_logger = logging.getLogger(__name__)
+_logger = structlog.get_logger(__name__)
 
 # need for debugging
 cherrypy._cprequest.Request.throw_errors = False

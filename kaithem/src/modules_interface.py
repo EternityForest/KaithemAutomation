@@ -11,6 +11,7 @@ import time
 import weakref
 
 import cherrypy
+import structlog
 import yaml
 from cherrypy.lib.static import serve_file
 from scullery import scheduling
@@ -31,7 +32,7 @@ from .modules import check_forbidden, external_module_locations
 from .modules_state import in_folder
 from .util import url
 
-syslog = logging.getLogger("system")
+syslog = structlog.get_logger("system")
 searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
 
 

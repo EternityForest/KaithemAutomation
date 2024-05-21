@@ -6,7 +6,6 @@ import base64
 import copy
 import datetime
 import hashlib
-import logging
 import os
 import urllib
 import urllib.parse
@@ -15,6 +14,7 @@ from threading import RLock
 from typing import Any, Callable
 
 import beartype
+import structlog
 import yaml
 from stream_zip import ZIP_64, stream_zip
 
@@ -30,7 +30,7 @@ ResourceType = ResourceType
 safeFnChars = "~@*&()-_=+/ '"
 FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 
 # This lets us have some modules saved outside the var dir.
 external_module_locations: dict[str, str] = {}
