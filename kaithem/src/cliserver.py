@@ -9,9 +9,9 @@ import logging
 import os
 import weakref
 
-import cherrypy
+from quart import request
 
-from . import config
+from . import config, quart_app
 
 
 class Command:
@@ -45,13 +45,16 @@ with open(f"/dev/shm/kaithem-api-port-{getpass.getuser()}", "w") as f:
 
 
 class WebAPI:
-    @cherrypy.expose
-    def cmd(self, cmd, *args, api_key: str = "", **kw):
+    @quart_app.route("/cli/cmd/<cmd>/<path:path>", methods=["POST"])
+    def cmd(self, cmd, *path):
+        api_key = request.args.pop("api_key")
+        kw = request.args
+
         if not hmac.compare_digest(api_key, secret_key):
             raise PermissionError("Correct API key is needed")
 
         o = commands[cmd]
-        return o.run(*args, *kw)
+        return o.run(*path, *kw)
 
 
 class CallAribitraryFunctionCommand(Command):

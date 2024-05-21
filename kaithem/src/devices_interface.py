@@ -6,9 +6,8 @@ import time
 import traceback
 import urllib.parse
 
-import cherrypy
-import cherrypy.lib.static
 import colorzero
+from quart import Response, redirect, request
 
 from kaithem.src import devices, messagebus, modules_state, pages
 from kaithem.src.devices import (
@@ -21,6 +20,7 @@ from kaithem.src.devices import (
     updateDevice,
     wrcopy,
 )
+from kaithem.src.quart_app import app
 
 
 def read(f):
@@ -57,18 +57,18 @@ def render_device_tag(obj, tag):
 
 
 class WebDevices:
-    @cherrypy.expose
+    @app.route("/devices")
     def index(self):
         """Index page for web interface"""
         pages.require("system_admin")
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-
-        return pages.get_template("devices/index.html").render(
+        d = pages.get_template("devices/index.html").render(
             deviceData=devices.remote_devices_atomic,
             url=url,
         )
 
-    @cherrypy.expose
+        return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+
+    @app.route("/devices/report")
     def report(self):
         pages.require("system_admin")
 
@@ -94,49 +94,39 @@ class WebDevices:
             **device_page_env,
         )
 
-    @cherrypy.expose
+    @app.route("/devices/<name>/manage")
+    def device_manage(self, name):
+        pages.require("enumerate_endpoints")
+        pages.require("system_admin")
+
+        # Some framework only keys are not passed to the actual device since we use what amounts
+        # to an extension, so we have to merge them in
+        merged = {}
+
+        obj = devices.remote_devices[name]
+
+        if obj.parent_module:
+            assert obj.parent_resource
+            merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])
+
+        # I think stored data is enough, this is just defensive
+        merged.update(devices.remote_devices[name].config)
+
+        return pages.render_jinja_template(
+            "devices/device.j2.html",
+            data=merged,
+            obj=obj,
+            name=name,
+            title="" if obj.title == obj.name else obj.title,
+            **device_page_env,
+        )
+
+    @app.route("/devices/<name>")
     def device(self, name, *args, **kwargs):
         pages.require("enumerate_endpoints")
-        # This is a customizable per-device page
-        if args and args[0] == "web":
-            if kwargs:
-                # Just don't allow gets that way
-                pages.postOnly()
-            try:
-                return devices.remote_devices[name].webHandler(*args[1:], **kwargs)
-            except pages.ServeFileInsteadOfRenderingPageException as e:
-                return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+        return redirect("/manage")
 
-        if args and args[0] == "manage":
-            pages.require("system_admin")
-
-            # Some framework only keys are not passed to the actual device since we use what amounts
-            # to an extension, so we have to merge them in
-            merged = {}
-
-            obj = devices.remote_devices[name]
-
-            if obj.parent_module:
-                assert obj.parent_resource
-                merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])
-
-            # I think stored data is enough, this is just defensive
-            merged.update(devices.remote_devices[name].config)
-
-            return pages.render_jinja_template(
-                "devices/device.j2.html",
-                data=merged,
-                obj=obj,
-                name=name,
-                args=args,
-                kwargs=kwargs,
-                title="" if obj.title == obj.name else obj.title,
-                **device_page_env,
-            )
-        if not args:
-            raise cherrypy.HTTPRedirect(cherrypy.url() + "/manage")
-
-    @cherrypy.expose
+    @app.route("/devices/devicedocs/<name>")
     def devicedocs(self, name):
         pages.require("system_admin")
         x = devices.remote_devices[name].readme
@@ -149,30 +139,28 @@ class WebDevices:
 
         return pages.get_template("devices/devicedocs.html").render(docs=x)
 
-    @cherrypy.expose
-    def updateDevice(self, devname, **kwargs):
+    @app.route("/devices/updateDevice/<devname>")
+    def updateDevice(self, devname):
         pages.require("system_admin")
         pages.postOnly()
-        updateDevice(devname, kwargs)
-        raise cherrypy.HTTPRedirect("/devices")
+        updateDevice(devname, request.args)
+        return redirect("/devices")
 
-    @cherrypy.expose
-    def discoveryStep(self, type, devname, **kwargs):
+    @app.route("/devices/discoveryStep/<type>/<devname>", methods=["POST"])
+    def discoveryStep(self, type, devname):
         """
         Do a step of iterative device discovery.  Can start either from just a type or we can take
         an existing device config and ask it for refinements.
         """
         pages.require("system_admin")
-        pages.postOnly()
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
 
-        current = kwargs
+        current = request.args
 
         if devname and devname in devices.remote_devices:
             # If possible just use the actual object
             d = devices.remote_devices[devname]
             c = copy.deepcopy(d.config)
-            c.update(kwargs)
+            c.update(request.args)
             current = c
             obj = d
         else:
@@ -185,16 +173,16 @@ class WebDevices:
             intent="step",
         )
 
-        return pages.get_template("devices/discoverstep.html").render(data=d, current=current, name=devname, obj=obj)
+        dt = pages.get_template("devices/discoverstep.html").render(data=d, current=current, name=devname, obj=obj)
+        return Response(dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
-    @cherrypy.expose
-    def createDevice(self, name=None, **kwargs):
+    @app.route("/devices/createDevice", methods=["POST"])
+    def createDevice(self):
+        kwargs = request.args
         "Actually create the new device"
         pages.require("system_admin")
-        pages.postOnly()
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
 
-        name = name or kwargs.get("name", None)
+        name = kwargs.get("name", None)
         m = r = None
 
         with modules_state.modulesLock:
@@ -217,9 +205,6 @@ class WebDevices:
                 modules_state.recalcModuleHashes()
             else:
                 raise RuntimeError("Creating devices outside of modules is no longer supported.")
-                if not name:
-                    raise RuntimeError("No name?")
-                d = {i: str(kwargs[i]) for i in kwargs if not i.startswith("temp.")}
 
             if name in devices.remote_devices:
                 devices.remote_devices[name].close()
@@ -235,32 +220,28 @@ class WebDevices:
             devices.remote_devices_atomic = devices.wrcopy(devices.remote_devices)
             messagebus.post_message("/devices/added/", name)
 
-        raise cherrypy.HTTPRedirect("/devices")
+        return redirect("/devices")
 
-    @cherrypy.expose
-    def createDevicePage(self, name, module="", resource="", **kwargs):
+    @app.route("/devices/createDevicePage/<name>/<module>/<resource>", methods=["POST"])
+    def createDevicePage(self, name, module="", resource=""):
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("system_admin")
-        pages.postOnly()
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
 
-        tp = getDeviceType(kwargs["type"])
+        tp = getDeviceType(request.args["type"])
         assert tp
 
-        return pages.get_template("devices/createpage.html").render(name=name, type=kwargs["type"], module=module, resource=resource)
+        d = pages.get_template("devices/createpage.html").render(name=name, type=request.args["type"], module=module, resource=resource)
+        return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
-    @cherrypy.expose
-    def deleteDevice(self, name, **kwargs):
+    @app.route("/devices/deleteDevice/<name>")
+    def deleteDevice(self, name):
         pages.require("system_admin")
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        d = pages.get_template("devices/confirmdelete.html").render(name=name)
+        return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
-        name = name or kwargs["name"]
-        return pages.get_template("devices/confirmdelete.html").render(name=name)
-
-    @cherrypy.expose
-    def settarget(self, name, tag, value="", **kwargs):
+    @app.route("/devices/settarget/<name>/<tag>", methods=["POST"])
+    def settarget(self, name, tag):
         pages.require("enumerate_endpoints")
-        pages.postOnly()
         x = devices.remote_devices[name]
 
         perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
@@ -269,13 +250,14 @@ class WebDevices:
             pages.require(i)
 
         if tag in x.tagpoints:
-            x.tagpoints[tag].value = value
+            x.tagpoints[tag].value = request.args["value"]
 
-    @cherrypy.expose
-    def dimtarget(self, name, tag, value="", **kwargs):
+        return ""
+
+    @app.route("/devices/dimtarget/<name>/<tag>", methods=["POST"])
+    def dimtarget(self, name, tag):
         "Set a color tagpoint to a dimmed version of it."
         pages.require("enumerate_endpoints")
-        pages.postOnly()
         x = devices.remote_devices[name]
 
         perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
@@ -285,14 +267,14 @@ class WebDevices:
 
         if tag in x.tagpoints:
             try:
-                x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(value)).html
+                x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(request.args["value"])).html
             except Exception:
-                x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(value)).html
+                x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(request.args["value"])).html
+        return ""
 
-    @cherrypy.expose
-    def triggertarget(self, name, tag, **kwargs):
+    @app.route("/devices/triggertarget/<name>/<tag>", methods=["POST"])
+    def triggertarget(self, name, tag):
         pages.require("enumerate_endpoints")
-        pages.postOnly()
         x = devices.remote_devices[name]
 
         perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
@@ -302,16 +284,16 @@ class WebDevices:
 
         if tag in x.tagpoints:
             x.tagpoints[tag].value = x.tagpoints[tag].value + 1
+        return ""
 
-    @cherrypy.expose
-    def deletetarget(self, **kwargs):
+    @app.route("/devices/deletetarget", methods=["POST"])
+    def deletetarget(self):
         pages.require("system_admin")
-        pages.postOnly()
-        name = kwargs["name"]
+        name = request.args["name"]
         with modules_state.modulesLock:
             x = devices.remote_devices[name]
             # Delete bookkeep removes it from device data if present
-            delete_bookkeep(name, "delete_conf_dir" in kwargs)
+            delete_bookkeep(name, "delete_conf_dir" in request.args)
 
             if x.parent_module:
                 modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
@@ -330,4 +312,4 @@ class WebDevices:
 
             messagebus.post_message("/devices/removed/", name)
 
-        raise cherrypy.HTTPRedirect("/devices")
+        return redirect("/devices")

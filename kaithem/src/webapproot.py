@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import atexit
 import json
 import logging
 import mimetypes
@@ -9,17 +8,17 @@ import os
 import sys
 import time
 import traceback
-from typing import Any, Dict
+from typing import Callable
 
 import cherrypy
 import cherrypy._cpreqbody
 import iot_devices
-import mako
-import mako.exceptions
 import tornado
-from cherrypy import _cperror
 from cherrypy.lib.static import serve_file
-from tornado.routing import AnyMatches, Matcher, PathMatches, Rule, RuleRouter
+from hypercorn.middleware import AsyncioWSGIMiddleware, DispatcherMiddleware
+from hypercorn.typing import ASGIFramework, Scope
+from quart import Response, make_response, request
+from tornado.routing import AnyMatches, PathMatches, Rule, RuleRouter
 
 from kaithem.api import web as webapi
 from kaithem.src.thirdparty import tornado_asgi_handler
@@ -38,6 +37,7 @@ from . import (
     modules_interface,
     notifications,
     pages,
+    quart_app,
     settings,
     settings_overrides,
     systasks,
@@ -46,7 +46,6 @@ from . import (
     util,
     weblogin,
     widgets,
-    wsgi_adapter,
 )
 from .chandler import web as cweb
 from .config import config
@@ -55,93 +54,13 @@ from .plugins import CorePluginUserPageResources
 logger = logging.getLogger("system")
 logger.setLevel(logging.INFO)
 
+import iot_devices.host
 
-cherrypy.engine.subscribe("stop", devices.closeAll)
-cherrypy.engine.subscribe("stop", iot_devices.host.app_exit_cleanup)
-
-
-class Errors:
-    @cherrypy.expose
-    def permissionerror(
-        self,
-    ):
-        cherrypy.response.status = 403
-        return pages.get_template("errors/permissionerror.html").render()
-
-    @cherrypy.expose
-    def alreadyexists(
-        self,
-    ):
-        cherrypy.response.status = 400
-        return pages.get_template("errors/alreadyexists.html").render()
-
-    @cherrypy.expose
-    def gosecure(
-        self,
-    ):
-        cherrypy.response.status = 426
-        return pages.get_template("errors/gosecure.html").render()
-
-    @cherrypy.expose
-    def loginerror(
-        self,
-    ):
-        cherrypy.response.status = 400
-        return pages.get_template("errors/loginerror.html").render()
-
-    @cherrypy.expose
-    def nofoldermoveerror(
-        self,
-    ):
-        cherrypy.response.status = 400
-        return pages.get_template("errors/nofoldermove.html").render()
-
-    @cherrypy.expose
-    def wrongmethod(
-        self,
-    ):
-        cherrypy.response.status = 405
-        return pages.get_template("errors/wrongmethod.html").render()
-
-    @cherrypy.expose
-    def error(
-        self,
-    ):
-        cherrypy.response.status = 500
-        return pages.get_template("errors/error.html").render(info="An Error Occurred")
-
-
-def error_page(status, message, traceback, version):
-    cherrypy.response.status = 500
-    try:
-        cherrypy.response.body = bytes(
-            pages.get_template("errors/cperror.html").render(
-                e=_cperror.format_exc(),
-                mk=str(
-                    mako.exceptions.html_error_template().render().decode(),
-                ),
-            ),
-            "utf8",
-        )
-    except Exception:
-        cherrypy.response.body = bytes(
-            pages.get_template("errors/cperror.html").render(e=_cperror.format_exc(), mk=""),
-            "utf8",
-        )
-
-
-@cherrypy.tools.register("before_error_response", priority=90)
-def handle_error():
-    cherrypy.response.status = 500
-    cherrypy.response.body = [pages.get_template("errors/cperror.html").render(e=traceback.format_exc(), mk="").encode()]
-
-
-def error_page_404(status, message, traceback, version):
-    return pages.get_template("errors/e404.html").render()
+messagebus.subscribe("/system/shutdown", devices.closeAll)
+messagebus.subscribe("/system/shutdown", iot_devices.host.app_exit_cleanup)
 
 
 # This class represents the "/" root of the web app
-@cherrypy.config(**{"request.error_response": handle_error})
 class webapproot:
     login = weblogin.LoginScreen()
     auth = ManageUsers.ManageAuthorization()
@@ -156,7 +75,7 @@ class webapproot:
     chandler = cweb.Web()
     cli = cliserver.WebAPI()
 
-    @cherrypy.expose
+    @quart_app.app.route("/favicon.ico")
     def favicon_ico(self):
         cherrypy.response.headers["Cache-Control"] = "max-age=3600"
         fn = os.path.join(directories.datadir, "static", settings_overrides.get_val("core/favicon_ico"))
@@ -164,13 +83,14 @@ class webapproot:
             fn = os.path.join(directories.vardir, settings_overrides.get_val("core/favicon_ico"))
         return serve_file(fn)
 
-    @cherrypy.expose
+    @quart_app.app.route("/apiwidget/<widgetid>/<js_name>")
     def apiwidget(self, widgetid, js_name):
         pages.require("enumerate_endpoints")
         return widgets.widgets[widgetid]._render(js_name)
 
-    @cherrypy.expose
-    def default(self, *path, **data):
+    @quart_app.app.route("/<path:path>", methods=["GET", "POST"])
+    def default(self, *path):
+        data = request.args
         if path[0] in webapi._simple_handlers:
             if webapi._simple_handlers[path[0]][0]:
                 pages.require(webapi._simple_handlers[path[0]][0])
@@ -178,9 +98,8 @@ class webapproot:
             return webapi._simple_handlers[path[0]][1](*path, **data)
         raise cherrypy.HTTPError(404, "No builtin or plugin handler")
 
-    @cherrypy.expose
-    @cherrypy.config(**{"response.timeout": 7200})
-    def user_static(self, *args, **kwargs):
+    @quart_app.app.route("/user_static/<args:path>")
+    def user_static(self, *args):
         "Very simple file server feature!"
         pages.require("enumerate_endpoints")
         if not args:
@@ -211,59 +130,61 @@ class webapproot:
         except Exception:
             return traceback.format_exc()
 
-    # Keep the dispatcher from freaking out. The actual handling
-    # Is done by a cherrypy tool. These just keeo cp_dispatch from being called
-    # I have NO clue why the favicon doesn't have this issue.
-    @cherrypy.expose
-    def static(self, *path, **data):
-        pass
-
-    @cherrypy.expose
-    def usr(self, *path, **data):
-        pass
-
-    @cherrypy.expose
-    def index(self, *path, **data):
+    @quart_app.app.route("/")
+    async def index(self, *path, **data):
         r = settings.redirects.get("/", {}).get("url", "")
-        if r and not path and not cherrypy.url().endswith("/index") or cherrypy.url().endswith("/index/"):
+        if r:
             raise cherrypy.HTTPRedirect(r)
 
         pages.require("view_status")
         cherrypy.response.cookie["LastSawMainPage"] = time.time()
-        return pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
+        r = pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
+        r2 = await make_response(r)
+        r2.set_cookie("LastSawMainPage", str(time.time()))
+        return r2
 
-    @cherrypy.expose
-    def dropdownpanel(self, *path, **data):
+    @quart_app.app.route("/index")
+    async def index2(self):
+        pages.require("view_status")
+        r = pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
+        r2 = await make_response(r)
+        r2.set_cookie("LastSawMainPage", str(time.time()))
+        return r2
+
+    @quart_app.app.route("/dropdownpanel")
+    def dropdownpanel(self):
         pages.require("view_status")
         return pages.get_template("dropdownpanel.html").render(api=notifications.api, alertsapi=alerts.api)
 
-    # @cherrypy.expose
-    # def alerts(self, *path, **data):
-    #     pages.require("view_status")
-    #     return pages.get_template('alerts.html').render(api=notifications.api, alertsapi=alerts.api)
+    @quart_app.app.route("/tagpoints")
+    def tagpoints(self, *path, show_advanced=""):
+        # This page could be slow because of the db stuff, so we restrict it more
+        pages.require("system_admin")
+        data = request.args
 
-    @cherrypy.expose
-    def tagpoints(self, *path, show_advanced="", **data):
+        return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
+
+    @quart_app.app.route("/tagpoints/<path:tn>", methods=["GET", "POST"])
+    def specific_tagpoint(self, *path):
         # This page could be slow because of the db stuff, so we restrict it more
         pages.require("system_admin")
 
-        if path:
-            tn = "/".join(path)
-            if (not tn.startswith("=")) and not tn.startswith("/"):
-                tn = "/" + tn
-            if tagpoints.normalize_tag_name(tn) not in tagpoints.allTags:
-                raise ValueError("This tag does not exist")
-            return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=data, show_advanced=True, module="", resource="")
-        else:
-            return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
+        tn = "/".join(path)
+        if (not tn.startswith("=")) and not tn.startswith("/"):
+            tn = "/" + tn
+        if tagpoints.normalize_tag_name(tn) not in tagpoints.allTags:
+            raise ValueError("This tag does not exist")
+        return pages.get_template("settings/tagpoint.html").render(
+            tagName=tn, data=request.args, show_advanced=True, module="", resource=""
+        )
 
-    @cherrypy.expose
-    def action_step(self, id, **k):
+    @quart_app.app.route("/action_step/<id>")
+    def action_step(self, id):
         pages.require("system_admin")
-        return module_actions.actions[id].step(**k)
+        return module_actions.actions[id].step(**request.args) or ""
 
-    @cherrypy.expose
-    def tag_api(self, cmd, *path, show_advanced="", **data):
+    @quart_app.app.route("/tag_api/<cmd>/<path:path>")
+    def tag_api(self, cmd, *path):
         # This page could be slow because of the db stuff, so we restrict it more
         pages.require("enumerate_endpoints")
 
@@ -279,39 +200,42 @@ class webapproot:
         else:
             raise RuntimeError("No tag specified")
 
+        raise RuntimeError("No command specified or bad request")
+
     # docs, helpmenu, and license are just static pages.
-    @cherrypy.expose
-    def docs(self, *path, **data):
+    @quart_app.app.route("/docs/<path:path>")
+    def docs(self, *path):
         if path:
             if path[0] == "thirdparty":
                 p = os.path.normpath(os.path.join(directories.srcdir, "docs", "/".join(path)))
                 if not p.startswith(os.path.join(directories.srcdir, "docs")):
                     raise RuntimeError("Invalid URL")
-                cherrypy.response.headers["Content-Type"] = mimetypes.guess_type(p)[0]
 
                 with open(p, "rb") as f:
-                    return f.read()
-            return pages.get_template("help/" + path[0] + ".html").render(path=path, data=data)
+                    d = f.read()
+
+                return Response(d, mimetype=mimetypes.guess_type(p)[0])
+
+            return pages.get_template("help/" + path[0] + ".html").render(path=path, data=request.args)
         return pages.get_template("help/help.html").render()
 
-    @cherrypy.expose
-    def themetest(self, *path, **data):
+    @quart_app.app.route("/themetest")
+    def themetest(self):
         return pages.get_template("help/themetest.html").render()
 
-    @cherrypy.expose
-    def about(self, *path, **data):
+    @quart_app.app.route("/about")
+    def about(self):
         return pages.get_template("help/about.html").render()
 
-    @cherrypy.expose
-    def changelog(self, *path, **data):
+    @quart_app.app.route("/changelog")
+    def changelog(self):
         return pages.get_template("help/changes.html").render()
 
-    @cherrypy.expose
-    def helpmenu(self, *path, **data):
+    @quart_app.app.route("/helpmenu")
+    def helpmenu(self):
         return pages.get_template("help/index.html").render()
 
-    @cherrypy.expose
-    def license(self, *path, **data):
+    def license(self):
         return pages.get_template("help/license.html").render()
 
 
@@ -390,55 +314,26 @@ def startServer():
             messagebus.post_message("/system/notifications/important/", "System saving before shutting down")
             util.SaveAllState()
 
-    # let the user choose to have the server save everything before a shutdown
-    if config["save_before_shutdown"]:
-        atexit.register(save)
-        cherrypy.engine.subscribe("exit", save)
-
-    site_config = {
-        "tools.encode.on": True,
-        "tools.encode.encoding": "utf-8",
-        "tools.decode.on": True,
-        "tools.decode.encoding": "utf-8",
-        "log.screen": config["cherrypy_log_stdout"],
-        "engine.autoreload.on": False,
-    }
-
-    cnf = conf
-
-    def addheader(*args, **kwargs):
-        "This function's only purpose is to tell the browser to cache requests for an hour"
-        cherrypy.response.headers["Cache-Control"] = "max-age=28800"
-        cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
-
-        # del cherrypy.response.headers['Expires']
-
     def pageloadnotify(*args, **kwargs):
         systasks.aPageJustLoaded()
-
-    cherrypy.config.update(site_config)
-    cherrypy.config.update({"error_page.default": error_page})
-    cherrypy.config.update({"error_page.404": error_page_404})
-
-    cherrypy.tools.pageloadnotify = cherrypy.Tool("on_start_resource", pageloadnotify)
-    cherrypy.config["tools.pageloadnotify.on"] = True
-
-    cherrypy.tools.addheader = cherrypy.Tool("before_finalize", addheader)
-
-    if hasattr(cherrypy.engine, "signal_handler"):
-        del cherrypy.engine.signal_handler.handlers["SIGUSR1"]
-        cherrypy.engine.signal_handler.subscribe()
-
-    wsgiapp = cherrypy.tree.mount(root, config=cnf)
 
     messagebus.post_message("/system/startup", "System Initialized")
     messagebus.post_message("/system/notifications/important", "System Initialized")
 
-    cherrypy.server.unsubscribe()
-    cherrypy.config.update({"environment": "embedded"})
-    cherrypy.engine.signals.subscribe()
+    hypercornapps = {}
 
-    cherrypy.engine.start()
+    class AuthMiddleware:
+        def __init__(self, app: ASGIFramework, permissions: str) -> None:
+            self.app = app
+            self.permissions = permissions
+
+        async def __call__(self, scope: Scope, receive: Callable, send: Callable) -> None:
+            if scope["type"] == "lifespan":
+                await self.app(scope, receive, send)
+            else:
+                u = pages.getAcessingUser(asgi_mode=scope)
+                if not pages.canUserDoThis(self.permissions, u):
+                    raise RuntimeError("Todo this is a permissino err")
 
     wsapp = tornado.web.Application(
         [
@@ -447,93 +342,27 @@ def startServer():
         ]
     )
 
-    class KAuthMatcher(Matcher):
-        def __init__(self, path, permission) -> None:
-            super().__init__()
-            self.pm = PathMatches(path)
-            self.perm = permission
-
-        def match(self, request) -> Dict[str, Any] | None:
-            if self.pm.match(request) is not None:
-                if pages.canUserDoThis(self.perm, pages.getAcessingUser(request)):
-                    return {}
-
-            return None
-
-    rules = [
-        Rule(PathMatches("/widgets/ws.*"), wsapp),
-    ]
-
     x = []
     for i in webapi._wsgi_apps:
-        x += [
-            (
-                KAuthMatcher(i[0], i[2]),
-                wsgi_adapter.WSGIHandler,
-                {"wsgi_application": i[1]},
-            ),
-            (
-                PathMatches(i[0]),
-                tornado.web.RedirectHandler,
-                {"url": "/login", "permanent": False},
-            ),
-        ]
+        hypercornapps[x[1]] = AuthMiddleware(AsyncioWSGIMiddleware(i[0]), i[2])
 
     for i in webapi._asgi_apps:
-        x += [
-            (
-                KAuthMatcher(i[0], i[2]),
-                tornado_asgi_handler.AsgiHandler,
-                {"asgi_app": i[1]},
-            ),
-            (
-                PathMatches(i[0]),
-                tornado.web.RedirectHandler,
-                {"url": "/login", "permanent": False},
-            ),
-        ]
+        hypercornapps[x[1]] = AuthMiddleware(i[0], i[2])
 
     xt = []
     for i in webapi._tornado_apps:
-        xt += [
-            (KAuthMatcher(i[0], i[3]), i[1], i[2]),
-            (
-                PathMatches("i[0]"),
-                tornado.web.RedirectHandler,
-                {"url": "/login", "permanent": False},
-            ),
-        ]
+        logging.error("Tornado apps no longer supported")
 
-    rules.append(
-        Rule(
-            AnyMatches(),
-            tornado.web.Application(
-                x
-                + xt
-                + [
-                    (
-                        AnyMatches(),
-                        wsgi_adapter.WSGIHandler,
-                        {"wsgi_application": wsgiapp},
-                    ),
-                ]
-            ),
-        )
-    )
+    dispatcher_app = DispatcherMiddleware(hypercornapps)
+    rules = [Rule(PathMatches("/widgets/ws.*"), wsapp), Rule(AnyMatches(), tornado_asgi_handler.AsgiHandler, {"asgi_app": dispatcher_app})]
 
     router = RuleRouter(rules)
 
     http_server = tornado.httpserver.HTTPServer(router)
-    # Legacy config comptibility
-    http_server.listen(config["http_port"], bindto if not bindto == "::" else None)
 
     if config["https_port"]:
         if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
-            cherrypy.server.unsubscribe()
-            messagebus.post_message(
-                "/system/notifications",
-                "You do not have an SSL certificate set up. HTTPS is not enabled.",
-            )
+            raise RuntimeError("No SSL certificate found")
         else:
             https_server = tornado.httpserver.HTTPServer(
                 router,
@@ -544,9 +373,7 @@ def startServer():
             )
             https_server.listen(config["https_port"], bindto)
 
-    # Publish to the CherryPy engine as if
-    # we were using its mainloop
-    tornado.ioloop.PeriodicCallback(lambda: cherrypy.engine.publish("main"), 100).start()
-    tornado.ioloop.IOLoop.instance().start()
+    # Legacy config comptibility
+    http_server.listen(config["http_port"], bindto if not bindto == "::" else None)
 
-    logger.info("Cherrypy engine stopped")
+    logger.info("Engine stopped")

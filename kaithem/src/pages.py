@@ -8,6 +8,7 @@ import mimetypes
 import os
 import time
 import weakref
+from http.cookies import SimpleCookie
 
 import cherrypy
 import jinja2
@@ -234,7 +235,7 @@ def strictNoCrossSite():
         raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
 
 
-def getAcessingUser(tornado_mode=None):
+def getAcessingUser(tornado_mode=None, asgi_mode=None):
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
     The result of this function can be trusted because it uses the authentication token.
     """
@@ -247,6 +248,14 @@ def getAcessingUser(tornado_mode=None):
         remote_ip = tornado_mode.remote_ip
         cookie = tornado_mode.cookies
         base = tornado_mode.host
+
+    if asgi_mode:
+        headers = asgi_mode["headers"]
+        scheme = asgi_mode["scheme"]
+        remote_ip = asgi_mode["client"][0]
+        c = SimpleCookie()
+        c.load(asgi_mode["headers"][b"cookie"])
+        cookie = c
 
     else:
         if (not cherrypy.request.request_line) and (not cherrypy.request.app) and (not cherrypy.request.config):
