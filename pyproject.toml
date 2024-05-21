@@ -104,6 +104,7 @@ niquests = "^3.6.3"
 structlog = "^24.1.0"
 rich = "^13.7.1"
 colorama = "^0.4.6"
+starlette = "^0.37.2"
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"

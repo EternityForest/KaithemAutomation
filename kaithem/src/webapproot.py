@@ -41,6 +41,7 @@ from . import (
     pages,
     settings,
     settings_overrides,
+    staticfiles,
     systasks,
     tagpoints,
     # TODO we gotta stop depending on import side effects
@@ -212,13 +213,6 @@ class webapproot:
         except Exception:
             return traceback.format_exc()
 
-    # Keep the dispatcher from freaking out. The actual handling
-    # Is done by a cherrypy tool. These just keeo cp_dispatch from being called
-    # I have NO clue why the favicon doesn't have this issue.
-    @cherrypy.expose
-    def static(self, *path, **data):
-        pass
-
     @cherrypy.expose
     def usr(self, *path, **data):
         pass
@@ -318,8 +312,6 @@ class webapproot:
 
 root = webapproot()
 
-sdn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src")
-ddn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
 
 conf = {
     "/": {
@@ -327,40 +319,6 @@ conf = {
         "tools.gzip.mime_types": ["text/*", "application/*"],
         "tools.gzip.compress_level": 1,
         "tools.handle_error.on": True,
-    },
-    "/static": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(ddn, "static"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-        "tools.expires.on": True,
-        "tools.expires.secs": 3600 + 48,  # expire in 48 hours
-        "tools.caching.on": True,
-        "tools.caching.delay": 3600,
-    },
-    "/static/js": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "js"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-    },
-    "/static/vue": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "vue"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-    },
-    "/static/css": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "css"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-    },
-    "/static/docs": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "docs"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
     },
     "/pages": {
         "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
@@ -371,6 +329,7 @@ conf = {
 def startServer():
     # We don't want Cherrypy writing temp files for no reason
     cherrypy._cpreqbody.Part.maxrambytes = 64 * 1024
+    staticfiles.add_apps()
 
     logger.info("Loaded core python code")
 
