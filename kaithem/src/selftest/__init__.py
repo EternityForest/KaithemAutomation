@@ -4,7 +4,6 @@
 # This file runs a self test when python starts. Obviously we do
 # Not want to clutter up the rraw
 
-import logging
 import os
 import sys
 import threading
@@ -13,6 +12,8 @@ import traceback
 
 import structlog
 from scullery import messagebus
+
+logger = structlog.get_logger("system.selftest")
 
 
 def memtest():
@@ -105,7 +106,7 @@ def runtest():
             testpersist,
         )
 
-        logging.info("Beginning self test")
+        logger.info("Beginning self test")
         eventsystem.eventSystemTest()
         statemachinestest.stateMachinesTest()
         messagebustest.test()
@@ -116,7 +117,7 @@ def runtest():
         t = threading.Thread(target=memtest, daemon=True)
         t.daemon = True
         t.start()
-        logging.info("Self test was sucessful")
+        logger.info("Self test was sucessful")
     except Exception:
         messagebus.post_message(
             "/system/notifications/errors",

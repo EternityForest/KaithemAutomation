@@ -5,13 +5,15 @@ import base64
 import getpass
 import hmac
 import importlib
-import logging
 import os
 import weakref
 
 import cherrypy
+import structlog
 
 from . import config
+
+logger = structlog.get_logger("system.cli")
 
 
 class Command:
@@ -19,7 +21,7 @@ class Command:
         raise NotImplementedError("Someone forgot to override Run")
 
     def __del__(self):
-        logging.warning("CLI command deleted.  Did someone forget a weak ref?")
+        logger.warning("CLI command deleted.  Did someone forget a weak ref?")
 
 
 commands: weakref.WeakValueDictionary[str, Command] = weakref.WeakValueDictionary()

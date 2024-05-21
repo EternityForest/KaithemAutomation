@@ -438,14 +438,16 @@ def userLogin(username, password) -> str:
                         with lock:
                             if not Users[username].token:
                                 assignNewToken(username)
-                            assert Users[username].token
-                            return Users[username].token
+                            x = Users[username].token
+                            assert x
+                            return x
 
             return "failure"
 
     except ImportError:
-        print("PAM IMPORT FAIL")
-        raise
+        logger.error("Could not import PAM")
+        return "failure"
+
     except KeyError:
         pass
 
@@ -461,8 +463,9 @@ def userLogin(username, password) -> str:
                     # Logins as same user
                     if not Users[username].token:
                         assignNewToken(username)
-                    assert Users[username].token
-                    return Users[username].token
+                    x = Users[username].token
+                    assert x
+                    return x
             else:
                 ph = PasswordHasher()
                 if ph.verify(Users[username]["password"], password):
@@ -470,8 +473,9 @@ def userLogin(username, password) -> str:
                     # Logins as same user
                     if not Users[username].token:
                         assignNewToken(username)
-                    assert Users[username].token
-                    return Users[username].token
+                    x = Users[username].token
+                    assert x
+                    return x
         return "failure"
 
 

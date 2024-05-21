@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import gc
-import logging
 import os
 import shutil
 import textwrap
@@ -115,7 +114,7 @@ def delete_bookkeep(name, confdir=False):
 
                         shutil.rmtree(old_dev_conf_folder)
                 except Exception:
-                    logging.exception("Err deleting conf dir")
+                    syslogger.exception("Err deleting conf dir")
 
             # no zombie reference
             del x
@@ -166,7 +165,7 @@ def closeAll(*a):
                 try:
                     x.close()
                 except Exception:
-                    logging.exception("Error in shutdown cleanup")
+                    syslogger.exception("Error in shutdown cleanup")
 
 
 finished_reading_resources = False
@@ -1279,7 +1278,7 @@ def makeDevice(name, data, cls=None):
             dt = wrapCrossFramework(dt, "Placeholder device")
             log.exception("Err creating device")
             err = traceback.format_exc()
-            logging.exception("Error making device")
+            syslogger.exception("Error making device")
 
     new_data = copy.deepcopy(data)
     new_data.pop("framework_data", None)
@@ -1382,7 +1381,7 @@ def init_devices():
         try:
             deferred_loaders.pop()()
         except Exception:
-            logging.exception("Err with device")
+            syslogger.exception("Err with device")
             messagebus.post_message("/system/notifications/errors", "Err with device")
 
 

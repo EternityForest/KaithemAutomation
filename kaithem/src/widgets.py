@@ -147,7 +147,7 @@ def subsc_closure(self: websocket_impl, widgetid: str, widget: Widget):
                 )
                 logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
             else:
-                logging.exception("Error sending data from websocket")
+                logger.exception("Error sending data from websocket")
 
     return f
 
@@ -175,7 +175,7 @@ def raw_subsc_closure(self: rawwebsocket_impl, widgetid: str, widget: Widget):
                 )
                 logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
             else:
-                logging.exception("Error sending data from websocket")
+                logger.exception("Error sending data from websocket")
 
     return f
 
@@ -209,7 +209,7 @@ def send_toAll(d):
                     x[j] = True
             break
         except Exception:
-            logging.exception("Error in global broadcast")
+            logger.exception("Error in global broadcast")
 
 
 def sendGlobalAlert(msg: str, duration=60.0):
@@ -324,7 +324,7 @@ class websocket_impl:
                             elif i[1]["level"] > 0.4 and i[1]["charging"]:
                                 userBatteryAlerts[self.user].release()
                         except Exception:
-                            logging.exception("Error in battery status telemetry")
+                            logger.exception("Error in battery status telemetry")
 
                 elif i[0] == "__USERIDLE__":
                     self.userState = i[1]["userState"]
@@ -422,7 +422,7 @@ class websocket_impl:
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
         except Exception as e:
-            logging.exception("Error in widget, responding to " + str(d))
+            logger.exception("Error in widget, responding to " + str(d))
             messagebus.post_message("system/errors/widgets/websocket", traceback.format_exc(6))
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 

@@ -34,8 +34,8 @@ def messagelistener(topic, message):
         if len(log[topic]) > config["non_logged_topic_limit"]:
             log[topic].popleft()
             approxtotallogentries -= 1
-    except Exception as e:
-        print(e)
+    except Exception:
+        logger.exception("Error in messagebus logger")
 
 
 messagebus.subscribe("/#", messagelistener)

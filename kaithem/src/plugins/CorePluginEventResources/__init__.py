@@ -12,7 +12,6 @@ import base64
 import copy
 import datetime
 import gc
-import logging
 import os
 import random
 import re
@@ -287,7 +286,7 @@ def STOP():
                     x.unregister()
                     x.cleanup()
                 except Exception:
-                    logging.exception("Error in shutdown cleanup")
+                    syslogger.exception("Error in shutdown cleanup")
 
 
 cherrypy.engine.subscribe("stop", STOP, priority=30)
@@ -347,8 +346,8 @@ class EventSchedulerObject(scheduling.RepeatingEvent):
             try:
                 self.f()
                 self._schedule()
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger.exception("Error in event scheduler")
                 raise
             finally:
                 self.lock.release()
@@ -634,8 +633,8 @@ class BaseEvent:
 
         try:
             messagebus.post_message(f"/system/errors/events/{self.module}/{self.resource}", str(tb))
-        except Exception as e:
-            print(e)
+        except Exception:
+            logger.exception("Error pushing error to messagebus")
 
         # Catch legacy number based priorities that are realtime
         if self.symbolicpriority == 1:
@@ -692,7 +691,7 @@ class BaseEvent:
             self.schedulerobj.resource = self.resource
         except Exception:
             # I have no idea what this was for
-            logging.exception("????????????????")
+            syslogger.exception("????????????????")
         # Basically we want to spread them out in the
         # phase space from 0 to 1 in a deterministic ish way.
         # There might be a better algorithm of better constant to use,
@@ -749,7 +748,7 @@ class BaseEvent:
                     logger.exception(f"Error in event {self.resource} of {self.module}")
                     self.handle_exception(e)
                 except Exception:
-                    logging.exception("Error handling exception in event")
+                    syslogger.exception("Error handling exception in event")
         finally:
             self.lock.release()
 
@@ -797,7 +796,7 @@ class CompileCodeStringsMixin(BaseEvent):
                 # That only weak references the object
                 self.pymodule.__dict__["print"] = makePrintFunction(self)
             except Exception:
-                logging.exception("Failed to activate event print output functionality")
+                syslogger.exception("Failed to activate event print output functionality")
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
@@ -813,7 +812,7 @@ class CompileCodeStringsMixin(BaseEvent):
                     kaithemobj.kaithem.context.event = (self.module, self.resource)
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
-                    logging.exception(f"Error in event code for {self.module}:{self.resource}")
+                    syslogger.exception(f"Error in event code for {self.module}:{self.resource}")
                     err.append(e)
                 finally:
                     kaithemobj.kaithem.context.event = None
@@ -1285,8 +1284,8 @@ class RecurringEvent(CompileCodeStringsMixin):
         finally:
             try:
                 self.lock.release()
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger.exception("Failed to release lock")
             self.nextruntime = self.selector.after(self.nextruntime, False)
 
             if self.nextruntime is None:
@@ -1346,7 +1345,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             pass
 
     def register(self):
-        logging.debug("registered")
+        syslogger.debug("registered")
         with self.register_lock:
             if self.nextruntime:
                 return
@@ -1561,21 +1560,21 @@ def getEventsFromModules(only: str | None = None):
             for baz in range(attempts):
                 if not toLoad:
                     break
-                logging.debug(f"Event initialization resolution round {str(baz)}")
+                syslogger.debug(f"Event initialization resolution round {str(baz)}")
                 for i in toLoad:
                     try:
-                        logging.debug(f"Loading {i.module}:{i.resource}")
+                        syslogger.debug(f"Loading {i.module}:{i.resource}")
                         slt = time.time()
                         i.f()
 
                         messagebus.post_message("/system/events/loaded", [i.module, i.resource])
-                        logging.debug("Loaded " + i.module + ":" + i.resource + " in " + str(round(time.time() - slt, 2)) + "s")
+                        syslogger.debug("Loaded " + i.module + ":" + i.resource + " in " + str(round(time.time() - slt, 2)) + "s")
                         time.sleep(0.005)
 
                     except (SyntaxError, UnrecoverableEventInitError):
                         i.loadingTraceback = traceback.format_exc(chain=True)
                         i.error = traceback.format_exc(chain=True)
-                        logging.exception(f"Could not load {i.module}:{i.resource}")
+                        syslogger.exception(f"Could not load {i.module}:{i.resource}")
 
                     # If there is an error, add it t the list of things to be retried.
                     except Exception:
@@ -1584,7 +1583,7 @@ def getEventsFromModules(only: str | None = None):
                             i.loadingTraceback = traceback.format_exc()
 
                         nextRound.append(i)
-                        logging.debug(
+                        syslogger.debug(
                             "Could not load "
                             + i.module
                             + ":"
@@ -1621,8 +1620,8 @@ def getEventsFromModules(only: str | None = None):
     try:
         devices.warnAboutUnsupportedDevices()
     except Exception:
-        logging.info("Error checking validity of device instances")
-    logging.exception("Created events from modules")
+        syslogger.info("Error checking validity of device instances")
+    syslogger.exception("Created events from modules")
 
 
 def make_event_from_resource(module: str, resource: str, subst: modules_state.ResourceDictType | None = None):

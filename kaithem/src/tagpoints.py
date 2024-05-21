@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 import functools
 import json
-import logging
 import math
 import random
 import re
@@ -32,6 +31,8 @@ from scullery import scheduling
 
 from . import alerts, messagebus, pages, widgets, workers
 from .unitsofmeasure import convert, unit_types
+
+logger = structlog.get_logger("system.cli")
 
 
 def to_sk(s: str):
@@ -1109,7 +1110,7 @@ class GenericTagPointClass(Generic[T]):
 
         def errcheck(*a: Any):
             if time.monotonic() < timestamp - 0.5:
-                logging.warning("Function: " + desc + " was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
+                logger.warning("Function: " + desc + " was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
 
         if self.lock.acquire(timeout=20):
             try:
@@ -1312,7 +1313,7 @@ class GenericTagPointClass(Generic[T]):
                         # We extend the idea that cache is allowed to also
                         # mean we can fall back to cache in case of a timeout.
                         else:
-                            logging.error("tag point:" + self.name + " took too long getting lock to get value, falling back to cache")
+                            logger.error("tag point:" + self.name + " took too long getting lock to get value, falling back to cache")
                             return self.last_value
                     try:
                         # None means no new data
@@ -1369,7 +1370,7 @@ class GenericTagPointClass(Generic[T]):
             try:
                 self.onSourceChanged(name)
             except Exception:
-                logging.exception("Error handling changed source")
+                logger.exception("Error handling changed source")
 
     def add_alias(self, alias: str):
         """Adds an alias of this tag, allowing access by another name."""

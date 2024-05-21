@@ -319,12 +319,10 @@ class Universe:
         # Maybe there might be an iteration error. But it's just a GUI convienence that
         # A simple refresh solves, so ignore it.
         try:
-            for i in core.boards:
-                x = i()
-                if x:
-                    x.push_setup()
-        except Exception as e:
-            print(e)
+            for i in core.iter_boards():
+                i.push_setup()
+        except Exception:
+            logger.exception("Exception in push_setup")
 
         if self.refresh_on_create:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)

@@ -18,8 +18,6 @@ import time
 import traceback
 import weakref
 
-import structlog
-
 from . import directories, messagebus, unitsofmeasure, util
 from .config import config
 
@@ -28,14 +26,6 @@ configuredHandlers = {}
 all_handlers = weakref.WeakValueDictionary()
 
 logging.basicConfig(level=logging.INFO)
-
-structlog.stdlib.recreate_defaults()
-
-import structlog
-
-cr = structlog.dev.ConsoleRenderer()
-
-structlog.configure(processors=structlog.get_config()["processors"][:-1] + [cr])
 
 
 def at_exit():

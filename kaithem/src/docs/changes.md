@@ -24,7 +24,7 @@ Change Log
 - :sparkles: Usable RTP Opus listener to stream over network.
 - :sparkles: kaithem.api.web.add_asgi_app
 - :sparkles: e2e tests with [Playwright](https://playwright.dev/docs/intro)
-
+- :sparkles: Colorful log output with structlog
 
 #### Dev Info
 

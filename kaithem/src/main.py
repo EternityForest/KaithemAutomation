@@ -17,6 +17,10 @@ from . import config
 __version_info__ = __version__.__version_info__
 __version__ = __version__.__version__
 
+structlog.stdlib.recreate_defaults()
+cr = structlog.dev.ConsoleRenderer()
+structlog.configure(processors=structlog.get_config()["processors"][:-1] + [cr])
+
 
 def import_in_thread(m):
     def f():

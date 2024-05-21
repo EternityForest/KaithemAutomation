@@ -5,7 +5,6 @@ import collections
 import datetime
 import gc
 import json
-import logging
 import os
 import random
 import threading
@@ -17,6 +16,7 @@ import weakref
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
+import structlog
 from beartype import beartype
 
 from .. import schemas, tagpoints, util
@@ -29,6 +29,8 @@ from .mathutils import dt_to_ts, ease, number_to_note
 from .scene_context_commands import add_context_commands, rootContext
 from .scene_lighting import SceneLightingManager
 from .signage import MediaLinkManager
+
+logger = structlog.get_logger("kaithem.chandler")
 
 if TYPE_CHECKING:
     from . import ChandlerConsole
@@ -1173,7 +1175,7 @@ class Scene:
                         else:
                             raise RuntimeError("Failed to get length")
                     except Exception:
-                        logging.exception("Error getting length for sound " + str(path))
+                        logger.exception("Error getting length for sound " + str(path))
                         # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
                         self.cuelen = 300.0
                         return
@@ -1195,7 +1197,7 @@ class Scene:
                         else:
                             raise RuntimeError("Failed to get length")
                     except Exception:
-                        logging.exception("Error getting length for sound " + str(path))
+                        logger.exception("Error getting length for sound " + str(path))
                         # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
                         self.cuelen = 300.0
                         return
@@ -1399,7 +1401,7 @@ class Scene:
                         i[2]["width"] = "4"
 
                     if i[2]["type"] == "auto":
-                        logging.error("Auto type tag display no longer supported")
+                        logger.error("Auto type tag display no longer supported")
                         continue
 
                     t = None
@@ -1431,7 +1433,7 @@ class Scene:
                     else:
                         raise ValueError("Bad tag type?")
             except Exception:
-                logging.exception("Failed setting up display tags")
+                logger.exception("Failed setting up display tags")
                 self.event("board.error", traceback.format_exc())
             self.display_tags = dt
 
