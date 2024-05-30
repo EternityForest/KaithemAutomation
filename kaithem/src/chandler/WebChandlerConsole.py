@@ -418,10 +418,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.scenes[sc.id] = sc
             self.pushMeta(sc.id)
 
-        elif cmd_name == "addmonitor":
-            sc = Scene(self, msg[1].strip(), blend="monitor", priority=100, active=True)
-            self.scenes[sc.id] = sc
-
         elif cmd_name == "setconfuniverses":
             if kaithem.users.check_permission(user, "system_admin"):
                 self.configured_universes = msg[1]

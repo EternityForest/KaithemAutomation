@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import gc
-import logging
 import os
 import shutil
 import textwrap
@@ -18,6 +17,7 @@ import cherrypy
 import cherrypy.lib.static
 import iot_devices.device
 import iot_devices.host
+import structlog
 
 # SPDX-FileCopyrightText: Copyright 2018 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
@@ -38,7 +38,7 @@ SUBDEVICE_SEPARATOR = "/"
 
 # Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
 # edit the state because self modifying devices exist and can be saved in a module
-log = logging.getLogger("system.devices")
+log = structlog.get_logger("system.devices")
 
 
 remote_devices: dict[str, Device] = {}
@@ -114,7 +114,7 @@ def delete_bookkeep(name, confdir=False):
 
                         shutil.rmtree(old_dev_conf_folder)
                 except Exception:
-                    logging.exception("Err deleting conf dir")
+                    syslogger.exception("Err deleting conf dir")
 
             # no zombie reference
             del x
@@ -151,7 +151,7 @@ def log_scanned_tag(v: str, *args):
         recent_scanned_tags.pop(next(iter(recent_scanned_tags)))
 
 
-syslogger = logging.getLogger("system.devices")
+syslogger = structlog.get_logger("system.devices")
 
 dbgd: weakref.WeakValueDictionary[str, Device] = weakref.WeakValueDictionary()
 
@@ -165,7 +165,7 @@ def closeAll(*a):
                 try:
                     x.close()
                 except Exception:
-                    logging.exception("Error in shutdown cleanup")
+                    syslogger.exception("Error in shutdown cleanup")
 
 
 finished_reading_resources = False
@@ -381,12 +381,11 @@ class Device(iot_devices.device.Device):
                     assert isinstance(devdata, dict)
                     devdata[key] = v
 
-                    modules_state.save_resource(
+                    modules_state.rawInsertResource(
                         self.parent_module,
                         self.parent_resource,
                         modules_state.ActiveModules[self.parent_module][self.parent_resource],
                     )
-                    modules_state.recalcModuleHashes()
 
     @staticmethod
     def makeUIMsgHandler(wr):
@@ -1279,7 +1278,7 @@ def makeDevice(name, data, cls=None):
             dt = wrapCrossFramework(dt, "Placeholder device")
             log.exception("Err creating device")
             err = traceback.format_exc()
-            logging.exception("Error making device")
+            syslogger.exception("Error making device")
 
     new_data = copy.deepcopy(data)
     new_data.pop("framework_data", None)
@@ -1329,14 +1328,7 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                     break
                 dir = "/".join(dir.split("/")[:-1])
 
-        modules_state.ActiveModules[module][resource] = {
-            "resource_type": "device",
-            "device": d,
-        }
-
-        modules_state.save_resource(module, resource, {"resource_type": "device", "device": d})
-
-        modules_state.recalcModuleHashes()
+        modules_state.rawInsertResource(module, resource, {"resource_type": "device", "device": d})
 
 
 def getDeviceType(t):
@@ -1389,7 +1381,7 @@ def init_devices():
         try:
             deferred_loaders.pop()()
         except Exception:
-            logging.exception("Err with device")
+            syslogger.exception("Err with device")
             messagebus.post_message("/system/notifications/errors", "Err with device")
 
 

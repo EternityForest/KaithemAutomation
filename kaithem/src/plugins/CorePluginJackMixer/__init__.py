@@ -14,6 +14,7 @@ import traceback
 import uuid
 
 import cherrypy
+import structlog
 from icemedia import iceflow
 from scullery import jacktools, scheduling, workers
 
@@ -38,7 +39,7 @@ global_api.require("system_admin")
 # Configured list of mixer channel strips
 channels: dict[str, dict] = {}
 
-log = logging.getLogger("system.mixer")
+log = structlog.get_logger("system.mixer")
 
 presetsDir = os.path.join(directories.mixerdir, "presets")
 

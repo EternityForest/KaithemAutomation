@@ -18,6 +18,7 @@ from typing import Any
 
 import beartype
 import cherrypy
+import structlog
 import yaml
 from scullery import snake_compat
 
@@ -38,7 +39,7 @@ from .modules_state import (
 )
 from .util import url
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 
 
 def new_empty_module():
@@ -79,7 +80,7 @@ def loadAllCustomResourceTypes() -> None:
                             )
                             logger.exception(f"Error loading resource: {str((i, j))}")
                 if not r == orig:
-                    logger.warning("Loader tried to modify resource object %s during load", str((i, j)))
+                    logger.warning(f"Loader tried to modify resource object {i}:{j} during load")
 
     for i in additionalTypes:
         additionalTypes[i].onfinishedloading(None)
@@ -663,8 +664,8 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
 def rmResource(module: str, resource: str, message: str = "Resource Deleted") -> None:
     "Delete one resource by name, message is an optional message explaining the change"
     with modulesLock:
-        r = modules_state.ActiveModules[module].pop(resource)
-        modules_state.recalcModuleHashes()
+        r = modules_state.ActiveModules[module][resource]
+
     try:
         rt = r["resource_type"]
         assert isinstance(rt, str)
@@ -695,10 +696,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted") ->
         else:
             additionalTypes[rt].ondelete(module, resource, r)
 
-        sl = modules_state.get_resource_save_location(module, resource)
-        for i in list(os.listdir(sl)):
-            if i.split(".", 1)[0] == resource:
-                os.remove(os.path.join(sl, i))
+        modules_state.rawDeleteResource(module, resource)
 
     except Exception:
         messagebus.post_message(

@@ -235,26 +235,34 @@ def strictNoCrossSite():
         raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
 
 
-def getAcessingUser(tornado_mode=None, asgi_mode=None):
+def getAcessingUser(tornado_mode=None, asgi=None):
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
     The result of this function can be trusted because it uses the authentication token.
     """
     # Handle HTTP Basic Auth
 
     # Directly pass tornado request. Normally not needed, just for websocket stuff
-    if tornado_mode:
+
+    if asgi:
+        headers = asgi["headers"]
+        scheme = asgi["scheme"]
+        remote_ip = asgi["client"][0]
+        cookie = asgi["cookies"]
+        base = asgi["headers"]["host"]
+
+    elif tornado_mode:
         headers = tornado_mode.headers
         scheme = tornado_mode.protocol
         remote_ip = tornado_mode.remote_ip
         cookie = tornado_mode.cookies
         base = tornado_mode.host
 
-    if asgi_mode:
-        headers = asgi_mode["headers"]
-        scheme = asgi_mode["scheme"]
-        remote_ip = asgi_mode["client"][0]
+    if asgi:
+        headers = asgi["headers"]
+        scheme = asgi["scheme"]
+        remote_ip = asgi["client"][0]
         c = SimpleCookie()
-        c.load(asgi_mode["headers"][b"cookie"])
+        c.load(asgi["headers"][b"cookie"])
         cookie = c
 
     else:

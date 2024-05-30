@@ -19,6 +19,7 @@ from urllib.parse import quote
 import cherrypy
 import dateutil.parser
 import pytz
+import structlog
 from scullery import scheduling
 
 from kaithem.api import tags as tagsapi
@@ -30,7 +31,7 @@ logdir = directories.logdir
 ramdbfile = "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
 
 
-syslogger = logging.getLogger("system")
+syslogger = structlog.get_logger("system")
 
 if not os.path.exists(logdir):
     try:

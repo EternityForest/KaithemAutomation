@@ -8,16 +8,17 @@ import threading
 import time
 
 import cherrypy
+import structlog
 from scullery import scheduling
 
 from . import directories, messagebus, pages, persist, widgets, workers
 from .config import config
 from .unitsofmeasure import strftime
 
-mlogger = logging.getLogger("system.msgbuslog")
+mlogger = structlog.get_logger("system.msgbuslog")
 
-logger = logging.getLogger("system.notifications")
-ilogger = logging.getLogger("system.notifications.important")
+logger = structlog.get_logger("system.notifications")
+ilogger = structlog.get_logger("system.notifications.important")
 
 notificationslog = []
 

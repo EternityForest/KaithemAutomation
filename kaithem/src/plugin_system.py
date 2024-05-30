@@ -10,9 +10,11 @@ import threading
 import time
 import traceback
 
+import structlog
+
 from . import directories, messagebus, pathsetup
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 logger.setLevel(logging.INFO)
 
 plugins = {}
@@ -99,7 +101,7 @@ def load_user_plugins():
                         assert spec
                         import_in_thread(spec)
                     except Exception:
-                        logging.exception("Error in user plugin")
+                        logger.exception("Error in user plugin")
 
         for i in range(240000):
             time.sleep(0.001)

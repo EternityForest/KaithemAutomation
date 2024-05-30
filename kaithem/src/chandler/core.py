@@ -10,6 +10,7 @@ import weakref
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+import structlog
 import textdistance
 from tinytag import TinyTag
 
@@ -58,7 +59,7 @@ def rl_log_exc(m: str):
 
 
 lock = threading.RLock()
-logger = logging.getLogger("system.chandler")
+logger = structlog.get_logger("system.chandler")
 
 saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
 

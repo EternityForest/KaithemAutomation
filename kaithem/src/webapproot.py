@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import asyncio
 import json
 import logging
 import mimetypes
@@ -13,15 +14,16 @@ from typing import Callable
 import cherrypy
 import cherrypy._cpreqbody
 import iot_devices
-import tornado
+import iot_devices.host
+import structlog
 from cherrypy.lib.static import serve_file
+from hypercorn.asyncio import serve
+from hypercorn.config import Config
 from hypercorn.middleware import AsyncioWSGIMiddleware, DispatcherMiddleware
 from hypercorn.typing import ASGIFramework, Scope
 from quart import Response, make_response, request
-from tornado.routing import AnyMatches, PathMatches, Rule, RuleRouter
 
 from kaithem.api import web as webapi
-from kaithem.src.thirdparty import tornado_asgi_handler
 
 from . import (
     ManageUsers,
@@ -40,6 +42,7 @@ from . import (
     quart_app,
     settings,
     settings_overrides,
+    staticfiles,
     systasks,
     tagpoints,
     # TODO we gotta stop depending on import side effects
@@ -51,10 +54,9 @@ from .chandler import web as cweb
 from .config import config
 from .plugins import CorePluginUserPageResources
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 logger.setLevel(logging.INFO)
 
-import iot_devices.host
 
 messagebus.subscribe("/system/shutdown", devices.closeAll)
 messagebus.subscribe("/system/shutdown", iot_devices.host.app_exit_cleanup)
@@ -66,7 +68,7 @@ class webapproot:
     auth = ManageUsers.ManageAuthorization()
     modules = modules_interface.WebInterface()
     settings = settings.Settings()
-    errors = Errors()
+    # errors = Errors()
     pages = CorePluginUserPageResources.KaithemPage()
     logs = messagelogging.WebInterface()
     notifications = notifications.WI()
@@ -129,6 +131,10 @@ class webapproot:
                 return x
         except Exception:
             return traceback.format_exc()
+
+    @cherrypy.expose
+    def usr(self, *path, **data):
+        pass
 
     @quart_app.app.route("/")
     async def index(self, *path, **data):
@@ -241,8 +247,6 @@ class webapproot:
 
 root = webapproot()
 
-sdn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src")
-ddn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
 
 conf = {
     "/": {
@@ -250,40 +254,6 @@ conf = {
         "tools.gzip.mime_types": ["text/*", "application/*"],
         "tools.gzip.compress_level": 1,
         "tools.handle_error.on": True,
-    },
-    "/static": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(ddn, "static"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-        "tools.expires.on": True,
-        "tools.expires.secs": 3600 + 48,  # expire in 48 hours
-        "tools.caching.on": True,
-        "tools.caching.delay": 3600,
-    },
-    "/static/js": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "js"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-    },
-    "/static/vue": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "vue"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-    },
-    "/static/css": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "css"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
-    },
-    "/static/docs": {
-        "tools.staticdir.on": True,
-        "tools.staticdir.dir": os.path.join(sdn, "docs"),
-        "tools.sessions.on": False,
-        "tools.addheader.on": True,
     },
     "/pages": {
         "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
@@ -294,7 +264,9 @@ conf = {
 def startServer():
     # We don't want Cherrypy writing temp files for no reason
     cherrypy._cpreqbody.Part.maxrambytes = 64 * 1024
+    staticfiles.add_apps()
 
+    hypercornapps = {}
     logger.info("Loaded core python code")
 
     if not config["host"] == "default":
@@ -320,8 +292,6 @@ def startServer():
     messagebus.post_message("/system/startup", "System Initialized")
     messagebus.post_message("/system/notifications/important", "System Initialized")
 
-    hypercornapps = {}
-
     class AuthMiddleware:
         def __init__(self, app: ASGIFramework, permissions: str) -> None:
             self.app = app
@@ -331,16 +301,12 @@ def startServer():
             if scope["type"] == "lifespan":
                 await self.app(scope, receive, send)
             else:
-                u = pages.getAcessingUser(asgi_mode=scope)
+                u = pages.getAcessingUser(asgi=scope)
                 if not pages.canUserDoThis(self.permissions, u):
                     raise RuntimeError("Todo this is a permissino err")
 
-    wsapp = tornado.web.Application(
-        [
-            (r"/widgets/ws", widgets.makeTornadoSocket()),
-            (r"/widgets/wsraw", widgets.makeRawTornadoSocket()),
-        ]
-    )
+    webapi.add_asgi_app("/widgets/ws", widgets.app, "__guest__")
+    webapi.add_asgi_app("/widgets/wsraw", widgets.rawapp, "__guest__")
 
     x = []
     for i in webapi._wsgi_apps:
@@ -349,31 +315,27 @@ def startServer():
     for i in webapi._asgi_apps:
         hypercornapps[x[1]] = AuthMiddleware(i[0], i[2])
 
-    xt = []
     for i in webapi._tornado_apps:
         logging.error("Tornado apps no longer supported")
 
     dispatcher_app = DispatcherMiddleware(hypercornapps)
-    rules = [Rule(PathMatches("/widgets/ws.*"), wsapp), Rule(AnyMatches(), tornado_asgi_handler.AsgiHandler, {"asgi_app": dispatcher_app})]
 
-    router = RuleRouter(rules)
+    config2 = Config()
+    config2.bind = [f"{bindto}:{config['http_port']}"]  # As an example configuration setting
 
-    http_server = tornado.httpserver.HTTPServer(router)
+    # if config["https_port"]:
+    #     if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
+    #         raise RuntimeError("No SSL certificate found")
+    #     else:
+    #         https_server = tornado.httpserver.HTTPServer(
+    #             router,
+    #             ssl_options={
+    #                 "certfile": os.path.join(directories.ssldir, "certificate.cert"),
+    #                 "keyfile": os.path.join(directories.ssldir, "certificate.key"),
+    #             },
+    #         )
+    #         https_server.listen(config["https_port"], bindto)
 
-    if config["https_port"]:
-        if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
-            raise RuntimeError("No SSL certificate found")
-        else:
-            https_server = tornado.httpserver.HTTPServer(
-                router,
-                ssl_options={
-                    "certfile": os.path.join(directories.ssldir, "certificate.cert"),
-                    "keyfile": os.path.join(directories.ssldir, "certificate.key"),
-                },
-            )
-            https_server.listen(config["https_port"], bindto)
-
-    # Legacy config comptibility
-    http_server.listen(config["http_port"], bindto if not bindto == "::" else None)
+    asyncio.run(serve(dispatcher_app, config2))
 
     logger.info("Engine stopped")

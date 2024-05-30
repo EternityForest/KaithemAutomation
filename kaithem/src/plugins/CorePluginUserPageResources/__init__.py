@@ -20,6 +20,7 @@ import cherrypy.lib.static
 import jinja2
 import mako
 import mako.template
+import structlog
 import yaml
 
 # import tornado.exceptions
@@ -30,6 +31,8 @@ from kaithem.api.web import render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
 from kaithem.src.util import url
+
+logger = structlog.get_logger("kaithem.userpages")
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
@@ -463,8 +466,8 @@ def getPagesFromModules():
                             )
                             try:
                                 messagebus.post_message(f"system/errors/pages/{i}/{m}", str(tb))
-                            except Exception as e:
-                                print(e)
+                            except Exception:
+                                logger.exception("Could not post message")
                             # Keep only the most recent 25 errors
 
                             # If this is the first error(high level: transition from ok to not ok)
@@ -661,7 +664,8 @@ class KaithemPage:
             try:
                 messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
             except Exception as e:
-                print(e)
+                logger.exception("Could not post message")
+
             # Keep only the most recent 25 errors
 
             # If this is the first error(high level: transition from ok to not ok)
@@ -809,7 +813,7 @@ class PageType(modules_state.ResourceType):
             # Since HTTP args don't have namespaces we prefix all the permission
             # checkboxes with permission
             if i[:10] == "Permission":
-                if kwargs[i] == "true":
+                if kwargs[i] in ("true", "on"):
                     resourceobj["require_permissions"].append(i[10:])
 
         return resourceobj

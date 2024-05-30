@@ -202,7 +202,6 @@ class WebDevices:
                 dt = {"resource_type": "device", "device": d}
 
                 modules_state.rawInsertResource(m, r, dt)
-                modules_state.recalcModuleHashes()
             else:
                 raise RuntimeError("Creating devices outside of modules is no longer supported.")
 
@@ -297,7 +296,6 @@ class WebDevices:
 
             if x.parent_module:
                 modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
-                modules_state.recalcModuleHashes()
 
             # no zombie reference
             del x

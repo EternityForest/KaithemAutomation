@@ -3,13 +3,15 @@
 
 
 import logging
-import textwrap
 import os
 import re
+import textwrap
+
 import cherrypy
-from . import pages, widgets, pylogginghandler, directories, util
+import structlog
 from cherrypy.lib.static import serve_file
 
+from . import directories, pages, pylogginghandler, util, widgets
 
 syslogwidget = widgets.ScrollingWindow(2500)
 syslogwidget.require("view_admin_info")
@@ -57,7 +59,7 @@ class WidgetHandler(logging.Handler):
 
 dbg = WidgetHandler()
 
-logging.getLogger().addHandler(dbg)
+structlog.get_logger().addHandler(dbg)
 
 
 def f(r):
@@ -121,13 +123,9 @@ class WebInterface:
         filename = os.path.join(directories.logdir, "dumps", filename)
         filename = os.path.normpath(filename)
         # Second security check, normalize the abs path and make sure it is what we think it is.
-        if not filename.startswith(
-            os.path.normpath(os.path.abspath(os.path.join(directories.logdir, "dumps")))
-        ):
+        if not filename.startswith(os.path.normpath(os.path.abspath(os.path.join(directories.logdir, "dumps")))):
             raise RuntimeError("Security Violation")
-        return serve_file(
-            filename, "application/x-download", os.path.split(filename)[1]
-        )
+        return serve_file(filename, "application/x-download", os.path.split(filename)[1])
 
     @cherrypy.expose
     def archive(self):

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 import random
 import threading
@@ -8,6 +7,7 @@ import time
 import weakref
 from typing import Any
 
+import structlog
 from beartype import beartype
 from scullery import persist, scheduling, statemachines
 
@@ -20,7 +20,7 @@ from . import (
     workers,
 )
 
-logger = logging.getLogger("system.alerts")
+logger = structlog.get_logger("system.alerts")
 lock = threading.RLock()
 
 

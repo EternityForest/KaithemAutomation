@@ -91,7 +91,7 @@ class LoggingHandler(logging.Handler):
         entries_per_file=25000,
         keep=10,
         compress="none",
-        doprint=True,
+        doprint=False,
         exclude_print="",
     ):
         """Implements a memory-buffered context logger with automatic log rotation.
@@ -420,8 +420,7 @@ if os.path.exists("/dev/shm"):
         bufferlen=0,
         keep=10**6,
         compress="none",
-        doprint=True,
-        exclude_print="system",
+        doprint=False,
     )
     shmhandler.isShmHandler = True
     logging.getLogger().addHandler(shmhandler)

@@ -1,17 +1,17 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import pwd
-import os
 import json
-from scullery.persist import load, save
-from scullery.persist import *  # noqa
-from scullery.messagebus import subscribe, post_message
-
-import weakref
-import threading
 import logging
+import os
+import pwd
+import threading
 import traceback
+import weakref
+
+from scullery.messagebus import post_message, subscribe
+from scullery.persist import *  # noqa
+from scullery.persist import load, save
 
 dirty = weakref.WeakValueDictionary()
 

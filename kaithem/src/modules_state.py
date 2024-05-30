@@ -6,7 +6,6 @@ import base64
 import copy
 import datetime
 import hashlib
-import logging
 import os
 import urllib
 import urllib.parse
@@ -15,6 +14,7 @@ from threading import RLock
 from typing import Any, Callable
 
 import beartype
+import structlog
 import yaml
 from stream_zip import ZIP_64, stream_zip
 
@@ -30,7 +30,7 @@ ResourceType = ResourceType
 safeFnChars = "~@*&()-_=+/ '"
 FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger("system")
 
 # This lets us have some modules saved outside the var dir.
 external_module_locations: dict[str, str] = {}
@@ -226,6 +226,7 @@ def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType
 
     ActiveModules[module][resource] = resourceData
     save_resource(module, resource, resourceData)
+    recalcModuleHashes()
 
 
 @beartype.beartype
@@ -246,6 +247,8 @@ def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     for i in os.listdir(dir):
         if i.startswith(r + "."):
             os.remove(os.path.join(dir, i))
+
+    recalcModuleHashes()
 
 
 def getModuleFn(modulename: str) -> str:

@@ -14,6 +14,7 @@ from typing import Any
 
 import colorzero
 import numpy
+import structlog
 
 from kaithem.src import alerts
 
@@ -21,7 +22,7 @@ from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 
-logger = logging.getLogger("system.chandler")
+logger = structlog.get_logger("system.chandler")
 
 # Locals for performance... Is this still a thing??
 float = float
@@ -318,12 +319,10 @@ class Universe:
         # Maybe there might be an iteration error. But it's just a GUI convienence that
         # A simple refresh solves, so ignore it.
         try:
-            for i in core.boards:
-                x = i()
-                if x:
-                    x.push_setup()
-        except Exception as e:
-            print(e)
+            for i in core.iter_boards():
+                i.push_setup()
+        except Exception:
+            logger.exception("Exception in push_setup")
 
         if self.refresh_on_create:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)

@@ -717,22 +717,6 @@ class ChandlerConsole(console_abc.Console_ABC):
                     self.pushMeta(i, statusOnly=True)
                     self.scenes[i].metadata_already_pushed_by[self.id] = False
 
-                # special case the monitor scenes.
-                if (
-                    self.scenes[i].blend == "monitor"
-                    and self.scenes[i].is_active()
-                    and self.id not in self.scenes[i].monitor_values_already_pushed_by
-                ):
-                    self.scenes[i].monitor_values_already_pushed_by[self.id] = True
-                    # Numpy scalars aren't serializable, so we have to un-numpy them in case
-                    self.linkSend(
-                        [
-                            "cuedata",
-                            self.scenes[i].cue.id,
-                            self.scenes[i].cue.values,
-                        ]
-                    )
-
             for i in self.active_scenes:
                 # Tell clients about any changed alpha values and stuff.
                 if self.id not in i.metadata_already_pushed_by:

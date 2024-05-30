@@ -13,6 +13,8 @@ import re
 import sys
 import threading
 
+import structlog
+
 mimetypes.add_type("text/html", ".vue", strict=False)
 # ??????????
 mimetypes.add_type("application/javascript", ".js", strict=True)
@@ -51,7 +53,7 @@ sys.setrecursionlimit(256)
 faulthandler.enable()
 
 
-threadlogger = logging.getLogger("system.threading")
+threadlogger = structlog.get_logger("system.threading")
 
 
 class rtMidiFixer:

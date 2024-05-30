@@ -1,14 +1,15 @@
 # SPDX-FileCopyrightText: Copyright 2022 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import json
 import logging
 import os
-from . import directories, messagebus, config
-from scullery import persist
 from urllib.request import urlopen
-import json
 
 import iot_devices.host
+from scullery import persist
+
+from . import config, directories, messagebus
 
 
 def ip_geolocate():
