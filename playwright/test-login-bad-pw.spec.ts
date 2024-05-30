@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test('test', async ({ page }) => {
   await page.goto('http://localhost:8002/index');
-  await page.getByRole('link', { name: '󰌆 Login' }).click();
   await page.getByLabel('Username:').click();
   await page.getByLabel('Username:').fill('admin');
   await page.getByLabel('Password:').click();
