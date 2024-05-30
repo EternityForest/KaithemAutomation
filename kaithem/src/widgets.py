@@ -11,7 +11,7 @@ import base64
 import collections
 import copy
 import json
-import logging, structlog
+import logging, structlog, asyncio
 import os
 import threading
 import time
@@ -19,11 +19,9 @@ import traceback
 import weakref
 from collections.abc import Callable
 from typing import Optional, Any
+from starlette.requests import Request
 
 import msgpack
-import tornado.websocket
-from tornado.httputil import HTTPServerRequest
-from tornado.web import Application
 from beartype import beartype
 
 from . import auth, messagebus, pages, workers
@@ -130,7 +128,7 @@ lastLoggedUserError = 0
 lastPrintedUserError = 0
 
 
-def subsc_closure(self: websocket_impl, widgetid: str, widget: Widget):
+def subsc_closure(self: WebSocketHandler, widgetid: str, widget: Widget):
     def f(msg: bytes | str, raw: Any = None):
         try:
             self.send(msg)
@@ -182,10 +180,10 @@ def raw_subsc_closure(self: rawwebsocket_impl, widgetid: str, widget: Widget):
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections: weakref.WeakValueDictionary[str, websocket_impl | rawwebsocket_impl] = weakref.WeakValueDictionary()
+ws_connections: weakref.WeakValueDictionary[str, WebSocketHandler | rawwebsocket_impl] = weakref.WeakValueDictionary()
 
 
-def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[websocket_impl | rawwebsocket_impl]], None] | None = None):
+def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[WebSocketHandler | rawwebsocket_impl]], None] | None = None):
     try:
         return weakref.ref(ws_connections[id], deleteCallback)
     except KeyError:
@@ -232,8 +230,8 @@ def send_to(topic: str, value: Any, target: str):
 userBatteryAlerts = {}
 
 
-class websocket_impl:
-    def __init__(self, parent: tornado.websocket.WebSocketHandler, user: str, *args: Any, **kwargs: Any):
+class WebSocketHandler:
+    def __init__(self, parent: WebSocket, user: str, loop: asyncio.AbstractEventLoop) -> None:
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
         self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
@@ -244,6 +242,8 @@ class websocket_impl:
         self.peer_address = ""
         self.batteryStatus = None
         self.cookie = dict[str, Any] | None
+
+        self.loop = loop
 
         ws_connections[self.connection_id] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
@@ -274,7 +274,10 @@ class websocket_impl:
 
     def send(self, b: bytes | str):
         with self.widget_wslock:
-            self.parent.send_data(b, binary=isinstance(b, bytes))
+            if isinstance(b, bytes):
+                self.loop.call_soon_threadsafe(self.parent.send_bytes, b)
+            elif isinstance(b, str):
+                self.loop.call_soon_threadsafe(self.parent.send_text, b)
 
     def closed(self, *a: Any) -> None:
         with subscriptionLock:
@@ -427,70 +430,11 @@ class websocket_impl:
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
-def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandler:
-    class WS(tornado.websocket.WebSocketHandler):
-        def __init__(self, application: Application, request: HTTPServerRequest, **kwargs: Any) -> None:
-            self.is_closed = False
-            super().__init__(application, request, **kwargs)
-
-        def open(self, *args, **kwargs):
-            x = self.request.remote_ip
-
-            try:
-                user_agent = self.request.headers["User-Agent"]
-            except Exception:
-                user_agent = ""
-
-            if self.request.protocol == "https" or pages.isHTTPAllowed(x):
-                user = pages.getAcessingUser(self.request)
-                cookie = self.request.cookies
-            else:
-                cookie = None
-                user = "__guest__"
-
-            self.io_loop = tornado.ioloop.IOLoop.current()
-            q = self.request.arguments
-            impl: websocket_impl = wsimpl(self, user, **{i: q[i][0].decode() for i in q})
-            impl.cookie = cookie
-            impl.user_agent = user_agent
-
-            impl.clientinfo = ClientInfo(impl.user, impl.cookie)
-            clients_info[impl.connection_id] = impl.clientinfo
-            self.impl = impl
-
-            assert isinstance(x, str)
-            impl.peer_address = x
-
-            if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
-                self.runner = guestWSRunner
-            else:
-                self.runner = WSActionRunner()
-
-        def on_message(self, message: str | bytes):
-            def doFunction():
-                self.impl.received_message(message)
-
-            self.runner.dowsAction(doFunction)
-
-        def send_data(self, message: str | bytes, binary: bool = False):
-            def f():
-                if not self.is_closed:
-                    try:
-                        self.write_message(message, binary=binary)
-                    except tornado.websocket.WebSocketClosedError:
-                        self.on_close()
-
-            self.io_loop.add_callback(f)
-
-        def on_close(self):
-            self.is_closed = True
-            self.impl.closed()
-
-    return WS
+from starlette.websockets import WebSocket
 
 
 class rawwebsocket_impl:
-    def __init__(self, parent, user, *args, **kwargs):
+    def __init__(self, parent, user, widgetName: str) -> None:
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
         self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
@@ -504,7 +448,6 @@ class rawwebsocket_impl:
 
         self.usedPermissions = collections.defaultdict(int)
 
-        widgetName: str = kwargs["widgetid"]
         assert isinstance(widgetName, str)
         with subscriptionLock:
             if widgetName in widgets:
@@ -538,9 +481,10 @@ class rawwebsocket_impl:
         with self.widget_wslock:
             self.parent.send_data(b, binary=isinstance(b, bytes))
 
-    def closed(self, *a):
+    def close(self, *a):
         with subscriptionLock:
-            for i in self.subscriptions:
+            while self.subscriptions:
+                i = self.subscriptions.pop(0)
                 try:
                     widgets[i].subscriptions.pop(self.uuid)
                     widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
@@ -548,8 +492,84 @@ class rawwebsocket_impl:
                     pass
 
 
-def makeRawTornadoSocket():
-    return makeTornadoSocket(rawwebsocket_impl)
+async def app(scope, receive, send):
+    websocket = WebSocket(scope=scope, receive=receive, send=send)
+    await websocket.accept()
+    await websocket.send_text("Hello, world!")
+    await websocket.close()
+
+    try:
+        user_agent = scope.headers["User-Agent"]
+    except Exception:
+        user_agent = ""
+    x = scope["client"][0]
+
+    if scope["protocol"] == "https" or pages.isHTTPAllowed(x):
+        user = pages.getAcessingUser(asgi=scope)
+        cookie = scope.get("cookie", None)
+    else:
+        cookie = None
+        user = "__guest__"
+
+    io_loop = asyncio.get_running_loop()
+    impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
+    impl.cookie = cookie
+    impl.user_agent = user_agent
+
+    impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+    clients_info[impl.connection_id] = impl.clientinfo
+
+    assert isinstance(x, str)
+    impl.peer_address = x
+
+    if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
+        runner = guestWSRunner
+    else:
+        runner = WSActionRunner()
+
+    async for i in websocket.iter_bytes():
+        runner.dowsAction(lambda: impl.received_message(i))
+
+
+async def rawapp(scope, receive, send):
+    request = Request(scope, receive)
+
+    websocket = WebSocket(scope=scope, receive=receive, send=send)
+    await websocket.accept()
+    await websocket.send_text("Hello, world!")
+    await websocket.close()
+
+    try:
+        user_agent = scope.headers["User-Agent"]
+    except Exception:
+        user_agent = ""
+    x = scope["client"][0]
+
+    if scope["protocol"] == "https" or pages.isHTTPAllowed(x):
+        user = pages.getAcessingUser(asgi=scope)
+        cookie = scope.get("cookie", None)
+    else:
+        cookie = None
+        user = "__guest__"
+
+    io_loop = asyncio.get_running_loop()
+    impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
+    impl.cookie = cookie
+    impl.user_agent = user_agent
+
+    impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+    clients_info[impl.connection_id] = impl.clientinfo
+
+    assert isinstance(x, str)
+    impl.peer_address = x
+
+    if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
+        runner = guestWSRunner
+    else:
+        runner = WSActionRunner()
+
+    async for i in websocket.iter_bytes():
+        runner.dowsAction(lambda: impl.received_message(i))
 
 
 def randID() -> str:

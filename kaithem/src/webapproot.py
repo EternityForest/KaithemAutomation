@@ -400,12 +400,8 @@ def startServer():
 
     cherrypy.engine.start()
 
-    wsapp = tornado.web.Application(
-        [
-            (r"/widgets/ws", widgets.makeTornadoSocket()),
-            (r"/widgets/wsraw", widgets.makeRawTornadoSocket()),
-        ]
-    )
+    webapi.add_asgi_app("/widgets/ws", widgets.app, "__guest__")
+    webapi.add_asgi_app("/widgets/wsraw", widgets.rawapp, "__guest__")
 
     class KAuthMatcher(Matcher):
         def __init__(self, path, permission) -> None:
@@ -420,9 +416,7 @@ def startServer():
 
             return None
 
-    rules = [
-        Rule(PathMatches("/widgets/ws.*"), wsapp),
-    ]
+    rules = []
 
     x = []
     for i in webapi._wsgi_apps:
