@@ -5,11 +5,13 @@ from collections.abc import Callable
 import beartype as _beartype
 import cherrypy as _cherrypy
 import jinja2 as _jinja2
+import structlog
 
 from kaithem.src import directories as _directories
 from kaithem.src import pages as _pages
 from kaithem.src import theming
 
+_logger = structlog.get_logger()
 theming = theming
 
 
@@ -87,18 +89,7 @@ def add_tornado_app(pattern: str, app, args, permission="system_admin"):
 
 @_beartype.beartype
 def add_simple_cherrypy_handler(prefix: str, permission: str, handler: Callable[..., str]):
-    """
-    Register handler for all requests that look like /prefix.
-    handler must look like:
-    f(*path, **kwargs)
-
-    It will by in a cherrypy context.
-
-    This function is alpha.
-
-    """
-
-    _simple_handlers[prefix] = (permission, handler)
+    _logger.error("add_simple_cherrypy_handler is deprecated, use asgi or wsgi instead")
 
 
 def goto(url):

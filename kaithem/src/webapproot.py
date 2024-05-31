@@ -86,20 +86,6 @@ def apiwidget(widgetid, js_name):
     return widgets.widgets[widgetid]._render(js_name)
 
 
-@quart_app.app.route("/<path:path>", methods=["GET", "POST"])
-def default(*path):
-    data = request.args
-    if path[0] in webapi._simple_handlers:
-        if webapi._simple_handlers[path[0]][0]:
-            try:
-                pages.require(webapi._simple_handlers[path[0]][0])
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-
-        return webapi._simple_handlers[path[0]][1](*path, **data)
-    raise cherrypy.HTTPError(404, "No builtin or plugin handler")
-
-
 @quart_app.app.route("/user_static/<path:args>")
 def user_static(*args):
     "Very simple file server feature!"

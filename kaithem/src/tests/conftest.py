@@ -48,13 +48,6 @@ import kaithem.api.web as webapi
 tp = os.path.join(os.path.dirname(__file__), "template.html")
 
 
-def handle_page(*path, **kw):
-    return webapi.render_jinja_template(tp, path=path, kw=kw)
-
-
-webapi.add_simple_cherrypy_handler("plugin_test", permission="", handler=handle_page)
-
-
 import kaithem.api.chandler as chandlerapi
 
 

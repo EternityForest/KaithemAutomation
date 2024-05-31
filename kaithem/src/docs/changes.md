@@ -1,5 +1,13 @@
 Change Log
 ----------
+
+
+### 0.84.0
+
+#### Changed
+
+- :sparkles: Move to the quart framework instead of cherrypy.
+
 ### 0.83.0
 
 

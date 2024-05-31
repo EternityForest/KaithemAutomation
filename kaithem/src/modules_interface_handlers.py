@@ -51,7 +51,7 @@ def indvidual_module(module):
     )
 
 
-@quart_app.app.route("/modules/module/<module>/resource/<resource>")
+@quart_app.app.route("/modules/module/<module>/resource/<path:resource>")
 def resource_page(module, resource):
     try:
         pages.require("view_admin_info")
@@ -355,7 +355,7 @@ async def deletemoduletarget():
     return quart.redirect("/modules")
 
 
-@quart_app.app.route("/modules/module/<module>/deleteresource/<target>")
+@quart_app.app.route("/modules/module/<module>/deleteresource/<path:target>")
 async def deleteresource(module, target):
     try:
         pages.require("system_admin")
@@ -368,7 +368,7 @@ async def deleteresource(module, target):
     return d.render(f"/modules/module/{url(module)}/deleteresourcetarget")
 
 
-@quart_app.app.route("/modules/module/<module>/moveresource/<target>")
+@quart_app.app.route("/modules/module/<module>/moveresource/<path:target>")
 async def moveresource(module, target):
     try:
         pages.require("system_admin")
