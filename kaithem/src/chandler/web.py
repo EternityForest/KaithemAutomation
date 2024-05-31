@@ -87,7 +87,10 @@ class Web:
     def editor(self, board: str):
         """Index page for web interface"""
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         v = limitedTagsListing()
         c = command_tagsListing()
 
@@ -113,7 +116,10 @@ class Web:
     def commander(self, board: str):
         """Index page for web interface"""
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        pages.require("chandler_operator")
+        try:
+            pages.require("chandler_operator")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
 
         return get_template("commander.html").render(boardname=board, core=core)
 
@@ -121,7 +127,10 @@ class Web:
     def config(self, board: str):
         """Config page for web interface"""
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         v = limitedTagsListing()
         c = command_tagsListing()
 
@@ -146,7 +155,10 @@ class Web:
     @cherrypy.expose
     def dyn_js(self, file):
         if file == "boardapi.js":
-            pages.require("view_admin_info")
+            try:
+                pages.require("view_admin_info")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
 
             vars = {
                 "KaithemSoundCards": [i for i in kaithem.sound.outputs()],
@@ -162,7 +174,10 @@ class Web:
         if path in ("webmediadisplay", "WebMediaServer"):
             pass
         else:
-            pages.require("chandler_operator")
+            try:
+                pages.require("chandler_operator")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
         if "." not in path:
             path = path + ".html"
         try:

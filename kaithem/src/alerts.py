@@ -361,7 +361,10 @@ class Alert:
         }
 
     def API_ack(self):
-        pages.require(self.ackPermissions)
+        try:
+            pages.require(self.ackPermissions)
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         self.acknowledge()
 

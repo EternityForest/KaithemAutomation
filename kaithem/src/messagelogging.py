@@ -44,10 +44,16 @@ messagebus.subscribe("/#", messagelistener)
 class WebInterface:
     @cherrypy.expose
     def index(self, *args, **kwargs):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("logging/index.html").render()
 
     @cherrypy.expose
     def viewall(self, topic, page=1):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("logging/topic.html").render(topicname=normalize_topic(topic), page=int(page))

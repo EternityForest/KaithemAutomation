@@ -143,13 +143,19 @@ class Settings:
 
     @cherrypy.expose
     def default(self, plugin: str, *a, **k):
-        pages.require(page_plugins[plugin].perms)
+        try:
+            pages.require(page_plugins[plugin].perms)
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return page_plugins[plugin].handle(*a, **k)
 
     @cherrypy.expose
     def loginfailures(self, **kwargs):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         with weblogin.recordslock:
             fr = weblogin.failureRecords.items()
         return pages.get_template("settings/security.html").render(history=fr)
@@ -157,12 +163,18 @@ class Settings:
     @cherrypy.expose
     def threads(self, *a, **k):
         """Return a page showing all of kaithem's current running threads"""
-        pages.require("view_admin_info", noautoreturn=True)
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/threads.html").render()
 
     @cherrypy.expose
     def killThread(self, a):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
 
         for i in threading.enumerate():
@@ -181,12 +193,18 @@ class Settings:
     @cherrypy.expose
     def mdns(self, *a, **k):
         """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/mdns.html").render()
 
     @cherrypy.expose
     def screenshot(self):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         try:
             os.remove("/dev/shm/kaithem_temp_screenshot.jpg")
         except Exception:
@@ -198,13 +216,19 @@ class Settings:
     @cherrypy.expose
     def upnp(self, *a, **k):
         """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/upnp.html").render()
 
     @cherrypy.expose
     def stopsounds(self, *args, **kwargs):
         """Used to stop all sounds currently being played via kaithem's sound module"""
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         kaithemobj.kaithem.sound.stop_all()
         raise cherrypy.HTTPRedirect("/settings")
@@ -212,7 +236,10 @@ class Settings:
     @cherrypy.expose
     def gcsweep(self, *args, **kwargs):
         """Used to do a garbage collection. I think this is safe and doesn't need xss protection"""
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         import gc
 
         # I don't think we can return right away anyway or people would think it was broken and not doing anything,
@@ -234,7 +261,10 @@ class Settings:
     @cherrypy.config(**{"response.timeout": 7200})
     def files(self, *args, **kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         try:
             dir = os.path.join("/", *args)
 
@@ -283,7 +313,10 @@ class Settings:
     @cherrypy.expose
     def hlsplayer(self, *args, **kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         try:
             dir = os.path.join("/", *args)
             return pages.get_template("settings/hlsplayer.html").render(play=dir)
@@ -292,36 +325,57 @@ class Settings:
 
     @cherrypy.expose
     def cnfdel(self, *args, **kwargs):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         path = os.path.join("/", *args)
         return pages.get_template("settings/cnfdel.html").render(path=path)
 
     @cherrypy.expose
     def broadcast(self, **kwargs):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/broadcast.html").render()
 
     @cherrypy.expose
     def snackbar(self, msg, duration):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
         return pages.get_template("settings/broadcast.html").render()
 
     @cherrypy.expose
     def account(self):
-        pages.require("own_account_settings")
+        try:
+            pages.require("own_account_settings")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/user_settings.html").render()
 
     @cherrypy.expose
     def leaflet(self, *a, **k):
-        pages.require("view_status")
+        try:
+            pages.require("view_status")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.render_jinja_template("settings/util/leaflet.html")
 
     @cherrypy.expose
     def refreshuserpage(self, target):
-        pages.require("own_account_settings")
-        pages.require("/users/settings.edit")
+        try:
+            pages.require("own_account_settings")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
+        try:
+            pages.require("/users/settings.edit")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
 
         from . import widgets
@@ -331,7 +385,10 @@ class Settings:
 
     @cherrypy.expose
     def changeprefs(self, **kwargs):
-        pages.require("own_account_settings")
+        try:
+            pages.require("own_account_settings")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         pages.postOnly()
 
@@ -353,7 +410,10 @@ class Settings:
 
     @cherrypy.expose
     def changeinfo(self, **kwargs):
-        pages.require("own_account_settings")
+        try:
+            pages.require("own_account_settings")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         if len(kwargs["email"]) > 120:
@@ -364,7 +424,10 @@ class Settings:
 
     @cherrypy.expose
     def changepwd(self, **kwargs):
-        pages.require("own_account_settings")
+        try:
+            pages.require("own_account_settings")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         t = cherrypy.request.cookie["kaithem_auth"].value
@@ -385,22 +448,34 @@ class Settings:
 
     @cherrypy.expose
     def system(self):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/global_settings.html").render()
 
     @cherrypy.expose
     def theming(self):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/theming.html").render()
 
     @cherrypy.expose
     def settime(self):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/settime.html").render()
 
     @cherrypy.expose
     def set_time_from_web(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         t = float(kwargs["time"])
         subprocess.call(
@@ -420,7 +495,10 @@ class Settings:
 
     @cherrypy.expose
     def changealertsettingstarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         from . import alerts
 
@@ -437,7 +515,10 @@ class Settings:
 
     @cherrypy.expose
     def changesettingstarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         from . import geolocation
 
@@ -455,7 +536,10 @@ class Settings:
 
     @cherrypy.expose
     def changepushsettings(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
 
         t = kwargs["apprise_target"]
@@ -468,21 +552,30 @@ class Settings:
 
     @cherrypy.expose
     def changeredirecttarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         setRedirect(kwargs["url"])
         raise cherrypy.HTTPRedirect("/settings/system")
 
     @cherrypy.expose
     def changerotationtarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         setScreenRotate(kwargs["rotate"])
         raise cherrypy.HTTPRedirect("/settings/system")
 
     @cherrypy.expose
     def settheming(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         from . import theming
 
@@ -492,7 +585,10 @@ class Settings:
 
     @cherrypy.expose
     def ip_geolocate(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         from . import geolocation
 
@@ -511,33 +607,51 @@ class Settings:
 
     @cherrypy.expose
     def processes(self):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/processes.html").render()
 
     @cherrypy.expose
     def dmesg(self):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/dmesg.html").render()
 
     @cherrypy.expose
     def environment(self):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("settings/environment.html").render()
 
     class profiler:
         @cherrypy.expose
         def index():
-            pages.require("system_admin")
+            try:
+                pages.require("system_admin")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
             return pages.get_template("settings/profiler/index.html").render(sort="")
 
         @cherrypy.expose
         def bytotal():
-            pages.require("system_admin")
+            try:
+                pages.require("system_admin")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
             return pages.get_template("settings/profiler/index.html").render(sort="total")
 
         @cherrypy.expose
         def start():
-            pages.require("system_admin", noautoreturn=True)
+            try:
+                pages.require("system_admin")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
             pages.postOnly()
             import yappi
 
@@ -554,7 +668,10 @@ class Settings:
 
         @cherrypy.expose
         def stop():
-            pages.require("system_admin", noautoreturn=True)
+            try:
+                pages.require("system_admin")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
             pages.postOnly()
             import yappi
 
@@ -564,7 +681,10 @@ class Settings:
 
         @cherrypy.expose
         def clear():
-            pages.require("system_admin", noautoreturn=True)
+            try:
+                pages.require("system_admin")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
             pages.postOnly()
             import yappi
 

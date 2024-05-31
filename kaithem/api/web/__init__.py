@@ -66,14 +66,18 @@ def render_jinja_template(template_filename: str, **kw):
     return _jl.load(_env, template_filename, _env.globals).render(imp0rt=_importlib.import_module, **kw)
 
 
-def add_asgi_app(pattern: str, app, permission="system_admin"):
-    "Mount an ASGI application to handle all URLs matching the pattern regex"
-    _asgi_apps.append((pattern, app, permission))
+def add_asgi_app(prefix: str, app, permission="system_admin"):
+    "Mount an ASGI application to handle all URLs matching the prefix"
+    if prefix.endswith(".*"):
+        prefix = prefix[:-2]
+    _asgi_apps.append((prefix, app, permission))
 
 
-def add_wsgi_app(pattern: str, app, permission="system_admin"):
-    "Mount a WSGI application to handle all URLs matching the pattern regex"
-    _wsgi_apps.append((pattern, app, permission))
+def add_wsgi_app(prefix: str, app, permission="system_admin"):
+    "Mount a WSGI application to handle all URLs matching the prefix"
+    if prefix.endswith(".*"):
+        prefix = prefix[:-2]
+    _wsgi_apps.append((prefix, app, permission))
 
 
 def add_tornado_app(pattern: str, app, args, permission="system_admin"):

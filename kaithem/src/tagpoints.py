@@ -63,7 +63,10 @@ def get_tag_meta(t):
     t = allTagsAtomic[t]()
     assert t
 
-    pages.require(t.get_effective_permissions()[0])
+    try:
+        pages.require(t.get_effective_permissions()[0])
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
     if not t:
         raise RuntimeError("Tag not found")
 

@@ -654,7 +654,10 @@ class Device(iot_devices.device.Device):
             raise Exception("Unsupported method: " + cherrypy.request.method)
 
         for i in perms.split(","):
-            pages.require(i)
+            try:
+                pages.require(i)
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
 
         self.handle_web_request(path, kwargs, cherrypy.request.method)
 

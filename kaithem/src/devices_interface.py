@@ -56,258 +56,324 @@ def render_device_tag(obj, tag):
         return f"<article>{traceback.format_exc()}</article>"
 
 
-class WebDevices:
-    @app.route("/devices")
-    def index(self):
-        """Index page for web interface"""
+@app.route("/devices")
+def devices_index():
+    """Index page for web interface"""
+    try:
         pages.require("system_admin")
-        d = pages.get_template("devices/index.html").render(
-            deviceData=devices.remote_devices_atomic,
-            url=url,
-        )
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    d = pages.get_template("devices/index.html").render(
+        deviceData=devices.remote_devices_atomic,
+        url=url,
+    )
 
-        return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+    return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
-    @app.route("/devices/report")
-    def report(self):
+
+@app.route("/devices/report")
+def report():
+    try:
         pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
 
-        def get_report_data(dev: Device):
-            o = {}
-            for i in dev.config:
-                if i not in ("notes", "subclass") or len(str(dev.config[i])) < 256:
-                    o[i] = dev.config[i]
-                    continue
-            return json.dumps(o)
+    def get_report_data(dev: Device):
+        o = {}
+        for i in dev.config:
+            if i not in ("notes", "subclass") or len(str(dev.config[i])) < 256:
+                o[i] = dev.config[i]
+                continue
+        return json.dumps(o)
 
-        def has_secrets(dev: Device):
-            for i in dev.config:
-                if dev.config_properties.get(i, {}).get("secret", False):
-                    if dev.config[i]:
-                        return True
+    def has_secrets(dev: Device):
+        for i in dev.config:
+            if dev.config_properties.get(i, {}).get("secret", False):
+                if dev.config[i]:
+                    return True
 
-        return pages.render_jinja_template(
-            "devices/device_report.j2.html",
-            devs=devices.remote_devices_atomic,
-            has_secrets=has_secrets,
-            get_report_data=get_report_data,
-            **device_page_env,
-        )
+    return pages.render_jinja_template(
+        "devices/device_report.j2.html",
+        devs=devices.remote_devices_atomic,
+        has_secrets=has_secrets,
+        get_report_data=get_report_data,
+        **device_page_env,
+    )
 
-    @app.route("/devices/<name>/manage")
-    def device_manage(self, name):
+
+@app.route("/devices/<name>/manage")
+def device_manage(name):
+    try:
         pages.require("enumerate_endpoints")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    try:
         pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
 
-        # Some framework only keys are not passed to the actual device since we use what amounts
-        # to an extension, so we have to merge them in
-        merged = {}
+    # Some framework only keys are not passed to the actual device since we use what amounts
+    # to an extension, so we have to merge them in
+    merged = {}
 
-        obj = devices.remote_devices[name]
+    obj = devices.remote_devices[name]
 
-        if obj.parent_module:
-            assert obj.parent_resource
-            merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])
+    if obj.parent_module:
+        assert obj.parent_resource
+        merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])
 
-        # I think stored data is enough, this is just defensive
-        merged.update(devices.remote_devices[name].config)
+    # I think stored data is enough, this is just defensive
+    merged.update(devices.remote_devices[name].config)
 
-        return pages.render_jinja_template(
-            "devices/device.j2.html",
-            data=merged,
-            obj=obj,
-            name=name,
-            title="" if obj.title == obj.name else obj.title,
-            **device_page_env,
-        )
+    return pages.render_jinja_template(
+        "devices/device.j2.html",
+        data=merged,
+        obj=obj,
+        name=name,
+        title="" if obj.title == obj.name else obj.title,
+        **device_page_env,
+    )
 
-    @app.route("/devices/<name>")
-    def device(self, name, *args, **kwargs):
+
+@app.route("/devices/<name>")
+def device(name, *args, **kwargs):
+    try:
         pages.require("enumerate_endpoints")
-        return redirect("/manage")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return redirect("/manage")
 
-    @app.route("/devices/devicedocs/<name>")
-    def devicedocs(self, name):
+
+@app.route("/devices/devicedocs/<name>")
+def devicedocs(name):
+    try:
         pages.require("system_admin")
-        x = devices.remote_devices[name].readme
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    x = devices.remote_devices[name].readme
 
-        if x is None:
-            x = "No readme found"
-        if x.startswith("/") or (len(x) < 1024 and os.path.exists(x)):
-            with open(x) as f:
-                x = f.read()
+    if x is None:
+        x = "No readme found"
+    if x.startswith("/") or (len(x) < 1024 and os.path.exists(x)):
+        with open(x) as f:
+            x = f.read()
 
-        return pages.get_template("devices/devicedocs.html").render(docs=x)
+    return pages.get_template("devices/devicedocs.html").render(docs=x)
 
-    @app.route("/devices/updateDevice/<devname>")
-    def updateDevice(self, devname):
+
+@app.route("/devices/updateDevice/<devname>")
+def updateDevicePage(devname):
+    try:
         pages.require("system_admin")
-        pages.postOnly()
-        updateDevice(devname, request.args)
-        return redirect("/devices")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    updateDevice(devname, request.args)
+    return redirect("/devices")
 
-    @app.route("/devices/discoveryStep/<type>/<devname>", methods=["POST"])
-    def discoveryStep(self, type, devname):
-        """
-        Do a step of iterative device discovery.  Can start either from just a type or we can take
-        an existing device config and ask it for refinements.
-        """
+
+@app.route("/devices/discoveryStep/<type>/<devname>", methods=["POST"])
+def discoveryStep(type, devname):
+    """
+    Do a step of iterative device discovery.  Can start either from just a type or we can take
+    an existing device config and ask it for refinements.
+    """
+    try:
         pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
 
-        current = request.args
+    current = request.args
 
-        if devname and devname in devices.remote_devices:
-            # If possible just use the actual object
-            d = devices.remote_devices[devname]
-            c = copy.deepcopy(d.config)
-            c.update(request.args)
-            current = c
-            obj = d
+    if devname and devname in devices.remote_devices:
+        # If possible just use the actual object
+        d = devices.remote_devices[devname]
+        c = copy.deepcopy(d.config)
+        c.update(request.args)
+        current = c
+        obj = d
+    else:
+        obj = None
+        d = getDeviceType(type)
+
+    d = d.discover_devices(
+        current,
+        current_device=devices.remote_devices.get(devname, None),
+        intent="step",
+    )
+
+    dt = pages.get_template("devices/discoverstep.html").render(data=d, current=current, name=devname, obj=obj)
+    return Response(dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+
+
+@app.route("/devices/createDevice", methods=["POST"])
+def createDevice(self):
+    kwargs = request.args
+    "Actually create the new device"
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    name = kwargs.get("name", None)
+    m = r = None
+
+    with modules_state.modulesLock:
+        if "module" in kwargs:
+            m = str(kwargs["module"])
+            r = str(kwargs["resource"])
+            name = name or r
+            del kwargs["module"]
+            del kwargs["resource"]
+            d = {i: kwargs[i] for i in kwargs if not i.startswith("temp.")}
+            d["name"] = name
+
+            # Set these as the default
+            kwargs["kaithem.read_perms"] = "view_devices"
+            kwargs["kaithem.write_perms"] = "write_devices"
+
+            dt = {"resource_type": "device", "device": d}
+
+            modules_state.rawInsertResource(m, r, dt)
         else:
-            obj = None
-            d = getDeviceType(type)
+            raise RuntimeError("Creating devices outside of modules is no longer supported.")
 
-        d = d.discover_devices(
-            current,
-            current_device=devices.remote_devices.get(devname, None),
-            intent="step",
-        )
+        if name in devices.remote_devices:
+            devices.remote_devices[name].close()
+        devices.remote_devices[name] = makeDevice(name, kwargs)
 
-        dt = pages.get_template("devices/discoverstep.html").render(data=d, current=current, name=devname, obj=obj)
-        return Response(dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+        if m and r:
+            storeDeviceInModule(d, m, r)
+        else:
+            raise RuntimeError("Creating devices outside of modules is no longer supported.")
 
-    @app.route("/devices/createDevice", methods=["POST"])
-    def createDevice(self):
-        kwargs = request.args
-        "Actually create the new device"
+        devices.remote_devices[name].parent_module = m
+        devices.remote_devices[name].parent_resource = r
+        devices.remote_devices_atomic = devices.wrcopy(devices.remote_devices)
+        messagebus.post_message("/devices/added/", name)
+
+    return redirect("/devices")
+
+
+@app.route("/devices/createDevicePage/<name>/<module>/<resource>", methods=["POST"])
+def createDevicePage(name, module="", resource=""):
+    "Ether create a 'blank' device, or, if supported, show the custom page"
+    try:
         pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
 
-        name = kwargs.get("name", None)
-        m = r = None
+    tp = getDeviceType(request.args["type"])
+    assert tp
 
-        with modules_state.modulesLock:
-            if "module" in kwargs:
-                m = str(kwargs["module"])
-                r = str(kwargs["resource"])
-                name = name or r
-                del kwargs["module"]
-                del kwargs["resource"]
-                d = {i: kwargs[i] for i in kwargs if not i.startswith("temp.")}
-                d["name"] = name
+    d = pages.get_template("devices/createpage.html").render(name=name, type=request.args["type"], module=module, resource=resource)
+    return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
-                # Set these as the default
-                kwargs["kaithem.read_perms"] = "view_devices"
-                kwargs["kaithem.write_perms"] = "write_devices"
 
-                dt = {"resource_type": "device", "device": d}
-
-                modules_state.rawInsertResource(m, r, dt)
-            else:
-                raise RuntimeError("Creating devices outside of modules is no longer supported.")
-
-            if name in devices.remote_devices:
-                devices.remote_devices[name].close()
-            devices.remote_devices[name] = makeDevice(name, kwargs)
-
-            if m and r:
-                storeDeviceInModule(d, m, r)
-            else:
-                raise RuntimeError("Creating devices outside of modules is no longer supported.")
-
-            devices.remote_devices[name].parent_module = m
-            devices.remote_devices[name].parent_resource = r
-            devices.remote_devices_atomic = devices.wrcopy(devices.remote_devices)
-            messagebus.post_message("/devices/added/", name)
-
-        return redirect("/devices")
-
-    @app.route("/devices/createDevicePage/<name>/<module>/<resource>", methods=["POST"])
-    def createDevicePage(self, name, module="", resource=""):
-        "Ether create a 'blank' device, or, if supported, show the custom page"
+@app.route("/devices/deleteDevice/<name>")
+def deleteDevice(name):
+    try:
         pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    d = pages.get_template("devices/confirmdelete.html").render(name=name)
+    return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
-        tp = getDeviceType(request.args["type"])
-        assert tp
 
-        d = pages.get_template("devices/createpage.html").render(name=name, type=request.args["type"], module=module, resource=resource)
-        return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
-
-    @app.route("/devices/deleteDevice/<name>")
-    def deleteDevice(self, name):
-        pages.require("system_admin")
-        d = pages.get_template("devices/confirmdelete.html").render(name=name)
-        return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
-
-    @app.route("/devices/settarget/<name>/<tag>", methods=["POST"])
-    def settarget(self, name, tag):
+@app.route("/devices/settarget/<name>/<tag>", methods=["POST"])
+def settarget(name, tag):
+    try:
         pages.require("enumerate_endpoints")
-        x = devices.remote_devices[name]
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    x = devices.remote_devices[name]
 
-        perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
+    perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
 
-        for i in perms.split(","):
+    for i in perms.split(","):
+        try:
             pages.require(i)
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
 
-        if tag in x.tagpoints:
-            x.tagpoints[tag].value = request.args["value"]
+    if tag in x.tagpoints:
+        x.tagpoints[tag].value = request.args["value"]
 
-        return ""
+    return ""
 
-    @app.route("/devices/dimtarget/<name>/<tag>", methods=["POST"])
-    def dimtarget(self, name, tag):
-        "Set a color tagpoint to a dimmed version of it."
+
+@app.route("/devices/dimtarget/<name>/<tag>", methods=["POST"])
+def dimtarget(name, tag):
+    "Set a color tagpoint to a dimmed version of it."
+    try:
         pages.require("enumerate_endpoints")
-        x = devices.remote_devices[name]
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    x = devices.remote_devices[name]
 
-        perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
+    perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
 
-        for i in perms.split(","):
+    for i in perms.split(","):
+        try:
             pages.require(i)
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
 
-        if tag in x.tagpoints:
-            try:
-                x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(request.args["value"])).html
-            except Exception:
-                x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(request.args["value"])).html
-        return ""
+    if tag in x.tagpoints:
+        try:
+            x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(request.args["value"])).html
+        except Exception:
+            x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(request.args["value"])).html
+    return ""
 
-    @app.route("/devices/triggertarget/<name>/<tag>", methods=["POST"])
-    def triggertarget(self, name, tag):
+
+@app.route("/devices/triggertarget/<name>/<tag>", methods=["POST"])
+def triggertarget(name, tag):
+    try:
         pages.require("enumerate_endpoints")
-        x = devices.remote_devices[name]
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    x = devices.remote_devices[name]
 
-        perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
+    perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
 
-        for i in perms.split(","):
+    for i in perms.split(","):
+        try:
             pages.require(i)
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
 
-        if tag in x.tagpoints:
-            x.tagpoints[tag].value = x.tagpoints[tag].value + 1
-        return ""
+    if tag in x.tagpoints:
+        x.tagpoints[tag].value = x.tagpoints[tag].value + 1
+    return ""
 
-    @app.route("/devices/deletetarget", methods=["POST"])
-    def deletetarget(self):
+
+@app.route("/devices/deletetarget", methods=["POST"])
+def deletetarget():
+    try:
         pages.require("system_admin")
-        name = request.args["name"]
-        with modules_state.modulesLock:
-            x = devices.remote_devices[name]
-            # Delete bookkeep removes it from device data if present
-            delete_bookkeep(name, "delete_conf_dir" in request.args)
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    name = request.args["name"]
+    with modules_state.modulesLock:
+        x = devices.remote_devices[name]
+        # Delete bookkeep removes it from device data if present
+        delete_bookkeep(name, "delete_conf_dir" in request.args)
 
-            if x.parent_module:
-                modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
+        if x.parent_module:
+            modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
 
-            # no zombie reference
-            del x
+        # no zombie reference
+        del x
 
-            devices.remote_devices_atomic = wrcopy(devices.remote_devices)
-            # Gotta be aggressive about ref cycle breaking!
-            gc.collect()
-            time.sleep(0.1)
-            gc.collect()
-            time.sleep(0.2)
-            gc.collect()
+        devices.remote_devices_atomic = wrcopy(devices.remote_devices)
+        # Gotta be aggressive about ref cycle breaking!
+        gc.collect()
+        time.sleep(0.1)
+        gc.collect()
+        time.sleep(0.2)
+        gc.collect()
 
-            messagebus.post_message("/devices/removed/", name)
+        messagebus.post_message("/devices/removed/", name)
 
-        return redirect("/devices")
+    return redirect("/devices")

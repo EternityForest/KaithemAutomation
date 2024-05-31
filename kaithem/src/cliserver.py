@@ -47,7 +47,7 @@ with open(f"/dev/shm/kaithem-api-port-{getpass.getuser()}", "w") as f:
 
 
 class WebAPI:
-    @quart_app.route("/cli/cmd/<cmd>/<path:path>", methods=["POST"])
+    @quart_app.app.route("/cli/cmd/<cmd>/<path:path>", methods=["POST"])
     def cmd(self, cmd, *path):
         api_key = request.args.pop("api_key")
         kw = request.args

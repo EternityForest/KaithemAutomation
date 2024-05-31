@@ -14,20 +14,10 @@ import cherrypy
 import structlog
 import yaml
 from cherrypy.lib.static import serve_file
-from scullery import scheduling
+from quart import request
+from scullery import scheduling, workers
 
-from . import (
-    auth,
-    dialogs,
-    directories,
-    messagebus,
-    module_actions,
-    modules,
-    modules_state,
-    pages,
-    unitsofmeasure,
-    util,
-)
+from . import auth, dialogs, directories, messagebus, module_actions, modules, modules_state, pages, quart_app, unitsofmeasure, util
 from .modules import check_forbidden, external_module_locations
 from .modules_state import in_folder
 from .util import url
@@ -167,116 +157,160 @@ def followAttributes(root, path):
 # The class defining the interface to allow the user to perform generic create/delete/upload functionality.
 
 
-class WebInterface:
-    @cherrypy.expose
-    def actions(self, module, **path):
+@quart_app.app.route("/modules/actions/<module>")
+def actions(module):
+    try:
         pages.require("system_admin")
-        return pages.render_jinja_template(
-            "modules/module_actions.j2.html",
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.render_jinja_template(
+        "modules/module_actions.j2.html",
+        name=module,
+        module_actions=module_actions,
+    )
+
+
+@quart_app.app.route("/modules/search/<module>")
+def search(module):
+    kwargs = request.args
+    start = mstart = 0
+    if "mstart" in kwargs:
+        mstart = int(kwargs["mstart"])
+    if "start" in kwargs:
+        start = int(kwargs["start"])
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    if not module == "__all__":
+        return pages.get_template("modules/search.html").render(
+            search=kwargs["search"],
             name=module,
-            path=path,
-            module_actions=module_actions,
+            results=searchModuleResources(module, kwargs["search"], 100, start),
+        )
+    else:
+        return pages.get_template("modules/search.html").render(
+            search=kwargs["search"],
+            name=module,
+            results=searchModules(kwargs["search"], 100, start, mstart),
         )
 
-    @cherrypy.expose
-    def search(self, module, **kwargs):
-        start = mstart = 0
-        if "mstart" in kwargs:
-            mstart = int(kwargs["mstart"])
-        if "start" in kwargs:
-            start = int(kwargs["start"])
-        pages.require("system_admin")
-        if not module == "__all__":
-            return pages.get_template("modules/search.html").render(
-                search=kwargs["search"],
-                name=module,
-                results=searchModuleResources(module, kwargs["search"], 100, start),
-            )
-        else:
-            return pages.get_template("modules/search.html").render(
-                search=kwargs["search"],
-                name=module,
-                results=searchModules(kwargs["search"], 100, start, mstart),
-            )
 
-    # This lets the user download a module as a zip file with yaml encoded resources
-    @cherrypy.expose
-    def yamldownload(self, module):
+# This lets the user download a module as a zip file with yaml encoded resources
+@quart_app.app.route("/modules/search/<module>")
+def yamldownload(module):
+    try:
         pages.require("view_admin_info")
-        cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % util.url(
-            f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip"
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % util.url(
+        f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip"
+    )
+
+    cherrypy.response.headers["Content-Type"] = "application/zip"
+    try:
+        return modules_state.getModuleAsYamlZip(
+            module[:-4] if module.endswith(".zip") else module,
         )
+    except Exception:
+        logging.exception("Failed to handle zip download request")
+        raise
 
-        cherrypy.response.headers["Content-Type"] = "application/zip"
-        try:
-            return modules_state.getModuleAsYamlZip(
-                module[:-4] if module.endswith(".zip") else module,
-            )
-        except Exception:
-            logging.exception("Failed to handle zip download request")
-            raise
 
+# This lets the user upload modules
+@quart_app.app.route("/modules/upload")
+def upload():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("modules/upload.html").render()
     # This lets the user upload modules
-    @cherrypy.expose
-    def upload(self):
+
+
+@quart_app.app.route("/modules/uploadtarget", methods=["POST"])
+async def uploadtarget():
+    try:
         pages.require("system_admin")
-        return pages.get_template("modules/upload.html").render()
-        # This lets the user upload modules
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    # Can't actuslly use def in a for loop usually but it;s fine since there;s only one
+    for name, file in (await request.files).items():
 
-    @cherrypy.expose
-    def uploadtarget(self, modulesfile, **kwargs):
-        pages.require("system_admin")
-        pages.postOnly()
-        modules_state.recalcModuleHashes()
-        modules.load_modules_from_zip(modulesfile.file, replace="replace" in kwargs)
+        def f():
+            modules_state.recalcModuleHashes()
+            modules.load_modules_from_zip(file, replace="replace" in request.args)
 
-        messagebus.post_message("/system/modules/uploaded", {"user": pages.getAcessingUser()})
-        raise cherrypy.HTTPRedirect("/modules/")
+        workers.do(f)
 
-    @cherrypy.expose
-    def index(self):
-        # Require permissions and render page. A lotta that in this file.
+    messagebus.post_message("/system/modules/uploaded", {"user": pages.getAcessingUser()})
+    raise cherrypy.HTTPRedirect("/modules/")
+
+
+@quart_app.app.route("/modules")
+def index():
+    # Require permissions and render page. A lotta that in this file.
+    try:
         pages.require("view_admin_info")
-        return pages.get_template("modules/index.html").render(ActiveModules=modules_state.ActiveModules)
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("modules/index.html").render(ActiveModules=modules_state.ActiveModules)
 
-    @cherrypy.expose
-    def library(self):
-        # Require permissions and render page. A lotta that in this file.
+
+@quart_app.app.route("/modules/library")
+def library():
+    # Require permissions and render page. A lotta that in this file.
+    try:
         pages.require("view_admin_info")
-        return pages.get_template("modules/library.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("modules/library.html").render()
 
-    @cherrypy.expose
-    def newmodule(self):
+
+@quart_app.app.route("/modules/newmodule")
+def newmodule():
+    try:
         pages.require("system_admin")
-        d = dialogs.SimpleDialog("Add New Module")
-        d.text_input("name", title="Name of New Module")
-        d.text("Choose an existing dir to load that module.")
-        d.text_input("location", title="Save location(Blank: auto in kaithem dir)")
-        d.submit_button("Submit")
-        return d.render("/modules/newmoduletarget")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    d = dialogs.SimpleDialog("Add New Module")
+    d.text_input("name", title="Name of New Module")
+    d.text("Choose an existing dir to load that module.")
+    d.text_input("location", title="Save location(Blank: auto in kaithem dir)")
+    d.submit_button("Submit")
+    return d.render("/modules/newmoduletarget")
 
-    # @cherrypy.expose
-    # def manual_run(self,module, resource):
-    # These modules handle their own permissions
-    # if isinstance(EventReferences[module,resource], ManualEvent):
-    # EventReferences[module,resource].run()
-    # else:
-    # raise RuntimeError("Event does not support running manually")
 
-    # CRUD screen to delete a module
-    @cherrypy.expose
-    def deletemodule(self):
+# @cherrypy.expose
+# def manual_run(self,module, resource):
+# These modules handle their own permissions
+# if isinstance(EventReferences[module,resource], ManualEvent):
+# EventReferences[module,resource].run()
+# else:
+# raise RuntimeError("Event does not support running manually")
+
+
+# CRUD screen to delete a module
+@quart_app.app.route("/deletemodule")
+def deletemodule():
+    try:
         pages.require("system_admin")
-        d = dialogs.SimpleDialog("Delete Module")
-        d.text_input("name")
-        d.submit_button("Submit")
-        return d.render("/modules/deletemoduletarget")
-        return pages.get_template("modules/delete.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    d = dialogs.SimpleDialog("Delete Module")
+    d.text_input("name")
+    d.submit_button("Submit")
+    return d.render("/modules/deletemoduletarget")
 
+
+class WebInterface:
     # POST target for CRUD screen for deleting module
     @cherrypy.expose
     def deletemoduletarget(self, **kwargs):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         modules.rmModule(kwargs["name"], f"Module Deleted by {pages.getAcessingUser()}")
         messagebus.post_message(
@@ -288,7 +322,10 @@ class WebInterface:
 
     @cherrypy.expose
     def newmoduletarget(self, **kwargs):
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
 
         check_forbidden(kwargs["name"])
@@ -303,7 +340,10 @@ class WebInterface:
     @cherrypy.expose
     def loadlibmodule(self, module, name=""):
         "Load a module from the library"
-        pages.require("system_admin")
+        try:
+            pages.require("system_admin")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         name = name or module
 
@@ -330,7 +370,10 @@ class WebInterface:
             fullpath += f"/{path[2]}"
         # If we are not performing an action on a module just going to its page
         if not path:
-            pages.require("view_admin_info")
+            try:
+                pages.require("view_admin_info")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
 
             return pages.render_jinja_template(
                 "modules/module.j2.html",
@@ -345,20 +388,29 @@ class WebInterface:
         else:
             if path[0] == "download_resource":
                 assert len(path) == 2
-                pages.require("view_admin_info")
+                try:
+                    pages.require("view_admin_info")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 cherrypy.response.headers["Content-Disposition"] = "attachment; filename=" + path[1] + ".yaml"
                 if modules_state.ActiveModules[root][path[1]]["resource_type"] in modules_state.additionalTypes:
                     modules_state.additionalTypes[modules_state.ActiveModules[root][path[1]]["resource_type"]].flush_unsaved(root, path[1])
                 return yaml.dump(modules_state.ActiveModules[root][path[1]])
 
             if path[0] == "scanfiles":
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
                 modules.autoGenerateFileRefResources(modules_state.ActiveModules[root], root)
                 raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(root)}")
 
             if path[0] == "runevent":
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
                 from .plugins import CorePluginEventResources
 
@@ -368,7 +420,10 @@ class WebInterface:
             if path[0] == "runeventdialog":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
                 assert len(path) == 2
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
 
                 d = dialogs.SimpleDialog("Run event manually")
@@ -378,7 +433,10 @@ class WebInterface:
 
             if path[0] == "obj":
                 # There might be a password or something important in the actual module object. Best to restrict who can access it.
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
 
                 if not len(path) > 1:
@@ -426,7 +484,10 @@ class WebInterface:
                     )
 
             if path[0] == "uploadresource":
-                pages.require("system_admin", noautoreturn=True)
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
 
                 if len(path) > 1:
                     x = path[1]
@@ -439,7 +500,10 @@ class WebInterface:
                 return d.render(f"/modules/module/{url(module)}/uploadresourcetarget", hidden_inputs={"path": x})
 
             if path[0] == "uploadresourcetarget":
-                pages.require("system_admin", noautoreturn=True)
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
                 inputfile = kwargs["file"]
                 f = b""
@@ -475,7 +539,10 @@ class WebInterface:
 
             # This case handles the POST request from the new resource target
             if path[0] == "addresourcetarget":
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
                 if len(path) > 2:
                     x = path[2]
@@ -502,7 +569,10 @@ class WebInterface:
                 return resourceUpdateTarget(module, path[1], kwargs)
 
             if path[0] == "getfileresource":
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 assert len(path) == 2
 
                 d = modules.getModuleDir(module)
@@ -529,7 +599,10 @@ class WebInterface:
             # This gets the interface to add a page
             if path[0] == "addfileresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 if len(path) > 1:
                     x = path[1]
                 else:
@@ -539,7 +612,10 @@ class WebInterface:
 
             # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == "uploadfileresourcetarget":
-                pages.require("system_admin", noautoreturn=True)
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
                 d = modules.getModuleDir(module)
                 folder = os.path.join(d, "__filedata__")
@@ -605,7 +681,10 @@ class WebInterface:
             if path[0] == "deleteresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
                 assert len(path) == 2
-                pages.require("system_admin", noautoreturn=True)
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
 
                 d = dialogs.SimpleDialog(f"Delete resource in {root}")
                 d.text_input("name", default=path[1])
@@ -615,7 +694,10 @@ class WebInterface:
             if path[0] == "moveresource":
                 cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
                 assert len(path) == 2
-                pages.require("system_admin", noautoreturn=True)
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
 
                 d = dialogs.SimpleDialog(f"Move resource in {root}")
                 d.text_input("name", default=path[1])
@@ -626,7 +708,10 @@ class WebInterface:
 
             # This handles the POST request to actually do the deletion
             if path[0] == "deleteresourcetarget":
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
                 modules.rmResource(
                     module,
@@ -655,7 +740,10 @@ class WebInterface:
                     raise cherrypy.HTTPRedirect(f"/modules/module/{util.url(module)}")
 
             if path[0] == "moveresourcetarget":
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
 
                 # Allow / to move stuf to dirs
@@ -666,7 +754,10 @@ class WebInterface:
 
             # This is the target used to change the name and description(basic info) of a module
             if path[0] == "update":
-                pages.require("system_admin")
+                try:
+                    pages.require("system_admin")
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
                 pages.postOnly()
                 modules_state.recalcModuleHashes()
                 if not kwargs["name"] == root:
@@ -738,7 +829,10 @@ class WebInterface:
 
 
 def addResourceDispatcher(module, type, path):
-    pages.require("system_admin")
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
 
     # Return a crud to add a new permission
     if type in ("permission", "directory"):
@@ -759,7 +853,10 @@ def addResourceDispatcher(module, type, path):
 
 
 def addResourceTarget(module, type, name, kwargs, path):
-    pages.require("system_admin")
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
     pages.postOnly()
     modules_state.recalcModuleHashes()
 
@@ -809,7 +906,10 @@ def addResourceTarget(module, type, name, kwargs, path):
 
 # show a edit page for a resource. No side effect here so it only requires the view permission
 def resourceEditPage(module, resource, version="default", kwargs={}):
-    pages.require("view_admin_info")
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
     cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
     with modules_state.modulesLock:
         resourceinquestion = modules_state.ActiveModules[module][resource]
@@ -848,7 +948,10 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
             )
 
         if resourceinquestion["resource_type"] == "directory":
-            pages.require("view_admin_info")
+            try:
+                pages.require("view_admin_info")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
 
             return pages.render_jinja_template(
                 "modules/module.j2.html",
@@ -865,7 +968,10 @@ def resourceEditPage(module, resource, version="default", kwargs={}):
 
 
 def permissionEditPage(module, resource):
-    pages.require("view_admin_info")
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
 
     d = dialogs.SimpleDialog(f"Permission: {resource} in {module}")
     d.text_input(
@@ -880,7 +986,10 @@ def permissionEditPage(module, resource):
 def resourceUpdateTarget(module, resource, kwargs):
     newname = kwargs.get("newname", "")
 
-    pages.require("system_admin", noautoreturn=True)
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
     pages.postOnly()
     modules_state.recalcModuleHashes()
 

@@ -74,12 +74,18 @@ def countnew(since):
 class WI:
     @cherrypy.expose
     def countnew(self, **kwargs):
-        pages.require("view_status")
+        try:
+            pages.require("view_status")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return json.dumps(countnew(float(kwargs["since"])))
 
     @cherrypy.expose
     def mostrecent(self, **kwargs):
-        pages.require("view_status")
+        try:
+            pages.require("view_status")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return json.dumps(notificationslog[-int(kwargs["count"]) :])
 
 

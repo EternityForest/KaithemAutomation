@@ -52,7 +52,7 @@ class RemovePrefixMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if "path" in scope:
-            scope["path"] = scope["path"].replace("/static/", "")
+            scope["path"] = scope["raw_path"].decode().replace("/static/", "")
         await self.app(scope, receive, send)
 
 
@@ -68,4 +68,4 @@ def add_apps():
     web.add_asgi_app("/static/css/.*", src, "__guest__")
     web.add_asgi_app("/static/docs/.*", src, "__guest__")
     web.add_asgi_app("/static/vue/.*", src, "__guest__")
-    web.add_asgi_app("/static/.*", TrivialCache(GZipMiddleware(StaticFiles(directory=ddn))), "__guest__")
+    web.add_asgi_app("/static/.*", TrivialCache(GZipMiddleware(StaticFiles(directory=os.path.join(ddn, "static")))), "__guest__")

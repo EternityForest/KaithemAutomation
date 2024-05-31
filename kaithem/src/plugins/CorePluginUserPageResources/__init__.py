@@ -554,7 +554,10 @@ class KaithemPage:
                 fn = modules_state.file_resource_paths[module, rn]
                 mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
                 if x.get("serve", False):
-                    pages.require(x.get("require_permissions", []))
+                    try:
+                        pages.require(x.get("require_permissions", []))
+                    except PermissionError:
+                        return pages.loginredirect(pages.geturl())
                     if "Origin" in cherrypy.request.headers:
                         origins: list[str] = x["allow_origins"]  # type: ignore
 
@@ -590,7 +593,10 @@ class KaithemPage:
         page.lastaccessed = time.time()
         # Check user permissions
         for i in page.permissions:
-            pages.require(i)
+            try:
+                pages.require(i)
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
 
         self._headers(page)
         # Check HTTP Method

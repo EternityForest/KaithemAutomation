@@ -83,7 +83,7 @@ def listlogdumps():
     r = re.compile(r"^.+_([0-9]*\.[0-9]*)\.log(\.gz|\.bz2)?$")
     for i in util.get_files(where):
         m = r.match(i)
-        if not m == None:
+        if m is not None:
             # Make time,fn,ext,size tuple
             # I have no clue how this line is suppoed to work.
             logz.append(
@@ -100,12 +100,18 @@ def listlogdumps():
 class WebInterface:
     @cherrypy.expose
     def index(self, *args, **kwargs):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("syslog/index.html").render()
 
     @cherrypy.expose
     def servelog(self, filename):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         # Make sure the user can't acess any file on the server like this
 
         # First security check, make sure there's no obvious special chars
@@ -129,5 +135,8 @@ class WebInterface:
 
     @cherrypy.expose
     def archive(self):
-        pages.require("view_admin_info")
+        try:
+            pages.require("view_admin_info")
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         return pages.get_template("syslog/archive.html").render(files=listlogdumps())
