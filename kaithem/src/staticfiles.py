@@ -46,18 +46,20 @@ class TrivialCache:
             await self.app(scope, receive, send)
 
 
-class RemovePrefixMiddleware:
+class RemoveOnePrefixMiddleware:
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if "path" in scope:
-            scope["path"] = scope["raw_path"].decode().replace("/static/", "")
+            if scope["path"].startswith("/"):
+                scope["path"] = scope["path"][1:]
+            scope["path"] = "/".join(scope["path"].split("/")[1:])
         await self.app(scope, receive, send)
 
 
 def makeserver(dn):
-    return TrivialCache(GZipMiddleware(RemovePrefixMiddleware(StaticFiles(directory=dn))))
+    return TrivialCache(GZipMiddleware(RemoveOnePrefixMiddleware(StaticFiles(directory=dn))))
 
 
 src = makeserver(sdn)
@@ -68,4 +70,8 @@ def add_apps():
     web.add_asgi_app("/static/css/.*", src, "__guest__")
     web.add_asgi_app("/static/docs/.*", src, "__guest__")
     web.add_asgi_app("/static/vue/.*", src, "__guest__")
-    web.add_asgi_app("/static/.*", TrivialCache(GZipMiddleware(StaticFiles(directory=os.path.join(ddn, "static")))), "__guest__")
+    web.add_asgi_app(
+        "/static/.*",
+        RemoveOnePrefixMiddleware(TrivialCache(GZipMiddleware(StaticFiles(directory=os.path.join(ddn, "static"))))),
+        "__guest__",
+    )

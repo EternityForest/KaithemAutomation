@@ -263,17 +263,28 @@ def license():
     return pages.get_template("help/license.html").render()
 
 
-conf = {
-    "/": {
-        "tools.gzip.on": True,
-        "tools.gzip.mime_types": ["text/*", "application/*"],
-        "tools.gzip.compress_level": 1,
-        "tools.handle_error.on": True,
-    },
-    "/pages": {
-        "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-    },
-}
+class AsgiDispatcher:
+    def __init__(self, patterns):
+        self.patterns = []
+        for i in patterns:
+            self.patterns.append((i, patterns[i]))
+
+        # Longest to shortest
+        self.patterns.sort()
+        self.patterns.reverse()
+
+    async def __call__(self, scope, receive, send):
+        app = None
+        for p in self.patterns:
+            scope_path = p[0]
+            asgi_application = p[1]
+
+            if scope["path"].startswith(scope_path):
+                app = asgi_application
+                break
+
+        assert app
+        await app(scope, receive, send)
 
 
 def startServer():
@@ -334,7 +345,7 @@ def startServer():
         logging.error("Tornado apps no longer supported")
 
     hypercornapps["/"] = quart_app.app
-    dispatcher_app = DispatcherMiddleware(hypercornapps)
+    dispatcher_app = AsgiDispatcher(hypercornapps)
 
     config2 = Config()
     config2.bind = [f"{bindto}:{config['http_port']}"]  # As an example configuration setting

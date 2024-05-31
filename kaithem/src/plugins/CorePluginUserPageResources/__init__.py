@@ -16,18 +16,20 @@ import types
 
 import beartype
 import cherrypy
-import cherrypy.lib.static
 import jinja2
 import mako
 import mako.template
+import quart
+import quart.utils
 import structlog
 import yaml
 
 # import tornado.exceptions
 from mako.lookup import TemplateLookup
+from quart.ctx import copy_current_request_context
 from scullery import snake_compat
 
-from kaithem.api.web import render_jinja_template
+from kaithem.api.web import add_asgi_app, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
 from kaithem.src.util import url
@@ -494,194 +496,183 @@ def streamGen(e):
         yield x
 
 
-# kaithem.py has come config option that cause this file to use the method dispatcher.
-class KaithemPage:
-    # Class encapsulating one request to a user-defined page
-    exposed = True
+app = quart.Quart(__name__)
 
-    def __init__(self) -> None:
-        from ... import kaithemobj
 
-        self.kaithemobj = kaithemobj
+@app.before_request
+def handle_preflight():
+    if quart.request.method == "OPTIONS":
+        res = quart.Response()
+        # Remove /pages/
+        p = quart.request.path.split("/")[1:]
+        res.headers.update(lookup(p[0], p[1:]))
+        return res
 
-    def GET(self, module, *args, **kwargs):
-        # Workaround for cherrypy decoding unicode as if it is latin 1
-        # Because of some bizzare wsgi thing i think.
-        module = module.encode("latin-1").decode("utf-8")
-        args = [i.encode("latin-1").decode("utf-8") for i in args]
-        return self._serve(module, *args, **kwargs)
 
-    def POST(self, module, *args, **kwargs):
-        # Workaround for cherrypy decoding unicode as if it is latin 1
-        # Because of some bizzare wsgi thing i think.
-        module = module.encode("latin-1").decode("utf-8")
-        args = [i.encode("latin-1").decode("utf-8") for i in args]
-        return self._serve(module, *args, **kwargs)
+@app.route("/pages/<module><path:path>")
+async def catch_all(module, path):
+    kwargs = dict(await quart.request.form)
+    kwargs.update(quart.request.args)
 
-    def OPTION(self, module, resource, *args, **kwargs):
-        # Workaround for cherrypy decoding unicode as if it is latin 1
-        # Because of some bizzare wsgi thing i think.
-        module = module.encode("latin-1").decode("utf-8")
-        args = [i.encode("latin-1").decode("utf-8") for i in args]
-        self._headers(lookup(module, args))
-        return ""
+    @copy_current_request_context
+    def f():
+        return _serve(module, *path.split("/"), **kwargs)
 
-    def _headers(self, page):
-        x = ""
-        for i in page.methods:
-            x += f"{i}, "
-        x = x[:-2]
+    return await quart.utils.run_sync(f)()
 
-        cherrypy.response.headers["Allow"] = f"{x}, HEAD, OPTIONS"
-        if page.xss:
-            if "Origin" in cherrypy.request.headers:
-                if cherrypy.request.headers["Origin"] in page.origins or "*" in page.origins:
-                    cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
-                cherrypy.response.headers["Access-Control-Allow-Methods"] = x
 
-    def _serve(self, module, *args, **kwargs):
-        page = lookup(module, args)
+def _headers(page):
+    h = {}
+    x = ""
+    for i in page.methods:
+        x += f"{i}, "
+    x = x[:-2]
 
-        if page is None:
-            messagebus.post_message(
-                "/system/errors/http/nonexistant",
-                f"Someone tried to access a page that did not exist in module {module} with path {args}",
-            )
-            rn = "/".join(args)
-            x = modules_state.ActiveModules[module].get(rn, None)
+    h["Allow"] = f"{x}, HEAD, OPTIONS"
+    if page.xss:
+        if "Origin" in quart.request.headers:
+            if quart.request.headers["Origin"] in page.origins or "*" in page.origins:
+                h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
+            h["Access-Control-Allow-Methods"] = x
 
-            if x and x["resource_type"] == "internal_fileref":
-                fn = modules_state.file_resource_paths[module, rn]
-                mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
-                if x.get("serve", False):
-                    try:
-                        pages.require(x.get("require_permissions", []))
-                    except PermissionError:
-                        return pages.loginredirect(pages.geturl())
-                    if "Origin" in cherrypy.request.headers:
-                        origins: list[str] = x["allow_origins"]  # type: ignore
+    return h
 
-                        if not x["allow_xss"]:
-                            raise RuntimeError("Refusing XSS")
 
-                        if not (cherrypy.request.headers["Origin"] in origins or "*" in origins):
-                            raise RuntimeError("Refusing XSS from this origin: " + cherrypy.request.headers["Origin"])
-                        else:
-                            cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
+def _serve(module, *args, **kwargs):
+    page = lookup(module, args)
+    h = {}
 
-                    return cherrypy.lib.static.serve_file(
-                        fn,
-                        mime,
-                        os.path.basename(fn),
-                    )
-            raise cherrypy.NotFound()
+    if page is None:
+        messagebus.post_message(
+            "/system/errors/http/nonexistant",
+            f"Someone tried to access a page that did not exist in module {module} with path {args}",
+        )
+        rn = "/".join(args)
+        x = modules_state.ActiveModules[module].get(rn, None)
 
-        if "Origin" in cherrypy.request.headers:
-            if not page.xss:
-                raise RuntimeError("Refusing XSS")
-            if not (cherrypy.request.headers["Origin"] in page.origins or "*" in page.origins):
-                raise RuntimeError("Refusing XSS from this origin: " + cherrypy.request.headers["Origin"])
-            else:
-                cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
+        if x and x["resource_type"] == "internal_fileref":
+            fn = modules_state.file_resource_paths[module, rn]
+            mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
+            if x.get("serve", False):
+                try:
+                    pages.require(x.get("require_permissions", []))
+                except PermissionError:
+                    return pages.loginredirect(pages.geturl())
+                if "Origin" in quart.request.headers:
+                    origins: list[str] = x["allow_origins"]  # type: ignore
 
-        x = ""
-        for i in page.methods:
-            x += f"{i}, "
-        x = x[:-2]
-        cherrypy.response.headers["Access-Control-Allow-Methods"] = x
+                    if not x["allow_xss"]:
+                        raise RuntimeError("Refusing XSS")
 
-        page.lastaccessed = time.time()
-        # Check user permissions
-        for i in page.permissions:
-            try:
-                pages.require(i)
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
+                    if not (quart.request.headers["Origin"] in origins or "*" in origins):
+                        raise RuntimeError("Refusing XSS from this origin: " + quart.request.headers["Origin"])
+                    else:
+                        h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
 
-        self._headers(page)
-        # Check HTTP Method
-        if cherrypy.request.method not in page.methods:
-            # Raise a redirect the the wrongmethod error page
-            raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+                return quart.send_file(fn, mimetype=mime, headers=h)
+
+        raise cherrypy.NotFound()
+
+    if "Origin" in quart.request.headers:
+        if not page.xss:
+            raise RuntimeError("Refusing XSS")
+        if not (quart.request.headers["Origin"] in page.origins or "*" in page.origins):
+            raise RuntimeError("Refusing XSS from this origin: " + quart.request.headers["Origin"])
+        else:
+            h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
+
+    x = ""
+    for i in page.methods:
+        x += f"{i}, "
+    x = x[:-2]
+    h["Access-Control-Allow-Methods"] = x
+
+    page.lastaccessed = time.time()
+    # Check user permissions
+    for i in page.permissions:
         try:
-            cherrypy.response.headers["Content-Type"] = page.mime
+            pages.require(i)
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
 
-            t = page.theme
-            if t in theming.cssthemes:
-                t = theming.cssthemes[t].css_url
+    h.update(_headers(page))
+    # Check HTTP Method
+    if quart.request.method not in page.methods:
+        # Raise a redirect the the wrongmethod error page
+        raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+    try:
+        h["Content-Type"] = page.mime
 
-            if hasattr(page, "template"):
-                s = {
-                    "kaithem": self.kaithemobj.kaithem,
-                    "request": cherrypy.request,
-                    "module": modules_state.scopes[module],
-                    "path": args,
-                    "kwargs": kwargs,
-                    "print": page.new_print,
-                    "page": page.localAPI,
-                    "_k_usr_page_theme": t,
-                    "_k_alt_top_banner": page.alt_top_banner,
-                }
-                if not page.useJinja:
-                    return page.template.render(**s).encode("utf-8")
-                else:
-                    s.update(page.scope)
+        t = page.theme
+        if t in theming.cssthemes:
+            t = theming.cssthemes[t].css_url
 
-                    if page.code_obj:
-                        exec(page.code_obj, s, s)
+        from kaithem.src import kaithemobj
 
-                    return page.template.render(**s)
-
+        if hasattr(page, "template"):
+            s = {
+                "kaithem": kaithemobj.kaithem,
+                "request": quart.request,
+                "module": modules_state.scopes[module],
+                "path": args,
+                "kwargs": kwargs,
+                "print": page.new_print,
+                "page": page.localAPI,
+                "_k_usr_page_theme": t,
+                "_k_alt_top_banner": page.alt_top_banner,
+            }
+            if not page.useJinja:
+                r = page.template.render(**s).encode("utf-8")
             else:
-                return page.text.encode("utf-8")
+                s.update(page.scope)
 
-        except self.kaithemobj.ServeFileInsteadOfRenderingPageException as e:
-            if page.streaming and hasattr(e.f_filepath, "read"):
-                cherrypy.response.headers["Content-Type"] = e.f_MIME
-                cherrypy.response.headers["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
-                return streamGen(e.f_filepath)
+                if page.code_obj:
+                    exec(page.code_obj, s, s)
 
-            if hasattr(e.f_filepath, "getvalue"):
-                cherrypy.response.headers["Content-Type"] = e.f_MIME
-                cherrypy.response.headers["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
-                return e.f_filepath.getvalue()
+                r = page.template.render(**s)
 
-            return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+        else:
+            r = page.text.encode("utf-8")
 
+        return quart.Response(r, headers=h)
+
+    except pages.ServeFileInsteadOfRenderingPageException as e:
+        if hasattr(e.f_filepath, "getvalue"):
+            h["Content-Type"] = e.f_MIME
+            h["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
+            return quart.Response(e.f_filepath.getvalue(), headers=h)
+        else:
+            h["Content-Type"] = e.f_MIME
+            h["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
+            return quart.send_file(e.f_filepath)
+
+    except Exception as e:
+        # The HTTPRedirect is NOT an error, and should not be handled like one.
+        # So we just reraise it unchanged
+        if isinstance(e, cherrypy.HTTPRedirect):
+            raise e
+
+        tb = traceback.format_exc(chain=True)
+        # tb = tornado.exceptions.text_error_template().render()
+        data = "Request from: " + quart.request.remote.ip + "(" + pages.getAcessingUser() + ")\n" + quart.request.request_line + "\n"
+        # When an error happens, log it and save the time
+        # Note that we are logging to the compiled event object
+        page.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb, data])
+        try:
+            messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
         except Exception as e:
-            # The HTTPRedirect is NOT an error, and should not be handled like one.
-            # So we just reraise it unchanged
-            if isinstance(e, cherrypy.HTTPRedirect):
-                raise e
+            logger.exception("Could not post message")
 
-            # The way we let users securely serve static files is to simply
-            # Give them a function that raises this special exception
-            if isinstance(e, self.kaithemobj.ServeFileInsteadOfRenderingPageException):
-                return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+        # Keep only the most recent 25 errors
 
-            tb = traceback.format_exc(chain=True)
-            # tb = tornado.exceptions.text_error_template().render()
-            data = (
-                "Request from: " + cherrypy.request.remote.ip + "(" + pages.getAcessingUser() + ")\n" + cherrypy.request.request_line + "\n"
+        # If this is the first error(high level: transition from ok to not ok)
+        # send a global system messsage that will go to the front page.
+        if len(page.errors) == 1:
+            messagebus.post_message(
+                "/system/notifications/errors",
+                'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
             )
-            # When an error happens, log it and save the time
-            # Note that we are logging to the compiled event object
-            page.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb, data])
-            try:
-                messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
-            except Exception as e:
-                logger.exception("Could not post message")
-
-            # Keep only the most recent 25 errors
-
-            # If this is the first error(high level: transition from ok to not ok)
-            # send a global system messsage that will go to the front page.
-            if len(page.errors) == 1:
-                messagebus.post_message(
-                    "/system/notifications/errors",
-                    'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
-                )
-            raise (e)
+        raise (e)
 
 
 def rsc_from_html(fn: str):
@@ -887,3 +878,5 @@ class PageType(modules_state.ResourceType):
 
 p = PageType("page", mdi_icon="web", schema=schema)
 modules_state.additionalTypes["page"] = p
+
+add_asgi_app("/pages", app, "__guest__")
