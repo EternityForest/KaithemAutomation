@@ -495,8 +495,6 @@ class rawwebsocket_impl:
 async def app(scope, receive, send):
     websocket = WebSocket(scope=scope, receive=receive, send=send)
     await websocket.accept()
-    await websocket.send_text("Hello, world!")
-    await websocket.close()
 
     try:
         user_agent = scope.headers["User-Agent"]
@@ -504,7 +502,7 @@ async def app(scope, receive, send):
         user_agent = ""
     x = scope["client"][0]
 
-    if scope["protocol"] == "https" or pages.isHTTPAllowed(x):
+    if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
         user = pages.getAcessingUser(asgi=scope)
         cookie = scope.get("cookie", None)
     else:
@@ -528,7 +526,8 @@ async def app(scope, receive, send):
         runner = WSActionRunner()
 
     async for i in websocket.iter_bytes():
-        runner.dowsAction(lambda: impl.received_message(i))
+        if i:
+            runner.dowsAction(lambda: impl.received_message(i))
 
 
 async def rawapp(scope, receive, send):
@@ -536,8 +535,6 @@ async def rawapp(scope, receive, send):
 
     websocket = WebSocket(scope=scope, receive=receive, send=send)
     await websocket.accept()
-    await websocket.send_text("Hello, world!")
-    await websocket.close()
 
     try:
         user_agent = scope.headers["User-Agent"]
@@ -545,7 +542,7 @@ async def rawapp(scope, receive, send):
         user_agent = ""
     x = scope["client"][0]
 
-    if scope["protocol"] == "https" or pages.isHTTPAllowed(x):
+    if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
         user = pages.getAcessingUser(asgi=scope)
         cookie = scope.get("cookie", None)
     else:
@@ -569,7 +566,8 @@ async def rawapp(scope, receive, send):
         runner = WSActionRunner()
 
     async for i in websocket.iter_bytes():
-        runner.dowsAction(lambda: impl.received_message(i))
+        if i:
+            runner.dowsAction(lambda: impl.received_message(i))
 
 
 def randID() -> str:

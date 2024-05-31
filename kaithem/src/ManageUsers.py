@@ -4,13 +4,14 @@
 """Provides a web interface over the authorization system"""
 
 import cherrypy
+import quart
 
-from . import auth, dialogs, messagebus, pages
+from . import auth, dialogs, messagebus, pages, quart_app
 from .util import quote
 
 
 class ManageAuthorization:
-    @cherrypy.expose
+    @quart_app.app.route("/auth")
     def index(self):
         try:
             pages.require("system_admin")
@@ -20,38 +21,39 @@ class ManageAuthorization:
         return pages.get_template("auth/index.html").render(auth=auth)
 
     # The actual POST target to delete a user
-    @cherrypy.expose
-    def deluser(self, **kwargs):
+    @quart_app.app.route("/auth/deluser", methods=["POST"])
+    async def deluser(self):
+        kwargs = await quart.request.form
         try:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        pages.postOnly()
         auth.removeUser(kwargs["user"])
         messagebus.post_message(
             "/system/auth/user/deleted",
             {"user": kwargs["user"], "deletedby": pages.getAcessingUser()},
         )
-        raise cherrypy.HTTPRedirect("/auth")
+        return quart.redirect("/auth")
 
     # POST target for deleting a group
-    @cherrypy.expose
-    def delgroup(self, **kwargs):
+    @quart_app.app.route("/auth/delgroup", methods=["POST"])
+    async def delgroup(self):
+        kwargs = await quart.request.form
         try:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        pages.postOnly()
+
         auth.removeGroup(kwargs["group"])
         messagebus.post_message(
             "/system/auth/group/deleted",
             {"group": kwargs["group"], "deletedby": pages.getAcessingUser()},
         )
-        raise cherrypy.HTTPRedirect("/auth")
+        return quart.redirect("/auth")
 
     # INterface to select a user to delete
-    @cherrypy.expose
-    def deleteuser(self, **kwargs):
+    @quart_app.app.route("/auth/deleteuser")
+    async def deleteuser(self):
         try:
             pages.require("system_admin")
         except PermissionError:
@@ -64,8 +66,8 @@ class ManageAuthorization:
         return d.render("/auth/deluser")
 
     # Interface to select a group to delete
-    @cherrypy.expose
-    def deletegroup(self, **kwargs):
+    @quart_app.app.route("/auth/deletegroup")
+    async def deletegroup(self):
         try:
             pages.require("system_admin")
         except PermissionError:
@@ -74,7 +76,7 @@ class ManageAuthorization:
         return pages.get_template("auth/deletegroup.html").render()
 
     # Add user interface
-    @cherrypy.expose
+    @quart_app.app.route("/auth/newuser")
     def newuser(self):
         try:
             pages.require("system_admin")
@@ -91,7 +93,7 @@ class ManageAuthorization:
         return d.render("/auth/newusertarget")
 
     # add group interface
-    @cherrypy.expose
+    @quart_app.app.route("/auth/newgroup")
     def newgroup(self):
         try:
             pages.require("system_admin")
@@ -101,9 +103,10 @@ class ManageAuthorization:
 
         return pages.get_template("auth/newgroup.html").render()
 
-    @cherrypy.expose
+    @quart_app.app.route("/auth/newusertarget", methods=["POST"])
     # handler for the POST request to change user settings
-    def newusertarget(self, **kwargs):
+    async def newusertarget(self):
+        kwargs = await quart.request.form
         # THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         # BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs["username"])
@@ -111,7 +114,6 @@ class ManageAuthorization:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect("/")
-        pages.postOnly()
         # create the new user
         auth.addUser(
             kwargs["username"],
@@ -125,11 +127,12 @@ class ManageAuthorization:
             {"user": kwargs["username"], "addedby": pages.getAcessingUser()},
         )
 
-        raise cherrypy.HTTPRedirect("/auth/")
+        return quart.redirect("/auth/")
 
-    @cherrypy.expose
+    @quart_app.app.route("/auth/newgrouptarget", methods=["POST"])
     # handler for the POST request to change user settings
-    def newgrouptarget(self, **kwargs):
+    async def newgrouptarget(self):
+        kwargs = await quart.request.form
         # THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         # BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs["groupname"])
@@ -146,16 +149,17 @@ class ManageAuthorization:
         )
 
         # Take the user back to the users page
-        raise cherrypy.HTTPRedirect("/auth/")
+        return quart.redirect("/auth/")
 
-    @cherrypy.expose
+    @quart_app.app.route("/auth/updateuser/<user>", methods=["POST"])
     # handler for the POST request to change user settings
-    def updateuser(self, user, **kwargs):
+    async def updateuser(self, user):
+        kwargs = await quart.request.form
+
         try:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        pages.postOnly()
 
         useSystem = "useSystemPassword" in kwargs
 
@@ -197,11 +201,13 @@ class ManageAuthorization:
             {"user": user, "modifiedby": pages.getAcessingUser()},
         )
         # Take the user back to the users page
-        raise cherrypy.HTTPRedirect("/auth")
+        return quart.redirect("/auth")
 
-    @cherrypy.expose
+    @quart_app.app.route("/auth/updategroup/<group>", methods=["POST"])
     # handler for the POST request to change user settings
-    def updategroup(self, group, **kwargs):
+    async def updategroup(self, group):
+        kwargs = await quart.request.form
+
         try:
             pages.require("system_admin")
         except PermissionError:
@@ -226,11 +232,13 @@ class ManageAuthorization:
             {"group": group, "changedby": pages.getAcessingUser()},
         )
 
-        raise cherrypy.HTTPRedirect("/auth")
+        return quart.redirect("/auth")
 
     # Settings page for one individual user
-    @cherrypy.expose
+    @quart_app.app.route("/auth/user/<username>", methods=["POST"])
     def user(self, username):
+        # kwargs = await quart.request.form
+
         username = username.encode("latin-1").decode("utf-8")
         try:
             pages.require("system_admin")

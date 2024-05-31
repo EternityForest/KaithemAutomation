@@ -13,6 +13,7 @@ import jinja2
 import quart
 from mako.lookup import TemplateLookup
 from starlette.requests import Request
+from starlette.websockets import WebSocket
 
 from . import auth, directories, settings_overrides
 
@@ -109,7 +110,7 @@ def isHTTPAllowed(ip):
 
 
 def getSubdomain():
-    x = quart.request.base.split("://", 1)[-1]
+    x = quart.request.base_url.split("://", 1)[-1]
 
     sdpath = x.split(".")
 
@@ -239,8 +240,13 @@ def getAcessingUser(asgi=None):
     # Directly pass tornado request. Normally not needed, just for websocket stuff
 
     if asgi:
-        r = Request(asgi)
+        try:
+            r = Request(asgi)
+        except Exception:
+            r = WebSocket(asgi, None, None)
+
         headers = asgi["headers"]
+        headers = {i.decode(): j.decode() for i, j in headers}
         scheme = asgi["scheme"]
         remote_ip = asgi["client"][0]
         cookie = r.cookies
@@ -249,7 +255,7 @@ def getAcessingUser(asgi=None):
         if not quart.request:
             return "__no_request__"
 
-        headers = quart.request.headers
+        headers = dict(quart.request.headers)
         scheme = quart.request.scheme
         remote_ip = quart.request.remote_addr
         cookie = quart.request.cookies
@@ -266,7 +272,7 @@ def getAcessingUser(asgi=None):
                 # Basic auth over http is not secure at all, so we raise an error if we catch it.
                 x = remote_ip
                 if not isHTTPAllowed(x):
-                    return quart.redirect("/errors/gosecure")
+                    raise PermissionError("Cannot make this request from plain http")
             # Get token using username and password
             auth.userLogin(b[0], b[1])
             # Check the credentials of that token

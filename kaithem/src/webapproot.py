@@ -154,7 +154,7 @@ async def index_default(*path, **data):
 
 
 @quart_app.app.route("/index")
-async def index_direct(self):
+async def index_direct():
     try:
         pages.require("view_status")
     except PermissionError:
@@ -166,7 +166,7 @@ async def index_direct(self):
 
 
 @quart_app.app.route("/dropdownpanel")
-def dropdownpanel(self):
+def dropdownpanel():
     try:
         pages.require("view_status")
     except PermissionError:
@@ -253,26 +253,27 @@ def docs(*path):
 
 
 @quart_app.app.route("/themetest")
-def themetest(self):
+def themetest():
     return pages.get_template("help/themetest.html").render()
 
 
 @quart_app.app.route("/about")
-def about(self):
+def about():
     return pages.get_template("help/about.html").render()
 
 
 @quart_app.app.route("/changelog")
-def changelog(self):
+def changelog():
     return pages.get_template("help/changes.html").render()
 
 
 @quart_app.app.route("/helpmenu")
-def helpmenu(self):
+def helpmenu():
     return pages.get_template("help/index.html").render()
 
 
-def license(self):
+@quart_app.app.route("/license")
+def license():
     return pages.get_template("help/license.html").render()
 
 
