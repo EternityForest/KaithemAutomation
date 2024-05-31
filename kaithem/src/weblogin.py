@@ -167,4 +167,6 @@ def logout():
             ],
         )
         auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie["kaithem_auth"].value))
-    return quart.redirect("/index")
+    r = quart.redirect("/index")
+    r.set_cookie("kaithem_auth", "", samesite="Strict", path="/", httponly=True, secure=False)
+    return r

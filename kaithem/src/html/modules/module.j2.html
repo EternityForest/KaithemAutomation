@@ -3,7 +3,7 @@
 
 {% block body %}
 <style>
-    dd{
+    dd {
         min-height: 3em;
         margin-left: 1em;
         border-left: var(--border);
@@ -17,9 +17,9 @@
     <section class="flex-row gaps margin">
         <section class="window col-6 padding">
             {{ getModuleHash(name) }}
-            </br>
+            <br>
             <b>{{ getModuleWordHash(name) }}</b>
-            </br><br>
+            <br><br>
             <a href="/modules/yamldownload/{{ url(name) }}.zip">Download this module as a zip file</a>
             <br>
             <form action="/modules/module/{{ url(name) }}/obj/module" method="post">
@@ -31,15 +31,15 @@
                 <h4>Name:</h4>
                 <input required="required" class="modulename" name="name" type="text" value="{{ name| escape }}">
                 <h4>Info:</h4>
-                <textarea name="description" class="description" rows=5>{{ getDesc(module)| escape }}</textarea>
+                <textarea name="description" class="description" rows="5">{{ getDesc(module)| escape }}</textarea>
                 <h4>Save Location(blank=default):</h4>
-                <input name="location" title="Enter a directory name on the server's local filesystem"
+                <input type="text" name="location" title="Enter a directory name on the server's local filesystem"
                     value="{{ external_module_locations.get(name,'') | escape }}">
-                </input>
+
                 <hr>
                 {% if pages.canUserDoThis("system_admin") %}
                 <input type="submit" value="Save Changes">
-                </input>
+
                 {% else %}
                 <p class="warning">You must have the "system_admin" permission to make changes. Are you logged
                     in?
@@ -47,9 +47,11 @@
                 {% endif %}
             </form>
 
-           <details><summary><b>Quick Actions</b></summary>
-                <iframe src="/modules/actions/{{ url(name) }}/{{'/'.join(path)}}"></iframe>
-          </details>
+            <details>
+                <summary><b>Quick Actions</b></summary>
+                <iframe
+                    src="/modules/actions/{{ url(name) }}/{{'/'.join(path)}}?dir={{ url('/'.join(path) ) }}"></iframe>
+            </details>
         </section>
     </section>
     <section class="window padding">
@@ -64,29 +66,34 @@
         </div>
         <div class="tool-bar w-full">
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/permission/{{ url('/'.join(path) ) }}"><i class="mdi mdi-key"></i>Permission</a>
+                href="/modules/module/{{ url(name) }}/addresource/permission/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                    class="mdi mdi-key"></i>Permission</a>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/directory/{{ url('/'.join(path) ) }}"><i class="mdi mdi-folder-outline"></i>Folder</a>
-            <a class="button" href="/modules/module/{{ url(name) }}/addfileresource/{{ url('/'.join(path) ) }}"><i class="mdi mdi-file-document"></i>File</a>
+                href="/modules/module/{{ url(name) }}/addresource/directory/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                    class="mdi mdi-folder-outline"></i>Folder</a>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/device/{{ url('/'.join(path) ) }}"><i class="mdi mdi-chip"></i>Device</a>
+                href="/modules/module/{{ url(name) }}/addfileresource/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                    class="mdi mdi-file-document"></i>File</a>
+            <a class="button"
+                href="/modules/module/{{ url(name) }}/addresource/device/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                    class="mdi mdi-chip"></i>Device</a>
             {% for i in modules.additionalTypes %}
             {% if modules.additionalTypes[i].mdi_icon %}
             <a class="button createbutton"
-                href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}">
-                <i class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
+                href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}">
+                <i
+                    class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
             {% endif %}
             {% endfor %}
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
-            <a class="button"
-            href="/modules/module/{{ url(name) }}/uploadresource/{{ url('/'.join(path) ) }}">
-            <i class="mdi mdi-upload-box"></i>Upload</a>
+            <a class="button" href="/modules/module/{{ url(name) }}/uploadresource/{{ url('/'.join(path) ) }}">
+                <i class="mdi mdi-upload-box"></i>Upload</a>
 
             <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}">
-                <input size=8 name="search" placeholder="Search this module" />
-                <button type=submit value="search"> <i class="mdi mdi-search-web">
+                <input size="8" name="search" placeholder="Search this module" />
+                <button type="submit" value="search"> <i class="mdi mdi-search-web">
                     </i></button>
 
             </form>
@@ -129,8 +136,9 @@
                     <a class="settingsbuttton"
                         href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">Properties</a>
 
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span class="mdi mdi-folder-move"></span>
-                            Move</a>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
+                            class="mdi mdi-folder-move"></span>
+                        Move</a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
                     <p>
@@ -145,12 +153,15 @@
             <dt>
                 <div class="tool-bar w-full inline">
                     <h3>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i
+                                class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
                             {{ i.split("/")[-1] | escape }} ({{module[i]['resource_type']}})</a>
                     </h3>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span class="mdi mdi-download-box"></span>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
+                            class="mdi mdi-download-box"></span>
                         Export</a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span class="mdi mdi-folder-move"></span>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
+                            class="mdi mdi-folder-move"></span>
                         Move</a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
@@ -168,7 +179,8 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a class="deviceslink"
-                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}"> <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
+                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}">
+                            <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
@@ -187,8 +199,7 @@
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
                                 class="mdi mdi-folder-outline"></i><b></b>{{ i.split('/')[-1] | escape }}</b></a>
                     </h3>
-                    <a class="button nogrow"
-                        href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
                         <i class="mdi mdi-delete"></i>Delete</a>
                 </div>
             </dt>
@@ -204,8 +215,8 @@
 <script>
     // Fix going back after a change and seeing old data
     const perfEntries = performance.getEntriesByType('navigation');
-if (perfEntries.length && perfEntries[0].type === 'back_forward') {
-  window.location.reload()
-}
+    if (perfEntries.length && perfEntries[0].type === 'back_forward') {
+        window.location.reload()
+    }
 </script>
 {% endblock %}

@@ -5,7 +5,6 @@
 import copy
 import logging
 import os
-import time
 import weakref
 
 import cherrypy
@@ -14,10 +13,10 @@ import quart.utils
 import structlog
 import yaml
 from quart import request
+from quart.ctx import copy_current_request_context
 from scullery import scheduling, workers
 
 from . import auth, dialogs, directories, messagebus, module_actions, modules, modules_state, pages, quart_app, unitsofmeasure, util
-from .modules import check_forbidden, external_module_locations
 from .modules_state import in_folder
 from .util import url
 
@@ -146,6 +145,7 @@ async def uploadResource(module):
     if not upl:
         raise RuntimeError("No file uploaded")
 
+    @copy_current_request_context
     def f():
         f = b""
 
@@ -175,7 +175,10 @@ def download_resource(module, obj):
     pages.require("view_admin_info")
     if modules_state.ActiveModules[module][obj]["resource_type"] in modules_state.additionalTypes:
         modules_state.additionalTypes[modules_state.ActiveModules[module][obj]["resource_type"]].flush_unsaved(module, obj)
-    return yaml.dump(modules_state.ActiveModules[module][obj])
+    r = quart.Response(
+        yaml.dump(modules_state.ActiveModules[module][obj]), headers={"Content-Disposition": f'attachment; filename="{obj}.yaml"'}
+    )
+    return r
 
 
 @quart_app.app.route("/modules/module/<module>/scanfiles", methods=["POST"])
@@ -196,6 +199,7 @@ async def runevent(module):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
+    @copy_current_request_context
     def f():
         from .plugins import CorePluginEventResources
 
@@ -239,6 +243,7 @@ async def getfileresource(module, resource):
 async def action(module):
     kwargs = await request.form
 
+    @copy_current_request_context
     def f():
         m = module_actions.get_action(kwargs["action"], {"module": module, "path": kwargs["dir"]})
         return quart.redirect(f"/action_step/{m.id}")
@@ -246,244 +251,84 @@ async def action(module):
     return await quart.utils.run_sync(f)()
 
 
-@quart_app.app.route("/modules/module/<module>/<path:path>")
-# This function handles HTTP requests of or relating to one specific already existing module.
-# The URLs that this function handles are of the form /modules/module/<modulename>[something?]
-async def module(module, path=""):
-    path = path.split("/")
-    kwargs = request.args
-
-    dir = kwargs.get("dir", "")
-
-    fullpath = module
-    if dir:
-        fullpath += f"/{dir}"
+@quart_app.app.route("/modules/module/<module>/addfileresource/<target>")
+async def addfileresource(module, target):
     try:
-        pages.require("view_admin_info")
+        pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+    path = request.args.get("dir", "")
 
-    # If we are not performing an action on a module just going to its page
+    # path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
+    return pages.get_template("modules/uploadfileresource.html").render(module=module, path=path)
+
+
+@quart_app.app.route("/modules/module/<module>/uploadfileresourcetarget", methods=["POST"])
+async def uploadfileresourcetarget(module):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    kwargs = await request.form
+    path = kwargs["dir"]
+    file = None
+    for k, v in (await request.files).items():
+        file = v
+    assert file
+
+    @copy_current_request_context
     def f():
-        # This gets the interface to add a page
-        if path[0] == "addfileresource":
-            cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-            try:
-                pages.require("system_admin")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-            if len(path) > 1:
-                x = path[1]
-            else:
-                x = ""
-            # path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
-            return pages.get_template("modules/uploadfileresource.html").render(module=module, path=x)
+        d = modules.getModuleDir(module)
+        folder = os.path.join(d, "__filedata__")
 
-        # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
-        if path[0] == "uploadfileresourcetarget":
-            try:
-                pages.require("system_admin")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-            pages.postOnly()
-            d = modules.getModuleDir(module)
-            folder = os.path.join(d, "__filedata__")
+        os.makedirs(folder, exist_ok=True)
+        data_basename = kwargs["name"]
 
-            os.makedirs(folder, exist_ok=True)
-            data_basename = kwargs["name"]
+        dataname = data_basename
+        if len(path) > 1:
+            dataname = f"{path[1]}/{dataname}"
 
-            dataname = data_basename
-            if len(path) > 1:
-                dataname = f"{path[1]}/{dataname}"
+        dataname = os.path.join(folder, dataname)
 
-            dataname = os.path.join(folder, dataname)
+        inputfile = file
 
-            inputfile = kwargs["file"]
+        os.makedirs(os.path.dirname(dataname), exist_ok=True)
 
-            os.makedirs(os.path.dirname(dataname), exist_ok=True)
+        syslog.info(f"User uploaded file resource to {dataname}")
+        with open(dataname, "wb") as f:
+            while True:
+                d = inputfile.file.read(8192)
+                if not d:
+                    break
+                f.write(d)
 
-            syslog.info(f"User uploaded file resource to {dataname}")
-            with open(dataname, "wb") as f:
-                while True:
-                    d = inputfile.file.read(8192)
-                    if not d:
-                        break
-                    f.write(d)
+        with modules_state.modulesLock:
 
-            with modules_state.modulesLock:
+            def insertResource(r):
+                modules_state.rawInsertResource(module, data_basename, r)
 
-                def insertResource(r):
-                    modules_state.rawInsertResource(module, data_basename, r)
+            # END BLOCK OF COPY PASTED CODE.
 
-                # END BLOCK OF COPY PASTED CODE.
+            modules_state.file_resource_paths[module, data_basename] = dataname
+            d = {
+                "resource_type": "internal_fileref",
+                "serve": "serve" in kwargs,
+                "target": "$MODULERESOURCES/" + util.url(data_basename, modules.safeFnChars),
+            }
 
-                modules_state.file_resource_paths[module, data_basename] = dataname
-                d = {
-                    "resource_type": "internal_fileref",
-                    "serve": "serve" in kwargs,
-                    "target": "$MODULERESOURCES/" + util.url(data_basename, modules.safeFnChars),
-                }
+            # Preserve existing metadata
+            if data_basename in modules_state.ActiveModules[module]:
+                d2 = copy.deepcopy(modules_state.ActiveModules[module])
+                d2.update(d)
+                d = d2
 
-                # Preserve existing metadata
-                if data_basename in modules_state.ActiveModules[module]:
-                    d2 = copy.deepcopy(modules_state.ActiveModules[module])
-                    d2.update(d)
-                    d = d2
-
-                insertResource(d)
-                modules.handleResourceChange(module, data_basename)
-                modules_state.recalcModuleHashes()
-            if len(path) > 1:
-                return quart.redirect(f"/modules/module/{util.url(module)}/resource/{util.url(path[1])}")
-            else:
-                return quart.redirect(f"/modules/module/{util.url(module)}")
-
-        # This returns a page to delete any resource by name
-        if path[0] == "deleteresource":
-            cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-            assert len(path) == 2
-            try:
-                pages.require("system_admin")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-
-            d = dialogs.SimpleDialog(f"Delete resource in {module}")
-            d.text_input("name", default=path[1])
-            d.submit_button("Submit")
-            return d.render(f"/modules/module/{url(module)}/deleteresourcetarget")
-
-        if path[0] == "moveresource":
-            cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-            assert len(path) == 2
-            try:
-                pages.require("system_admin")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-
-            d = dialogs.SimpleDialog(f"Move resource in {module}")
-            d.text_input("name", default=path[1])
-            d.text_input("newname", default=path[1], title="New Name")
-            d.text_input("newmodule", default=module, title="New Module")
-            d.submit_button("Submit")
-            return d.render(f"/modules/module/{url(module)}/moveresourcetarget")
-
-        # This handles the POST request to actually do the deletion
-        if path[0] == "deleteresourcetarget":
-            try:
-                pages.require("system_admin")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-            pages.postOnly()
-            modules.rmResource(
-                module,
-                kwargs["name"],
-                f"Resource Deleted by {pages.getAcessingUser()}",
-            )
-
-            messagebus.post_message(
-                "/system/notifications",
-                "User " + pages.getAcessingUser() + " deleted resource " + kwargs["name"] + " from module " + module,
-            )
-            messagebus.post_message(
-                "/system/modules/deletedresource",
-                {
-                    "ip": cherrypy.request.remote.ip,
-                    "user": pages.getAcessingUser(),
-                    "module": module,
-                    "resource": kwargs["name"],
-                },
-            )
-            if len(kwargs["name"].split("/")) > 1:
-                return quart.redirect(
-                    "/modules/module/" + util.url(module) + "/resource/" + util.url(util.module_onelevelup(kwargs["name"]))
-                )
-            else:
-                return quart.redirect(f"/modules/module/{util.url(module)}")
-
-        if path[0] == "moveresourcetarget":
-            try:
-                pages.require("system_admin")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-            pages.postOnly()
-
-            # Allow / to move stuf to dirs
-            check_forbidden(kwargs["newname"].replace("/", ""))
-
-            modules.mvResource(module, kwargs["name"], kwargs["newmodule"], kwargs["newname"])
-            return quart.redirect(f"/modules/module/{util.url(module)}")
-
-        # This is the target used to change the name and description(basic info) of a module
-        if path[0] == "update":
-            try:
-                pages.require("system_admin")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-            pages.postOnly()
+            insertResource(d)
+            modules.handleResourceChange(module, data_basename)
             modules_state.recalcModuleHashes()
-            if not kwargs["name"] == module:
-                if "." in kwargs:
-                    raise ValueError("No . in resource name")
-            with modules_state.modulesLock:
-                if "location" in kwargs and kwargs["location"]:
-                    external_module_locations[kwargs["name"]] = kwargs["location"]
-                    # We can't just do a delete and then set, what if something odd happens between?
-                    if not kwargs["name"] == module and module in external_module_locations:
-                        del external_module_locations[module]
-                else:
-                    # We must delete this before deleting the actual external_module_locations entry
-                    # If this fails, we can still save, and will reload correctly.
-                    # But if there was no entry, but there was a file,
-                    # It would reload from the external, but save to the internal,
-                    # Which would be very confusing. We want to load from where we saved.
-
-                    # If we somehow have no file but an entry, saving will remake the file.
-                    # If there's no entry, we will only be able to save by saving the whole state.
-                    if os.path.isfile(
-                        os.path.join(
-                            directories.moduledir,
-                            "data",
-                            f"__{util.url(module)}.location",
-                        )
-                    ):
-                        if module in external_module_locations:
-                            os.remove(external_module_locations[module])
-
-                    if module in external_module_locations:
-                        external_module_locations.pop(module)
-                # Missing descriptions have caused a lot of bugs
-                if "__description" in modules_state.ActiveModules[module]:
-                    dsc = dict(copy.deepcopy(modules_state.ActiveModules[module]["__description"]["text"]))
-                    dsc["text"] = kwargs["description"]
-                    modules_state.ActiveModules[module]["__description"] = dsc
-                else:
-                    modules_state.ActiveModules[module]["__description"] = {
-                        "resource_type": "module-description",
-                        "text": kwargs["description"],
-                        "resource_timestamp": int(time.time() * 1000000),
-                    }
-
-                # Renaming reloads the entire module.
-                # TODO This needs to handle custom resource types if we ever implement them.
-                if not kwargs["name"] == module:
-                    modules_state.ActiveModules[kwargs["name"]] = modules_state.ActiveModules.pop(module)
-
-                    for rt in modules_state.additionalTypes:
-                        modules_state.additionalTypes[rt].ondeletemodule(module)
-
-                    # Calll the deleter
-                    for r, obj in modules_state.ActiveModules[kwargs["name"]].items():
-                        rt = modules_state.ActiveModules[kwargs["name"]]["resource_type"]
-                        assert isinstance(rt, str)
-                        if rt in modules_state.additionalTypes:
-                            modules_state.additionalTypes[rt].ondelete(module, r, obj)
-
-                    # And calls this function the generate the new cache
-                    modules.bookkeeponemodule(kwargs["name"], update=True)
-                    # Just for fun, we should probably also sync the permissions
-                    auth.importPermissionsFromModules()
-
-            return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
+        if len(path) > 1:
+            return quart.redirect(f"/modules/module/{util.url(module)}/resource/{util.url(path[1])}")
+        else:
+            return quart.redirect(f"/modules/module/{util.url(module)}")
 
     return await quart.utils.run_sync(f)()
 
@@ -514,6 +359,7 @@ async def search(module):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
+    @copy_current_request_context
     def f():
         if not module == "__all__":
             return pages.get_template("modules/search.html").render(
@@ -532,7 +378,7 @@ async def search(module):
 
 
 # This lets the user download a module as a zip file with yaml encoded resources
-@quart_app.app.route("/modules/search/<module>")
+@quart_app.app.route("/modules/yamldownload/<module>")
 def yamldownload(module):
     try:
         pages.require("view_admin_info")
@@ -572,6 +418,7 @@ async def uploadtarget():
     # Can't actuslly use def in a for loop usually but it;s fine since there;s only one
     for name, file in (await request.files).items():
 
+        @copy_current_request_context
         def f():
             modules_state.recalcModuleHashes()
             modules.load_modules_from_zip(file, replace="replace" in request.args)
@@ -584,7 +431,6 @@ async def uploadtarget():
 
 @quart_app.app.route("/modules")
 def modules_index():
-    # Require permissions and render page. A lotta that in this file.
     try:
         pages.require("view_admin_info")
     except PermissionError:
@@ -602,57 +448,18 @@ def library():
     return pages.get_template("modules/library.html").render()
 
 
-@quart_app.app.route("/modules/newmodule")
-def newmodule():
+@quart_app.app.route("/modules/module/<module>/newmoduletarget", methods=["POST"])
+async def loadlibmodule(module):
+    "Load a module from the library"
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    d = dialogs.SimpleDialog("Add New Module")
-    d.text_input("name", title="Name of New Module")
-    d.text("Choose an existing dir to load that module.")
-    d.text_input("location", title="Save location(Blank: auto in kaithem dir)")
-    d.submit_button("Submit")
-    return d.render("/modules/newmoduletarget")
+    name = (await request.form)["name"]
+    name = name or module
 
-
-# @cherrypy.expose
-# def manual_run(self,module, resource):
-# These modules handle their own permissions
-# if isinstance(EventReferences[module,resource], ManualEvent):
-# EventReferences[module,resource].run()
-# else:
-# raise RuntimeError("Event does not support running manually")
-
-
-class WebInterface:
-    @cherrypy.expose
-    def newmoduletarget(self, **kwargs):
-        try:
-            pages.require("system_admin")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        pages.postOnly()
-
-        check_forbidden(kwargs["name"])
-
-        # If there is no module by that name, create a blank template and the scope obj
-        with modules_state.modulesLock:
-            if kwargs["name"] in modules_state.ActiveModules:
-                return pages.get_template("error.html").render(info=" A module already exists by that name,")
-            modules.newModule(kwargs["name"], kwargs.get("location", None))
-            return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
-
-    @cherrypy.expose
-    def loadlibmodule(self, module, name=""):
-        "Load a module from the library"
-        try:
-            pages.require("system_admin")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        pages.postOnly()
-        name = name or module
-
+    @copy_current_request_context
+    def f():
         if name in modules_state.ActiveModules:
             return quart.redirect("/errors/alreadyexists")
 
@@ -665,232 +472,13 @@ class WebInterface:
         modules.saveModule(modules_state.ActiveModules[name], name)
         return quart.redirect("/modules")
 
-
-# Return a CRUD screen to create a new resource taking into the type of resource the user wants to create
-
-
-def addResourceDispatcher(module, type, path):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    # Return a crud to add a new permission
-    if type in ("permission", "directory"):
-        d = dialogs.SimpleDialog(f"New {type.capitalize()} in {module}")
-        d.text_input("name")
-
-        if type in ("permission",):
-            d.text_input("description")
-
-        d.submit_button("Create")
-        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{type}/{url(path)}")
-    else:
-        return modules_state.additionalTypes[type].createpage(module, path)
+    return await quart.utils.run_sync(f)()
 
 
-# The target for the POST from the CRUD to actually create the new resource
-# Basically it takes a module, a new resource name, and a type, and creates a template resource
-
-
-def addResourceTarget(module, type, name, kwargs, path):
-    modules_state.recalcModuleHashes()
-
-    check_forbidden(kwargs["name"])
-
-    name_with_path = kwargs["name"]
-    if path:
-        name_with_path = f"{path}/{name_with_path}"
-    x = module.split("/")
-    name_with_path = "/".join(x[1:] + [name_with_path])
-    root = x[0]
-
-    def insertResource(r):
-        r["resource_timestamp"] = int(time.time() * 1000000)
-        modules_state.rawInsertResource(root, name_with_path, r)
-
-    with modules_state.modulesLock:
-        # Check if a resource by that name is already there
-        if name_with_path in modules_state.ActiveModules[root]:
-            return quart.redirect("/errors/alreadyexists")
-
-        if type == "directory":
-            insertResource({"resource_type": "directory"})
-            return quart.redirect(f"/modules/module/{util.url(module)}")
-
-        elif type == "permission":
-            insertResource({"resource_type": "permission", "description": kwargs["description"]})
-            # has its own lock
-            auth.importPermissionsFromModules()  # sync auth's list of permissions
-
-        else:
-            rt = modules_state.additionalTypes[type]
-            # If create returns None, assume it doesn't want to insert a module or handles it by itself
-            r = rt.oncreaterequest(module, name, kwargs)
-            rt._validate(r)
-            if r:
-                insertResource(r)
-                rt.onload(module, name_with_path, r)
-
-        messagebus.post_message(
-            "/system/notifications",
-            "User " + pages.getAcessingUser() + " added resource " + name_with_path + " of type " + type + " to module " + root,
-        )
-        # Take the user straight to the resource page
-        return quart.redirect(f"/modules/module/{util.url(module)}/resource/{util.url(name_with_path)}")
-
-
-# show a edit page for a resource. No side effect here so it only requires the view permission
-def resourceEditPage(module, resource, version="default", kwargs={}):
-    try:
-        pages.require("view_admin_info")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-    with modules_state.modulesLock:
-        resourceinquestion = modules_state.ActiveModules[module][resource]
-
-        if version == "__old__":
-            resourceinquestion = prev_versions[(module, resource)]
-
-        elif version == "__default__":
-            try:
-                resourceinquestion = modules_state.ActiveModules[module][resource]["versions"]["__draft__"]
-                version = "__draft__"
-            except KeyError:
-                version = "__live__"
-        else:
-            version = "__live__"
-
-        assert isinstance(resourceinquestion, dict)
-
-        if "resource_type" not in resourceinquestion:
-            raise RuntimeError("No resource type found")
-
-        if resourceinquestion["resource_type"] == "permission":
-            return permissionEditPage(module, resource)
-
-        if resourceinquestion["resource_type"] == "internal_fileref":
-            if "require_permissions" in resourceinquestion:
-                requiredpermissions = resourceinquestion["require_permissions"]
-            else:
-                requiredpermissions = []
-            return pages.get_template("modules/fileresources/fileresource.html").render(
-                module=module,
-                resource=resource,
-                resourceobj=resourceinquestion,
-                requiredpermissions=requiredpermissions,
-            )
-
-        if resourceinquestion["resource_type"] == "directory":
-            try:
-                pages.require("view_admin_info")
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-
-            return pages.render_jinja_template(
-                "modules/module.j2.html",
-                module=modules_state.ActiveModules[module],
-                name=module,
-                path=resource.split("/"),
-                fullpath=f"{module}/{resource}",
-                module_actions=module_actions,
-                **module_page_context,
-            )
-
-        # This is for the custom resource types interface stuff.
-        return modules_state.additionalTypes[resourceinquestion["resource_type"]].editpage(module, resource, resourceinquestion)
-
-
-def permissionEditPage(module, resource):
-    try:
-        pages.require("view_admin_info")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    d = dialogs.SimpleDialog(f"Permission: {resource} in {module}")
-    d.text_input(
-        "description",
-        default=modules_state.ActiveModules[module][resource]["description"],
-    )
-    d.submit_button("Submit")
-    return d.render(f"/modules/module/{url(module)}/updateresource/{url(resource)}/")
-
-
-# The actual POST target to modify a resource. Context dependant based on resource type.
-def resourceUpdateTarget(module, resource, kwargs):
-    newname = kwargs.get("newname", "")
-
-    modules_state.recalcModuleHashes()
-
-    compiled_object = None
-
-    with modules_state.modulesLock:
-        resourceobj = dict(copy.deepcopy(modules_state.ActiveModules[module][resource]))
-
-        old_resource = copy.deepcopy(resourceobj)
-
-        t = resourceobj["resource_type"]
-        resourceobj["resource_timestamp"] = int(time.time() * 1000000)
-
-        if t in modules_state.additionalTypes:
-            n = modules_state.additionalTypes[t].onupdaterequest(module, resource, old_resource, kwargs)
-            modules_state.additionalTypes[t].validate(n)
-
-            if n:
-                resourceobj = n
-                modules_state.ActiveModules[module][resource] = n
-                modules_state.save_resource(module, resource, n, resource)
-
-        elif t == "permission":
-            resourceobj["description"] = kwargs["description"]
-            # has its own lock
-            modules_state.save_resource(module, resource, resourceobj, newname)
-
-        elif t == "internal_fileref":
-            # If this was autogenerated make sure it actually gets saved now
-            resourceobj.pop("ephemeral", False)
-
-            resourceobj["serve"] = "serve" in kwargs
-            # has its own lock
-            resourceobj["allow_xss"] = "allow_xss" in kwargs
-            resourceobj["allow_origins"] = [i.strip() for i in kwargs["allow_origins"].split(",")]
-            resourceobj["mimetype"] = kwargs["mimetype"]
-
-            # Just like pages, file resources are permissioned
-            resourceobj["require_permissions"] = []
-            for i in kwargs:
-                # Since HTTP args don't have namespaces we prefix all the
-                # permission checkboxes with permission
-                if i[:10] == "Permission":
-                    if kwargs[i] == "true":
-                        resourceobj["require_permissions"].append(i[10:])
-
-            modules_state.save_resource(module, resource, resourceobj, newname)
-
-        else:
-            modules_state.save_resource(module, resource, resourceobj, newname)
-
-        # We can pass a compiled object for things like events that would otherwise
-        # have to have a test compile then the real compile
-        modules.handleResourceChange(module, resource, compiled_object)
-
-        prev_versions[(module, resource)] = old_resource
-
-    messagebus.post_message(
-        "/system/notifications",
-        "User " + pages.getAcessingUser() + " modified resource " + resource + " of module " + module,
-    )
-    r = resource
-    if "name" in kwargs:
-        r = kwargs["name"]
-    if "GoNow" in kwargs:
-        return quart.redirect(f"/pages/{module}/{r}")
-    # Return user to the module page. If name has a folder, return the
-    # user to it;s containing folder.
-    x = r.split("/")
-    if len(x) > 1:
-        return quart.redirect("/modules/module/" + util.url(module) + "/resource/" + "/".join([util.url(i) for i in x[:-1]]) + "#resources")
-    else:
-        # +'/resource/'+util.url(resource))
-        return quart.redirect(f"/modules/module/{util.url(module)}#resources")
+# @cherrypy.expose
+# def manual_run(self,module, resource):
+# These modules handle their own permissions
+# if isinstance(EventReferences[module,resource], ManualEvent):
+# EventReferences[module,resource].run()
+# else:
+# raise RuntimeError("Event does not support running manually")

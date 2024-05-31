@@ -231,7 +231,7 @@ def strictNoCrossSite():
         raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
 
 
-def getAcessingUser(asgi=None):
+def getAcessingUser(asgi=None, quart_req=None):
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
     The result of this function can be trusted because it uses the authentication token.
     """
@@ -250,16 +250,18 @@ def getAcessingUser(asgi=None):
         scheme = asgi["scheme"]
         remote_ip = asgi["client"][0]
         cookie = r.cookies
+        host = headers["host"]
 
     else:
-        if not quart.request:
+        quart_req = quart_req or quart.request
+        if not quart_req:
             return "__no_request__"
 
-        headers = dict(quart.request.headers)
-        scheme = quart.request.scheme
-        remote_ip = quart.request.remote_addr
-        cookie = quart.request.cookies
-        base = quart.request.base_url
+        headers = dict(quart_req.headers)
+        scheme = quart_req.scheme
+        remote_ip = quart_req.remote_addr
+        cookie = quart_req.cookies
+        host = quart_req.host
 
     if "Authorization" in headers:
         x = headers["Authorization"].split("Basic ")
@@ -294,7 +296,7 @@ def getAcessingUser(asgi=None):
                 x = headers.get("Origin", "").replace("http://", "").replace("https://", "").replace("ws://", "").replace("wss://", "")
                 x2 = headers.get("Origin", "")
                 # Cherrypy and tornado compatibility
-                if base not in (x, x2):
+                if host not in (x, x2):
                     return "__guest__"
         return user
 
