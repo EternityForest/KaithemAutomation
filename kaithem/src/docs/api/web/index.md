@@ -12,7 +12,6 @@
   - [add_simple_cherrypy_handler](#add_simple_cherrypy_handler)
   - [add_tornado_app](#add_tornado_app)
   - [add_wsgi_app](#add_wsgi_app)
-  - [goto](#goto)
   - [has_permission](#has_permission)
   - [render_jinja_template](#render_jinja_template)
   - [serve_file](#serve_file)
@@ -56,27 +55,19 @@ def load_bytecode(self, bucket): ...
 
 [Show source in __init__.py:69](../../../../api/web/__init__.py#L69)
 
-Mount an ASGI application to handle all URLs matching the pattern regex
+Mount an ASGI application to handle all URLs matching the prefix
 
 #### Signature
 
 ```python
-def add_asgi_app(pattern: str, app, permission="system_admin"): ...
+def add_asgi_app(prefix: str, app, permission="system_admin"): ...
 ```
 
 
 
 ## add_simple_cherrypy_handler
 
-[Show source in __init__.py:84](../../../../api/web/__init__.py#L84)
-
-Register handler for all requests that look like /prefix.
-handler must look like:
-f(*path, **kwargs)
-
-It will by in a cherrypy context.
-
-This function is alpha.
+[Show source in __init__.py:88](../../../../api/web/__init__.py#L88)
 
 #### Signature
 
@@ -91,7 +82,7 @@ def add_simple_cherrypy_handler(
 
 ## add_tornado_app
 
-[Show source in __init__.py:79](../../../../api/web/__init__.py#L79)
+[Show source in __init__.py:83](../../../../api/web/__init__.py#L83)
 
 Mount a Tornado application to handle all URLs matching the pattern regex
 
@@ -105,35 +96,21 @@ def add_tornado_app(pattern: str, app, args, permission="system_admin"): ...
 
 ## add_wsgi_app
 
-[Show source in __init__.py:74](../../../../api/web/__init__.py#L74)
+[Show source in __init__.py:76](../../../../api/web/__init__.py#L76)
 
-Mount a WSGI application to handle all URLs matching the pattern regex
-
-#### Signature
-
-```python
-def add_wsgi_app(pattern: str, app, permission="system_admin"): ...
-```
-
-
-
-## goto
-
-[Show source in __init__.py:100](../../../../api/web/__init__.py#L100)
-
-Call from within a CherryPy handler to raise an exception to go to another URL
+Mount a WSGI application to handle all URLs matching the prefix
 
 #### Signature
 
 ```python
-def goto(url): ...
+def add_wsgi_app(prefix: str, app, permission="system_admin"): ...
 ```
 
 
 
 ## has_permission
 
-[Show source in __init__.py:123](../../../../api/web/__init__.py#L123)
+[Show source in __init__.py:113](../../../../api/web/__init__.py#L113)
 
 Return True if the user accessing the current web request
 has the permssion specified
@@ -141,7 +118,7 @@ has the permssion specified
 #### Signature
 
 ```python
-def has_permission(permission: str): ...
+def has_permission(permission: str, asgi=None) -> bool: ...
 ```
 
 
@@ -175,9 +152,9 @@ def render_jinja_template(template_filename: str, **kw): ...
 
 ## serve_file
 
-[Show source in __init__.py:105](../../../../api/web/__init__.py#L105)
+[Show source in __init__.py:93](../../../../api/web/__init__.py#L93)
 
-Call from within a CherryPy handler to server a file.
+Call from within a Quart handler to server a file.
 
 #### Signature
 
@@ -189,7 +166,10 @@ def serve_file(path, contenttype="", name=None): ...
 
 ## user
 
-[Show source in __init__.py:110](../../../../api/web/__init__.py#L110)
+[Show source in __init__.py:98](../../../../api/web/__init__.py#L98)
+
+asgi: The ASGI scope object that is currently active, required if
+      this is called from outside a Quart context.
 
 #### Returns
 
@@ -198,7 +178,7 @@ def serve_file(path, contenttype="", name=None): ...
 #### Signature
 
 ```python
-def user() -> str: ...
+def user(asgi=None) -> str: ...
 ```
 
 

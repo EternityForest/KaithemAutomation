@@ -27,9 +27,7 @@ NVRChannel = ">=0.1.7"
 
 
 numpy = ">1.26.1"
-cherrypy = "*"
 cheroot = "*"
-tornado = "*"
 mako = "*"
 jinja2 = "*"
 astral = "*"
@@ -39,7 +37,6 @@ pyyaml = "*"
 types-PyYaml = "*"
 pytest = "*"
 nmcli = "*"
-terminado = "*"
 apprise = "*"
 
 ffmpeg-python = "*"

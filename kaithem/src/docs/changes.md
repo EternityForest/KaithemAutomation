@@ -4,9 +4,14 @@ Change Log
 
 ### 0.84.0
 
+#### Removed
+
+- :coffin: Web console removed due to lack of ASGI but may return later
+
+
 #### Changed
 
-- :sparkles: Move to the quart framework instead of cherrypy.
+- :sparkles: Move to the quart framework instead of cherrypy. Everything is fully ASGI based.
 
 
 ```
