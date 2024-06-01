@@ -114,19 +114,6 @@ def ctype_async_raise(thread_obj, exception):
 syslogger = structlog.get_logger("system")
 
 
-page_plugins: dict[str, PagePlugin] = {}
-
-
-class PagePlugin:
-    def __init__(self, name: str, perms=("system_admin",), title=""):
-        page_plugins[name] = self
-        self.perms = perms
-        self.title = title
-
-    def handle(self, *a, **k):
-        raise NotImplementedError()
-
-
 def legacy_route(f):
     r = f"/settings/{f.__name__}"
 
@@ -143,29 +130,11 @@ def legacy_route(f):
         def f3():
             return f(*a, **kwargs)
 
-        return await quart.utils.run_sync(f3)
+        return await quart.utils.run_sync(f3)()
 
     f2.__name__ = f.__name__ + str(os.urandom(8))
 
     quart_app.app.route(r, methods=["GET", "POST"])(f2)
-
-
-@quart_app.app.route("/settings/<plugin>/<path:path>")
-async def default_settings(plugin: str, path):
-    a = path.split("/")
-    k = dict(await quart.request.form)
-    k.update(quart.request.args)
-
-    try:
-        pages.require(page_plugins[plugin].perms)
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    @copy_current_request_context
-    def f():
-        return page_plugins[plugin].handle(*a, **k)
-
-    return await quart.utils.run_sync(f)()
 
 
 @quart_app.app.route("/settings")
@@ -334,7 +303,7 @@ async def files(*args, **kwargs):
         except Exception:
             return traceback.format_exc()
 
-    return await quart.utils.run_sync(f)
+    return await quart.utils.run_sync(f)()
 
 
 @legacy_route

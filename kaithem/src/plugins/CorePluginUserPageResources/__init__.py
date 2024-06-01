@@ -544,9 +544,9 @@ async def catch_all(module, path):
                     else:
                         h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
 
-                return quart.send_file(fn, mimetype=mime)
+                return await quart.send_file(fn, mimetype=mime)
 
-        raise quart.abort(404)
+        quart.abort(404)
 
     if "Origin" in quart.request.headers:
         if not page.xss:
@@ -624,7 +624,7 @@ async def catch_all(module, path):
         else:
             h["Content-Type"] = e.f_MIME
             h["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
-            return quart.send_file(e.f_filepath)
+            return await quart.send_file(e.f_filepath)
 
     except Exception as e:
         # The HTTPRedirect is NOT an error, and should not be handled like one.

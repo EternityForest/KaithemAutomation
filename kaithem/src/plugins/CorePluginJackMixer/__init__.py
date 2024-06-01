@@ -25,7 +25,7 @@ from kaithem.src import (
     messagebus,
     modules_state,
     pages,
-    settings,
+    quart_app,
     tagpoints,
     util,
     widgets,
@@ -1379,14 +1379,12 @@ messagebus.subscribe("/system/shutdown", STOP)
 td = os.path.join(os.path.dirname(__file__), "html", "mixer.html")
 
 
-class Page(settings.PagePlugin):
-    def handle(self, boardname: str, *a, **k):
-        from kaithem.src import directories
+@quart_app.app.route("/settings/mixer/<boardname>")
+def handle(boardname: str):
+    from kaithem.src import directories
 
-        return pages.get_template(td).render(os=os, board=boards[boardname], global_api=global_api, directories=directories)
-
-
-p = Page("mixer", ("system_admin",), title="Mixing Board")
+    pages.require("system_admin")
+    return pages.get_template(td).render(os=os, board=boards[boardname], global_api=global_api, directories=directories)
 
 
 boards: dict[str, MixingBoard] = {}

@@ -48,7 +48,7 @@ async def serve_map_tile(self, z, x, y):
 
     if pages.canUserDoThis("/users/maptiles.view", pages.getAcessingUser(self.request)):
         if os.path.exists(get_fn(x, y, z, map)):
-            return quart.send_file(get_fn(x, y, z, map))
+            return await quart.send_file(get_fn(x, y, z, map))
 
         if os.path.exists(
             os.path.join(
@@ -58,7 +58,7 @@ async def serve_map_tile(self, z, x, y):
                 y,
             )
         ):
-            return quart.send_file(
+            return await quart.send_file(
                 os.path.join(
                     os.path.expanduser(f"~/.local/share/marble/maps/earth/{map}"),
                     z,
@@ -68,10 +68,10 @@ async def serve_map_tile(self, z, x, y):
             )
 
         if os.path.exists(os.path.join(f"/home/pi/.local/share/marble/maps/earth/{map}", z, x, y)):
-            return quart.send_file(os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y))
+            return await quart.send_file(os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y))
 
         await get_tile(x, y, z, map)
 
         if os.path.exists(get_fn(x, y, z, map)):
-            return quart.send_file(get_fn(x, y, z, map))
+            return await quart.send_file(get_fn(x, y, z, map))
     raise RuntimeError("No Tile Found")

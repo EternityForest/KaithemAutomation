@@ -106,7 +106,7 @@ def logindex():
 
 
 @quart_app.app.route("/syslog/servelog/<filename>")
-def servelog(filename):
+async def servelog(filename):
     try:
         pages.require("view_admin_info")
     except PermissionError:
@@ -130,7 +130,7 @@ def servelog(filename):
     # Second security check, normalize the abs path and make sure it is what we think it is.
     if not filename.startswith(os.path.normpath(os.path.abspath(os.path.join(directories.logdir, "dumps")))):
         raise RuntimeError("Security Violation")
-    return quart.send_file(filename, as_attachment=True, attachment_filename=os.path.split(filename)[1])
+    return await quart.send_file(filename, as_attachment=True, attachment_filename=os.path.split(filename)[1])
 
 
 @quart_app.app.route("/syslog/archive")
