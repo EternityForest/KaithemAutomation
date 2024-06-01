@@ -123,7 +123,7 @@ def markdownToSelfRenderingHTML(content, title):
 
 @util.lrucache(50)
 def lookup(module, args):
-    resource_path = [i.replace("\\", "\\\\").replace("/", "\\/") for i in args]
+    resource_path = args
     m = _pages_by_module_resource[module]
 
     if "/".join(resource_path) in m:
@@ -509,36 +509,12 @@ def handle_preflight():
         return res
 
 
-@app.route("/pages/<module><path:path>")
+@app.route("/pages/<module>/<path:path>")
 async def catch_all(module, path):
     kwargs = dict(await quart.request.form)
     kwargs.update(quart.request.args)
 
-    @copy_current_request_context
-    def f():
-        return _serve(module, *path.split("/"), **kwargs)
-
-    return await quart.utils.run_sync(f)()
-
-
-def _headers(page):
-    h = {}
-    x = ""
-    for i in page.methods:
-        x += f"{i}, "
-    x = x[:-2]
-
-    h["Allow"] = f"{x}, HEAD, OPTIONS"
-    if page.xss:
-        if "Origin" in quart.request.headers:
-            if quart.request.headers["Origin"] in page.origins or "*" in page.origins:
-                h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
-            h["Access-Control-Allow-Methods"] = x
-
-    return h
-
-
-def _serve(module, *args, **kwargs):
+    args = tuple(path.split("/"))
     page = lookup(module, args)
     h = {}
 
@@ -569,7 +545,7 @@ def _serve(module, *args, **kwargs):
                     else:
                         h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
 
-                return quart.send_file(fn, mimetype=mime, headers=h)
+                return quart.send_file(fn, mimetype=mime)
 
         raise cherrypy.NotFound()
 
@@ -601,39 +577,44 @@ def _serve(module, *args, **kwargs):
         # Raise a redirect the the wrongmethod error page
         raise cherrypy.HTTPRedirect("/errors/wrongmethod")
     try:
-        h["Content-Type"] = page.mime
 
-        t = page.theme
-        if t in theming.cssthemes:
-            t = theming.cssthemes[t].css_url
+        @copy_current_request_context
+        def serve():
+            h["Content-Type"] = page.mime
 
-        from kaithem.src import kaithemobj
+            t = page.theme
+            if t in theming.cssthemes:
+                t = theming.cssthemes[t].css_url
 
-        if hasattr(page, "template"):
-            s = {
-                "kaithem": kaithemobj.kaithem,
-                "request": quart.request,
-                "module": modules_state.scopes[module],
-                "path": args,
-                "kwargs": kwargs,
-                "print": page.new_print,
-                "page": page.localAPI,
-                "_k_usr_page_theme": t,
-                "_k_alt_top_banner": page.alt_top_banner,
-            }
-            if not page.useJinja:
-                r = page.template.render(**s).encode("utf-8")
+            from kaithem.src import kaithemobj
+
+            if hasattr(page, "template"):
+                s = {
+                    "kaithem": kaithemobj.kaithem,
+                    "request": quart.request,
+                    "module": modules_state.scopes[module],
+                    "path": args,
+                    "kwargs": kwargs,
+                    "print": page.new_print,
+                    "page": page.localAPI,
+                    "_k_usr_page_theme": t,
+                    "_k_alt_top_banner": page.alt_top_banner,
+                }
+                if not page.useJinja:
+                    r = page.template.render(**s).encode("utf-8")
+                else:
+                    s.update(page.scope)
+
+                    if page.code_obj:
+                        exec(page.code_obj, s, s)
+
+                    r = page.template.render(**s)
+
             else:
-                s.update(page.scope)
+                r = page.text.encode("utf-8")
+            return r
 
-                if page.code_obj:
-                    exec(page.code_obj, s, s)
-
-                r = page.template.render(**s)
-
-        else:
-            r = page.text.encode("utf-8")
-
+        r = await serve()
         return quart.Response(r, headers=h)
 
     except pages.ServeFileInsteadOfRenderingPageException as e:
@@ -673,6 +654,23 @@ def _serve(module, *args, **kwargs):
                 'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
             )
         raise (e)
+
+
+def _headers(page):
+    h = {}
+    x = ""
+    for i in page.methods:
+        x += f"{i}, "
+    x = x[:-2]
+
+    h["Allow"] = f"{x}, HEAD, OPTIONS"
+    if page.xss:
+        if "Origin" in quart.request.headers:
+            if quart.request.headers["Origin"] in page.origins or "*" in page.origins:
+                h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
+            h["Access-Control-Allow-Methods"] = x
+
+    return h
 
 
 def rsc_from_html(fn: str):

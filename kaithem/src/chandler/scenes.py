@@ -187,7 +187,7 @@ def checkPermissionsForSceneData(data: dict[str, Any], user: str):
         if not kaithem.users.check_permission(user, "system_admin"):
             raise ValueError(
                 "You cannot do this action on this scene without system_admin, because it uses advanced features: MQTT:"
-                + str(kaithem.web.user())
+                + str(kaithem.web.user(None))
             )
 
 

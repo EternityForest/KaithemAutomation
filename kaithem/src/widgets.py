@@ -17,6 +17,7 @@ import threading
 import time
 import traceback
 import weakref
+import asyncio
 from collections.abc import Callable
 from typing import Optional, Any
 from starlette.requests import Request
@@ -150,7 +151,7 @@ def subsc_closure(self: WebSocketHandler, widgetid: str, widget: Widget):
     return f
 
 
-def raw_subsc_closure(self: rawwebsocket_impl, widgetid: str, widget: Widget):
+def raw_subsc_closure(self: RawWidgetDataHandler, widgetid: str, widget: Widget):
     def f(msg: Any, raw: Any):
         try:
             if isinstance(raw, bytes):
@@ -180,10 +181,10 @@ def raw_subsc_closure(self: rawwebsocket_impl, widgetid: str, widget: Widget):
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections: weakref.WeakValueDictionary[str, WebSocketHandler | rawwebsocket_impl] = weakref.WeakValueDictionary()
+ws_connections: weakref.WeakValueDictionary[str, WebSocketHandler | RawWidgetDataHandler] = weakref.WeakValueDictionary()
 
 
-def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[WebSocketHandler | rawwebsocket_impl]], None] | None = None):
+def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[WebSocketHandler | RawWidgetDataHandler]], None] | None = None):
     try:
         return weakref.ref(ws_connections[id], deleteCallback)
     except KeyError:
@@ -274,10 +275,14 @@ class WebSocketHandler:
 
     def send(self, b: bytes | str):
         with self.widget_wslock:
-            if isinstance(b, bytes):
-                self.loop.call_soon_threadsafe(self.parent.send_bytes, b)
-            elif isinstance(b, str):
-                self.loop.call_soon_threadsafe(self.parent.send_text, b)
+
+            async def f():
+                if isinstance(b, str):
+                    await self.parent.send_text(b)
+                else:
+                    await self.parent.send_bytes(b)
+
+            asyncio.run_coroutine_threadsafe(f(), self.loop)
 
     def closed(self, *a: Any) -> None:
         with subscriptionLock:
@@ -433,8 +438,8 @@ class WebSocketHandler:
 from starlette.websockets import WebSocket
 
 
-class rawwebsocket_impl:
-    def __init__(self, parent, user, widgetName: str) -> None:
+class RawWidgetDataHandler:
+    def __init__(self, parent, user, loop, widgetName: str, asgiscope) -> None:
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
         self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
@@ -447,12 +452,14 @@ class rawwebsocket_impl:
         self.peer_address = ""
 
         self.usedPermissions = collections.defaultdict(int)
+        self.loop = loop
+        self.asgi = asgiscope
 
         assert isinstance(widgetName, str)
         with subscriptionLock:
             if widgetName in widgets:
                 for p in widgets[widgetName]._read_perms:
-                    if not pages.canUserDoThis(p, self.user):
+                    if not pages.canUserDoThis(p, self.user, asgi=self.asgi):
                         raise RuntimeError(self.user + " missing permission: " + str(p))
                     self.usedPermissions[p] += 1
 
@@ -479,7 +486,14 @@ class rawwebsocket_impl:
 
     def send(self, b: bytes | str):
         with self.widget_wslock:
-            self.parent.send_data(b, binary=isinstance(b, bytes))
+
+            async def f():
+                if isinstance(b, str):
+                    await self.parent.send_text(b)
+                else:
+                    await self.parent.send_bytes(b)
+
+            asyncio.run_coroutine_threadsafe(f(), self.loop)
 
     def close(self, *a):
         with subscriptionLock:
@@ -531,8 +545,6 @@ async def app(scope, receive, send):
 
 
 async def rawapp(scope, receive, send):
-    request = Request(scope, receive)
-
     websocket = WebSocket(scope=scope, receive=receive, send=send)
     await websocket.accept()
 
@@ -550,7 +562,7 @@ async def rawapp(scope, receive, send):
         user = "__guest__"
 
     io_loop = asyncio.get_running_loop()
-    impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
+    impl = RawWidgetDataHandler(websocket, user, io_loop, websocket.query_params["widgetid"], scope)
     impl.cookie = cookie
     impl.user_agent = user_agent
 

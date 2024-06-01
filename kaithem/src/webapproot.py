@@ -15,6 +15,7 @@ import cherrypy
 import cherrypy._cpreqbody
 import iot_devices
 import iot_devices.host
+import starlette.responses
 import structlog
 from cherrypy.lib.static import serve_file
 from hypercorn.asyncio import serve
@@ -172,8 +173,9 @@ def tagpoints_index(*path, show_advanced=""):
     return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
 
 
-@quart_app.app.route("/tagpoints/<path:tn>", methods=["GET", "POST"])
-def specific_tagpoint(*path):
+@quart_app.app.route("/tagpoints/<path:path>", methods=["GET", "POST"])
+def specific_tagpoint(path):
+    path = path.split("/")
     # This page could be slow because of the db stuff, so we restrict it more
     try:
         pages.require("system_admin")
@@ -284,7 +286,12 @@ class AsgiDispatcher:
                 break
 
         assert app
-        await app(scope, receive, send)
+        try:
+            await app(scope, receive, send)
+        except Exception:
+            r = starlette.responses.Response(pages.get_template("errors/e500.html").render(e=traceback.format_exc()))
+            await r(scope, receive, send)
+            raise
 
 
 def startServer():

@@ -230,7 +230,7 @@ async def addresourcetarget(module, rtype):
             # Take the user straight to the resource page
             return quart.redirect(f"/modules/module/{util.url(module)}/resource/{util.url(name_with_path)}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
@@ -322,7 +322,7 @@ async def resource_update_handler(module, resource):
             # +'/resource/'+util.url(resource))
             return quart.redirect(f"/modules/module/{util.url(module)}#resources")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @quart_app.app.route("/deletemodule")
@@ -417,7 +417,7 @@ async def deleteresourcetarget(module):
         else:
             return quart.redirect(f"/modules/module/{util.url(module)}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @quart_app.app.route("/modules/module/<module>/moveresourcetarget", methods=["POST"])
@@ -436,7 +436,7 @@ async def moveresourcetarget(module):
         modules.mvResource(module, kwargs["name"], kwargs["newmodule"], kwargs["newname"])
         return quart.redirect(f"/modules/module/{util.url(module)}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @quart_app.app.route("/modules/module/<module>/update", methods=["POST"])
@@ -515,7 +515,7 @@ async def module_update(module):
 
         return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @quart_app.app.route("/modules/module/<module>/newmoduletarget", methods=["POST"])
@@ -537,4 +537,4 @@ async def newmoduletarget():
             modules.newModule(kwargs["name"], kwargs.get("location", None))
             return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()

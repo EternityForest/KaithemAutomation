@@ -102,8 +102,10 @@ def serve_file(path, contenttype="", name=None):
     _pages.serveFile(path=path, contenttype=contenttype, name=name)
 
 
-def user() -> str:
+def user(asgi=None) -> str:
     """
+    asgi: The ASGI scope object that is currently active, required if
+          this is called from outside a Quart context.
 
     Returns:
         str: Username of this active web request, or empty string if unknown
@@ -115,7 +117,7 @@ def user() -> str:
         return ""
 
 
-def has_permission(permission: str):
+def has_permission(permission: str, asgi=None) -> bool:
     """Return True if the user accessing the current web request
     has the permssion specified"""
-    return _pages.canUserDoThis(permission)
+    return _pages.canUserDoThis(permission, asgi)

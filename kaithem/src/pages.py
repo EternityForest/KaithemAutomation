@@ -203,27 +203,41 @@ def geturl():
     return quart.request.url
 
 
-def canUserDoThis(permissions, user=None):
+def canUserDoThis(permissions, user=None, asgi=None):
     "None means get the user from the request context"
 
     # If a disallowed CORS post is detected here, we get __guest__
-    user = user or getAcessingUser()
+    user = user or getAcessingUser(asgi=asgi)
 
     if not isinstance(permissions, (list, tuple)):
         permissions = (permissions,)
 
     for permission in permissions:
         if permission in auth.crossSiteRestrictedPermissions:
-            noCrossSite()
+            noCrossSite(asgi)
         if not auth.canUserDoThis(user, permission):
             return False
     return True
 
 
-def noCrossSite():
-    if quart.request.headers.get("Origin", ""):
-        if not quart.request.base_url == quart.request.headers.get("Origin", ""):
-            raise PermissionError("Cannot make this request from a different origin")
+def noCrossSite(asgi=None):
+    if asgi:
+        if asgi:
+            try:
+                r = Request(asgi)
+            except Exception:
+                r = WebSocket(asgi, None, None)
+
+            headers = asgi["headers"]
+            headers = {i.decode(): j.decode() for i, j in headers}
+            if headers.get("Origin", ""):
+                if not r.base_url == headers.get("Origin", ""):
+                    raise PermissionError("Cannot make this request from a different origin")
+
+    else:
+        if quart.request.headers.get("Origin", ""):
+            if not quart.request.base_url == quart.request.headers.get("Origin", ""):
+                raise PermissionError("Cannot make this request from a different origin")
 
 
 def strictNoCrossSite():
