@@ -13,6 +13,7 @@ import time
 import traceback
 
 import quart
+import quart.utils
 import structlog
 from quart.ctx import copy_current_request_context
 
@@ -146,10 +147,10 @@ def legacy_route(f):
 
     f2.__name__ = f.__name__ + str(os.urandom(8))
 
-    quart_app.app.route(r)(f2)
+    quart_app.app.route(r, methods=["GET", "POST"])(f2)
 
 
-@quart_app.app.route("/settings/<path:path>")
+@quart_app.app.route("/settings/<plugin>/<path:path>")
 async def default_settings(plugin: str, path):
     a = path.split("/")
     k = dict(await quart.request.form)
@@ -672,11 +673,11 @@ def legacy_route_prf(f):
         if i not in ("a", "k"):
             r += f"/<{i}>"
 
-    quart_app.app.route(r)(f)
+    quart_app.app.route(r, methods=["GET", "POST"])(f)
 
 
-@legacy_route
-def index():
+@quart_app.app.route("/settings/profiler")
+def prf_index():
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -684,7 +685,7 @@ def index():
     return pages.get_template("settings/profiler/index.html").render(sort="")
 
 
-@legacy_route
+@legacy_route_prf
 def bytotal():
     try:
         pages.require("system_admin")
@@ -693,7 +694,7 @@ def bytotal():
     return pages.get_template("settings/profiler/index.html").render(sort="total")
 
 
-@legacy_route
+@legacy_route_prf
 def start():
     try:
         pages.require("system_admin")
@@ -714,7 +715,7 @@ def start():
     return quart.redirect("/settings/profiler")
 
 
-@legacy_route
+@legacy_route_prf
 def stop():
     try:
         pages.require("system_admin")
@@ -728,7 +729,7 @@ def stop():
     return quart.redirect("/settings/profiler")
 
 
-@legacy_route
+@legacy_route_prf
 def clear():
     try:
         pages.require("system_admin")

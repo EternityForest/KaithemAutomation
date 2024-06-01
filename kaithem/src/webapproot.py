@@ -356,7 +356,7 @@ def startServer():
 
     config2 = Config()
     config2.bind = [f"{bindto}:{config['http_port']}"]  # As an example configuration setting
-
+    config2.workers = 8
     # if config["https_port"]:
     #     if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
     #         raise RuntimeError("No SSL certificate found")

@@ -248,7 +248,8 @@ def noCrossSite(asgi=None):
 
     else:
         if quart.request.headers.get("Origin", ""):
-            if not quart.request.base_url == quart.request.headers.get("Origin", ""):
+            # Remove trailing slash
+            if not quart.request.host_url[:-1] == quart.request.headers.get("Origin", ""):
                 raise PermissionError("Cannot make this request from a different origin")
 
 
