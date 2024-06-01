@@ -21,7 +21,7 @@ import asyncio
 from collections.abc import Callable
 from typing import Optional, Any
 from starlette.requests import Request
-
+from quart.ctx import copy_current_request_context
 import msgpack
 from beartype import beartype
 
@@ -300,7 +300,7 @@ class WebSocketHandler:
             with self.widget_wslock:
                 self.close()
 
-    def received_message(self, message: bytes | str):
+    def received_message(self, message: bytes | str, asgi):
         global lastLoggedUserError
         global lastPrintedUserError
         try:
@@ -316,7 +316,7 @@ class WebSocketHandler:
             upd = o["upd"]
             for i in upd:
                 if i[0] in widgets:
-                    widgets[i[0]]._on_update(user, i[1], self.connection_id)
+                    widgets[i[0]]._on_update(user, i[1], self.connection_id, asgi)
                 elif i[0] == "__url__":
                     self.pageURL = i[1]
 
@@ -379,7 +379,7 @@ class WebSocketHandler:
                     with subscriptionLock:
                         if i in widgets:
                             for p in widgets[i]._read_perms:
-                                if not pages.canUserDoThis(p, user):
+                                if not pages.canUserDoThis(p, user, self.asgiscope):
                                     # We have to be very careful about this, because
                                     self.send(
                                         json.dumps(
@@ -399,7 +399,7 @@ class WebSocketHandler:
 
                             self.subscriptions.append(i)
                             if not widgets[i].noOnConnectData:
-                                x = widgets[i]._on_request(user, self.connection_id)
+                                x = widgets[i]._on_request(user, self.connection_id, asgi)
                                 if x is not None:
                                     widgets[i].send(x)
                             self.subCount += 1
@@ -506,6 +506,13 @@ class RawWidgetDataHandler:
                     pass
 
 
+def makeclosure(f, i, scope):
+    def g():
+        return f(i, scope)
+
+    return g
+
+
 async def app(scope, receive, send):
     websocket = WebSocket(scope=scope, receive=receive, send=send)
     await websocket.accept()
@@ -527,6 +534,7 @@ async def app(scope, receive, send):
     impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
     impl.cookie = cookie
     impl.user_agent = user_agent
+    impl.asgiscope = scope
 
     impl.clientinfo = ClientInfo(impl.user, impl.cookie)
     clients_info[impl.connection_id] = impl.clientinfo
@@ -539,9 +547,21 @@ async def app(scope, receive, send):
     else:
         runner = WSActionRunner()
 
-    async for i in websocket.iter_bytes():
-        if i:
-            runner.dowsAction(lambda: impl.received_message(i))
+    while 1:
+        try:
+            x = await websocket.receive()
+        except Exception:
+            break
+
+        if "text" in x:
+            i = x["text"]
+        elif "bytes" in x:
+            i = x["bytes"]
+        else:
+            continue
+
+        f = makeclosure(impl.received_message, i, scope)
+        runner.dowsAction(f)
 
 
 async def rawapp(scope, receive, send):
@@ -577,9 +597,19 @@ async def rawapp(scope, receive, send):
     else:
         runner = WSActionRunner()
 
-    async for i in websocket.iter_bytes():
-        if i:
-            runner.dowsAction(lambda: impl.received_message(i))
+    while 1:
+        try:
+            x = await websocket.receive()
+        except Exception:
+            break
+
+        if "text" in x:
+            i = x["text"]
+        elif "bytes" in x:
+            i = x["bytes"]
+        else:
+            continue
+        # runner.dowsAction(lambda: impl.received_message(i))
 
 
 def randID() -> str:
@@ -644,7 +674,7 @@ class Widget:
             callback(clients_info[i])
 
     # This function is called by the web interface code
-    def _on_request(self, user, uuid):
+    def _on_request(self, user, uuid, asgi):
         """Widgets on the client side send AJAX requests for the new value.
           This function must
         return the value for the widget. For example a slider might request the
@@ -662,7 +692,7 @@ class Widget:
                 the username of the user who is tring to access things.
         """
         for i in self._read_perms:
-            if not pages.canUserDoThis(i, user):
+            if not pages.canUserDoThis(i, user, asgi=asgi):
                 return "PERMISSIONDENIED"
         try:
             return self.on_request(user, uuid)
@@ -687,15 +717,15 @@ class Widget:
         return self.value
 
     # This function is called by the web interface whenever this widget is written to
-    def _on_update(self, user, value, uuid):
+    def _on_update(self, user, value, uuid, asgi):
         """Called internally to write a value to the widget. Responisble for
         verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
-            if not pages.canUserDoThis(i, user):
+            if not pages.canUserDoThis(i, user, asgi):
                 return
 
         for i in self._write_perms:
-            if not pages.canUserDoThis(i, user):
+            if not pages.canUserDoThis(i, user, asgi):
                 return
 
         self.on_update(user, value, uuid)

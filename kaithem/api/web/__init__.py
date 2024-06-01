@@ -3,7 +3,6 @@ import os as _os
 from collections.abc import Callable
 
 import beartype as _beartype
-import cherrypy as _cherrypy
 import jinja2 as _jinja2
 import structlog
 
@@ -19,7 +18,6 @@ nav_bar_plugins = _pages.nav_bar_plugins
 
 _asgi_apps = []
 _wsgi_apps = []
-_tornado_apps = []
 
 _simple_handlers = {}
 
@@ -84,7 +82,7 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"):
 
 def add_tornado_app(pattern: str, app, args, permission="system_admin"):
     "Mount a Tornado application to handle all URLs matching the pattern regex"
-    _tornado_apps.append((pattern, app, args, permission))
+    _logger.error("add_tornado_app is deprecated, use an asgi or wsgi app instead")
 
 
 @_beartype.beartype
@@ -92,13 +90,8 @@ def add_simple_cherrypy_handler(prefix: str, permission: str, handler: Callable[
     _logger.error("add_simple_cherrypy_handler is deprecated, use asgi or wsgi instead")
 
 
-def goto(url):
-    "Call from within a CherryPy handler to raise an exception to go to another URL"
-    raise _cherrypy.HTTPRedirect(url)
-
-
 def serve_file(path, contenttype="", name=None):
-    "Call from within a CherryPy handler to server a file."
+    "Call from within a Quart handler to server a file."
     _pages.serveFile(path=path, contenttype=contenttype, name=name)
 
 

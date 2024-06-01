@@ -26,7 +26,6 @@ from collections import defaultdict
 from collections.abc import Callable
 
 import beartype
-import cherrypy
 import pytz
 import structlog
 import yaml
@@ -271,7 +270,7 @@ def countEvents():
 run = [True]
 
 
-def STOP():
+def STOP(*a):
     global run
     global load_order
     if run:
@@ -289,8 +288,7 @@ def STOP():
                     syslogger.exception("Error in shutdown cleanup")
 
 
-cherrypy.engine.subscribe("stop", STOP, priority=30)
-
+messagebus.subscribe("/system/shutdown", STOP)
 
 t = 0
 

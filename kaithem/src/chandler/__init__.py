@@ -1,7 +1,7 @@
+import atexit
 import threading
 import time
 
-import cherrypy
 import icemedia.sound_player
 from scullery import messagebus
 
@@ -135,8 +135,9 @@ thread = threading.Thread(target=loop, name="ChandlerThread", daemon=True)
 thread.start()
 
 
-def STOP():
+def STOP(*a):
     run[0] = False
 
 
-cherrypy.engine.subscribe("stop", STOP, priority=10)
+atexit.register(STOP)
+messagebus.subscribe("/system/shutdown", STOP)

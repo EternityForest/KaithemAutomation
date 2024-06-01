@@ -6,7 +6,6 @@ import logging
 import threading
 import time
 
-import cherrypy
 import quart
 import quart.utils
 import structlog
@@ -130,9 +129,6 @@ async def login():
             # ONLY place in which the auth cookie is set.
             r.set_cookie("kaithem_auth", x, samesite="Strict", path="/", httponly=True, secure=False)
 
-            # Previously, tokens are good for 90 days
-            # Now, just never expire, it might break kiosk applications.
-            # cherrypy.response.cookie['kaithem_auth']['expires'] = 24 * 60 * 60 * 90
             x = auth.Users[kwargs["username"]]
             if "loginhistory" not in x:
                 x["loginhistory"] = [(time.time(), quart.request.remote_addr)]
@@ -158,15 +154,15 @@ async def login():
 def logout():
     # Change the security token to make the old one invalid and thus log user out.
     pages.postOnly()
-    if cherrypy.request.cookie["kaithem_auth"].value in auth.Tokens:
+    if quart.request.cookies["kaithem_auth"] in auth.Tokens:
         messagebus.post_message(
             "/system/auth/logout",
             [
-                auth.whoHasToken(cherrypy.request.cookie["kaithem_auth"].value),
+                auth.whoHasToken(quart.request.cookies["kaithem_auth"]),
                 quart.request.remote_addr,
             ],
         )
-        auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie["kaithem_auth"].value))
+        auth.assignNewToken(auth.whoHasToken(quart.request.cookies["kaithem_auth"]))
     r = quart.redirect("/index")
     r.set_cookie("kaithem_auth", "", samesite="Strict", path="/", httponly=True, secure=False)
     return r

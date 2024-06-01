@@ -7,7 +7,6 @@ import logging
 import os
 import weakref
 
-import cherrypy
 import quart
 import quart.utils
 import structlog
@@ -384,15 +383,15 @@ def yamldownload(module):
         pages.require("view_admin_info")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % util.url(
-        f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip"
-    )
+    fn = util.url(f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip")
 
-    cherrypy.response.headers["Content-Type"] = "application/zip"
+    mime = "application/zip"
     try:
-        return modules_state.getModuleAsYamlZip(
+        d = modules_state.getModuleAsYamlZip(
             module[:-4] if module.endswith(".zip") else module,
         )
+        r = quart.Response(d, mimetype=mime, headers={"Content-Disposition": f"attachment; filename={fn}"})
+        return r
     except Exception:
         logging.exception("Failed to handle zip download request")
         raise
@@ -475,7 +474,6 @@ async def loadlibmodule(module):
     return await quart.utils.run_sync(f)()
 
 
-# @cherrypy.expose
 # def manual_run(self,module, resource):
 # These modules handle their own permissions
 # if isinstance(EventReferences[module,resource], ManualEvent):

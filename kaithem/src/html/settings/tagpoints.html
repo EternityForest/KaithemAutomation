@@ -5,7 +5,7 @@
 from kaithem.src import tagpoints
 import gc
 
-import os,cherrypy
+import os,quart
 from kaithem.src import directories
 tagsLocation = os.path.join(directories.vardir,"tags")
 
@@ -21,7 +21,7 @@ filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if (searchFilter.lower
 
 extraUrlStuff =''
 
-if cherrypy.request.params.get("kaithem_disable_header",0):
+if quart.request.args.get("kaithem_disable_header",0):
     extraUrlStuff= "?kaithem_disable_header=true"
 %>
 

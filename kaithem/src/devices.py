@@ -10,11 +10,9 @@ import textwrap
 import time
 import traceback
 import weakref
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from typing import Any
 
-import cherrypy
-import cherrypy.lib.static
 import iot_devices.device
 import iot_devices.host
 import structlog
@@ -640,26 +638,6 @@ class Device(iot_devices.device.Device):
             remote_devices_atomic = wrcopy(remote_devices)
 
         return m
-
-    def webHandler(self, *path: Iterable[str], **kwargs: dict[str, str | float | int]):
-        """
-        A device's web page is also permissioned based on the global rules.
-        """
-        if cherrypy.request.method in ("post", "put"):
-            perms = self.config.get("kaithem.write_perms", "").strip() or "system_admin"
-
-        elif cherrypy.request.method == "get":
-            perms = self.config.get("kaithem.write_perms", "").strip() or "system_admin"
-        else:
-            raise Exception("Unsupported method: " + cherrypy.request.method)
-
-        for i in perms.split(","):
-            try:
-                pages.require(i)
-            except PermissionError:
-                return pages.loginredirect(pages.geturl())
-
-        self.handle_web_request(path, kwargs, cherrypy.request.method)
 
     def serve_file(self, fn, mime="", name=None):
         from . import kaithemobj

@@ -23,6 +23,12 @@ get_template = _Lookup.get_template
 _varLookup = TemplateLookup(directories=[directories.vardir])
 
 
+class HTTPRedirect(Exception):
+    def __init__(self, url):
+        Exception.__init__(self)
+        self.url = url
+
+
 class MyCache(jinja2.BytecodeCache):
     def __init__(self):
         self.cache = {}
@@ -206,6 +212,14 @@ def geturl():
 def canUserDoThis(permissions, user=None, asgi=None):
     "None means get the user from the request context"
 
+    # If we are in context aware mode also check for cross site permissions
+    # As an extra layer of protection in case SameSite=Strict
+    # and any other protections wasn't enough
+    if (not user) or asgi:
+        for permission in permissions:
+            if permission in auth.crossSiteRestrictedPermissions:
+                noCrossSite(asgi)
+
     # If a disallowed CORS post is detected here, we get __guest__
     user = user or getAcessingUser(asgi=asgi)
 
@@ -213,8 +227,6 @@ def canUserDoThis(permissions, user=None, asgi=None):
         permissions = (permissions,)
 
     for permission in permissions:
-        if permission in auth.crossSiteRestrictedPermissions:
-            noCrossSite(asgi)
         if not auth.canUserDoThis(user, permission):
             return False
     return True
@@ -250,8 +262,6 @@ def getAcessingUser(asgi=None, quart_req=None):
     The result of this function can be trusted because it uses the authentication token.
     """
     # Handle HTTP Basic Auth
-
-    # Directly pass tornado request. Normally not needed, just for websocket stuff
 
     if asgi:
         try:

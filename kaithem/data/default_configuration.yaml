@@ -105,9 +105,6 @@ notifications_to_keep: 250
 #can also be "never"
 autosave_logs: never
 
-#Set to no to turn off most of cherrypy's access logging.
-#It normally prints a line to stdout for every single page access.
-cherrypy_log_stdout: no
 
 #List of topic that will be printed to stdout if anything is published to them
 print_topics:

@@ -3,7 +3,6 @@
 
 """Provides a web interface over the authorization system"""
 
-import cherrypy
 import quart
 
 from . import auth, dialogs, messagebus, pages, quart_app
@@ -17,7 +16,6 @@ class ManageAuthorization:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return pages.get_template("auth/index.html").render(auth=auth)
 
     # The actual POST target to delete a user
@@ -58,7 +56,6 @@ class ManageAuthorization:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         d = dialogs.SimpleDialog("Delete User")
         d.text_input("user")
         d.submit_button("Delete")
@@ -72,7 +69,6 @@ class ManageAuthorization:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return pages.get_template("auth/deletegroup.html").render()
 
     # Add user interface
@@ -89,7 +85,6 @@ class ManageAuthorization:
 
         d.submit_button("Submit")
 
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return d.render("/auth/newusertarget")
 
     # add group interface
@@ -99,8 +94,6 @@ class ManageAuthorization:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-
         return pages.get_template("auth/newgroup.html").render()
 
     @quart_app.app.route("/auth/newusertarget", methods=["POST"])
@@ -140,7 +133,6 @@ class ManageAuthorization:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect("/")
-        pages.postOnly()
         # create the new user
         auth.addGroup(kwargs["groupname"])
         messagebus.post_message(
@@ -163,7 +155,6 @@ class ManageAuthorization:
 
         useSystem = "useSystemPassword" in kwargs
 
-        user = user.encode("latin-1").decode("utf-8")
         # THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         # BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs["username"])
@@ -212,9 +203,6 @@ class ManageAuthorization:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        pages.postOnly()
-        group = group.encode("latin-1").decode("utf-8")
-
         auth.Groups[group]["permissions"] = []
         # Handle all the group permission checkboxes
         for i in kwargs:
@@ -238,14 +226,10 @@ class ManageAuthorization:
     @quart_app.app.route("/auth/user/<username>", methods=["POST"])
     def user(self, username):
         # kwargs = await quart.request.form
-
-        username = username.encode("latin-1").decode("utf-8")
         try:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-
         return pages.get_template("auth/user.html").render(
             usergroups=auth.Users[username]["groups"],
             groups=sorted(auth.Groups.keys()),
@@ -253,12 +237,10 @@ class ManageAuthorization:
         )
 
     # Settings page for one individual group
-    @cherrypy.expose
+    @quart_app.app.route("/auth/group/<group>")
     def group(self, group):
-        group = group.encode("latin-1").decode("utf-8")
         try:
             pages.require("system_admin")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return pages.get_template("auth/group.html").render(auth=auth, name=group)

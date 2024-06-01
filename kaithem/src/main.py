@@ -39,14 +39,11 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     # Paralellize slow imports
     for i in [
-        "tornado",
         "sqlite3",
         "pytz",
         "mako",
         "mako.lookup",
         "jinja2",
-        "tornado.websocket",
-        "tornado.routing",
         "typeguard",
         "multiprocessing",
         "glob",
@@ -55,7 +52,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         "numpy",
         "zeroconf",
         "msgpack",
-        "cherrypy",
         "dateutil.rrule",
         "psutil",
         "kaithem.src.jackmanager",

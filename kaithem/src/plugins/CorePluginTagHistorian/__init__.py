@@ -4,7 +4,6 @@
 import datetime
 import getpass
 import json
-import logging
 import os
 import shutil
 import socket
@@ -16,15 +15,14 @@ import weakref
 from typing import Callable
 from urllib.parse import quote
 
-import cherrypy
 import dateutil.parser
 import pytz
+import quart
 import structlog
 from scullery import scheduling
 
 from kaithem.api import tags as tagsapi
-from kaithem.api import web as webapi
-from kaithem.src import dialogs, directories, messagebus, modules_state, pages, tagpoints
+from kaithem.src import dialogs, directories, messagebus, modules_state, pages, quart_app, tagpoints
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
@@ -612,11 +610,14 @@ modules_state.additionalTypes["logger"] = drt
 
 t = os.path.join(os.path.dirname(__file__), "html", "logpage.html")
 
+quart_app.app.route("/plugin-tag-history", methods=["GET", "POST"])
+quart_app.app.route("/plugin-tag-history/<path:path>", methods=["GET", "POST"])
 
-def logpage(*path: str, **data) -> str:
-    path = path[1:]
+
+def logpage(path: str = "", **data):
+    pages.require("system_admin")
     # This page could be slow because of the db stuff, so we restrict it more
-    if not cherrypy.request.method.lower() == "post":
+    if not quart.request.method.lower() == "post":
         raise RuntimeError("POST only")
 
     if "exportRows" not in data:
@@ -633,20 +634,21 @@ def logpage(*path: str, **data) -> str:
                 raw = i.getDataRange(logtime, time.time() + 10000000, int(data["exportRows"]))
 
                 if data["exportFormat"] == "csv.iso":
-                    cherrypy.response.headers["Content-Disposition"] = (
-                        'attachment; filename="%s"' % path[0].replace("/", "_").replace(".", "_").replace(":", "_")[1:]
+                    filename = (
+                        path[0].replace("/", "_").replace(".", "_").replace(":", "_")[1:]
                         + "_"
                         + data["exportType"]
                         + tz.localize(dateutil.parser.parse(data["logtime"])).isoformat()
                         + ".csv"
                     )
-                    cherrypy.response.headers["Content-Type"] = "text/csv"
+
                     d = ["Time(ISO), " + path[0].replace(",", "") + " <accum " + data["exportType"] + ">"]
                     for i in raw:
                         d.append(str(i[0]) + "," + str(i[1])[:128])
-                    return "\r\n".join(d) + "\r\n"
+                    return quart.Response(
+                        "\r\n".join(d) + "\r\n",
+                        content_type="text/csv",
+                        headers={"Content-Disposition": "attachment; filename=" + filename},
+                    )
 
         raise RuntimeError("Logger not found")
-
-
-webapi.add_simple_cherrypy_handler("plugin-tag-history", "system_admin", logpage)

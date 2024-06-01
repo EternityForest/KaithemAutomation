@@ -1,7 +1,7 @@
 <%!
 from kaithem.src.util import url
 from kaithem.src import pages,unitsofmeasure,util,widgets,kaithemobj
-import json,re,cherrypy
+import json,re,quart
 %>
 <style>
     h3{
@@ -15,8 +15,8 @@ result = ''
 %>
 <%
 if "cmd" in kwargs:
-    if not cherrypy.request.method=="POST":
-        raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+    if not quart.request.method=="POST":
+        raise quart.redirect("/errors/wrongmethod")
     if re.match('([a-zA-Z_][a-zA-Z0-9_]* *=[^=])|(import )|(del )',kwargs['cmd']):
         exec(kwargs['cmd'], {"kaithem":kaithemobj.kaithem},obj.__dict__)
     else:
@@ -46,9 +46,9 @@ if "cmd" in kwargs:
 here would just be cheese. the kaithem object is available as kaithem as usual. You can call functions and get the result, and you can set and delete values.
 multiline code doesn't work however. Be careful when refreshing this page as it may resend. Using this will add a __builtins__ to the module object.<p>
 %if "cmd" in kwargs:
-%if not cherrypy.request.method=="POST":
+%if not quart.request.method=="POST":
 <%
-raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+raise quart.redirect("/errors/wrongmethod")
 %>
 %endif
 You Entered:

@@ -4,7 +4,7 @@ from kaithem.src import messagelogging
 from kaithem.src import messagebus
 from kaithem.src.unitsofmeasure import format_time_interval,strftime
 import time
-import cherrypy
+import quart
 from kaithem.src.util import url,saferepr
 from kaithem.src.config import config
 
@@ -50,8 +50,8 @@ function f(element)
     <div id="ListOfTopics">
     <%
         rev = False
-        if 'sort' in cherrypy.request.params:
-            if cherrypy.request.params['sort'] == 'time':
+        if 'sort' in quart.request.args:
+            if quart.request.args['sort'] == 'time':
                 sortkey = lambda x: messagelogging.log[x][-1][0]
                 rev = True
             else:

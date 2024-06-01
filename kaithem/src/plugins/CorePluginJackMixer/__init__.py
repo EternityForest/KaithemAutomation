@@ -13,7 +13,6 @@ import time
 import traceback
 import uuid
 
-import cherrypy
 import structlog
 from icemedia import iceflow
 from scullery import jacktools, scheduling, workers
@@ -1365,7 +1364,7 @@ class MixingBoard:
                 self.channelObjects[i].stop(at_exit=True)
 
 
-def STOP():
+def STOP(*a):
     # Shut down in opposite order we started in
     for board in boards.values():
         with board.lock:
@@ -1374,7 +1373,7 @@ def STOP():
                 board.channelObjects[i].stop(at_exit=True)
 
 
-cherrypy.engine.subscribe("stop", STOP, priority=30)
+messagebus.subscribe("/system/shutdown", STOP)
 
 
 td = os.path.join(os.path.dirname(__file__), "html", "mixer.html")

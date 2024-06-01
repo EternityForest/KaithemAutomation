@@ -155,8 +155,6 @@ properties:
         type: string
         pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
 
-    cherrypy_log_stdout:
-        type: boolean
 
     log_http:
         type: boolean

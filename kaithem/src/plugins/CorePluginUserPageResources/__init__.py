@@ -15,7 +15,6 @@ import traceback
 import types
 
 import beartype
-import cherrypy
 import jinja2
 import mako
 import mako.template
@@ -547,7 +546,7 @@ async def catch_all(module, path):
 
                 return quart.send_file(fn, mimetype=mime)
 
-        raise cherrypy.NotFound()
+        raise quart.abort(404)
 
     if "Origin" in quart.request.headers:
         if not page.xss:
@@ -575,7 +574,7 @@ async def catch_all(module, path):
     # Check HTTP Method
     if quart.request.method not in page.methods:
         # Raise a redirect the the wrongmethod error page
-        raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+        return quart.redirect("/errors/wrongmethod")
     try:
 
         @copy_current_request_context
@@ -630,12 +629,12 @@ async def catch_all(module, path):
     except Exception as e:
         # The HTTPRedirect is NOT an error, and should not be handled like one.
         # So we just reraise it unchanged
-        if isinstance(e, cherrypy.HTTPRedirect):
-            raise e
+        if isinstance(e, pages.HTTPRedirect):
+            return quart.redirect(e.url)
 
         tb = traceback.format_exc(chain=True)
         # tb = tornado.exceptions.text_error_template().render()
-        data = "Request from: " + quart.request.remote.ip + "(" + pages.getAcessingUser() + ")\n" + quart.request.request_line + "\n"
+        data = "Request from: " + str(quart.request.remote_addr) + "(" + pages.getAcessingUser() + ")\n" + quart.request.request_line + "\n"
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object
         page.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb, data])

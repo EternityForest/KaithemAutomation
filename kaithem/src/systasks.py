@@ -11,7 +11,7 @@ import socket
 import threading
 import time
 
-import cherrypy
+import quart
 import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
@@ -122,7 +122,7 @@ def aPageJustLoaded():
     if config["log_http"]:
         messagebus.post_message(
             "/system/http/access",
-            {"ip": cherrypy.request.remote.ip, "req": cherrypy.request.request_line},
+            {"ip": quart.request.remote.ip, "req": quart.request.request_line},
             synchronous=True,
         )
 
@@ -214,7 +214,6 @@ def sd():
 
 sd.priority = 25
 atexit.register(sd)
-cherrypy.engine.subscribe("stop", sd)
 
 
 if time.time() < 1420070400:

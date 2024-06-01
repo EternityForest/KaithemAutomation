@@ -4,7 +4,6 @@
     import time
     import os
     import platform
-    import cherrypy
     import sys
     import gc
     import multiprocessing
@@ -433,10 +432,6 @@ except Exception:
                     <td>${platform.python_version()|h}</td>
                 </tr>
 
-                <tr>
-                    <td>CherryPy Version</td>
-                    <td>${cherrypy.__version__|h}</td>
-                </tr>
 
                 <tr>
                     <td>Audio Backend</td>
@@ -518,7 +513,7 @@ def module_version(m, name):
 <h2>Acknowledgements</h2>
 <div class="window paper margin">
     <h3>General</h3>
-    Kaithem is powered by CherryPy, Mako, and Tornado, and too many libs to list here!
+    Kaithem is powered by ASGI and too many libs to list here!
     See the source code for full info!
 
     <h3>Tools</h3>

@@ -7,11 +7,11 @@ import os
 import threading
 import time
 
-import cherrypy
+import quart
 import structlog
 from scullery import scheduling
 
-from . import directories, messagebus, pages, persist, widgets, workers
+from . import directories, messagebus, pages, persist, quart_app, widgets, workers
 from .config import config
 from .unitsofmeasure import strftime
 
@@ -71,22 +71,24 @@ def countnew(since):
     return [total, normal, warnings, errors]
 
 
-class WI:
-    @cherrypy.expose
-    def countnew(self, **kwargs):
-        try:
-            pages.require("view_status")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        return json.dumps(countnew(float(kwargs["since"])))
+@quart_app.app.route("/notifications/countnew")
+def countnew_target():
+    kwargs = quart.request.args
+    try:
+        pages.require("view_status")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return json.dumps(countnew(float(kwargs["since"])))
 
-    @cherrypy.expose
-    def mostrecent(self, **kwargs):
-        try:
-            pages.require("view_status")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        return json.dumps(notificationslog[-int(kwargs["count"]) :])
+
+@quart_app.app.route("/notifications/mostrecent")
+def mostrecent_target():
+    kwargs = quart.request.args
+    try:
+        pages.require("view_status")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return json.dumps(notificationslog[-int(kwargs["count"]) :])
 
 
 epochAndRemaining = [0, 15]

@@ -3,10 +3,9 @@
 import time
 from collections import deque
 
-import cherrypy
 import structlog
 
-from . import messagebus, pages
+from . import messagebus, pages, quart_app
 from .config import config
 from .messagebus import normalize_topic
 
@@ -41,19 +40,19 @@ def messagelistener(topic, message):
 messagebus.subscribe("/#", messagelistener)
 
 
-class WebInterface:
-    @cherrypy.expose
-    def index(self, *args, **kwargs):
-        try:
-            pages.require("view_admin_info")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        return pages.get_template("logging/index.html").render()
+@quart_app.app.route("/logs")
+def logs_index():
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("logging/index.html").render()
 
-    @cherrypy.expose
-    def viewall(self, topic, page=1):
-        try:
-            pages.require("view_admin_info")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        return pages.get_template("logging/topic.html").render(topicname=normalize_topic(topic), page=int(page))
+
+@quart_app.app.route("/logs/viewall")
+def viewall(topic, page=1):
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("logging/topic.html").render(topicname=normalize_topic(topic), page=int(page))

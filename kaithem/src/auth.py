@@ -111,6 +111,8 @@ BasePermissions: dict[str, str] = {
 
 crossSiteRestrictedPermissions = BasePermissions.copy()
 crossSiteRestrictedPermissions.pop("__guest__")
+crossSiteRestrictedPermissions.pop("view_status")
+crossSiteRestrictedPermissions.pop("enumerate_endpoints")
 
 
 Permissions = {i: {"description": BasePermissions[i]} for i in BasePermissions}

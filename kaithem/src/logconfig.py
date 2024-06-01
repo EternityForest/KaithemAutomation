@@ -49,15 +49,6 @@ logger.setLevel(logging.WARNING)
 logger = logging.getLogger("apprise")
 logger.setLevel(logging.INFO)
 
-logger = logging.getLogger("tornado.general")
-logger.setLevel(logging.WARNING)
-
-logger = logging.getLogger("cherrypy.error")
-logger.setLevel(logging.WARNING)
-
-logging.getLogger("cherrypy.access").propagate = False
-logging.getLogger("tornado.access").propagate = False
-
 
 # Suppress low level from these outrageously chatty things
 excludeDebug = {

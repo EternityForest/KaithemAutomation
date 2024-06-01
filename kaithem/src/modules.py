@@ -17,7 +17,6 @@ from io import BytesIO
 from typing import Any
 
 import beartype
-import cherrypy
 import structlog
 import yaml
 from scullery import snake_compat
@@ -610,13 +609,13 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
         check_forbidden(i)
 
     if not ("/".join(new[:-1]) in modules_state.ActiveModules[toModule] or len(new) < 2):
-        raise cherrypy.HTTPRedirect("/errors/nofoldervmoverror")
+        raise ValueError("Invalid destination")
     if toModule not in modules_state.ActiveModules:
-        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
+        raise ValueError("Invalid destination")
     # If something by the name of the directory we are moving to exists but it is not a directory.
     # short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
     if not (len(new) < 2 or modules_state.ActiveModules[toModule]["/".join(new[:-1])]["resource_type"] == "directory"):
-        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
+        raise ValueError("Invalid destination")
 
     obj: modules_state.ResourceDictType = modules_state.ActiveModules[module][resource]
     rt = obj["resource_type"]

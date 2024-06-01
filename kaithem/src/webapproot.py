@@ -11,13 +11,11 @@ import time
 import traceback
 from typing import Callable
 
-import cherrypy
-import cherrypy._cpreqbody
 import iot_devices
 import iot_devices.host
+import quart
 import starlette.responses
 import structlog
-from cherrypy.lib.static import serve_file
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from hypercorn.middleware import AsyncioWSGIMiddleware, DispatcherMiddleware
@@ -25,6 +23,7 @@ from hypercorn.typing import ASGIFramework, Scope
 from quart import Response, make_response, request, send_file
 
 from kaithem.api import web as webapi
+from kaithem.src.chandler import web  # noqa: F401
 
 from . import (
     alerts,
@@ -78,8 +77,10 @@ async def favicon():
     return await send_file(fn, cache_timeout=3600 * 24)
 
 
-@quart_app.app.route("/apiwidget/<widgetid>/<js_name>")
-def apiwidget(widgetid, js_name):
+@quart_app.app.route("/apiwidget/<widgetid>")
+def apiwidget(widgetid):
+    js_name = request.args.get("js_name", None)
+    assert js_name
     try:
         pages.require("enumerate_endpoints")
     except PermissionError:
@@ -87,8 +88,9 @@ def apiwidget(widgetid, js_name):
     return widgets.widgets[widgetid]._render(js_name)
 
 
+# Todo: is this to slow for async??
 @quart_app.app.route("/user_static/<path:args>")
-def user_static(*args):
+async def user_static(*args):
     "Very simple file server feature!"
     try:
         pages.require("enumerate_endpoints")
@@ -96,7 +98,7 @@ def user_static(*args):
         return pages.loginredirect(pages.geturl())
     if not args:
         if os.path.exists(os.path.join(directories.vardir, "static", "index.html")):
-            return serve_file(os.path.join(directories.vardir, "static", "index.html"))
+            return await quart.send_file(os.path.join(directories.vardir, "static", "index.html"))
 
     try:
         dir = "/".join(args)
@@ -114,7 +116,7 @@ def user_static(*args):
             raise RuntimeError("Security violation")
 
         if os.path.isfile(dir):
-            return serve_file(dir)
+            return await quart.send_file(dir)
         else:
             x = [(i + "/" if os.path.isdir(os.path.join(dir, i)) else i) for i in os.listdir(dir)]
             x = "\r\n".join(['<a href="' + i + '">' + i + "</a><br>" for i in x])
@@ -127,13 +129,12 @@ def user_static(*args):
 async def index_default(*path, **data):
     r = settings.redirects.get("/", {}).get("url", "")
     if r:
-        raise cherrypy.HTTPRedirect(r)
+        raise quart.redirect(r)
 
     try:
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    cherrypy.response.cookie["LastSawMainPage"] = time.time()
     r = pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
     r2 = await make_response(r)
     r2.set_cookie("LastSawMainPage", str(time.time()))
@@ -289,14 +290,16 @@ class AsgiDispatcher:
         try:
             await app(scope, receive, send)
         except Exception:
-            r = starlette.responses.Response(pages.get_template("errors/e500.html").render(e=traceback.format_exc()))
-            await r(scope, receive, send)
+            if scope["type"] == "http":
+                r = starlette.responses.Response(pages.get_template("errors/e500.html").render(e=traceback.format_exc()))
+                await r(scope, receive, send)
+            else:
+                print("Error", traceback.format_exc())
             raise
 
 
 def startServer():
-    # We don't want Cherrypy writing temp files for no reason
-    cherrypy._cpreqbody.Part.maxrambytes = 64 * 1024
+    quart_app.app.config["MAX_CONTENT_LENGTH"] = 384 * 1024
     staticfiles.add_apps()
 
     hypercornapps = {}
@@ -347,9 +350,6 @@ def startServer():
 
     for i in webapi._asgi_apps:
         hypercornapps[i[0]] = AuthMiddleware(i[1], i[2])
-
-    for i in webapi._tornado_apps:
-        logging.error("Tornado apps no longer supported")
 
     hypercornapps["/"] = quart_app.app
     dispatcher_app = AsgiDispatcher(hypercornapps)

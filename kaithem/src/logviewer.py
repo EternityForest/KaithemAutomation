@@ -7,11 +7,10 @@ import os
 import re
 import textwrap
 
-import cherrypy
+import quart
 import structlog
-from cherrypy.lib.static import serve_file
 
-from . import directories, pages, pylogginghandler, util, widgets
+from . import directories, pages, pylogginghandler, quart_app, util, widgets
 
 syslogwidget = widgets.ScrollingWindow(2500)
 syslogwidget.require("view_admin_info")
@@ -97,46 +96,47 @@ def listlogdumps():
     return logz
 
 
-class WebInterface:
-    @cherrypy.expose
-    def index(self, *args, **kwargs):
-        try:
-            pages.require("view_admin_info")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        return pages.get_template("syslog/index.html").render()
+@quart_app.app.route("/syslog")
+def logindex():
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("syslog/index.html").render()
 
-    @cherrypy.expose
-    def servelog(self, filename):
-        try:
-            pages.require("view_admin_info")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        # Make sure the user can't acess any file on the server like this
 
-        # First security check, make sure there's no obvious special chars
-        if ".." in filename:
-            raise RuntimeError("Security Violation")
-        if "/" in filename:
-            raise RuntimeError("Security Violation")
-        if "\\" in filename:
-            raise RuntimeError("Security Violation")
-        if "~" in filename:
-            raise RuntimeError("Security Violation")
-        if "$" in filename:
-            raise RuntimeError("Security Violation")
+@quart_app.app.route("/syslog/servelog/<filename>")
+def servelog(filename):
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    # Make sure the user can't acess any file on the server like this
 
-        filename = os.path.join(directories.logdir, "dumps", filename)
-        filename = os.path.normpath(filename)
-        # Second security check, normalize the abs path and make sure it is what we think it is.
-        if not filename.startswith(os.path.normpath(os.path.abspath(os.path.join(directories.logdir, "dumps")))):
-            raise RuntimeError("Security Violation")
-        return serve_file(filename, "application/x-download", os.path.split(filename)[1])
+    # First security check, make sure there's no obvious special chars
+    if ".." in filename:
+        raise RuntimeError("Security Violation")
+    if "/" in filename:
+        raise RuntimeError("Security Violation")
+    if "\\" in filename:
+        raise RuntimeError("Security Violation")
+    if "~" in filename:
+        raise RuntimeError("Security Violation")
+    if "$" in filename:
+        raise RuntimeError("Security Violation")
 
-    @cherrypy.expose
-    def archive(self):
-        try:
-            pages.require("view_admin_info")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-        return pages.get_template("syslog/archive.html").render(files=listlogdumps())
+    filename = os.path.join(directories.logdir, "dumps", filename)
+    filename = os.path.normpath(filename)
+    # Second security check, normalize the abs path and make sure it is what we think it is.
+    if not filename.startswith(os.path.normpath(os.path.abspath(os.path.join(directories.logdir, "dumps")))):
+        raise RuntimeError("Security Violation")
+    return quart.send_file(filename, as_attachment=True, attachment_filename=os.path.split(filename)[1])
+
+
+@quart_app.app.route("/syslog/archive")
+def logarchive():
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("syslog/archive.html").render(files=listlogdumps())

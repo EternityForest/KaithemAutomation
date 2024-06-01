@@ -1,23 +1,23 @@
 import gc
 import os
 import time
+from asyncio import run
 
 import cherrypy
 import yaml
 
-from kaithem.src import devices, devices_interface, modules_state, tagpoints, webapproot
+from kaithem.src import devices, devices_interface, modules_state, quart_app, tagpoints, webapproot
 
 dir = "/dev/shm/kaithem_tests/"
+
+tc = quart_app.app.test_client()
 
 
 def test_make_demo_device():
     n = "test" + str(time.time()).replace(".", "_")
 
-    try:
-        webapproot.root.modules.newmoduletarget(name=n)
-        raise RuntimeError("Newmoduletarget should redirect")
-    except cherrypy.HTTPRedirect:
-        pass
+    c = run(tc.post("/modules/newmoduletarget", data={"name": n}))
+    assert c.status_code == 302
 
     assert n in modules_state.ActiveModules
 

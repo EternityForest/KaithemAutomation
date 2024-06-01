@@ -1,7 +1,7 @@
 <%!
 from kaithem.src import notifications,auth,unitsofmeasure,pages,alerts
 import time
-import cherrypy
+import quart
 from kaithem.src.config import config
 from kaithem.src.unitsofmeasure import format_time_interval
 
@@ -87,8 +87,8 @@ ${alertsapi.render("alertapi")}
         <div class="scroll max-h-24rem">
 
         <%
-        if "ackalarm" in cherrypy.request.params:
-            alerts.all[cherrypy.request.params['ackalarm']].API_ack()
+        if "ackalarm" in quart.request.args:
+            alerts.all[quart.request.args['ackalarm']].API_ack()
         toshow = {}
         l = []
 

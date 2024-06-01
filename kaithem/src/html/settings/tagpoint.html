@@ -6,7 +6,7 @@ import time
 import gc
 import collections
 import dateutil
-import cherrypy
+import quart
 %>
 <%
     pageGCListIgnoreFlag = True
@@ -23,7 +23,7 @@ import cherrypy
 
 
 <%
-if cherrypy.request.params.get("kaithem_disable_header",0):
+if quart.request.args.get("kaithem_disable_header",0):
     extraUrlStuff= "?kaithem_disable_header=true"
 else:
     extraUrlStuff =''

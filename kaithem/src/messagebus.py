@@ -4,7 +4,6 @@
 import traceback
 import weakref
 
-import cherrypy
 import structlog
 from scullery import messagebus
 
@@ -44,8 +43,8 @@ def handleMsgbusError(f, topic, message):
 
 
 def _shouldReRaiseAttrErr():
-    "Check if we actually need to notify about errors during cherrypy shutdown, to avoid annoyance"
-    return cherrypy.engine.state == cherrypy.engine.states.STARTED
+    "Check if we actually need to notify about errors during shutdown, to avoid annoyance"
+    return True
 
 
 messagebus.subscriber_error_handlers = [handleMsgbusError]
