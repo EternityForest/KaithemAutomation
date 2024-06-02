@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kaithem"
-version = "0.82.0"
+version = "0.83.0"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
 packages = [{ include = "kaithem" }, { include = "kaithem_cli" }]

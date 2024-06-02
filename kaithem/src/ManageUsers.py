@@ -9,6 +9,7 @@ from . import auth, dialogs, messagebus, pages, quart_app
 from .util import quote
 
 
+@quart_app.app.route("/auth/")
 @quart_app.app.route("/auth")
 def index():
     try:
@@ -126,7 +127,7 @@ async def newusertarget():
         {"user": kwargs["username"], "addedby": pages.getAcessingUser()},
     )
 
-    return quart.redirect("/auth/")
+    return quart.redirect("/auth")
 
 
 @quart_app.app.route("/auth/newgrouptarget", methods=["POST"])
@@ -148,7 +149,7 @@ async def newgrouptarget():
     )
 
     # Take the user back to the users page
-    return quart.redirect("/auth/")
+    return quart.redirect("/auth")
 
 
 @quart_app.app.route("/auth/updateuser/<user>", methods=["POST"])
@@ -233,7 +234,7 @@ async def updategroup(group):
 
 
 # Settings page for one individual user
-@quart_app.app.route("/auth/user/<username>", methods=["POST"])
+@quart_app.app.route("/auth/user/<username>")
 def user(username):
     # kwargs = await quart.request.form
     try:

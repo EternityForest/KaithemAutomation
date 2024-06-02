@@ -3,6 +3,7 @@ import { Page } from '@playwright/test';
 async function login(page: Page) {
     await page.goto('http://localhost:8002/');
 
+    // Might already be on the login page
     if (await page.getByRole('link', { name: 'Login' }).isVisible()) {
         await page.getByRole('link', { name: 'Login' }).click();
     }

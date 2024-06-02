@@ -33,9 +33,7 @@ test('test', async ({ page }) => {
     await page.getByLabel('Name').fill('e1');
     await page.getByRole('button', { name: 'Submit' }).click();
     await expect(page.getByRole('paragraph')).toContainText('This event has not ran since it loaded.');
-    await page.locator('#triggerbox').click({
-        clickCount: 3
-    });
+
     await page.locator('#triggerbox').fill('True');
     await page.getByRole('button', { name: 'Save Changes' }).click();
     await expect(page.locator('dl')).toContainText('ago');

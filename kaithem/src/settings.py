@@ -138,6 +138,8 @@ def legacy_route(f):
 
 
 @quart_app.app.route("/settings")
+@quart_app.app.route("/settings/index")
+@quart_app.app.route("/settings/")
 def index_settings():
     """Index page for web interface"""
     return pages.get_template("settings/index.html").render()
@@ -708,4 +710,4 @@ def clear():
     import yappi
 
     yappi.clear_stats()
-    return quart.redirect("/settings/profiler/")
+    return quart.redirect("/settings/profiler")
