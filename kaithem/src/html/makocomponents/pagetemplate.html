@@ -159,12 +159,12 @@ Tools</a>
         </form>
 
         %else:
-        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(quart.request.url().encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
+        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(quart.request.url.encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
         %endif
 
 
         %else:
-        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(quart.request.url().encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
+        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(quart.request.url.encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
         %endif
 
 

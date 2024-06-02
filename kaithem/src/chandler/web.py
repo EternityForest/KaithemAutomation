@@ -1,6 +1,7 @@
 import os
 
 import quart
+import quart.utils
 from mako.lookup import TemplateLookup
 
 from kaithem.src import quart_app, tagpoints
@@ -187,7 +188,7 @@ def dyn_js(file):
 
 
 @quart_app.app.route("/chandler/<path:path>")
-def default(path):
+async def default(path):
     kwargs = quart.request.args
     if path in ("webmediadisplay", "WebMediaServer"):
         pass
@@ -199,21 +200,26 @@ def default(path):
     if "." not in path:
         path = path + ".html"
     try:
-        r = get_template(path).render(
-            module=core,
-            kaithem=kaithem,
-            kwargs=kwargs,
-            scenes=scenes,
-            request=quart.request,
-        )
-        if isinstance(r, str):
-            r = r.encode()
+
+        def f():
+            r = get_template(path).render(
+                module=core,
+                kaithem=kaithem,
+                kwargs=kwargs,
+                scenes=scenes,
+                request=quart.request,
+            )
+            if isinstance(r, str):
+                r = r.encode()
+            return r
+
+        r = await quart.utils.run_sync(f)()
         return quart.Response(r, mimetype="text/html")
     except pages.ServeFileInsteadOfRenderingPageException as e:
         if not isinstance(e.f_filepath, (str, os.PathLike)):
             # bytesio not a real path....
             return quart.Response(e.f_filepath)
-        return quart.send_file(e.f_filepath, mimetype=e.f_MIME, as_attachment=True, attachment_filename=e.f_name)
+        return await quart.send_file(e.f_filepath, mimetype=e.f_MIME, as_attachment=True, attachment_filename=e.f_name)
 
 
 @quart_app.app.route("/chandler/static/<path:file>")

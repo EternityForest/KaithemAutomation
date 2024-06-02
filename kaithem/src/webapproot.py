@@ -392,7 +392,13 @@ def startServer():
     #             },
     #         )
     #         https_server.listen(config["https_port"], bindto)
+    shutdown_event = asyncio.Event()
 
-    asyncio.run(serve(dispatcher_app, config2))
+    def sd(*a):
+        shutdown_event.set()
+
+    messagebus.subscribe("/system/shutdown", sd)
+
+    asyncio.run(serve(dispatcher_app, config2, shutdown_event=shutdown_event))
 
     logger.info("Engine stopped")

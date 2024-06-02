@@ -12,6 +12,7 @@ import threading
 import time
 
 import quart
+import scullery.workers
 import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
@@ -205,6 +206,13 @@ def logstats():
                 MemUseWasTooHigh = False
         except Exception as e:
             raise e
+
+
+def stop_workers(*a):
+    scullery.workers.stop()
+
+
+messagebus.subscribe("/system/shutdown", stop_workers)
 
 
 def sd():

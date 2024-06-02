@@ -112,20 +112,22 @@ def loop():
                 u_cache = universes.getUniverses()
                 u = universes.universes
                 u_id = id(u)
+            do_gui_push = False
+            global lastrendered
+            if time.time() - lastrendered > 1 / 14.0:
+                with core.lock:
+                    pollsounds()
+                do_gui_push = True
+                lastrendered = time.time()
 
             with core.lock:
                 for b in core.iter_boards():
                     poll_board_scenes(b)
                     scene_lighting.composite_layers_and_do_output(b)
 
-            global lastrendered
-            if time.time() - lastrendered > 1 / 14.0:
-                with core.lock:
-                    pollsounds()
-                    for b in core.iter_boards():
+                    if do_gui_push:
                         b.guiPush(u_cache)
 
-                lastrendered = time.time()
             time.sleep(1 / 60)
         except Exception:
             logger.exception("Wat")

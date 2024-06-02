@@ -692,24 +692,24 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
 
-    def guiPush(self, snapshot):
+    def guiPush(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"
         with core.lock:
             for i in self.newDataFunctions:
                 i(self)
             self.newDataFunctions = []
-            for i in snapshot:
-                if self.id not in snapshot[i].statusChanged:
+            for i in universes_snapshot:
+                if self.id not in universes_snapshot[i].statusChanged:
                     self.linkSend(
                         [
                             "universe_status",
                             i,
-                            snapshot[i].status,
-                            snapshot[i].ok,
-                            snapshot[i].telemetry,
+                            universes_snapshot[i].status,
+                            universes_snapshot[i].ok,
+                            universes_snapshot[i].telemetry,
                         ]
                     )
-                    snapshot[i].statusChanged[self.id] = True
+                    universes_snapshot[i].statusChanged[self.id] = True
 
             for i in self.scenes:
                 # Tell clients about any changed alpha values and stuff.
