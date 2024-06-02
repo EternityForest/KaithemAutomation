@@ -26,7 +26,8 @@ def handle_404_exception(e):
 
 def wrap_sync_route_handler(f):
     """
-    Decorator that reads form data, passes it to function,
+    Decorator that reads form data, passes it to function
+    as keword args.
     and wraps the whole thing as async.
     """
 
