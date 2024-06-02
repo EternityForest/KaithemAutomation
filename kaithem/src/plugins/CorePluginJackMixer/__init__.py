@@ -1199,7 +1199,7 @@ class MixingBoard:
             raise ValueError("Empty preset name")
         with self.lock:
             util.disallowSpecialChars(presetName)
-            self.resourcedata["presets"][presetName] = self.channels
+            self.resourcedata["presets"][presetName] = copy.deepcopy(self.channels)
             modules_state.rawInsertResource(self.module, self.resource, self.resourcedata)
 
             self.loadedPreset = presetName

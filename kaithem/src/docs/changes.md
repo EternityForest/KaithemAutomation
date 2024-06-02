@@ -48,6 +48,7 @@ Change Log
 - :bug: Fix hashing new modules
 - :bug: :security: User page permissions were being removed on re-save.
 - :bug: :security: Because of this, please update to the new version of the Beholder module
+- :bug: Fix JACK Mixer presets being altered without manual save
 
 
 #### Changed
