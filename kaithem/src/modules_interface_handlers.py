@@ -162,7 +162,7 @@ def addresource(module, type):
             d.text_input("description")
 
         d.submit_button("Create")
-        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{type}/{url(path)}")
+        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{type}", hidden_inputs={"dir": path})
     else:
         return modules_state.additionalTypes[type].createpage(module, path)
 
@@ -325,7 +325,7 @@ async def resource_update_handler(module, resource):
     return await f()
 
 
-@quart_app.app.route("/deletemodule")
+@quart_app.app.route("/modules/deletemodule")
 def deletemodule():
     try:
         pages.require("system_admin")
@@ -518,7 +518,7 @@ async def module_update(module):
     return await f()
 
 
-@quart_app.app.route("/modules/module/<module>/newmoduletarget", methods=["POST"])
+@quart_app.app.route("/modules/newmoduletarget", methods=["POST"])
 async def newmoduletarget():
     try:
         pages.require("system_admin")

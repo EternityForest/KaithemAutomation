@@ -818,7 +818,7 @@ class PageType(modules_state.ResourceType):
         d.selection("template", options=["default"])
 
         d.submit_button("Create")
-        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}/{url(path)}")
+        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}", hidden_inputs={"path": path})
 
     def editpage(self, module, resource, resource_data):
         if "require_permissions" in resource_data:

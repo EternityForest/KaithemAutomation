@@ -150,7 +150,7 @@ async def login():
     return await quart.utils.run_sync(f)()
 
 
-@quart_app.app.route("/login/logout")
+@quart_app.app.route("/login/logout", methods=["POST"])
 def logout():
     # Change the security token to make the old one invalid and thus log user out.
     pages.postOnly()

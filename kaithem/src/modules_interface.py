@@ -447,7 +447,7 @@ def library():
     return pages.get_template("modules/library.html").render()
 
 
-@quart_app.app.route("/modules/module/<module>/newmoduletarget", methods=["POST"])
+@quart_app.app.route("/modules/loadlibmodule", methods=["POST"])
 async def loadlibmodule(module):
     "Load a module from the library"
     try:

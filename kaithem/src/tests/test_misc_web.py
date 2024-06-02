@@ -1,7 +1,18 @@
-from kaithem.src import webapproot
+import pytest
+
+from kaithem.src import quart_app
 
 
-def test_make_demo_device():
-    assert webapproot.webapproot().about()
-    assert webapproot.webapproot().tagpoints()
-    assert webapproot.webapproot().modules.index()
+@pytest.mark.asyncio
+async def test_app():
+    client = quart_app.app.test_client()
+
+    await client.post("/login", data={"username": "testuser", "password": "testpass"})  # pragma: allowlist secret
+    response = await client.get("/")
+    assert response.status_code == 200
+
+    response = await client.get("/tagpoints")
+    assert response.status_code == 200
+
+    response = await client.get("/about")
+    assert response.status_code == 200

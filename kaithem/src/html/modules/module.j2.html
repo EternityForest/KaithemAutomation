@@ -50,7 +50,7 @@
             <details>
                 <summary><b>Quick Actions</b></summary>
                 <iframe
-                    src="/modules/actions/{{ url(name) }}/{{'/'.join(path)}}?dir={{ url('/'.join(path) ) }}"></iframe>
+                    src="/modules/actions/{{ url(name) }}?dir={{ url('/'.join(path) ) }}"></iframe>
             </details>
         </section>
     </section>
@@ -66,21 +66,21 @@
         </div>
         <div class="tool-bar w-full">
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/permission/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                href="/modules/module/{{ url(name) }}/addresource/permission?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-key"></i>Permission</a>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/directory/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                href="/modules/module/{{ url(name) }}/addresource/directory?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-folder-outline"></i>Folder</a>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addfileresource/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-file-document"></i>File</a>
             <a class="button"
-                href="/modules/module/{{ url(name) }}/addresource/device/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}"><i
+                href="/modules/module/{{ url(name) }}/addresource/device?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-chip"></i>Device</a>
             {% for i in modules.additionalTypes %}
             {% if modules.additionalTypes[i].mdi_icon %}
             <a class="button createbutton"
-                href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}/{{ url('/'.join(path) ) }}?dir={{ url('/'.join(path) ) }}">
+                href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}?dir={{ url('/'.join(path) ) }}">
                 <i
                     class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
             {% endif %}

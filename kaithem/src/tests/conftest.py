@@ -10,6 +10,7 @@ import os
 import shutil
 
 import kaithem
+import kaithem.src.auth
 import kaithem.src.config
 
 if os.path.exists("/dev/shm/kaithem_tests"):
@@ -18,6 +19,11 @@ if os.path.exists("/dev/shm/kaithem_tests"):
 os.makedirs("/dev/shm/kaithem_tests/plugins/Test")
 
 old_open = open
+
+kaithem.src.auth.addUser("testuser", "testpass")
+kaithem.src.auth.addGroup("testgroup")
+kaithem.src.auth.addGroupPermission("testgroup", "__all_permissions__")
+kaithem.src.auth.addUserToGroup("testuser", "testgroup")
 
 
 def open2(path, mode="r", *args, **kwargs):
