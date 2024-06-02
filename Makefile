@@ -115,6 +115,10 @@ dev-build-docs:
 dev-count-lines: # Line count summary
 	@poetry run pygount --merge-embedded-languages --format=summary --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/
 
+.PHONY: dev-playwright-ui
+dev-playwright-ui: # Open playwright tests UI
+	@npx playwright test --ui
+
 
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
