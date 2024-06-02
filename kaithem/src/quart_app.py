@@ -1,6 +1,8 @@
 import traceback
 
+import quart
 from quart import Quart, Response
+from quart.ctx import copy_current_request_context
 from werkzeug.exceptions import InternalServerError, NotFound
 
 from kaithem.src import pages
@@ -20,3 +22,24 @@ def handle_exception(e):
 def handle_404_exception(e):
     r = pages.get_template("errors/e404.html").render()
     return Response(r, status=404)
+
+
+def wrap_sync_route_handler(f):
+    """
+    Decorator that reads form data, passes it to function,
+    and wraps the whole thing as async.
+    """
+
+    async def f2(*a, **k):
+        kwargs = dict(await quart.request.form)
+        kwargs.update(quart.request.args)
+
+        @copy_current_request_context
+        def f3():
+            return f(*a, **k, **kwargs)
+
+        return await f3()
+
+    f2.__name__ = f.__name__ + "_wrapped"
+
+    return f2

@@ -31,7 +31,7 @@ def followAttributes(root, path):
     return root
 
 
-@quart_app.app.route("/modules/module/<module>/obj/<path:path>")
+@quart_app.app.route("/modules/module/<module>/obj/<path:path>", methods=["POST"])
 async def obj_inspect(module, path=""):
     kwargs = await request.form
     path = path.split("/")

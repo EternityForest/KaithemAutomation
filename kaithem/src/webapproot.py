@@ -9,21 +9,21 @@ import os
 import sys
 import time
 import traceback
-from typing import Callable
 
 import iot_devices
 import iot_devices.host
 import quart
-import starlette.responses
 import structlog
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from hypercorn.middleware import AsyncioWSGIMiddleware, DispatcherMiddleware
-from hypercorn.typing import ASGIFramework, Scope
 from quart import Response, make_response, request, send_file
 
 from kaithem.api import web as webapi
+from kaithem.src import devices_interface  # noqa: F401
+from kaithem.src.asgimiddleware.auth import SimpleUserAuthMiddleware
 from kaithem.src.asgimiddleware.contentsize import ContentSizeLimitMiddleware
+from kaithem.src.asgimiddleware.dispatcher import AsgiDispatcher
 from kaithem.src.chandler import web  # noqa: F401
 
 from . import (
@@ -202,12 +202,13 @@ def action_step(id):
 
 
 @quart_app.app.route("/tag_api/<cmd>/<path:path>")
-def tag_api(cmd, *path):
+def tag_api(cmd, path):
     # This page could be slow because of the db stuff, so we restrict it more
     try:
         pages.require("enumerate_endpoints")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+    path = path.split("/")
 
     if path:
         tn = "/".join(path)
@@ -267,38 +268,6 @@ def license():
     return pages.get_template("help/license.html").render()
 
 
-class AsgiDispatcher:
-    def __init__(self, patterns):
-        self.patterns = []
-        for i in patterns:
-            self.patterns.append((i, patterns[i]))
-
-        # Longest to shortest
-        self.patterns.sort()
-        self.patterns.reverse()
-
-    async def __call__(self, scope, receive, send):
-        app = None
-        for p in self.patterns:
-            scope_path = p[0]
-            asgi_application = p[1]
-
-            if scope["path"].startswith(scope_path):
-                app = asgi_application
-                break
-
-        assert app
-        try:
-            await app(scope, receive, send)
-        except Exception:
-            if scope["type"] == "http":
-                r = starlette.responses.Response(pages.get_template("errors/e500.html").render(e=traceback.format_exc()))
-                await r(scope, receive, send)
-            else:
-                print("Error", traceback.format_exc())
-            raise
-
-
 def startServer():
     quart_app.app.config["MAX_CONTENT_LENGTH"] = 2**62
     staticfiles.add_apps()
@@ -329,28 +298,14 @@ def startServer():
     messagebus.post_message("/system/startup", "System Initialized")
     messagebus.post_message("/system/notifications/important", "System Initialized")
 
-    class AuthMiddleware:
-        def __init__(self, app: ASGIFramework, permissions: str) -> None:
-            self.app = app
-            self.permissions = permissions
-
-        async def __call__(self, scope: Scope, receive: Callable, send: Callable) -> None:
-            if scope["type"] == "lifespan":
-                await self.app(scope, receive, send)
-            else:
-                u = pages.getAcessingUser(asgi=scope)
-                if not pages.canUserDoThis(self.permissions, u):
-                    raise RuntimeError("Todo this is a permissino err")
-            await self.app(scope, receive, send)
-
-    webapi.add_asgi_app("/widgets/ws", widgets.app, "__guest__")
-    webapi.add_asgi_app("/widgets/wsraw", widgets.rawapp, "__guest__")
+    hypercornapps["/widgets/wsraw"] = widgets.rawapp
+    hypercornapps["/widgets/ws"] = widgets.app
 
     for i in webapi._wsgi_apps:
-        hypercornapps[i[0]] = AuthMiddleware(AsyncioWSGIMiddleware(i[1]), i[2])
+        hypercornapps[i[0]] = SimpleUserAuthMiddleware(AsyncioWSGIMiddleware(i[1]), i[2])
 
     for i in webapi._asgi_apps:
-        hypercornapps[i[0]] = AuthMiddleware(i[1], i[2])
+        hypercornapps[i[0]] = SimpleUserAuthMiddleware(i[1], i[2])
 
     hypercornapps["/"] = quart_app.app
     dispatcher_app = AsgiDispatcher(hypercornapps)

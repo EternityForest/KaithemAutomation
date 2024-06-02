@@ -20,7 +20,7 @@ from kaithem.src.devices import (
     updateDevice,
     wrcopy,
 )
-from kaithem.src.quart_app import app
+from kaithem.src.quart_app import app, wrap_sync_route_handler
 
 
 def read(f):
@@ -101,7 +101,7 @@ def report():
     )
 
 
-@app.route("/devices/<name>/manage")
+@app.route("/device/<name>/manage")
 def device_manage(name):
     try:
         pages.require("enumerate_endpoints")
@@ -135,13 +135,13 @@ def device_manage(name):
     )
 
 
-@app.route("/devices/<name>")
-def device(name, *args, **kwargs):
+@app.route("/device/<name>")
+def device(name):
     try:
         pages.require("enumerate_endpoints")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return redirect("/manage")
+    return redirect(f"/device/{name}/manage")
 
 
 @app.route("/devices/devicedocs/<name>")
@@ -161,19 +161,21 @@ def devicedocs(name):
     return pages.get_template("devices/devicedocs.html").render(docs=x)
 
 
-@app.route("/devices/updateDevice/<devname>")
-def updateDevicePage(devname):
+@app.route("/devices/updateDevice/<devname>", methods=["POST"])
+@wrap_sync_route_handler
+def updateDeviceTarget(devname, **kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
-    updateDevice(devname, request.args)
+    updateDevice(devname, kwargs)
     return redirect("/devices")
 
 
 @app.route("/devices/discoveryStep/<type>/<devname>", methods=["POST"])
-def discoveryStep(type, devname):
+@wrap_sync_route_handler
+def discoveryStep(type, devname, **kwargs):
     """
     Do a step of iterative device discovery.  Can start either from just a type or we can take
     an existing device config and ask it for refinements.
@@ -182,33 +184,32 @@ def discoveryStep(type, devname):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-
-    current = request.args
+    current = kwargs
 
     if devname and devname in devices.remote_devices:
         # If possible just use the actual object
         d = devices.remote_devices[devname]
         c = copy.deepcopy(d.config)
-        c.update(request.args)
-        current = c
+        c.update(current)
         obj = d
     else:
         obj = None
         d = getDeviceType(type)
+        c = current
 
     d = d.discover_devices(
-        current,
+        c,
         current_device=devices.remote_devices.get(devname, None),
         intent="step",
     )
 
-    dt = pages.get_template("devices/discoverstep.html").render(data=d, current=current, name=devname, obj=obj)
+    dt = pages.get_template("devices/discoverstep.html").render(data=d, current=c, name=devname, obj=obj)
     return Response(dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
 
 @app.route("/devices/createDevice", methods=["POST"])
-def createDevice(self):
-    kwargs = request.args
+@wrap_sync_route_handler
+def createDevice(**kwargs):
     "Actually create the new device"
     try:
         pages.require("system_admin")
@@ -281,7 +282,8 @@ def deleteDevice(name):
 
 
 @app.route("/devices/settarget/<name>/<tag>", methods=["POST"])
-def settarget(name, tag):
+@wrap_sync_route_handler
+def settarget(name, tag, **kwargs):
     try:
         pages.require("enumerate_endpoints")
     except PermissionError:
@@ -297,13 +299,14 @@ def settarget(name, tag):
             return pages.loginredirect(pages.geturl())
 
     if tag in x.tagpoints:
-        x.tagpoints[tag].value = request.args["value"]
+        x.tagpoints[tag].value = kwargs["value"]
 
     return ""
 
 
 @app.route("/devices/dimtarget/<name>/<tag>", methods=["POST"])
-def dimtarget(name, tag):
+@wrap_sync_route_handler
+def dimtarget(name, tag, **kwargs):
     "Set a color tagpoint to a dimmed version of it."
     try:
         pages.require("enumerate_endpoints")
@@ -321,14 +324,15 @@ def dimtarget(name, tag):
 
     if tag in x.tagpoints:
         try:
-            x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(request.args["value"])).html
+            x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(kwargs["value"])).html
         except Exception:
-            x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(request.args["value"])).html
+            x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(kwargs["value"])).html
     return ""
 
 
 @app.route("/devices/triggertarget/<name>/<tag>", methods=["POST"])
-def triggertarget(name, tag):
+@wrap_sync_route_handler
+def triggertarget(name, tag, **kwargs):
     try:
         pages.require("enumerate_endpoints")
     except PermissionError:
@@ -349,16 +353,17 @@ def triggertarget(name, tag):
 
 
 @app.route("/devices/deletetarget", methods=["POST"])
-def deletetarget():
+@wrap_sync_route_handler
+def deletetarget(**kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    name = request.args["name"]
+    name = kwargs["name"]
     with modules_state.modulesLock:
         x = devices.remote_devices[name]
         # Delete bookkeep removes it from device data if present
-        delete_bookkeep(name, "delete_conf_dir" in request.args)
+        delete_bookkeep(name, "delete_conf_dir" in kwargs)
 
         if x.parent_module:
             modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
