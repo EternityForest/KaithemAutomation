@@ -86,10 +86,10 @@ class ResourceType:
         """
 
     def get_create_target(self, module, folder):
-        return f"/modules/module/{module}/addresourcetarget/{self.type}/{quote(folder,safe='')}"
+        return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder,safe='')}"
 
     def get_update_target(self, module, resource):
-        return f"/modules/module/{quote(module)}/updateresource/{quote(resource,safe='')}"
+        return f"/modules/module/{quote(module)}/updateresource/{resource}"
 
     def _blurb(self, module, resource, object):
         try:
@@ -110,7 +110,7 @@ class ResourceType:
         """
         return f"""
 
-        <form method=POST action="/modules/module/{module}/addresourcetarget/example/{path}">
+        <form method=POST action="/modules/module/{module}/addresourcetarget/example?dir={quote(path, safe='')}">
         <input name="name">
         <input type="submit">
         </form>

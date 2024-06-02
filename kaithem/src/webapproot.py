@@ -23,6 +23,7 @@ from hypercorn.typing import ASGIFramework, Scope
 from quart import Response, make_response, request, send_file
 
 from kaithem.api import web as webapi
+from kaithem.src.asgimiddleware.contentsize import ContentSizeLimitMiddleware
 from kaithem.src.chandler import web  # noqa: F401
 
 from . import (
@@ -141,7 +142,7 @@ async def index_default(*path, **data):
     return r2
 
 
-@quart_app.app.route("/index")
+@quart_app.app.route("/index", methods=["GET", "POST"])
 async def index_direct():
     try:
         pages.require("view_status")
@@ -299,7 +300,7 @@ class AsgiDispatcher:
 
 
 def startServer():
-    quart_app.app.config["MAX_CONTENT_LENGTH"] = 384 * 1024
+    quart_app.app.config["MAX_CONTENT_LENGTH"] = 2**62
     staticfiles.add_apps()
 
     hypercornapps = {}
@@ -399,6 +400,6 @@ def startServer():
 
     messagebus.subscribe("/system/shutdown", sd)
 
-    asyncio.run(serve(dispatcher_app, config2, shutdown_event=shutdown_event))
+    asyncio.run(serve(ContentSizeLimitMiddleware(dispatcher_app), config2, shutdown_event=shutdown_event))
 
     logger.info("Engine stopped")

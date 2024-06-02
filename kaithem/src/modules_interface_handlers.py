@@ -234,7 +234,7 @@ async def addresourcetarget(module, rtype):
 
 
 # This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
-@quart_app.app.route("/modules/module/<module>/updateresource/<resource>", methods=["POST"])
+@quart_app.app.route("/modules/module/<module>/updateresource/<path:resource>", methods=["POST"])
 async def resource_update_handler(module, resource):
     kwargs = await request.form
     try:
