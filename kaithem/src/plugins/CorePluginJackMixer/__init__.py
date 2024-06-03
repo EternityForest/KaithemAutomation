@@ -1365,12 +1365,20 @@ class MixingBoard:
 
 
 def STOP(*a):
+    ds = None
     # Shut down in opposite order we started in
     for board in boards.values():
         with board.lock:
             board.running = False
             for i in board.channelObjects:
                 board.channelObjects[i].stop(at_exit=True)
+
+    try:
+        if ds:
+            ds.stop()
+            ds = None
+    except Exception:
+        logging.exception("Exception stopping dummy source")
 
 
 messagebus.subscribe("/system/shutdown", STOP)
